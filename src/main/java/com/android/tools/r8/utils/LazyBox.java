@@ -4,15 +4,17 @@
 
 package com.android.tools.r8.utils;
 
-import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-public class ConsumerUtils {
+public class LazyBox<T> extends Box<T> {
 
-  public static <T> Consumer<T> emptyConsumer() {
-    return ignore -> {};
+  private final Supplier<T> supplier;
+
+  public LazyBox(Supplier<T> supplier) {
+    this.supplier = supplier;
   }
 
-  public static <T> ThrowingConsumer<T, RuntimeException> emptyThrowingConsumer() {
-    return ignore -> {};
+  public T computeIfAbsent() {
+    return super.computeIfAbsent(supplier);
   }
 }

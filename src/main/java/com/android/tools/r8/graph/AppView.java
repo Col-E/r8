@@ -99,7 +99,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.options = options;
     this.rewritePrefix = mapper;
 
-    if (enableWholeProgramOptimizations() && options.isCallSiteOptimizationEnabled()) {
+    if (enableWholeProgramOptimizations() && options.callSiteOptimizationOptions().isEnabled()) {
       this.callSiteOptimizationInfoPropagator =
           new CallSiteOptimizationInfoPropagator(withLiveness());
     } else {

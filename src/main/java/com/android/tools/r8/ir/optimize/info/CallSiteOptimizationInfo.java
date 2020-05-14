@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
@@ -47,7 +48,7 @@ public abstract class CallSiteOptimizationInfo {
   }
 
   public CallSiteOptimizationInfo join(
-      CallSiteOptimizationInfo other, AppView<?> appView, DexEncodedMethod encodedMethod) {
+      CallSiteOptimizationInfo other, AppView<?> appView, DexEncodedMethod method) {
     if (isAbandoned() || other.isAbandoned()) {
       return abandoned();
     }
@@ -59,7 +60,7 @@ public abstract class CallSiteOptimizationInfo {
     }
     assert isConcreteCallSiteOptimizationInfo() && other.isConcreteCallSiteOptimizationInfo();
     return asConcreteCallSiteOptimizationInfo()
-        .join(other.asConcreteCallSiteOptimizationInfo(), appView, encodedMethod);
+        .join(other.asConcreteCallSiteOptimizationInfo(), appView, method);
   }
 
   /**
@@ -68,8 +69,12 @@ public abstract class CallSiteOptimizationInfo {
    * if a certain argument is guaranteed to be definitely not null for all call sites, null-check on
    * that argument can be simplified during the reprocessing of the method.
    */
-  public boolean hasUsefulOptimizationInfo(AppView<?> appView, DexEncodedMethod encodedMethod) {
+  public boolean hasUsefulOptimizationInfo(AppView<?> appView, DexEncodedMethod method) {
     return false;
+  }
+
+  public final boolean hasUsefulOptimizationInfo(AppView<?> appView, ProgramMethod method) {
+    return hasUsefulOptimizationInfo(appView, method.getDefinition());
   }
 
   // The index exactly matches with in values of invocation, i.e., even including receiver.

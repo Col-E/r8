@@ -453,7 +453,7 @@ public class B77836766 extends TestBase {
     // Callees are invoked with a simple constant, e.g., "Bar". Propagating it into the callees
     // bothers what the tests want to check, such as exact instructions in the body that include
     // invocation kinds, like virtual call to a bridge.
-    options.enablePropagationOfConstantsAtCallSites = false;
+    assert !options.callSiteOptimizationOptions().isConstantPropagationEnabled();
     // Disable inlining to avoid the (short) tested method from being inlined and then removed.
     options.enableInlining = false;
   }

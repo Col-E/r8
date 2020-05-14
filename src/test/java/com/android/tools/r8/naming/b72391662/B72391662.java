@@ -161,7 +161,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
   @Test
   public void test_keepNonPublic() throws Exception {
     Assume.assumeFalse(shrinker.generatesDex() && vmVersionIgnored());
-    Class mainClass = TestMain.class;
+    Class<?> mainClass = TestMain.class;
     String keep = !minify ? "-keep" : "-keep,allowobfuscation";
     List<String> config = ImmutableList.of(
         "-printmapping",

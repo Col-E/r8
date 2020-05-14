@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -30,12 +31,6 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   private final Int2ReferenceMap<TypeElement> dynamicUpperBoundTypes;
   private final Int2ReferenceMap<AbstractValue> constants;
 
-  private ConcreteCallSiteOptimizationInfo(
-      DexEncodedMethod encodedMethod, boolean allowConstantPropagation) {
-    this(encodedMethod.method.getArity() + (encodedMethod.isStatic() ? 0 : 1),
-        allowConstantPropagation);
-  }
-
   private ConcreteCallSiteOptimizationInfo(int size, boolean allowConstantPropagation) {
     assert size > 0;
     this.size = size;
@@ -44,12 +39,12 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   }
 
   CallSiteOptimizationInfo join(
-      ConcreteCallSiteOptimizationInfo other, AppView<?> appView, DexEncodedMethod encodedMethod) {
+      ConcreteCallSiteOptimizationInfo other, AppView<?> appView, DexEncodedMethod method) {
     assert this.size == other.size;
-    boolean allowConstantPropagation = appView.options().enablePropagationOfConstantsAtCallSites;
+    boolean allowConstantPropagation =
+        appView.options().callSiteOptimizationOptions().isConstantPropagationEnabled();
     ConcreteCallSiteOptimizationInfo result =
         new ConcreteCallSiteOptimizationInfo(this.size, allowConstantPropagation);
-    assert result.dynamicUpperBoundTypes != null;
     for (int i = 0; i < result.size; i++) {
       if (allowConstantPropagation) {
         assert result.constants != null;
@@ -72,7 +67,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       result.dynamicUpperBoundTypes.put(
           i, thisUpperBoundType.join(otherUpperBoundType, appView));
     }
-    if (result.hasUsefulOptimizationInfo(appView, encodedMethod)) {
+    if (result.hasUsefulOptimizationInfo(appView, method)) {
       return result;
     }
     // As soon as we know the argument collection so far does not have any useful optimization info,
@@ -80,34 +75,32 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     return top();
   }
 
-  private TypeElement[] getStaticTypes(AppView<?> appView, DexEncodedMethod encodedMethod) {
-    int argOffset = encodedMethod.isStatic() ? 0 : 1;
-    int size = encodedMethod.method.getArity() + argOffset;
+  private TypeElement[] getStaticTypes(AppView<?> appView, DexEncodedMethod method) {
+    int argOffset = method.isStatic() ? 0 : 1;
+    int size = method.method.getArity() + argOffset;
     TypeElement[] staticTypes = new TypeElement[size];
-    if (!encodedMethod.isStatic()) {
-      staticTypes[0] =
-          TypeElement.fromDexType(encodedMethod.holder(), definitelyNotNull(), appView);
+    if (!method.isStatic()) {
+      staticTypes[0] = TypeElement.fromDexType(method.holder(), definitelyNotNull(), appView);
     }
-    for (int i = 0; i < encodedMethod.method.getArity(); i++) {
+    for (int i = 0; i < method.method.getArity(); i++) {
       staticTypes[i + argOffset] =
-          TypeElement.fromDexType(
-              encodedMethod.method.proto.parameters.values[i], maybeNull(), appView);
+          TypeElement.fromDexType(method.parameters().values[i], maybeNull(), appView);
     }
     return staticTypes;
   }
 
   @Override
-  public boolean hasUsefulOptimizationInfo(AppView<?> appView, DexEncodedMethod encodedMethod) {
-    TypeElement[] staticTypes = getStaticTypes(appView, encodedMethod);
+  public boolean hasUsefulOptimizationInfo(AppView<?> appView, DexEncodedMethod method) {
+    TypeElement[] staticTypes = getStaticTypes(appView, method);
     for (int i = 0; i < size; i++) {
-      ParameterUsage parameterUsage = encodedMethod.getOptimizationInfo().getParameterUsages(i);
+      ParameterUsage parameterUsage = method.getOptimizationInfo().getParameterUsages(i);
       // If the parameter is not used, passing accurate argument info doesn't matter.
       if (parameterUsage != null && parameterUsage.notUsed()) {
         continue;
       }
       AbstractValue abstractValue = getAbstractArgumentValue(i);
       if (abstractValue.isNonTrivial()) {
-        assert appView.options().enablePropagationOfConstantsAtCallSites;
+        assert appView.options().callSiteOptimizationOptions().isConstantPropagationEnabled();
         return true;
       }
 
@@ -118,7 +111,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       if (dynamicUpperBoundType == null) {
         continue;
       }
-      assert appView.options().enablePropagationOfDynamicTypesAtCallSites;
+      assert appView.options().callSiteOptimizationOptions().isTypePropagationEnabled();
       // To avoid the full join of type lattices below, separately check if the nullability of
       // arguments is improved, and if so, we can eagerly conclude that we've collected useful
       // call site information for this method.
@@ -154,37 +147,50 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   }
 
   public static CallSiteOptimizationInfo fromArguments(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod target, List<Value> inValues) {
-    boolean allowConstantPropagation = appView.options().enablePropagationOfConstantsAtCallSites;
+      AppView<AppInfoWithLiveness> appView,
+      DexMethod invokedMethod,
+      List<Value> arguments,
+      ProgramMethod context) {
+    boolean allowConstantPropagation =
+        appView.options().callSiteOptimizationOptions().isConstantPropagationEnabled();
     ConcreteCallSiteOptimizationInfo newCallSiteInfo =
-        new ConcreteCallSiteOptimizationInfo(target.getDefinition(), allowConstantPropagation);
-    assert newCallSiteInfo.size == inValues.size();
+        new ConcreteCallSiteOptimizationInfo(arguments.size(), allowConstantPropagation);
+    boolean hasReceiver = arguments.size() > invokedMethod.getArity();
+    boolean isTop = true;
     assert newCallSiteInfo.dynamicUpperBoundTypes != null;
     for (int i = 0; i < newCallSiteInfo.size; i++) {
-      Value arg = inValues.get(i);
+      Value arg = arguments.get(i);
+
+      // Constant propagation.
       if (allowConstantPropagation) {
         assert newCallSiteInfo.constants != null;
         Value aliasedValue = arg.getAliasedValue();
         if (!aliasedValue.isPhi()) {
-          AbstractValue abstractValue = aliasedValue.definition.getAbstractValue(appView, target);
+          AbstractValue abstractValue = aliasedValue.definition.getAbstractValue(appView, context);
           if (abstractValue.isNonTrivial()) {
             newCallSiteInfo.constants.put(i, abstractValue);
+            isTop = false;
           }
         }
       }
 
-      if (arg.getType().isPrimitiveType()) {
-        continue;
+      // Type propagation.
+      if (arg.getType().isReferenceType()) {
+        TypeElement staticType =
+            TypeElement.fromDexType(
+                hasReceiver ? invokedMethod.holder : invokedMethod.proto.getParameter(i),
+                maybeNull(),
+                appView);
+        TypeElement dynamicUpperBoundType = arg.getDynamicUpperBoundType(appView);
+        if (dynamicUpperBoundType != staticType) {
+          newCallSiteInfo.dynamicUpperBoundTypes.put(i, dynamicUpperBoundType);
+          isTop = false;
+        } else {
+          newCallSiteInfo.dynamicUpperBoundTypes.put(i, staticType);
+        }
       }
-      assert arg.getType().isReferenceType();
-      newCallSiteInfo.dynamicUpperBoundTypes.put(i, arg.getDynamicUpperBoundType(appView));
     }
-    if (newCallSiteInfo.hasUsefulOptimizationInfo(appView, target.getDefinition())) {
-      return newCallSiteInfo;
-    }
-    // As soon as we know the current call site does not have any useful optimization info,
-    // return TOP so that further collection can be simply skipped.
-    return top();
+    return isTop ? CallSiteOptimizationInfo.top() : newCallSiteInfo;
   }
 
   @Override

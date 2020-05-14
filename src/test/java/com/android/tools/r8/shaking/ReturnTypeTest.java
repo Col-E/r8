@@ -53,7 +53,7 @@ public class ReturnTypeTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -77,20 +77,23 @@ public class ReturnTypeTest extends TestBase {
         .addProgramClasses(
             B112517039ReturnType.class, B112517039I.class, B112517039Caller.class, MAIN)
         .addKeepMainRule(MAIN)
-        .setMinApi(parameters.getRuntime())
-        .addOptionsModification(o -> {
-          // No actual implementation of B112517039I, rather invoked with `null`.
-          // Call site optimization propagation will conclude that the input of B...Caller#call is
-          // always null, and replace the last call with null-throwing instruction.
-          // However, we want to test return type and parameter type are kept in this scenario.
-          o.enablePropagationOfDynamicTypesAtCallSites = false;
-          o.enableInlining = false;
-        })
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(
+            o -> {
+              // No actual implementation of B112517039I, rather invoked with `null`.
+              // Call site optimization propagation will conclude that the input of B...Caller#call
+              // is
+              // always null, and replace the last call with null-throwing instruction.
+              // However, we want to test return type and parameter type are kept in this scenario.
+              o.callSiteOptimizationOptions().disableTypePropagationForTesting();
+              o.enableInlining = false;
+            })
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT)
-        .inspect(inspector -> {
-          ClassSubject returnType = inspector.clazz(B112517039ReturnType.class);
-          assertThat(returnType, isRenamed());
-        });
+        .inspect(
+            inspector -> {
+              ClassSubject returnType = inspector.clazz(B112517039ReturnType.class);
+              assertThat(returnType, isRenamed());
+            });
   }
 }

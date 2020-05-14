@@ -33,6 +33,18 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     super(target, result, arguments);
   }
 
+  public boolean hasRefinedReceiverLowerBoundType(AppView<AppInfoWithLiveness> appView) {
+    assert isInvokeMethodWithDynamicDispatch();
+    return getReceiver().getDynamicLowerBoundType(appView) != null;
+  }
+
+  public boolean hasRefinedReceiverUpperBoundType(AppView<AppInfoWithLiveness> appView) {
+    assert isInvokeMethodWithDynamicDispatch();
+    DexType staticReceiverType = getInvokedMethod().holder;
+    DexType refinedReceiverType = TypeAnalysis.getRefinedReceiverType(appView, this);
+    return refinedReceiverType != staticReceiverType;
+  }
+
   @Override
   public boolean isInvokeMethodWithReceiver() {
     return true;
