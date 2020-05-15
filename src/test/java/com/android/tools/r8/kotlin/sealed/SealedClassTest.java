@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin.sealed;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -74,10 +75,10 @@ public class SealedClassTest extends KotlinTestBase {
         .allowDiagnosticWarningMessages(parameters.isCfRuntime())
         .addKeepMainRule(MAIN)
         .compileWithExpectedDiagnostics(
-            diagnosticMessages -> {
-              diagnosticMessages.assertAllWarningMessagesMatch(
-                  containsString("Resource 'META-INF/MANIFEST.MF' already exists."));
-            })
+            diagnostics ->
+                diagnostics.assertAllWarningsMatch(
+                    diagnosticMessage(
+                        containsString("Resource 'META-INF/MANIFEST.MF' already exists."))))
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines(EXPECTED);
   }

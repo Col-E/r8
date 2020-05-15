@@ -150,12 +150,13 @@ public class R8CommandTest {
     Path working = temp.getRoot().toPath();
     Path flags = working.resolve("flags.txt").toAbsolutePath();
     assertNotEquals(0, ToolHelper.forkR8(working, "@flags.txt").exitCode);
-    DiagnosticsChecker.checkErrorsContains("File not found", handler ->
-        R8.run(
-            R8Command.parse(
-                new String[] { "@" + flags.toString() },
-                EmbeddedOrigin.INSTANCE,
-                handler).build()));
+    DiagnosticsChecker.checkErrorsContains(
+        "NoSuchFileException",
+        handler ->
+            R8.run(
+                R8Command.parse(
+                        new String[] {"@" + flags.toString()}, EmbeddedOrigin.INSTANCE, handler)
+                    .build()));
   }
 
   @Test(expected = CompilationFailedException.class)

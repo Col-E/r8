@@ -372,8 +372,10 @@ public class LazyCfCode extends Code {
         // This code visitor is used only if the method is neither abstract nor native, hence it
         // should have exactly one Code attribute:
         // https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3
-        throw new CompilationError("Absent Code attribute in method that is not native or abstract")
-            .withAdditionalOriginAndPositionInfo(origin, new MethodPosition(method));
+        throw new CompilationError(
+            "Absent Code attribute in method that is not native or abstract",
+            origin,
+            new MethodPosition(method));
       }
       code.setCode(
           new CfCode(

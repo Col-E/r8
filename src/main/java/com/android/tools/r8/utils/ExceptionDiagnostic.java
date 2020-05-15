@@ -4,26 +4,38 @@
 
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.NoSuchFileException;
 
+/**
+ * Diagnostic for any unhandled exception arising during compilation.
+ *
+ * <p>The inner-most exception giving rise to the exception can be obtained as the "cause". If the
+ * the inner-most exception is not the same as the exception at the point of the interception and
+ * conversion to a diagnostic, the full exception stack can be obtained in the suppressed exceptions
+ * on the inner-most cause.
+ */
 @Keep
-public class ExceptionDiagnostic extends DiagnosticWithThrowable {
+public class ExceptionDiagnostic implements Diagnostic {
 
+  private final Throwable cause;
   private final Origin origin;
   private final Position position;
 
-  public ExceptionDiagnostic(Throwable e, Origin origin, Position position) {
-    super(e);
+  public ExceptionDiagnostic(Throwable cause, Origin origin, Position position) {
+    assert cause != null;
+    assert origin != null;
+    assert position != null;
+    this.cause = cause;
     this.origin = origin;
     this.position = position;
+  }
+
+  public ExceptionDiagnostic(Throwable cause) {
+    this(cause, Origin.unknown(), Position.UNKNOWN);
   }
 
   public ExceptionDiagnostic(Throwable e, Origin origin) {
@@ -44,20 +56,12 @@ public class ExceptionDiagnostic extends DiagnosticWithThrowable {
     return position;
   }
 
+  public Throwable getCause() {
+    return cause;
+  }
+
   @Override
   public String getDiagnosticMessage() {
-    Throwable e = getThrowable();
-    if (e instanceof NoSuchFileException || e instanceof FileNotFoundException) {
-      return "File not found: " + e.getMessage();
-    }
-    if (e instanceof FileAlreadyExistsException) {
-      return "File already exists: " + e.getMessage();
-    }
-    StringWriter stack = new StringWriter();
-    e.printStackTrace(new PrintWriter(stack));
-    String message = e.getMessage();
-    return message != null
-        ? StringUtils.joinLines(message, "Stack trace:", stack.toString())
-        : StringUtils.joinLines(stack.toString());
+    return cause.toString();
   }
 }

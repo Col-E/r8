@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.proguard.rules;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -11,6 +12,7 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
@@ -21,15 +23,13 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class NegatedClassMemberTest extends TestBase {
 
-  private final TestParameters parameters;
-
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
   public NegatedClassMemberTest(TestParameters parameters) {
-    this.parameters = parameters;
+
   }
 
   @Test
@@ -41,7 +41,6 @@ public class NegatedClassMemberTest extends TestBase {
               NegatedClassMemberTestClassB.class,
               NegatedClassMemberTestClassC.class)
           .addKeepRules(getKeepRule())
-          .setMinApi(parameters.getRuntime())
           .compile();
 
       // For some reason, Proguard fails with "The output jar is empty". One likely explanation is
@@ -62,27 +61,30 @@ public class NegatedClassMemberTest extends TestBase {
               NegatedClassMemberTestClassB.class,
               NegatedClassMemberTestClassC.class)
           .addKeepRules(getKeepRule())
-          .compile();
-      fail("Expected R8 to fail during parsing of the Proguard configuration file");
+          .compileWithExpectedDiagnostics(this::checkDiagnostics);
     } catch (CompilationFailedException e) {
-      int expectedOffset = getKeepRule().indexOf("!");
-      int expectedColumn = expectedOffset + 1;
-      assertThat(
-          e.getCause().getMessage(),
-          allOf(
-              containsString(
-                  "Error: offset: "
-                      + expectedOffset
-                      + ", line: 1, column: "
-                      + expectedColumn
-                      + ", Unexpected character '!': "
-                      + "The negation character can only be used to negate access flags"),
-              containsString(
-                  StringUtils.join(
-                      "\n",
-                      "-keepclasseswithmembers class ** { long x; !long y; }",
-                      "                                           ^"))));
+      return;
     }
+    fail("Expected R8 to fail during parsing of the Proguard configuration file");
+  }
+
+  private void checkDiagnostics(TestDiagnosticMessages diagnostics) {
+    int expectedOffset = getKeepRule().indexOf("!");
+    int expectedColumn = expectedOffset + 1;
+    diagnostics
+        .assertOnlyErrors()
+        .assertErrorsMatch(
+            diagnosticMessage(
+                allOf(
+                    containsString(":1:" + expectedColumn),
+                    containsString(
+                        "Unexpected character '!': "
+                            + "The negation character can only be used to negate access flags"),
+                    containsString(
+                        StringUtils.join(
+                            "\n",
+                            "-keepclasseswithmembers class ** { long x; !long y; }",
+                            "                                           ^")))));
   }
 
   private String getKeepRule() {

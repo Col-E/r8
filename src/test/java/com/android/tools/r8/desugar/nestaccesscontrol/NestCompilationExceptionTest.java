@@ -13,8 +13,10 @@ import static org.hamcrest.core.StringEndsWith.endsWith;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
+import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
@@ -68,12 +70,11 @@ public class NestCompilationExceptionTest extends TestBase {
     testIncompleteNestError();
   }
 
-  private TestCompileResult<?, ?> compileOnlyClassesMatching(
+  private TestCompilerBuilder<?, ?, ?, ?, ?> compileOnlyClassesMatching(
       Matcher<String> matcher,
       boolean d8,
       boolean allowDiagnosticWarningMessages,
-      boolean ignoreMissingClasses)
-      throws Exception {
+      boolean ignoreMissingClasses) {
     List<Path> matchingClasses =
         CLASS_NAMES.stream()
             .filter(matcher::matches)
@@ -83,8 +84,7 @@ public class NestCompilationExceptionTest extends TestBase {
       return testForD8()
           .setMinApi(parameters.getApiLevel())
           .addProgramFiles(matchingClasses)
-          .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true)
-          .compile();
+          .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true);
     } else {
       return testForR8(parameters.getBackend())
           .noTreeShaking()
@@ -97,8 +97,7 @@ public class NestCompilationExceptionTest extends TestBase {
                 options.enableNestBasedAccessDesugaring = true;
                 options.ignoreMissingClasses = ignoreMissingClasses;
               })
-          .allowDiagnosticWarningMessages(allowDiagnosticWarningMessages)
-          .compile();
+          .allowDiagnosticWarningMessages(allowDiagnosticWarningMessages);
     }
   }
 
@@ -106,27 +105,39 @@ public class NestCompilationExceptionTest extends TestBase {
     try {
       Matcher<String> innerClassMatcher =
           containsString("BasicNestHostWithInnerClassMethods$BasicNestedClass");
-      compileOnlyClassesMatching(innerClassMatcher, false, false, false);
-      fail("Should have raised an exception for missing nest host");
-    } catch (Exception e) {
-      assertTrue(e.getCause().getCause().getMessage().contains("requires its nest host"));
+      compileOnlyClassesMatching(innerClassMatcher, false, false, false)
+          .compileWithExpectedDiagnostics(
+              diagnostics -> {
+                diagnostics.assertErrorMessageThatMatches(containsString("requires its nest host"));
+              });
+    } catch (CompilationFailedException e) {
+      // Expected failure.
+      return;
     }
+    fail("Should have raised an exception for missing nest host");
   }
 
   private void testIncompleteNestError() {
     try {
       Matcher<String> innerClassMatcher = endsWith("BasicNestHostWithInnerClassMethods");
-      compileOnlyClassesMatching(innerClassMatcher, false, false, false);
-      fail("Should have raised an exception for incomplete nest");
+      compileOnlyClassesMatching(innerClassMatcher, false, false, false)
+          .compileWithExpectedDiagnostics(
+              diagnostics -> {
+                diagnostics.assertErrorMessageThatMatches(
+                    containsString("requires its nest mates"));
+              });
     } catch (Exception e) {
-      assertTrue(e.getCause().getCause().getMessage().contains("requires its nest mates"));
+      // Expected failure.
+      return;
     }
+    fail("Should have raised an exception for incomplete nest");
   }
 
   private void testMissingNestHostWarning(boolean d8, boolean desugarWarning) throws Exception {
     Matcher<String> innerClassMatcher =
         containsString("BasicNestHostWithInnerClassMethods$BasicNestedClass");
-    TestCompileResult compileResult = compileOnlyClassesMatching(innerClassMatcher, d8, !d8, true);
+    TestCompileResult<?, ?> compileResult =
+        compileOnlyClassesMatching(innerClassMatcher, d8, !d8, true).compile();
     assertTrue(compileResult.getDiagnosticMessages().getWarnings().size() >= 1);
     if (desugarWarning) {
       assertTrue(
@@ -143,7 +154,7 @@ public class NestCompilationExceptionTest extends TestBase {
   private void testIncompleteNestWarning(boolean d8, boolean desugarWarning) throws Exception {
     Matcher<String> innerClassMatcher = endsWith("BasicNestHostWithInnerClassMethods");
     TestCompileResult<?, ?> compileResult =
-        compileOnlyClassesMatching(innerClassMatcher, d8, !d8, true);
+        compileOnlyClassesMatching(innerClassMatcher, d8, !d8, true).compile();
     assertTrue(compileResult.getDiagnosticMessages().getWarnings().size() >= 1);
     if (desugarWarning) {
       assertTrue(

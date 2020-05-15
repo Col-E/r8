@@ -1211,6 +1211,9 @@ public class InternalOptions {
 
     public MinifierTestingOptions minifier = new MinifierTestingOptions();
 
+    // Testing hooks to trigger effects in various compiler places.
+    public Runnable hookInIrConversion = null;
+
     public static class MinifierTestingOptions {
 
       public Comparator<DexMethod> interfaceMethodOrdering = null;

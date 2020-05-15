@@ -40,11 +40,11 @@ public class RetraceInvalidStackTraceLineDiagnostics implements Diagnostic {
     return message;
   }
 
-  public static RetraceInvalidStackTraceLineDiagnostics createNull(int lineNumber) {
+  static RetraceInvalidStackTraceLineDiagnostics createNull(int lineNumber) {
     return new RetraceInvalidStackTraceLineDiagnostics(lineNumber, NULL_STACK_TRACE_LINE_MESSAGE);
   }
 
-  public static RetraceInvalidStackTraceLineDiagnostics createParse(int lineNumber, String line) {
+  static RetraceInvalidStackTraceLineDiagnostics createParse(int lineNumber, String line) {
     return new RetraceInvalidStackTraceLineDiagnostics(
         lineNumber, String.format(PARSE_STACK_TRACE_LINE_MESSAGE, line));
   }

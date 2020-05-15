@@ -17,7 +17,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -78,9 +77,9 @@ public class RelocatorTest extends TestBase {
     runRelocator(ToolHelper.R8_WITH_DEPS_JAR, mapping, output);
     // TODO(b/155618698): Extend relocator with a richer language such that java.lang.Object is not
     //   relocated.
-    CompilationError compilationError =
+    RuntimeException compilationError =
         assertThrows(
-            CompilationError.class,
+            RuntimeException.class,
             () ->
                 inspectAllClassesRelocated(
                     ToolHelper.R8_WITH_DEPS_JAR, output, originalPrefix, newPrefix + "."));

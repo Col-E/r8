@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -98,14 +99,15 @@ public class ClassNameMinifierOriginalClassNameTest extends TestBase {
                 .addApplyMapping(libraryCompileResult.getProguardMap())
                 .allowDiagnosticWarningMessages()
                 .compileWithExpectedDiagnostics(
-                    diagnosticMessages ->
-                        diagnosticMessages.assertAllWarningMessagesMatch(
-                            containsString(
-                                "'"
-                                    + B.class.getTypeName()
-                                    + "' cannot be mapped to '"
-                                    + A.class.getTypeName()
-                                    + "' because it is in conflict"))));
+                    diagnostics ->
+                        diagnostics.assertAllWarningsMatch(
+                            diagnosticMessage(
+                                containsString(
+                                    "'"
+                                        + B.class.getTypeName()
+                                        + "' cannot be mapped to '"
+                                        + A.class.getTypeName()
+                                        + "' because it is in conflict")))));
   }
 
   public static class Main {

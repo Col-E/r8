@@ -15,7 +15,11 @@ public class CompilationFailedException extends Exception {
   }
 
   public CompilationFailedException(Throwable cause) {
-    super("Compilation failed to complete", cause);
+    this("Compilation failed to complete", cause);
+  }
+
+  public CompilationFailedException(String message, Throwable cause) {
+    super(message, cause);
   }
 
   public CompilationFailedException(String message) {

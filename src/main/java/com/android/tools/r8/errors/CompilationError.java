@@ -30,6 +30,10 @@ public class CompilationError extends RuntimeException {
     this(message, null, origin);
   }
 
+  public CompilationError(String message, Origin origin, Position position) {
+    this(message, null, origin, position);
+  }
+
   public CompilationError(String message, Throwable cause, Origin origin) {
     this(message, cause, origin, Position.UNKNOWN);
   }
@@ -46,18 +50,6 @@ public class CompilationError extends RuntimeException {
 
   public Position getPosition() {
     return position;
-  }
-
-  public CompilationError withAdditionalOriginAndPositionInfo(Origin origin, Position position) {
-    if (this.origin == Origin.unknown() || this.position == Position.UNKNOWN) {
-      return new CompilationError(
-          getMessage(),
-          this,
-          this.origin != Origin.unknown() ? this.origin : origin,
-          this.position != Position.UNKNOWN ? this.position : position);
-    } else {
-      return this;
-    }
   }
 
   public Diagnostic toStringDiagnostic() {

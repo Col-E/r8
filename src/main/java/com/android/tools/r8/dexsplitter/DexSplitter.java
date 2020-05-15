@@ -8,6 +8,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DexSplitterHelper;
+import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.origin.PathOrigin;
@@ -186,8 +187,10 @@ public final class DexSplitter {
     }
 
     // Shorthand error messages.
-    public void error(String msg) {
-      diagnosticsHandler.error(new StringDiagnostic(msg));
+    public Diagnostic error(String msg) {
+      StringDiagnostic error = new StringDiagnostic(msg);
+      diagnosticsHandler.error(error);
+      return error;
     }
   }
 
@@ -283,21 +286,18 @@ public final class DexSplitter {
 
   public static void run(Options options)
       throws FeatureMappingException, CompilationFailedException {
-    boolean errors = false;
+    Diagnostic error = null;
     if (options.getInputArchives().isEmpty()) {
-      errors = true;
-      options.error("Need at least one --input");
+      error = options.error("Need at least one --input");
     }
     if (options.getFeatureSplitMapping() == null && options.getFeatureJars().isEmpty()) {
-      errors = true;
-      options.error("You must supply a feature split mapping or feature jars");
+      error = options.error("You must supply a feature split mapping or feature jars");
     }
     if (options.getFeatureSplitMapping() != null && !options.getFeatureJars().isEmpty()) {
-      errors = true;
-      options.error("You can't supply both a feature split mapping and feature jars");
+      error = options.error("You can't supply both a feature split mapping and feature jars");
     }
-    if (errors) {
-      throw new AbortException();
+    if (error != null) {
+      throw new AbortException(error);
     }
 
     D8Command.Builder builder = D8Command.builder(options.diagnosticsHandler);
@@ -345,9 +345,9 @@ public final class DexSplitter {
           }
         }
       } catch (IOException e) {
-        options.getDiagnosticsHandler().error(
-            new ExceptionDiagnostic(e, new ZipFileOrigin(Paths.get(s))));
-        throw new AbortException();
+        ExceptionDiagnostic error = new ExceptionDiagnostic(e, new ZipFileOrigin(Paths.get(s)));
+        options.getDiagnosticsHandler().error(error);
+        throw new AbortException(error);
       }
     }
   }

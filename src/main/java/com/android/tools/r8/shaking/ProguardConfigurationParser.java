@@ -27,7 +27,6 @@ import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.File;
@@ -179,7 +178,7 @@ public class ProguardConfigurationParser {
         reporter.error(new StringDiagnostic("Failed to read file: " + e.getMessage(),
             source.getOrigin()));
       } catch (ProguardRuleParserException e) {
-        reporter.error(e, MoreObjects.firstNonNull(e.getCause(), e));
+        reporter.error(e);
       }
     }
     reporter.failIfPendingErrors();
@@ -634,11 +633,10 @@ public class ProguardConfigurationParser {
           parseClassSpec(keepRuleBuilder, true);
           return true;
         } catch (ProguardRuleParserException e) {
-          throw reporter.fatalError(e, MoreObjects.firstNonNull(e.getCause(), e));
+          throw reporter.fatalError(e);
         }
       }
       return false;
-
     }
 
     private boolean parseOptimizationOption(TextPosition optionStart)

@@ -4,8 +4,8 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.KeepForSubclassing;
+import com.android.tools.r8.Keep;
 
 /** Common interface type for all diagnostics related to desugaring. */
-@KeepForSubclassing
+@Keep
 public interface DesugarDiagnostic extends Diagnostic {}

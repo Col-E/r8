@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.TestBase.Backend.DEX;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
@@ -288,13 +289,13 @@ public abstract class TestCompileResult<
     return self();
   }
 
-  public CR assertDiagnosticMessageThatMatches(Matcher<String> matcher) {
-    getDiagnosticMessages().assertDiagnosticMessageThatMatches(matcher);
+  public CR assertDiagnosticThatMatches(Matcher<Diagnostic> matcher) {
+    getDiagnosticMessages().assertDiagnosticThatMatches(matcher);
     return self();
   }
 
   public CR assertInfoMessageThatMatches(Matcher<String> matcher) {
-    getDiagnosticMessages().assertInfoMessageThatMatches(matcher);
+    getDiagnosticMessages().assertInfoThatMatches(diagnosticMessage(matcher));
     return self();
   }
 
@@ -303,7 +304,7 @@ public abstract class TestCompileResult<
   }
 
   public CR assertNoInfoMessageThatMatches(Matcher<String> matcher) {
-    getDiagnosticMessages().assertNoInfoMessageThatMatches(matcher);
+    getDiagnosticMessages().assertNoInfosMatch(diagnosticMessage(matcher));
     return self();
   }
 
@@ -328,7 +329,7 @@ public abstract class TestCompileResult<
   }
 
   public CR assertAllWarningMessagesMatch(Matcher<String> matcher) {
-    getDiagnosticMessages().assertNoWarningMessageThatMatches(not(matcher));
+    getDiagnosticMessages().assertAllWarningsMatch(diagnosticMessage(matcher));
     return self();
   }
 
@@ -338,7 +339,7 @@ public abstract class TestCompileResult<
   }
 
   public CR assertNoWarningMessageThatMatches(Matcher<String> matcher) {
-    getDiagnosticMessages().assertNoWarningMessageThatMatches(matcher);
+    getDiagnosticMessages().assertNoWarningsMatch(diagnosticMessage(matcher));
     return self();
   }
 
@@ -349,11 +350,6 @@ public abstract class TestCompileResult<
 
   public CR assertNoErrorMessages() {
     getDiagnosticMessages().assertErrorsCount(0);
-    return self();
-  }
-
-  public CR assertNoErrorMessageThatMatches(Matcher<String> matcher) {
-    getDiagnosticMessages().assertNoErrorMessageThatMatches(matcher);
     return self();
   }
 

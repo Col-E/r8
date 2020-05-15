@@ -138,7 +138,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
             graphConsumer);
     switch (allowedDiagnosticMessages) {
       case ALL:
-        compileResult.assertDiagnosticMessageThatMatches(new IsAnything<>());
+        compileResult.assertDiagnosticThatMatches(new IsAnything<>());
         break;
       case ERROR:
         compileResult.assertOnlyErrors();

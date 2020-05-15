@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.ir.analysis.type;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticException;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -72,7 +72,12 @@ public class MissingClassesJoinTest extends TestBase {
               .allowDiagnosticWarningMessages()
               .enableMergeAnnotations()
               .setMinApi(parameters.getApiLevel())
-              .compile()
+              .compileWithExpectedDiagnostics(
+                  diagnostics -> {
+                    if (!allowTypeErrors) {
+                      diagnostics.assertErrorThatMatches(diagnosticException(AssertionError.class));
+                    }
+                  })
               .assertAllWarningMessagesMatch(
                   equalTo(
                       "The method `void "
@@ -104,6 +109,7 @@ public class MissingClassesJoinTest extends TestBase {
           //         locals: { 'java/lang/Object' }
           //         stack: { 'java/lang/Object' }
           .assertFailureWithErrorThatMatches(containsString("NullPointerException"));
+
     } catch (CompilationFailedException e) {
       // Compilation should only fail when type errors are not allowed.
       assertFalse(
@@ -111,9 +117,6 @@ public class MissingClassesJoinTest extends TestBase {
               "Test should only throw when type errors are not allowed",
               Throwables.getStackTraceAsString(e)),
           allowTypeErrors);
-
-      // Verify that we fail with an assertion error.
-      assertThat(e.getCause().getMessage(), containsString("AssertionError"));
     }
   }
 

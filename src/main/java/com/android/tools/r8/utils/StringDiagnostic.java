@@ -33,6 +33,9 @@ public class StringDiagnostic implements Diagnostic {
   }
 
   public StringDiagnostic(String message, Origin origin, Position position) {
+    assert message != null;
+    assert origin != null;
+    assert position != null;
     this.origin = origin;
     this.position = position;
     this.message = message;

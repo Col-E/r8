@@ -101,8 +101,9 @@ public final class FeatureClassMapping {
     try {
       lines = FileUtils.readAllLines(file);
     } catch (IOException e) {
-      reporter.error(new ExceptionDiagnostic(e, new SpecificationOrigin(file)));
-      throw new AbortException();
+      ExceptionDiagnostic error = new ExceptionDiagnostic(e, new SpecificationOrigin(file));
+      reporter.error(error);
+      throw new AbortException(error);
     }
     for (int i = 0; i < lines.size(); i++) {
       String line = lines.get(i);
@@ -120,8 +121,9 @@ public final class FeatureClassMapping {
             .map(DescriptorUtils::descriptorToJavaType)
             .collect(Collectors.toList());
       } catch (IOException e) {
-        reporter.error(new ExceptionDiagnostic(e, new JarFileOrigin(jarPath)));
-        throw new AbortException();
+        ExceptionDiagnostic error = new ExceptionDiagnostic(e, new JarFileOrigin(jarPath));
+        reporter.error(error);
+        throw new AbortException(error);
       }
     }
 
@@ -132,8 +134,9 @@ public final class FeatureClassMapping {
               .map(ZipEntry::getName)
               .collect(Collectors.toList());
         } catch (IOException e) {
-          reporter.error(new ExceptionDiagnostic(e, new JarFileOrigin(Paths.get(jar))));
-          throw new AbortException();
+        ExceptionDiagnostic error = new ExceptionDiagnostic(e, new JarFileOrigin(Paths.get(jar)));
+        reporter.error(error);
+        throw new AbortException(error);
         }
     }
 

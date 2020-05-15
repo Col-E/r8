@@ -4,6 +4,9 @@
 
 package com.android.tools.r8;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.not;
+
 import java.util.List;
 import org.hamcrest.Matcher;
 
@@ -29,21 +32,61 @@ public interface TestDiagnosticMessages {
 
   TestDiagnosticMessages assertErrorsCount(int count);
 
-  TestDiagnosticMessages assertDiagnosticMessageThatMatches(Matcher<String> matcher);
+  // Match exact.
 
-  TestDiagnosticMessages assertInfoMessageThatMatches(Matcher<String> matcher);
+  TestDiagnosticMessages assertDiagnosticsMatch(Matcher<Diagnostic>... matchers);
 
-  TestDiagnosticMessages assertAllInfoMessagesMatch(Matcher<String> matcher);
+  TestDiagnosticMessages assertInfosMatch(Matcher<Diagnostic>... matchers);
 
-  TestDiagnosticMessages assertNoInfoMessageThatMatches(Matcher<String> matcher);
+  TestDiagnosticMessages assertWarningsMatch(Matcher<Diagnostic>... matchers);
 
-  TestDiagnosticMessages assertWarningMessageThatMatches(Matcher<String> matcher);
+  TestDiagnosticMessages assertErrorsMatch(Matcher<Diagnostic>... matchers);
 
-  TestDiagnosticMessages assertAllWarningMessagesMatch(Matcher<String> matcher);
+  // Match one.
 
-  TestDiagnosticMessages assertNoWarningMessageThatMatches(Matcher<String> matcher);
+  TestDiagnosticMessages assertDiagnosticThatMatches(Matcher<Diagnostic> matcher);
 
-  TestDiagnosticMessages assertErrorMessageThatMatches(Matcher<String> matcher);
+  TestDiagnosticMessages assertInfoThatMatches(Matcher<Diagnostic> matcher);
 
-  TestDiagnosticMessages assertNoErrorMessageThatMatches(Matcher<String> matcher);
+  TestDiagnosticMessages assertWarningThatMatches(Matcher<Diagnostic> matcher);
+
+  TestDiagnosticMessages assertErrorThatMatches(Matcher<Diagnostic> matcher);
+
+  // Consider removing this helper.
+  default TestDiagnosticMessages assertWarningMessageThatMatches(Matcher<String> matcher) {
+    return assertWarningThatMatches(diagnosticMessage(matcher));
+  }
+
+  // Consider removing this helper.
+  default TestDiagnosticMessages assertErrorMessageThatMatches(Matcher<String> matcher) {
+    return assertErrorThatMatches(diagnosticMessage(matcher));
+  }
+
+  // Match all.
+
+  TestDiagnosticMessages assertAllDiagnosticsMatch(Matcher<Diagnostic> matcher);
+
+  TestDiagnosticMessages assertAllInfosMatch(Matcher<Diagnostic> matcher);
+
+  TestDiagnosticMessages assertAllWarningsMatch(Matcher<Diagnostic> matcher);
+
+  TestDiagnosticMessages assertAllErrorsMatch(Matcher<Diagnostic> matcher);
+
+  // Match none.
+
+  default TestDiagnosticMessages assertNoDiagnosticsMatch(Matcher<Diagnostic> matcher) {
+    return assertAllDiagnosticsMatch(not(matcher));
+  }
+
+  default TestDiagnosticMessages assertNoInfosMatch(Matcher<Diagnostic> matcher) {
+    return assertAllInfosMatch(not(matcher));
+  }
+
+  default TestDiagnosticMessages assertNoWarningsMatch(Matcher<Diagnostic> matcher) {
+    return assertAllWarningsMatch(not(matcher));
+  }
+
+  default TestDiagnosticMessages assertNoErrorsMatch(Matcher<Diagnostic> matcher) {
+    return assertAllErrorsMatch(not(matcher));
+  }
 }

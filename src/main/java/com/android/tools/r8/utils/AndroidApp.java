@@ -437,7 +437,7 @@ public class AndroidApp {
       nextDexIndex = dumpClasspathResources(nextDexIndex, out);
       nextDexIndex = dumpLibraryResources(nextDexIndex, out);
     } catch (IOException | ResourceException e) {
-      reporter.fatalError(new StringDiagnostic("Failed to dump inputs"), e);
+      throw reporter.fatalError(new ExceptionDiagnostic(e));
     }
   }
 

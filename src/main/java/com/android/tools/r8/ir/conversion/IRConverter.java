@@ -1101,7 +1101,7 @@ public class IRConverter {
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       MethodProcessingId methodProcessingId) {
-    return ExceptionUtils.withOriginAttachmentHandler(
+    return ExceptionUtils.withOriginAndPositionAttachmentHandler(
         method.getOrigin(),
         new MethodPosition(method.getReference()),
         () -> rewriteCodeInternal(method, feedback, methodProcessor, methodProcessingId));
@@ -1122,6 +1122,9 @@ public class IRConverter {
           "Original code for %s:\n%s",
           method.toSourceString(),
           logCode(options, method.getDefinition()));
+    }
+    if (options.testing.hookInIrConversion != null) {
+      options.testing.hookInIrConversion.run();
     }
     if (options.skipIR) {
       feedback.markProcessed(method.getDefinition(), ConstraintWithTarget.NEVER);

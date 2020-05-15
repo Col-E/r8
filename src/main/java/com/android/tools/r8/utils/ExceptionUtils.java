@@ -12,10 +12,11 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.position.Position;
-import com.google.common.collect.ObjectArrays;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -65,28 +66,93 @@ public abstract class ExceptionUtils {
   public static void withCompilationHandler(Reporter reporter, CompileAction action)
       throws CompilationFailedException {
     try {
-      try {
-        action.run();
-      } catch (IOException e) {
-        throw reporter.fatalError(new ExceptionDiagnostic(e, extractIOExceptionOrigin(e)));
-      } catch (CompilationError e) {
-        throw reporter.fatalError(new ExceptionDiagnostic(e, e.getOrigin(), e.getPosition()));
-      } catch (ResourceException e) {
-        throw reporter.fatalError(new ExceptionDiagnostic(e, e.getOrigin()));
-      } catch (AssertionError e) {
-        throw reporter.fatalError(new ExceptionDiagnostic(e, Origin.unknown()));
-      } catch (Exception e) {
-        String filename = "Version_" + Version.LABEL + ".java";
-        StackTraceElement versionElement = new StackTraceElement(
-            Version.class.getSimpleName(), "fakeStackEntry", filename, 0);
-        StackTraceElement[] withVersion = ObjectArrays.concat(versionElement, e.getStackTrace());
-        e.setStackTrace(withVersion);
-        throw e;
-      }
+      action.run();
       reporter.failIfPendingErrors();
-    } catch (AbortException e) {
-      throw new CompilationFailedException(e);
+    } catch (Throwable e) {
+      throw failCompilation(reporter, e);
     }
+  }
+
+  private static CompilationFailedException failCompilation(
+      Reporter reporter, Throwable topMostException) {
+    // Find inner-most cause of the failure and compute origin, position and reported for the path.
+    boolean hasBeenReported = false;
+    Origin origin = Origin.unknown();
+    Position position = Position.UNKNOWN;
+    List<Throwable> suppressed = new ArrayList<>();
+    Throwable innerMostCause = topMostException;
+    while (true) {
+      hasBeenReported |= innerMostCause instanceof AbortException;
+      Origin nextOrigin = getOrigin(innerMostCause);
+      if (nextOrigin != Origin.unknown()) {
+        origin = nextOrigin;
+      }
+      Position nextPosition = getPosition(innerMostCause);
+      if (nextPosition != Position.UNKNOWN) {
+        position = nextPosition;
+      }
+      if (innerMostCause.getCause() == null || suppressed.contains(innerMostCause)) {
+        break;
+      }
+      suppressed.add(innerMostCause);
+      innerMostCause = innerMostCause.getCause();
+    }
+
+    // If no abort is seen, the exception is not reported, so report it now.
+    if (!hasBeenReported) {
+      reporter.error(new ExceptionDiagnostic(innerMostCause, origin, position));
+    }
+
+    // Build the top-level compiler exception and version stack.
+    StringBuilder message = new StringBuilder("Compilation failed to complete");
+    if (position != Position.UNKNOWN) {
+      message.append(", position: ").append(position);
+    }
+    if (origin != Origin.unknown()) {
+      message.append(", origin: ").append(origin);
+    }
+    // Create the final exception object.
+    CompilationFailedException rethrow =
+        new CompilationFailedException(message.toString(), innerMostCause);
+    // Replace its stack by the cause stack and insert version info at the top.
+    String filename = "Version_" + Version.LABEL + ".java";
+    rethrow.setStackTrace(
+        new StackTraceElement[] {
+          new StackTraceElement(Version.class.getSimpleName(), "fakeStackEntry", filename, 0)
+        });
+    return rethrow;
+  }
+
+  private static Origin getOrigin(Throwable e) {
+    if (e instanceof IOException) {
+      return extractIOExceptionOrigin((IOException) e);
+    }
+    if (e instanceof CompilationError) {
+      return ((CompilationError) e).getOrigin();
+    }
+    if (e instanceof ResourceException) {
+      return ((ResourceException) e).getOrigin();
+    }
+    if (e instanceof OriginAttachmentException) {
+      return ((OriginAttachmentException) e).origin;
+    }
+    if (e instanceof AbortException) {
+      return ((AbortException) e).getOrigin();
+    }
+    return Origin.unknown();
+  }
+
+  private static Position getPosition(Throwable e) {
+    if (e instanceof CompilationError) {
+      return ((CompilationError) e).getPosition();
+    }
+    if (e instanceof OriginAttachmentException) {
+      return ((OriginAttachmentException) e).position;
+    }
+    if (e instanceof AbortException) {
+      return ((AbortException) e).getPosition();
+    }
+    return Position.UNKNOWN;
   }
 
   public interface MainAction {
@@ -111,7 +177,7 @@ public abstract class ExceptionUtils {
   // We should try to avoid the use of this extraction as it signifies a point where we don't have
   // enough context to associate a specific origin with an IOException. Concretely, we should move
   // towards always catching IOException and rethrowing CompilationError with proper origins.
-  public static Origin extractIOExceptionOrigin(IOException e) {
+  private static Origin extractIOExceptionOrigin(IOException e) {
     if (e instanceof FileSystemException) {
       FileSystemException fse = (FileSystemException) e;
       if (fse.getFile() != null && !fse.getFile().isEmpty()) {
@@ -122,27 +188,60 @@ public abstract class ExceptionUtils {
   }
 
   public static RuntimeException unwrapExecutionException(ExecutionException executionException) {
-    Throwable cause = executionException.getCause();
-    if (cause instanceof Error) {
-      // add original exception as suppressed exception to provide the original stack trace
-      cause.addSuppressed(executionException);
-      throw (Error) cause;
-    } else if (cause instanceof RuntimeException) {
-      cause.addSuppressed(executionException);
-      throw (RuntimeException) cause;
-    } else {
-      throw new RuntimeException(executionException.getMessage(), cause);
-    }
+    return new RuntimeException(executionException);
   }
 
-  public static <T> T withOriginAttachmentHandler(
+  public static void withOriginAttachmentHandler(Origin origin, Runnable action) {
+    withOriginAndPositionAttachmentHandler(origin, Position.UNKNOWN, action);
+  }
+
+  public static <T> T withOriginAttachmentHandler(Origin origin, Supplier<T> action) {
+    return withOriginAndPositionAttachmentHandler(origin, Position.UNKNOWN, action);
+  }
+
+  public static void withOriginAndPositionAttachmentHandler(
+      Origin origin, Position position, Runnable action) {
+    withOriginAndPositionAttachmentHandler(
+        origin,
+        position,
+        () -> {
+          action.run();
+          return null;
+        });
+  }
+
+  public static <T> T withOriginAndPositionAttachmentHandler(
       Origin origin, Position position, Supplier<T> action) {
     try {
       return action.get();
-    } catch (CompilationError e) {
-      throw e.withAdditionalOriginAndPositionInfo(origin, position);
     } catch (RuntimeException e) {
-      throw new CompilationError(e.getMessage(), e, origin, position);
+      throw OriginAttachmentException.wrap(e, origin, position);
+    }
+  }
+
+  private static class OriginAttachmentException extends RuntimeException {
+    final Origin origin;
+    final Position position;
+
+    public static RuntimeException wrap(RuntimeException e, Origin origin, Position position) {
+      return needsAttachment(e, origin, position)
+          ? new OriginAttachmentException(e, origin, position)
+          : e;
+    }
+
+    private OriginAttachmentException(RuntimeException e, Origin origin, Position position) {
+      super(e);
+      this.origin = origin;
+      this.position = position;
+    }
+
+    private static boolean needsAttachment(RuntimeException e, Origin origin, Position position) {
+      if (origin == Origin.unknown() && position == Position.UNKNOWN) {
+        return false;
+      }
+      Origin existingOrigin = getOrigin(e);
+      Position existingPosition = getPosition(e);
+      return origin != existingOrigin || position != existingPosition;
     }
   }
 }

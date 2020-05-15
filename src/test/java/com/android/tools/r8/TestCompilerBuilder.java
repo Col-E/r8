@@ -146,8 +146,13 @@ public abstract class TestCompilerBuilder<
     }
   }
 
-  public CR compileWithExpectedDiagnostics(
-      Consumer<TestDiagnosticMessages> diagnosticsConsumer) throws CompilationFailedException {
+  @FunctionalInterface
+  public interface DiagnosticsConsumer {
+    void accept(TestDiagnosticMessages diagnostics);
+  }
+
+  public CR compileWithExpectedDiagnostics(DiagnosticsConsumer diagnosticsConsumer)
+      throws CompilationFailedException {
     TestDiagnosticMessages diagnosticsHandler = getState().getDiagnosticsMessages();
     try {
       CR result = compile();

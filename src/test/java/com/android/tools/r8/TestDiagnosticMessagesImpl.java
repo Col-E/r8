@@ -4,7 +4,7 @@
 
 package com.android.tools.r8;
 
-import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
@@ -12,7 +12,10 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.hamcrest.Matcher;
 
 public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagnosticMessages {
@@ -137,19 +140,26 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     return this;
   }
 
-  private TestDiagnosticMessages assertMessageThatMatches(
-      Iterable<Diagnostic> diagnostics, String tag, Matcher<String> matcher) {
+  private TestDiagnosticMessages assertAllDiagnosticsMatches(
+      Iterable<Diagnostic> diagnostics, String tag, Matcher<Diagnostic> matcher) {
+    for (Diagnostic diagnostic : diagnostics) {
+      assertThat(diagnostic, matcher);
+    }
+    return this;
+  }
+
+  private TestDiagnosticMessages assertDiagnosticThatMatches(
+      Iterable<Diagnostic> diagnostics, String tag, Matcher<Diagnostic> matcher) {
     int numberOfDiagnostics = 0;
     for (Diagnostic diagnostic : diagnostics) {
-      if (matcher.matches(diagnostic.getDiagnosticMessage())) {
+      if (matcher.matches(diagnostic)) {
         return this;
       }
       numberOfDiagnostics++;
     }
-    assertNotEquals(0, numberOfDiagnostics);
     StringBuilder builder = new StringBuilder("No " + tag + " matches " + matcher.toString());
     builder.append(System.lineSeparator());
-    if (getWarnings().size() == 0) {
+    if (numberOfDiagnostics == 0) {
       builder.append("There were no " + tag + "s.");
     } else {
       builder.append("There were " + numberOfDiagnostics + " " + tag + "s:");
@@ -163,60 +173,132 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     return this;
   }
 
-  private TestDiagnosticMessages assertNoMessageThatMatches(
-      List<Diagnostic> diagnostics, String tag, Matcher<String> matcher) {
-    for (int i = 0; i < diagnostics.size(); i++) {
-      String message = diagnostics.get(i).getDiagnosticMessage();
-      if (matcher.matches(message)) {
-        fail("The " + tag + ": \"" + message + "\" + matches " + matcher + ".");
+  private static void assertDiagnosticsMatch(
+      Iterable<Diagnostic> diagnostics, String tag, List<Matcher<Diagnostic>> matchers) {
+    // Match is unordered, but we make no attempts to find the maximum match.
+    int diagnosticsCount = 0;
+    Set<Diagnostic> matchedDiagnostics = new HashSet<>();
+    Set<Matcher<Diagnostic>> matchedMatchers = new HashSet<>();
+    for (Diagnostic diagnostic : diagnostics) {
+      diagnosticsCount++;
+      for (Matcher<Diagnostic> matcher : matchers) {
+        if (matchedMatchers.contains(matcher)) {
+          continue;
+        }
+        if (matcher.matches(diagnostic)) {
+          matchedDiagnostics.add(diagnostic);
+          matchedMatchers.add(matcher);
+          break;
+        }
       }
     }
+    StringBuilder builder = new StringBuilder();
+    boolean failedMatching = false;
+    if (matchedDiagnostics.size() < diagnosticsCount) {
+      failedMatching = true;
+      builder.append("\nUnmatched diagnostics:");
+      for (Diagnostic diagnostic : diagnostics) {
+        if (!matchedDiagnostics.contains(diagnostic)) {
+          builder
+              .append("\n  - ")
+              .append(diagnostics.getClass().getName())
+              .append(diagnostic.getDiagnosticMessage());
+        }
+      }
+    }
+    if (matchedMatchers.size() < matchers.size()) {
+      failedMatching = true;
+      builder.append("\nUnmatched matchers:");
+      for (Matcher<Diagnostic> matcher : matchers) {
+        if (!matchedMatchers.contains(matcher)) {
+          builder.append("\n  - ").append(matcher);
+        }
+      }
+    }
+    if (failedMatching) {
+      builder.append("\nAll diagnostics:");
+      for (Diagnostic diagnostic : diagnostics) {
+        builder
+            .append("\n  - ")
+            .append(diagnostics.getClass().getName())
+            .append(diagnostic.getDiagnosticMessage());
+      }
+      builder.append("\nAll matchers:");
+      for (Matcher<Diagnostic> matcher : matchers) {
+        builder.append("\n  - ").append(matcher);
+      }
+      fail(builder.toString());
+    }
+    // Double check consistency.
+    assertEquals(matchers.size(), diagnosticsCount);
+    assertEquals(diagnosticsCount, matchedDiagnostics.size());
+    assertEquals(diagnosticsCount, matchedMatchers.size());
+  }
+
+  @Override
+  public TestDiagnosticMessages assertDiagnosticsMatch(Matcher<Diagnostic>... matchers) {
+    assertDiagnosticsMatch(getAllDiagnostics(), "diagnostics", Arrays.asList(matchers));
     return this;
   }
 
   @Override
-  public TestDiagnosticMessages assertDiagnosticMessageThatMatches(Matcher<String> matcher) {
-    return assertMessageThatMatches(
-        Iterables.concat(getInfos(), getWarnings(), getErrors()), "diagnostic message", matcher);
+  public TestDiagnosticMessages assertInfosMatch(Matcher<Diagnostic>... matchers) {
+    assertDiagnosticsMatch(getInfos(), "infos", Arrays.asList(matchers));
+    return this;
   }
 
   @Override
-  public TestDiagnosticMessages assertInfoMessageThatMatches(Matcher<String> matcher) {
-    return assertMessageThatMatches(getInfos(), "info", matcher);
+  public TestDiagnosticMessages assertWarningsMatch(Matcher<Diagnostic>... matchers) {
+    assertDiagnosticsMatch(getWarnings(), "warnings", Arrays.asList(matchers));
+    return this;
   }
 
   @Override
-  public TestDiagnosticMessages assertAllInfoMessagesMatch(Matcher<String> matcher) {
-    return assertNoInfoMessageThatMatches(not(matcher));
+  public TestDiagnosticMessages assertErrorsMatch(Matcher<Diagnostic>... matchers) {
+    assertDiagnosticsMatch(getErrors(), "errors", Arrays.asList(matchers));
+    return this;
   }
 
   @Override
-  public TestDiagnosticMessages assertNoInfoMessageThatMatches(Matcher<String> matcher) {
-    return assertNoMessageThatMatches(getInfos(), "info", matcher);
+  public TestDiagnosticMessages assertDiagnosticThatMatches(Matcher<Diagnostic> matcher) {
+    return assertDiagnosticThatMatches(getAllDiagnostics(), "diagnostic message", matcher);
+  }
+
+  private Iterable<Diagnostic> getAllDiagnostics() {
+    return Iterables.concat(getInfos(), getWarnings(), getErrors());
   }
 
   @Override
-  public TestDiagnosticMessages assertWarningMessageThatMatches(Matcher<String> matcher) {
-    return assertMessageThatMatches(getWarnings(), "warning", matcher);
+  public TestDiagnosticMessages assertInfoThatMatches(Matcher<Diagnostic> matcher) {
+    return assertDiagnosticThatMatches(getInfos(), "info", matcher);
+  }
+
+  public TestDiagnosticMessages assertWarningThatMatches(Matcher<Diagnostic> matcher) {
+    return assertDiagnosticThatMatches(getWarnings(), "warning", matcher);
   }
 
   @Override
-  public TestDiagnosticMessages assertAllWarningMessagesMatch(Matcher<String> matcher) {
-    return assertNoWarningMessageThatMatches(not(matcher));
+  public TestDiagnosticMessages assertErrorThatMatches(Matcher<Diagnostic> matcher) {
+    return assertDiagnosticThatMatches(getErrors(), "error", matcher);
   }
 
   @Override
-  public TestDiagnosticMessages assertNoWarningMessageThatMatches(Matcher<String> matcher) {
-    return assertNoMessageThatMatches(getWarnings(), "warning", matcher);
+  public TestDiagnosticMessages assertAllDiagnosticsMatch(Matcher<Diagnostic> matcher) {
+    return assertAllDiagnosticsMatches(getAllDiagnostics(), "diagnostic message", matcher);
   }
 
   @Override
-  public TestDiagnosticMessages assertErrorMessageThatMatches(Matcher<String> matcher) {
-    return assertMessageThatMatches(getErrors(), "error", matcher);
+  public TestDiagnosticMessages assertAllInfosMatch(Matcher<Diagnostic> matcher) {
+    return assertAllDiagnosticsMatches(getInfos(), "info", matcher);
   }
 
   @Override
-  public TestDiagnosticMessages assertNoErrorMessageThatMatches(Matcher<String> matcher) {
-    return assertNoMessageThatMatches(getErrors(), "error", matcher);
+  public TestDiagnosticMessages assertAllWarningsMatch(Matcher<Diagnostic> matcher) {
+    return assertAllDiagnosticsMatches(getWarnings(), "warning", matcher);
+  }
+
+  @Override
+  public TestDiagnosticMessages assertAllErrorsMatch(Matcher<Diagnostic> matcher) {
+    return assertAllDiagnosticsMatches(getErrors(), "error", matcher);
   }
 }

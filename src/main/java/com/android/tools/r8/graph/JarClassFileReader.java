@@ -36,6 +36,7 @@ import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -86,6 +87,11 @@ public class JarClassFileReader {
   }
 
   public void read(Origin origin, ClassKind classKind, byte[] bytes) {
+    ExceptionUtils.withOriginAttachmentHandler(
+        origin, () -> internalRead(origin, classKind, bytes));
+  }
+
+  public void internalRead(Origin origin, ClassKind classKind, byte[] bytes) {
     if (bytes.length < CLASSFILE_HEADER.length) {
       throw new CompilationError("Invalid empty classfile", origin);
     }
