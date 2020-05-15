@@ -20,6 +20,7 @@ import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DirectoryClassFileProvider;
+import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
@@ -31,11 +32,11 @@ import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
-import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
@@ -45,6 +46,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -57,11 +59,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -75,10 +79,24 @@ import org.objectweb.asm.ClassVisitor;
 public class AndroidApp {
 
   private static final String dumpVersionFileName = "r8-version";
+  private static final String dumpBuildPropertiesFileName = "build.properties";
   private static final String dumpProgramFileName = "program.jar";
   private static final String dumpClasspathFileName = "classpath.jar";
   private static final String dumpLibraryFileName = "library.jar";
   private static final String dumpConfigFileName = "proguard.config";
+
+  private static Map<FeatureSplit, String> dumpFeatureSplitFileNames(
+      FeatureSplitConfiguration featureSplitConfiguration) {
+    Map<FeatureSplit, String> featureSplitFileNames = new IdentityHashMap<>();
+    if (featureSplitConfiguration != null) {
+      int i = 1;
+      for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
+        featureSplitFileNames.put(featureSplit, "feature-" + i + ".jar");
+        i++;
+      }
+    }
+    return featureSplitFileNames;
+  }
 
   private final ImmutableList<ProgramResourceProvider> programResourceProviders;
   private final ImmutableMap<Resource, String> programResourcesMainDescriptor;
@@ -422,23 +440,38 @@ public class AndroidApp {
     return programResourcesMainDescriptor.get(resource);
   }
 
-  public void dump(Path output, ProguardConfiguration configuration, Reporter reporter) {
+  public void dump(Path output, InternalOptions options) {
     int nextDexIndex = 0;
     OpenOption[] openOptions =
         new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
     try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(output, openOptions))) {
       writeToZipStream(
           out, dumpVersionFileName, Version.getVersionString().getBytes(), ZipEntry.DEFLATED);
-      if (configuration != null) {
-        String proguardConfig = configuration.getParsedConfiguration();
+      writeToZipStream(
+          out,
+          dumpBuildPropertiesFileName,
+          getBuildPropertiesContents(options).getBytes(),
+          ZipEntry.DEFLATED);
+      if (options.getProguardConfiguration() != null) {
+        String proguardConfig = options.getProguardConfiguration().getParsedConfiguration();
         writeToZipStream(out, dumpConfigFileName, proguardConfig.getBytes(), ZipEntry.DEFLATED);
       }
-      nextDexIndex = dumpProgramResources(dumpProgramFileName, nextDexIndex, out);
+      nextDexIndex =
+          dumpProgramResources(
+              dumpProgramFileName,
+              dumpFeatureSplitFileNames(options.featureSplitConfiguration),
+              nextDexIndex,
+              out,
+              options.featureSplitConfiguration);
       nextDexIndex = dumpClasspathResources(nextDexIndex, out);
       nextDexIndex = dumpLibraryResources(nextDexIndex, out);
     } catch (IOException | ResourceException e) {
-      throw reporter.fatalError(new ExceptionDiagnostic(e));
+      throw options.reporter.fatalError(new ExceptionDiagnostic(e));
     }
+  }
+
+  private String getBuildPropertiesContents(InternalOptions options) {
+    return "min-api=" + options.minApiLevel;
   }
 
   private int dumpLibraryResources(int nextDexIndex, ZipOutputStream out)
@@ -480,29 +513,94 @@ public class AndroidApp {
     };
   }
 
-  private int dumpProgramResources(String archiveName, int nextDexIndex, ZipOutputStream out)
+  private int dumpProgramResources(
+      String archiveName,
+      Map<FeatureSplit, String> featureSplitArchiveNames,
+      int nextDexIndex,
+      ZipOutputStream out,
+      FeatureSplitConfiguration featureSplitConfiguration)
       throws IOException, ResourceException {
-    try (ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream()) {
-      try (ZipOutputStream archiveOutputStream = new ZipOutputStream(archiveByteStream)) {
-        Object2IntMap<String> seen = new Object2IntOpenHashMap<>();
-        Set<DataEntryResource> dataEntries = getDataEntryResourcesForTesting();
-        for (DataEntryResource dataResource : dataEntries) {
-          String entryName = dataResource.getName();
-          try (InputStream dataStream = dataResource.getByteStream()) {
-            byte[] bytes = ByteStreams.toByteArray(dataStream);
-            writeToZipStream(archiveOutputStream, entryName, bytes, ZipEntry.DEFLATED);
+    Map<FeatureSplit, ByteArrayOutputStream> featureSplitArchiveByteStreams =
+        new IdentityHashMap<>();
+    Map<FeatureSplit, ZipOutputStream> featureSplitArchiveOutputStreams = new IdentityHashMap<>();
+    try {
+      if (featureSplitConfiguration != null) {
+        for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
+          ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream();
+          featureSplitArchiveByteStreams.put(featureSplit, archiveByteStream);
+          featureSplitArchiveOutputStreams.put(
+              featureSplit, new ZipOutputStream(archiveByteStream));
+        }
+      }
+      try (ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream()) {
+        try (ZipOutputStream archiveOutputStream = new ZipOutputStream(archiveByteStream)) {
+          Object2IntMap<String> seen = new Object2IntOpenHashMap<>();
+          Set<DataEntryResource> dataEntries = getDataEntryResourcesForTesting();
+          for (DataEntryResource dataResource : dataEntries) {
+            String entryName = dataResource.getName();
+            try (InputStream dataStream = dataResource.getByteStream()) {
+              byte[] bytes = ByteStreams.toByteArray(dataStream);
+              writeToZipStream(archiveOutputStream, entryName, bytes, ZipEntry.DEFLATED);
+            }
+          }
+          for (ProgramResourceProvider provider : programResourceProviders) {
+            for (ProgramResource programResource : provider.getProgramResources()) {
+              nextDexIndex =
+                  dumpProgramResource(
+                      seen,
+                      nextDexIndex,
+                      classDescriptor -> {
+                        if (featureSplitConfiguration != null) {
+                          FeatureSplit featureSplit =
+                              featureSplitConfiguration.getFeatureSplitFromClassDescriptor(
+                                  classDescriptor);
+                          if (featureSplit != null) {
+                            return featureSplitArchiveOutputStreams.get(featureSplit);
+                          }
+                        }
+                        return archiveOutputStream;
+                      },
+                      archiveOutputStream,
+                      programResource);
+            }
           }
         }
-        for (ProgramResourceProvider provider : programResourceProviders) {
-          for (ProgramResource programResource : provider.getProgramResources()) {
-            nextDexIndex =
-                dumpProgramResource(seen, nextDexIndex, archiveOutputStream, programResource);
+        writeToZipStream(out, archiveName, archiveByteStream.toByteArray(), ZipEntry.DEFLATED);
+        if (featureSplitConfiguration != null) {
+          for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
+            featureSplitArchiveOutputStreams.remove(featureSplit).close();
+            writeToZipStream(
+                out,
+                featureSplitArchiveNames.get(featureSplit),
+                featureSplitArchiveByteStreams.get(featureSplit).toByteArray(),
+                ZipEntry.DEFLATED);
           }
         }
       }
-      writeToZipStream(out, archiveName, archiveByteStream.toByteArray(), ZipEntry.DEFLATED);
+    } finally {
+      closeOutputStreams(featureSplitArchiveOutputStreams.values());
     }
     return nextDexIndex;
+  }
+
+  private void closeOutputStreams(Collection<ZipOutputStream> outputStreams) throws IOException {
+    IOException exception = null;
+    RuntimeException runtimeException = null;
+    for (OutputStream outputStream : outputStreams) {
+      try {
+        outputStream.close();
+      } catch (IOException e) {
+        exception = e;
+      } catch (RuntimeException e) {
+        runtimeException = e;
+      }
+    }
+    if (exception != null) {
+      throw exception;
+    }
+    if (runtimeException != null) {
+      throw runtimeException;
+    }
   }
 
   private static int dumpClassFileResources(
@@ -519,7 +617,12 @@ public class AndroidApp {
             ProgramResource programResource = provider.getProgramResource(descriptor);
             int oldDexIndex = nextDexIndex;
             nextDexIndex =
-                dumpProgramResource(seen, nextDexIndex, archiveOutputStream, programResource);
+                dumpProgramResource(
+                    seen,
+                    nextDexIndex,
+                    ignore -> archiveOutputStream,
+                    archiveOutputStream,
+                    programResource);
             assert nextDexIndex == oldDexIndex;
           }
         }
@@ -532,11 +635,11 @@ public class AndroidApp {
   private static int dumpProgramResource(
       Object2IntMap<String> seen,
       int nextDexIndex,
-      ZipOutputStream archiveOutputStream,
+      Function<String, ZipOutputStream> cfArchiveOutputStream,
+      ZipOutputStream dexArchiveOutputStream,
       ProgramResource programResource)
       throws ResourceException, IOException {
     byte[] bytes = ByteStreams.toByteArray(programResource.getByteStream());
-    String entryName;
     if (programResource.getKind() == Kind.CF) {
       Set<String> classDescriptors = programResource.getClassDescriptors();
       String classDescriptor =
@@ -546,12 +649,14 @@ public class AndroidApp {
       String classFileName = DescriptorUtils.getClassFileName(classDescriptor);
       int dupCount = seen.getOrDefault(classDescriptor, 0);
       seen.put(classDescriptor, dupCount + 1);
-      entryName = dupCount == 0 ? classFileName : (classFileName + "." + dupCount + ".dup");
+      String entryName = dupCount == 0 ? classFileName : (classFileName + "." + dupCount + ".dup");
+      writeToZipStream(
+          cfArchiveOutputStream.apply(classDescriptor), entryName, bytes, ZipEntry.DEFLATED);
     } else {
       assert programResource.getKind() == Kind.DEX;
-      entryName = "classes" + nextDexIndex++ + ".dex";
+      String entryName = "classes" + nextDexIndex++ + ".dex";
+      writeToZipStream(dexArchiveOutputStream, entryName, bytes, ZipEntry.DEFLATED);
     }
-    writeToZipStream(archiveOutputStream, entryName, bytes, ZipEntry.DEFLATED);
     return nextDexIndex;
   }
 

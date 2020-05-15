@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Constants;
@@ -99,29 +98,25 @@ public final class BackportedMethodRewriter {
 
   public static List<DexMethod> generateListOfBackportedMethods(
       AndroidApp androidApp, InternalOptions options, ExecutorService executor) throws IOException {
-    try {
-      List<DexMethod> methods = new ArrayList<>();
-      PrefixRewritingMapper rewritePrefix =
-          options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
-      AppInfo appInfo = null;
-      if (androidApp != null) {
-        DexApplication app =
-            new ApplicationReader(androidApp, options, Timing.empty()).read(executor);
-        appInfo = new AppInfo(app);
-      }
-      AppView<?> appView = AppView.createForD8(appInfo, options, rewritePrefix);
-      BackportedMethodRewriter.RewritableMethods rewritableMethods =
-          new BackportedMethodRewriter.RewritableMethods(options, appView);
-      rewritableMethods.visit(methods::add);
-      if (appInfo != null) {
-        DesugaredLibraryRetargeter desugaredLibraryRetargeter =
-            new DesugaredLibraryRetargeter(appView);
-        desugaredLibraryRetargeter.visit(methods::add);
-      }
-      return methods;
-    } catch (ExecutionException e) {
-      throw unwrapExecutionException(e);
+    List<DexMethod> methods = new ArrayList<>();
+    PrefixRewritingMapper rewritePrefix =
+        options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
+    AppInfo appInfo = null;
+    if (androidApp != null) {
+      DexApplication app =
+          new ApplicationReader(androidApp, options, Timing.empty()).read(executor);
+      appInfo = new AppInfo(app);
     }
+    AppView<?> appView = AppView.createForD8(appInfo, options, rewritePrefix);
+    BackportedMethodRewriter.RewritableMethods rewritableMethods =
+        new BackportedMethodRewriter.RewritableMethods(options, appView);
+    rewritableMethods.visit(methods::add);
+    if (appInfo != null) {
+      DesugaredLibraryRetargeter desugaredLibraryRetargeter =
+          new DesugaredLibraryRetargeter(appView);
+      desugaredLibraryRetargeter.visit(methods::add);
+    }
+    return methods;
   }
 
   public static void registerAssumedLibraryTypes(InternalOptions options) {

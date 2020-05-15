@@ -74,11 +74,11 @@ public class ApplicationReader {
     this.inputApp = inputApp;
   }
 
-  public DexApplication read() throws IOException, ExecutionException {
+  public DexApplication read() throws IOException {
     return read((StringResource) null);
   }
 
-  public DexApplication read(StringResource proguardMap) throws IOException, ExecutionException {
+  public DexApplication read(StringResource proguardMap) throws IOException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     try {
       return read(proguardMap, executor);
@@ -87,14 +87,13 @@ public class ApplicationReader {
     }
   }
 
-  public final DexApplication read(ExecutorService executorService)
-      throws IOException, ExecutionException {
+  public final DexApplication read(ExecutorService executorService) throws IOException {
     return read(
         null, executorService, ProgramClassCollection.defaultConflictResolver(options.reporter));
   }
 
   public final DexApplication read(StringResource proguardMap, ExecutorService executorService)
-      throws IOException, ExecutionException {
+      throws IOException {
     return read(
         proguardMap,
         executorService,
@@ -105,7 +104,7 @@ public class ApplicationReader {
       StringResource proguardMap,
       ExecutorService executorService,
       ProgramClassConflictResolver resolver)
-      throws IOException, ExecutionException {
+      throws IOException {
     assert verifyMainDexOptionsCompatible(inputApp, options);
     Path dumpOutput = null;
     boolean cleanDump = false;
@@ -167,7 +166,7 @@ public class ApplicationReader {
   }
 
   private static void dumpInputToFile(AndroidApp app, Path output, InternalOptions options) {
-    app.dump(output, options.getProguardConfiguration(), options.reporter);
+    app.dump(output, options);
   }
 
   private static boolean verifyMainDexOptionsCompatible(

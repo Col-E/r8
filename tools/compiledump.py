@@ -85,11 +85,25 @@ class Dump(object):
   def program_jar(self):
     return self.if_exists('program.jar')
 
+  def feature_jars(self):
+    feature_jars = []
+    i = 1
+    while True:
+      feature_jar = self.if_exists('feature-%s.jar' % i)
+      if feature_jar:
+        feature_jars.append(feature_jar)
+        i = i + 1
+      else:
+        return feature_jars
+
   def library_jar(self):
     return self.if_exists('library.jar')
 
   def classpath_jar(self):
     return self.if_exists('classpath.jar')
+
+  def build_properties_file(self):
+    return self.if_exists('build.properties')
 
   def config_file(self):
     return self.if_exists('proguard.config')
@@ -106,10 +120,23 @@ class Dump(object):
 def read_dump(args, temp):
   if args.dump is None:
     error("A dump file must be specified")
-  dump_file = zipfile.ZipFile(args.dump, 'r')
+  dump_file = zipfile.ZipFile(os.path.abspath(args.dump), 'r')
   with utils.ChangedWorkingDirectory(temp):
     dump_file.extractall()
     return Dump(temp)
+
+def determine_build_properties(args, dump):
+  build_properties = {}
+  build_properties_file = dump.build_properties_file()
+  if build_properties_file:
+    with open(build_properties_file) as f:
+      build_properties_contents = f.readlines()
+      for line in build_properties_contents:
+        stripped = line.strip()
+        if stripped:
+          pair = stripped.split('=')
+          build_properties[pair[0]] = pair[1]
+  return build_properties
 
 def determine_version(args, dump):
   if args.version is None:
@@ -125,6 +152,9 @@ def determine_compiler(args, dump):
 
 def determine_output(args, temp):
   return os.path.join(temp, 'out.jar')
+
+def determine_feature_output(feature_jar, temp):
+  return os.path.join(temp, os.path.basename(feature_jar)[:-4] + ".out.jar")
 
 def download_distribution(args, version, temp):
   if version == 'master':
@@ -157,6 +187,7 @@ def run(args, otherargs):
       if not os.path.exists(temp):
         os.makedirs(temp)
     dump = read_dump(args, temp)
+    build_properties = determine_build_properties(args, dump)
     version = determine_version(args, dump)
     compiler = determine_compiler(args, dump)
     out = determine_output(args, temp)
@@ -181,6 +212,9 @@ def run(args, otherargs):
       cmd.append('--compat')
     cmd.append(dump.program_jar())
     cmd.extend(['--output', out])
+    for feature_jar in dump.feature_jars():
+      cmd.extend(['--feature-jar', feature_jar,
+                 determine_feature_output(feature_jar, temp)])
     if dump.library_jar():
       cmd.extend(['--lib', dump.library_jar()])
     if dump.classpath_jar():
@@ -189,6 +223,8 @@ def run(args, otherargs):
       cmd.extend(['--pg-conf', dump.config_file()])
     if compiler != 'd8':
       cmd.extend(['--pg-map-output', '%s.map' % out])
+    if 'min-api' in build_properties:
+      cmd.extend(['--min-api', build_properties.get('min-api')])
     cmd.extend(otherargs)
     utils.PrintCmd(cmd)
     try:

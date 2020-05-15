@@ -3,9 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import static com.android.tools.r8.utils.FileUtils.isArchive;
+
 import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command.Builder;
@@ -13,7 +16,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Wrapper to make it easy to call R8 in compat mode when compiling a dump file.
@@ -30,7 +35,7 @@ public class CompileDumpCompatR8 {
   private static final List<String> VALID_OPTIONS =
       Arrays.asList("--classfile", "--compat", "--debug", "--release");
 
-  private static final List<String> VALID_OPTIONS_WITH_OPERAND =
+  private static final List<String> VALID_OPTIONS_WITH_SINGLE_OPERAND =
       Arrays.asList(
           "--output",
           "--lib",
@@ -43,6 +48,9 @@ public class CompileDumpCompatR8 {
           "--pg-map-output",
           "--desugared-lib");
 
+  private static final List<String> VALID_OPTIONS_WITH_TWO_OPERANDS =
+      Arrays.asList("--feature-jar");
+
   public static void main(String[] args) throws CompilationFailedException {
     boolean isCompatMode = false;
     OutputMode outputMode = OutputMode.DexIndexed;
@@ -50,6 +58,7 @@ public class CompileDumpCompatR8 {
     Path pgMapOutput = null;
     CompilationMode compilationMode = CompilationMode.RELEASE;
     List<Path> program = new ArrayList<>();
+    Map<Path, Path> features = new LinkedHashMap<>();
     List<Path> library = new ArrayList<>();
     List<Path> classpath = new ArrayList<>();
     List<Path> config = new ArrayList<>();
@@ -81,7 +90,7 @@ public class CompileDumpCompatR8 {
           default:
             throw new IllegalArgumentException("Unimplemented option: " + option);
         }
-      } else if (VALID_OPTIONS_WITH_OPERAND.contains(option)) {
+      } else if (VALID_OPTIONS_WITH_SINGLE_OPERAND.contains(option)) {
         String operand = args[++i];
         switch (option) {
           case "--output":
@@ -117,11 +126,29 @@ public class CompileDumpCompatR8 {
           default:
             throw new IllegalArgumentException("Unimplemented option: " + option);
         }
+      } else if (VALID_OPTIONS_WITH_TWO_OPERANDS.contains(option)) {
+        String firstOperand = args[++i];
+        String secondOperand = args[++i];
+        switch (option) {
+          case "--feature-jar":
+            {
+              Path featureIn = Paths.get(firstOperand);
+              Path featureOut = Paths.get(secondOperand);
+              if (!isArchive(featureIn)) {
+                throw new IllegalArgumentException(
+                    "Expected an archive, got `" + featureIn.toString() + "`.");
+              }
+              features.put(featureIn, featureOut);
+              break;
+            }
+          default:
+            throw new IllegalArgumentException("Unimplemented option: " + option);
+        }
       } else {
         program.add(Paths.get(option));
       }
     }
-    Builder builder =
+    Builder commandBuilder =
         new CompatProguardCommandBuilder(isCompatMode)
             .addProgramFiles(program)
             .addLibraryFiles(library)
@@ -130,9 +157,17 @@ public class CompileDumpCompatR8 {
             .setOutput(outputPath, outputMode)
             .setMode(compilationMode)
             .setMinApiLevel(minApi);
+    features.forEach(
+        (in, out) ->
+            commandBuilder.addFeatureSplit(
+                featureBuilder ->
+                    featureBuilder
+                        .addProgramResourceProvider(ArchiveResourceProvider.fromArchive(in, true))
+                        .setProgramConsumer(new ArchiveConsumer(out))
+                        .build()));
     if (pgMapOutput != null) {
-      builder.setProguardMapOutputPath(pgMapOutput);
+      commandBuilder.setProguardMapOutputPath(pgMapOutput);
     }
-    R8.run(builder.build());
+    R8.run(commandBuilder.build());
   }
 }

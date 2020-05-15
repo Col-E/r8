@@ -13,7 +13,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.InternalOptions;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,7 +41,7 @@ public class AndroidAppDumpsTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    Reporter reporter = new Reporter();
+    InternalOptions options = new InternalOptions();
 
     String dataResourceName = "my-resource.bin";
     byte[] dataResourceData = new byte[] {1, 2, 3};
@@ -50,7 +50,7 @@ public class AndroidAppDumpsTest extends TestBase {
         testForD8().addProgramClasses(B.class).setMinApi(AndroidApiLevel.B).compile().writeToZip();
 
     AndroidApp appIn =
-        AndroidApp.builder(reporter)
+        AndroidApp.builder(options.reporter)
             .addClassProgramData(ToolHelper.getClassAsBytes(A.class), origin("A"))
             .addClassProgramData(ToolHelper.getClassAsBytes(A.class), origin("A"))
             .addClassProgramData(ToolHelper.getClassAsBytes(A.class), origin("A"))
@@ -67,9 +67,9 @@ public class AndroidAppDumpsTest extends TestBase {
             .build();
 
     Path dumpFile = temp.newFolder().toPath().resolve("dump.zip");
-    appIn.dump(dumpFile, null, reporter);
+    appIn.dump(dumpFile, options);
 
-    AndroidApp appOut = AndroidApp.builder(reporter).addDump(dumpFile).build();
+    AndroidApp appOut = AndroidApp.builder(options.reporter).addDump(dumpFile).build();
     assertEquals(1, appOut.getClassProgramResourcesForTesting().size());
     assertEquals(
         DescriptorUtils.javaTypeToDescriptor(A.class.getTypeName()),
