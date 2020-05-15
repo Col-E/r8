@@ -285,7 +285,13 @@ public class R8 {
       InterfaceMethodRewriter.checkForAssumedLibraryTypes(appView.appInfo(), options);
       BackportedMethodRewriter.registerAssumedLibraryTypes(options);
       if (options.enableEnumUnboxing) {
-        EnumUnboxingCfMethods.registerSynthesizedCodeReferences(options.itemFactory);
+        if (application.definitionFor(options.itemFactory.enumUnboxingUtilityType) != null) {
+          // The enum unboxing utility class can be created only during cf to dex compilation.
+          // If this is true, we are recompiling the dex application with R8 (compilation-steps).
+          options.enableEnumUnboxing = false;
+        } else {
+          EnumUnboxingCfMethods.registerSynthesizedCodeReferences(options.itemFactory);
+        }
       }
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
