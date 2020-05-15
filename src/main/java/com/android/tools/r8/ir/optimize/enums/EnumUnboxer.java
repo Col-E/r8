@@ -328,47 +328,44 @@ public class EnumUnboxer implements PostOptimization {
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox);
     NestedGraphLense enumUnboxingLens = new TreeFixer(enumsToUnbox).fixupTypeReferences();
     appView.setUnboxedEnums(enumUnboxerRewriter.getEnumsToUnbox());
-    if (enumUnboxingLens != null) {
-      appView.setGraphLense(enumUnboxingLens);
-      appView.setAppInfo(
-          appView
-              .appInfo()
-              .rewrittenWithLens(appView.appInfo().app().asDirect(), enumUnboxingLens));
-      // Update optimization info.
-      feedback.fixupOptimizationInfos(
-          appView,
-          executorService,
-          new OptimizationInfoFixer() {
-            @Override
-            public void fixup(DexEncodedField field) {
-              FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
-              if (optimizationInfo.isMutableFieldOptimizationInfo()) {
-                optimizationInfo
-                    .asMutableFieldOptimizationInfo()
-                    .fixupClassTypeReferences(appView.graphLense()::lookupType, appView)
-                    .fixupAbstractValue(appView, appView.graphLense());
-              } else {
-                assert optimizationInfo.isDefaultFieldOptimizationInfo();
-              }
+    GraphLense previousLens = appView.graphLense();
+    appView.setGraphLense(enumUnboxingLens);
+    appView.setAppInfo(
+        appView.appInfo().rewrittenWithLens(appView.appInfo().app().asDirect(), enumUnboxingLens));
+    // Update optimization info.
+    feedback.fixupOptimizationInfos(
+        appView,
+        executorService,
+        new OptimizationInfoFixer() {
+          @Override
+          public void fixup(DexEncodedField field) {
+            FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
+            if (optimizationInfo.isMutableFieldOptimizationInfo()) {
+              optimizationInfo
+                  .asMutableFieldOptimizationInfo()
+                  .fixupClassTypeReferences(appView.graphLense()::lookupType, appView)
+                  .fixupAbstractValue(appView, appView.graphLense());
+            } else {
+              assert optimizationInfo.isDefaultFieldOptimizationInfo();
             }
+          }
 
-            @Override
-            public void fixup(DexEncodedMethod method) {
-              MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
-              if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
-                optimizationInfo
-                    .asUpdatableMethodOptimizationInfo()
-                    .fixupClassTypeReferences(appView.graphLense()::lookupType, appView)
-                    .fixupAbstractReturnValue(appView, appView.graphLense())
-                    .fixupInstanceInitializerInfo(appView, appView.graphLense());
-              } else {
-                assert optimizationInfo.isDefaultMethodOptimizationInfo();
-              }
+          @Override
+          public void fixup(DexEncodedMethod method) {
+            MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
+            if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
+              optimizationInfo
+                  .asUpdatableMethodOptimizationInfo()
+                  .fixupClassTypeReferences(appView.graphLense()::lookupType, appView)
+                  .fixupAbstractReturnValue(appView, appView.graphLense())
+                  .fixupInstanceInitializerInfo(appView, appView.graphLense());
+            } else {
+              assert optimizationInfo.isDefaultMethodOptimizationInfo();
             }
-          });
-    }
+          }
+        });
     postBuilder.put(this);
-    postBuilder.mapDexEncodedMethods(appView);
+    postBuilder.rewrittenWithLens(appView, previousLens);
   }
 
   public void finishAnalysis() {
@@ -698,6 +695,7 @@ public class EnumUnboxer implements PostOptimization {
         if (enumsToUnbox.contains(clazz.type)) {
           assert clazz.instanceFields().size() == 0;
           // Clear the initializers and move the static methods to the utility class.
+          Set<DexEncodedMethod> methodsToRemove = Sets.newIdentityHashSet();
           clazz
               .methods()
               .forEach(
@@ -708,8 +706,10 @@ public class EnumUnboxer implements PostOptimization {
                       assert m.isStatic();
                       unboxedEnumsMethods.add(
                           fixupEncodedMethodToUtility(m, factory.enumUnboxingUtilityType));
+                      methodsToRemove.add(m);
                     }
                   });
+          clazz.getMethodCollection().removeMethods(methodsToRemove);
         } else {
           clazz.getMethodCollection().replaceMethods(this::fixupEncodedMethod);
           fixupFields(clazz.staticFields(), clazz::setStaticField);

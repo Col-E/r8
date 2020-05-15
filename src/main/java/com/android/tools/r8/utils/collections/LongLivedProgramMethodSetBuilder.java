@@ -7,17 +7,29 @@ package com.android.tools.r8.utils.collections;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.function.IntFunction;
 
-public class LongLivedProgramMethodSetBuilder {
+public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
 
-  private Set<DexMethod> methods = Sets.newIdentityHashSet();
+  private final IntFunction<T> factory;
+  private final Set<DexMethod> methods = Sets.newIdentityHashSet();
 
-  public LongLivedProgramMethodSetBuilder() {}
+  private LongLivedProgramMethodSetBuilder(IntFunction<T> factory) {
+    this.factory = factory;
+  }
+
+  public static LongLivedProgramMethodSetBuilder<?> create() {
+    return new LongLivedProgramMethodSetBuilder<>(ProgramMethodSet::create);
+  }
+
+  public static LongLivedProgramMethodSetBuilder<SortedProgramMethodSet> createSorted() {
+    return new LongLivedProgramMethodSetBuilder<>(ignore -> SortedProgramMethodSet.create());
+  }
 
   public void add(ProgramMethod method) {
     methods.add(method.getReference());
@@ -27,25 +39,23 @@ public class LongLivedProgramMethodSetBuilder {
     methods.forEach(this::add);
   }
 
-  public ProgramMethodSet build(AppView<AppInfoWithLiveness> appView) {
-    return build(appView, ProgramMethodSet::create);
+  public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense applied) {
+    Set<DexMethod> newMethods = Sets.newIdentityHashSet();
+    for (DexMethod method : methods) {
+      newMethods.add(appView.graphLense().getRenamedMethodSignature(method, applied));
+    }
+    methods.clear();
+    methods.addAll(newMethods);
   }
 
-  public <T extends ProgramMethodSet> T build(
-      AppView<AppInfoWithLiveness> appView, IntFunction<T> factory) {
+  public T build(AppView<AppInfoWithLiveness> appView) {
+    return build(appView, null);
+  }
+
+  public T build(AppView<AppInfoWithLiveness> appView, GraphLense applied) {
     T result = factory.apply(methods.size());
     for (DexMethod oldMethod : methods) {
-      DexMethod method = appView.graphLense().getRenamedMethodSignature(oldMethod);
-      DexProgramClass holder = appView.definitionForHolder(method).asProgramClass();
-      result.createAndAdd(holder, holder.lookupMethod(method));
-    }
-    return result;
-  }
-
-  @Deprecated
-  public ProgramMethodSet buildRaw(AppView<AppInfoWithLiveness> appView) {
-    ProgramMethodSet result = ProgramMethodSet.create();
-    for (DexMethod method : methods) {
+      DexMethod method = appView.graphLense().getRenamedMethodSignature(oldMethod, applied);
       DexProgramClass holder = appView.definitionForHolder(method).asProgramClass();
       result.createAndAdd(holder, holder.lookupMethod(method));
     }

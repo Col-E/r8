@@ -259,6 +259,12 @@ public class MethodCollection {
     return removed;
   }
 
+  public void removeMethods(Set<DexEncodedMethod> methods) {
+    backing.removeMethods(methods);
+    resetDirectMethodCaches();
+    resetVirtualMethodCaches();
+  }
+
   public void setDirectMethods(DexEncodedMethod[] methods) {
     assert verifyCorrectnessOfMethodHolders(methods);
     resetDirectMethodCaches();

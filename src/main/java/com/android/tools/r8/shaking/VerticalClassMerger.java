@@ -1727,7 +1727,7 @@ public class VerticalClassMerger {
     }
 
     @Override
-    public DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
+    public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLense applied) {
       throw new Unreachable();
     }
 

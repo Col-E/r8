@@ -140,12 +140,23 @@ public abstract class GraphLense {
 
   public abstract DexField getRenamedFieldSignature(DexField originalField);
 
-  public abstract DexMethod getRenamedMethodSignature(DexMethod originalMethod);
+  public final DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
+    return getRenamedMethodSignature(originalMethod, null);
+  }
+
+  public abstract DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLense applied);
 
   public DexEncodedMethod mapDexEncodedMethod(
       DexEncodedMethod originalEncodedMethod, DexDefinitionSupplier definitions) {
+    return mapDexEncodedMethod(originalEncodedMethod, definitions, null);
+  }
+
+  public DexEncodedMethod mapDexEncodedMethod(
+      DexEncodedMethod originalEncodedMethod,
+      DexDefinitionSupplier definitions,
+      GraphLense applied) {
     assert originalEncodedMethod != DexEncodedMethod.SENTINEL;
-    DexMethod newMethod = getRenamedMethodSignature(originalEncodedMethod.method);
+    DexMethod newMethod = getRenamedMethodSignature(originalEncodedMethod.method, applied);
     // Note that:
     // * Even if `newMethod` is the same as `originalEncodedMethod.method`, we still need to look it
     //   up, since `originalEncodedMethod` may be obsolete.
@@ -445,7 +456,7 @@ public abstract class GraphLense {
     }
 
     @Override
-    public DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
+    public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLense applied) {
       return originalMethod;
     }
 
@@ -511,8 +522,10 @@ public abstract class GraphLense {
     }
 
     @Override
-    public DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
-      return previous.getRenamedMethodSignature(originalMethod);
+    public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLense applied) {
+      return this != applied
+          ? previous.getRenamedMethodSignature(originalMethod, applied)
+          : originalMethod;
     }
 
     @Override
@@ -611,8 +624,11 @@ public abstract class GraphLense {
     }
 
     @Override
-    public DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
-      DexMethod renamedMethod = previousLense.getRenamedMethodSignature(originalMethod);
+    public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLense applied) {
+      if (this == applied) {
+        return originalMethod;
+      }
+      DexMethod renamedMethod = previousLense.getRenamedMethodSignature(originalMethod, applied);
       return originalMethodSignatures != null
           ? originalMethodSignatures.inverse().getOrDefault(renamedMethod, renamedMethod)
           : renamedMethod;

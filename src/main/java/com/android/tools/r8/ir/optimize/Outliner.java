@@ -114,8 +114,8 @@ public class Outliner {
   /** Result of first step (see {@link Outliner#createOutlineMethodIdentifierGenerator()}. */
   private final List<Multiset<Wrapper<ProgramMethod>>> candidateMethodLists = new ArrayList<>();
   /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
-  private final LongLivedProgramMethodSetBuilder methodsSelectedForOutlining =
-      new LongLivedProgramMethodSetBuilder();
+  private final LongLivedProgramMethodSetBuilder<?> methodsSelectedForOutlining =
+      LongLivedProgramMethodSetBuilder.create();
   /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
   private final Map<Outline, List<ProgramMethod>> outlineSites = new HashMap<>();
   /** Result of third step (see {@link Outliner#buildOutlinerClass(DexType)}. */

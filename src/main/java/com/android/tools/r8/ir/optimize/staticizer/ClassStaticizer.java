@@ -102,7 +102,7 @@ public final class ClassStaticizer {
     }
   }
 
-  final Map<CandidateInfo, LongLivedProgramMethodSetBuilder> referencedFrom =
+  final Map<CandidateInfo, LongLivedProgramMethodSetBuilder<?>> referencedFrom =
       new IdentityHashMap<>();
 
   // The map storing all the potential candidates for staticizing.
@@ -291,7 +291,7 @@ public final class ClassStaticizer {
             // Ignore just read instruction.
           }
           referencedFrom
-              .computeIfAbsent(candidateInfo, ignore -> new LongLivedProgramMethodSetBuilder())
+              .computeIfAbsent(candidateInfo, ignore -> LongLivedProgramMethodSetBuilder.create())
               .add(context);
         }
         continue;
@@ -313,7 +313,7 @@ public final class ClassStaticizer {
         CandidateInfo info = processStaticFieldRead(instruction.asStaticGet());
         if (info != null) {
           referencedFrom
-              .computeIfAbsent(info, ignore -> new LongLivedProgramMethodSetBuilder())
+              .computeIfAbsent(info, ignore -> LongLivedProgramMethodSetBuilder.create())
               .add(context);
           // If the candidate is still valid, ignore all usages in further analysis.
           Value value = instruction.outValue();
@@ -329,7 +329,7 @@ public final class ClassStaticizer {
         CandidateInfo info = processInvokeStatic(instruction.asInvokeStatic());
         if (info != null) {
           referencedFrom
-              .computeIfAbsent(info, ignore -> new LongLivedProgramMethodSetBuilder())
+              .computeIfAbsent(info, ignore -> LongLivedProgramMethodSetBuilder.create())
               .add(context);
           // If the candidate is still valid, ignore all usages in further analysis.
           Value value = instruction.outValue();

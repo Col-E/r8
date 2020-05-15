@@ -207,6 +207,11 @@ public class MethodMapBacking extends MethodCollectionBacking {
   }
 
   @Override
+  void removeMethods(Set<DexEncodedMethod> methods) {
+    methods.forEach(method -> methodMap.remove(wrap(method.getReference())));
+  }
+
+  @Override
   void setDirectMethods(DexEncodedMethod[] methods) {
     if ((methods == null || methods.length == 0) && methodMap.isEmpty()) {
       return;

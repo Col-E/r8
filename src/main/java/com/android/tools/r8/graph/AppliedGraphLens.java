@@ -101,8 +101,10 @@ public class AppliedGraphLens extends GraphLense {
   }
 
   @Override
-  public DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
-    return originalMethodSignatures.inverse().getOrDefault(originalMethod, originalMethod);
+  public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLense applied) {
+    return this != applied
+        ? originalMethodSignatures.inverse().getOrDefault(originalMethod, originalMethod)
+        : originalMethod;
   }
 
   @Override

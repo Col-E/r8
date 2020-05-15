@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodProcessingId.Factory.ReservedMethodProcessingIds;
@@ -60,8 +61,8 @@ public class PostMethodProcessor implements MethodProcessor {
   public static class Builder {
 
     private final Collection<CodeOptimization> defaultCodeOptimizations;
-    private final LongLivedProgramMethodSetBuilder methodsMap =
-        new LongLivedProgramMethodSetBuilder();
+    private final LongLivedProgramMethodSetBuilder<?> methodsToReprocess =
+        LongLivedProgramMethodSetBuilder.create();
     private final Map<DexEncodedMethod, Collection<CodeOptimization>> optimizationsMap =
         new IdentityHashMap<>();
 
@@ -76,7 +77,7 @@ public class PostMethodProcessor implements MethodProcessor {
         return;
       }
       for (ProgramMethod method : methodsToRevisit) {
-        methodsMap.add(method);
+        methodsToReprocess.add(method);
         optimizationsMap
             .computeIfAbsent(
                 method.getDefinition(),
@@ -102,13 +103,15 @@ public class PostMethodProcessor implements MethodProcessor {
     // Some optimizations may change methods, creating new instances of the encoded methods with a
     // new signature. The compiler needs to update the set of methods that must be reprocessed
     // according to the graph lens.
-    public void mapDexEncodedMethods(AppView<?> appView) {
+    public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense applied) {
+      methodsToReprocess.rewrittenWithLens(appView, applied);
       Map<DexEncodedMethod, Collection<CodeOptimization>> newOptimizationsMap =
           new IdentityHashMap<>();
       optimizationsMap.forEach(
           (method, optimizations) ->
               newOptimizationsMap.put(
-                  appView.graphLense().mapDexEncodedMethod(method, appView), optimizations));
+                  appView.graphLense().mapDexEncodedMethod(method, appView, applied),
+                  optimizations));
       optimizationsMap.clear();
       optimizationsMap.putAll(newOptimizationsMap);
     }
@@ -132,16 +135,14 @@ public class PostMethodProcessor implements MethodProcessor {
                 });
         put(set);
       }
-      if (methodsMap.isEmpty()) {
+      if (methodsToReprocess.isEmpty()) {
         // Nothing to revisit.
         return null;
       }
-      ProgramMethodSet methodsToReprocess =
-          appView.options().enableEnumUnboxing
-              ? methodsMap.build(appView)
-              : methodsMap.buildRaw(appView);
       CallGraph callGraph =
-          new PartialCallGraphBuilder(appView, methodsToReprocess).build(executorService, timing);
+          new PartialCallGraphBuilder(
+                  appView, methodsToReprocess.build(appView, appView.graphLense()))
+              .build(executorService, timing);
       return new PostMethodProcessor(appView, optimizationsMap, callGraph);
     }
   }

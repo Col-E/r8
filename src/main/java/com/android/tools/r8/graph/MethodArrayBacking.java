@@ -8,6 +8,7 @@ import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -119,6 +120,23 @@ public class MethodArrayBacking extends MethodCollectionBacking {
       }
     }
     return null;
+  }
+
+  @Override
+  void removeMethods(Set<DexEncodedMethod> methods) {
+    directMethods = removeMethodsHelper(methods, directMethods);
+    virtualMethods = removeMethodsHelper(methods, virtualMethods);
+  }
+
+  private static DexEncodedMethod[] removeMethodsHelper(
+      Set<DexEncodedMethod> methodsToRemove, DexEncodedMethod[] existingMethods) {
+    List<DexEncodedMethod> newMethods = new ArrayList<>(existingMethods.length);
+    for (DexEncodedMethod method : existingMethods) {
+      if (!methodsToRemove.contains(method)) {
+        newMethods.add(method);
+      }
+    }
+    return newMethods.toArray(DexEncodedMethod.EMPTY_ARRAY);
   }
 
   private DexEncodedMethod removeMethodWithIndex(
