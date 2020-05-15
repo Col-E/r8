@@ -77,10 +77,7 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
       // the KotlinMetadataWriter.
       String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
       String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
-      // TODO(b/155534905): For invalid synthetic class lambdas, we emit null after rewriting.
-      if (clazzSubject.getKotlinClassMetadata().getHeader().getKind() != 3) {
-        assertEquals(expected, actual);
-      }
+      assertEquals(expected, actual);
     }
   }
 }
