@@ -518,21 +518,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return new AppInfoWithLivenessModifier();
   }
 
-  private boolean assertDefinitionFor = true;
-
-  public void disableDefinitionForAssert() {
-    assertDefinitionFor = false;
-  }
-
-  public void enableDefinitionForAssert() {
-    assertDefinitionFor = true;
-  }
-
   @Override
   public DexClass definitionFor(DexType type) {
     DexClass definition = super.definitionFor(type);
-    assert !assertDefinitionFor
-            || definition != null
+    assert definition != null
             || deadProtoTypes.contains(type)
             || missingTypes.contains(type)
             // TODO(b/150693139): Remove these exceptions once fixed.
