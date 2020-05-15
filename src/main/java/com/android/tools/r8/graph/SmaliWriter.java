@@ -13,7 +13,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ExecutionException;
 
 public class SmaliWriter extends DexByteCodeWriter {
 
@@ -30,7 +29,7 @@ public class SmaliWriter extends DexByteCodeWriter {
           new ApplicationReader(application, options, Timing.empty()).read();
       SmaliWriter writer = new SmaliWriter(dexApplication, options);
       writer.write(ps);
-    } catch (IOException | ExecutionException e) {
+    } catch (IOException e) {
       throw new CompilationError("Failed to generate smali sting", e);
     }
     return new String(os.toByteArray(), StandardCharsets.UTF_8);
