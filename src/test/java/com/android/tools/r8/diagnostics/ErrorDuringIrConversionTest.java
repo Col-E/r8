@@ -123,9 +123,7 @@ public class ErrorDuringIrConversionTest extends TestBase {
               });
     } catch (CompilationFailedException e) {
       checkCompilationFailedException(
-          e,
-          containsString(ORIGIN.toString()),
-          allOf(containsString("fakeStackEntry"), containsString("fatalError")));
+          e, containsString(ORIGIN.toString()), containsString("fakeStackEntry"));
       return;
     }
     fail("Expected compilation to fail");
