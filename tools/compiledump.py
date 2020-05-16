@@ -20,7 +20,7 @@ def make_parser():
   parser.add_argument(
     '-d',
     '--dump',
-    help='Dump file to compile',
+    help='Dump file or directory to compile',
     default=None)
   parser.add_argument(
     '--temp',
@@ -119,7 +119,9 @@ class Dump(object):
 
 def read_dump(args, temp):
   if args.dump is None:
-    error("A dump file must be specified")
+    error("A dump file or directory must be specified")
+  if os.path.isdir(args.dump):
+    return Dump(args.dump)
   dump_file = zipfile.ZipFile(os.path.abspath(args.dump), 'r')
   with utils.ChangedWorkingDirectory(temp):
     dump_file.extractall()
