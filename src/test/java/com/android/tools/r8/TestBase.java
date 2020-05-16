@@ -96,7 +96,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
@@ -580,7 +579,7 @@ public class TestBase {
       DexApplication dexApplication =
           new ApplicationReader(application, new InternalOptions(), Timing.empty()).read();
       return new AppInfo(dexApplication);
-    } catch (IOException | ExecutionException e) {
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
@@ -591,7 +590,7 @@ public class TestBase {
       DexApplication dexApplication =
           new ApplicationReader(application, new InternalOptions(), Timing.empty()).read();
       return new AppInfoWithClassHierarchy(dexApplication);
-    } catch (IOException | ExecutionException e) {
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }

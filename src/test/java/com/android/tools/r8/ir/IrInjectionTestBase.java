@@ -45,7 +45,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
   protected DexApplication buildApplication(AndroidApp input, InternalOptions options) {
     try {
       return new ApplicationReader(input, options, Timing.empty()).read();
-    } catch (IOException | ExecutionException e) {
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
