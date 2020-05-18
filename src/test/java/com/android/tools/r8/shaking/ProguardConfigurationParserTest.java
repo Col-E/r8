@@ -78,6 +78,8 @@ public class ProguardConfigurationParserTest extends TestBase {
       VALID_PROGUARD_DIR + "assume-no-side-effects-with-return-value.flags";
   private static final String ASSUME_VALUES_WITH_RETURN_VALUE =
       VALID_PROGUARD_DIR + "assume-values-with-return-value.flags";
+  private static final String ADAPT_KOTLIN_METADATA =
+      VALID_PROGUARD_DIR + "adapt-kotlin-metadata.flags";
   private static final String INCLUDING =
       VALID_PROGUARD_DIR + "including.flags";
   private static final String INVALID_INCLUDING_1 =
@@ -767,6 +769,15 @@ public class ProguardConfigurationParserTest extends TestBase {
     } catch (AbortException e) {
       checkDiagnostics(handler.errors, path, 6, 14, "File name expected");
     }
+  }
+
+  @Test
+  public void parseAdaptKotlinMetadata() {
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    Path path = Paths.get(ADAPT_KOTLIN_METADATA);
+    parser.parse(path);
+    checkDiagnostics(handler.infos, path, 1, 1, "Ignoring", "-adaptkotlinmetadata");
   }
 
   @Test

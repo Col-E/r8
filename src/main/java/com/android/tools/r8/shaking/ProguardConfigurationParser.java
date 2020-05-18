@@ -236,6 +236,12 @@ public class ProguardConfigurationParser {
           || parseTestingOption(optionStart)
           || parseUnsupportedOptionAndErr(optionStart)) {
         // Intentionally left empty.
+      } else if (acceptString("adaptkotlinmetadata")) {
+        reporter.info(
+            new StringDiagnostic(
+                "Ignoring -adaptkotlinmetadata because R8 always process kotlin.Metadata",
+                origin,
+                getPosition(optionStart)));
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
         if (isOptionalArgumentGiven()) {
