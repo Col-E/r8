@@ -10,7 +10,6 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -116,24 +115,15 @@ public class NewArrayFilledData extends Instruction {
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
-    if (appView.options().debug) {
-      return AbstractError.top();
-    }
-
-    if (src().getType().isNullable()) {
-      return AbstractError.top();
-    }
-
-    return AbstractError.bottom();
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+    return appView.options().debug || src().getType().isNullable();
   }
 
   @Override
   public boolean instructionMayHaveSideEffects(
       AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     // Treat the instruction as possibly having side-effects if it may throw or the array is used.
-    if (instructionInstanceCanThrow(appView, context).isThrowing()
-        || src().numberOfAllUsers() > 1) {
+    if (instructionInstanceCanThrow(appView, context) || src().numberOfAllUsers() > 1) {
       return true;
     }
 

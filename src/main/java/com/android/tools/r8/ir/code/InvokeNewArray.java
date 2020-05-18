@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -140,47 +139,47 @@ public class InvokeNewArray extends Invoke {
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     DexType baseType = type.isArrayType() ? type.toBaseType(appView.dexItemFactory()) : type;
     if (baseType.isPrimitiveType()) {
       // Primitives types are known to be present and accessible.
       assert !type.isWideType() : "The array's contents must be single-word";
-      return AbstractError.bottom();
+      return false;
     }
 
     assert baseType.isReferenceType();
 
     if (baseType == context.getHolderType()) {
       // The enclosing type is known to be present and accessible.
-      return AbstractError.bottom();
+      return false;
     }
 
     if (!appView.enableWholeProgramOptimizations()) {
       // Conservatively bail-out in D8, because we require whole program knowledge to determine if
       // the type is present and accessible.
-      return AbstractError.top();
+      return true;
     }
 
     // Check if the type is guaranteed to be present.
     DexClass clazz = appView.definitionFor(baseType);
     if (clazz == null) {
-      return AbstractError.top();
+      return true;
     }
 
     if (clazz.isLibraryClass()) {
       if (!appView.dexItemFactory().libraryTypesAssumedToBePresent.contains(baseType)) {
-        return AbstractError.top();
+        return true;
       }
     }
 
     // Check if the type is guaranteed to be accessible.
     if (AccessControl.isClassAccessible(clazz, context, appView).isPossiblyFalse()) {
-      return AbstractError.top();
+      return true;
     }
 
     // Note: Implicitly assuming that all the arguments are of the right type, because the input
     // code must be valid.
-    return AbstractError.bottom();
+    return false;
   }
 
   @Override
@@ -192,7 +191,7 @@ public class InvokeNewArray extends Invoke {
       return true;
     }
 
-    return instructionInstanceCanThrow(appView, context).isThrowing();
+    return instructionInstanceCanThrow(appView, context);
   }
 
   @Override

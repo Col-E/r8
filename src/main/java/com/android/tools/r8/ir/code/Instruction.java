@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
@@ -590,8 +589,8 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   public abstract boolean instructionMayTriggerMethodInvocation(
       AppView<?> appView, ProgramMethod context);
 
-  public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
-    return instructionInstanceCanThrow() ? AbstractError.top() : AbstractError.bottom();
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+    return instructionInstanceCanThrow();
   }
 
   /** Returns true is this instruction can be treated as dead code if its outputs are not used. */

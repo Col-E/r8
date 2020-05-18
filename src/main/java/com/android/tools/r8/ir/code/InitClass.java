@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -94,30 +93,30 @@ public class InitClass extends Instruction {
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     DexClass definition = appView.definitionFor(clazz);
     // * Check that the class is present.
     if (definition == null) {
-      return AbstractError.top();
+      return true;
     }
     // * Check that the class is accessible.
     if (AccessControl.isClassAccessible(definition, context, appView).isPossiblyFalse()) {
-      return AbstractError.top();
+      return true;
     }
     if (clazz.classInitializationMayHaveSideEffects(
         appView,
         // Types that are a super type of `context` are guaranteed to be initialized already.
         type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
         Sets.newIdentityHashSet())) {
-      return AbstractError.top();
+      return true;
     }
-    return AbstractError.bottom();
+    return false;
   }
 
   @Override
   public boolean instructionMayHaveSideEffects(
       AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    return instructionInstanceCanThrow(appView, context).isThrowing();
+    return instructionInstanceCanThrow(appView, context);
   }
 
   @Override

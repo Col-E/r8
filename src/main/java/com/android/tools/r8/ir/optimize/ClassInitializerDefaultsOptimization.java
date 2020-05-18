@@ -376,7 +376,7 @@ public class ClassInitializerDefaultsOptimization {
             // Array stores do not impact our ability to move constants into the class definition,
             // as long as the instructions do not throw.
             ArrayPut arrayPut = instruction.asArrayPut();
-            if (arrayPut.instructionInstanceCanThrow(appView, context).isThrowing()) {
+            if (arrayPut.instructionInstanceCanThrow(appView, context)) {
               return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
             }
           } else if (instruction.isStaticGet()) {

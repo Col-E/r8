@@ -388,7 +388,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
           if (instruction.isStaticPut()) {
             StaticPut otherStaticPut = instruction.asStaticPut();
             if (otherStaticPut.getField().holder == staticPut.getField().holder
-                && instruction.instructionInstanceCanThrow(appView, context).cannotThrow()) {
+                && !instruction.instructionInstanceCanThrow(appView, context)) {
               continue;
             }
             return true;

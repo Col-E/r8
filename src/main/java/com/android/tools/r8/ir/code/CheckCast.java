@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -98,27 +97,27 @@ public class CheckCast extends Instruction {
   @Override
   public boolean instructionMayHaveSideEffects(
       AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    return instructionInstanceCanThrow(appView, context).isThrowing();
+    return instructionInstanceCanThrow(appView, context);
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     if (appView.options().debug || !appView.appInfo().hasLiveness()) {
-      return AbstractError.top();
+      return true;
     }
     if (type.isPrimitiveType()) {
-      return AbstractError.top();
+      return true;
     }
     DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (baseType.isClassType()) {
       DexClass definition = appView.definitionFor(baseType);
       // Check that the class and its super types are present.
       if (definition == null || !definition.isResolvable(appView)) {
-        return AbstractError.top();
+        return true;
       }
       // Check that the class is accessible.
       if (AccessControl.isClassAccessible(definition, context, appView).isPossiblyFalse()) {
-        return AbstractError.top();
+        return true;
       }
     }
     AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
@@ -128,9 +127,9 @@ public class CheckCast extends Instruction {
         .lessThanOrEqualUpToNullability(castType, appView)) {
       // This is a check-cast that has to be there for bytecode correctness, but R8 has proven
       // that this cast will never throw.
-      return AbstractError.bottom();
+      return false;
     }
-    return AbstractError.top();
+    return true;
   }
 
   @Override

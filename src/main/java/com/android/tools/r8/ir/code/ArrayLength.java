@@ -9,7 +9,6 @@ import com.android.tools.r8.cf.code.CfArrayLength;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -74,18 +73,14 @@ public class ArrayLength extends Instruction {
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
-    if (array().type.isNullable()) {
-      return AbstractError.specific(appView.dexItemFactory().npeType);
-    }
-
-    return AbstractError.bottom();
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+    return array().type.isNullable();
   }
 
   @Override
   public boolean instructionMayHaveSideEffects(
       AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    return instructionInstanceCanThrow(appView, context).isThrowing();
+    return instructionInstanceCanThrow(appView, context);
   }
 
   @Override

@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
@@ -60,28 +59,28 @@ public abstract class FieldInstruction extends Instruction {
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+  public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     return instructionInstanceCanThrow(appView, context, SideEffectAssumption.NONE);
   }
 
-  public AbstractError instructionInstanceCanThrow(
+  public boolean instructionInstanceCanThrow(
       AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     SuccessfulFieldResolutionResult resolutionResult =
         appView.appInfo().resolveField(field, context).asSuccessfulResolution();
     if (resolutionResult == null) {
-      return AbstractError.top();
+      return true;
     }
     DexEncodedField resolvedField = resolutionResult.getResolvedField();
     // Check if the instruction may fail with an IncompatibleClassChangeError.
     if (resolvedField.isStatic() != isStaticFieldInstruction()) {
-      return AbstractError.top();
+      return true;
     }
     // Check if the resolution target is accessible.
     if (resolutionResult.getResolvedHolder() != context.getHolder()) {
       if (resolutionResult
           .isAccessibleFrom(context, appView.appInfo().withClassHierarchy())
           .isPossiblyFalse()) {
-        return AbstractError.top();
+        return true;
       }
     }
     // TODO(b/137168535): Without non-null tracking, only locally created receiver is allowed in D8.
@@ -90,14 +89,14 @@ public abstract class FieldInstruction extends Instruction {
       if (!assumption.canAssumeReceiverIsNotNull()) {
         Value receiver = inValues.get(0);
         if (receiver.isAlwaysNull(appView) || receiver.type.isNullable()) {
-          return AbstractError.specific(appView.dexItemFactory().npeType);
+          return true;
         }
       }
     }
     // For D8, reaching here means the field is in the same context, hence the class is guaranteed
     // to be initialized already.
     if (!appView.enableWholeProgramOptimizations()) {
-      return AbstractError.bottom();
+      return false;
     }
     boolean mayTriggerClassInitialization =
         isStaticFieldInstruction() && !assumption.canAssumeClassIsAlreadyInitialized();
@@ -106,7 +105,7 @@ public abstract class FieldInstruction extends Instruction {
       if (appView.appInfo().hasLiveness()) {
         AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
         if (appInfoWithLiveness.noSideEffects.containsKey(resolvedField.field)) {
-          return AbstractError.bottom();
+          return false;
         }
       }
       // May trigger <clinit> that may have side effects.
@@ -115,10 +114,10 @@ public abstract class FieldInstruction extends Instruction {
           // Types that are a super type of `context` are guaranteed to be initialized already.
           type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
           Sets.newIdentityHashSet())) {
-        return AbstractError.top();
+        return true;
       }
     }
-    return AbstractError.bottom();
+    return false;
   }
 
   @Override

@@ -23,13 +23,13 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
-import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.Instruction.SideEffectAssumption;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
@@ -374,7 +374,6 @@ public class UninstantiatedTypeOptimization {
         if (instruction.isFieldInstruction()) {
           rewriteFieldInstruction(
               instruction.asFieldInstruction(),
-              blockIterator,
               instructionIterator,
               code,
               assumeDynamicTypeRemover,
@@ -411,13 +410,11 @@ public class UninstantiatedTypeOptimization {
     }
     if (current.isFieldInstruction()) {
       // Other resolution-related errors come first.
-      AbstractError abstractError =
-          current.asFieldInstruction().instructionInstanceCanThrow(appView, context);
-      if (abstractError.isThrowing()
-          && abstractError.getSpecificError(appView.dexItemFactory())
-              != appView.dexItemFactory().npeType) {
-        // We can't replace the current instruction with `throw null` if it may throw another
-        // Error/Exception than NullPointerException.
+      FieldInstruction fieldInstruction = current.asFieldInstruction();
+      // We can't replace the current instruction with `throw null` if it may throw another
+      // exception than NullPointerException.
+      if (fieldInstruction.instructionInstanceCanThrow(
+          appView, context, SideEffectAssumption.RECEIVER_NOT_NULL)) {
         return false;
       }
     }
@@ -446,7 +443,6 @@ public class UninstantiatedTypeOptimization {
   // At this point, field-instruction whose target field type is uninstantiated will be handled.
   private void rewriteFieldInstruction(
       FieldInstruction instruction,
-      ListIterator<BasicBlock> blockIterator,
       InstructionListIterator instructionIterator,
       IRCode code,
       AssumeDynamicTypeRemover assumeDynamicTypeRemover,
@@ -461,8 +457,7 @@ public class UninstantiatedTypeOptimization {
         return;
       }
 
-      boolean instructionCanBeRemoved =
-          instruction.instructionInstanceCanThrow(appView, context).isThrowing();
+      boolean instructionCanBeRemoved = !instruction.instructionInstanceCanThrow(appView, context);
 
       BasicBlock block = instruction.getBlock();
       if (instruction.isFieldPut()) {

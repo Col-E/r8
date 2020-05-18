@@ -110,7 +110,7 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
         return false;
       }
 
-      if (instructionInstanceCanThrow(appView, context, assumption).isThrowing()) {
+      if (instructionInstanceCanThrow(appView, context, assumption)) {
         return true;
       }
 

@@ -121,7 +121,7 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
 
-      if (instructionInstanceCanThrow(appView, context, assumption).isThrowing()) {
+      if (instructionInstanceCanThrow(appView, context, assumption)) {
         return true;
       }
 

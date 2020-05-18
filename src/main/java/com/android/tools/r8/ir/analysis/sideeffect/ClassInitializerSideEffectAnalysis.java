@@ -56,7 +56,7 @@ public class ClassInitializerSideEffectAnalysis {
             || !array.definition.isCreatingArray()
             || environmentAnalysis.valueMayDependOnEnvironment(arrayPut.index())
             || environmentAnalysis.valueMayDependOnEnvironment(arrayPut.value())
-            || arrayPut.instructionInstanceCanThrow(appView, context).isThrowing()) {
+            || arrayPut.instructionInstanceCanThrow(appView, context)) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
         if (controlFlowMayDependOnEnvironment.isUnknown()) {
@@ -75,7 +75,7 @@ public class ClassInitializerSideEffectAnalysis {
         Value array = newArrayFilledData.src();
         if (array.isPhi()
             || !array.definition.isCreatingArray()
-            || newArrayFilledData.instructionInstanceCanThrow(appView, context).isThrowing()) {
+            || newArrayFilledData.instructionInstanceCanThrow(appView, context)) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
         if (controlFlowMayDependOnEnvironment.isUnknown()) {
@@ -92,7 +92,7 @@ public class ClassInitializerSideEffectAnalysis {
       // on the environment.
       if (instruction.isInvokeNewArray()) {
         InvokeNewArray invokeNewArray = instruction.asInvokeNewArray();
-        if (invokeNewArray.instructionInstanceCanThrow(appView, context).isThrowing()) {
+        if (invokeNewArray.instructionInstanceCanThrow(appView, context)) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
         for (Value argument : invokeNewArray.arguments()) {
@@ -104,7 +104,7 @@ public class ClassInitializerSideEffectAnalysis {
       }
 
       if (instruction.isNewArrayEmpty()) {
-        if (instruction.instructionInstanceCanThrow(appView, context).isThrowing()) {
+        if (instruction.instructionInstanceCanThrow(appView, context)) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
         continue;
@@ -117,7 +117,7 @@ public class ClassInitializerSideEffectAnalysis {
         if (field == null
             || field.holder() != context.getHolderType()
             || environmentAnalysis.valueMayDependOnEnvironment(staticPut.value())
-            || instruction.instructionInstanceCanThrow(appView, context).isThrowing()) {
+            || instruction.instructionInstanceCanThrow(appView, context)) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
         mayHaveSideEffects = true;

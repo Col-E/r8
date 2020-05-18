@@ -145,7 +145,7 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
   @Override
   public boolean instructionMayHaveSideEffects(
       AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    return instructionInstanceCanThrow(appView, context, assumption).isThrowing();
+    return instructionInstanceCanThrow(appView, context, assumption);
   }
 
   @Override
