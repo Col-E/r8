@@ -51,7 +51,6 @@ import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
-import com.android.tools.r8.ir.optimize.AliasIntroducer;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.Assumer;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization;
@@ -288,9 +287,6 @@ public class IRConverter {
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
             : null;
-    if (options.testing.forceAssumeNoneInsertion) {
-      assumers.add(new AliasIntroducer(appView));
-    }
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
       assert appView.rootSet() != null;

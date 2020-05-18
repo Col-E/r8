@@ -1143,8 +1143,7 @@ public class Inliner implements PostOptimization {
     boolean skip =
         !(options.enableDynamicTypeOptimization
             || options.enableNonNullTracking
-            || options.enableValuePropagation
-            || options.testing.forceAssumeNoneInsertion);
+            || options.enableValuePropagation);
     if (skip) {
       return;
     }
@@ -1157,12 +1156,6 @@ public class Inliner implements PostOptimization {
     if (options.enableValuePropagation) {
       rewindBlockIteratorToFirstInlineeBlock(blockIterator, block);
       applyMemberValuePropagationToInlinee(code, blockIterator, block, inlineeBlocks);
-    }
-
-    // Introduce aliases only to the inlinee blocks.
-    if (options.testing.forceAssumeNoneInsertion) {
-      applyAssumerToInlinee(
-          new AliasIntroducer(appView), code, blockIterator, block, inlineeBlocks, timing);
     }
 
     // Add non-null IRs only to the inlinee blocks.
