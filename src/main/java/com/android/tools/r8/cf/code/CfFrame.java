@@ -76,6 +76,16 @@ public class CfFrame extends CfInstruction {
     private FrameType() {}
   }
 
+  @Override
+  public boolean isFrame() {
+    return true;
+  }
+
+  @Override
+  public CfFrame asFrame() {
+    return this;
+  }
+
   private static class InitializedType extends FrameType {
 
     private final DexType type;

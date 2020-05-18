@@ -87,6 +87,14 @@ public abstract class CfInstruction {
     return false;
   }
 
+  public CfFrame asFrame() {
+    return null;
+  }
+
+  public boolean isFrame() {
+    return false;
+  }
+
   public CfPosition asPosition() {
     return null;
   }

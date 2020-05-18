@@ -183,38 +183,27 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       boolean enableJvmAssertions)
       throws Exception {
 
-    if (kotlinStdlibAsLibrary) {
-      testForR8(parameters.getBackend())
-          .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-          .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
-          .addKeepMainRule(testClassKt)
-          .addKeepClassAndMembersRules(class1, class2)
-          .setMinApi(parameters.getApiLevel())
-          .apply(builderConsumer)
-          .noMinification()
-          .addRunClasspathFiles(kotlinStdlibLibraryForRuntime())
-          .compile()
-          .enableRuntimeAssertions(enableJvmAssertions)
-          .run(parameters.getRuntime(), testClassKt)
-          .inspect(inspector)
-          .assertSuccessWithOutputLines(outputLines);
-    } else {
-      testForR8(parameters.getBackend())
-          .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-          .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
-          .addKeepMainRule(testClassKt)
-          .addKeepClassAndMembersRules(class1, class2)
-          .setMinApi(parameters.getApiLevel())
-          .apply(builderConsumer)
-          .noMinification()
-          .allowDiagnosticWarningMessages()
-          .compile()
-          .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
-          .enableRuntimeAssertions(enableJvmAssertions)
-          .run(parameters.getRuntime(), testClassKt)
-          .inspect(inspector)
-          .assertSuccessWithOutputLines(outputLines);
-    }
+    testForR8(parameters.getBackend())
+        .applyIf(
+            kotlinStdlibAsLibrary,
+            b -> {
+              b.addClasspathFiles(ToolHelper.getKotlinStdlibJar());
+              b.addRunClasspathFiles(kotlinStdlibLibraryForRuntime());
+            },
+            b -> b.addProgramFiles(ToolHelper.getKotlinStdlibJar()))
+        .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
+        .addKeepMainRule(testClassKt)
+        .addKeepClassAndMembersRules(class1, class2)
+        .setMinApi(parameters.getApiLevel())
+        .apply(builderConsumer)
+        .allowDiagnosticWarningMessages(!kotlinStdlibAsLibrary)
+        .addRunClasspathFiles(kotlinStdlibLibraryForRuntime())
+        .compile()
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+        .enableRuntimeAssertions(enableJvmAssertions)
+        .run(parameters.getRuntime(), testClassKt)
+        .inspect(inspector)
+        .assertSuccessWithOutputLines(outputLines);
   }
 
   private List<String> allAssertionsExpectedLines() {
@@ -484,7 +473,30 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   }
 
   @Test
-  public void testAssertionsForCf() throws Exception {
+  public void testAssertionsForCfEnableWithStackMap() throws Exception {
+    Assume.assumeTrue(parameters.isCfRuntime());
+    Assume.assumeTrue(useJvmAssertions);
+    Assume.assumeTrue(kotlinCompilationKey.targetVersion == KotlinTargetVersion.JAVA_8);
+    // Compile time enabling or disabling assertions means the -ea flag has no effect.
+    runR8Test(
+        builder -> {
+          builder.addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions);
+          builder.addOptionsModification(options -> options.testing.readInputStackMaps = true);
+        },
+        inspector -> checkAssertionCodeEnabled(inspector, true),
+        allAssertionsExpectedLines());
+    runR8Test(
+        builder -> {
+          builder.addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions);
+          builder.addOptionsModification(options -> options.testing.readInputStackMaps = true);
+        },
+        inspector -> checkAssertionCodeEnabled(inspector, true),
+        allAssertionsExpectedLines(),
+        true);
+  }
+
+  @Test
+  public void testAssertionsForCfPassThrough() throws Exception {
     Assume.assumeTrue(parameters.isCfRuntime());
     // Leaving assertion code means assertions are controlled by the -ea flag.
     runR8Test(
@@ -500,6 +512,11 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
         inspector -> checkAssertionCodeLeft(inspector, true),
         allAssertionsExpectedLines(),
         true);
+  }
+
+  @Test
+  public void testAssertionsForCfEnable() throws Exception {
+    Assume.assumeTrue(parameters.isCfRuntime());
     // Compile time enabling or disabling assertions means the -ea flag has no effect.
     runR8Test(
         builder ->
@@ -514,6 +531,11 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
         inspector -> checkAssertionCodeEnabled(inspector, true),
         allAssertionsExpectedLines(),
         true);
+  }
+
+  @Test
+  public void testAssertionsForCfDisable() throws Exception {
+    Assume.assumeTrue(parameters.isCfRuntime());
     runR8Test(
         builder ->
             builder.addAssertionsConfiguration(

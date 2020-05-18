@@ -69,7 +69,7 @@ public class PassThroughTest extends TestBase {
         .addProgramClasses(Main.class)
         .addKeepAllClassesRule()
         .enableInliningAnnotations()
-        .ifTrue(keepDebug, TestShrinkerBuilder::addKeepAllAttributes)
+        .applyIf(keepDebug, TestShrinkerBuilder::addKeepAllAttributes)
         .compile()
         .writeToZip(outputJar)
         .run(parameters.getRuntime(), Main.class)
@@ -86,7 +86,7 @@ public class PassThroughTest extends TestBase {
         .addProgramClasses(Main.class)
         .addKeepAllClassesRule()
         .enableInliningAnnotations()
-        .ifTrue(keepDebug, TestShrinkerBuilder::addKeepAllAttributes)
+        .applyIf(keepDebug, TestShrinkerBuilder::addKeepAllAttributes)
         .addOptionsModification(
             internalOptions -> {
               internalOptions.testing.cfByteCodePassThrough =

@@ -67,7 +67,7 @@ public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
         .addProgramFiles(libJars.get(targetVersion))
         .addProgramFiles(ToolHelper.getKotlinStdlibJar())
         .addKeepRules("-keep class " + LIB_CLASS_NAME)
-        .ifTrue(keepMetadata, TestShrinkerBuilder::addKeepKotlinMetadata)
+        .applyIf(keepMetadata, TestShrinkerBuilder::addKeepKotlinMetadata)
         .addKeepRuntimeVisibleAnnotations()
         .allowDiagnosticWarningMessages()
         .compile()
@@ -81,7 +81,7 @@ public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
         .addProgramFiles(libJars.get(targetVersion))
         .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
         .addKeepRules("-keep class " + LIB_CLASS_NAME)
-        .ifTrue(keepMetadata, TestShrinkerBuilder::addKeepKotlinMetadata)
+        .applyIf(keepMetadata, TestShrinkerBuilder::addKeepKotlinMetadata)
         .addKeepRuntimeVisibleAnnotations()
         .compile()
         .inspect(inspector -> inspect(inspector, keepMetadata));
@@ -94,7 +94,7 @@ public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
         .addLibraryFiles(ToolHelper.getKotlinStdlibJar())
         .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
         .addKeepRules("-keep class " + LIB_CLASS_NAME)
-        .ifTrue(keepMetadata, TestShrinkerBuilder::addKeepKotlinMetadata)
+        .applyIf(keepMetadata, TestShrinkerBuilder::addKeepKotlinMetadata)
         .addKeepRuntimeVisibleAnnotations()
         .compile()
         .inspect(inspector -> inspect(inspector, keepMetadata));

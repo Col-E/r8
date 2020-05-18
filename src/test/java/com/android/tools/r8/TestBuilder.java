@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 
 public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilder<RR, T>> {
 
@@ -39,10 +38,21 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
     return self();
   }
 
-  public T ifTrue(boolean value, Consumer<T> consumer) {
+  public T applyIf(boolean value, ThrowableConsumer<T> consumer) {
     T self = self();
     if (value) {
-      consumer.accept(self);
+      consumer.acceptWithRuntimeException(self);
+    }
+    return self;
+  }
+
+  public T applyIf(
+      boolean value, ThrowableConsumer<T> trueConsumer, ThrowableConsumer<T> falseConsumer) {
+    T self = self();
+    if (value) {
+      trueConsumer.acceptWithRuntimeException(self);
+    } else {
+      falseConsumer.acceptWithRuntimeException(self);
     }
     return self;
   }

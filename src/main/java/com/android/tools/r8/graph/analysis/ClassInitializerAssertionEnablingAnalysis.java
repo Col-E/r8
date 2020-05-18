@@ -167,8 +167,8 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
         i < code.instructions.size() && nextExpectedInstructionIndex < sequence.size();
         i++) {
       instruction = code.instructions.get(i);
-      if (instruction.isLabel()) {
-        // Just ignore labels.
+      if (instruction.isLabel() || instruction.isFrame()) {
+        // Just ignore labels and frames.
         continue;
       }
       if (instruction.getClass() != sequence.get(nextExpectedInstructionIndex)) {

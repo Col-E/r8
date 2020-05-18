@@ -54,7 +54,7 @@ public class DontUseMixedCaseClassNamesExistingClassPackageTest extends TestBase
         .addKeepClassRulesWithAllowObfuscation(A.class)
         .addKeepMainRule(Main.class)
         .addKeepRules("-packageobfuscationdictionary " + packageDictionary.toString())
-        .ifTrue(dontUseMixedCase, b -> b.addKeepRules("-dontusemixedcaseclassnames"))
+        .applyIf(dontUseMixedCase, b -> b.addKeepRules("-dontusemixedcaseclassnames"))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.A.foo()", "package_b.B.foo()")
         .inspect(
