@@ -30,6 +30,10 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
     return preconditions;
   }
 
+  public ProguardKeepRule getSubsequentRule() {
+    return subsequentRule;
+  }
+
   public static class Builder extends ProguardKeepRuleBase.Builder<ProguardIfRule, Builder> {
 
     ProguardKeepRule subsequentRule = null;
@@ -100,6 +104,16 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
   @Override
   protected Iterable<ProguardWildcard> getWildcards() {
     return Iterables.concat(super.getWildcards(), subsequentRule.getWildcards());
+  }
+
+  @Override
+  public boolean isProguardIfRule() {
+    return true;
+  }
+
+  @Override
+  public ProguardIfRule asProguardIfRule() {
+    return this;
   }
 
   protected ProguardIfRule materialize(

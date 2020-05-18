@@ -831,14 +831,30 @@ public class ProguardConfigurationParserTest extends TestBase {
     for (String before : whiteSpace) {
       for (String after : whiteSpace) {
         reset();
-        parseAndVerifyParserEndsCleanly(ImmutableList.of(
-            "-keep"
-                + before + "," + after + "includedescriptorclasses"
-                + before + "," + after + "allowshrinking"
-                + before + "," + after + "allowobfuscation"
-                + before + "," + after + "allowoptimization "
-                + "class A { *; }"
-        ));
+        parseAndVerifyParserEndsCleanly(
+            ImmutableList.of(
+                "-keep"
+                    + before
+                    + ","
+                    + after
+                    + "includedescriptorclasses"
+                    + before
+                    + ","
+                    + after
+                    + "allowaccessmodification"
+                    + before
+                    + ","
+                    + after
+                    + "allowshrinking"
+                    + before
+                    + ","
+                    + after
+                    + "allowobfuscation"
+                    + before
+                    + ","
+                    + after
+                    + "allowoptimization "
+                    + "class A { *; }"));
       }
     }
   }

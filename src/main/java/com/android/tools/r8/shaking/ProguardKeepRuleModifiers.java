@@ -6,12 +6,18 @@ package com.android.tools.r8.shaking;
 public class ProguardKeepRuleModifiers {
   public static class Builder {
 
+    private boolean allowsAccessModification = false;
     private boolean allowsShrinking = false;
     private boolean allowsOptimization = false;
     private boolean allowsObfuscation = false;
     private boolean includeDescriptorClasses = false;
 
     private Builder() {}
+
+    public Builder setAllowsAccessModification(boolean allowsAccessModification) {
+      this.allowsAccessModification = allowsAccessModification;
+      return this;
+    }
 
     public void setAllowsShrinking(boolean allowsShrinking) {
       this.allowsShrinking = allowsShrinking;
@@ -31,26 +37,34 @@ public class ProguardKeepRuleModifiers {
     }
 
     ProguardKeepRuleModifiers build() {
-      return new ProguardKeepRuleModifiers(allowsShrinking, allowsOptimization, allowsObfuscation,
+      return new ProguardKeepRuleModifiers(
+          allowsAccessModification,
+          allowsShrinking,
+          allowsOptimization,
+          allowsObfuscation,
           includeDescriptorClasses);
     }
   }
 
+  public final boolean allowsAccessModification;
   public final boolean allowsShrinking;
   public final boolean allowsOptimization;
   public final boolean allowsObfuscation;
   public final boolean includeDescriptorClasses;
 
   private ProguardKeepRuleModifiers(
+      boolean allowsAccessModification,
       boolean allowsShrinking,
       boolean allowsOptimization,
       boolean allowsObfuscation,
       boolean includeDescriptorClasses) {
+    this.allowsAccessModification = allowsAccessModification;
     this.allowsShrinking = allowsShrinking;
     this.allowsOptimization = allowsOptimization;
     this.allowsObfuscation = allowsObfuscation;
     this.includeDescriptorClasses = includeDescriptorClasses;
   }
+
   /**
    * Create a new empty builder.
    */
@@ -64,8 +78,8 @@ public class ProguardKeepRuleModifiers {
       return false;
     }
     ProguardKeepRuleModifiers that = (ProguardKeepRuleModifiers) o;
-
-    return allowsShrinking == that.allowsShrinking
+    return allowsAccessModification == that.allowsAccessModification
+        && allowsShrinking == that.allowsShrinking
         && allowsOptimization == that.allowsOptimization
         && allowsObfuscation == that.allowsObfuscation
         && includeDescriptorClasses == that.includeDescriptorClasses;
@@ -73,15 +87,17 @@ public class ProguardKeepRuleModifiers {
 
   @Override
   public int hashCode() {
-    return (allowsShrinking ? 1 : 0)
-        | (allowsOptimization ? 2 : 0)
-        | (allowsObfuscation ? 4 : 0)
-        | (includeDescriptorClasses ? 8 : 0);
+    return (allowsAccessModification ? 1 : 0)
+        | (allowsShrinking ? 2 : 0)
+        | (allowsOptimization ? 4 : 0)
+        | (allowsObfuscation ? 8 : 0)
+        | (includeDescriptorClasses ? 16 : 0);
   }
 
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
+    appendWithComma(builder, allowsAccessModification, "allowaccessmodification");
     appendWithComma(builder, allowsObfuscation, "allowobfuscation");
     appendWithComma(builder, allowsShrinking, "allowshrinking");
     appendWithComma(builder, allowsOptimization, "allowoptimization");
@@ -89,8 +105,7 @@ public class ProguardKeepRuleModifiers {
     return builder.toString();
   }
 
-  private void appendWithComma(StringBuilder builder, boolean predicate,
-      String text) {
+  private void appendWithComma(StringBuilder builder, boolean predicate, String text) {
     if (!predicate) {
       return;
     }

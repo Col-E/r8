@@ -5,14 +5,16 @@
 package com.android.tools.r8.accessrelaxation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPrivate;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -22,21 +24,41 @@ import org.junit.runners.Parameterized.Parameters;
 public class PrivateKeptMembersPublicizerTest extends TestBase {
 
   private final TestParameters parameters;
+  private final boolean withKeepAllowAccessModification;
+  private final boolean withPrecondition;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameters(name = "{0}, with keep allow access modification: {1}, with precondition: {2}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        BooleanUtils.values(),
+        BooleanUtils.values());
   }
 
-  public PrivateKeptMembersPublicizerTest(TestParameters parameters) {
+  public PrivateKeptMembersPublicizerTest(
+      TestParameters parameters,
+      boolean withKeepAllowAccessModification,
+      boolean withPrecondition) {
     this.parameters = parameters;
+    this.withKeepAllowAccessModification = withKeepAllowAccessModification;
+    this.withPrecondition = withPrecondition;
   }
 
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(PrivateKeptMembersPublicizerTest.class)
-        .addKeepClassAndMembersRules(TestClass.class)
+        .addKeepMainRule(TestClass.class)
+        .addKeepRules(
+            withPrecondition ? "-if class *" : "",
+            "-keep"
+                + (withKeepAllowAccessModification ? ",allowaccessmodification" : "")
+                + " class "
+                + typeName(TestClass.class)
+                + " {",
+            "  private static java.lang.String greeting;",
+            "  private static void greet(java.lang.String);",
+            "}")
         .allowAccessModification()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -48,8 +70,13 @@ public class PrivateKeptMembersPublicizerTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
-    assertTrue(classSubject.uniqueFieldWithName("greeting").isPrivate());
-    assertTrue(classSubject.uniqueMethodWithName("greet").isPrivate());
+    if (withKeepAllowAccessModification) {
+      assertThat(classSubject.uniqueFieldWithName("greeting"), isPublic());
+      assertThat(classSubject.uniqueMethodWithName("greet"), isPublic());
+    } else {
+      assertThat(classSubject.uniqueFieldWithName("greeting"), isPrivate());
+      assertThat(classSubject.uniqueMethodWithName("greet"), isPrivate());
+    }
   }
 
   static class TestClass {

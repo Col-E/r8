@@ -947,6 +947,8 @@ public class ProguardConfigurationParser {
             builder.getModifiersBuilder().setAllowsOptimization(true);
           } else if (acceptString("obfuscation")) {
             builder.getModifiersBuilder().setAllowsObfuscation(true);
+          } else if (acceptString("accessmodification")) {
+            builder.getModifiersBuilder().setAllowsAccessModification(true);
           }
         } else if (acceptString("includedescriptorclasses")) {
           builder.getModifiersBuilder().setIncludeDescriptorClasses(true);

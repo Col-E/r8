@@ -100,7 +100,7 @@ public final class ClassAndMemberPublicizer {
           if (field.isPublic()) {
             return;
           }
-          if (appView.appInfo().isPinned(field.field)) {
+          if (!appView.appInfo().isAccessModificationAllowed(field.field)) {
             // TODO(b/131130038): Also do not publicize package-private and protected fields that
             //  are kept.
             if (field.isPrivate()) {
@@ -138,7 +138,7 @@ public final class ClassAndMemberPublicizer {
       return false;
     }
     // If this method is mentioned in keep rules, do not transform (rule applications changed).
-    if (appView.appInfo().isPinned(method.method)) {
+    if (!appView.appInfo().isAccessModificationAllowed(method.method)) {
       // TODO(b/131130038): Also do not publicize package-private and protected methods that are
       //  kept.
       if (method.isPrivate()) {
