@@ -160,7 +160,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
         ps.println("# Annotations:");
         String prefix = "#  ";
         for (DexAnnotation annotation : annotations.annotations) {
-          if (annotation.annotation.type == appInfo.dexItemFactory().kotlinMetadataType) {
+          if (annotation.annotation.type == kotlin.factory.kotlinMetadataType) {
             assert clazz != null : "Kotlin metadata is a class annotation";
             KotlinMetadataWriter.writeKotlinMetadataAnnotation(prefix, annotation, ps, kotlin);
           } else {
