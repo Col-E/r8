@@ -329,9 +329,11 @@ public class BridgeHoisting {
       Instruction instruction = code.instructions[i];
       if (instruction.isInvokeVirtual()) {
         InvokeVirtual invoke = instruction.asInvokeVirtual();
-        newInstructions[i] =
+        InvokeVirtual newInvoke =
             new InvokeVirtual(
                 invoke.A, methodToInvoke, invoke.C, invoke.D, invoke.E, invoke.F, invoke.G);
+        newInvoke.setOffset(invoke.getOffset());
+        newInstructions[i] = newInvoke;
       } else {
         newInstructions[i] = instruction;
       }
