@@ -265,9 +265,9 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
                       if (methodTarget.isProgramMethod()) {
                         consumer.accept(methodTarget.asProgramMethod());
                       } else {
-                        // This should only happen if we resolve to a method in the library, in
-                        // which case we bail out.
-                        assert false;
+                        // This may happen if an interface method in the program is implemented
+                        // by a method in the classpath or library.
+                        assert invoke.isInvokeInterface();
                       }
                     },
                     emptyConsumer()));
