@@ -95,4 +95,10 @@ public class KmVisitorProviders {
 
     KmValueParameterVisitor get(int flags, String name);
   }
+
+  @FunctionalInterface
+  public interface KmFlexibleUpperBoundVisitorProvider {
+
+    KmTypeVisitor get(int flags, String typeFlexibilityId);
+  }
 }

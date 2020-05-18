@@ -278,6 +278,11 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public String getFinalBinaryName() {
+    return DescriptorUtils.getBinaryNameFromDescriptor(getFinalDescriptor());
+  }
+
+  @Override
   public boolean isRenamed() {
     return naming != null && !getFinalDescriptor().equals(getOriginalDescriptor());
   }

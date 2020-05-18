@@ -9,8 +9,10 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.Box;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import kotlinx.metadata.KmAnnotation;
+import kotlinx.metadata.KmFlexibleTypeUpperBound;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmTypeVisitor;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
@@ -63,6 +65,10 @@ public class KmTypeSubject extends Subject {
     return new KmClassifierSubject(kmType.classifier);
   }
 
+  public KmFlexibleTypeUpperBound getFlexibleUpperBound() {
+    return kmType.getFlexibleTypeUpperBound();
+  }
+
   @Override
   public boolean isPresent() {
     return true;
@@ -94,7 +100,7 @@ public class KmTypeSubject extends Subject {
     return areEqual(this.kmType, other.kmType, false);
   }
 
-  public static boolean areEqual(KmType one, KmType other, boolean checkAbbreviatedType) {
+  public static boolean areEqual(KmType one, KmType other, boolean checkInnerTypeReferences) {
     if (one == null && other == null) {
       return true;
     }
@@ -116,14 +122,31 @@ public class KmTypeSubject extends Subject {
         return false;
       }
     }
-    if (checkAbbreviatedType
-        && !areEqual(one.getAbbreviatedType(), other.getAbbreviatedType(), checkAbbreviatedType)) {
+    if (checkInnerTypeReferences
+        && !areEqual(
+            one.getAbbreviatedType(), other.getAbbreviatedType(), checkInnerTypeReferences)) {
       return false;
     }
-    if (!areEqual(one.getOuterType(), other.getOuterType(), checkAbbreviatedType)) {
+    if (!areEqual(one.getOuterType(), other.getOuterType(), checkInnerTypeReferences)) {
       return false;
     }
-    // TODO(b/152745540): Add equality for flexibleUpperBoundType.
+    if ((one.getFlexibleTypeUpperBound() == null) != (other.getFlexibleTypeUpperBound() == null)
+        && checkInnerTypeReferences) {
+      return false;
+    }
+    if (one.getFlexibleTypeUpperBound() != null && checkInnerTypeReferences) {
+      if (!Objects.equals(
+          one.getFlexibleTypeUpperBound().getTypeFlexibilityId(),
+          other.getFlexibleTypeUpperBound().getTypeFlexibilityId())) {
+        return false;
+      }
+      if (!areEqual(
+          one.getFlexibleTypeUpperBound().getType(),
+          other.getFlexibleTypeUpperBound().getType(),
+          checkInnerTypeReferences)) {
+        return false;
+      }
+    }
     if (JvmExtensionsKt.isRaw(one) != JvmExtensionsKt.isRaw(other)) {
       return false;
     }

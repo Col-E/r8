@@ -168,6 +168,8 @@ public abstract class ClassSubject extends Subject {
 
   public abstract String getFinalDescriptor();
 
+  public abstract String getFinalBinaryName();
+
   public abstract boolean isMemberClass();
 
   public abstract boolean isLocalClass();

@@ -103,6 +103,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public String getFinalBinaryName() {
+    return null;
+  }
+
+  @Override
   public boolean isRenamed() {
     throw new Unreachable("Cannot determine if an absent class has been renamed");
   }

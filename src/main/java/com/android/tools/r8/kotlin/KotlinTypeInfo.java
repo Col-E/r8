@@ -28,25 +28,23 @@ public class KotlinTypeInfo {
   private final KotlinTypeInfo outerType;
   private final List<KotlinTypeProjectionInfo> arguments;
   private final List<KotlinAnnotationInfo> annotations;
-  // TODO(b/154351125): Extend with flexible upper bounds
+  private final KotlinFlexibleTypeUpperBoundInfo flexibleTypeUpperBoundInfo;
 
-  private KotlinTypeInfo(
+  KotlinTypeInfo(
       int flags,
       KotlinClassifierInfo classifier,
       KotlinTypeInfo abbreviatedType,
       KotlinTypeInfo outerType,
       List<KotlinTypeProjectionInfo> arguments,
-      List<KotlinAnnotationInfo> annotations) {
+      List<KotlinAnnotationInfo> annotations,
+      KotlinFlexibleTypeUpperBoundInfo flexibleTypeUpperBoundInfo) {
     this.flags = flags;
     this.classifier = classifier;
     this.abbreviatedType = abbreviatedType;
     this.outerType = outerType;
     this.arguments = arguments;
     this.annotations = annotations;
-  }
-
-  public List<KotlinTypeProjectionInfo> getArguments() {
-    return arguments;
+    this.flexibleTypeUpperBoundInfo = flexibleTypeUpperBoundInfo;
   }
 
   static KotlinTypeInfo create(
@@ -60,10 +58,12 @@ public class KotlinTypeInfo {
         KotlinTypeInfo.create(kmType.getAbbreviatedType(), definitionSupplier, reporter),
         KotlinTypeInfo.create(kmType.getOuterType(), definitionSupplier, reporter),
         getArguments(kmType.getArguments(), definitionSupplier, reporter),
-        KotlinAnnotationInfo.create(JvmExtensionsKt.getAnnotations(kmType), definitionSupplier));
+        KotlinAnnotationInfo.create(JvmExtensionsKt.getAnnotations(kmType), definitionSupplier),
+        KotlinFlexibleTypeUpperBoundInfo.create(
+            kmType.getFlexibleTypeUpperBound(), definitionSupplier, reporter));
   }
 
-  private static List<KotlinTypeProjectionInfo> getArguments(
+  static List<KotlinTypeProjectionInfo> getArguments(
       List<KmTypeProjection> projections,
       DexDefinitionSupplier definitionSupplier,
       Reporter reporter) {
@@ -94,6 +94,8 @@ public class KotlinTypeInfo {
       argument.rewrite(
           kmTypeVisitor::visitArgument, kmTypeVisitor::visitStarProjection, appView, namingLens);
     }
+    flexibleTypeUpperBoundInfo.rewrite(
+        kmTypeVisitor::visitFlexibleTypeUpperBound, appView, namingLens);
     if (annotations.isEmpty()) {
       return;
     }
