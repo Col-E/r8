@@ -154,7 +154,6 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
         testForR8(parameters.getBackend())
             .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(extLibJarMap.get(targetVersion))
-            .addKeepKotlinMetadata()
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")

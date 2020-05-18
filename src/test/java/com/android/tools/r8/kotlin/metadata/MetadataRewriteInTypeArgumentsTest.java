@@ -139,7 +139,6 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
             .addKeepRules("-keep class **typeargument_lib.ContraVariant { *; }")
             .addKeepRules("-keep class **typeargument_lib.Invariant { *; }")
             .addKeepRules("-keep class **typeargument_lib.LibKt { *; }")
-            .addKeepKotlinMetadata()
             .addKeepAttributes(
                 ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
                 ProguardKeepAttributes.SIGNATURE,

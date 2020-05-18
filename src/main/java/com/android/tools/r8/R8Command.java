@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
-import com.android.tools.r8.kotlin.KotlinMetadataUtils;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -934,9 +933,6 @@ public final class R8Command extends BaseCompilerCommand {
     internal.desugaredLibraryConfiguration = libraryConfiguration;
     internal.synthesizedClassPrefix = synthesizedClassPrefix;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
-    internal.enableCfByteCodePassThrough =
-        internal.isGeneratingClassFiles()
-            && KotlinMetadataUtils.isKeepingKotlinMetadataInRules(internal);
 
     if (!DETERMINISTIC_DEBUGGING) {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;

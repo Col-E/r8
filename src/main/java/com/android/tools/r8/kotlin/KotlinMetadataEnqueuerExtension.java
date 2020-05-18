@@ -5,8 +5,10 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.google.common.collect.Sets;
@@ -26,11 +28,15 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
 
   @Override
   public void done(Enqueuer enqueuer) {
+    DexType kotlinMetadataType = appView.dexItemFactory().kotlinMetadataType;
+    DexClass kotlinMetadataClass =
+        appView.appInfo().definitionForWithoutExistenceAssert(kotlinMetadataType);
     // We will process kotlin.Metadata even if the type is not present in the program, as long as
-    // a direct keep is specified.
+    // the annotation will be in the output
     boolean keepMetadata =
-        enqueuer.isPinned(appView.dexItemFactory().kotlinMetadataType)
-            || KotlinMetadataUtils.isKeepingKotlinMetadataInRules(appView.options());
+        enqueuer.isPinned(kotlinMetadataType)
+            || enqueuer.isMissing(kotlinMetadataType)
+            || (kotlinMetadataClass != null && kotlinMetadataClass.isNotProgramClass());
     enqueuer.forAllLiveClasses(
         clazz -> {
           clazz.setKotlinInfo(

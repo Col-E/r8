@@ -153,7 +153,6 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             // Keep the BKt extension function which requires metadata
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
-            .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)

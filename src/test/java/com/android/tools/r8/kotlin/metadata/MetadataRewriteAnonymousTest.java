@@ -79,7 +79,6 @@ public class MetadataRewriteAnonymousTest extends KotlinMetadataTestBase {
         testForR8(parameters.getBackend())
             .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(libJars.get(targetVersion))
-            .addKeepKotlinMetadata()
             .addKeepAllClassesRuleWithAllowObfuscation()
             .addKeepRules("-keep class " + PKG + ".anonymous_lib.Test$A { *; }")
             .addKeepRules("-keep class " + PKG + ".anonymous_lib.Test { *; }")

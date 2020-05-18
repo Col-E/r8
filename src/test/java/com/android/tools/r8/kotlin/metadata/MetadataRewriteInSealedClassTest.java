@@ -91,7 +91,6 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
         testForR8(parameters.getBackend())
             .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(sealedLibJarMap.get(targetVersion))
-            .addKeepKotlinMetadata()
             // Keep the Expr class
             .addKeepRules("-keep class **.Expr")
             // Keep the extension function
@@ -158,7 +157,6 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
         testForR8(parameters.getBackend())
             .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(sealedLibJarMap.get(targetVersion))
-            .addKeepKotlinMetadata()
             // Keep the Expr class
             .addKeepRules("-keep class **.Expr")
             // Keep the extension function

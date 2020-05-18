@@ -94,7 +94,6 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
             .addProgramFiles(defaultValueLibJarMap.get(targetVersion))
             // Keep LibKt and applyMap function, along with applyMap$default
             .addKeepRules("-keep class **.LibKt { *** applyMap*(...); }")
-            .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)

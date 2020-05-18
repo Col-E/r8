@@ -21,7 +21,6 @@ import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.ProguardKeepRuleType;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import kotlinx.metadata.KmExtensionType;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmPropertyExtensionVisitor;
@@ -173,15 +172,20 @@ public class KotlinMetadataUtils {
     return type;
   }
 
-  public static boolean isKeepingKotlinMetadataInRules(InternalOptions options) {
-    // We will only process kotlin.Metadata annotations if a rule for keeping it is
-    // explicitly specified. A rule is only applied to program classes, therefore, if the
-    // kotlin stdlib is passed on classpath or library we will not mark the type. Therefore,
-    // we fall back to a simple scan through all rules to check if the type is kept directly.
-    ProguardConfiguration proguardConfiguration = options.getProguardConfiguration();
+  public static boolean mayProcessKotlinMetadata(AppView<?> appView) {
+    // This can run before we have determined the pinned items, because we may need to load the
+    // stack-map table on input. This is therefore a conservative guess on kotlin.Metadata is kept.
+    DexClass kotlinMetadata =
+        appView
+            .appInfo()
+            .definitionForWithoutExistenceAssert(appView.dexItemFactory().kotlinMetadataType);
+    if (kotlinMetadata == null || kotlinMetadata.isNotProgramClass()) {
+      return true;
+    }
+    ProguardConfiguration proguardConfiguration = appView.options().getProguardConfiguration();
     if (proguardConfiguration != null && proguardConfiguration.getRules() != null) {
       for (ProguardConfigurationRule rule : proguardConfiguration.getRules()) {
-        if (KotlinMetadataUtils.isKotlinMetadataKeepRule(rule, options.itemFactory)) {
+        if (KotlinMetadataUtils.canBeKotlinMetadataKeepRule(rule, appView.options().itemFactory)) {
           return true;
         }
       }
@@ -189,23 +193,25 @@ public class KotlinMetadataUtils {
     return false;
   }
 
-  public static boolean isKotlinMetadataKeepRule(
+  private static boolean canBeKotlinMetadataKeepRule(
       ProguardConfigurationRule rule, DexItemFactory factory) {
-    if (rule.isProguardKeepRule()) {
-      ProguardKeepRule proguardKeepRule = rule.asProguardKeepRule();
-      // Check if rule is a keep
-      if (proguardKeepRule.getType() != ProguardKeepRuleType.KEEP
-          || proguardKeepRule.getModifiers().allowsShrinking
-          || proguardKeepRule.getModifiers().allowsObfuscation) {
-        return false;
-      }
-      // Only match if -keep class kotlin.Metadata is specified explicitly, since we translate
-      // -dont*** to a global rule.
-      if (!proguardKeepRule.getClassNames().hasWildcards()
-          && proguardKeepRule.getClassNames().matches(factory.kotlinMetadataType)) {
-        return true;
-      }
+    if (rule.isProguardIfRule()) {
+      // For if rules, we simply assume that the precondition can become true.
+      return canBeKotlinMetadataKeepRule(rule.asProguardIfRule().getSubsequentRule(), factory);
     }
-    return false;
+    if (!rule.isProguardKeepRule()) {
+      return false;
+    }
+    ProguardKeepRule proguardKeepRule = rule.asProguardKeepRule();
+    // -keepclassmembers will not in itself keep a class alive.
+    if (proguardKeepRule.getType() == ProguardKeepRuleType.KEEP_CLASS_MEMBERS) {
+      return false;
+    }
+    // If the rule allows shrinking, it will not require us to keep the class.
+    if (proguardKeepRule.getModifiers().allowsShrinking) {
+      return false;
+    }
+    // Check if the type is matched
+    return proguardKeepRule.getClassNames().matches(factory.kotlinMetadataType);
   }
 }

@@ -50,19 +50,19 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     used = true;
   }
 
-  public boolean isProguardIfRule() {
-    return false;
-  }
-
-  public ProguardIfRule asProguardIfRule() {
-    return null;
-  }
-
   public boolean isProguardKeepRule() {
     return false;
   }
 
   public ProguardKeepRule asProguardKeepRule() {
+    return null;
+  }
+
+  public boolean isProguardIfRule() {
+    return false;
+  }
+
+  public ProguardIfRule asProguardIfRule() {
     return null;
   }
 

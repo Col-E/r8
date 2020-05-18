@@ -51,6 +51,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumValueInfoMapCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
+import com.android.tools.r8.kotlin.KotlinMetadataUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.Minifier;
 import com.android.tools.r8.naming.NamingLens;
@@ -274,6 +275,10 @@ public class R8 {
       AppView<AppInfoWithClassHierarchy> appView =
           AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
       appView.setAppServices(AppServices.builder(appView).build());
+
+      // Check for potentially having pass-through of Cf-code for kotlin libraries.
+      options.enableCfByteCodePassThrough =
+          options.isGeneratingClassFiles() && KotlinMetadataUtils.mayProcessKotlinMetadata(appView);
 
       // Up-front check for valid library setup.
       if (!options.mainDexKeepRules.isEmpty()) {

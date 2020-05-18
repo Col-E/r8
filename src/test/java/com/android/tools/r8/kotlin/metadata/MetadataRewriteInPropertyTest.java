@@ -93,7 +93,6 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             // Keep property getters
             .addKeepRules("-keep class **.Person { <init>(...); }")
             .addKeepRules("-keepclassmembers class **.Person { *** get*(); }")
-            .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile()
             .inspect(this::inspectGetterOnly)
@@ -191,7 +190,6 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .addKeepRules("-keepclassmembers class **.Person { void change*(...); }")
             // Keep LibKt extension methods
             .addKeepRules("-keep class **.LibKt { <methods>; }")
-            .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile()
             .inspect(this::inspectSetterOnly)

@@ -2653,6 +2653,10 @@ public class Enqueuer {
     return pinnedItems.add(reference);
   }
 
+  public boolean isMissing(DexType type) {
+    return missingTypes.contains(type);
+  }
+
   private static class SyntheticAdditions {
 
     Map<DexType, Pair<DexProgramClass, ProgramMethod>> syntheticInstantiations =

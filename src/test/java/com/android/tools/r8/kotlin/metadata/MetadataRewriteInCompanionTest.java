@@ -95,7 +95,6 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
         testForR8(parameters.getBackend())
             .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(companionLibJarMap.get(targetVersion))
-            .addKeepKotlinMetadata()
             // Keep everything
             .addKeepRules("-keep class **.companion_lib.** { *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -128,7 +127,6 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
         testForR8(parameters.getBackend())
             .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(companionLibJarMap.get(targetVersion))
-            .addKeepKotlinMetadata()
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             // Property in companion with @JvmField is defined in the host class, without accessors.

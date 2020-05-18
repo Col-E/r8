@@ -97,7 +97,6 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
         testForR8(parameters.getBackend())
             .addClasspathFiles(baseLibJar, ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(extLibJarMap.get(targetVersion))
-            .addKeepKotlinMetadata()
             // Keep the Extra class and its interface (which has the method).
             .addKeepRules("-keep class **.Extra")
             // Keep Super, but allow minification.

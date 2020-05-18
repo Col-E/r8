@@ -90,6 +90,18 @@ public class MetadataRewriteKeepTest extends KotlinMetadataTestBase {
             });
   }
 
+  @Test
+  public void testR8KeepIf() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepRules("-keep class kotlin.io.** { *; }")
+        .addKeepRules("-if class * { *** $VALUES; }", "-keep class kotlin.Metadata { *; }")
+        .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .compile()
+        .inspect(this::inspect);
+  }
+
   private void inspect(CodeInspector inspector) {
     // All kept classes should have their kotlin metadata.
     for (FoundClassSubject clazz : inspector.allClasses()) {

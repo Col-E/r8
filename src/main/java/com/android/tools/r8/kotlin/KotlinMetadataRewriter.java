@@ -43,11 +43,6 @@ public class KotlinMetadataRewriter {
   }
 
   public void run(ExecutorService executorService) throws ExecutionException {
-    if (appView.appInfo().definitionForWithoutExistenceAssert(factory.kotlinMetadataType) == null
-        && !KotlinMetadataUtils.isKeepingKotlinMetadataInRules(appView.options())) {
-      // Do nothing - fall back to the behavior for the annotation processor.
-      return;
-    }
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> {

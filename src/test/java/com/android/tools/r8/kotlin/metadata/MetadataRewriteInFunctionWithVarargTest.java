@@ -96,7 +96,6 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
             .addKeepRules("-keep class **.SomeClass { *** foo(...); }")
             // Keep LibKt, along with bar function.
             .addKeepRules("-keep class **.LibKt { *** bar(...); }")
-            .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
