@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
-
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeStaticRange;
 import com.android.tools.r8.graph.AppView;
@@ -13,6 +11,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -31,16 +30,16 @@ import java.util.function.Predicate;
 
 public class InvokeStatic extends InvokeMethod {
 
-  private final boolean itf;
+  private final boolean isInterface;
 
   public InvokeStatic(DexMethod target, Value result, List<Value> arguments) {
     this(target, result, arguments, false);
     assert target.proto.parameters.size() == arguments.size();
   }
 
-  public InvokeStatic(DexMethod target, Value result, List<Value> arguments, boolean itf) {
+  public InvokeStatic(DexMethod target, Value result, List<Value> arguments, boolean isInterface) {
     super(target, result, arguments);
-    this.itf = itf;
+    this.isInterface = isInterface;
   }
 
   @Override
@@ -142,7 +141,8 @@ public class InvokeStatic extends InvokeMethod {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvoke(org.objectweb.asm.Opcodes.INVOKESTATIC, getInvokedMethod(), itf));
+    builder.add(
+        new CfInvoke(org.objectweb.asm.Opcodes.INVOKESTATIC, getInvokedMethod(), isInterface));
   }
 
   @Override
@@ -175,43 +175,54 @@ public class InvokeStatic extends InvokeMethod {
     }
 
     // Find the target and check if the invoke may have side effects.
-    if (appView.appInfo().hasLiveness()) {
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      DexEncodedMethod target = lookupSingleTarget(appViewWithLiveness, context);
-      if (target == null) {
-        return true;
-      }
-
-      // Verify that the target method is accessible in the current context.
-      if (!isMemberVisibleFromOriginalContext(
-          appView, context, target.holder(), target.accessFlags)) {
-        return true;
-      }
-
-      // Verify that the target method does not have side-effects.
-      if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
-        return false;
-      }
-
-      if (target.getOptimizationInfo().mayHaveSideEffects()) {
-        return true;
-      }
-
-      if (assumption.canAssumeClassIsAlreadyInitialized()) {
-        return false;
-      }
-
-      return target
-          .holder()
-          .classInitializationMayHaveSideEffects(
-              appView,
-              // Types that are a super type of `context` are guaranteed to be initialized
-              // already.
-              type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
-              Sets.newIdentityHashSet());
+    if (!appView.appInfo().hasLiveness()) {
+      return true;
     }
 
-    return true;
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
+
+    SingleResolutionResult resolutionResult =
+        appViewWithLiveness
+            .appInfo()
+            .resolveMethod(getInvokedMethod(), isInterface)
+            .asSingleResolution();
+
+    // Verify that the target method is present.
+    if (resolutionResult == null) {
+      return true;
+    }
+
+    DexEncodedMethod singleTarget = resolutionResult.getSingleTarget();
+    assert singleTarget != null;
+
+    // Verify that the target method is static and accessible.
+    if (!singleTarget.isStatic()
+        || resolutionResult.isAccessibleFrom(context, appInfoWithLiveness).isPossiblyFalse()) {
+      return true;
+    }
+
+    // Verify that the target method does not have side-effects.
+    if (appViewWithLiveness.appInfo().noSideEffects.containsKey(singleTarget.getReference())) {
+      return false;
+    }
+
+    if (singleTarget.getOptimizationInfo().mayHaveSideEffects()) {
+      return true;
+    }
+
+    if (assumption.canAssumeClassIsAlreadyInitialized()) {
+      return false;
+    }
+
+    return singleTarget
+        .holder()
+        .classInitializationMayHaveSideEffects(
+            appView,
+            // Types that are a super type of `context` are guaranteed to be initialized
+            // already.
+            type -> appInfoWithLiveness.isSubtype(context.getHolderType(), type),
+            Sets.newIdentityHashSet());
   }
 
   @Override

@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isClassTypeVisibleFromContext;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
@@ -13,6 +12,7 @@ import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.code.MoveObject;
 import com.android.tools.r8.code.MoveObjectFrom16;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -111,14 +111,14 @@ public class CheckCast extends Instruction {
     }
     DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (baseType.isClassType()) {
-      DexClass dexClass = appView.definitionFor(baseType);
-      // * NoClassDefFoundError (resolution failure).
-      if (dexClass == null || !dexClass.isResolvable(appView)) {
-        return AbstractError.specific(appView.dexItemFactory().noClassDefFoundErrorType);
+      DexClass definition = appView.definitionFor(baseType);
+      // Check that the class and its super types are present.
+      if (definition == null || !definition.isResolvable(appView)) {
+        return AbstractError.top();
       }
-      // * IllegalAccessError (not visible from the access context).
-      if (!isClassTypeVisibleFromContext(appView, context, dexClass)) {
-        return AbstractError.specific(appView.dexItemFactory().illegalAccessErrorType);
+      // Check that the class is accessible.
+      if (AccessControl.isClassAccessible(definition, context, appView).isPossiblyFalse()) {
+        return AbstractError.top();
       }
     }
     AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();

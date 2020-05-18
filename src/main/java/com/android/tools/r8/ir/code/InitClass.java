@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isTypeVisibleFromContext;
-
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfInitClass;
 import com.android.tools.r8.code.DexInitClass;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.AbstractError;
@@ -95,7 +95,13 @@ public class InitClass extends Instruction {
 
   @Override
   public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
-    if (!isTypeVisibleFromContext(appView, context, clazz)) {
+    DexClass definition = appView.definitionFor(clazz);
+    // * Check that the class is present.
+    if (definition == null) {
+      return AbstractError.top();
+    }
+    // * Check that the class is accessible.
+    if (AccessControl.isClassAccessible(definition, context, appView).isPossiblyFalse()) {
       return AbstractError.top();
     }
     if (clazz.classInitializationMayHaveSideEffects(

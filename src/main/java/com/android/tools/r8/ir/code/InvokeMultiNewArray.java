@@ -3,12 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isClassTypeVisibleFromContext;
-
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfMultiANewArray;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -147,7 +146,7 @@ public class InvokeMultiNewArray extends Invoke {
     }
 
     // Check if the type is guaranteed to be accessible.
-    if (!isClassTypeVisibleFromContext(appView, context, clazz)) {
+    if (AccessControl.isClassAccessible(clazz, context, appView).isPossiblyFalse()) {
       return AbstractError.top();
     }
 

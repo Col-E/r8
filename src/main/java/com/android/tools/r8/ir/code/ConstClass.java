@@ -4,12 +4,11 @@
 
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isClassTypeVisibleFromContext;
-
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -117,19 +116,14 @@ public class ConstClass extends ConstInstruction {
     }
 
     DexClass clazz = appView.definitionFor(baseType);
-
-    if (clazz == null) {
-      return AbstractError.specific(appView.dexItemFactory().noClassDefFoundErrorType);
+    // * Check that the class and its super types are present.
+    if (clazz == null || !clazz.isResolvable(appView)) {
+      return AbstractError.top();
     }
-    // * NoClassDefFoundError (resolution failure).
-    if (!clazz.isResolvable(appView)) {
-      return AbstractError.specific(appView.dexItemFactory().noClassDefFoundErrorType);
+    // * Check that the class is accessible.
+    if (AccessControl.isClassAccessible(clazz, context, appView).isPossiblyFalse()) {
+      return AbstractError.top();
     }
-    // * IllegalAccessError (not visible from the access context).
-    if (!isClassTypeVisibleFromContext(appView, context, clazz)) {
-      return AbstractError.specific(appView.dexItemFactory().illegalAccessErrorType);
-    }
-
     return AbstractError.bottom();
   }
 

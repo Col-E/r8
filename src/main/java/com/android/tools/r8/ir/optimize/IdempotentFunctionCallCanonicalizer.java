@@ -3,13 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -19,6 +18,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Maps;
 import it.unimi.dsi.fastutil.Hash.Strategy;
@@ -132,20 +132,35 @@ public class IdempotentFunctionCallCanonicalizer {
             // Give up in D8
             continue;
           }
+
           assert appView.appInfo().hasLiveness();
+          AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+          AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
+
+          SingleResolutionResult resolutionResult =
+              appInfoWithLiveness
+                  .resolveMethod(invoke.getInvokedMethod(), invoke.isInvokeInterface())
+                  .asSingleResolution();
+          if (resolutionResult == null
+              || resolutionResult
+                  .isAccessibleFrom(context, appInfoWithLiveness)
+                  .isPossiblyFalse()) {
+            continue;
+          }
+
           // Check if the call has a single target; that target is side effect free; and
           // that target's output depends only on arguments.
-          DexEncodedMethod target = invoke.lookupSingleTarget(appView.withLiveness(), context);
+          // TODO(b/156853206): This should either (i) use the resolution result from above, (ii)
+          //  return the resolution result such that the call site can perform the accessibility
+          //  check, or (iii) always perform the accessibility check such that it can be skipped
+          //  at the call site.
+          DexEncodedMethod target = invoke.lookupSingleTarget(appViewWithLiveness, context);
           if (target == null
               || target.getOptimizationInfo().mayHaveSideEffects()
               || !target.getOptimizationInfo().returnValueOnlyDependsOnArguments()) {
             continue;
           }
-          // Verify that the target method is accessible in the current context.
-          if (!isMemberVisibleFromOriginalContext(
-              appView, context, target.holder(), target.accessFlags)) {
-            continue;
-          }
+
           // Check if the call could throw a NPE as a result of the receiver being null.
           if (current.isInvokeMethodWithReceiver()) {
             Value receiver = current.asInvokeMethodWithReceiver().getReceiver().getAliasedValue();

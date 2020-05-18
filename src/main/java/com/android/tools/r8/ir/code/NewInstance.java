@@ -3,12 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
-
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -170,8 +169,7 @@ public class NewInstance extends Instruction {
     }
 
     // Verify that the instruction does not lead to an IllegalAccessError.
-    if (!isMemberVisibleFromOriginalContext(
-        appView, context, definition.type, definition.accessFlags)) {
+    if (AccessControl.isClassAccessible(definition, context, appView).isPossiblyFalse()) {
       return true;
     }
 

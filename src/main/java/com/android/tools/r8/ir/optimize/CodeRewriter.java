@@ -7,12 +7,12 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isTypeVisibleFromContext;
 import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
@@ -1387,12 +1387,18 @@ public class CodeRewriter {
     Value inValue = checkCast.object();
     Value outValue = checkCast.outValue();
     DexType castType = checkCast.getType();
+    DexType baseCastType = castType.toBaseType(dexItemFactory);
 
     // If the cast type is not accessible in the current context, we should not remove the cast
-    // in order to preserve IllegalAccessError. Note that JVM and ART behave differently: see
+    // in order to preserve runtime errors. Note that JVM and ART behave differently: see
     // {@link com.android.tools.r8.ir.optimize.checkcast.IllegalAccessErrorTest}.
-    if (!isTypeVisibleFromContext(appView, code.context(), castType)) {
-      return RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS;
+    if (baseCastType.isClassType()) {
+      DexClass baseCastClass = appView.definitionFor(baseCastType);
+      if (baseCastClass == null
+          || AccessControl.isClassAccessible(baseCastClass, code.context(), appView)
+              .isPossiblyFalse()) {
+        return RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS;
+      }
     }
 
     // If the in-value is `null` and the cast-type is a float-array type, then trivial check-cast
@@ -1446,10 +1452,17 @@ public class CodeRewriter {
   // Returns true if the given instance-of instruction was removed.
   private boolean removeInstanceOfInstructionIfTrivial(
       InstanceOf instanceOf, InstructionListIterator it, IRCode code) {
+    ProgramMethod context = code.context();
+
     // If the instance-of type is not accessible in the current context, we should not remove the
     // instance-of instruction in order to preserve IllegalAccessError.
-    if (!isTypeVisibleFromContext(appView, code.context(), instanceOf.type())) {
-      return false;
+    DexType instanceOfBaseType = instanceOf.type().toBaseType(dexItemFactory);
+    if (instanceOfBaseType.isClassType()) {
+      DexClass instanceOfClass = appView.definitionFor(instanceOfBaseType);
+      if (instanceOfClass == null
+          || AccessControl.isClassAccessible(instanceOfClass, context, appView).isPossiblyFalse()) {
+        return false;
+      }
     }
 
     Value inValue = instanceOf.value();

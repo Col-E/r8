@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
-import com.android.tools.r8.graph.AccessFlags;
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
+import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -301,62 +302,37 @@ public class MemberRebindingAnalysis {
 
   private void computeFieldRebindingForIndirectAccessWithContexts(
       DexField field, ProgramMethodSet contexts) {
-    DexEncodedField target = appView.appInfo().resolveField(field).getResolvedField();
-    if (target == null) {
-      assert false;
+    SuccessfulFieldResolutionResult resolutionResult =
+        appView.appInfo().resolveField(field).asSuccessfulResolution();
+    if (resolutionResult == null) {
       return;
     }
 
-    if (target.field == field) {
+    DexEncodedField resolvedField = resolutionResult.getResolvedField();
+    if (resolvedField.field == field) {
       assert false;
       return;
     }
 
     // Rebind to the lowest library class or program class. Do not rebind accesses to fields that
     // are not visible from the access context.
-    if (contexts.stream()
-        .allMatch(
-            context ->
-                isMemberVisibleFromOriginalContext(
-                    appView, context, target.holder(), target.accessFlags))) {
+    boolean accessibleInAllContexts = true;
+    for (ProgramMethod context : contexts) {
+      boolean inaccessibleInContext =
+          AccessControl.isFieldAccessible(
+                  resolvedField, resolutionResult.getResolvedHolder(), context, appView)
+              .isPossiblyFalse();
+      if (inaccessibleInContext) {
+        accessibleInAllContexts = false;
+        break;
+      }
+    }
+
+    if (accessibleInAllContexts) {
       builder.map(
-          field, lense.lookupField(validTargetFor(target.field, field, DexClass::lookupField)));
+          field,
+          lense.lookupField(validTargetFor(resolvedField.field, field, DexClass::lookupField)));
     }
-  }
-
-  public static boolean isTypeVisibleFromContext(
-      AppView<?> appView, ProgramMethod context, DexType type) {
-    DexType baseType = type.toBaseType(appView.dexItemFactory());
-    if (baseType.isPrimitiveType()) {
-      return true;
-    }
-    return isClassTypeVisibleFromContext(appView, context, baseType);
-  }
-
-  public static boolean isClassTypeVisibleFromContext(
-      AppView<?> appView, ProgramMethod context, DexType type) {
-    assert type.isClassType();
-    DexClass clazz = appView.definitionFor(type);
-    return clazz != null && isClassTypeVisibleFromContext(appView, context, clazz);
-  }
-
-  public static boolean isClassTypeVisibleFromContext(
-      AppView<?> appView, ProgramMethod context, DexClass clazz) {
-    ConstraintWithTarget classVisibility =
-        ConstraintWithTarget.deriveConstraint(
-            context.getHolder(), clazz.type, clazz.accessFlags, appView);
-    return classVisibility != ConstraintWithTarget.NEVER;
-  }
-
-  public static boolean isMemberVisibleFromOriginalContext(
-      AppView<?> appView, ProgramMethod context, DexType holder, AccessFlags<?> memberAccessFlags) {
-    if (!isClassTypeVisibleFromContext(appView, context, holder)) {
-      return false;
-    }
-    ConstraintWithTarget memberVisibility =
-        ConstraintWithTarget.deriveConstraint(
-            context.getHolder(), holder, memberAccessFlags, appView);
-    return memberVisibility != ConstraintWithTarget.NEVER;
   }
 
   public GraphLense run() {

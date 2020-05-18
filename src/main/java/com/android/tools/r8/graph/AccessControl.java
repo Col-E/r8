@@ -15,6 +15,12 @@ import com.android.tools.r8.utils.OptionalBool;
 public class AccessControl {
 
   public static OptionalBool isClassAccessible(
+      DexClass clazz, ProgramMethod context, AppView<?> appView) {
+    return isClassAccessible(
+        clazz, context.getHolder(), appView.options().featureSplitConfiguration);
+  }
+
+  public static OptionalBool isClassAccessible(
       DexClass clazz,
       DexProgramClass context,
       FeatureSplitConfiguration featureSplitConfiguration) {
@@ -35,6 +41,14 @@ public class AccessControl {
       DexProgramClass context,
       AppInfoWithClassHierarchy appInfo) {
     return isMemberAccessible(method.accessFlags, holder, context, appInfo);
+  }
+
+  public static OptionalBool isFieldAccessible(
+      DexEncodedField field,
+      DexClass holder,
+      ProgramMethod context,
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return isFieldAccessible(field, holder, context.getHolder(), appView.appInfo());
   }
 
   public static OptionalBool isFieldAccessible(
