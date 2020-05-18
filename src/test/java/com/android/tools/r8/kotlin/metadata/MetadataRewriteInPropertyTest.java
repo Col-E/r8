@@ -242,10 +242,10 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
     // #        setterFlags: 6,
     // #        setterParameter: null,
     // #        jvmFlags: 0,
-    // #        fieldSignature: c:Ljava/lang/String;,
+    // #        fieldSignature: name:Ljava/lang/String;,
     // #        getterSignature: getName()Ljava/lang/String;,
     // #        setterSignature: setName(Ljava/lang/String;)V,
-    assertEquals("c:Ljava/lang/String;", name.fieldSignature().asString());
+    assertEquals("name:Ljava/lang/String;", name.fieldSignature().asString());
     assertEquals("getName()Ljava/lang/String;", name.getterSignature().asString());
     assertEquals("setName(Ljava/lang/String;)V", name.setterSignature().asString());
 
