@@ -102,7 +102,9 @@ final public class ResourceShrinker {
 
     @Override
     InternalOptions getInternalOptions() {
-      return new InternalOptions();
+      InternalOptions internalOptions = new InternalOptions();
+      internalOptions.isRunningDeprecatedResourceShrinker = true;
+      return internalOptions;
     }
   }
 

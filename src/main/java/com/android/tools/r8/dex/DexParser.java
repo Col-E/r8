@@ -668,7 +668,9 @@ public class DexParser {
               annotationIterator.getNextFor(method),
               parameterAnnotationsIterator.getNextFor(method),
               code);
-      if (accessFlags.isAbstract() && ensureNonAbstract) {
+      if (accessFlags.isAbstract()
+          && ensureNonAbstract
+          && !options.isRunningDeprecatedResourceShrinker) {
         accessFlags.unsetAbstract();
         encodedMethod =
             options.isGeneratingClassFiles()
