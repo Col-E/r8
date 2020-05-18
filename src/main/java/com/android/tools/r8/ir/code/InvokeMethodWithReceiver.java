@@ -73,15 +73,30 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
   @Override
   public final DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
-    return lookupSingleTarget(appView, context, getReceiver());
+    TypeElement receiverUpperBoundType = null;
+    ClassTypeElement receiverLowerBoundType = null;
+    if (appView.enableWholeProgramOptimizations()) {
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      receiverUpperBoundType = getReceiver().getDynamicUpperBoundType(appViewWithLiveness);
+      receiverLowerBoundType = getReceiver().getDynamicLowerBoundType(appViewWithLiveness);
+    }
+    return lookupSingleTarget(appView, context, receiverUpperBoundType, receiverLowerBoundType);
   }
 
   public abstract DexEncodedMethod lookupSingleTarget(
-      AppView<?> appView, ProgramMethod context, Value receiver);
+      AppView<?> appView,
+      ProgramMethod context,
+      TypeElement receiverUpperBoundType,
+      ClassTypeElement receiverLowerBoundType);
 
   public final ProgramMethod lookupSingleProgramTarget(
-      AppView<?> appView, ProgramMethod context, Value receiver) {
-    return asProgramMethodOrNull(lookupSingleTarget(appView, context, receiver), appView);
+      AppView<?> appView,
+      ProgramMethod context,
+      TypeElement receiverUpperBoundType,
+      ClassTypeElement receiverLowerBoundType) {
+    return asProgramMethodOrNull(
+        lookupSingleTarget(appView, context, receiverUpperBoundType, receiverLowerBoundType),
+        appView);
   }
 
   @Override

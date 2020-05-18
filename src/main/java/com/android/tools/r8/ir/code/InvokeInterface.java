@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.ir.analysis.type.TypeAnalysis.toRefinedReceiverType;
+
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeInterfaceRange;
 import com.android.tools.r8.graph.AppView;
@@ -13,7 +15,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -88,7 +91,10 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
 
   @Override
   public DexEncodedMethod lookupSingleTarget(
-      AppView<?> appView, ProgramMethod context, Value receiver) {
+      AppView<?> appView,
+      ProgramMethod context,
+      TypeElement receiverUpperBoundType,
+      ClassTypeElement receiverLowerBoundType) {
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       return appViewWithLiveness
@@ -98,9 +104,9 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
               context,
               true,
               appView,
-              TypeAnalysis.getRefinedReceiverType(
-                  appViewWithLiveness, getInvokedMethod(), receiver),
-              receiver.getDynamicLowerBoundType(appViewWithLiveness));
+              toRefinedReceiverType(
+                  receiverUpperBoundType, getInvokedMethod(), appViewWithLiveness),
+              receiverLowerBoundType);
     }
     return null;
   }

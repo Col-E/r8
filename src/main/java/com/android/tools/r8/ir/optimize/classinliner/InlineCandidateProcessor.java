@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.AliasedValueConfiguration;
 import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
@@ -529,8 +530,11 @@ final class InlineCandidateProcessor {
             continue;
           }
 
+          ClassTypeElement exactReceiverType =
+              ClassTypeElement.create(eligibleClass.type, Nullability.definitelyNotNull(), appView);
           ProgramMethod singleTarget =
-              invoke.lookupSingleProgramTarget(appView, method, eligibleInstance);
+              invoke.lookupSingleProgramTarget(
+                  appView, method, exactReceiverType, exactReceiverType);
           if (singleTarget == null || !indirectMethodCallsOnInstance.contains(singleTarget)) {
             throw new IllegalClassInlinerStateException();
           }

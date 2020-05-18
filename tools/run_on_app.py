@@ -529,6 +529,8 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
         args.extend(['--main-dex-rules', rules])
     if 'allow-type-errors' in values:
       extra_args.append('-Dcom.android.tools.r8.allowTypeErrors=1')
+    extra_args.append(
+        '-Dcom.android.tools.r8.disallowClassInlinerGracefulExit=1')
 
   if options.debug_agent:
     if not options.compiler_build == 'full':

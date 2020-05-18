@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.ir.analysis.type.TypeAnalysis.toRefinedReceiverType;
+
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeVirtualRange;
 import com.android.tools.r8.graph.AppView;
@@ -14,7 +16,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -89,12 +92,20 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public DexEncodedMethod lookupSingleTarget(
-      AppView<?> appView, ProgramMethod context, Value receiver) {
-    return lookupSingleTarget(appView, context, receiver, getInvokedMethod());
+      AppView<?> appView,
+      ProgramMethod context,
+      TypeElement receiverUpperBoundType,
+      ClassTypeElement receiverLowerBoundType) {
+    return lookupSingleTarget(
+        appView, context, receiverUpperBoundType, receiverLowerBoundType, getInvokedMethod());
   }
 
   public static DexEncodedMethod lookupSingleTarget(
-      AppView<?> appView, ProgramMethod context, Value receiver, DexMethod method) {
+      AppView<?> appView,
+      ProgramMethod context,
+      TypeElement receiverUpperBoundType,
+      ClassTypeElement receiverLowerBoundType,
+      DexMethod method) {
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       return appViewWithLiveness
@@ -104,8 +115,8 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
               context,
               false,
               appView,
-              TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, method, receiver),
-              receiver.getDynamicLowerBoundType(appViewWithLiveness));
+              toRefinedReceiverType(receiverUpperBoundType, method, appViewWithLiveness),
+              receiverLowerBoundType);
     }
     // In D8, allow lookupSingleTarget() to be used for finding final library methods. This is used
     // for library modeling.

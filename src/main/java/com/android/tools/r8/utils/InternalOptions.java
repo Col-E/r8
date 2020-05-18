@@ -1160,7 +1160,8 @@ public class InternalOptions {
             || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;
     public boolean allowInvokeErrors = false;
     public boolean disableL8AnnotationRemoval = false;
-    public boolean allowClassInlinerGracefulExit = true;
+    public boolean allowClassInlinerGracefulExit =
+        System.getProperty("com.android.tools.r8.disallowClassInlinerGracefulExit") == null;
     public boolean reportUnusedProguardConfigurationRules = false;
     public boolean alwaysUsePessimisticRegisterAllocation = false;
     public boolean enableCheckCastAndInstanceOfRemoval = true;

@@ -162,10 +162,16 @@ public class TypeAnalysis {
 
   public static DexType getRefinedReceiverType(
       AppView<? extends AppInfoWithClassHierarchy> appView, DexMethod method, Value receiver) {
-    TypeElement lattice = receiver.getDynamicUpperBoundType(appView);
+    return toRefinedReceiverType(receiver.getDynamicUpperBoundType(appView), method, appView);
+  }
+
+  public static DexType toRefinedReceiverType(
+      TypeElement receiverUpperBoundType,
+      DexMethod method,
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     DexType staticReceiverType = method.holder;
-    if (lattice.isClassType()) {
-      ClassTypeElement classType = lattice.asClassType();
+    if (receiverUpperBoundType.isClassType()) {
+      ClassTypeElement classType = receiverUpperBoundType.asClassType();
       DexType refinedType = classType.getClassType();
       if (refinedType == appView.dexItemFactory().objectType) {
         Set<DexType> interfaces = classType.getInterfaces();

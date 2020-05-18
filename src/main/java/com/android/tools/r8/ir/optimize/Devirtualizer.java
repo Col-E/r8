@@ -126,7 +126,11 @@ public class Devirtualizer {
               DexMethod invokedMethod = invoke.getInvokedMethod();
               DexEncodedMethod newSingleTarget =
                   InvokeVirtual.lookupSingleTarget(
-                      appView, context, invoke.getReceiver(), invokedMethod);
+                      appView,
+                      context,
+                      invoke.getReceiver().getDynamicUpperBoundType(appView),
+                      invoke.getReceiver().getDynamicLowerBoundType(appView),
+                      invokedMethod);
               if (newSingleTarget == singleTarget) {
                 it.replaceCurrentInstruction(
                     new InvokeVirtual(invokedMethod, invoke.outValue(), invoke.arguments()));
