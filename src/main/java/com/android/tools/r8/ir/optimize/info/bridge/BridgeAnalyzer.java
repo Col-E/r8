@@ -166,7 +166,8 @@ public class BridgeAnalyzer {
     }
     // It must not return a value, or the return value must be the result value of the invoke.
     return ret.isReturnVoid()
-        || ret.returnValue() == (returnCast != null ? returnCast : invoke).outValue();
+        || ret.returnValue().getAliasedValue()
+            == (returnCast != null ? returnCast : invoke).outValue();
   }
 
   private static BridgeInfo failure() {

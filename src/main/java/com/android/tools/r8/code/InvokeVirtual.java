@@ -39,6 +39,16 @@ public class InvokeVirtual extends Format35c {
   }
 
   @Override
+  public boolean isInvokeVirtual() {
+    return true;
+  }
+
+  @Override
+  public InvokeVirtual asInvokeVirtual() {
+    return this;
+  }
+
+  @Override
   public void registerUse(UseRegistry registry) {
     registry.registerInvokeVirtual(getMethod());
   }

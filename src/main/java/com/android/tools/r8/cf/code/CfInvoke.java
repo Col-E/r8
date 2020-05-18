@@ -115,6 +115,10 @@ public class CfInvoke extends CfInstruction {
         !method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME);
   }
 
+  public boolean isInvokeVirtual() {
+    return opcode == Opcodes.INVOKEVIRTUAL;
+  }
+
   @Override
   public boolean canThrow() {
     return true;

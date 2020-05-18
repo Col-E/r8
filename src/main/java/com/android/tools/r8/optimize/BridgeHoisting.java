@@ -5,15 +5,25 @@ package com.android.tools.r8.optimize;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.code.InvokeVirtual;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.BottomUpClassHierarchyTraversal;
+import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.bridge.VirtualBridgeInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -23,7 +33,12 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -51,6 +66,9 @@ import java.util.TreeSet;
  * </code>
  */
 public class BridgeHoisting {
+
+  private static final OptimizationFeedbackSimple feedback =
+      OptimizationFeedbackSimple.getInstance();
 
   private final AppView<AppInfoWithLiveness> appView;
 
@@ -96,10 +114,7 @@ public class BridgeHoisting {
     for (DexProgramClass subclass : subclasses) {
       for (DexEncodedMethod method : subclass.virtualMethods()) {
         BridgeInfo bridgeInfo = method.getOptimizationInfo().getBridgeInfo();
-        // TODO(b/153147967): Even if the bridge is not targeting a method in the superclass, it may
-        //  be possible to rewrite the bridge to target a method in the superclass, such that we can
-        //  hoist it. Add a test.
-        if (bridgeInfo != null && bridgeIsTargetingMethodInSuperclass(subclass, bridgeInfo)) {
+        if (bridgeInfo != null) {
           candidates.add(equivalence.wrap(method.method));
         }
       }
@@ -150,9 +165,10 @@ public class BridgeHoisting {
       return;
     }
 
-    // Go through each of the subclasses and bail-out if each subclass does not declare the same
-    // bridge.
-    BridgeInfo firstBridgeInfo = null;
+    // Go through each of the subclasses and find the bridges that can be hoisted. The bridge holder
+    // classes are stored in buckets grouped by the behavior of the body of the bridge (which is
+    // implicitly defined by the signature of the invoke-virtual instruction).
+    Map<Wrapper<DexMethod>, List<DexProgramClass>> eligibleVirtualInvokeBridges = new HashMap<>();
     for (DexProgramClass subclass : subclasses) {
       DexEncodedMethod definition = subclass.lookupVirtualMethod(method);
       if (definition == null) {
@@ -172,44 +188,88 @@ public class BridgeHoisting {
           // should never be the case in practice.
           continue;
         }
+
+        // Hoisting would change the program behavior.
         return;
       }
 
       BridgeInfo currentBridgeInfo = definition.getOptimizationInfo().getBridgeInfo();
       if (currentBridgeInfo == null) {
-        return;
+        // This is not a bridge, so the method needs to remain on the subclass.
+        continue;
       }
 
-      if (firstBridgeInfo == null) {
-        firstBridgeInfo = currentBridgeInfo;
-      } else if (!currentBridgeInfo.hasSameTarget(firstBridgeInfo)) {
-        return;
-      }
+      assert currentBridgeInfo.isVirtualBridgeInfo();
+
+      VirtualBridgeInfo currentVirtualBridgeInfo = currentBridgeInfo.asVirtualBridgeInfo();
+      DexMethod invokedMethod = currentVirtualBridgeInfo.getInvokedMethod();
+      Wrapper<DexMethod> wrapper = MethodSignatureEquivalence.get().wrap(invokedMethod);
+      eligibleVirtualInvokeBridges
+          .computeIfAbsent(wrapper, ignore -> new ArrayList<>())
+          .add(subclass);
     }
 
-    // If we reached this point, it is because all of the subclasses define the same bridge.
-    assert firstBridgeInfo != null;
+    // There should be at least one method that is eligible for hoisting.
+    assert !eligibleVirtualInvokeBridges.isEmpty();
+
+    Entry<Wrapper<DexMethod>, List<DexProgramClass>> mostFrequentBridge =
+        findMostFrequentBridge(eligibleVirtualInvokeBridges);
+    assert mostFrequentBridge != null;
+    DexMethod invokedMethod = mostFrequentBridge.getKey().get();
+    List<DexProgramClass> eligibleSubclasses = mostFrequentBridge.getValue();
 
     // Choose one of the bridge definitions as the one that we will be moving to the superclass.
-    ProgramMethod representative = findRepresentative(subclasses, method);
-    assert representative != null;
+    ProgramMethod representative = findRepresentative(eligibleSubclasses, method);
 
     // Guard against accessibility issues.
     if (mayBecomeInaccessibleAfterHoisting(clazz, representative)) {
       return;
     }
 
-    // Move the bridge method to the super class, and record this in the graph lens.
-    DexMethod newMethod =
-        appView.dexItemFactory().createMethod(clazz.type, method.proto, method.name);
-    clazz.addVirtualMethod(representative.getDefinition().toTypeSubstitutedMethod(newMethod));
-    lensBuilder.move(representative.getDefinition().method, newMethod);
+    // Rewrite the invoke-virtual instruction to target the virtual method on the new holder class.
+    // Otherwise the code might not type check.
+    DexMethod methodToInvoke =
+        appView.dexItemFactory().createMethod(clazz.type, invokedMethod.proto, invokedMethod.name);
 
-    // Remove all of the bridges in the subclasses.
-    for (DexProgramClass subclass : subclasses) {
-      DexEncodedMethod removed = subclass.removeMethod(method);
-      assert removed == null || !appView.appInfo().isPinned(removed.method);
+    // The targeted method must be present on the new holder class for this to be feasible.
+    ResolutionResult resolutionResult =
+        appView.appInfo().resolveMethodOnClass(methodToInvoke, clazz);
+    if (!resolutionResult.isSingleResolution()) {
+      return;
     }
+
+    // Now update the code of the bridge method chosen as representative.
+    representative
+        .getDefinition()
+        .setCode(createCodeForVirtualBridge(representative, methodToInvoke), appView);
+    feedback.setBridgeInfo(representative.getDefinition(), new VirtualBridgeInfo(methodToInvoke));
+
+    // Move the bridge method to the super class, and record this in the graph lens.
+    DexMethod newMethodReference =
+        appView.dexItemFactory().createMethod(clazz.type, method.proto, method.name);
+    DexEncodedMethod newMethod =
+        representative.getDefinition().toTypeSubstitutedMethod(newMethodReference);
+    clazz.addVirtualMethod(newMethod);
+    lensBuilder.move(representative.getReference(), newMethodReference);
+
+    // Remove all of the bridges in the eligible subclasses.
+    for (DexProgramClass subclass : eligibleSubclasses) {
+      DexEncodedMethod removed = subclass.removeMethod(method);
+      assert removed != null && !appView.appInfo().isPinned(removed.method);
+    }
+  }
+
+  private static Entry<Wrapper<DexMethod>, List<DexProgramClass>> findMostFrequentBridge(
+      Map<Wrapper<DexMethod>, List<DexProgramClass>> eligibleVirtualInvokeBridges) {
+    Entry<Wrapper<DexMethod>, List<DexProgramClass>> result = null;
+    for (Entry<Wrapper<DexMethod>, List<DexProgramClass>> candidate :
+        eligibleVirtualInvokeBridges.entrySet()) {
+      List<DexProgramClass> eligibleSubclassesCandidate = candidate.getValue();
+      if (result == null || eligibleSubclassesCandidate.size() > result.getValue().size()) {
+        result = candidate;
+      }
+    }
+    return result;
   }
 
   private ProgramMethod findRepresentative(Iterable<DexProgramClass> subclasses, DexMethod method) {
@@ -219,7 +279,7 @@ public class BridgeHoisting {
         return new ProgramMethod(subclass, definition);
       }
     }
-    return null;
+    throw new Unreachable();
   }
 
   private boolean mayBecomeInaccessibleAfterHoisting(
@@ -228,6 +288,62 @@ public class BridgeHoisting {
       return false;
     }
     return !representative.getDefinition().isPublic();
+  }
+
+  private Code createCodeForVirtualBridge(ProgramMethod representative, DexMethod methodToInvoke) {
+    Code code = representative.getDefinition().getCode();
+    if (code.isCfCode()) {
+      return createCfCodeForVirtualBridge(code.asCfCode(), methodToInvoke);
+    }
+    if (code.isDexCode()) {
+      return createDexCodeForVirtualBridge(code.asDexCode(), methodToInvoke);
+    }
+    throw new Unreachable("Unexpected code object of type " + code.getClass().getTypeName());
+  }
+
+  private CfCode createCfCodeForVirtualBridge(CfCode code, DexMethod methodToInvoke) {
+    List<CfInstruction> newInstructions = new ArrayList<>();
+    for (CfInstruction instruction : code.getInstructions()) {
+      if (instruction.isInvoke()) {
+        CfInvoke invoke = instruction.asInvoke();
+        assert invoke.isInvokeVirtual();
+        assert !invoke.isInterface();
+        assert invoke.getMethod().match(methodToInvoke);
+        newInstructions.add(new CfInvoke(invoke.getOpcode(), methodToInvoke, false));
+      } else {
+        newInstructions.add(instruction);
+      }
+    }
+    return new CfCode(
+        methodToInvoke.holder,
+        code.getMaxStack(),
+        code.getMaxLocals(),
+        newInstructions,
+        code.getTryCatchRanges(),
+        code.getLocalVariables());
+  }
+
+  private DexCode createDexCodeForVirtualBridge(DexCode code, DexMethod methodToInvoke) {
+    Instruction[] newInstructions = new Instruction[code.instructions.length];
+    for (int i = 0; i < code.instructions.length; i++) {
+      Instruction instruction = code.instructions[i];
+      if (instruction.isInvokeVirtual()) {
+        InvokeVirtual invoke = instruction.asInvokeVirtual();
+        newInstructions[i] =
+            new InvokeVirtual(
+                invoke.A, methodToInvoke, invoke.C, invoke.D, invoke.E, invoke.F, invoke.G);
+      } else {
+        newInstructions[i] = instruction;
+      }
+    }
+    return new DexCode(
+        code.registerSize,
+        code.incomingRegisterSize,
+        code.outgoingRegisterSize,
+        newInstructions,
+        code.tries,
+        code.handlers,
+        code.getDebugInfo());
   }
 
   static class BridgeHoistingLens extends NestedGraphLense {

@@ -56,11 +56,11 @@ public class NonReboundBridgeHoistingTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(NonReboundBridgeHoistingTestClasses.getClassA());
     assertThat(aClassSubject, isPresent());
     assertThat(aClassSubject.uniqueMethodWithName("m"), isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("bridge"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithName("bridge"), isPresent());
 
     ClassSubject bClassSubject = inspector.clazz(NonReboundBridgeHoistingTestClasses.B.class);
     assertThat(bClassSubject, isPresent());
-    assertThat(bClassSubject.uniqueMethodWithName("bridge"), isPresent());
+    assertThat(bClassSubject.uniqueMethodWithName("bridge"), not(isPresent()));
 
     ClassSubject cClassSubject = inspector.clazz(C.class);
     assertThat(cClassSubject, isPresent());
@@ -79,8 +79,8 @@ public class NonReboundBridgeHoistingTest extends TestBase {
 
     // The invoke instruction in this bridge cannot be rewritten to target A.m(), since A is not
     // accessible in this context. It therefore points to B.m(), where there is no definition of the
-    // method. As a result of this, we cannot move this bridge to A without also rewriting the
-    // signature referenced from the invoke instruction.
+    // method. When the bridge is hoisted to B.m(), the invoke-virtual instruction can be rewritten
+    // to target A.m(). This allows hoisting the bridge further from B.m() to A.m().
     @NeverInline
     public /*bridge*/ void bridge() {
       m();

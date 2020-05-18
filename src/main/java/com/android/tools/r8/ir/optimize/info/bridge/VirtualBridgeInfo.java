@@ -38,13 +38,6 @@ public class VirtualBridgeInfo extends BridgeInfo {
   }
 
   @Override
-  public boolean hasSameTarget(BridgeInfo bridgeInfo) {
-    assert bridgeInfo.isVirtualBridgeInfo();
-    VirtualBridgeInfo virtualBridgeInfo = bridgeInfo.asVirtualBridgeInfo();
-    return invokedMethod.match(virtualBridgeInfo.invokedMethod);
-  }
-
-  @Override
   public boolean isVirtualBridgeInfo() {
     return true;
   }

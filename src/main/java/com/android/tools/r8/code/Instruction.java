@@ -163,6 +163,14 @@ public abstract class Instruction {
     return false;
   }
 
+  public boolean isInvokeVirtual() {
+    return false;
+  }
+
+  public InvokeVirtual asInvokeVirtual() {
+    return null;
+  }
+
   public boolean isSimpleNop() {
     return !isPayload() && this instanceof Nop;
   }

@@ -35,7 +35,7 @@ public class PositiveBridgeHoistingTest extends TestBase {
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(TestClass.class, A.class, B3.class)
+        .addProgramClasses(TestClass.class, A.class, B3.class, B4.class)
         .addProgramClassFileData(
             transformer(B1.class)
                 .setBridge(B1.class.getDeclaredMethod("superBridge", Object.class))
@@ -44,6 +44,10 @@ public class PositiveBridgeHoistingTest extends TestBase {
             transformer(B2.class)
                 .setBridge(B2.class.getDeclaredMethod("superBridge", Object.class))
                 .setBridge(B2.class.getDeclaredMethod("virtualBridge", Object.class))
+                .transform(),
+            transformer(B5.class)
+                .setBridge(B5.class.getDeclaredMethod("superBridge", Object.class))
+                .setBridge(B5.class.getDeclaredMethod("virtualBridge", Object.class))
                 .transform())
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
@@ -71,16 +75,30 @@ public class PositiveBridgeHoistingTest extends TestBase {
     assertThat(b2ClassSubject, isPresent());
     assertThat(b2ClassSubject.uniqueMethodWithName("superBridge"), not(isPresent()));
     assertThat(b2ClassSubject.uniqueMethodWithName("virtualBridge"), not(isPresent()));
+
+    ClassSubject b4ClassSubject = inspector.clazz(B4.class);
+    assertThat(b4ClassSubject, isPresent());
+    assertThat(b4ClassSubject.uniqueMethodWithName("superBridge"), isPresent());
+    assertThat(b4ClassSubject.uniqueMethodWithName("virtualBridge"), isPresent());
+
+    ClassSubject b5ClassSubject = inspector.clazz(B5.class);
+    assertThat(b5ClassSubject, isPresent());
+    assertThat(b5ClassSubject.uniqueMethodWithName("superBridge"), isPresent());
+    assertThat(b5ClassSubject.uniqueMethodWithName("virtualBridge"), isPresent());
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
-      System.out.print(new B1().superBridge("Hello"));
-      System.out.print(new B1().virtualBridge(" "));
-      System.out.print(new B2().superBridge("world"));
-      System.out.print(new B2().virtualBridge("!"));
-      System.out.println(new B3().m(""));
+      System.out.print(new B1().superBridge("Hel"));
+      System.out.print(new B1().virtualBridge("lo"));
+      System.out.print(new B2().superBridge(" "));
+      System.out.print(new B2().virtualBridge("w"));
+      System.out.print(new B3().m("o"));
+      System.out.print(new B4().superBridge("r"));
+      System.out.print(new B4().virtualBridge("l"));
+      System.out.print(new B5().superBridge("d"));
+      System.out.println(new B5().virtualBridge("!"));
     }
   }
 
@@ -88,6 +106,11 @@ public class PositiveBridgeHoistingTest extends TestBase {
 
     @NeverInline
     public Object m(String arg) {
+      return System.currentTimeMillis() >= 0 ? arg : null;
+    }
+
+    @NeverInline
+    public Object m2(String arg) {
       return System.currentTimeMillis() >= 0 ? arg : null;
     }
   }
@@ -137,4 +160,36 @@ public class PositiveBridgeHoistingTest extends TestBase {
   // but this should never be the case in practice.
   @NeverClassInline
   static class B3 extends A {}
+
+  // The fact that this class declares superBridge() and virtualBridge() should not prevent
+  // us from hoisting other bridges to A.
+  @NeverClassInline
+  static class B4 extends A {
+
+    @NeverInline
+    public String superBridge(Object o) {
+      return System.currentTimeMillis() >= 0 ? ((String) o) : null;
+    }
+
+    @NeverInline
+    public String virtualBridge(Object o) {
+      return System.currentTimeMillis() >= 0 ? ((String) o) : null;
+    }
+  }
+
+  // This class declares the same bridges, but with different (bridge) behavior. They are candidates
+  // for hoisting, but will not be hoisted because it is better to hoist the bridges declared on B1.
+  @NeverClassInline
+  static class B5 extends A {
+
+    @NeverInline
+    public /*bridge*/ String superBridge(Object o) {
+      return (String) super.m2((String) o);
+    }
+
+    @NeverInline
+    public /*bridge*/ String virtualBridge(Object o) {
+      return (String) m2((String) o);
+    }
+  }
 }

@@ -9,8 +9,6 @@ package com.android.tools.r8.ir.optimize.info.bridge;
  */
 public abstract class BridgeInfo {
 
-  public abstract boolean hasSameTarget(BridgeInfo bridgeInfo);
-
   public boolean isVirtualBridgeInfo() {
     return false;
   }
