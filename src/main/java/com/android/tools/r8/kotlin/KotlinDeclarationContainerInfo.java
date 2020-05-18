@@ -101,7 +101,7 @@ public class KotlinDeclarationContainerInfo {
             methodSignatureMap.get(propertyProcessor.getterSignature().asString());
         if (method != null) {
           hasBacking = true;
-          keepIfInlineOrCrossInline(kmProperty.getFlags(), method, keepByteCode);
+          keepIfAccessorInline(kmProperty.getGetterFlags(), method, keepByteCode);
           method.setKotlinMemberInfo(kotlinPropertyInfo);
         }
       }
@@ -110,7 +110,7 @@ public class KotlinDeclarationContainerInfo {
             methodSignatureMap.get(propertyProcessor.setterSignature().asString());
         if (method != null) {
           hasBacking = true;
-          keepIfInlineOrCrossInline(kmProperty.getFlags(), method, keepByteCode);
+          keepIfAccessorInline(kmProperty.getGetterFlags(), method, keepByteCode);
           method.setKotlinMemberInfo(kotlinPropertyInfo);
         }
       }
@@ -131,9 +131,9 @@ public class KotlinDeclarationContainerInfo {
     }
   }
 
-  private static void keepIfInlineOrCrossInline(
+  private static void keepIfAccessorInline(
       int flags, DexEncodedMethod method, Consumer<DexEncodedMethod> keepByteCode) {
-    if (Flags.IS_INLINE.get(flags) || Flags.IS_CROSSINLINE.get(flags)) {
+    if (Flags.IS_INLINE_ACCESSOR.get(flags)) {
       keepByteCode.accept(method);
     }
   }
