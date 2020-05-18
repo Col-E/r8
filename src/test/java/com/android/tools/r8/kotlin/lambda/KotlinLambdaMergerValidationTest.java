@@ -4,7 +4,6 @@
 package com.android.tools.r8.kotlin.lambda;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
@@ -86,10 +85,7 @@ public class KotlinLambdaMergerValidationTest extends AbstractR8KotlinTestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         // TODO(b/143165163): better not output info like this.
-        .assertAllInfoMessagesMatch(
-            allOf(
-                containsString("Unrecognized Kotlin lambda"),
-                containsString("does not implement any interfaces")))
+        .assertAllInfoMessagesMatch(containsString("does not implement any interfaces"))
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .run(parameters.getRuntime(), pkg + ".B143165163Kt")
         .assertSuccessWithOutputLines("outer foo bar", "outer foo default");
