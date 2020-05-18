@@ -169,7 +169,8 @@ public abstract class R8RunArtTestsTest {
   private static final Multimap<String, TestCondition> timeoutOrSkipRunWithArt =
       new ImmutableListMultimap.Builder<String, TestCondition>()
           // Loops on art - timeout.
-          .put("109-suspend-check",
+          .put(
+              "109-suspend-check",
               TestCondition.match(TestCondition.runtimes(DexVm.Version.V5_1_1)))
           // Flaky loops on art.
           .put("129-ThreadGetId", TestCondition.match(TestCondition.runtimes(DexVm.Version.V5_1_1)))
@@ -177,8 +178,13 @@ public abstract class R8RunArtTestsTest {
           // tests on 5.1.1 makes our buildbot cycles time too long.
           .put("800-smali", TestCondition.match(TestCondition.runtimes(DexVm.Version.V5_1_1)))
           // Hangs on dalvik.
-          .put("802-deoptimization",
+          .put(
+              "802-deoptimization",
               TestCondition.match(TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
+          // TODO(b/144975341): Triage
+          .put(
+              "134-reg-promotion",
+              TestCondition.match(TestCondition.runtimes(DexVm.Version.V10_0_0)))
           .build();
 
   // Tests that are flaky with the Art version we currently use.

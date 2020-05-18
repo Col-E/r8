@@ -62,14 +62,14 @@ public class B120164595 extends TestBase {
   }
 
   private void checkArt(TestCompileResult result) throws IOException {
-    ProcessResult artResult = runOnArtRaw(
-        result.app,
-        TestClass.class.getCanonicalName(),
-        builder -> {
-          builder.appendArtOption("-Xusejit:true");
-        },
-        DexVm.ART_9_0_0_HOST
-    );
+    ProcessResult artResult =
+        runOnArtRaw(
+            result.app,
+            TestClass.class.getCanonicalName(),
+            builder -> {
+              builder.appendArtOption("-Xusejit:true");
+            },
+            DexVm.ART_10_0_0_HOST);
     assertEquals(0, artResult.exitCode);
     assertFalse(artResult.stderr.contains("Expected NullPointerException"));
   }

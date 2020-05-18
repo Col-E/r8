@@ -156,10 +156,6 @@ def archive_failures():
 
 def Main():
   (options, args) = ParseOptions()
-  # See b/144966342
-  if options.dex_vm == '10.0.0':
-    print 'Running on 10.0.0 is temporarily disabled, see b/144966342'
-    return 0
 
   if utils.is_bot():
     gradle.RunGradle(['--no-daemon', 'clean'])

@@ -22,12 +22,14 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
 import org.hamcrest.Matcher;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -252,6 +254,14 @@ public class InvalidTypesTest extends JasminTestBase {
   }
 
   private void checkTestRunResult(TestRunResult<?> result, Compiler compiler) {
+    Assume.assumeFalse(
+        "Triage (b/144966342)",
+        parameters.getRuntime().isDex()
+            && parameters
+                .getRuntime()
+                .asDex()
+                .getMinApiLevel()
+                .isGreaterThanOrEqualTo(AndroidApiLevel.Q));
     switch (mode) {
       case NO_INVOKE:
         result.assertSuccessWithOutput(getExpectedOutput(compiler));

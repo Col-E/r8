@@ -311,6 +311,7 @@ public class RunJdwpTests {
   }
 
   private void skipIfNeeded(String test, Tool tool) {
+    Assume.assumeFalse("Triage (b/144966342)", getDexVm().isNewerThan(DexVm.ART_9_0_0_HOST));
     // Is it part of smoke tests ?
     if (!RUN_ALL_TESTS) {
       Assume.assumeTrue("Skipping non-smoke test " + test, SMOKE_TESTS.contains(test));

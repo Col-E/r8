@@ -202,7 +202,8 @@ public abstract class RunExamplesAndroidOTest
     ImmutableMap.Builder<DexVm.Version, List<String>> builder = ImmutableMap.builder();
     builder
         .put(
-            DexVm.Version.V4_0_4, ImmutableList.of(
+            DexVm.Version.V4_0_4,
+            ImmutableList.of(
                 // API not supported
                 "paramnames",
                 "repeat_annotations_new_api",
@@ -214,10 +215,10 @@ public abstract class RunExamplesAndroidOTest
                 "StaticMethodInAndroidJar25",
                 "testMissingInterfaceDesugared2AndroidO",
                 "testCallToMissingSuperInterfaceDesugaredAndroidO",
-                "testMissingSuperDesugaredAndroidO"
-            ))
+                "testMissingSuperDesugaredAndroidO"))
         .put(
-            DexVm.Version.V4_4_4, ImmutableList.of(
+            DexVm.Version.V4_4_4,
+            ImmutableList.of(
                 // API not supported
                 "paramnames",
                 "repeat_annotations_new_api",
@@ -229,10 +230,10 @@ public abstract class RunExamplesAndroidOTest
                 "StaticMethodInAndroidJar25",
                 "testMissingInterfaceDesugared2AndroidO",
                 "testCallToMissingSuperInterfaceDesugaredAndroidO",
-                "testMissingSuperDesugaredAndroidO"
-            ))
+                "testMissingSuperDesugaredAndroidO"))
         .put(
-            DexVm.Version.V5_1_1, ImmutableList.of(
+            DexVm.Version.V5_1_1,
+            ImmutableList.of(
                 // API not supported
                 "paramnames",
                 "repeat_annotations_new_api",
@@ -244,10 +245,10 @@ public abstract class RunExamplesAndroidOTest
                 "StaticMethodInAndroidJar25",
                 "testMissingInterfaceDesugared2AndroidO",
                 "testCallToMissingSuperInterfaceDesugaredAndroidO",
-                "testMissingSuperDesugaredAndroidO"
-            ))
+                "testMissingSuperDesugaredAndroidO"))
         .put(
-            DexVm.Version.V6_0_1, ImmutableList.of(
+            DexVm.Version.V6_0_1,
+            ImmutableList.of(
                 // API not supported
                 "paramnames",
                 "repeat_annotations_new_api",
@@ -259,10 +260,10 @@ public abstract class RunExamplesAndroidOTest
                 "StaticMethodInAndroidJar25",
                 "testMissingInterfaceDesugared2AndroidO",
                 "testCallToMissingSuperInterfaceDesugaredAndroidO",
-                "testMissingSuperDesugaredAndroidO"
-            ))
+                "testMissingSuperDesugaredAndroidO"))
         .put(
-            DexVm.Version.V7_0_0, ImmutableList.of(
+            DexVm.Version.V7_0_0,
+            ImmutableList.of(
                 // API not supported
                 "paramnames",
                 // Dex version not supported
@@ -271,17 +272,18 @@ public abstract class RunExamplesAndroidOTest
                 "invokecustom2",
                 "testMissingInterfaceDesugared2AndroidO",
                 "testCallToMissingSuperInterfaceDesugaredAndroidO",
-                "testMissingSuperDesugaredAndroidO"
-            ))
+                "testMissingSuperDesugaredAndroidO"))
         .put(
-            DexVm.Version.V9_0_0, ImmutableList.of(
+            DexVm.Version.V9_0_0,
+            ImmutableList.of(
                 // TODO(120402963): Triage.
-                "invokecustom",
-                "invokecustom2"
-            ))
+                "invokecustom", "invokecustom2"))
         .put(
-            DexVm.Version.DEFAULT, ImmutableList.of()
-        );
+            DexVm.Version.V10_0_0,
+            ImmutableList.of(
+                // TODO(120402963): Triage.
+                "invokecustom", "invokecustom2"))
+        .put(DexVm.Version.DEFAULT, ImmutableList.of());
     failsOn = builder.build();
   }
 

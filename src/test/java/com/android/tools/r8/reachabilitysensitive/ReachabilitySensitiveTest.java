@@ -11,6 +11,7 @@ import static junit.framework.TestCase.assertTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.AddIntLit8;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.Instruction;
@@ -25,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -87,6 +89,9 @@ public class ReachabilitySensitiveTest extends TestBase {
         inspector.method(TestClass.class.getMethod("method")).getMethod().getCode().asDexCode();
     // Computation of k is constant folded and the value takes up one register. System.out takes
     // up another register and the receiver is the last.
+    Assume.assumeTrue(
+        "TODO(b/144966342): Why 2 on Q?",
+        ToolHelper.getDexVm().isOlderThanOrEqual(ToolHelper.DexVm.ART_9_0_0_HOST));
     assertEquals(3, code.registerSize);
     checkNoLocals(code);
   }

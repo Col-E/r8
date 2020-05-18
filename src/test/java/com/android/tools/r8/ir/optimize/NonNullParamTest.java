@@ -156,7 +156,7 @@ public class NonNullParamTest extends TestBase {
     MethodSubject checkViaCall = mainSubject.uniqueMethodWithName("checkViaCall");
     assertThat(checkViaCall, isPresent());
     assertEquals(0, countActCall(checkViaCall));
-    assertEquals(2, countPrintCall(checkViaCall));
+    assertEquals(canSharePrintCallInSuccessorBlock() ? 1 : 2, countPrintCall(checkViaCall));
 
     MethodSubject checkViaIntrinsic = mainSubject.uniqueMethodWithName("checkViaIntrinsic");
     assertThat(checkViaIntrinsic, isPresent());
@@ -188,12 +188,7 @@ public class NonNullParamTest extends TestBase {
     MethodSubject checkViaCall = mainSubject.uniqueMethodWithName("checkViaCall");
     assertThat(checkViaCall, isPresent());
     assertEquals(0, countActCall(checkViaCall));
-    // With API level >= Q we get a register assignment that allows us to share the print call in a
-    // successor block. See also InternalOptions.canHaveThisJitCodeDebuggingBug().
-    boolean canSharePrintCallInSuccessorBlock =
-        parameters.isDexRuntime()
-            && parameters.getApiLevel().getLevel() >= AndroidApiLevel.Q.getLevel();
-    assertEquals(canSharePrintCallInSuccessorBlock ? 1 : 2, countPrintCall(checkViaCall));
+    assertEquals(canSharePrintCallInSuccessorBlock() ? 1 : 2, countPrintCall(checkViaCall));
 
     MethodSubject checkViaIntrinsic = mainSubject.uniqueMethodWithName("checkViaIntrinsic");
     assertThat(checkViaIntrinsic, isPresent());
@@ -204,6 +199,13 @@ public class NonNullParamTest extends TestBase {
     assertThat(checkAtOneLevelHigher, isPresent());
     assertEquals(1, countPrintCall(checkAtOneLevelHigher));
     assertEquals(0, countThrow(checkAtOneLevelHigher));
+  }
+
+  private boolean canSharePrintCallInSuccessorBlock() {
+    // With API level >= Q we get a register assignment that allows us to share the print call in a
+    // successor block. See also InternalOptions.canHaveThisJitCodeDebuggingBug().
+    return parameters.isDexRuntime()
+        && parameters.getApiLevel().getLevel() >= AndroidApiLevel.Q.getLevel();
   }
 
   @Test

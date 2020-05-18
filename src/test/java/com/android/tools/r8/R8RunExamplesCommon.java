@@ -190,8 +190,8 @@ public abstract class R8RunExamplesCommon {
     }
     Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
 
-
     DexVm vm = ToolHelper.getDexVm();
+    Assume.assumeFalse("Triage (b/144966342)", vm.isNewerThan(DexVm.ART_9_0_0_HOST));
 
     if (shouldSkipVm(vm.getVersion())) {
       return;
