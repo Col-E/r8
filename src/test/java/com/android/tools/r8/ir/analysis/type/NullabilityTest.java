@@ -24,7 +24,7 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.NonNullTracker;
+import com.android.tools.r8.ir.optimize.AssumeInserter;
 import com.android.tools.r8.ir.optimize.NonNullTrackerTestBase;
 import com.android.tools.r8.ir.optimize.nonnull.FieldAccessTest;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterArrayAccess;
@@ -51,7 +51,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(mainClass.getName()).method(signature);
     IRCode irCode = fooSubject.buildIR();
-    new NonNullTracker(appView).insertAssumeInstructions(irCode, Timing.empty());
+    new AssumeInserter(appView).insertAssumeInstructions(irCode, Timing.empty());
     inspector.accept(appView, irCode);
     verifyLastInvoke(irCode, npeCaught);
   }

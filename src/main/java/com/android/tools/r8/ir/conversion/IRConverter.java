@@ -52,6 +52,7 @@ import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
+import com.android.tools.r8.ir.optimize.AssumeInserter;
 import com.android.tools.r8.ir.optimize.Assumer;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
@@ -64,7 +65,6 @@ import com.android.tools.r8.ir.optimize.IdempotentFunctionCallCanonicalizer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.MemberValuePropagation;
-import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
@@ -292,7 +292,7 @@ public class IRConverter {
       assert appView.rootSet() != null;
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       if (options.enableNonNullTracking) {
-        assumers.add(new NonNullTracker(appViewWithLiveness));
+        assumers.add(new AssumeInserter(appViewWithLiveness));
       }
       this.classInliner =
           options.enableClassInlining && options.enableInlining ? new ClassInliner() : null;

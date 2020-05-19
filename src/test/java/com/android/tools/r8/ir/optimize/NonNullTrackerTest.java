@@ -40,9 +40,9 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
     IRCode code = fooSubject.buildIR();
     checkCountOfNonNull(code, 0);
 
-    NonNullTracker nonNullTracker = new NonNullTracker(appView);
+    AssumeInserter assumeInserter = new AssumeInserter(appView);
 
-    nonNullTracker.insertAssumeInstructions(code, Timing.empty());
+    assumeInserter.insertAssumeInstructions(code, Timing.empty());
     assertTrue(code.isConsistentSSA());
     checkCountOfNonNull(code, expectedNumberOfNonNull);
 

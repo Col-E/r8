@@ -1160,7 +1160,7 @@ public class Inliner implements PostOptimization {
 
     // Add non-null IRs only to the inlinee blocks.
     if (options.enableNonNullTracking) {
-      Assumer nonNullTracker = new NonNullTracker(appView);
+      Assumer nonNullTracker = new AssumeInserter(appView);
       applyAssumerToInlinee(nonNullTracker, code, blockIterator, block, inlineeBlocks, timing);
     }
 

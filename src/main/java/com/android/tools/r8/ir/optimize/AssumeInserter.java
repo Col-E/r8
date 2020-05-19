@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
+import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.DominatorTree;
@@ -47,11 +48,11 @@ import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-public class NonNullTracker implements Assumer {
+public class AssumeInserter implements Assumer {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
 
-  public NonNullTracker(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public AssumeInserter(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
   }
 
@@ -66,7 +67,7 @@ public class NonNullTracker implements Assumer {
       BasicBlockIterator blockIterator,
       Predicate<BasicBlock> blockTester,
       Timing timing) {
-    timing.begin("Insert assume not null instructions");
+    timing.begin("Insert assume instructions");
     internalInsertAssumeInstructionsInBlocks(code, blockIterator, blockTester, timing);
     timing.end();
   }
@@ -76,54 +77,54 @@ public class NonNullTracker implements Assumer {
       BasicBlockIterator blockIterator,
       Predicate<BasicBlock> blockTester,
       Timing timing) {
-    timing.begin("Part 1: Compute non null values");
-    NonNullValues nonNullValues = computeNonNullValues(code, blockIterator, blockTester);
+    timing.begin("Part 1: Compute assumed values");
+    AssumedValues assumedValues = computeAssumedValues(code, blockIterator, blockTester);
     timing.end();
-    if (nonNullValues.isEmpty()) {
+    if (assumedValues.isEmpty()) {
       return;
     }
 
     timing.begin("Part 2: Remove redundant assume instructions");
-    removeRedundantAssumeInstructions(nonNullValues);
+    removeRedundantAssumeInstructions(assumedValues);
     timing.end();
 
     timing.begin("Part 3: Compute dominated users");
     Map<Instruction, Set<Value>> redundantKeys =
-        computeDominanceForNonNullValues(code, nonNullValues);
+        computeDominanceForAssumedValues(code, assumedValues);
     timing.end();
-    if (nonNullValues.isEmpty()) {
+    if (assumedValues.isEmpty()) {
       return;
     }
 
     timing.begin("Part 4: Remove redundant dominated assume instructions");
-    removeRedundantDominatedAssumeInstructions(nonNullValues, redundantKeys);
+    removeRedundantDominatedAssumeInstructions(assumedValues, redundantKeys);
     timing.end();
-    if (nonNullValues.isEmpty()) {
+    if (assumedValues.isEmpty()) {
       return;
     }
 
     timing.begin("Part 5: Materialize assume instructions");
-    materializeAssumeInstructions(code, nonNullValues);
+    materializeAssumeInstructions(code, assumedValues);
     timing.end();
   }
 
-  private NonNullValues computeNonNullValues(
+  private AssumedValues computeAssumedValues(
       IRCode code, BasicBlockIterator blockIterator, Predicate<BasicBlock> blockTester) {
-    NonNullValues.Builder nonNullValuesBuilder = new NonNullValues.Builder();
+    AssumedValues.Builder assumedValuesBuilder = new AssumedValues.Builder();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (blockTester.test(block)) {
-        computeNonNullValuesInBlock(code, blockIterator, block, nonNullValuesBuilder);
+        computeAssumedValuesInBlock(code, blockIterator, block, assumedValuesBuilder);
       }
     }
-    return nonNullValuesBuilder.build();
+    return assumedValuesBuilder.build();
   }
 
-  private void computeNonNullValuesInBlock(
+  private void computeAssumedValuesInBlock(
       IRCode code,
       BasicBlockIterator blockIterator,
       BasicBlock block,
-      NonNullValues.Builder nonNullValuesBuilder) {
+      AssumedValues.Builder assumedValuesBuilder) {
     // Add non-null after
     // 1) instructions that implicitly indicate receiver/array is not null.
     // 2) invocations that are guaranteed to return a non-null value.
@@ -137,9 +138,9 @@ public class NonNullTracker implements Assumer {
       // Case (1), instructions that implicitly indicate receiver/array is not null.
       if (current.throwsOnNullInput()) {
         Value inValue = current.getNonNullInput();
-        if (nonNullValuesBuilder.isMaybeNull(inValue)
+        if (assumedValuesBuilder.isMaybeNull(inValue)
             && isNullableReferenceTypeWithOtherNonDebugUsers(inValue, current)) {
-          nonNullValuesBuilder.addNonNullValueWithUnknownDominance(current, inValue);
+          assumedValuesBuilder.addNonNullValueWithUnknownDominance(current, inValue);
           needsAssumeInstruction = true;
         }
       }
@@ -150,7 +151,7 @@ public class NonNullTracker implements Assumer {
         if (invoke.hasOutValue() || !invoke.getInvokedMethod().proto.parameters.isEmpty()) {
           // Case (2) and (3).
           needsAssumeInstruction |=
-              computeNonNullValuesFromSingleTarget(code, invoke, nonNullValuesBuilder);
+              computeAssumedValuesFromSingleTarget(code, invoke, assumedValuesBuilder);
         }
       } else if (current.isFieldGet()) {
         // Case (4), field-get instructions that are guaranteed to read a non-null value.
@@ -162,7 +163,7 @@ public class NonNullTracker implements Assumer {
             FieldOptimizationInfo optimizationInfo = encodedField.getOptimizationInfo();
             if (optimizationInfo.getDynamicUpperBoundType() != null
                 && optimizationInfo.getDynamicUpperBoundType().isDefinitelyNotNull()) {
-              nonNullValuesBuilder.addNonNullValueKnownToDominateAllUsers(current, outValue);
+              assumedValuesBuilder.addNonNullValueKnownToDominateAllUsers(current, outValue);
               needsAssumeInstruction = true;
             }
           }
@@ -181,7 +182,7 @@ public class NonNullTracker implements Assumer {
           assert !instructionIterator.hasNext();
           assert instructionIterator.peekPrevious().isGoto();
           assert blockIterator.peekPrevious() == insertionBlock;
-          computeNonNullValuesInBlock(code, blockIterator, insertionBlock, nonNullValuesBuilder);
+          computeAssumedValuesInBlock(code, blockIterator, insertionBlock, assumedValuesBuilder);
           return;
         }
         if (current.instructionTypeCanThrow()) {
@@ -193,16 +194,16 @@ public class NonNullTracker implements Assumer {
     If ifInstruction = block.exit().asIf();
     if (ifInstruction != null && ifInstruction.isNonTrivialNullTest()) {
       Value lhs = ifInstruction.lhs();
-      if (nonNullValuesBuilder.isMaybeNull(lhs)
+      if (assumedValuesBuilder.isMaybeNull(lhs)
           && isNullableReferenceTypeWithOtherNonDebugUsers(lhs, ifInstruction)
           && ifInstruction.targetFromNonNullObject().getPredecessors().size() == 1) {
-        nonNullValuesBuilder.addNonNullValueWithUnknownDominance(ifInstruction, lhs);
+        assumedValuesBuilder.addNonNullValueWithUnknownDominance(ifInstruction, lhs);
       }
     }
   }
 
-  private boolean computeNonNullValuesFromSingleTarget(
-      IRCode code, InvokeMethod invoke, NonNullValues.Builder nonNullValuesBuilder) {
+  private boolean computeAssumedValuesFromSingleTarget(
+      IRCode code, InvokeMethod invoke, AssumedValues.Builder assumedValuesBuilder) {
     DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
     if (singleTarget == null) {
       return false;
@@ -216,7 +217,7 @@ public class NonNullTracker implements Assumer {
     if (outValue != null
         && optimizationInfo.neverReturnsNull()
         && isNullableReferenceTypeWithNonDebugUsers(outValue)) {
-      nonNullValuesBuilder.addNonNullValueKnownToDominateAllUsers(invoke, outValue);
+      assumedValuesBuilder.addNonNullValueKnownToDominateAllUsers(invoke, outValue);
       needsAssumeInstruction = true;
     }
 
@@ -227,9 +228,9 @@ public class NonNullTracker implements Assumer {
       for (int i = start; i < invoke.arguments().size(); i++) {
         if (nonNullParamOnNormalExits.get(i)) {
           Value argument = invoke.getArgument(i);
-          if (nonNullValuesBuilder.isMaybeNull(argument)
+          if (assumedValuesBuilder.isMaybeNull(argument)
               && isNullableReferenceTypeWithOtherNonDebugUsers(argument, invoke)) {
-            nonNullValuesBuilder.addNonNullValueWithUnknownDominance(invoke, argument);
+            assumedValuesBuilder.addNonNullValueWithUnknownDominance(invoke, argument);
             needsAssumeInstruction = true;
           }
         }
@@ -238,33 +239,33 @@ public class NonNullTracker implements Assumer {
     return needsAssumeInstruction;
   }
 
-  private void removeRedundantAssumeInstructions(NonNullValues nonNullValues) {
-    nonNullValues.removeIf(
-        (instruction, nonNullValue) -> {
-          if (nonNullValue.isPhi()) {
+  private void removeRedundantAssumeInstructions(AssumedValues assumedValues) {
+    assumedValues.removeIf(
+        (instruction, assumedValue) -> {
+          if (assumedValue.isPhi()) {
             return false;
           }
-          Instruction definition = nonNullValue.definition;
-          return definition != instruction && nonNullValues.contains(definition, nonNullValue);
+          Instruction definition = assumedValue.definition;
+          return definition != instruction && assumedValues.contains(definition, assumedValue);
         });
   }
 
-  private Map<Instruction, Set<Value>> computeDominanceForNonNullValues(
-      IRCode code, NonNullValues nonNullValues) {
+  private Map<Instruction, Set<Value>> computeDominanceForAssumedValues(
+      IRCode code, AssumedValues assumedValues) {
     Map<Instruction, Set<Value>> redundantKeys = new IdentityHashMap<>();
     LazyDominatorTree lazyDominatorTree = new LazyDominatorTree(code);
     Map<BasicBlock, Set<BasicBlock>> dominatedBlocksCache = new IdentityHashMap<>();
-    nonNullValues.computeDominance(
-        (instruction, nonNullValue) -> {
-          Set<Value> alreadyNonNullValues = redundantKeys.get(instruction);
-          if (alreadyNonNullValues != null && alreadyNonNullValues.contains(nonNullValue)) {
-            // Returning redundant() will cause the entry (instruction, nonNullValue) to be removed.
-            return NonNullDominance.redundant();
+    assumedValues.computeDominance(
+        (instruction, assumedValue) -> {
+          Set<Value> alreadyAssumedValues = redundantKeys.get(instruction);
+          if (alreadyAssumedValues != null && alreadyAssumedValues.contains(assumedValue)) {
+            // Returning redundant() will cause the entry (instruction, assumedValue) to be removed.
+            return AssumedDominance.redundant();
           }
 
           // If this value is non-null since its definition, then it is known to dominate all users.
-          if (nonNullValue == instruction.outValue()) {
-            return NonNullDominance.everything();
+          if (assumedValue == instruction.outValue()) {
+            return AssumedDominance.everything();
           }
 
           // If we learn that this value is known to be non-null in the same block as it is defined,
@@ -272,12 +273,12 @@ public class NonNullTracker implements Assumer {
           // check, then the non-null-value is known to dominate all other users than the null check
           // itself.
           BasicBlock block = instruction.getBlock();
-          if (nonNullValue.getBlock() == block
+          if (assumedValue.getBlock() == block
               && block.exit().isGoto()
               && !instruction.getBlock().hasCatchHandlers()) {
             InstructionIterator iterator = instruction.getBlock().iterator();
-            if (!nonNullValue.isPhi()) {
-              iterator.nextUntil(x -> x != nonNullValue.definition);
+            if (!assumedValue.isPhi()) {
+              iterator.nextUntil(x -> x != assumedValue.definition);
               iterator.previous();
             }
             boolean isUsedBeforeInstruction = false;
@@ -286,23 +287,23 @@ public class NonNullTracker implements Assumer {
               if (current == instruction) {
                 break;
               }
-              if (current.inValues().contains(nonNullValue)
-                  || current.getDebugValues().contains(nonNullValue)) {
+              if (current.inValues().contains(assumedValue)
+                  || current.getDebugValues().contains(assumedValue)) {
                 isUsedBeforeInstruction = true;
                 break;
               }
             }
             if (!isUsedBeforeInstruction) {
-              return NonNullDominance.everythingElse();
+              return AssumedDominance.everythingElse();
             }
           }
 
           // Otherwise, we need a dominator tree to determine which users are dominated.
           BasicBlock insertionBlock = getInsertionBlock(instruction);
 
-          assert nonNullValue.hasPhiUsers()
-              || nonNullValue.uniqueUsers().stream().anyMatch(user -> user != instruction)
-              || nonNullValue.isArgument();
+          assert assumedValue.hasPhiUsers()
+              || assumedValue.uniqueUsers().stream().anyMatch(user -> user != instruction)
+              || assumedValue.isArgument();
 
           // Find all users of the original value that are dominated by either the current block
           // or the new split-off block. Since NPE can be explicitly caught, nullness should be
@@ -312,8 +313,8 @@ public class NonNullTracker implements Assumer {
               dominatedBlocksCache.computeIfAbsent(
                   insertionBlock, x -> dominatorTree.dominatedBlocks(x, Sets.newIdentityHashSet()));
 
-          NonNullDominance.Builder dominance = NonNullDominance.builder(nonNullValue);
-          for (Instruction user : nonNullValue.uniqueUsers()) {
+          AssumedDominance.Builder dominance = AssumedDominance.builder(assumedValue);
+          for (Instruction user : assumedValue.uniqueUsers()) {
             if (user != instruction && dominatedBlocks.contains(user.getBlock())) {
               if (user.getBlock() == insertionBlock && insertionBlock == block) {
                 Instruction first = block.iterator().nextUntil(x -> x == instruction || x == user);
@@ -328,12 +329,12 @@ public class NonNullTracker implements Assumer {
               // after the given user in case the user is also a null check for the non-null-value.
               redundantKeys
                   .computeIfAbsent(user, ignore -> Sets.newIdentityHashSet())
-                  .add(nonNullValue);
+                  .add(assumedValue);
             }
           }
-          for (Phi user : nonNullValue.uniquePhiUsers()) {
+          for (Phi user : assumedValue.uniquePhiUsers()) {
             IntList dominatedPredecessorIndices =
-                findDominatedPredecessorIndexesInPhi(user, nonNullValue, dominatedBlocks);
+                findDominatedPredecessorIndexesInPhi(user, assumedValue, dominatedBlocks);
             if (!dominatedPredecessorIndices.isEmpty()) {
               dominance.addDominatedPhiUser(user, dominatedPredecessorIndices);
             }
@@ -344,30 +345,31 @@ public class NonNullTracker implements Assumer {
   }
 
   private void removeRedundantDominatedAssumeInstructions(
-      NonNullValues nonNullValues, Map<Instruction, Set<Value>> redundantKeys) {
-    nonNullValues.removeAll(redundantKeys);
+      AssumedValues assumedValues, Map<Instruction, Set<Value>> redundantKeys) {
+    assumedValues.removeAll(redundantKeys);
   }
 
-  private void materializeAssumeInstructions(IRCode code, NonNullValues nonNullValues) {
+  private void materializeAssumeInstructions(IRCode code, AssumedValues assumedValues) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     Map<BasicBlock, Map<Instruction, List<Instruction>>> pendingInsertions =
         new IdentityHashMap<>();
-    nonNullValues.forEach(
-        (instruction, nonNullValue, dominance) -> {
+    assumedValues.forEach(
+        (instruction, assumedValue, assumedValueInfo) -> {
           BasicBlock block = instruction.getBlock();
           BasicBlock insertionBlock = getInsertionBlock(instruction);
 
+          AssumedDominance dominance = assumedValueInfo.getDominance();
           Value newValue =
               code.createValue(
-                  nonNullValue.getType().asReferenceType().asMeetWithNotNull(),
-                  nonNullValue.getLocalInfo());
+                  assumedValue.getType().asReferenceType().asMeetWithNotNull(),
+                  assumedValue.getLocalInfo());
           if (dominance.isEverything()) {
-            nonNullValue.replaceUsers(newValue);
+            assumedValue.replaceUsers(newValue);
           } else if (dominance.isEverythingElse()) {
-            nonNullValue.replaceSelectiveInstructionUsers(newValue, user -> user != instruction);
-            nonNullValue.replacePhiUsers(newValue);
+            assumedValue.replaceSelectiveInstructionUsers(newValue, user -> user != instruction);
+            assumedValue.replacePhiUsers(newValue);
           } else if (dominance.isSomething()) {
-            SomethingNonNullDominance somethingDominance = dominance.asSomething();
+            SomethingAssumedDominance somethingDominance = dominance.asSomething();
             somethingDominance
                 .getDominatedPhiUsers()
                 .forEach(
@@ -375,14 +377,14 @@ public class NonNullTracker implements Assumer {
                       IntListIterator iterator = indices.iterator();
                       while (iterator.hasNext()) {
                         Value operand = user.getOperand(iterator.nextInt());
-                        if (operand != nonNullValue) {
+                        if (operand != assumedValue) {
                           assert operand.isDefinedByInstructionSatisfying(
                               Instruction::isAssumeNonNull);
                           iterator.remove();
                         }
                       }
                     });
-            nonNullValue.replaceSelectiveUsers(
+            assumedValue.replaceSelectiveUsers(
                 newValue,
                 somethingDominance.getDominatedUsers(),
                 somethingDominance.getDominatedPhiUsers());
@@ -390,7 +392,7 @@ public class NonNullTracker implements Assumer {
           affectedValues.addAll(newValue.affectedValues());
 
           Assume assumeInstruction =
-              Assume.createAssumeNonNullInstruction(newValue, nonNullValue, instruction, appView);
+              Assume.createAssumeNonNullInstruction(newValue, assumedValue, instruction, appView);
           assumeInstruction.setPosition(instruction.getPosition());
           if (insertionBlock != block) {
             insertionBlock.listIterator(code).add(assumeInstruction);
@@ -430,8 +432,8 @@ public class NonNullTracker implements Assumer {
   }
 
   private IntList findDominatedPredecessorIndexesInPhi(
-      Phi user, Value knownToBeNonNullValue, Set<BasicBlock> dominatedBlocks) {
-    assert user.getOperands().contains(knownToBeNonNullValue);
+      Phi user, Value assumedValue, Set<BasicBlock> dominatedBlocks) {
+    assert user.getOperands().contains(assumedValue);
     List<Value> operands = user.getOperands();
     List<BasicBlock> predecessors = user.getBlock().getPredecessors();
     assert operands.size() == predecessors.size();
@@ -445,7 +447,7 @@ public class NonNullTracker implements Assumer {
       BasicBlock predecessor = predecessorIterator.next();
       // When this phi is chosen to be known-to-be-non-null value,
       // check if the corresponding predecessor is dominated by the block where non-null is added.
-      if (operand == knownToBeNonNullValue && dominatedBlocks.contains(predecessor)) {
+      if (operand == assumedValue && dominatedBlocks.contains(predecessor)) {
         predecessorIndexes.add(index);
       }
 
@@ -478,47 +480,70 @@ public class NonNullTracker implements Assumer {
     return false;
   }
 
-  static class NonNullValues {
+  static class AssumedValueInfo {
+
+    AssumedDominance dominance;
+    NonNullAssumption nonNullAssumption;
+
+    AssumedValueInfo(AssumedDominance dominance) {
+      this.dominance = dominance;
+    }
+
+    AssumedDominance getDominance() {
+      return dominance;
+    }
+
+    void setDominance(AssumedDominance dominance) {
+      this.dominance = dominance;
+    }
+
+    void setNotNull() {
+      nonNullAssumption = NonNullAssumption.get();
+    }
+  }
+
+  static class AssumedValues {
 
     /**
      * A mapping from each instruction to the (in and out) values that are guaranteed to be non-null
      * by the instruction. Each non-null value is subsequently mapped to the set of users that it
      * dominates.
      */
-    Map<Instruction, Map<Value, NonNullDominance>> nonNullValues;
+    Map<Instruction, Map<Value, AssumedValueInfo>> assumedValues;
 
-    public NonNullValues(Map<Instruction, Map<Value, NonNullDominance>> nonNullValues) {
-      this.nonNullValues = nonNullValues;
+    public AssumedValues(Map<Instruction, Map<Value, AssumedValueInfo>> assumedValues) {
+      this.assumedValues = assumedValues;
     }
 
     public static Builder builder() {
       return new Builder();
     }
 
-    void computeDominance(BiFunction<Instruction, Value, NonNullDominance> function) {
-      Iterator<Entry<Instruction, Map<Value, NonNullDominance>>> outerIterator =
-          nonNullValues.entrySet().iterator();
+    void computeDominance(BiFunction<Instruction, Value, AssumedDominance> function) {
+      Iterator<Entry<Instruction, Map<Value, AssumedValueInfo>>> outerIterator =
+          assumedValues.entrySet().iterator();
       while (outerIterator.hasNext()) {
-        Entry<Instruction, Map<Value, NonNullDominance>> outerEntry = outerIterator.next();
+        Entry<Instruction, Map<Value, AssumedValueInfo>> outerEntry = outerIterator.next();
         Instruction instruction = outerEntry.getKey();
-        Map<Value, NonNullDominance> dominancePerValue = outerEntry.getValue();
-        Iterator<Entry<Value, NonNullDominance>> innerIterator =
+        Map<Value, AssumedValueInfo> dominancePerValue = outerEntry.getValue();
+        Iterator<Entry<Value, AssumedValueInfo>> innerIterator =
             dominancePerValue.entrySet().iterator();
         while (innerIterator.hasNext()) {
-          Entry<Value, NonNullDominance> innerEntry = innerIterator.next();
-          Value nonNullValue = innerEntry.getKey();
-          NonNullDominance dominance = innerEntry.getValue();
+          Entry<Value, AssumedValueInfo> innerEntry = innerIterator.next();
+          Value assumedValue = innerEntry.getKey();
+          AssumedValueInfo assumedValueInfo = innerEntry.getValue();
+          AssumedDominance dominance = assumedValueInfo.dominance;
           if (dominance.isEverything()) {
-            assert nonNullValue.isDefinedByInstructionSatisfying(
-                definition -> definition.outValue() == nonNullValue);
+            assert assumedValue.isDefinedByInstructionSatisfying(
+                definition -> definition.outValue() == assumedValue);
             continue;
           }
           assert dominance.isUnknown();
-          dominance = function.apply(instruction, nonNullValue);
-          if ((dominance.isNothing() && !nonNullValue.isArgument()) || dominance.isUnknown()) {
+          dominance = function.apply(instruction, assumedValue);
+          if ((dominance.isNothing() && !assumedValue.isArgument()) || dominance.isUnknown()) {
             innerIterator.remove();
           } else {
-            innerEntry.setValue(dominance);
+            assumedValueInfo.setDominance(dominance);
           }
         }
         if (dominancePerValue.isEmpty()) {
@@ -527,48 +552,48 @@ public class NonNullTracker implements Assumer {
       }
     }
 
-    boolean contains(Instruction instruction, Value nonNullValue) {
-      Map<Value, NonNullDominance> dominancePerValue = nonNullValues.get(instruction);
-      return dominancePerValue != null && dominancePerValue.containsKey(nonNullValue);
+    boolean contains(Instruction instruction, Value assumedValue) {
+      Map<Value, AssumedValueInfo> dominancePerValue = assumedValues.get(instruction);
+      return dominancePerValue != null && dominancePerValue.containsKey(assumedValue);
     }
 
     boolean isEmpty() {
-      return nonNullValues.isEmpty();
+      return assumedValues.isEmpty();
     }
 
-    void forEach(TriConsumer<Instruction, Value, NonNullDominance> consumer) {
-      nonNullValues.forEach(
+    void forEach(TriConsumer<Instruction, Value, AssumedValueInfo> consumer) {
+      assumedValues.forEach(
           (instruction, dominancePerValue) ->
               dominancePerValue.forEach(
-                  (nonNullValue, dominance) ->
-                      consumer.accept(instruction, nonNullValue, dominance)));
+                  (assumedValue, assumedValueInfo) ->
+                      consumer.accept(instruction, assumedValue, assumedValueInfo)));
     }
 
     void removeAll(Map<Instruction, Set<Value>> keys) {
       keys.forEach(
           (instruction, values) -> {
-            Map<Value, NonNullDominance> dominancePerValue = nonNullValues.get(instruction);
+            Map<Value, AssumedValueInfo> dominancePerValue = assumedValues.get(instruction);
             if (dominancePerValue != null) {
               values.forEach(dominancePerValue::remove);
               if (dominancePerValue.isEmpty()) {
-                nonNullValues.remove(instruction);
+                assumedValues.remove(instruction);
               }
             }
           });
     }
 
     void removeIf(BiPredicate<Instruction, Value> predicate) {
-      Iterator<Entry<Instruction, Map<Value, NonNullDominance>>> outerIterator =
-          nonNullValues.entrySet().iterator();
+      Iterator<Entry<Instruction, Map<Value, AssumedValueInfo>>> outerIterator =
+          assumedValues.entrySet().iterator();
       while (outerIterator.hasNext()) {
-        Entry<Instruction, Map<Value, NonNullDominance>> outerEntry = outerIterator.next();
+        Entry<Instruction, Map<Value, AssumedValueInfo>> outerEntry = outerIterator.next();
         Instruction instruction = outerEntry.getKey();
-        Map<Value, NonNullDominance> dominancePerValue = outerEntry.getValue();
-        Iterator<Entry<Value, NonNullDominance>> innerIterator =
+        Map<Value, AssumedValueInfo> dominancePerValue = outerEntry.getValue();
+        Iterator<Entry<Value, AssumedValueInfo>> innerIterator =
             dominancePerValue.entrySet().iterator();
         while (innerIterator.hasNext()) {
-          Value nonNullValue = innerIterator.next().getKey();
-          if (predicate.test(instruction, nonNullValue)) {
+          Value assumedValue = innerIterator.next().getKey();
+          if (predicate.test(instruction, assumedValue)) {
             innerIterator.remove();
           }
         }
@@ -580,40 +605,42 @@ public class NonNullTracker implements Assumer {
 
     static class Builder {
 
-      private final Map<Instruction, Map<Value, NonNullDominance>> nonNullValues =
+      private final Map<Instruction, Map<Value, AssumedValueInfo>> assumedValues =
           new LinkedHashMap<>();
 
       // Used to avoid unnecessary block splitting during phase 1.
-      private final Set<Value> nonNullValuesKnownToDominateAllUsers = Sets.newIdentityHashSet();
+      private final Set<Value> assumedValuesKnownToDominateAllUsers = Sets.newIdentityHashSet();
 
-      private void add(Instruction instruction, Value nonNullValue, NonNullDominance dominance) {
-        nonNullValues
+      private void addNonNullValue(
+          Instruction instruction, Value nonNullValue, AssumedDominance dominance) {
+        assumedValues
             .computeIfAbsent(instruction, ignore -> new LinkedHashMap<>())
-            .put(nonNullValue, dominance);
+            .computeIfAbsent(nonNullValue, ignore -> new AssumedValueInfo(dominance))
+            .setNotNull();
         if (dominance.isEverything()) {
-          nonNullValuesKnownToDominateAllUsers.add(nonNullValue);
+          assumedValuesKnownToDominateAllUsers.add(nonNullValue);
         }
       }
 
       void addNonNullValueKnownToDominateAllUsers(Instruction instruction, Value nonNullValue) {
-        add(instruction, nonNullValue, NonNullDominance.everything());
+        addNonNullValue(instruction, nonNullValue, AssumedDominance.everything());
       }
 
       void addNonNullValueWithUnknownDominance(Instruction instruction, Value nonNullValue) {
-        add(instruction, nonNullValue, NonNullDominance.unknown());
+        addNonNullValue(instruction, nonNullValue, AssumedDominance.unknown());
       }
 
       public boolean isMaybeNull(Value value) {
-        return !nonNullValuesKnownToDominateAllUsers.contains(value);
+        return !assumedValuesKnownToDominateAllUsers.contains(value);
       }
 
-      public NonNullValues build() {
-        return new NonNullValues(nonNullValues);
+      public AssumedValues build() {
+        return new AssumedValues(assumedValues);
       }
     }
   }
 
-  abstract static class NonNullDominance {
+  abstract static class AssumedDominance {
 
     boolean isEverything() {
       return false;
@@ -631,7 +658,7 @@ public class NonNullTracker implements Assumer {
       return false;
     }
 
-    SomethingNonNullDominance asSomething() {
+    SomethingAssumedDominance asSomething() {
       return null;
     }
 
@@ -639,76 +666,76 @@ public class NonNullTracker implements Assumer {
       return false;
     }
 
-    public static Builder builder(Value nonNullValue) {
-      return new Builder(nonNullValue);
+    public static Builder builder(Value assumedValue) {
+      return new Builder(assumedValue);
     }
 
-    public static EverythingNonNullDominance everything() {
-      return EverythingNonNullDominance.getInstance();
+    public static EverythingAssumedDominance everything() {
+      return EverythingAssumedDominance.getInstance();
     }
 
-    public static EverythingElseNonNullDominance everythingElse() {
-      return EverythingElseNonNullDominance.getInstance();
+    public static EverythingElseAssumedDominance everythingElse() {
+      return EverythingElseAssumedDominance.getInstance();
     }
 
-    public static NothingNonNullDominance nothing() {
-      return NothingNonNullDominance.getInstance();
+    public static NothingAssumedDominance nothing() {
+      return NothingAssumedDominance.getInstance();
     }
 
-    public static UnknownNonNullDominance redundant() {
+    public static UnknownAssumedDominance redundant() {
       return unknown();
     }
 
-    public static SomethingNonNullDominance something(
+    public static SomethingAssumedDominance something(
         Set<Instruction> dominatedUsers, Map<Phi, IntList> dominatedPhiUsers) {
-      return new SomethingNonNullDominance(dominatedUsers, dominatedPhiUsers);
+      return new SomethingAssumedDominance(dominatedUsers, dominatedPhiUsers);
     }
 
-    public static UnknownNonNullDominance unknown() {
-      return UnknownNonNullDominance.getInstance();
+    public static UnknownAssumedDominance unknown() {
+      return UnknownAssumedDominance.getInstance();
     }
 
     static class Builder {
 
-      private final Value nonNullValue;
+      private final Value assumedValue;
 
       private final Set<Instruction> dominatedUsers = Sets.newIdentityHashSet();
       private final Map<Phi, IntList> dominatedPhiUsers = new IdentityHashMap<>();
 
-      private Builder(Value nonNullValue) {
-        this.nonNullValue = nonNullValue;
+      private Builder(Value assumedValue) {
+        this.assumedValue = assumedValue;
       }
 
       void addDominatedUser(Instruction user) {
-        assert nonNullValue.uniqueUsers().contains(user);
+        assert assumedValue.uniqueUsers().contains(user);
         assert !dominatedUsers.contains(user);
         dominatedUsers.add(user);
       }
 
       void addDominatedPhiUser(Phi user, IntList dominatedPredecessorIndices) {
-        assert nonNullValue.uniquePhiUsers().contains(user);
+        assert assumedValue.uniquePhiUsers().contains(user);
         assert !dominatedPhiUsers.containsKey(user);
         dominatedPhiUsers.put(user, dominatedPredecessorIndices);
       }
 
-      NonNullDominance build() {
+      AssumedDominance build() {
         if (dominatedUsers.isEmpty() && dominatedPhiUsers.isEmpty()) {
           return nothing();
         }
-        assert dominatedUsers.size() < nonNullValue.uniqueUsers().size()
-            || dominatedPhiUsers.size() < nonNullValue.uniquePhiUsers().size();
+        assert dominatedUsers.size() < assumedValue.uniqueUsers().size()
+            || dominatedPhiUsers.size() < assumedValue.uniquePhiUsers().size();
         return something(dominatedUsers, dominatedPhiUsers);
       }
     }
   }
 
-  static class EverythingNonNullDominance extends NonNullDominance {
+  static class EverythingAssumedDominance extends AssumedDominance {
 
-    private static final EverythingNonNullDominance INSTANCE = new EverythingNonNullDominance();
+    private static final EverythingAssumedDominance INSTANCE = new EverythingAssumedDominance();
 
-    private EverythingNonNullDominance() {}
+    private EverythingAssumedDominance() {}
 
-    public static EverythingNonNullDominance getInstance() {
+    public static EverythingAssumedDominance getInstance() {
       return INSTANCE;
     }
 
@@ -718,14 +745,14 @@ public class NonNullTracker implements Assumer {
     }
   }
 
-  static class EverythingElseNonNullDominance extends NonNullDominance {
+  static class EverythingElseAssumedDominance extends AssumedDominance {
 
-    private static final EverythingElseNonNullDominance INSTANCE =
-        new EverythingElseNonNullDominance();
+    private static final EverythingElseAssumedDominance INSTANCE =
+        new EverythingElseAssumedDominance();
 
-    private EverythingElseNonNullDominance() {}
+    private EverythingElseAssumedDominance() {}
 
-    public static EverythingElseNonNullDominance getInstance() {
+    public static EverythingElseAssumedDominance getInstance() {
       return INSTANCE;
     }
 
@@ -735,13 +762,13 @@ public class NonNullTracker implements Assumer {
     }
   }
 
-  static class NothingNonNullDominance extends NonNullDominance {
+  static class NothingAssumedDominance extends AssumedDominance {
 
-    private static final NothingNonNullDominance INSTANCE = new NothingNonNullDominance();
+    private static final NothingAssumedDominance INSTANCE = new NothingAssumedDominance();
 
-    private NothingNonNullDominance() {}
+    private NothingAssumedDominance() {}
 
-    public static NothingNonNullDominance getInstance() {
+    public static NothingAssumedDominance getInstance() {
       return INSTANCE;
     }
 
@@ -751,12 +778,12 @@ public class NonNullTracker implements Assumer {
     }
   }
 
-  static class SomethingNonNullDominance extends NonNullDominance {
+  static class SomethingAssumedDominance extends AssumedDominance {
 
     private final Set<Instruction> dominatedUsers;
     private final Map<Phi, IntList> dominatedPhiUsers;
 
-    SomethingNonNullDominance(
+    SomethingAssumedDominance(
         Set<Instruction> dominatedUsers, Map<Phi, IntList> dominatedPhiUsers) {
       this.dominatedUsers = dominatedUsers;
       this.dominatedPhiUsers = dominatedPhiUsers;
@@ -776,18 +803,18 @@ public class NonNullTracker implements Assumer {
     }
 
     @Override
-    SomethingNonNullDominance asSomething() {
+    SomethingAssumedDominance asSomething() {
       return this;
     }
   }
 
-  static class UnknownNonNullDominance extends NonNullDominance {
+  static class UnknownAssumedDominance extends AssumedDominance {
 
-    private static final UnknownNonNullDominance INSTANCE = new UnknownNonNullDominance();
+    private static final UnknownAssumedDominance INSTANCE = new UnknownAssumedDominance();
 
-    private UnknownNonNullDominance() {}
+    private UnknownAssumedDominance() {}
 
-    public static UnknownNonNullDominance getInstance() {
+    public static UnknownAssumedDominance getInstance() {
       return INSTANCE;
     }
 
