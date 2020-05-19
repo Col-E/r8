@@ -9,7 +9,9 @@ import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -82,7 +84,7 @@ public class B149971007 extends SplitterTestBase {
             .compile()
             .inspect(this::checkOutlineFromFeature);
 
-    // Check that parts of method1 and method2 in FeatureClass was outlined.
+    // Check that parts of method1, ..., method4 in FeatureClass was outlined.
     ClassSubject featureClass = compileResult.inspector().clazz(FeatureClass.class);
     assertThat(featureClass, isPresent());
     String outlineClassName =
@@ -92,8 +94,10 @@ public class B149971007 extends SplitterTestBase {
             .get(OutlineOptions.CLASS_NAME);
     assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method1"), outlineClassName));
     assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method2"), outlineClassName));
+    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method3"), outlineClassName));
+    assertTrue(invokesOutline(featureClass.uniqueMethodWithName("method4"), outlineClassName));
 
-    compileResult.run(parameters.getRuntime(), TestClass.class).assertSuccessWithOutput("1234");
+    compileResult.run(parameters.getRuntime(), TestClass.class).assertSuccessWithOutput("123456");
   }
 
   private void checkNoOutlineFromFeature(CodeInspector inspector) {
@@ -106,19 +110,26 @@ public class B149971007 extends SplitterTestBase {
   @Test
   public void testWithSplit() throws Exception {
     Path featureCode = temp.newFile("feature.zip").toPath();
-    R8TestCompileResult compileResult =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(TestClass.class, FeatureAPI.class)
-            .addKeepClassAndMembersRules(TestClass.class)
-            .addKeepClassAndMembersRules(FeatureClass.class)
-            .setMinApi(parameters.getApiLevel())
-            .addFeatureSplit(
-                builder -> simpleSplitProvider(builder, featureCode, temp, FeatureClass.class))
-            .addOptionsModification(options -> options.outline.threshold = 2)
-            .compile()
-            .inspect(this::checkNoOutlineFromFeature);
 
-    // Check that parts of method1 and method2 in FeatureClass was not outlined.
+    R8TestCompileResult compileResult = null;
+    try {
+      compileResult =
+          testForR8(parameters.getBackend())
+              .addProgramClasses(TestClass.class, FeatureAPI.class)
+              .addKeepClassAndMembersRules(TestClass.class)
+              .addKeepClassAndMembersRules(FeatureClass.class)
+              .setMinApi(parameters.getApiLevel())
+              .addFeatureSplit(
+                  builder -> simpleSplitProvider(builder, featureCode, temp, FeatureClass.class))
+              .addOptionsModification(options -> options.outline.threshold = 2)
+              .compile()
+              .inspect(this::checkNoOutlineFromFeature);
+      fail();
+    } catch (CompilationFailedException e) {
+      return;
+    }
+
+    // Check that parts of method1, ..., method4 in FeatureClass was not outlined.
     CodeInspector featureInspector = new CodeInspector(featureCode);
     ClassSubject featureClass = featureInspector.clazz(FeatureClass.class);
     assertThat(featureClass, isPresent());
@@ -129,6 +140,8 @@ public class B149971007 extends SplitterTestBase {
             .get(OutlineOptions.CLASS_NAME);
     assertFalse(invokesOutline(featureClass.uniqueMethodWithName("method1"), outlineClassName));
     assertFalse(invokesOutline(featureClass.uniqueMethodWithName("method2"), outlineClassName));
+    assertFalse(invokesOutline(featureClass.uniqueMethodWithName("method3"), outlineClassName));
+    assertFalse(invokesOutline(featureClass.uniqueMethodWithName("method4"), outlineClassName));
 
     // Run the code without the feature code present.
     compileResult.run(parameters.getRuntime(), TestClass.class).assertSuccessWithOutput("12");
@@ -137,7 +150,7 @@ public class B149971007 extends SplitterTestBase {
     compileResult
         .addRunClasspathFiles(featureCode)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput("1234");
+        .assertSuccessWithOutput("123456");
   }
 
   public static class TestClass {
@@ -193,14 +206,23 @@ public class B149971007 extends SplitterTestBase {
     }
 
     public static void feature(int i) {
-      FeatureClass.method1(new FeatureClass(i), new FeatureClass(i + 1));
+      method1(i, i + 1);
+      method3(new FeatureClass(i + 2), new FeatureClass(i + 3));
     }
 
-    public static void method1(FeatureClass fc1, FeatureClass fc2) {
+    public static void method1(int i1, int i2) {
+      System.out.print(i1 + "" + i2);
+    }
+
+    public static void method2(int i1, int i2) {
+      System.out.print(i1 + "" + i2);
+    }
+
+    public static void method3(FeatureClass fc1, FeatureClass fc2) {
       System.out.print(fc1.getI() + "" + fc2.getI());
     }
 
-    public static void method2(FeatureClass fc1, FeatureClass fc2) {
+    public static void method4(FeatureClass fc1, FeatureClass fc2) {
       System.out.print(fc1.getI() + "" + fc2.getI());
     }
   }
