@@ -38,14 +38,6 @@ public class AccessControl {
   public static OptionalBool isMethodAccessible(
       DexEncodedMethod method,
       DexClass holder,
-      ProgramMethod context,
-      AppView<? extends AppInfoWithClassHierarchy> appView) {
-    return isMethodAccessible(method, holder, context.getHolder(), appView.appInfo());
-  }
-
-  public static OptionalBool isMethodAccessible(
-      DexEncodedMethod method,
-      DexClass holder,
       DexProgramClass context,
       AppInfoWithClassHierarchy appInfo) {
     return isMemberAccessible(method.accessFlags, holder, context, appInfo);

@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.proto.ProtoInliningReasonStrategy;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -198,6 +197,29 @@ public class Inliner implements PostOptimization {
       }
     }
     return false;
+  }
+
+  boolean hasInliningAccess(ProgramMethod context, ProgramMethod target) {
+    if (!isVisibleWithFlags(target.getHolderType(), context, target.getDefinition().accessFlags)) {
+      return false;
+    }
+    // The class needs also to be visible for us to have access.
+    return isVisibleWithFlags(target.getHolderType(), context, target.getHolder().accessFlags);
+  }
+
+  private boolean isVisibleWithFlags(DexType target, ProgramMethod context, AccessFlags<?> flags) {
+    if (flags.isPublic()) {
+      return true;
+    }
+    if (flags.isPrivate()) {
+      return NestUtils.sameNest(target, context.getHolderType(), appView);
+    }
+    if (flags.isProtected()) {
+      return appView.appInfo().isSubtype(context.getHolderType(), target)
+          || target.isSamePackage(context.getHolderType());
+    }
+    // package-private
+    return target.isSamePackage(context.getHolderType());
   }
 
   public synchronized boolean isDoubleInlineSelectedTarget(ProgramMethod method) {
@@ -953,17 +975,6 @@ public class Inliner implements PostOptimization {
         if (current.isInvokeMethod()) {
           InvokeMethod invoke = current.asInvokeMethod();
           // TODO(b/142116551): This should be equivalent to invoke.lookupSingleTarget()!
-
-          SingleResolutionResult resolutionResult =
-              appView
-                  .appInfo()
-                  .resolveMethod(invoke.getInvokedMethod(), invoke.isInvokeInterface())
-                  .asSingleResolution();
-          if (resolutionResult == null) {
-            continue;
-          }
-
-          // TODO(b/156853206): Should not duplicate resolution.
           ProgramMethod singleTarget = oracle.lookupSingleTarget(invoke, context);
           if (singleTarget == null) {
             WhyAreYouNotInliningReporter.handleInvokeWithUnknownTarget(invoke, appView, context);
@@ -978,7 +989,6 @@ public class Inliner implements PostOptimization {
           InlineAction action =
               oracle.computeInlining(
                   invoke,
-                  resolutionResult,
                   singleTarget,
                   context,
                   classInitializationAnalysis,

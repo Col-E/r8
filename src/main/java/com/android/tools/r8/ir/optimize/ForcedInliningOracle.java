@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -43,7 +42,6 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   @Override
   public boolean passesInliningConstraints(
       InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
       ProgramMethod candidate,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
@@ -62,18 +60,15 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   @Override
   public InlineAction computeInlining(
       InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
       ProgramMethod singleTarget,
       ProgramMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    return computeForInvoke(invoke, resolutionResult, whyAreYouNotInliningReporter);
+    return computeForInvoke(invoke, whyAreYouNotInliningReporter);
   }
 
   private InlineAction computeForInvoke(
-      InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
-      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+      InvokeMethod invoke, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     Inliner.InliningInfo info = invokesToInline.get(invoke);
     if (info == null) {
       return null;
@@ -85,7 +80,7 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
     // with neverInline() flag.
     assert !info.target.getDefinition().getOptimizationInfo().neverInline();
     assert passesInliningConstraints(
-        invoke, resolutionResult, info.target, Reason.FORCE, whyAreYouNotInliningReporter);
+        invoke, info.target, Reason.FORCE, whyAreYouNotInliningReporter);
     return new InlineAction(info.target, invoke, Reason.FORCE);
   }
 
