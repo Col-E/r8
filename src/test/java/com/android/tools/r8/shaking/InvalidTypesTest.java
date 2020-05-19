@@ -16,20 +16,17 @@ import com.android.tools.r8.ProguardTestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
 import org.hamcrest.Matcher;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -191,11 +188,17 @@ public class InvalidTypesTest extends JasminTestBase {
       assert parameters.isDexRuntime();
 
       DXTestRunResult dxResult =
-          testForDX().addProgramFiles(inputJar).run(parameters.getRuntime(), mainClass.name);
+          testForDX()
+              .addProgramFiles(inputJar)
+              .setMinApi(parameters.getApiLevel())
+              .run(parameters.getRuntime(), mainClass.name);
       checkTestRunResult(dxResult, Compiler.DX);
 
       D8TestRunResult d8Result =
-          testForD8().addProgramFiles(inputJar).run(parameters.getRuntime(), mainClass.name);
+          testForD8()
+              .addProgramFiles(inputJar)
+              .setMinApi(parameters.getApiLevel())
+              .run(parameters.getRuntime(), mainClass.name);
       checkTestRunResult(d8Result, Compiler.D8);
     }
 
@@ -254,14 +257,6 @@ public class InvalidTypesTest extends JasminTestBase {
   }
 
   private void checkTestRunResult(TestRunResult<?> result, Compiler compiler) {
-    Assume.assumeFalse(
-        "Triage (b/144966342)",
-        parameters.getRuntime().isDex()
-            && parameters
-                .getRuntime()
-                .asDex()
-                .getMinApiLevel()
-                .isGreaterThanOrEqualTo(AndroidApiLevel.Q));
     switch (mode) {
       case NO_INVOKE:
         result.assertSuccessWithOutput(getExpectedOutput(compiler));
@@ -341,10 +336,10 @@ public class InvalidTypesTest extends JasminTestBase {
       } else if (compiler == Compiler.R8 || compiler == Compiler.PROGUARD) {
         return StringUtils.joinLines("Hello!", "Unexpected outcome of checkcast", "Goodbye!", "");
       } else if (compiler == Compiler.DX || compiler == Compiler.D8) {
-        if (ToolHelper.getDexVm().getVersion() == Version.V4_0_4
-            || ToolHelper.getDexVm().getVersion() == Version.V4_4_4) {
+        if (parameters.getRuntime().asDex().getVm().getVersion() == Version.V4_0_4
+            || parameters.getRuntime().asDex().getVm().getVersion() == Version.V4_4_4) {
           return StringUtils.joinLines("Hello!", "Goodbye!", "");
-        } else if (ToolHelper.getDexVm().getVersion() == Version.V7_0_0) {
+        } else if (parameters.getRuntime().asDex().getVm().getVersion() == Version.V7_0_0) {
           return StringUtils.joinLines(
               "Hello!",
               "Unexpected outcome of checkcast",

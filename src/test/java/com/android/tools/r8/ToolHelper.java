@@ -896,6 +896,7 @@ public class ToolHelper {
     return dexVm == DexVm.ART_DEFAULT;
   }
 
+  @Deprecated
   public static DexVm getDexVm() {
     String artVersion = System.getProperty("dex_vm");
     if (artVersion == null) {
