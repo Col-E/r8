@@ -242,8 +242,12 @@ public abstract class TestCompilerBuilder<
     return self();
   }
 
-  public T setEnableDesugaring(boolean enableDesugaring) {
-    builder.setEnableDesugaring(enableDesugaring);
+  public T disableDesugaring() {
+    return setDisableDesugaring(true);
+  }
+
+  public T setDisableDesugaring(boolean disableDesugaring) {
+    builder.setDisableDesugaring(disableDesugaring);
     return self();
   }
 

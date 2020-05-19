@@ -65,7 +65,7 @@ public class DesugarToClassFile extends TestBase {
       testForD8()
           .addProgramFiles(jar)
           .setMinApi(parameters.getApiLevel())
-          .setEnableDesugaring(false)
+          .disableDesugaring()
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("Hello, world!", "I::foo");
     }

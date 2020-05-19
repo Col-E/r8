@@ -5,10 +5,13 @@ package com.android.tools.r8.dex;
 
 import static com.android.tools.r8.utils.LebUtils.sizeAsUleb128;
 
-import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.ByteBufferProvider;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.DefaultInterfaceMethodDiagnostic;
+import com.android.tools.r8.errors.InvokeCustomDiagnostic;
+import com.android.tools.r8.errors.PrivateInterfaceMethodDiagnostic;
+import com.android.tools.r8.errors.StaticInterfaceMethodDiagnostic;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationElement;
@@ -48,6 +51,7 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.InternalOptions;
@@ -267,10 +271,8 @@ public class FileWriter {
     }
     if (method.accessFlags.isStatic()) {
       if (!options.canUseDefaultAndStaticInterfaceMethods()) {
-        throw new ApiLevelException(
-            AndroidApiLevel.N,
-            "Static interface methods",
-            method.method.toSourceString());
+        throw options.reporter.fatalError(
+            new StaticInterfaceMethodDiagnostic(new MethodPosition(method.method)));
       }
 
     } else {
@@ -280,10 +282,8 @@ public class FileWriter {
       }
       if (!method.accessFlags.isAbstract() && !method.accessFlags.isPrivate() &&
           !options.canUseDefaultAndStaticInterfaceMethods()) {
-        throw new ApiLevelException(
-            AndroidApiLevel.N,
-            "Default interface methods",
-            method.method.toSourceString());
+        throw options.reporter.fatalError(
+            new DefaultInterfaceMethodDiagnostic(new MethodPosition(method.method)));
       }
     }
 
@@ -291,10 +291,8 @@ public class FileWriter {
       if (options.canUsePrivateInterfaceMethods()) {
         return;
       }
-      throw new ApiLevelException(
-          AndroidApiLevel.N,
-          "Private interface methods",
-          method.method.toSourceString());
+      throw options.reporter.fatalError(
+          new PrivateInterfaceMethodDiagnostic(new MethodPosition(method.method)));
     }
 
     if (!method.accessFlags.isPublic()) {
@@ -1383,10 +1381,7 @@ public class FileWriter {
 
   private void checkThatInvokeCustomIsAllowed() {
     if (!options.canUseInvokeCustom()) {
-      throw new ApiLevelException(
-          AndroidApiLevel.O,
-          "Invoke-customs",
-          null /* sourceString */);
+      throw options.reporter.fatalError(new InvokeCustomDiagnostic());
     }
   }
 }

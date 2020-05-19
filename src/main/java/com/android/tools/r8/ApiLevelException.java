@@ -16,7 +16,7 @@ public class ApiLevelException extends CompilationError {
     assert unsupportedFeatures != null;
   }
 
-  private static String makeMessage(
+  public static String makeMessage(
       AndroidApiLevel minApiLevel, String unsupportedFeatures, String sourceString) {
     String message =
         unsupportedFeatures
