@@ -18,7 +18,7 @@ import org.objectweb.asm.MethodVisitor;
 
 public class CfLineToMethodMapper {
 
-  private final Map<String, Int2ReferenceOpenHashMap<String>> sourceMethodMapping = new HashMap<>();
+  private Map<String, Int2ReferenceOpenHashMap<String>> sourceMethodMapping = null;
   private final AndroidApp inputApp;
   private static final String NAME_DESCRIPTOR_SEPARATOR = ";;";
 
@@ -28,7 +28,8 @@ public class CfLineToMethodMapper {
 
   public String lookupNameAndDescriptor(String binaryName, int lineNumber)
       throws ResourceException {
-    if (sourceMethodMapping.isEmpty()) {
+    if (sourceMethodMapping == null) {
+      sourceMethodMapping = new HashMap<>();
       readLineNumbersFromClassFiles();
     }
     Int2ReferenceOpenHashMap<String> lineMappings = sourceMethodMapping.get(binaryName);
