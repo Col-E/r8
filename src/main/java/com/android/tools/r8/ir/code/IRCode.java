@@ -620,7 +620,7 @@ public class IRCode {
     for (BasicBlock block : blocks) {
       for (Instruction instruction : block.getInstructions()) {
         if (instruction.isAssumeDynamicType()) {
-          assert instruction.asAssumeDynamicType().verifyInstructionIsNeeded(appView);
+          assert instruction.asAssume().verifyInstructionIsNeeded(appView);
         }
       }
     }

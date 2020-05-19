@@ -1084,7 +1084,7 @@ public class Inliner implements PostOptimization {
             blockIterator.next();
           }
         } else if (current.isAssumeDynamicType()) {
-          assumeDynamicTypeRemover.removeIfMarked(current.asAssumeDynamicType(), iterator);
+          assumeDynamicTypeRemover.removeIfMarked(current.asAssume(), iterator);
         }
       }
     }

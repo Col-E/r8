@@ -35,7 +35,7 @@ public abstract class DefaultInstructionVisitor<T> implements InstructionVisitor
   }
 
   @Override
-  public T visit(Assume<?> instruction) {
+  public T visit(Assume instruction) {
     return null;
   }
 

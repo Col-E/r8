@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.Assume;
-import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -34,8 +33,7 @@ public class AssumeDynamicTypeRemover {
   private final IRCode code;
 
   private final Set<Value> affectedValues = Sets.newIdentityHashSet();
-  private final Set<Assume<DynamicTypeAssumption>> assumeDynamicTypeInstructionsToRemove =
-      Sets.newIdentityHashSet();
+  private final Set<Assume> assumeDynamicTypeInstructionsToRemove = Sets.newIdentityHashSet();
 
   private boolean mayHaveIntroducedTrivialPhi = false;
 
@@ -48,21 +46,20 @@ public class AssumeDynamicTypeRemover {
     return mayHaveIntroducedTrivialPhi;
   }
 
-  public void markForRemoval(Assume<DynamicTypeAssumption> assumeDynamicTypeInstruction) {
+  public void markForRemoval(Assume assumeDynamicTypeInstruction) {
     assumeDynamicTypeInstructionsToRemove.add(assumeDynamicTypeInstruction);
   }
 
   public void markUsersForRemoval(Value value) {
     for (Instruction user : value.aliasedUsers()) {
       if (user.isAssumeDynamicType()) {
-        markForRemoval(user.asAssumeDynamicType());
+        markForRemoval(user.asAssume());
       }
     }
   }
 
   public void removeIfMarked(
-      Assume<DynamicTypeAssumption> assumeDynamicTypeInstruction,
-      InstructionListIterator instructionIterator) {
+      Assume assumeDynamicTypeInstruction, InstructionListIterator instructionIterator) {
     if (assumeDynamicTypeInstructionsToRemove.remove(assumeDynamicTypeInstruction)) {
       Value inValue = assumeDynamicTypeInstruction.src();
       Value outValue = assumeDynamicTypeInstruction.outValue();
@@ -91,7 +88,7 @@ public class AssumeDynamicTypeRemover {
         while (instructionIterator.hasNext()) {
           Instruction instruction = instructionIterator.next();
           if (instruction.isAssumeDynamicType()) {
-            removeIfMarked(instruction.asAssumeDynamicType(), instructionIterator);
+            removeIfMarked(instruction.asAssume(), instructionIterator);
           }
         }
       }

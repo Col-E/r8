@@ -24,7 +24,7 @@ public interface InstructionVisitor<T> {
 
   T visit(ArrayPut instruction);
 
-  T visit(Assume<?> instruction);
+  T visit(Assume instruction);
 
   T visit(CheckCast instruction);
 

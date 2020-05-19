@@ -69,8 +69,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
             || (prev.isIf() && prev.asIf().isZeroTest())
             || !curr.getBlock().getPredecessors().contains(prev.getBlock()));
         // Make sure non-null is used or inserted for arguments.
-        assertTrue(
-            curr.outValue().numberOfAllUsers() > 0 || curr.asAssumeNonNull().src().isArgument());
+        assertTrue(curr.outValue().numberOfAllUsers() > 0 || curr.asAssume().src().isArgument());
         count++;
       }
     }

@@ -1173,16 +1173,15 @@ public class Value implements Comparable<Value> {
       return root.getDynamicUpperBoundType(appView);
     }
 
-    // Try to find an alias of the receiver, which is defined by an instruction of the type
-    // Assume<DynamicTypeAssumption>.
+    // Try to find an alias of the receiver, which is defined by an instruction of the type Assume.
     Value aliasedValue =
         getSpecificAliasedValue(value -> !value.isPhi() && value.definition.isAssumeDynamicType());
     TypeElement lattice;
     if (aliasedValue != null) {
-      // If there is an alias of the receiver, which is defined by an Assume<DynamicTypeAssumption>
-      // instruction, then use the dynamic type as the refined receiver type.
+      // If there is an alias of the receiver, which is defined by an Assume instruction that
+      // carries a dynamic type, then use the dynamic type as the refined receiver type.
       lattice =
-          aliasedValue.definition.asAssumeDynamicType().getAssumption().getDynamicUpperBoundType();
+          aliasedValue.definition.asAssume().getDynamicTypeAssumption().getDynamicUpperBoundType();
 
       // For precision, verify that the dynamic type is at least as precise as the static type.
       assert lattice.lessThanOrEqualUpToNullability(type, appView) : type + " < " + lattice;
@@ -1228,12 +1227,11 @@ public class Value implements Comparable<Value> {
       return null;
     }
 
-    // Try to find an alias of the receiver, which is defined by an instruction of the type
-    // Assume<DynamicTypeAssumption>.
+    // Try to find an alias of the receiver, which is defined by an instruction of the type Assume.
     Value aliasedValue = getSpecificAliasedValue(value -> value.definition.isAssumeDynamicType());
     if (aliasedValue != null) {
       ClassTypeElement lattice =
-          aliasedValue.definition.asAssumeDynamicType().getAssumption().getDynamicLowerBoundType();
+          aliasedValue.definition.asAssume().getDynamicTypeAssumption().getDynamicLowerBoundType();
       return lattice != null && type.isDefinitelyNotNull() && lattice.isNullable()
           ? lattice.asMeetWithNotNull()
           : lattice;

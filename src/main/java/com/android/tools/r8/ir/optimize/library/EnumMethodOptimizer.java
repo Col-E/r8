@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
-import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -69,7 +68,7 @@ public class EnumMethodOptimizer implements LibraryMethodModelCollection {
     outValue.replaceUsers(specializedOutValue);
 
     // Insert AssumeDynamicType instruction.
-    Assume<DynamicTypeAssumption> assumeInstruction =
+    Assume assumeInstruction =
         Assume.createAssumeDynamicTypeInstruction(
             dynamicUpperBoundType, null, specializedOutValue, outValue, invoke, appView);
     assumeInstruction.setPosition(appView.options().debug ? invoke.getPosition() : Position.none());

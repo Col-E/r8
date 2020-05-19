@@ -176,8 +176,8 @@ public class CodeRewriter {
 
   public static void removeAssumeInstructions(AppView<?> appView, IRCode code) {
     // We need to update the types of all values whose definitions depend on a non-null value.
-    // This is needed to preserve soundness of the types after the Assume<NonNullAssumption>
-    // instructions have been removed.
+    // This is needed to preserve soundness of the types after the Assume instructions have been
+    // removed.
     //
     // As an example, consider a check-cast instruction on the form "z = (T) y". If y used to be
     // defined by a NonNull instruction, then the type analysis could have used this information
@@ -201,7 +201,7 @@ public class CodeRewriter {
       //
       //   x.foo()
       if (instruction.isAssume()) {
-        Assume<?> assumeInstruction = instruction.asAssume();
+        Assume assumeInstruction = instruction.asAssume();
         Value src = assumeInstruction.src();
         Value dest = assumeInstruction.outValue();
 
@@ -1507,8 +1507,8 @@ public class CodeRewriter {
           TypeElement dynamicType =
               aliasedValue
                   .definition
-                  .asAssumeDynamicType()
-                  .getAssumption()
+                  .asAssume()
+                  .getDynamicTypeAssumption()
                   .getDynamicUpperBoundType();
           if (dynamicType.isDefinitelyNull()) {
             result = InstanceOfResult.FALSE;

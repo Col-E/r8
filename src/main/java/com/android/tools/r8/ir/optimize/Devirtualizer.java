@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
-import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.DominatorTree;
@@ -78,7 +77,7 @@ public class Devirtualizer {
         // ...
         // non_null_rcv <- non-null rcv_c  // <- Update the input rcv to the non-null, too.
         if (current.isAssumeNonNull()) {
-          Assume<NonNullAssumption> nonNull = current.asAssumeNonNull();
+          Assume nonNull = current.asAssume();
           Instruction origin = nonNull.origin();
           if (origin.isInvokeInterface()
               && !origin.asInvokeInterface().getReceiver().hasLocalInfo()

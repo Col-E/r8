@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
-import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
@@ -143,7 +142,7 @@ public class DynamicTypeOptimization implements Assumer {
       outValue.replaceUsers(specializedOutValue);
 
       // Insert AssumeDynamicType instruction.
-      Assume<DynamicTypeAssumption> assumeInstruction =
+      Assume assumeInstruction =
           Assume.createAssumeDynamicTypeInstruction(
               dynamicUpperBoundType,
               dynamicLowerBoundType,

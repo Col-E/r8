@@ -767,7 +767,7 @@ public class StringBuilderOptimizer {
         }
         // If there are aliasing instructions, they should be removed before new-instance.
         if (instr.isAssume() && buildersToRemove.contains(instr.outValue().getAliasedValue())) {
-          Assume<?> assumeInstruction = instr.asAssume();
+          Assume assumeInstruction = instr.asAssume();
           Value src = assumeInstruction.src();
           Value dest = assumeInstruction.outValue();
           dest.replaceUsers(src);

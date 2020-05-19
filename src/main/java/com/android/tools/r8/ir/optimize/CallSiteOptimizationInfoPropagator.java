@@ -19,8 +19,6 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Assume;
-import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
-import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -309,7 +307,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       return;
     }
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    List<Assume<?>> assumeInstructions = new LinkedList<>();
+    List<Assume> assumeInstructions = new LinkedList<>();
     List<Instruction> constants = new LinkedList<>();
     int argumentsSeen = 0;
     InstructionListIterator iterator = code.entryBlock().listIterator(code);
@@ -356,7 +354,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
         specializedArg = code.createValue(originalArg.getType());
         affectedValues.addAll(originalArg.affectedValues());
         originalArg.replaceUsers(specializedArg);
-        Assume<DynamicTypeAssumption> assumeType =
+        Assume assumeType =
             Assume.createAssumeDynamicTypeInstruction(
                 dynamicUpperBoundType, null, specializedArg, originalArg, instr, appView);
         assumeType.setPosition(instr.getPosition());
@@ -372,7 +370,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
               code.createValue(specializedArg.getType().asReferenceType().asMeetWithNotNull());
           affectedValues.addAll(specializedArg.affectedValues());
           specializedArg.replaceUsers(nonNullArg);
-          Assume<NonNullAssumption> assumeNotNull =
+          Assume assumeNotNull =
               Assume.createAssumeNonNullInstruction(nonNullArg, specializedArg, instr, appView);
           assumeNotNull.setPosition(instr.getPosition());
           assumeInstructions.add(assumeNotNull);
@@ -387,7 +385,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
             + code.method().method.getArity()
             + ", static: "
             + code.method().isStatic();
-    // After packed Argument instructions, add Assume<?> and constant instructions.
+    // After packed Argument instructions, add Assume and constant instructions.
     assert !iterator.peekPrevious().isArgument();
     iterator.previous();
     assert iterator.peekPrevious().isArgument();

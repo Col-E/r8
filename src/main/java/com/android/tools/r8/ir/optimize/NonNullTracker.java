@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
-import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.DominatorTree;
@@ -390,7 +389,7 @@ public class NonNullTracker implements Assumer {
           }
           affectedValues.addAll(newValue.affectedValues());
 
-          Assume<NonNullAssumption> assumeInstruction =
+          Assume assumeInstruction =
               Assume.createAssumeNonNullInstruction(newValue, nonNullValue, instruction, appView);
           assumeInstruction.setPosition(instruction.getPosition());
           if (insertionBlock != block) {

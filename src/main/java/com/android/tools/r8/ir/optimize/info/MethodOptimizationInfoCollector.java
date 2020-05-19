@@ -1157,7 +1157,7 @@ public class MethodOptimizationInfoCollector {
       nullCheckedBlocks.clear();
       for (Instruction user : argument.uniqueUsers()) {
         if (user.isAssumeNonNull()) {
-          nullCheckedBlocks.add(user.asAssumeNonNull().getBlock());
+          nullCheckedBlocks.add(user.asAssume().getBlock());
         }
         if (user.isIf()
             && user.asIf().isZeroTest()

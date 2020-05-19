@@ -22,9 +22,6 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
-import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
-import com.android.tools.r8.ir.code.Assume.NoAssumption;
-import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -716,15 +713,7 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return false;
   }
 
-  public Assume<?> asAssume() {
-    return null;
-  }
-
-  public boolean isAssumeNone() {
-    return false;
-  }
-
-  public Assume<NoAssumption> asAssumeNone() {
+  public Assume asAssume() {
     return null;
   }
 
@@ -732,16 +721,8 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return false;
   }
 
-  public Assume<DynamicTypeAssumption> asAssumeDynamicType() {
-    return null;
-  }
-
   public boolean isAssumeNonNull() {
     return false;
-  }
-
-  public Assume<NonNullAssumption> asAssumeNonNull() {
-    return null;
   }
 
   public boolean isBinop() {

@@ -12,50 +12,60 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.code.Assume.Assumption;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.utils.BooleanUtils;
 import java.util.Objects;
 import java.util.Set;
 
-public class Assume<An extends Assumption> extends Instruction {
+public class Assume extends Instruction {
 
   private static final String ERROR_MESSAGE =
       "Expected Assume instructions to be removed after IR processing.";
 
-  private final An assumption;
+  private final DynamicTypeAssumption dynamicTypeAssumption;
+  private final NonNullAssumption nonNullAssumption;
   private final Instruction origin;
 
-  private Assume(An assumption, Value dest, Value src, Instruction origin, AppView<?> appView) {
+  private Assume(
+      DynamicTypeAssumption dynamicTypeAssumption,
+      NonNullAssumption nonNullAssumption,
+      Value dest,
+      Value src,
+      Instruction origin,
+      AppView<?> appView) {
     super(dest, src);
-    assert assumption != null;
-    assert assumption.verifyCorrectnessOfValues(dest, src, appView);
+    assert dynamicTypeAssumption != null || nonNullAssumption != null;
+    assert BooleanUtils.intValue(dynamicTypeAssumption != null)
+            + BooleanUtils.intValue(nonNullAssumption != null)
+        == 1;
+    assert dynamicTypeAssumption == null
+        || dynamicTypeAssumption.verifyCorrectnessOfValues(dest, src, appView);
+    assert nonNullAssumption == null
+        || nonNullAssumption.verifyCorrectnessOfValues(dest, src, appView);
     assert dest != null;
-    this.assumption = assumption;
+    this.dynamicTypeAssumption = dynamicTypeAssumption;
+    this.nonNullAssumption = nonNullAssumption;
     this.origin = origin;
   }
 
-  public static Assume<NoAssumption> createAssumeNoneInstruction(
+  public static Assume createAssumeNonNullInstruction(
       Value dest, Value src, Instruction origin, AppView<?> appView) {
-    return new Assume<>(NoAssumption.get(), dest, src, origin, appView);
+    return new Assume(null, NonNullAssumption.get(), dest, src, origin, appView);
   }
 
-  public static Assume<NonNullAssumption> createAssumeNonNullInstruction(
-      Value dest, Value src, Instruction origin, AppView<?> appView) {
-    return new Assume<>(NonNullAssumption.get(), dest, src, origin, appView);
-  }
-
-  public static Assume<DynamicTypeAssumption> createAssumeDynamicTypeInstruction(
+  public static Assume createAssumeDynamicTypeInstruction(
       TypeElement dynamicUpperBoundType,
       ClassTypeElement dynamicLowerBoundType,
       Value dest,
       Value src,
       Instruction origin,
       AppView<?> appView) {
-    return new Assume<>(
+    return new Assume(
         new DynamicTypeAssumption(dynamicUpperBoundType, dynamicLowerBoundType),
+        null,
         dest,
         src,
         origin,
@@ -69,7 +79,7 @@ public class Assume<An extends Assumption> extends Instruction {
 
   public boolean verifyInstructionIsNeeded(AppView<?> appView) {
     if (isAssumeDynamicType()) {
-      assert assumption.verifyCorrectnessOfValues(outValue(), src(), appView);
+      assert dynamicTypeAssumption.verifyCorrectnessOfValues(outValue(), src(), appView);
     }
     return true;
   }
@@ -79,8 +89,12 @@ public class Assume<An extends Assumption> extends Instruction {
     return visitor.visit(this);
   }
 
-  public An getAssumption() {
-    return assumption;
+  public DynamicTypeAssumption getDynamicTypeAssumption() {
+    return dynamicTypeAssumption;
+  }
+
+  public NonNullAssumption getNonNullAssumption() {
+    return nonNullAssumption;
   }
 
   public Value src() {
@@ -98,9 +112,6 @@ public class Assume<An extends Assumption> extends Instruction {
 
   @Override
   public String getInstructionName() {
-    if (isAssumeNone()) {
-      return "AssumeNone";
-    }
     if (isAssumeDynamicType()) {
       return "AssumeDynamicType";
     }
@@ -116,51 +127,18 @@ public class Assume<An extends Assumption> extends Instruction {
   }
 
   @Override
-  public Assume<An> asAssume() {
+  public Assume asAssume() {
     return this;
   }
 
   @Override
-  public boolean isAssumeNone() {
-    return assumption.isAssumeNone();
-  }
-
-  @Override
-  public Assume<NoAssumption> asAssumeNone() {
-    assert isAssumeNone();
-    @SuppressWarnings("unchecked")
-    Assume<NoAssumption> self = (Assume<NoAssumption>) this;
-    return self;
-  }
-
-  @Override
   public boolean isAssumeDynamicType() {
-    return assumption.isAssumeDynamicType();
-  }
-
-  @Override
-  public Assume<DynamicTypeAssumption> asAssumeDynamicType() {
-    assert isAssumeDynamicType();
-    @SuppressWarnings("unchecked")
-    Assume<DynamicTypeAssumption> self = (Assume<DynamicTypeAssumption>) this;
-    return self;
+    return dynamicTypeAssumption != null;
   }
 
   @Override
   public boolean isAssumeNonNull() {
-    return assumption.isAssumeNonNull();
-  }
-
-  @Override
-  public Assume<NonNullAssumption> asAssumeNonNull() {
-    assert isAssumeNonNull();
-    @SuppressWarnings("unchecked")
-    Assume<NonNullAssumption> self = (Assume<NonNullAssumption>) this;
-    return self;
-  }
-
-  public boolean mayAffectStaticType() {
-    return isAssumeNonNull();
+    return nonNullAssumption != null;
   }
 
   @Override
@@ -171,12 +149,8 @@ public class Assume<An extends Assumption> extends Instruction {
     if (outType.isPrimitiveType()) {
       return false;
     }
-    if (assumption.isAssumeNone()) {
-      // The main purpose of AssumeNone is to test local alias tracking.
-      return true;
-    }
-    if (assumption.isAssumeDynamicType()) {
-      outType = asAssumeDynamicType().assumption.getDynamicUpperBoundType();
+    if (isAssumeDynamicType()) {
+      outType = dynamicTypeAssumption.getDynamicUpperBoundType();
     }
     if (appView.appInfo().hasLiveness()) {
       if (outType.isClassType()
@@ -233,8 +207,9 @@ public class Assume<An extends Assumption> extends Instruction {
     if (!other.isAssume()) {
       return false;
     }
-    Assume<?> assumeInstruction = other.asAssume();
-    return assumption.equals(assumeInstruction.assumption);
+    Assume assumeInstruction = other.asAssume();
+    return Objects.equals(dynamicTypeAssumption, assumeInstruction.dynamicTypeAssumption)
+        && Objects.equals(nonNullAssumption, assumeInstruction.nonNullAssumption);
   }
 
   @Override
@@ -245,10 +220,10 @@ public class Assume<An extends Assumption> extends Instruction {
 
   @Override
   public TypeElement evaluate(AppView<?> appView) {
-    if (assumption.isAssumeNone() || assumption.isAssumeDynamicType()) {
+    if (isAssumeDynamicType()) {
       return src().getType();
     }
-    if (assumption.isAssumeNonNull()) {
+    if (isAssumeNonNull()) {
       assert src().getType().isReferenceType();
       return src().getType().asReferenceType().asMeetWithNotNull();
     }
@@ -281,7 +256,7 @@ public class Assume<An extends Assumption> extends Instruction {
 
     TypeElement inType = src().getType();
     TypeElement outType = getOutType();
-    if (isAssumeNone() || isAssumeDynamicType()) {
+    if (isAssumeDynamicType()) {
       assert inType.isReferenceType() : inType;
       assert outType.equals(inType)
           : "At " + this + System.lineSeparator() + outType + " != " + inType;
@@ -303,63 +278,22 @@ public class Assume<An extends Assumption> extends Instruction {
     //     are still valid.
     String originString =
         origin.hasBlock() ? " (origin: `" + origin.toString() + "`)" : " (obsolete origin)";
-    if (isAssumeNone() || isAssumeNonNull()) {
+    if (isAssumeNonNull()) {
       return super.toString() + originString;
     }
     if (isAssumeDynamicType()) {
-      DynamicTypeAssumption assumption = asAssumeDynamicType().getAssumption();
       return super.toString()
           + "; upper bound: "
-          + assumption.dynamicUpperBoundType
-          + (assumption.dynamicLowerBoundType != null
-              ? "; lower bound: " + assumption.dynamicLowerBoundType
+          + dynamicTypeAssumption.dynamicUpperBoundType
+          + (dynamicTypeAssumption.dynamicLowerBoundType != null
+              ? "; lower bound: " + dynamicTypeAssumption.dynamicLowerBoundType
               : "")
           + originString;
     }
     return super.toString();
   }
 
-  abstract static class Assumption {
-
-    public boolean isAssumeNone() {
-      return false;
-    }
-
-    public boolean isAssumeDynamicType() {
-      return false;
-    }
-
-    public boolean isAssumeNonNull() {
-      return false;
-    }
-
-    public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
-      return true;
-    }
-  }
-
-  public static class NoAssumption extends Assumption {
-    private static final NoAssumption instance = new NoAssumption();
-
-    private NoAssumption() {}
-
-    static NoAssumption get() {
-      return instance;
-    }
-
-    @Override
-    public boolean isAssumeNone() {
-      return true;
-    }
-
-    @Override
-    public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
-      assert dest.getType() == src.getType();
-      return true;
-    }
-  }
-
-  public static class DynamicTypeAssumption extends Assumption {
+  public static class DynamicTypeAssumption {
 
     private final TypeElement dynamicUpperBoundType;
     private final ClassTypeElement dynamicLowerBoundType;
@@ -378,12 +312,6 @@ public class Assume<An extends Assumption> extends Instruction {
       return dynamicLowerBoundType;
     }
 
-    @Override
-    public boolean isAssumeDynamicType() {
-      return true;
-    }
-
-    @Override
     public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
       assert dynamicUpperBoundType.lessThanOrEqualUpToNullability(src.getType(), appView);
       return true;
@@ -408,7 +336,7 @@ public class Assume<An extends Assumption> extends Instruction {
     }
   }
 
-  public static class NonNullAssumption extends Assumption {
+  public static class NonNullAssumption {
 
     private static final NonNullAssumption instance = new NonNullAssumption();
 
@@ -418,12 +346,6 @@ public class Assume<An extends Assumption> extends Instruction {
       return instance;
     }
 
-    @Override
-    public boolean isAssumeNonNull() {
-      return true;
-    }
-
-    @Override
     public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
       assert !src.isNeverNull();
       return true;
