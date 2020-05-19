@@ -670,10 +670,8 @@ public class DexParser {
               code);
       if (accessFlags.isAbstract() && ensureNonAbstract) {
         accessFlags.unsetAbstract();
-        encodedMethod =
-            options.isGeneratingClassFiles()
-                ? encodedMethod.toEmptyThrowingMethodCf()
-                : encodedMethod.toEmptyThrowingMethodDex();
+        assert !options.isGeneratingClassFiles();
+        encodedMethod = encodedMethod.toEmptyThrowingMethodDex(false);
       }
       methods[i] = encodedMethod;
     }

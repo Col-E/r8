@@ -773,24 +773,24 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public DexEncodedMethod toEmptyThrowingMethod(InternalOptions options) {
-    return options.isGeneratingClassFiles()
-        ? toEmptyThrowingMethodCf()
-        : toEmptyThrowingMethodDex();
-  }
-
-  public DexEncodedMethod toEmptyThrowingMethodDex() {
-    checkIfObsolete();
-    assert !shouldNotHaveCode();
-    Builder builder = builder(this);
-    builder.setCode(buildEmptyThrowingDexCode());
-    if (isNonPrivateVirtualMethod()) {
-      builder.setIsLibraryMethodOverride(isLibraryMethodOverride());
-    }
     // Note that we are not marking this instance obsolete, since this util is only used by
     // TreePruner while keeping non-live yet targeted, empty method. Such method can be retrieved
     // again only during the 2nd round of tree sharking, and seeing an obsolete empty body v.s.
     // seeing this empty throwing code do not matter.
     // If things are changed, the cure point is obsolete instances inside RootSet.
+    return options.isGeneratingClassFiles()
+        ? toEmptyThrowingMethodCf()
+        : toEmptyThrowingMethodDex(true);
+  }
+
+  public DexEncodedMethod toEmptyThrowingMethodDex(boolean setIsLibraryOverride) {
+    checkIfObsolete();
+    assert !shouldNotHaveCode();
+    Builder builder = builder(this);
+    builder.setCode(buildEmptyThrowingDexCode());
+    if (setIsLibraryOverride && isNonPrivateVirtualMethod()) {
+      builder.setIsLibraryMethodOverride(isLibraryMethodOverride());
+    }
     return builder.build();
   }
 
@@ -805,7 +805,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         Collections.emptyList());
   }
 
-  public DexEncodedMethod toEmptyThrowingMethodCf() {
+  private DexEncodedMethod toEmptyThrowingMethodCf() {
     checkIfObsolete();
     assert !shouldNotHaveCode();
     Builder builder = builder(this);
