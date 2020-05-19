@@ -1099,7 +1099,7 @@ public class IRConverter {
       MethodProcessingId methodProcessingId) {
     return ExceptionUtils.withOriginAndPositionAttachmentHandler(
         method.getOrigin(),
-        new MethodPosition(method.getReference()),
+        new MethodPosition(method.getReference().asMethodReference()),
         () -> rewriteCodeInternal(method, feedback, methodProcessor, methodProcessingId));
   }
 

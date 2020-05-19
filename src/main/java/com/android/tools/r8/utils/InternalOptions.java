@@ -75,7 +75,6 @@ import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import org.objectweb.asm.Opcodes;
 
 public class InternalOptions {
@@ -872,8 +871,7 @@ public class InternalOptions {
       DexType libraryType,
       DexType invalidSuperType,
       String message,
-      Set<DexMethod> retarget,
-      AppView<?> appView) {
+      Set<DexMethod> retarget) {
     if (invalidLibraryClasses.add(invalidSuperType)) {
       reporter.warning(
           new InvalidLibrarySuperclassDiagnostic(
@@ -881,9 +879,7 @@ public class InternalOptions {
               Reference.classFromDescriptor(libraryType.toDescriptorString()),
               Reference.classFromDescriptor(invalidSuperType.toDescriptorString()),
               message,
-              retarget.stream()
-                  .map(method -> method.asMethodReference(appView))
-                  .collect(Collectors.toList())));
+              ListUtils.map(retarget, DexMethod::asMethodReference)));
     }
   }
 

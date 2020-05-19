@@ -5,8 +5,8 @@ package com.android.tools.r8.position;
 
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
-import java.util.Arrays;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.TypeReference;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,38 +14,46 @@ import java.util.stream.Collectors;
 @Keep
 public class MethodPosition implements Position {
 
-  // Do not expose the internal dex method structure.
-  private DexMethod method;
+  private final MethodReference method;
 
+  @Deprecated
   public MethodPosition(DexMethod method) {
+    this(method.asMethodReference());
+  }
+
+  public MethodPosition(MethodReference method) {
     this.method = method;
   }
 
+  /** The method */
+  public MethodReference getMethod() {
+    return method;
+  }
   /** The unqualified name of the method. */
   public String getName() {
-    return method.name.toString();
+    return method.getMethodName();
   }
 
   /** The type descriptor of the method holder. */
   public String getHolder() {
-    return method.holder.toDescriptorString();
+    return method.getHolderClass().getDescriptor();
   }
 
   /** The type descriptor of the methods return type. */
   public String getReturnType() {
-    return method.proto.returnType.toDescriptorString();
+    return method.getReturnType().getDescriptor();
   }
 
   /** The type descriptors for the methods formal parameter types. */
   public List<String> getParameterTypes() {
-    return Arrays.stream(method.proto.parameters.values)
-        .map(DexType::toDescriptorString)
+    return method.getFormalTypes().stream()
+        .map(TypeReference::getDescriptor)
         .collect(Collectors.toList());
   }
 
   @Override
   public String toString() {
-    return method.toSourceString();
+    return method.toString();
   }
 
   @Override

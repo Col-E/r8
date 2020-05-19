@@ -11,6 +11,8 @@ import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.errors.CodeSizeOverflowDiagnostic;
+import com.android.tools.r8.errors.ConstantPoolOverflowDiagnostic;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -36,6 +38,7 @@ import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
@@ -45,8 +48,10 @@ import java.io.StringWriter;
 import java.util.Optional;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassTooLargeException;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.MethodTooLargeException;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
@@ -109,7 +114,30 @@ public class CfApplicationWriter {
       if (clazz.getSynthesizedFrom().isEmpty()
           || options.isDesugaredLibraryCompilation()
           || options.cfToCfDesugar) {
-        writeClass(clazz, consumer, markerString);
+        try {
+          writeClass(clazz, consumer, markerString);
+        } catch (ClassTooLargeException e) {
+          throw appView
+              .options()
+              .reporter
+              .fatalError(
+                  new ConstantPoolOverflowDiagnostic(
+                      clazz.getOrigin(),
+                      Reference.classFromBinaryName(e.getClassName()),
+                      e.getConstantPoolCount()));
+        } catch (MethodTooLargeException e) {
+          throw appView
+              .options()
+              .reporter
+              .fatalError(
+                  new CodeSizeOverflowDiagnostic(
+                      clazz.getOrigin(),
+                      Reference.methodFromDescriptor(
+                          Reference.classFromBinaryName(e.getClassName()).getDescriptor(),
+                          e.getMethodName(),
+                          e.getDescriptor()),
+                      e.getCodeSize()));
+        }
       } else {
         throw new Unimplemented("No support for synthetics in the Java bytecode backend.");
       }

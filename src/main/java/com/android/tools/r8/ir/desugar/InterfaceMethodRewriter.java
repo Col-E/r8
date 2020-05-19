@@ -1124,7 +1124,7 @@ public final class InterfaceMethodRewriter {
     }
     DexMethod method = appView.graphLense().getOriginalMethodSignature(referencedFrom);
     Origin origin = getMethodOrigin(method);
-    MethodPosition position = new MethodPosition(method);
+    MethodPosition position = new MethodPosition(method.asMethodReference());
     options.warningMissingTypeForDesugar(origin, position, missing, method);
   }
 

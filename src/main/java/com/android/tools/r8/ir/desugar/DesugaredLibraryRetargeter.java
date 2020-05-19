@@ -453,8 +453,7 @@ public class DesugaredLibraryRetargeter {
             libraryClass.type,
             libraryClass.superType,
             message,
-            retarget,
-            appView);
+            retarget);
   }
 
   private DexType dispatchInterfaceTypeFor(DexMethod method) {

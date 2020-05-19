@@ -19,6 +19,7 @@ import com.android.tools.r8.errors.DesugarDiagnostic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -80,7 +81,9 @@ public class DesugarMissingTypeStaticInvokeTest extends TestBase {
         assertEquals(Reference.classFromClass(TestClass.class), desugarWarning.getContextType());
         assertThat(
             desugarWarning.getPosition().getDescription(),
-            containsString(TestClass.class.getTypeName() + ".main"));
+            containsString(
+                DescriptorUtils.javaTypeToDescriptor(TestClass.class.getTypeName())
+                    + "main([Ljava/lang/String;)V"));
       }
     }
   }

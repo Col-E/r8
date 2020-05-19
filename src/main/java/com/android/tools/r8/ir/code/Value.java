@@ -64,7 +64,7 @@ public class Value implements Comparable<Value> {
                   + " by constraint: "
                   + constraint,
               origin,
-              new MethodPosition(method)));
+              new MethodPosition(method.asMethodReference())));
     } else if (constrainedType != type) {
       setType(constrainedType);
     }

@@ -386,7 +386,7 @@ final class ClassProcessor {
           "Attempt to add forwarding method that conflicts with existing method.",
           null,
           clazz.getOrigin(),
-          new MethodPosition(methodOnSelf.method));
+          new MethodPosition(methodOnSelf.method.asMethodReference()));
     }
 
     DexMethod method = target.method;

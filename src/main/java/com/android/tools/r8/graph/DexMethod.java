@@ -33,15 +33,16 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return "Method " + holder + "." + name + " " + proto.toString();
   }
 
-  public MethodReference asMethodReference(AppView<?> appView) {
+  public MethodReference asMethodReference() {
     List<TypeReference> parameters = new ArrayList<>();
     for (DexType value : proto.parameters.values) {
       parameters.add(Reference.typeFromDescriptor(value.toDescriptorString()));
     }
+    String returnTypeDescriptor = proto.returnType.toDescriptorString();
     TypeReference returnType =
-        proto.returnType == appView.dexItemFactory().voidType
+        returnTypeDescriptor.equals("V")
             ? null
-            : Reference.typeFromDescriptor(proto.returnType.toDescriptorString());
+            : Reference.typeFromDescriptor(returnTypeDescriptor);
     return Reference.method(
         Reference.classFromDescriptor(holder.toDescriptorString()),
         name.toString(),

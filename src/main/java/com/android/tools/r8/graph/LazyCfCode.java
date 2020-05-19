@@ -375,7 +375,7 @@ public class LazyCfCode extends Code {
         throw new CompilationError(
             "Absent Code attribute in method that is not native or abstract",
             origin,
-            new MethodPosition(method));
+            new MethodPosition(method.asMethodReference()));
       }
       code.setCode(
           new CfCode(
