@@ -11,13 +11,14 @@ import static junit.framework.TestCase.assertTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.code.AddIntLit8;
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import dalvik.annotation.optimization.ReachabilitySensitive;
@@ -26,7 +27,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -68,40 +68,48 @@ class TestClassWithAnnotatedMethod {
 @RunWith(Parameterized.class)
 public class ReachabilitySensitiveTest extends TestBase {
 
+  private final TestParameters parameters;
   private final Tool tool;
 
-  @Parameters(name = "{0}")
-  public static List<Object> data() {
-    return ImmutableList.of(Tool.D8, Tool. R8);
+  @Parameters(name = "{0} tool: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        ImmutableList.of(Tool.D8, Tool.R8));
   }
 
-  public ReachabilitySensitiveTest(Tool tool) {
+  public ReachabilitySensitiveTest(TestParameters parameters, Tool tool) {
+    this.parameters = parameters;
     this.tool = tool;
+  }
+
+  private int getNumRegisters() {
+    // With API level >= Q we are allowed to re-use the receiver's register.
+    // See also InternalOptions.canHaveThisJitCodeDebuggingBug().
+    assert parameters.isDexRuntime();
+    return parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.Q) ? 2 : 3;
   }
 
   @Test
   public void testNoAnnotation()
       throws IOException, CompilationFailedException, ExecutionException, NoSuchMethodException {
-    CodeInspector inspector = tool == Tool.R8
-        ? compileR8(TestClass.class)
-        : compile(TestClass.class);
+    CodeInspector inspector =
+        tool == Tool.R8 ? compileR8(TestClass.class) : compile(TestClass.class);
     DexCode code =
         inspector.method(TestClass.class.getMethod("method")).getMethod().getCode().asDexCode();
     // Computation of k is constant folded and the value takes up one register. System.out takes
-    // up another register and the receiver is the last.
-    Assume.assumeTrue(
-        "TODO(b/144966342): Why 2 on Q?",
-        ToolHelper.getDexVm().isOlderThanOrEqual(ToolHelper.DexVm.ART_9_0_0_HOST));
-    assertEquals(3, code.registerSize);
+    // up another register and the receiver is the last, unless on Q+.
+    assertEquals(getNumRegisters(), code.registerSize);
     checkNoLocals(code);
   }
 
   @Test
   public void testFieldAnnotation()
       throws IOException, CompilationFailedException, ExecutionException, NoSuchMethodException {
-    CodeInspector inspector = tool == Tool.R8
-        ? compileR8(TestClassWithAnnotatedField.class)
-        : compile(TestClassWithAnnotatedField.class);
+    CodeInspector inspector =
+        tool == Tool.R8
+            ? compileR8(TestClassWithAnnotatedField.class)
+            : compile(TestClassWithAnnotatedField.class);
     checkAnnotatedCode(
         inspector
             .method(TestClassWithAnnotatedField.class.getMethod("method"))
@@ -113,9 +121,10 @@ public class ReachabilitySensitiveTest extends TestBase {
   @Test
   public void testMethodAnnotation()
       throws IOException, CompilationFailedException, ExecutionException, NoSuchMethodException {
-    CodeInspector inspector = tool == Tool.R8
-        ? compileR8(TestClassWithAnnotatedMethod.class)
-        : compile(TestClassWithAnnotatedMethod.class);
+    CodeInspector inspector =
+        tool == Tool.R8
+            ? compileR8(TestClassWithAnnotatedMethod.class)
+            : compile(TestClassWithAnnotatedMethod.class);
     checkAnnotatedCode(
         inspector
             .method(TestClassWithAnnotatedMethod.class.getMethod("method"))
@@ -127,9 +136,10 @@ public class ReachabilitySensitiveTest extends TestBase {
   private void checkNoLocals(DexCode code) {
     // Even if we preserve live range of locals, we do not output locals information
     // as this is a release build.
-    assertTrue((code.getDebugInfo() == null) ||
-        Arrays.stream(code.getDebugInfo().events)
-            .allMatch(event -> !(event instanceof StartLocal)));
+    assertTrue(
+        (code.getDebugInfo() == null)
+            || Arrays.stream(code.getDebugInfo().events)
+                .allMatch(event -> !(event instanceof StartLocal)));
   }
 
   private void checkAnnotatedCode(DexCode code) {
@@ -155,6 +165,7 @@ public class ReachabilitySensitiveTest extends TestBase {
       throws CompilationFailedException, IOException, ExecutionException {
     return testForD8()
         .addProgramClasses(classes)
+        .setMinApi(parameters.getApiLevel())
         .setMode(CompilationMode.RELEASE)
         .compile()
         .inspector();
@@ -170,6 +181,7 @@ public class ReachabilitySensitiveTest extends TestBase {
         .addProgramClasses(classes)
         // TODO(ager): This will be in android.jar over time. For now, make it part of the app.
         .addProgramClasses(ReachabilitySensitive.class)
+        .setMinApi(parameters.getApiLevel())
         .setMode(CompilationMode.RELEASE)
         // Keep the input class and its methods.
         .addKeepRules(keepRules)
