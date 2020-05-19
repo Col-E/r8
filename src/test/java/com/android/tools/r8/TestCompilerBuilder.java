@@ -215,7 +215,10 @@ public abstract class TestCompilerBuilder<
   }
 
   public T setMinApi(AndroidApiLevel minApiLevel) {
-    return setMinApi(minApiLevel.getLevel());
+    if (backend == Backend.DEX) {
+      return setMinApi(minApiLevel.getLevel());
+    }
+    return self();
   }
 
   public T setMinApi(int minApiLevel) {
