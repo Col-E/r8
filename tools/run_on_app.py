@@ -91,6 +91,12 @@ def ParseOptions(argv):
                     help='Archive find-min-xmx results on GCS',
                     default=False,
                     action='store_true')
+  result.add_option('--no-extra-pgconf', '--no_extra_pgconf',
+                    help='Build without the following extra rules: ' +
+                         '-printconfiguration, -printmapping, -printseeds, ' +
+                         '-printusage',
+                    default=False,
+                    action='store_true')
   result.add_option('--timeout',
                     type='int',
                     default=0,
@@ -577,9 +583,10 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
           pg_outdir = os.path.dirname(outdir)
         else:
           pg_outdir = outdir
-        additional_pg_conf = GenerateAdditionalProguardConfiguration(
-            temp, os.path.abspath(pg_outdir))
-        args.extend(['--pg-conf', additional_pg_conf])
+        if not options.no_extra_pgconf:
+          additional_pg_conf = GenerateAdditionalProguardConfiguration(
+              temp, os.path.abspath(pg_outdir))
+          args.extend(['--pg-conf', additional_pg_conf])
       build = not options.no_build and not options.golem
       stderr_path = os.path.join(temp, 'stderr')
       with open(stderr_path, 'w') as stderr:
