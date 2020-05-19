@@ -120,6 +120,52 @@ public class R8CommandTest {
   }
 
   @Test
+  public void passFeatureSplit() throws Throwable {
+    Path working = temp.getRoot().toPath();
+    Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar").toAbsolutePath();
+    Path inputFeature = Paths.get(EXAMPLES_BUILD_DIR, "arrayaccess.jar").toAbsolutePath();
+    Path library = ToolHelper.getDefaultAndroidJar();
+    Path output = working.resolve("classes.dex");
+    Path featureOutput = working.resolve("feature.zip");
+    assertFalse(Files.exists(output));
+    assertFalse(Files.exists(featureOutput));
+    ProcessResult result =
+        ToolHelper.forkR8(
+            working,
+            input.toString(),
+            "--lib",
+            library.toAbsolutePath().toString(),
+            "--feature",
+            inputFeature.toAbsolutePath().toString(),
+            featureOutput.toAbsolutePath().toString(),
+            "--no-tree-shaking");
+    assertEquals("R8 run failed: " + result.stderr, 0, result.exitCode);
+    assertTrue(Files.exists(output));
+    assertTrue(Files.exists(featureOutput));
+  }
+
+  @Test
+  public void featureOnlyOneArgument() throws Throwable {
+    Path working = temp.getRoot().toPath();
+    Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar").toAbsolutePath();
+    Path inputFeature = Paths.get(EXAMPLES_BUILD_DIR, "arrayaccess.jar").toAbsolutePath();
+    Path library = ToolHelper.getDefaultAndroidJar();
+    Path output = working.resolve("classes.dex");
+    assertFalse(Files.exists(output));
+    ProcessResult result =
+        ToolHelper.forkR8(
+            working,
+            input.toString(),
+            "--lib",
+            library.toAbsolutePath().toString(),
+            "--no-tree-shaking",
+            "--feature",
+            inputFeature.toAbsolutePath().toString());
+    assertNotEquals("R8 run failed: " + result.stderr, 0, result.exitCode);
+    assertTrue(result.stderr.contains("Missing parameter for"));
+  }
+
+  @Test
   public void flagsFile() throws Throwable {
     Path working = temp.getRoot().toPath();
     Path library = ToolHelper.getDefaultAndroidJar();

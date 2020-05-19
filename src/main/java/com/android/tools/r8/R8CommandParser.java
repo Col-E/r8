@@ -11,7 +11,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Command.Builder> {
@@ -24,11 +28,14 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
           MIN_API_FLAG,
           "--main-dex-rules",
           "--main-dex-list",
+          "--feature",
           "--main-dex-list-output",
           "--pg-conf",
           "--pg-map-output",
           "--desugared-lib",
           THREAD_COUNT_FLAG);
+
+  private static final Set<String> OPTIONS_WITH_TWO_PARAMETERS = ImmutableSet.of("--feature");
 
   public static void main(String[] args) throws CompilationFailedException {
     R8Command command = parse(args, Origin.root()).build();
@@ -83,6 +90,9 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
                   "  --main-dex-rules <file> # Proguard keep rules for classes to place in the",
                   "                          # primary dex file.",
                   "  --main-dex-list <file>  # List of classes to place in the primary dex file.",
+                  "  --feature <input> <output> ",
+                  "                          # Add feature <input> file to <output> file. Several ",
+                  "                          # occurrences can map to the same output.",
                   "  --main-dex-list-output <file>  ",
                   "                          # Output the full main-dex list in <file>."),
               ASSERTIONS_USAGE_MESSAGE,
@@ -131,9 +141,11 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
   private void parse(
       String[] args, Origin argsOrigin, R8Command.Builder builder, ParseState state) {
     String[] expandedArgs = FlagFile.expandFlagFiles(args, builder::error);
+    Map<Path, List<Path>> featureSplitJars = new HashMap<>();
     for (int i = 0; i < expandedArgs.length; i++) {
       String arg = expandedArgs[i].trim();
       String nextArg = null;
+      String nextNextArg = null;
       if (OPTIONS_WITH_PARAMETER.contains(arg)) {
         if (++i < expandedArgs.length) {
           nextArg = expandedArgs[i];
@@ -142,6 +154,16 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
               new StringDiagnostic(
                   "Missing parameter for " + expandedArgs[i - 1] + ".", argsOrigin));
           break;
+        }
+        if (OPTIONS_WITH_TWO_PARAMETERS.contains(arg)) {
+          if (++i < expandedArgs.length) {
+            nextNextArg = expandedArgs[i];
+          } else {
+            builder.error(
+                new StringDiagnostic(
+                    "Missing parameter for " + expandedArgs[i - 2] + ".", argsOrigin));
+            break;
+          }
         }
       }
       if (arg.length() == 0) {
@@ -214,6 +236,10 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
         builder.setDisableDesugaring(true);
       } else if (arg.equals("--main-dex-rules")) {
         builder.addMainDexRulesFiles(Paths.get(nextArg));
+      } else if (arg.equals("--feature")) {
+        featureSplitJars
+            .computeIfAbsent(Paths.get(nextNextArg), k -> new ArrayList<>())
+            .add(Paths.get(nextArg));
       } else if (arg.equals("--main-dex-list")) {
         builder.addMainDexListFiles(Paths.get(nextArg));
       } else if (arg.equals("--main-dex-list-output")) {
@@ -239,5 +265,20 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
         builder.addProgramFiles(Paths.get(arg));
       }
     }
+    featureSplitJars.forEach(
+        (outputPath, inputJars) -> addFeatureJar(builder, outputPath, inputJars));
+  }
+
+  public void addFeatureJar(R8Command.Builder builder, Path outputPath, List<Path> inputJarPaths) {
+    builder.addFeatureSplit(
+        featureSplitGenerator -> {
+          featureSplitGenerator.setProgramConsumer(
+              builder.createProgramOutputConsumer(outputPath, OutputMode.DexIndexed, true));
+          for (Path inputPath : inputJarPaths) {
+            featureSplitGenerator.addProgramResourceProvider(
+                ArchiveProgramResourceProvider.fromArchive(inputPath));
+          }
+          return featureSplitGenerator.build();
+        });
   }
 }
