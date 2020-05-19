@@ -482,9 +482,6 @@ public class InternalOptions {
   // to disable the check that the build makes sense for multi-dexing.
   public boolean enableMainDexListCheck = true;
 
-  // TODO(b/156934674): Remove when resource shrinker is removed.
-  public boolean isRunningDeprecatedResourceShrinker = false;
-
   private final boolean enableTreeShaking;
   private final boolean enableMinification;
 
