@@ -69,7 +69,7 @@ public class B120164595 extends TestBase {
             builder -> {
               builder.appendArtOption("-Xusejit:true");
             },
-            DexVm.ART_10_0_0_HOST);
+            DexVm.fromVersion(DexVm.Version.last()));
     assertEquals(0, artResult.exitCode);
     assertFalse(artResult.stderr.contains("Expected NullPointerException"));
   }

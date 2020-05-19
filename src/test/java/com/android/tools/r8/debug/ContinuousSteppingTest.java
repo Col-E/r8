@@ -90,10 +90,6 @@ public class ContinuousSteppingTest extends DebugTestBase {
     return dexVmVersion.isAtLeast(Version.V7_0_0);
   }
 
-  public static boolean fromAndroidO(Version dexVmVersion) {
-    return dexVmVersion.isAtLeast(Version.DEFAULT);
-  }
-
   private static List<Path> findAllJarsIn(Path root) {
     try {
       return Files.walk(root)

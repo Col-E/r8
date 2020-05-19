@@ -229,16 +229,15 @@ public class ToolHelper {
     ART_7_0_0_HOST(Version.V7_0_0, Kind.HOST),
     ART_8_1_0_TARGET(Version.V8_1_0, Kind.TARGET),
     ART_8_1_0_HOST(Version.V8_1_0, Kind.HOST),
+    ART_DEFAULT(Version.DEFAULT, Kind.HOST),
     ART_9_0_0_TARGET(Version.V9_0_0, Kind.TARGET),
     ART_9_0_0_HOST(Version.V9_0_0, Kind.HOST),
     ART_10_0_0_TARGET(Version.V10_0_0, Kind.TARGET),
-    ART_10_0_0_HOST(Version.V10_0_0, Kind.HOST),
-    ART_DEFAULT(Version.DEFAULT, Kind.HOST);
+    ART_10_0_0_HOST(Version.V10_0_0, Kind.HOST);
 
     private static final ImmutableMap<String, DexVm> SHORT_NAME_MAP =
         Arrays.stream(DexVm.values()).collect(ImmutableMap.toImmutableMap(
             DexVm::toString, Function.identity()));
-
 
     public enum Version {
       V4_0_4("4.0.4"),
@@ -247,9 +246,9 @@ public class ToolHelper {
       V6_0_1("6.0.1"),
       V7_0_0("7.0.0"),
       V8_1_0("8.1.0"),
+      DEFAULT("default"),
       V9_0_0("9.0.0"),
-      V10_0_0("10.0.0"),
-      DEFAULT("default");
+      V10_0_0("10.0.0");
 
       Version(String shortName) {
         this.shortName = shortName;
@@ -260,7 +259,7 @@ public class ToolHelper {
       }
 
       public boolean isLatest() {
-        return this == DEFAULT;
+        return this == V10_0_0;
       }
 
       public boolean isNewerThan(Version other) {
@@ -286,7 +285,7 @@ public class ToolHelper {
       }
 
       public static Version last() {
-        return DEFAULT;
+        return V10_0_0;
       }
 
       static {
