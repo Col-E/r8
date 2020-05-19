@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.rules.TemporaryFolder;
@@ -57,6 +58,7 @@ public class KotlinCompilerTool {
   private final KotlinTargetVersion targetVersion;
   private final List<Path> sources = new ArrayList<>();
   private final List<Path> classpath = new ArrayList<>();
+  private final List<String> additionalArguments = new ArrayList<>();
   private boolean useJvmAssertions;
   private Path output = null;
 
@@ -82,6 +84,11 @@ public class KotlinCompilerTool {
       KotlinCompiler kotlinCompiler,
       KotlinTargetVersion kotlinTargetVersion) {
     return new KotlinCompilerTool(jdk, state, kotlinCompiler, kotlinTargetVersion);
+  }
+
+  public KotlinCompilerTool addArguments(String... arguments) {
+    Collections.addAll(additionalArguments, arguments);
+    return this;
   }
 
   public KotlinCompilerTool addSourceFiles(Path... files) {
@@ -181,6 +188,7 @@ public class KotlinCompilerTool {
           .map(Path::toString)
           .collect(Collectors.joining(isWindows() ? ";" : ":")));
     }
+    cmdline.addAll(additionalArguments);
     ProcessBuilder builder = new ProcessBuilder(cmdline);
     return ToolHelper.runProcess(builder);
   }
