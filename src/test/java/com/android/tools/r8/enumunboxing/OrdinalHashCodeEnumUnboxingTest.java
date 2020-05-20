@@ -14,7 +14,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class OrdinalEnumUnboxingTest extends EnumUnboxingTestBase {
+public class OrdinalHashCodeEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private static final Class<?> ENUM_CLASS = MyEnum.class;
 
@@ -27,7 +27,7 @@ public class OrdinalEnumUnboxingTest extends EnumUnboxingTestBase {
     return enumUnboxingTestParameters();
   }
 
-  public OrdinalEnumUnboxingTest(
+  public OrdinalHashCodeEnumUnboxingTest(
       TestParameters parameters, boolean enumValueOptimization, KeepRule enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
@@ -36,7 +36,7 @@ public class OrdinalEnumUnboxingTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    Class<Ordinal> classToTest = Ordinal.class;
+    Class<?> classToTest = OrdinalHashCode.class;
     R8TestRunResult run =
         testForR8(parameters.getBackend())
             .addProgramClasses(classToTest, ENUM_CLASS)
@@ -61,10 +61,12 @@ public class OrdinalEnumUnboxingTest extends EnumUnboxingTestBase {
     C
   }
 
-  static class Ordinal {
+  static class OrdinalHashCode {
 
     public static void main(String[] args) {
       System.out.println(MyEnum.A.ordinal());
+      System.out.println(0);
+      System.out.println(MyEnum.A.hashCode());
       System.out.println(0);
     }
   }

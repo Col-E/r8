@@ -164,6 +164,7 @@ public class DexItemFactory {
   public final DexString startsWithMethodName = createString("startsWith");
   public final DexString endsWithMethodName = createString("endsWith");
   public final DexString equalsMethodName = createString("equals");
+  public final DexString hashCodeMethodName = createString("hashCode");
   public final DexString equalsIgnoreCaseMethodName = createString("equalsIgnoreCase");
   public final DexString contentEqualsMethodName = createString("contentEquals");
   public final DexString indexOfMethodName = createString("indexOf");
@@ -1269,6 +1270,7 @@ public class DexItemFactory {
     public final DexMethod toString;
     public final DexMethod compareTo;
     public final DexMethod equals;
+    public final DexMethod hashCode;
 
     public final DexMethod constructor =
         createMethod(enumType, createProto(voidType, stringType, intType), constructorMethodName);
@@ -1309,6 +1311,8 @@ public class DexItemFactory {
               equalsMethodName,
               booleanDescriptor,
               new DexString[] {objectDescriptor});
+      hashCode =
+          createMethod(enumDescriptor, hashCodeMethodName, intDescriptor, DexString.EMPTY_ARRAY);
     }
 
     public boolean isValuesMethod(DexMethod method, DexClass enumClass) {
@@ -1495,7 +1499,7 @@ public class DexItemFactory {
           createMethod(stringDescriptor, compareToIgnoreCaseMethodName, intDescriptor,
               needsOneString);
 
-      hashCode = createMethod(stringType, createProto(intType), "hashCode");
+      hashCode = createMethod(stringType, createProto(intType), hashCodeMethodName);
       valueOf = createMethod(
           stringDescriptor, valueOfMethodName, stringDescriptor, needsOneObject);
       toString = createMethod(

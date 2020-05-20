@@ -129,7 +129,8 @@ public class EnumUnboxingRewriter {
         DexMethod invokedMethod = invokeMethod.getInvokedMethod();
         DexType enumType = getEnumTypeOrNull(invokeMethod.getReceiver(), convertedEnums);
         if (enumType != null) {
-          if (invokedMethod == factory.enumMethods.ordinal) {
+          if (invokedMethod == factory.enumMethods.ordinal
+              || invokedMethod == factory.enumMethods.hashCode) {
             replaceEnumInvoke(
                 iterator, invokeMethod, ordinalUtilityMethod, m -> synthesizeOrdinalMethod());
             continue;

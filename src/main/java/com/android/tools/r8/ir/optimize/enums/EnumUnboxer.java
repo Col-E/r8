@@ -457,6 +457,8 @@ public class EnumUnboxer implements PostOptimization {
         return Reason.ELIGIBLE;
       } else if (singleTarget == factory.enumMethods.ordinal) {
         return Reason.ELIGIBLE;
+      } else if (singleTarget == factory.enumMethods.hashCode) {
+        return Reason.ELIGIBLE;
       } else if (singleTarget == factory.enumMethods.constructor) {
         // Enum constructor call is allowed only if first call of an enum initializer.
         if (code.method().isInstanceInitializer()
