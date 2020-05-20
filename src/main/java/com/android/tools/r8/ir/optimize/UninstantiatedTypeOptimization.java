@@ -105,12 +105,6 @@ public class UninstantiatedTypeOptimization {
   private final AppView<AppInfoWithLiveness> appView;
   private final TypeChecker typeChecker;
 
-  private int numberOfInstanceGetOrInstancePutWithNullReceiver = 0;
-  private int numberOfArrayInstructionsWithNullArray = 0;
-  private int numberOfInvokesWithNullArgument = 0;
-  private int numberOfInvokesWithNullReceiver = 0;
-  private int numberOfMonitorWithNullReceiver = 0;
-
   public UninstantiatedTypeOptimization(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.typeChecker = new TypeChecker(appView);
@@ -353,19 +347,6 @@ public class UninstantiatedTypeOptimization {
         if (instruction.throwsOnNullInput()) {
           Value couldBeNullValue = instruction.getNonNullInput();
           if (isThrowNullCandidate(couldBeNullValue, instruction, appView, code.context())) {
-            if (instruction.isInstanceGet() || instruction.isInstancePut()) {
-              ++numberOfInstanceGetOrInstancePutWithNullReceiver;
-            } else if (instruction.isInvokeMethodWithReceiver()) {
-              ++numberOfInvokesWithNullReceiver;
-            } else if (instruction.isArrayGet()
-                || instruction.isArrayPut()
-                || instruction.isArrayLength()) {
-              ++numberOfArrayInstructionsWithNullArray;
-            } else if (instruction.isMonitor()) {
-              ++numberOfMonitorWithNullReceiver;
-            } else {
-              assert false;
-            }
             instructionIterator.replaceCurrentInstructionWithThrowNull(
                 appView, code, blockIterator, blocksToBeRemoved, valuesToNarrow);
             continue;
@@ -419,24 +400,6 @@ public class UninstantiatedTypeOptimization {
       }
     }
     return true;
-  }
-
-  public void logResults() {
-    assert Log.ENABLED;
-    Log.info(
-        getClass(),
-        "Number of instance-get/instance-put with null receiver: %s",
-        numberOfInstanceGetOrInstancePutWithNullReceiver);
-    Log.info(
-        getClass(),
-        "Number of array instructions with null reference: %s",
-        numberOfArrayInstructionsWithNullArray);
-    Log.info(
-        getClass(), "Number of invokes with null argument: %s", numberOfInvokesWithNullArgument);
-    Log.info(
-        getClass(), "Number of invokes with null receiver: %s", numberOfInvokesWithNullReceiver);
-    Log.info(
-        getClass(), "Number of monitor with null receiver: %s", numberOfMonitorWithNullReceiver);
   }
 
   // instance-{get|put} with a null receiver has already been rewritten to `throw null`.

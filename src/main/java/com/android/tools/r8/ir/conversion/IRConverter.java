@@ -842,9 +842,6 @@ public class IRConverter {
       if (libraryMethodOverrideAnalysis != null) {
         libraryMethodOverrideAnalysis.logResults();
       }
-      if (uninstantiatedTypeOptimization != null) {
-        uninstantiatedTypeOptimization.logResults();
-      }
       if (stringOptimizer != null) {
         stringOptimizer.logResult();
       }
