@@ -28,14 +28,13 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.hamcrest.Matcher;
+import org.hamcrest.core.IsAnything;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class ErrorDuringIrConversionTest extends TestBase {
-
-  static final String EXPECTED = StringUtils.lines("Hello, world");
 
   static final Origin ORIGIN =
       new Origin(Origin.root()) {
@@ -61,10 +60,21 @@ public class ErrorDuringIrConversionTest extends TestBase {
       CompilationFailedException e, Matcher<String> messageMatcher, Matcher<String> stackMatcher) {
     // Check that the failure exception exiting the compiler contains origin info in the message.
     assertThat(e.getMessage(), messageMatcher);
-    // Check that the stack trace has the version marker.
     StringWriter writer = new StringWriter();
     e.printStackTrace(new PrintWriter(writer));
-    assertThat(writer.toString(), stackMatcher);
+    String fullStackTrace = writer.toString();
+    // Extract the top cause stack.
+    int topStackTraceEnd = fullStackTrace.indexOf("Caused by:");
+    String topStackTrace = fullStackTrace.substring(0, topStackTraceEnd);
+    String restStackTrace = fullStackTrace.substring(topStackTraceEnd);
+    // Check that top stack trace always has the version marker.
+    assertThat(topStackTrace, containsString("fakeStackEntry"));
+    // Check that top stack has the D8 entry (from tests the non-renamed entry is ToolHelper.runD8).
+    assertThat(topStackTrace, containsString("com.android.tools.r8.ToolHelper.runD8("));
+    // Check that the stack trace always has the suppressed info.
+    assertThat(restStackTrace, containsString(StringUtils.LINE_SEPARATOR + "\tSuppressed:"));
+    // Custom test checks.
+    assertThat(restStackTrace, stackMatcher);
   }
 
   private static void throwNPE() {
@@ -90,9 +100,7 @@ public class ErrorDuringIrConversionTest extends TestBase {
               });
     } catch (CompilationFailedException e) {
       checkCompilationFailedException(
-          e,
-          containsString(ORIGIN.toString()),
-          allOf(containsString("fakeStackEntry"), containsString("throwNPE")));
+          e, containsString(ORIGIN.toString()), containsString("throwNPE"));
       return;
     }
     fail("Expected compilation to fail");
@@ -122,8 +130,7 @@ public class ErrorDuringIrConversionTest extends TestBase {
                         diagnosticOrigin(Origin.unknown())));
               });
     } catch (CompilationFailedException e) {
-      checkCompilationFailedException(
-          e, containsString(ORIGIN.toString()), containsString("fakeStackEntry"));
+      checkCompilationFailedException(e, containsString(ORIGIN.toString()), new IsAnything<>());
       return;
     }
     fail("Expected compilation to fail");
@@ -173,10 +180,9 @@ public class ErrorDuringIrConversionTest extends TestBase {
           // There may be no fail-if-error barrier inside any origin association, thus only the
           // top level message can be expected here.
           containsString("Compilation failed to complete"),
-          // The stack trace must contain both the version, the frame for the hook above, and one
+          // The stack trace must contain the reportErrors frame for the hook above, and one
           // of the error messages.
           allOf(
-              containsString("fakeStackEntry"),
               containsString("reportErrors"),
               anyOf(containsString("FOO!"), containsString("BAR!"), containsString("BAZ!"))));
       return;
