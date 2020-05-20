@@ -7,6 +7,8 @@ package com.android.tools.r8;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.not;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import org.hamcrest.Matcher;
 
@@ -34,13 +36,29 @@ public interface TestDiagnosticMessages {
 
   // Match exact.
 
-  TestDiagnosticMessages assertDiagnosticsMatch(Matcher<Diagnostic>... matchers);
+  default TestDiagnosticMessages assertDiagnosticsMatch(Matcher matcher) {
+    return assertDiagnosticsMatch(Collections.singletonList(matcher));
+  }
 
-  TestDiagnosticMessages assertInfosMatch(Matcher<Diagnostic>... matchers);
+  TestDiagnosticMessages assertDiagnosticsMatch(Collection<Matcher<Diagnostic>> matchers);
 
-  TestDiagnosticMessages assertWarningsMatch(Matcher<Diagnostic>... matchers);
+  default TestDiagnosticMessages assertInfosMatch(Matcher<Diagnostic> matcher) {
+    return assertInfosMatch(Collections.singletonList(matcher));
+  }
 
-  TestDiagnosticMessages assertErrorsMatch(Matcher<Diagnostic>... matchers);
+  TestDiagnosticMessages assertInfosMatch(Collection<Matcher<Diagnostic>> matchers);
+
+  default TestDiagnosticMessages assertWarningsMatch(Matcher<Diagnostic> matcher) {
+    return assertWarningsMatch(Collections.singletonList(matcher));
+  }
+
+  TestDiagnosticMessages assertWarningsMatch(Collection<Matcher<Diagnostic>> matchers);
+
+  default TestDiagnosticMessages assertErrorsMatch(Matcher<Diagnostic> matcher) {
+    return assertErrorsMatch(Collections.singletonList(matcher));
+  }
+
+  TestDiagnosticMessages assertErrorsMatch(Collection<Matcher<Diagnostic>> matchers);
 
   // Match one.
 

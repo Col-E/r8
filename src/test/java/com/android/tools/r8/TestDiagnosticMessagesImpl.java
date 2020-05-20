@@ -12,7 +12,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -174,7 +174,7 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
   }
 
   private static void assertDiagnosticsMatch(
-      Iterable<Diagnostic> diagnostics, String tag, List<Matcher<Diagnostic>> matchers) {
+      Iterable<Diagnostic> diagnostics, String tag, Collection<Matcher<Diagnostic>> matchers) {
     // Match is unordered, but we make no attempts to find the maximum match.
     int diagnosticsCount = 0;
     Set<Diagnostic> matchedDiagnostics = new HashSet<>();
@@ -236,26 +236,26 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
   }
 
   @Override
-  public TestDiagnosticMessages assertDiagnosticsMatch(Matcher<Diagnostic>... matchers) {
-    assertDiagnosticsMatch(getAllDiagnostics(), "diagnostics", Arrays.asList(matchers));
+  public TestDiagnosticMessages assertDiagnosticsMatch(Collection<Matcher<Diagnostic>> matchers) {
+    assertDiagnosticsMatch(getAllDiagnostics(), "diagnostics", matchers);
     return this;
   }
 
   @Override
-  public TestDiagnosticMessages assertInfosMatch(Matcher<Diagnostic>... matchers) {
-    assertDiagnosticsMatch(getInfos(), "infos", Arrays.asList(matchers));
+  public TestDiagnosticMessages assertInfosMatch(Collection<Matcher<Diagnostic>> matchers) {
+    assertDiagnosticsMatch(getInfos(), "infos", matchers);
     return this;
   }
 
   @Override
-  public TestDiagnosticMessages assertWarningsMatch(Matcher<Diagnostic>... matchers) {
-    assertDiagnosticsMatch(getWarnings(), "warnings", Arrays.asList(matchers));
+  public TestDiagnosticMessages assertWarningsMatch(Collection<Matcher<Diagnostic>> matchers) {
+    assertDiagnosticsMatch(getWarnings(), "warnings", matchers);
     return this;
   }
 
   @Override
-  public TestDiagnosticMessages assertErrorsMatch(Matcher<Diagnostic>... matchers) {
-    assertDiagnosticsMatch(getErrors(), "errors", Arrays.asList(matchers));
+  public TestDiagnosticMessages assertErrorsMatch(Collection<Matcher<Diagnostic>> matchers) {
+    assertDiagnosticsMatch(getErrors(), "errors", matchers);
     return this;
   }
 
