@@ -209,7 +209,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
     ResolutionResult resolutionResult =
-        appViewWithLiveness.appInfo().resolveMethod(getInvokedMethod(), isInvokeInterface());
+        appViewWithLiveness.appInfo().resolveMethod(getInvokedMethod(), getInterfaceBit());
     if (resolutionResult.isFailedResolution()) {
       return true;
     }

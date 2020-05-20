@@ -110,7 +110,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     SingleResolutionResult resolutionResult =
         appView
             .appInfo()
-            .resolveMethod(invokedMethod, invoke.isInvokeInterface())
+            .resolveMethod(invokedMethod, invoke.getInterfaceBit())
             .asSingleResolution();
     if (resolutionResult == null) {
       return;
