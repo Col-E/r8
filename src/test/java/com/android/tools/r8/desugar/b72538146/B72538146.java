@@ -4,47 +4,73 @@
 
 package com.android.tools.r8.desugar.b72538146;
 
-import static org.junit.Assert.assertEquals;
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderOrEqualThan;
-import com.android.tools.r8.utils.AndroidApp;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class B72538146 extends TestBase {
 
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
+        .withAllApiLevels()
+        .build();
+  }
+
+  public B72538146(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
   @Test
-  @IgnoreIfVmOlderOrEqualThan(Version.V6_0_1)
   public void test() throws Exception {
-    // Build the main app from source compiled separately using the Android API for classloading.
-    AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addProgramFile(
-        Paths.get("build/test/examplesAndroidApi/classes/classloader/Runner.class"));
-    AndroidApp app = compileWithD8(builder.build());
-
     // Compile the parent and child applications into separate dex applications.
-    Path parent = temp.newFolder("parent").toPath().resolve("classes.zip");
-    Path child = temp.newFolder("child").toPath().resolve("classes.zip");
-    AndroidApp parentApp = readClasses(
-        Parent.class,
-        Parent.Inner1.class,
-        Parent.Inner2.class,
-        Parent.Inner3.class,
-        Parent.Inner4.class);
-    compileWithD8(parentApp).write(parent, OutputMode.DexIndexed);
+    List<Class<?>> parentClasses =
+        ImmutableList.of(
+            Parent.class,
+            Parent.Inner1.class,
+            Parent.Inner2.class,
+            Parent.Inner3.class,
+            Parent.Inner4.class);
 
-    AndroidApp childApp = readClasses(Child.class);
-    compileWithD8(childApp).write(child, OutputMode.DexIndexed);
+    Path parent =
+        testForD8()
+            .addProgramClasses(parentClasses)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+
+    Path child =
+        testForD8()
+            .addProgramClasses(Child.class)
+            .addClasspathClasses(parentClasses)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
 
     // Run the classloader test loading the two dex applications.
-    String result = runOnArt(app, "classloader.Runner",
-        parent.toString(), child.toString(), "com.android.tools.r8.desugar.b72538146.Child");
-    assertEquals("SUCCESS", result);
+    testForD8()
+        .addProgramFiles(
+            Paths.get("build/test/examplesAndroidApi/classes/classloader/Runner.class"))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(
+            parameters.getRuntime(),
+            "classloader.Runner",
+            parent.toString(),
+            child.toString(),
+            Child.class.getTypeName())
+        .assertSuccessWithOutput("SUCCESS");
   }
 }
