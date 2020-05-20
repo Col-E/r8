@@ -61,6 +61,7 @@ public abstract class Invoke extends Instruction {
     super(result, arguments);
   }
 
+  @Deprecated
   public static Invoke create(
       Type type, DexItem target, DexProto proto, Value result, List<Value> arguments) {
     return create(type, target, proto, result, arguments, false);

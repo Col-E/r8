@@ -29,6 +29,7 @@ import static com.android.tools.r8.ir.code.Opcodes.NEW_INSTANCE;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
+import static com.android.tools.r8.utils.ObjectUtils.getBooleanOrElse;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -293,8 +294,18 @@ public class LensCodeRewriter {
                 assert newInValues.size()
                     == actualTarget.proto.parameters.size() + (actualInvokeType == STATIC ? 0 : 1);
 
+                // TODO(b/157111832): This bit should be part of the graph lens lookup result.
+                boolean isInterface =
+                    getBooleanOrElse(
+                        appView.definitionFor(actualTarget.holder), DexClass::isInterface, false);
                 Invoke newInvoke =
-                    Invoke.create(actualInvokeType, actualTarget, null, newOutValue, newInValues);
+                    Invoke.create(
+                        actualInvokeType,
+                        actualTarget,
+                        null,
+                        newOutValue,
+                        newInValues,
+                        isInterface);
                 iterator.replaceCurrentInstruction(newInvoke);
                 if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
                   affectedPhis.addAll(newOutValue.uniquePhiUsers());
