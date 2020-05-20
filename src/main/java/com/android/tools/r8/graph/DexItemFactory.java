@@ -1268,6 +1268,7 @@ public class DexItemFactory {
     public final DexMethod name;
     public final DexMethod toString;
     public final DexMethod compareTo;
+    public final DexMethod equals;
 
     public final DexMethod constructor =
         createMethod(enumType, createProto(voidType, stringType, intType), constructorMethodName);
@@ -1301,10 +1302,13 @@ public class DexItemFactory {
               DexString.EMPTY_ARRAY);
       compareTo =
           createMethod(
+              enumDescriptor, compareToMethodName, intDescriptor, new DexString[] {enumDescriptor});
+      equals =
+          createMethod(
               enumDescriptor,
-              compareToMethodName,
-              stringDescriptor,
-              new DexString[] {enumDescriptor});
+              equalsMethodName,
+              booleanDescriptor,
+              new DexString[] {objectDescriptor});
     }
 
     public boolean isValuesMethod(DexMethod method, DexClass enumClass) {

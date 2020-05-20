@@ -54,25 +54,24 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 
 public class EnumUnboxingRewriter {
 
   public static final String ENUM_UNBOXING_UTILITY_CLASS_NAME = "$r8$EnumUnboxingUtility";
-  public static final String ENUM_UNBOXING_UTILITY_ORDINAL = "$enumboxing$ordinal";
-  private static final String ENUM_UNBOXING_UTILITY_VALUES = "$enumboxing$values";
+  public static final String ENUM_UNBOXING_UTILITY_METHOD_PREFIX = "$enumboxing$";
   private static final int REQUIRED_CLASS_FILE_VERSION = 52;
 
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory factory;
   private final EnumValueInfoMapCollection enumsToUnbox;
-  private final Map<DexMethod, DexEncodedMethod> extraUtilityMethods = new ConcurrentHashMap<>();
+  private final Map<DexMethod, DexEncodedMethod> utilityMethods = new ConcurrentHashMap<>();
   private final Map<DexField, DexEncodedField> extraUtilityFields = new ConcurrentHashMap<>();
 
   private final DexMethod ordinalUtilityMethod;
+  private final DexMethod equalsUtilityMethod;
+  private final DexMethod compareToUtilityMethod;
   private final DexMethod valuesUtilityMethod;
-
-  private boolean requiresOrdinalUtilityMethod = false;
-  private boolean requiresValuesUtilityMethod = false;
 
   EnumUnboxingRewriter(AppView<AppInfoWithLiveness> appView, Set<DexType> enumsToUnbox) {
     this.appView = appView;
@@ -83,16 +82,28 @@ public class EnumUnboxingRewriter {
     }
     this.enumsToUnbox = builder.build();
 
+    // Custom methods for java.lang.Enum methods ordinal, equals and compareTo.
     this.ordinalUtilityMethod =
         factory.createMethod(
             factory.enumUnboxingUtilityType,
             factory.createProto(factory.intType, factory.intType),
-            ENUM_UNBOXING_UTILITY_ORDINAL);
+            ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "ordinal");
+    this.equalsUtilityMethod =
+        factory.createMethod(
+            factory.enumUnboxingUtilityType,
+            factory.createProto(factory.booleanType, factory.intType, factory.intType),
+            ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "equals");
+    this.compareToUtilityMethod =
+        factory.createMethod(
+            factory.enumUnboxingUtilityType,
+            factory.createProto(factory.intType, factory.intType, factory.intType),
+            ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "compareTo");
+    // Custom methods for generated field $VALUES initialization.
     this.valuesUtilityMethod =
         factory.createMethod(
             factory.enumUnboxingUtilityType,
             factory.createProto(factory.intArrayType, factory.intType),
-            ENUM_UNBOXING_UTILITY_VALUES);
+            ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "values");
   }
 
   public EnumValueInfoMapCollection getEnumsToUnbox() {
@@ -119,17 +130,23 @@ public class EnumUnboxingRewriter {
         DexType enumType = getEnumTypeOrNull(invokeMethod.getReceiver(), convertedEnums);
         if (enumType != null) {
           if (invokedMethod == factory.enumMethods.ordinal) {
-            instruction =
-                new InvokeStatic(
-                    ordinalUtilityMethod, invokeMethod.outValue(), invokeMethod.inValues());
-            iterator.replaceCurrentInstruction(instruction);
-            requiresOrdinalUtilityMethod = true;
+            replaceEnumInvoke(
+                iterator, invokeMethod, ordinalUtilityMethod, m -> synthesizeOrdinalMethod());
+            continue;
+          } else if (invokedMethod == factory.enumMethods.equals) {
+            replaceEnumInvoke(
+                iterator, invokeMethod, equalsUtilityMethod, m -> synthesizeEqualsMethod());
+            continue;
+          } else if (invokedMethod == factory.enumMethods.compareTo) {
+            replaceEnumInvoke(
+                iterator, invokeMethod, compareToUtilityMethod, m -> synthesizeCompareToMethod());
             continue;
           } else if (invokedMethod == factory.enumMethods.name
               || invokedMethod == factory.enumMethods.toString) {
             DexMethod toStringMethod = computeDefaultToStringUtilityMethod(enumType);
             iterator.replaceCurrentInstruction(
-                new InvokeStatic(toStringMethod, invokeMethod.outValue(), invokeMethod.inValues()));
+                new InvokeStatic(
+                    toStringMethod, invokeMethod.outValue(), invokeMethod.arguments()));
             continue;
           }
         }
@@ -175,11 +192,12 @@ public class EnumUnboxingRewriter {
           affectedPhis.addAll(staticGet.outValue().uniquePhiUsers());
           EnumValueInfo enumValueInfo = enumValueInfoMap.getEnumValueInfo(staticGet.getField());
           if (enumValueInfo == null && staticGet.getField().name == factory.enumValuesFieldName) {
-            requiresValuesUtilityMethod = true;
+            utilityMethods.computeIfAbsent(
+                valuesUtilityMethod, m -> synthesizeValuesUtilityMethod());
             DexField fieldValues = createValuesField(holder);
             extraUtilityFields.computeIfAbsent(fieldValues, this::computeValuesEncodedField);
             DexMethod methodValues = createValuesMethod(holder);
-            extraUtilityMethods.computeIfAbsent(
+            utilityMethods.computeIfAbsent(
                 methodValues,
                 m -> computeValuesEncodedMethod(m, fieldValues, enumValueInfoMap.size()));
             Value rewrittenOutValue =
@@ -213,6 +231,17 @@ public class EnumUnboxingRewriter {
     }
     assert code.isConsistentSSABeforeTypesAreCorrect();
     return affectedPhis;
+  }
+
+  private void replaceEnumInvoke(
+      InstructionListIterator iterator,
+      InvokeMethodWithReceiver invokeMethod,
+      DexMethod method,
+      Function<DexMethod, DexEncodedMethod> synthesizor) {
+    utilityMethods.computeIfAbsent(method, synthesizor);
+    Instruction instruction =
+        new InvokeStatic(method, invokeMethod.outValue(), invokeMethod.arguments());
+    iterator.replaceCurrentInstruction(instruction);
   }
 
   private boolean validateArrayAccess(ArrayAccess arrayAccess) {
@@ -286,7 +315,7 @@ public class EnumUnboxingRewriter {
             factory.enumUnboxingUtilityType,
             factory.createProto(factory.intType, factory.stringType),
             "valueOf" + compatibleName(type));
-    extraUtilityMethods.computeIfAbsent(valueOf, m -> synthesizeValueOfUtilityMethod(m, type));
+    utilityMethods.computeIfAbsent(valueOf, m -> synthesizeValueOfUtilityMethod(m, type));
     return valueOf;
   }
 
@@ -297,7 +326,7 @@ public class EnumUnboxingRewriter {
             factory.enumUnboxingUtilityType,
             factory.createProto(factory.stringType, factory.intType),
             "toString" + compatibleName(type));
-    extraUtilityMethods.computeIfAbsent(toString, m -> synthesizeToStringUtilityMethod(m, type));
+    utilityMethods.computeIfAbsent(toString, m -> synthesizeToStringUtilityMethod(m, type));
     return toString;
   }
 
@@ -323,16 +352,9 @@ public class EnumUnboxingRewriter {
       throws ExecutionException {
     // Synthesize a class which holds various utility methods that may be called from the IR
     // rewriting. If any of these methods are not used, they will be removed by the Enqueuer.
-    List<DexEncodedMethod> requiredMethods = new ArrayList<>(extraUtilityMethods.values());
+    List<DexEncodedMethod> requiredMethods = new ArrayList<>(utilityMethods.values());
     // Sort for deterministic order.
     requiredMethods.sort((m1, m2) -> m1.method.name.slowCompareTo(m2.method.name));
-    if (requiresOrdinalUtilityMethod) {
-      requiredMethods.add(synthesizeOrdinalMethod());
-    }
-    if (requiresValuesUtilityMethod) {
-      requiredMethods.add(synthesizeValuesUtilityMethod());
-    }
-    // TODO(b/147860220): synthesize also other enum methods.
     if (requiredMethods.isEmpty()) {
       return;
     }
@@ -410,6 +432,19 @@ public class EnumUnboxingRewriter {
     CfCode cfCode =
         EnumUnboxingCfMethods.EnumUnboxingMethods_ordinal(appView.options(), ordinalUtilityMethod);
     return synthesizeUtilityMethod(cfCode, ordinalUtilityMethod, false);
+  }
+
+  private DexEncodedMethod synthesizeEqualsMethod() {
+    CfCode cfCode =
+        EnumUnboxingCfMethods.EnumUnboxingMethods_equals(appView.options(), equalsUtilityMethod);
+    return synthesizeUtilityMethod(cfCode, equalsUtilityMethod, false);
+  }
+
+  private DexEncodedMethod synthesizeCompareToMethod() {
+    CfCode cfCode =
+        EnumUnboxingCfMethods.EnumUnboxingMethods_compareTo(
+            appView.options(), compareToUtilityMethod);
+    return synthesizeUtilityMethod(cfCode, compareToUtilityMethod, false);
   }
 
   private DexEncodedMethod synthesizeValuesUtilityMethod() {

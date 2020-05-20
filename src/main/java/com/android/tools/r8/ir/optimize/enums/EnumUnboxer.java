@@ -446,14 +446,12 @@ public class EnumUnboxer implements PostOptimization {
       if (dexClass.type != factory.enumType) {
         return Reason.UNSUPPORTED_LIBRARY_CALL;
       }
-      // TODO(b/147860220): Methods toString(), name(), compareTo(), EnumSet and EnumMap may
-      // be interesting to model. A the moment rewrite only Enum#ordinal() and Enum#valueOf.
-      if (debugLogEnabled) {
-        if (singleTarget == factory.enumMethods.compareTo) {
-          return Reason.COMPARE_TO_INVOKE;
-        }
-      }
-      if (singleTarget == factory.enumMethods.name) {
+      // TODO(b/147860220): EnumSet and EnumMap may be interesting to model.
+      if (singleTarget == factory.enumMethods.compareTo) {
+        return Reason.ELIGIBLE;
+      } else if (singleTarget == factory.enumMethods.equals) {
+        return Reason.ELIGIBLE;
+      } else if (singleTarget == factory.enumMethods.name) {
         return Reason.ELIGIBLE;
       } else if (singleTarget == factory.enumMethods.toString) {
         return Reason.ELIGIBLE;

@@ -374,7 +374,7 @@ public class R8InliningTest extends TestBase {
               .getMethod()
               .name
               .toString()
-              .equals(EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_ORDINAL)) {
+              .startsWith(EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_METHOD_PREFIX)) {
         ++invokeCount;
       }
     }
