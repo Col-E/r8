@@ -12,7 +12,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.position.Position;
-import com.google.common.collect.ObjectArrays;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Paths;
@@ -98,10 +97,6 @@ public abstract class ExceptionUtils {
       suppressed.add(innerMostCause);
       innerMostCause = innerMostCause.getCause();
     }
-    // Add the full stack as a suppressed stack on the inner cause.
-    if (topMostException != innerMostCause) {
-      innerMostCause.addSuppressed(topMostException);
-    }
 
     // If no abort is seen, the exception is not reported, so report it now.
     if (!hasBeenReported) {
@@ -121,9 +116,10 @@ public abstract class ExceptionUtils {
         new CompilationFailedException(message.toString(), innerMostCause);
     // Replace its stack by the cause stack and insert version info at the top.
     String filename = "Version_" + Version.LABEL + ".java";
-    StackTraceElement versionElement =
-        new StackTraceElement(Version.class.getSimpleName(), "fakeStackEntry", filename, 0);
-    rethrow.setStackTrace(ObjectArrays.concat(versionElement, rethrow.getStackTrace()));
+    rethrow.setStackTrace(
+        new StackTraceElement[] {
+          new StackTraceElement(Version.class.getSimpleName(), "fakeStackEntry", filename, 0)
+        });
     return rethrow;
   }
 

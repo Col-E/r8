@@ -5,6 +5,7 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.errors.Unreachable;
 
 public class Reporter implements DiagnosticsHandler {
 
@@ -55,13 +56,14 @@ public class Reporter implements DiagnosticsHandler {
    */
   public RuntimeException fatalError(Diagnostic error) {
     error(error);
-    throw abort;
+    failIfPendingErrors();
+    throw new Unreachable();
   }
 
   /** @throws AbortException if any error was reported. */
   public synchronized void failIfPendingErrors() {
     if (abort != null) {
-      throw new RuntimeException(abort);
+      throw abort;
     }
   }
 }
