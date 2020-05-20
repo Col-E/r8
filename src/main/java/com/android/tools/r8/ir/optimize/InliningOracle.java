@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
@@ -23,12 +24,14 @@ public interface InliningOracle {
 
   boolean passesInliningConstraints(
       InvokeMethod invoke,
+      SingleResolutionResult resolutionResult,
       ProgramMethod candidate,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 
   InlineAction computeInlining(
       InvokeMethod invoke,
+      SingleResolutionResult resolutionResult,
       ProgramMethod singleTarget,
       ProgramMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,

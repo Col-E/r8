@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -113,6 +114,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   @Override
   public boolean passesInliningConstraints(
       InvokeMethod invoke,
+      SingleResolutionResult resolutionResult,
       ProgramMethod singleTarget,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
@@ -167,7 +169,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     // Abort inlining attempt if method -> target access is not right.
-    if (!inliner.hasInliningAccess(method, singleTarget)) {
+    if (resolutionResult.isAccessibleFrom(method, appView.appInfo()).isPossiblyFalse()) {
       whyAreYouNotInliningReporter.reportInaccessible();
       return false;
     }
@@ -254,6 +256,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   @Override
   public InlineAction computeInlining(
       InvokeMethod invoke,
+      SingleResolutionResult resolutionResult,
       ProgramMethod singleTarget,
       ProgramMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,
@@ -277,7 +280,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return null;
     }
 
-    if (!passesInliningConstraints(invoke, singleTarget, reason, whyAreYouNotInliningReporter)) {
+    if (!passesInliningConstraints(
+        invoke, resolutionResult, singleTarget, reason, whyAreYouNotInliningReporter)) {
       return null;
     }
 

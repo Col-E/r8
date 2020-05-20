@@ -41,6 +41,8 @@ public abstract class InvokeMethod extends Invoke {
     this.method = target;
   }
 
+  public abstract boolean getInterfaceBit();
+
   @Override
   public DexType getReturnType() {
     return method.proto.returnType;

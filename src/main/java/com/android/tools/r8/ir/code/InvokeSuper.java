@@ -24,11 +24,16 @@ import java.util.List;
 
 public class InvokeSuper extends InvokeMethodWithReceiver {
 
-  public final boolean itf;
+  public final boolean isInterface;
 
-  public InvokeSuper(DexMethod target, Value result, List<Value> arguments, boolean itf) {
+  public InvokeSuper(DexMethod target, Value result, List<Value> arguments, boolean isInterface) {
     super(target, result, arguments);
-    this.itf = itf;
+    this.isInterface = isInterface;
+  }
+
+  @Override
+  public boolean getInterfaceBit() {
+    return isInterface;
   }
 
   @Override
@@ -77,7 +82,8 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvoke(org.objectweb.asm.Opcodes.INVOKESPECIAL, getInvokedMethod(), itf));
+    builder.add(
+        new CfInvoke(org.objectweb.asm.Opcodes.INVOKESPECIAL, getInvokedMethod(), isInterface));
   }
 
   @Override

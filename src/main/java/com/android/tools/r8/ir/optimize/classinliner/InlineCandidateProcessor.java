@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -282,6 +283,16 @@ final class InlineCandidateProcessor {
 
         if (user.isInvokeMethod()) {
           InvokeMethod invokeMethod = user.asInvokeMethod();
+          SingleResolutionResult resolutionResult =
+              appView
+                  .appInfo()
+                  .resolveMethod(invokeMethod.getInvokedMethod(), invokeMethod.getInterfaceBit())
+                  .asSingleResolution();
+          if (resolutionResult == null) {
+            return user; // Not eligible.
+          }
+
+          // TODO(b/156853206): Avoid duplicating resolution.
           DexEncodedMethod singleTargetMethod = invokeMethod.lookupSingleTarget(appView, method);
           if (singleTargetMethod == null) {
             return user; // Not eligible.
@@ -321,7 +332,7 @@ final class InlineCandidateProcessor {
             InvokeMethodWithReceiver invoke = user.asInvokeMethodWithReceiver();
             InliningInfo inliningInfo =
                 isEligibleDirectVirtualMethodCall(
-                    invoke, singleTarget, indirectUsers, defaultOracle);
+                    invoke, resolutionResult, singleTarget, indirectUsers, defaultOracle);
             if (inliningInfo != null) {
               methodCallsOnInstance.put(invoke, inliningInfo);
               continue;
@@ -879,6 +890,7 @@ final class InlineCandidateProcessor {
 
   private InliningInfo isEligibleDirectVirtualMethodCall(
       InvokeMethodWithReceiver invoke,
+      SingleResolutionResult resolutionResult,
       ProgramMethod singleTarget,
       Set<Instruction> indirectUsers,
       Supplier<InliningOracle> defaultOracle) {
@@ -896,7 +908,11 @@ final class InlineCandidateProcessor {
     if (singleTarget.getDefinition().isLibraryMethodOverride().isTrue()) {
       InliningOracle inliningOracle = defaultOracle.get();
       if (!inliningOracle.passesInliningConstraints(
-          invoke, singleTarget, Reason.SIMPLE, NopWhyAreYouNotInliningReporter.getInstance())) {
+          invoke,
+          resolutionResult,
+          singleTarget,
+          Reason.SIMPLE,
+          NopWhyAreYouNotInliningReporter.getInstance())) {
         return null;
       }
     }
@@ -920,13 +936,16 @@ final class InlineCandidateProcessor {
       Pair<Type, DexMethod> invokeInfo = eligibility.callsReceiver.get(0);
       Type invokeType = invokeInfo.getFirst();
       DexMethod indirectlyInvokedMethod = invokeInfo.getSecond();
-      ResolutionResult resolutionResult =
-          appView.appInfo().resolveMethodOn(eligibleClass, indirectlyInvokedMethod);
-      if (!resolutionResult.isSingleResolution()) {
+      SingleResolutionResult indirectResolutionResult =
+          appView
+              .appInfo()
+              .resolveMethodOn(eligibleClass, indirectlyInvokedMethod)
+              .asSingleResolution();
+      if (indirectResolutionResult == null) {
         return null;
       }
       ProgramMethod indirectSingleTarget =
-          resolutionResult.asSingleResolution().getResolutionPair().asProgramMethod();
+          indirectResolutionResult.getResolutionPair().asProgramMethod();
       if (!isEligibleIndirectVirtualMethodCall(
           indirectlyInvokedMethod, invokeType, indirectSingleTarget)) {
         return null;
@@ -1195,24 +1214,28 @@ final class InlineCandidateProcessor {
         return false;
       }
 
+      SingleResolutionResult resolutionResult =
+          appView
+              .appInfo()
+              .resolveMethod(invoke.getInvokedMethod(), invoke.getInterfaceBit())
+              .asSingleResolution();
+      if (resolutionResult == null) {
+        return false;
+      }
+
       // Check if the method is inline-able by standard inliner.
-      DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method);
+      // TODO(b/156853206): Should not duplicate resolution.
+      ProgramMethod singleTarget = invoke.lookupSingleProgramTarget(appView, method);
       if (singleTarget == null) {
         return false;
       }
-
-      DexProgramClass holder = asProgramClassOrNull(appView.definitionForHolder(singleTarget));
-      if (holder == null) {
-        return false;
-      }
-
-      ProgramMethod singleTargetMethod = new ProgramMethod(holder, singleTarget);
 
       InliningOracle oracle = defaultOracle.get();
       InlineAction inlineAction =
           oracle.computeInlining(
               invoke,
-              singleTargetMethod,
+              resolutionResult,
+              singleTarget,
               method,
               ClassInitializationAnalysis.trivial(),
               NopWhyAreYouNotInliningReporter.getInstance());

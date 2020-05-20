@@ -31,6 +31,11 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   }
 
   @Override
+  public boolean getInterfaceBit() {
+    return true;
+  }
+
+  @Override
   public int opcode() {
     return Opcodes.INVOKE_INTERFACE;
   }

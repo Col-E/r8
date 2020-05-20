@@ -29,15 +29,15 @@ import java.util.function.Predicate;
 
 public class InvokeDirect extends InvokeMethodWithReceiver {
 
-  private final boolean itf;
+  private final boolean isInterface;
 
   public InvokeDirect(DexMethod target, Value result, List<Value> arguments) {
     this(target, result, arguments, false);
   }
 
-  public InvokeDirect(DexMethod target, Value result, List<Value> arguments, boolean itf) {
+  public InvokeDirect(DexMethod target, Value result, List<Value> arguments, boolean isInterface) {
     super(target, result, arguments);
-    this.itf = itf;
+    this.isInterface = isInterface;
     // invoke-direct <init> should have no out value.
     assert !target.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)
         || result == null;
@@ -48,8 +48,9 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
     return Opcodes.INVOKE_DIRECT;
   }
 
-  public boolean isInterface() {
-    return itf;
+  @Override
+  public boolean getInterfaceBit() {
+    return isInterface;
   }
 
   @Override
@@ -145,7 +146,8 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvoke(org.objectweb.asm.Opcodes.INVOKESPECIAL, getInvokedMethod(), itf));
+    builder.add(
+        new CfInvoke(org.objectweb.asm.Opcodes.INVOKESPECIAL, getInvokedMethod(), isInterface));
   }
 
   @Override

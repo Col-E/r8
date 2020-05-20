@@ -43,6 +43,11 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
+  public boolean getInterfaceBit() {
+    return isInterface;
+  }
+
+  @Override
   public int opcode() {
     return Opcodes.INVOKE_STATIC;
   }

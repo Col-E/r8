@@ -32,6 +32,11 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
+  public boolean getInterfaceBit() {
+    return false;
+  }
+
+  @Override
   public int opcode() {
     return Opcodes.INVOKE_VIRTUAL;
   }

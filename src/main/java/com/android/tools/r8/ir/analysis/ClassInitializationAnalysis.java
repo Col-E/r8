@@ -388,7 +388,7 @@ public class ClassInitializationAnalysis {
         return false;
       }
       ResolutionResult resolutionResult =
-          appView.appInfo().resolveMethodOn(superType, method, instruction.itf);
+          appView.appInfo().resolveMethodOn(superType, method, instruction.isInterface);
       if (!resolutionResult.isSingleResolution()) {
         return false;
       }

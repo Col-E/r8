@@ -57,7 +57,7 @@ public class NestUtils {
           assert encodedMethod.isPrivateMethod();
           // Call to private method which has now to be interface/virtual
           // (Now call to nest member private method).
-          if (invoke.isInterface()) {
+          if (invoke.getInterfaceBit()) {
             iterator.replaceCurrentInstruction(
                 new InvokeInterface(method, invoke.outValue(), invoke.inValues()));
           } else {
