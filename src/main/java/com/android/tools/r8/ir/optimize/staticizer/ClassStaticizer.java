@@ -40,7 +40,6 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -103,7 +102,7 @@ public final class ClassStaticizer {
   }
 
   final Map<CandidateInfo, LongLivedProgramMethodSetBuilder<?>> referencedFrom =
-      new IdentityHashMap<>();
+      new ConcurrentHashMap<>();
 
   // The map storing all the potential candidates for staticizing.
   final ConcurrentHashMap<DexType, CandidateInfo> candidates = new ConcurrentHashMap<>();
