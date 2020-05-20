@@ -34,7 +34,6 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
@@ -477,7 +476,6 @@ public class UninstantiatedTypeOptimization {
         if (argument.isAlwaysNull(appView) && facts.get(i)) {
           instructionIterator.replaceCurrentInstructionWithThrowNull(
               appView, code, blockIterator, blocksToBeRemoved, affectedValues);
-          ++numberOfInvokesWithNullArgument;
           return;
         }
       }
