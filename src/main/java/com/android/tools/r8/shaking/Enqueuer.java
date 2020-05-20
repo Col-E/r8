@@ -242,6 +242,9 @@ public class Enqueuer {
   /** Set of types that were found to be missing during the first round of tree shaking. */
   private Set<DexType> initialMissingTypes;
 
+  /** Set of types that was pruned during the first round of tree shaking. */
+  private Set<DexType> initialPrunedTypes;
+
   /** Mapping from each unused interface to the set of live types that implements the interface. */
   private final Map<DexProgramClass, Set<DexProgramClass>> unusedInterfaceTypes =
       new IdentityHashMap<>();
@@ -446,6 +449,11 @@ public class Enqueuer {
   public void setInitialMissingTypes(Set<DexType> initialMissingTypes) {
     assert mode.isFinalTreeShaking();
     this.initialMissingTypes = initialMissingTypes;
+  }
+
+  public void setInitialPrunedTypes(Set<DexType> initialPrunedTypes) {
+    assert mode.isFinalTreeShaking();
+    this.initialPrunedTypes = initialPrunedTypes;
   }
 
   public void addDeadProtoTypeCandidate(DexType type) {
@@ -2878,13 +2886,12 @@ public class Enqueuer {
 
     // Verify the references on the pruned application after type synthesis.
     assert verifyReferences(app);
+    assert verifyMissingTypes();
 
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             app,
             SetUtils.mapIdentityHashSet(deadProtoTypeCandidates, DexProgramClass::getType),
-            // TODO(b/155959821): We should be able to assert that missing types is a subset of
-            //   initialMissingTypes + synthesized types.
             mode.isFinalTreeShaking()
                 ? Sets.union(initialMissingTypes, missingTypes)
                 : missingTypes,
@@ -2957,6 +2964,22 @@ public class Enqueuer {
                 liveMethods.add(accessor, graphReporter.fakeReportShouldNotBeUsed());
               }
             });
+  }
+
+  private boolean verifyMissingTypes() {
+    if (initialMissingTypes == null) {
+      assert !mode.isFinalTreeShaking();
+      return true;
+    }
+    missingTypes.forEach(
+        missingType -> {
+          assert initialMissingTypes.contains(missingType)
+                  // TODO(b/157107464): See if we can clean this up.
+                  || initialPrunedTypes.contains(missingType)
+                  || missingType.isD8R8SynthesizedClassType()
+              : missingType;
+        });
+    return true;
   }
 
   private boolean verifyReferences(DexApplication app) {

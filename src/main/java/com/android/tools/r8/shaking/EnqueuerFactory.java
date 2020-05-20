@@ -23,12 +23,14 @@ public class EnqueuerFactory {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer,
-      Set<DexType> initialMissingTypes) {
+      Set<DexType> initialMissingTypes,
+      Set<DexType> initialPrunedTypes) {
     Enqueuer enqueuer =
         new Enqueuer(appView, subtypingInfo, keptGraphConsumer, Mode.FINAL_TREE_SHAKING);
     appView.withProtoShrinker(
         shrinker -> enqueuer.setInitialDeadProtoTypes(shrinker.getDeadProtoTypes()));
     enqueuer.setInitialMissingTypes(initialMissingTypes);
+    enqueuer.setInitialPrunedTypes(initialPrunedTypes);
     return enqueuer;
   }
 

@@ -684,7 +684,8 @@ public class R8 {
                   appView,
                   new SubtypingInfo(application.allClasses(), application),
                   keptGraphConsumer,
-                  missingClasses);
+                  missingClasses,
+                  prunedTypes);
           appView.setAppInfo(
               enqueuer
                   .traceApplication(
