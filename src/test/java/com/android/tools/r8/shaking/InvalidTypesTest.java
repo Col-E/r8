@@ -337,7 +337,8 @@ public class InvalidTypesTest extends JasminTestBase {
         return StringUtils.joinLines("Hello!", "Unexpected outcome of checkcast", "Goodbye!", "");
       } else if (compiler == Compiler.DX || compiler == Compiler.D8) {
         if (parameters.getRuntime().asDex().getVm().getVersion() == Version.V4_0_4
-            || parameters.getRuntime().asDex().getVm().getVersion() == Version.V4_4_4) {
+            || parameters.getRuntime().asDex().getVm().getVersion() == Version.V4_4_4
+            || parameters.getRuntime().asDex().getVm().getVersion() == Version.V10_0_0) {
           return StringUtils.joinLines("Hello!", "Goodbye!", "");
         } else if (parameters.getRuntime().asDex().getVm().getVersion() == Version.V7_0_0) {
           return StringUtils.joinLines(
