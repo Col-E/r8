@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayAccess;
+import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -46,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -104,6 +106,7 @@ public class EnumUnboxingRewriter {
       return Sets.newIdentityHashSet();
     }
     assert code.isConsistentSSABeforeTypesAreCorrect();
+    Map<Instruction, DexType> convertedEnums = new IdentityHashMap<>();
     Set<Phi> affectedPhis = Sets.newIdentityHashSet();
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
@@ -113,14 +116,22 @@ public class EnumUnboxingRewriter {
       if (instruction.isInvokeMethodWithReceiver()) {
         InvokeMethodWithReceiver invokeMethod = instruction.asInvokeMethodWithReceiver();
         DexMethod invokedMethod = invokeMethod.getInvokedMethod();
-        if (invokedMethod == factory.enumMethods.ordinal
-            && isEnumToUnboxOrInt(invokeMethod.getReceiver().getType())) {
-          instruction =
-              new InvokeStatic(
-                  ordinalUtilityMethod, invokeMethod.outValue(), invokeMethod.inValues());
-          iterator.replaceCurrentInstruction(instruction);
-          requiresOrdinalUtilityMethod = true;
-          continue;
+        DexType enumType = getEnumTypeOrNull(invokeMethod.getReceiver(), convertedEnums);
+        if (enumType != null) {
+          if (invokedMethod == factory.enumMethods.ordinal) {
+            instruction =
+                new InvokeStatic(
+                    ordinalUtilityMethod, invokeMethod.outValue(), invokeMethod.inValues());
+            iterator.replaceCurrentInstruction(instruction);
+            requiresOrdinalUtilityMethod = true;
+            continue;
+          } else if (invokedMethod == factory.enumMethods.name
+              || invokedMethod == factory.enumMethods.toString) {
+            DexMethod toStringMethod = computeDefaultToStringUtilityMethod(enumType);
+            iterator.replaceCurrentInstruction(
+                new InvokeStatic(toStringMethod, invokeMethod.outValue(), invokeMethod.inValues()));
+            continue;
+          }
         }
         // TODO(b/147860220): rewrite also other enum methods.
       } else if (instruction.isInvokeStatic()) {
@@ -138,11 +149,13 @@ public class EnumUnboxingRewriter {
               rewrittenOutValue = code.createValue(TypeElement.getInt());
               affectedPhis.addAll(outValue.uniquePhiUsers());
             }
-            iterator.replaceCurrentInstruction(
+            InvokeStatic invoke =
                 new InvokeStatic(
                     valueOfMethod,
                     rewrittenOutValue,
-                    Collections.singletonList(invokeStatic.inValues().get(1))));
+                    Collections.singletonList(invokeStatic.inValues().get(1)));
+            iterator.replaceCurrentInstruction(invoke);
+            convertedEnums.put(invoke, enumType);
             continue;
           }
         }
@@ -172,23 +185,28 @@ public class EnumUnboxingRewriter {
             Value rewrittenOutValue =
                 code.createValue(
                     ArrayTypeElement.create(TypeElement.getInt(), definitelyNotNull()));
-            iterator.replaceCurrentInstruction(
-                new InvokeStatic(methodValues, rewrittenOutValue, ImmutableList.of()));
+            InvokeStatic invoke =
+                new InvokeStatic(methodValues, rewrittenOutValue, ImmutableList.of());
+            iterator.replaceCurrentInstruction(invoke);
+            convertedEnums.put(invoke, holder);
           } else {
             // Replace by ordinal + 1 for null check (null is 0).
             assert enumValueInfo != null
                 : "Invalid read to " + staticGet.getField().name + ", error during enum analysis";
-            iterator.replaceCurrentInstruction(
-                code.createIntConstant(enumValueInfo.convertToInt()));
+            ConstNumber intConstant = code.createIntConstant(enumValueInfo.convertToInt());
+            iterator.replaceCurrentInstruction(intConstant);
+            convertedEnums.put(intConstant, holder);
           }
         }
       }
       // Rewrite array accesses from MyEnum[] (OBJECT) to int[] (INT).
       if (instruction.isArrayAccess()) {
         ArrayAccess arrayAccess = instruction.asArrayAccess();
-        if (shouldRewriteArrayAccess(arrayAccess)) {
+        DexType enumType = getEnumTypeOrNull(arrayAccess);
+        if (enumType != null) {
           instruction = arrayAccess.withMemberType(MemberType.INT);
           iterator.replaceCurrentInstruction(instruction);
+          convertedEnums.put(instruction, enumType);
         }
         assert validateArrayAccess(arrayAccess);
       }
@@ -209,14 +227,16 @@ public class EnumUnboxingRewriter {
     return true;
   }
 
-  private boolean isEnumToUnboxOrInt(TypeElement type) {
+  private DexType getEnumTypeOrNull(Value receiver, Map<Instruction, DexType> convertedEnums) {
+    TypeElement type = receiver.getType();
     if (type.isInt()) {
-      return true;
+      return convertedEnums.get(receiver.definition);
     }
     if (!type.isClassType()) {
-      return false;
+      return null;
     }
-    return enumsToUnbox.containsEnum(type.asClassType().getClassType());
+    DexType enumType = type.asClassType().getClassType();
+    return enumsToUnbox.containsEnum(enumType) ? enumType : null;
   }
 
   public String compatibleName(DexType type) {
@@ -270,18 +290,32 @@ public class EnumUnboxingRewriter {
     return valueOf;
   }
 
-  private boolean shouldRewriteArrayAccess(ArrayAccess arrayAccess) {
+  private DexMethod computeDefaultToStringUtilityMethod(DexType type) {
+    assert enumsToUnbox.containsEnum(type);
+    DexMethod toString =
+        factory.createMethod(
+            factory.enumUnboxingUtilityType,
+            factory.createProto(factory.stringType, factory.intType),
+            "toString" + compatibleName(type));
+    extraUtilityMethods.computeIfAbsent(toString, m -> synthesizeToStringUtilityMethod(m, type));
+    return toString;
+  }
+
+  private DexType getEnumTypeOrNull(ArrayAccess arrayAccess) {
     ArrayTypeElement arrayType = arrayAccess.array().getType().asArrayType();
     if (arrayType == null) {
       assert arrayAccess.array().getType().isNullType();
-      return false;
+      return null;
     }
     if (arrayType.getNesting() != 1) {
-      return false;
+      return null;
     }
     TypeElement baseType = arrayType.getBaseType();
-    return baseType.isClassType()
-        && enumsToUnbox.containsEnum(baseType.asClassType().getClassType());
+    if (!baseType.isClassType()) {
+      return null;
+    }
+    DexType classType = baseType.asClassType().getClassType();
+    return enumsToUnbox.containsEnum(classType) ? classType : null;
   }
 
   void synthesizeEnumUnboxingUtilityMethods(
@@ -340,6 +374,17 @@ public class EnumUnboxingRewriter {
         DexProgramClass::checksumFromType);
   }
 
+  private DexEncodedMethod synthesizeToStringUtilityMethod(DexMethod method, DexType enumType) {
+    CfCode cfCode =
+        new EnumUnboxingCfCodeProvider.EnumUnboxingDefaultToStringCfCodeProvider(
+                appView,
+                factory.enumUnboxingUtilityType,
+                enumType,
+                enumsToUnbox.getEnumValueInfoMap(enumType))
+            .generateCfCode();
+    return synthesizeUtilityMethod(cfCode, method, false);
+  }
+
   private DexEncodedMethod synthesizeValueOfUtilityMethod(DexMethod method, DexType enumType) {
     CfCode cfCode =
         new EnumUnboxingCfCodeProvider.EnumUnboxingValueOfCfCodeProvider(
@@ -348,14 +393,7 @@ public class EnumUnboxingRewriter {
                 enumType,
                 enumsToUnbox.getEnumValueInfoMap(enumType))
             .generateCfCode();
-    return new DexEncodedMethod(
-        method,
-        synthesizedMethodAccessFlags(false),
-        DexAnnotationSet.empty(),
-        ParameterAnnotationsList.empty(),
-        cfCode,
-        REQUIRED_CLASS_FILE_VERSION,
-        true);
+    return synthesizeUtilityMethod(cfCode, method, false);
   }
 
   // TODO(b/150178516): Add a test for this case.

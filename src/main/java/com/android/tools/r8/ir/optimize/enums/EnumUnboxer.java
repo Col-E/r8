@@ -452,14 +452,12 @@ public class EnumUnboxer implements PostOptimization {
         if (singleTarget == factory.enumMethods.compareTo) {
           return Reason.COMPARE_TO_INVOKE;
         }
-        if (singleTarget == factory.enumMethods.name) {
-          return Reason.NAME_INVOKE;
-        }
-        if (singleTarget == factory.enumMethods.toString) {
-          return Reason.TO_STRING_INVOKE;
-        }
       }
-      if (singleTarget == factory.enumMethods.ordinal) {
+      if (singleTarget == factory.enumMethods.name) {
+        return Reason.ELIGIBLE;
+      } else if (singleTarget == factory.enumMethods.toString) {
+        return Reason.ELIGIBLE;
+      } else if (singleTarget == factory.enumMethods.ordinal) {
         return Reason.ELIGIBLE;
       } else if (singleTarget == factory.enumMethods.constructor) {
         // Enum constructor call is allowed only if first call of an enum initializer.
@@ -664,8 +662,6 @@ public class EnumUnboxer implements PostOptimization {
     VALUE_OF_INVOKE,
     VALUES_INVOKE,
     COMPARE_TO_INVOKE,
-    TO_STRING_INVOKE,
-    NAME_INVOKE,
     UNSUPPORTED_LIBRARY_CALL,
     MISSING_INFO_MAP,
     INVALID_FIELD_PUT,

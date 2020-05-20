@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.synthetic;
 
+import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
@@ -34,6 +35,49 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
 
   EnumUnboxingCfCodeProvider(AppView<?> appView, DexType holder) {
     super(appView, holder);
+  }
+
+  public static class EnumUnboxingDefaultToStringCfCodeProvider extends EnumUnboxingCfCodeProvider {
+
+    private DexType enumType;
+    private EnumValueInfoMap map;
+
+    public EnumUnboxingDefaultToStringCfCodeProvider(
+        AppView<?> appView, DexType holder, DexType enumType, EnumValueInfoMap map) {
+      super(appView, holder);
+      this.enumType = enumType;
+      this.map = map;
+    }
+
+    @Override
+    public CfCode generateCfCode() {
+      // Generated static method, for class com.x.MyEnum {A,B} would look like:
+      // String UtilityClass#com.x.MyEnum_toString(int i) {
+      // if (i == 1) { return "A";}
+      // if (i == 2) { return "B";}
+      // throw null;
+      DexItemFactory factory = appView.dexItemFactory();
+      List<CfInstruction> instructions = new ArrayList<>();
+
+      // if (i == 1) { return "A";}
+      // if (i == 2) { return "B";}
+      map.forEach(
+          (field, enumValueInfo) -> {
+            CfLabel dest = new CfLabel();
+            instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));
+            instructions.add(new CfConstNumber(enumValueInfo.convertToInt(), ValueType.INT));
+            instructions.add(new CfIf(If.Type.EQ, ValueType.INT, dest));
+            instructions.add(new CfConstString(field.name));
+            instructions.add(new CfReturn(ValueType.OBJECT));
+            instructions.add(dest);
+          });
+
+      // throw null;
+      instructions.add(new CfConstNull());
+      instructions.add(new CfThrow());
+
+      return standardCfCodeFromInstructions(instructions);
+    }
   }
 
   public static class EnumUnboxingValueOfCfCodeProvider extends EnumUnboxingCfCodeProvider {
