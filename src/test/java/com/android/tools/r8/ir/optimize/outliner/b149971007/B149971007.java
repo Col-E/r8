@@ -9,9 +9,7 @@ import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -111,23 +109,17 @@ public class B149971007 extends SplitterTestBase {
   public void testWithSplit() throws Exception {
     Path featureCode = temp.newFile("feature.zip").toPath();
 
-    R8TestCompileResult compileResult = null;
-    try {
-      compileResult =
-          testForR8(parameters.getBackend())
-              .addProgramClasses(TestClass.class, FeatureAPI.class)
-              .addKeepClassAndMembersRules(TestClass.class)
-              .addKeepClassAndMembersRules(FeatureClass.class)
-              .setMinApi(parameters.getApiLevel())
-              .addFeatureSplit(
-                  builder -> simpleSplitProvider(builder, featureCode, temp, FeatureClass.class))
-              .addOptionsModification(options -> options.outline.threshold = 2)
-              .compile()
-              .inspect(this::checkNoOutlineFromFeature);
-      fail();
-    } catch (CompilationFailedException e) {
-      return;
-    }
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(TestClass.class, FeatureAPI.class)
+            .addKeepClassAndMembersRules(TestClass.class)
+            .addKeepClassAndMembersRules(FeatureClass.class)
+            .setMinApi(parameters.getApiLevel())
+            .addFeatureSplit(
+                builder -> simpleSplitProvider(builder, featureCode, temp, FeatureClass.class))
+            .addOptionsModification(options -> options.outline.threshold = 2)
+            .compile()
+            .inspect(this::checkNoOutlineFromFeature);
 
     // Check that parts of method1, ..., method4 in FeatureClass was not outlined.
     CodeInspector featureInspector = new CodeInspector(featureCode);

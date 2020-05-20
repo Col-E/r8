@@ -66,14 +66,11 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.ProgramMethodEquivalence;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
-import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
+import com.android.tools.r8.utils.collections.LongLivedProgramMethodMultisetBuilder;
+import com.android.tools.r8.utils.collections.ProgramMethodMultiset;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -98,10 +95,9 @@ import java.util.function.Consumer;
  *       where each list of methods corresponds to methods containing an outlining candidate.
  *   <li>Second, {@link Outliner#selectMethodsForOutlining()} is called to retain the lists of
  *       methods found in the first step that are large enough (see {@link InternalOptions#outline}
- *       {@link OutlineOptions#threshold}), and the methods to be further analyzed for outlining is
- *       returned by {@link Outliner#buildMethodsSelectedForOutlining}. Each selected method is then
- *       converted back to IR and passed to {@link Outliner#identifyOutlineSites(IRCode)}, which
- *       then stores concrete outlining candidates in {@link Outliner#outlineSites}.
+ *       {@link OutlineOptions#threshold}). Each selected method is then converted back to IR and
+ *       passed to {@link Outliner#identifyOutlineSites(IRCode)}, which then stores concrete
+ *       outlining candidates in {@link Outliner#outlineSites}.
  *   <li>Third, {@link Outliner#buildOutlinerClass(DexType)} is called to construct the <em>outline
  *       support class</em> containing a static helper method for each outline candidate that occurs
  *       frequently enough. Each selected method is then converted to IR, passed to {@link
@@ -112,10 +108,8 @@ import java.util.function.Consumer;
 public class Outliner {
 
   /** Result of first step (see {@link Outliner#createOutlineMethodIdentifierGenerator()}. */
-  private final List<Multiset<Wrapper<ProgramMethod>>> candidateMethodLists = new ArrayList<>();
-  /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
-  private final LongLivedProgramMethodSetBuilder<?> methodsSelectedForOutlining =
-      LongLivedProgramMethodSetBuilder.create();
+  private final List<LongLivedProgramMethodMultisetBuilder> candidateMethodLists =
+      new ArrayList<>();
   /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
   private final Map<Outline, List<ProgramMethod>> outlineSites = new HashMap<>();
   /** Result of third step (see {@link Outliner#buildOutlinerClass(DexType)}. */
@@ -1138,12 +1132,12 @@ public class Outliner {
   // TODO(sgjesse): This does not take several usages in the same method into account.
   private class OutlineMethodIdentifier extends OutlineSpotter {
 
-    private final Map<Outline, Multiset<Wrapper<ProgramMethod>>> candidateMap;
+    private final Map<Outline, LongLivedProgramMethodMultisetBuilder> candidateMap;
 
     OutlineMethodIdentifier(
         ProgramMethod method,
         BasicBlock block,
-        Map<Outline, Multiset<Wrapper<ProgramMethod>>> candidateMap) {
+        Map<Outline, LongLivedProgramMethodMultisetBuilder> candidateMap) {
       super(method, block);
       this.candidateMap = candidateMap;
     }
@@ -1151,14 +1145,12 @@ public class Outliner {
     @Override
     protected void handle(int start, int end, Outline outline) {
       synchronized (candidateMap) {
-        candidateMap
-            .computeIfAbsent(outline, this::addOutlineMethodList)
-            .add(ProgramMethodEquivalence.get().wrap(method));
+        candidateMap.computeIfAbsent(outline, this::addOutlineMethodList).add(method);
       }
     }
 
-    private Multiset<Wrapper<ProgramMethod>> addOutlineMethodList(Outline outline) {
-      Multiset<Wrapper<ProgramMethod>> result = HashMultiset.create();
+    private LongLivedProgramMethodMultisetBuilder addOutlineMethodList(Outline outline) {
+      LongLivedProgramMethodMultisetBuilder result = LongLivedProgramMethodMultisetBuilder.create();
       candidateMethodLists.add(result);
       return result;
     }
@@ -1284,14 +1276,19 @@ public class Outliner {
     // out-value of invokes to null), this map must not be used except for identifying methods
     // potentially relevant to outlining. OutlineMethodIdentifier will add method lists to
     // candidateMethodLists whenever it adds an entry to candidateMap.
-    Map<Outline, Multiset<Wrapper<ProgramMethod>>> candidateMap = new HashMap<>();
+    Map<Outline, LongLivedProgramMethodMultisetBuilder> candidateMap = new HashMap<>();
     assert candidateMethodLists.isEmpty();
     assert outlineMethodIdentifierGenerator == null;
     outlineMethodIdentifierGenerator =
         code -> {
-          assert !code.method().getCode().isOutlineCode();
+          ProgramMethod context = code.context();
+          assert !context.getDefinition().getCode().isOutlineCode();
+          if (appView.options().featureSplitConfiguration != null
+              && appView.options().featureSplitConfiguration.isInFeature(context.getHolder())) {
+            return;
+          }
           for (BasicBlock block : code.blocks) {
-            new OutlineMethodIdentifier(code.context(), block, candidateMap).process();
+            new OutlineMethodIdentifier(context, block, candidateMap).process();
           }
         };
   }
@@ -1304,31 +1301,26 @@ public class Outliner {
   }
 
   public void identifyOutlineSites(IRCode code) {
-    assert !code.method().getCode().isOutlineCode();
-    DexProgramClass clazz = code.context().getHolder();
-    if (appView.options().featureSplitConfiguration != null
-        && appView.options().featureSplitConfiguration.isInFeature(clazz)) {
-      return;
-    }
+    ProgramMethod context = code.context();
+    assert !context.getDefinition().getCode().isOutlineCode();
+    assert appView.options().featureSplitConfiguration == null
+        || !appView.options().featureSplitConfiguration.isInFeature(context.getHolder());
     for (BasicBlock block : code.blocks) {
-      new OutlineSiteIdentifier(code.context(), block).process();
+      new OutlineSiteIdentifier(context, block).process();
     }
   }
 
-  public boolean selectMethodsForOutlining() {
-    assert methodsSelectedForOutlining.isEmpty();
+  public ProgramMethodSet selectMethodsForOutlining() {
+    ProgramMethodSet methodsSelectedForOutlining = ProgramMethodSet.create();
     assert outlineSites.isEmpty();
-    for (Multiset<Wrapper<ProgramMethod>> outlineMethods : candidateMethodLists) {
+    for (LongLivedProgramMethodMultisetBuilder outlineMethods : candidateMethodLists) {
       if (outlineMethods.size() >= appView.options().outline.threshold) {
-        outlineMethods.forEach(wrapper -> methodsSelectedForOutlining.add(wrapper.get()));
+        ProgramMethodMultiset multiset = outlineMethods.build(appView);
+        multiset.forEachEntry((method, ignore) -> methodsSelectedForOutlining.add(method));
       }
     }
     candidateMethodLists.clear();
-    return !methodsSelectedForOutlining.isEmpty();
-  }
-
-  public ProgramMethodSet buildMethodsSelectedForOutlining() {
-    return methodsSelectedForOutlining.build(appView);
+    return methodsSelectedForOutlining;
   }
 
   public DexProgramClass buildOutlinerClass(DexType type) {

@@ -797,8 +797,10 @@ public class IRConverter {
     if (outliner != null) {
       printPhase("Outlining");
       timing.begin("IR conversion phase 3");
-      if (outliner.selectMethodsForOutlining()) {
+      ProgramMethodSet methodsSelectedForOutlining = outliner.selectMethodsForOutlining();
+      if (!methodsSelectedForOutlining.isEmpty()) {
         forEachSelectedOutliningMethod(
+            methodsSelectedForOutlining,
             code -> {
               printMethod(code, "IR before outlining (SSA)", null);
               outliner.identifyOutlineSites(code);
@@ -808,6 +810,7 @@ public class IRConverter {
         appView.appInfo().addSynthesizedClass(outlineClass);
         optimizeSynthesizedClass(outlineClass, executorService);
         forEachSelectedOutliningMethod(
+            methodsSelectedForOutlining,
             code -> {
               outliner.applyOutliningCandidate(code);
               printMethod(code, "IR after outlining (SSA)", null);
@@ -898,11 +901,13 @@ public class IRConverter {
   }
 
   private void forEachSelectedOutliningMethod(
-      Consumer<IRCode> consumer, ExecutorService executorService)
+      ProgramMethodSet methodsSelectedForOutlining,
+      Consumer<IRCode> consumer,
+      ExecutorService executorService)
       throws ExecutionException {
     assert !options.skipIR;
     ThreadUtils.processItems(
-        outliner.buildMethodsSelectedForOutlining(),
+        methodsSelectedForOutlining,
         method -> {
           IRCode code = method.buildIR(appView);
           assert code != null;
