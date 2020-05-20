@@ -565,6 +565,13 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
   if options.r8_flags:
     args.extend(options.r8_flags.split(' '))
 
+  # Feature jars.
+  features = values['features'] if 'features' in values else []
+  for i, feature in enumerate(features, start=1):
+    feature_out = os.path.join(outdir, 'feature-%d.zip' % i)
+    for feature_jar in feature['inputs']:
+      args.extend(['--feature', feature_jar, feature_out])
+
   args.extend(inputs)
 
   t0 = time.time()
