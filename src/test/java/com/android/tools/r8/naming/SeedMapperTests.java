@@ -52,7 +52,7 @@ public class SeedMapperTests extends TestBase {
     try {
       SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
       fail("Should have thrown an error");
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       assertEquals(1, testDiagnosticMessages.getErrors().size());
       Diagnostic diagnostic = testDiagnosticMessages.getErrors().get(0);
       assertEquals(
@@ -75,7 +75,7 @@ public class SeedMapperTests extends TestBase {
     try {
       SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
       fail("Should have thrown an error");
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       assertEquals(1, testDiagnosticMessages.getErrors().size());
       Diagnostic diagnostic = testDiagnosticMessages.getErrors().get(0);
       assertEquals(
@@ -98,7 +98,7 @@ public class SeedMapperTests extends TestBase {
     try {
       SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
       fail("Should have thrown an error");
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       assertEquals(1, testDiagnosticMessages.getErrors().size());
       Diagnostic diagnostic = testDiagnosticMessages.getErrors().get(0);
       assertEquals(
@@ -116,7 +116,7 @@ public class SeedMapperTests extends TestBase {
     try {
       SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
       fail("Should have thrown an error");
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       assertEquals(1, testDiagnosticMessages.getErrors().size());
       Diagnostic diagnostic = testDiagnosticMessages.getErrors().get(0);
       assertEquals(

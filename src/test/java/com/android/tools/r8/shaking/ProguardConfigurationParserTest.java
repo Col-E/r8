@@ -766,7 +766,7 @@ public class ProguardConfigurationParserTest extends TestBase {
           new ProguardConfigurationParser(new DexItemFactory(), reporter);
       parser.parse(path);
       fail("Expect to fail due to the lack of file name.");
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       checkDiagnostics(handler.errors, path, 6, 14, "File name expected");
     }
   }
@@ -795,7 +795,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       new ProguardConfigurationParser(new DexItemFactory(), reporter)
           .parse(path);
       fail();
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       checkDiagnostics(handler.errors, path, 6, 10,"does-not-exist.flags");
     }
   }
@@ -807,7 +807,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       new ProguardConfigurationParser(new DexItemFactory(), reporter)
           .parse(path);
       fail();
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       checkDiagnostics(handler.errors, path, 6,2, "does-not-exist.flags");
     }
   }
@@ -832,7 +832,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(createConfigurationForTesting(
           Collections.singletonList("-injars abc.jar(*.zip;*.class)")));
       fail();
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       assertEquals(1, handler.errors.size());
     }
   }
@@ -1026,7 +1026,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       reset();
       parser.parse(createConfigurationForTesting(ImmutableList.of(option)));
       fail("Expect to fail due to unsupported option.");
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       checkDiagnostics(handler.errors, null, 1, 1, "Unsupported option", option);
     }
   }
@@ -1427,7 +1427,7 @@ public class ProguardConfigurationParserTest extends TestBase {
           new ProguardConfigurationParser(new DexItemFactory(), reporter);
       parser.parse(createConfigurationForTesting(ImmutableList.of("-keepattributes xxx,")));
       fail();
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       assertTrue(
           handler.errors.get(0).getDiagnosticMessage().contains("Expected list element at "));
     }
@@ -1613,7 +1613,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         reset();
         parser.parse(createConfigurationForTesting(ImmutableList.of(option + " ,")));
         fail("Expect to fail due to the lack of path filter.");
-      } catch (AbortException e) {
+      } catch (RuntimeException e) {
         checkDiagnostics(handler.errors, null, 1, option.length() + 2, "Path filter expected");
       }
     }
@@ -1628,7 +1628,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         reset();
         parser.parse(createConfigurationForTesting(ImmutableList.of(option + " xxx,,yyy")));
         fail("Expect to fail due to the lack of path filter.");
-      } catch (AbortException e) {
+      } catch (RuntimeException e) {
         checkDiagnostics(handler.errors, null, 1, option.length() + 6, "Path filter expected");
       }
     }
@@ -1643,7 +1643,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         reset();
         parser.parse(createConfigurationForTesting(ImmutableList.of(option + " xxx,")));
         fail("Expect to fail due to the lack of path filter.");
-      } catch (AbortException e) {
+      } catch (RuntimeException e) {
         checkDiagnostics(handler.errors, null, 1, option.length() + 6, "Path filter expected");
       }
     }
@@ -1819,7 +1819,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     try {
       parser.parse(proguardConfig);
       fail("Expect to fail due to unsupported constructor name pattern.");
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       checkDiagnostics(
           handler.errors, proguardConfig, 5, 3, "Unexpected character", "method name");
     }
@@ -2501,7 +2501,7 @@ public class ProguardConfigurationParserTest extends TestBase {
     try {
       parser.parse(createConfigurationForTesting(ImmutableList.of("-printusage <>")));
       fail("Expect to fail due to the lack of file name.");
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       checkDiagnostics(handler.errors, null, 1, 15, "Value of system property '' not found");
     }
   }
@@ -2518,7 +2518,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(
           createConfigurationForTesting(ImmutableList.of("-printusage <" + property + ">")));
       fail("Expect to fail due to the lack of file name.");
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       checkDiagnostics(
           handler.errors, null, 1, 16, "Value of system property '" + property + "' not found");
     }
@@ -2539,7 +2539,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       reset();
       parser.parse(createConfigurationForTesting(ImmutableList.of(flag + " " + value)));
       fail("Expect to fail due to un-closed quote.");
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       checker.get();
     }
   }
@@ -2759,7 +2759,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       new ProguardConfigurationParser(new DexItemFactory(), reporter)
           .parse(proguardConfigurationFile);
       fail("Expected to fail since the type name cannot be negated.");
-    } catch (AbortException e) {
+    } catch (RuntimeException e) {
       checkDiagnostics(
           handler.errors,
           proguardConfigurationFile,
@@ -2794,7 +2794,7 @@ public class ProguardConfigurationParserTest extends TestBase {
       try {
         parser.parse(proguardConfig);
         fail("Expect to fail due to unsupported constructor name pattern.");
-      } catch (AbortException e) {
+      } catch (RuntimeException e) {
         int column = initName.contains("void") ? initName.indexOf("void") + 8
             : (initName.contains("XYZ") ? initName.indexOf(">") + 4 : 3);
         if (initName.contains("XYZ")) {

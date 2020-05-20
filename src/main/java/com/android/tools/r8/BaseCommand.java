@@ -8,7 +8,9 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -134,14 +136,15 @@ public abstract class BaseCommand {
      * associated diagnostics handler and a {@link CompilationFailedException} exception is thrown.
      */
     public final C build() throws CompilationFailedException {
-      try {
-        validate();
-        C c = makeCommand();
-        reporter.failIfPendingErrors();
-        return c;
-      } catch (AbortException e) {
-        throw new CompilationFailedException(e);
-      }
+      Box<C> box = new Box<>(null);
+      ExceptionUtils.withCompilationHandler(
+          reporter,
+          () -> {
+            validate();
+            box.set(makeCommand());
+            reporter.failIfPendingErrors();
+          });
+      return box.get();
     }
 
     // Helper to construct the actual command. Called as part of {@link build()}.
