@@ -42,6 +42,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     this.staticValue = staticValue;
   }
 
+  public DexType type() {
+    return field.type;
+  }
+
   public boolean isProgramField(DexDefinitionSupplier definitions) {
     if (field.holder.isClassType()) {
       DexClass clazz = definitions.definitionFor(field.holder);

@@ -125,6 +125,10 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
         return false;
       }
 
+      if (encodedField.type().isAlwaysNull(appViewWithLiveness)) {
+        return false;
+      }
+
       return appInfoWithLiveness.isFieldRead(encodedField)
           || isStoringObjectWithFinalizer(appViewWithLiveness, encodedField);
     }

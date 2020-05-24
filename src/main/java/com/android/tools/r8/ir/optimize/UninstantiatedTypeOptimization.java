@@ -9,9 +9,7 @@ import static com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.St
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -23,7 +21,6 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
-import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
@@ -102,11 +99,9 @@ public class UninstantiatedTypeOptimization {
   private static final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final TypeChecker typeChecker;
 
   public UninstantiatedTypeOptimization(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.typeChecker = new TypeChecker(appView);
   }
 
   public UninstantiatedTypeOptimizationGraphLense run(
@@ -351,14 +346,7 @@ public class UninstantiatedTypeOptimization {
             continue;
           }
         }
-        if (instruction.isFieldInstruction()) {
-          rewriteFieldInstruction(
-              instruction.asFieldInstruction(),
-              instructionIterator,
-              code,
-              assumeDynamicTypeRemover,
-              valuesToNarrow);
-        } else if (instruction.isInvokeMethod()) {
+        if (instruction.isInvokeMethod()) {
           rewriteInvoke(
               instruction.asInvokeMethod(),
               blockIterator,
@@ -399,57 +387,6 @@ public class UninstantiatedTypeOptimization {
       }
     }
     return true;
-  }
-
-  // instance-{get|put} with a null receiver has already been rewritten to `throw null`.
-  // At this point, field-instruction whose target field type is uninstantiated will be handled.
-  private void rewriteFieldInstruction(
-      FieldInstruction instruction,
-      InstructionListIterator instructionIterator,
-      IRCode code,
-      AssumeDynamicTypeRemover assumeDynamicTypeRemover,
-      Set<Value> affectedValues) {
-    ProgramMethod context = code.context();
-    DexField field = instruction.getField();
-    DexType fieldType = field.type;
-    if (fieldType.isAlwaysNull(appView)) {
-      // TODO(b/123857022): Should be possible to use definitionFor().
-      DexEncodedField encodedField = appView.appInfo().resolveField(field).getResolvedField();
-      if (encodedField == null) {
-        return;
-      }
-
-      boolean instructionCanBeRemoved = !instruction.instructionInstanceCanThrow(appView, context);
-
-      BasicBlock block = instruction.getBlock();
-      if (instruction.isFieldPut()) {
-        if (!typeChecker.checkFieldPut(instruction)) {
-          // Broken type hierarchy. See FieldTypeTest#test_brokenTypeHierarchy.
-          assert appView.options().testing.allowTypeErrors;
-          return;
-        }
-
-        // We know that the right-hand side must be null, so this is a no-op.
-        if (instructionCanBeRemoved) {
-          instructionIterator.removeOrReplaceByDebugLocalRead();
-        }
-      } else {
-        if (instructionCanBeRemoved) {
-          // Replace the field read by the constant null.
-          assumeDynamicTypeRemover.markUsersForRemoval(instruction.outValue());
-          affectedValues.addAll(instruction.outValue().affectedValues());
-          instructionIterator.replaceCurrentInstruction(code.createConstNull());
-        } else {
-          replaceOutValueByNull(
-              instruction, instructionIterator, code, assumeDynamicTypeRemover, affectedValues);
-        }
-      }
-
-      if (block.hasCatchHandlers()) {
-        // This block can no longer throw.
-        block.getCatchHandlers().getUniqueTargets().forEach(BasicBlock::unlinkCatchHandler);
-      }
-    }
   }
 
   // invoke instructions with a null receiver has already been rewritten to `throw null`.

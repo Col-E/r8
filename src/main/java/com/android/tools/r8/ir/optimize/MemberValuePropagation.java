@@ -357,13 +357,10 @@ public class MemberValuePropagation {
       return;
     }
 
-    // Check if the field is pinned. In that case, it could be written by reflection.
-    if (appView.appInfo().isPinned(target.field)) {
-      return;
-    }
-
     AbstractValue abstractValue;
-    if (appView.appInfo().isFieldWrittenByFieldPutInstruction(target)) {
+    if (field.type.isAlwaysNull(appView)) {
+      abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);
+    } else if (appView.appInfo().isFieldWrittenByFieldPutInstruction(target)) {
       abstractValue = target.getOptimizationInfo().getAbstractValue();
       if (abstractValue.isUnknown() && !target.isStatic()) {
         AbstractValue abstractReceiverValue =
@@ -485,12 +482,15 @@ public class MemberValuePropagation {
 
   private void replaceInstancePutByNullCheckIfNeverRead(
       IRCode code, InstructionListIterator iterator, InstancePut current) {
-    DexEncodedField target = appView.appInfo().resolveField(current.getField()).getResolvedField();
-    if (target == null || appView.appInfo().isFieldRead(target)) {
+    DexEncodedField field = appView.appInfo().resolveField(current.getField()).getResolvedField();
+    if (field == null || field.isStatic()) {
       return;
     }
 
-    if (target.isStatic()) {
+    // If the field is read, we can't remove the instance-put unless the value of the field is known
+    // to be null (in which case the instance-put is a no-op because it assigns the field the same
+    // value as its default value).
+    if (!field.type().isAlwaysNull(appView) && appView.appInfo().isFieldRead(field)) {
       return;
     }
 
@@ -500,11 +500,14 @@ public class MemberValuePropagation {
   private void replaceStaticPutByInitClassIfNeverRead(
       IRCode code, InstructionListIterator iterator, StaticPut current) {
     DexEncodedField field = appView.appInfo().resolveField(current.getField()).getResolvedField();
-    if (field == null || appView.appInfo().isFieldRead(field)) {
+    if (field == null || !field.isStatic()) {
       return;
     }
 
-    if (!field.isStatic()) {
+    // If the field is read, we can't remove the static-put unless the value of the field is known
+    // to be null (in which case the static-put is a no-op because it assigns the field the same
+    // value as its default value).
+    if (!field.type().isAlwaysNull(appView) && appView.appInfo().isFieldRead(field)) {
       return;
     }
 
