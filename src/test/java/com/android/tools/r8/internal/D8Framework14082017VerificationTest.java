@@ -5,6 +5,7 @@ package com.android.tools.r8.internal;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
@@ -24,6 +25,7 @@ public class D8Framework14082017VerificationTest extends CompilationTestBase {
     runAndCheckVerification(
         D8Command.builder()
             .addProgramFiles(Paths.get(JAR))
+            .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
             .setMode(CompilationMode.DEBUG)
             .setMinApiLevel(MIN_SDK),
         JAR);
@@ -35,6 +37,7 @@ public class D8Framework14082017VerificationTest extends CompilationTestBase {
     runAndCheckVerification(
         D8Command.builder()
             .addProgramFiles(Paths.get(JAR))
+            .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
             .setMode(CompilationMode.RELEASE)
             .setMinApiLevel(MIN_SDK),
         JAR);

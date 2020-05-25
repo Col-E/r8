@@ -40,6 +40,7 @@ public class Java11D8CompilationTest extends TestBase {
   public void testR8CompiledWithD8() throws Exception {
     testForD8()
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)
+        .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
         .compile()
         .inspect(Java11D8CompilationTest::assertNoNests);
   }
