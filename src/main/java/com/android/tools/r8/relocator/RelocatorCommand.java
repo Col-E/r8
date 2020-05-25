@@ -21,7 +21,9 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardPathList;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
@@ -292,19 +294,23 @@ public class RelocatorCommand {
     }
 
     public RelocatorCommand build() throws CompilationFailedException {
-      try {
-        if (printHelp || printVersion) {
-          return new RelocatorCommand(printHelp, printVersion);
-        }
-        reporter.failIfPendingErrors();
-        validate();
-        reporter.failIfPendingErrors();
-        DexItemFactory factory = new DexItemFactory();
-        return new RelocatorCommand(
-            mapping.build(), app.build(), reporter, factory, consumer, threadCount);
-      } catch (AbortException e) {
-        throw new CompilationFailedException(e);
-      }
+      Box<RelocatorCommand> result = new Box<>();
+      ExceptionUtils.withCompilationHandler(
+          reporter,
+          () -> {
+            if (printHelp || printVersion) {
+              result.set(new RelocatorCommand(printHelp, printVersion));
+              return;
+            }
+            reporter.failIfPendingErrors();
+            validate();
+            reporter.failIfPendingErrors();
+            DexItemFactory factory = new DexItemFactory();
+            result.set(
+                new RelocatorCommand(
+                    mapping.build(), app.build(), reporter, factory, consumer, threadCount));
+          });
+      return result.get();
     }
 
     // Helper to signify an error.
