@@ -10,7 +10,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,15 +19,11 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class Java11D8CompilationTest extends TestBase {
 
-  public Java11D8CompilationTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
-  private final TestParameters parameters;
+  public Java11D8CompilationTest(TestParameters parameters) {}
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimesStartingFromIncluding(Version.V5_1_1).build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   private static void assertNoNests(CodeInspector inspector) {
