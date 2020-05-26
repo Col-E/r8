@@ -260,6 +260,18 @@ public class Phi extends Value implements InstructionOrPhi {
       // leave the phi in there and check at the end that there are no trivial phis.
       return false;
     }
+    if (getLocalInfo() != same.getLocalInfo()) {
+      if (getLocalInfo() == null) {
+        // The to-be replaced phi has no local info, so all is OK.
+      } else if (same.getLocalInfo() == null) {
+        // Move the local info to the replacement phi.
+        same.setLocalInfo(getLocalInfo());
+      } else {
+        // The phi's define distinct locals and are not trivially the same.
+        assert hasLocalInfo() && same.hasLocalInfo();
+        return false;
+      }
+    }
     // Ensure that the value that replaces this phi is constrained to the type of this phi.
     if (builder != null && type.isPreciseType() && !type.isBottom()) {
       builder.constrainType(same, ValueTypeConstraint.fromTypeLattice(type));

@@ -1990,15 +1990,34 @@ public class BasicBlock {
       Phi phi = phiIt.next();
       Wrapper<Phi> key = equivalence.wrap(phi);
       Phi replacement = wrapper2phi.get(key);
-      if (replacement != null) {
-        phi.replaceUsers(replacement);
-        for (Value operand : phi.getOperands()) {
-          operand.removePhiUser(phi);
-        }
-        phiIt.remove();
-      } else {
+      if (replacement == null) {
         wrapper2phi.put(key, phi);
+        continue;
       }
+      // Two phis may be duplicates but still differ in debug info.
+      // For example, it may be that the one phi denotes the result of a local pre-increment, while
+      // the other phi represents the modified local, e.g., cond ? ++x : x will give rise to:
+      //  v2 <- phi(v0(x), v1(x))
+      //  v3(x) <- phi(v0(x), v1(x))
+      // where v2 is used as the result of the expression and v3 is the local slot value of x.
+      // This should be replaced by a single phi.
+      if (phi.getLocalInfo() != replacement.getLocalInfo()) {
+        if (replacement.getLocalInfo() == null) {
+          // The replacement must take over the debug info.
+          replacement.setLocalInfo(phi.getLocalInfo());
+        } else if (phi.getLocalInfo() == null) {
+          // The replacement already owns debug info.
+        } else {
+          // The phis define two distinct locals and cannot be de-duped.
+          assert phi.hasLocalInfo() && replacement.hasLocalInfo();
+          continue;
+        }
+      }
+      phi.replaceUsers(replacement);
+      for (Value operand : phi.getOperands()) {
+        operand.removePhiUser(phi);
+      }
+      phiIt.remove();
     }
   }
 }

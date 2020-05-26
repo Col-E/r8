@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
@@ -529,15 +530,16 @@ public class DesugaredLibraryAPIConverter {
     DexMethod conversionMethod = createConversionMethod(argType, argType, argVivifiedType);
     // The value is null only if the input is null.
     Value convertedValue =
-        createConversionValue(code, inValue.getType().nullability(), argVivifiedType);
+        createConversionValue(code, inValue.getType().nullability(), argVivifiedType, null);
     return new InvokeStatic(conversionMethod, convertedValue, Collections.singletonList(inValue));
   }
 
   private Instruction createReturnConversionAndReplaceUses(
       IRCode code, InvokeMethod invokeMethod, DexType returnType, DexType returnVivifiedType) {
     DexMethod conversionMethod = createConversionMethod(returnType, returnVivifiedType, returnType);
-    Value convertedValue = createConversionValue(code, Nullability.maybeNull(), returnType);
     Value outValue = invokeMethod.outValue();
+    Value convertedValue =
+        createConversionValue(code, Nullability.maybeNull(), returnType, outValue.getLocalInfo());
     outValue.replaceUsers(convertedValue);
     // The only user of out value is now the new invoke static, so no type propagation is required.
     outValue.setType(
@@ -571,8 +573,9 @@ public class DesugaredLibraryAPIConverter {
         conversionHolder, factory.createProto(destType, srcType), factory.convertMethodName);
   }
 
-  private Value createConversionValue(IRCode code, Nullability nullability, DexType valueType) {
-    return code.createValue(TypeElement.fromDexType(valueType, nullability, appView));
+  private Value createConversionValue(
+      IRCode code, Nullability nullability, DexType valueType, DebugLocalInfo localInfo) {
+    return code.createValue(TypeElement.fromDexType(valueType, nullability, appView), localInfo);
   }
 
   public boolean canConvert(DexType type) {
