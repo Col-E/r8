@@ -163,6 +163,8 @@ public class Value implements Comparable<Value> {
   // A debug-value user represents a point where the value is live, ends or starts.
   // If a point is marked as both ending and starting then it is simply live, but we maintain
   // the marker so as not to unintentionally end it if marked again.
+  // TODO(b/157466079): Clean/remove the use markers. With the current local construction in the
+  //   IRBuilder, the only needed markers should be 'end' markers.
   private enum DebugUse {
     LIVE, START, END, LIVE_FINAL;
 

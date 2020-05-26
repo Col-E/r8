@@ -243,12 +243,6 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
     // Replace the instruction by const-number.
     ConstNumber constNumber = code.createIntConstant(value, current.getLocalInfo());
-    for (Value inValue : current.inValues()) {
-      if (inValue.hasLocalInfo()) {
-        // Add this value as a debug value to avoid changing its live range.
-        constNumber.addDebugValue(inValue);
-      }
-    }
     replaceCurrentInstruction(constNumber);
   }
 
@@ -264,12 +258,6 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     TypeElement oldType = current.getOutType();
     Value value = code.createValue(newType, current.getLocalInfo());
     StaticGet staticGet = new StaticGet(value, field);
-    for (Value inValue : current.inValues()) {
-      if (inValue.hasLocalInfo()) {
-        // Add this value as a debug value to avoid changing its live range.
-        staticGet.addDebugValue(inValue);
-      }
-    }
     replaceCurrentInstruction(staticGet);
 
     // Update affected values.

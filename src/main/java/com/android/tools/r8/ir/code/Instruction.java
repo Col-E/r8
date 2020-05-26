@@ -198,8 +198,8 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
 
   public void replaceDebugValue(Value oldValue, Value newValue) {
     if (debugValues.remove(oldValue)) {
-      // TODO(mathiasr): Enable this assertion when BasicBlock has current position so trivial phi
-      // removal can take local info into account.
+      // TODO(b/157464189): Enable this assertion when BasicBlock has current position so trivial
+      //   phi removal can take local info into account.
       // assert newValue.getLocalInfo() == oldValue.getLocalInfo()
       //     : "Replacing debug values with inconsistent locals " +
       //       oldValue.getLocalInfo() + " and " + newValue.getLocalInfo() +
