@@ -36,7 +36,7 @@ public interface TestDiagnosticMessages {
 
   // Match exact.
 
-  default TestDiagnosticMessages assertDiagnosticsMatch(Matcher matcher) {
+  default TestDiagnosticMessages assertDiagnosticsMatch(Matcher<Diagnostic> matcher) {
     return assertDiagnosticsMatch(Collections.singletonList(matcher));
   }
 
