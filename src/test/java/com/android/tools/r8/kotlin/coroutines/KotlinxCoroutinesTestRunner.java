@@ -6,7 +6,9 @@ package com.android.tools.r8.kotlin.coroutines;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -74,6 +76,27 @@ public class KotlinxCoroutinesTestRunner extends KotlinTestBase {
             .addSourceFiles(TEST_SOURCES)
             .compile();
     runTestsInJar(baseJar, BASE_LIBRARY);
+  }
+
+  @Test
+  public void runKotlinxCoroutinesNewTests_r8() {
+    // TODO(b/157023682): This should be able to compile.
+    assertThrows(
+        CompilationFailedException.class,
+        () -> {
+          testForR8(parameters.getBackend())
+              .addProgramFiles(BASE_LIBRARY)
+              .addKeepAllClassesRule()
+              .addKeepAllAttributes()
+              // The BASE_LIBRARY contains proguard rules that do not match.
+              .allowUnusedProguardConfigurationRules()
+              .allowDiagnosticInfoMessages()
+              .addKeepRules(
+                  "-dontwarn reactor.blockhound.integration.BlockHoundIntegration",
+                  "-dontwarn org.junit.runners.model.Statement",
+                  "-dontwarn org.junit.rules.TestRule")
+              .compile();
+        });
   }
 
   private void runTestsInJar(Path testJar, Path deps) throws Exception {
