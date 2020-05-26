@@ -35,8 +35,9 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -72,8 +73,6 @@ public class ServiceLoaderRewriter {
   private static final String SERVICE_LOADER_METHOD_PREFIX_NAME = "$load";
 
   private AtomicReference<DexProgramClass> synthesizedClass = new AtomicReference<>();
-  private ConcurrentHashMap<DexType, DexEncodedMethod> synthesizedServiceLoaders =
-      new ConcurrentHashMap<>();
 
   private final AppView<? extends AppInfoWithLiveness> appView;
 
@@ -88,6 +87,9 @@ public class ServiceLoaderRewriter {
   public void rewrite(IRCode code, MethodProcessingId methodProcessingId) {
     DexItemFactory factory = appView.dexItemFactory();
     InstructionListIterator instructionIterator = code.instructionListIterator();
+    // Create a map from service type to loader methods local to this context since two
+    // service loader calls to the same type in different methods and in the same wave can race.
+    Map<DexType, DexEncodedMethod> synthesizedServiceLoaders = new IdentityHashMap<>();
     while (instructionIterator.hasNext()) {
       Instruction instruction = instructionIterator.next();
 
