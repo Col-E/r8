@@ -4,13 +4,9 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromDescriptor;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toRenamedDescriptorOrDefault;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import kotlinx.metadata.jvm.JvmFieldSignature;
@@ -21,10 +17,10 @@ import kotlinx.metadata.jvm.JvmFieldSignature;
  */
 public class KotlinJvmFieldSignatureInfo {
 
-  private final DexType type;
+  private final KotlinTypeReference type;
   private final String name;
 
-  private KotlinJvmFieldSignatureInfo(String name, DexType type) {
+  private KotlinJvmFieldSignatureInfo(String name, KotlinTypeReference type) {
     this.name = name;
     this.type = type;
   }
@@ -36,7 +32,7 @@ public class KotlinJvmFieldSignatureInfo {
     }
     return new KotlinJvmFieldSignatureInfo(
         fieldSignature.getName(),
-        referenceTypeFromDescriptor(fieldSignature.getDesc(), definitionSupplier));
+        KotlinTypeReference.createFromDescriptor(fieldSignature.getDesc(), definitionSupplier));
   }
 
   public JvmFieldSignature rewrite(
@@ -51,6 +47,6 @@ public class KotlinJvmFieldSignatureInfo {
     }
     String defValue = appView.dexItemFactory().objectType.toDescriptorString();
     return new JvmFieldSignature(
-        finalName, toRenamedDescriptorOrDefault(type, appView, namingLens, defValue));
+        finalName, type.toRenamedDescriptorOrDefault(appView, namingLens, defValue));
   }
 }

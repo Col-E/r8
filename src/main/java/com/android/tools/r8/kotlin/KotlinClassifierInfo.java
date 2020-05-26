@@ -4,12 +4,8 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromDescriptor;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
-import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -35,7 +31,8 @@ public abstract class KotlinClassifierInfo {
               isLocalOrAnonymous ? originalTypeName.substring(1) : originalTypeName);
       if (DescriptorUtils.isClassDescriptor(descriptor)) {
         return new KotlinClassClassifierInfo(
-            referenceTypeFromDescriptor(descriptor, definitionSupplier), isLocalOrAnonymous);
+            KotlinTypeReference.createFromDescriptor(descriptor, definitionSupplier),
+            isLocalOrAnonymous);
       } else {
         return new KotlinUnknownClassClassifierInfo(originalTypeName);
       }
@@ -54,10 +51,10 @@ public abstract class KotlinClassifierInfo {
 
   public static class KotlinClassClassifierInfo extends KotlinClassifierInfo {
 
-    private final DexType type;
+    private final KotlinTypeReference type;
     private final boolean isLocalOrAnonymous;
 
-    private KotlinClassClassifierInfo(DexType type, boolean isLocalOrAnonymous) {
+    private KotlinClassClassifierInfo(KotlinTypeReference type, boolean isLocalOrAnonymous) {
       this.type = type;
       this.isLocalOrAnonymous = isLocalOrAnonymous;
     }
@@ -65,18 +62,14 @@ public abstract class KotlinClassifierInfo {
     @Override
     void rewrite(
         KmTypeVisitor visitor, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
-      if (appView.appInfo().wasPruned(type)) {
-        visitor.visitClass(ClassClassifiers.anyName);
-        return;
-      }
-      DexString descriptor = namingLens.lookupDescriptor(type);
+      String descriptor =
+          type.toRenamedDescriptorOrDefault(appView, namingLens, ClassClassifiers.anyName);
       // For local or anonymous classes, the classifier is prefixed with '.' and inner classes are
       // separated with '$'.
       if (isLocalOrAnonymous) {
-        visitor.visitClass(
-            "." + DescriptorUtils.getBinaryNameFromDescriptor(descriptor.toString()));
+        visitor.visitClass("." + DescriptorUtils.getBinaryNameFromDescriptor(descriptor));
       } else {
-        visitor.visitClass(DescriptorUtils.descriptorToKotlinClassifier(descriptor.toString()));
+        visitor.visitClass(DescriptorUtils.descriptorToKotlinClassifier(descriptor));
       }
     }
   }

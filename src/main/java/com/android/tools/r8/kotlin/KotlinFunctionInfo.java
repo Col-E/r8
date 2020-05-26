@@ -4,12 +4,9 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromBinaryName;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
@@ -36,7 +33,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
   // Information about the signature
   private final KotlinJvmMethodSignatureInfo signature;
   // Information about the lambdaClassOrigin.
-  private final DexType lambdaClassOrigin;
+  private final KotlinTypeReference lambdaClassOrigin;
 
   private KotlinFunctionInfo(
       int flags,
@@ -46,7 +43,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
       List<KotlinValueParameterInfo> valueParameters,
       List<KotlinTypeParameterInfo> typeParameters,
       KotlinJvmMethodSignatureInfo signature,
-      DexType lambdaClassOrigin) {
+      KotlinTypeReference lambdaClassOrigin) {
     this.flags = flags;
     this.name = name;
     this.returnType = returnType;
@@ -73,11 +70,11 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
         getlambdaClassOrigin(kmFunction, definitionSupplier));
   }
 
-  private static DexType getlambdaClassOrigin(
+  private static KotlinTypeReference getlambdaClassOrigin(
       KmFunction kmFunction, DexDefinitionSupplier definitionSupplier) {
     String lambdaClassOriginName = JvmExtensionsKt.getLambdaClassOriginName(kmFunction);
     if (lambdaClassOriginName != null) {
-      return referenceTypeFromBinaryName(lambdaClassOriginName, definitionSupplier);
+      return KotlinTypeReference.createFromBinaryName(lambdaClassOriginName, definitionSupplier);
     }
     return null;
   }
@@ -114,8 +111,11 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
       extensionVisitor.visit(signature.rewrite(method, appView, namingLens));
     }
     if (lambdaClassOrigin != null && extensionVisitor != null) {
-      extensionVisitor.visitLambdaClassOriginName(
-          KotlinMetadataUtils.kotlinNameFromDescriptor(lambdaClassOrigin.descriptor));
+      String lambdaClassOriginName =
+          lambdaClassOrigin.toRenamedBinaryNameOrDefault(appView, namingLens, null);
+      if (lambdaClassOriginName != null) {
+        extensionVisitor.visitLambdaClassOriginName(lambdaClassOriginName);
+      }
     }
   }
 
