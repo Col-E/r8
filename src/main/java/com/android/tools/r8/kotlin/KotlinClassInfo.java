@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromBinaryName;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toJvmFieldSignature;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toJvmMethodSignature;
 
@@ -13,6 +14,7 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -39,14 +41,14 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   private final KotlinDeclarationContainerInfo declarationContainerInfo;
   private final List<KotlinTypeParameterInfo> typeParameters;
   private final List<KotlinTypeInfo> superTypes;
-  private final List<KotlinTypeReference> sealedSubClasses;
-  private final List<KotlinTypeReference> nestedClasses;
+  private final List<DexType> sealedSubClasses;
+  private final List<DexType> nestedClasses;
   // TODO(b/154347404): Understand enum entries.
   private final List<String> enumEntries;
-  private final KotlinTypeReference anonymousObjectOrigin;
+  private final DexType anonymousObjectOrigin;
   private final String packageName;
 
-  private KotlinClassInfo(
+  public KotlinClassInfo(
       int flags,
       String name,
       String moduleName,
@@ -54,10 +56,10 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       List<KotlinTypeParameterInfo> typeParameters,
       List<KotlinConstructorInfo> constructorsWithNoBacking,
       List<KotlinTypeInfo> superTypes,
-      List<KotlinTypeReference> sealedSubClasses,
-      List<KotlinTypeReference> nestedClasses,
+      List<DexType> sealedSubClasses,
+      List<DexType> nestedClasses,
       List<String> enumEntries,
-      KotlinTypeReference anonymousObjectOrigin,
+      DexType anonymousObjectOrigin,
       String packageName) {
     this.flags = flags;
     this.name = name;
@@ -115,42 +117,41 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         KotlinTypeParameterInfo.create(kmClass.getTypeParameters(), definitionSupplier, reporter),
         notBackedConstructors.build(),
         getSuperTypes(kmClass.getSupertypes(), definitionSupplier, reporter),
-        getSealedSubClasses(kmClass.getSealedSubclasses(), definitionSupplier),
+        getSealedSubClasses(hostClass, kmClass.getSealedSubclasses(), definitionSupplier),
         getNestedClasses(hostClass, kmClass.getNestedClasses(), definitionSupplier),
         kmClass.getEnumEntries(),
         getAnonymousObjectOrigin(kmClass, definitionSupplier),
         packageName);
   }
 
-  private static KotlinTypeReference getAnonymousObjectOrigin(
+  private static DexType getAnonymousObjectOrigin(
       KmClass kmClass, DexDefinitionSupplier definitionSupplier) {
     String anonymousObjectOriginName = JvmExtensionsKt.getAnonymousObjectOriginName(kmClass);
     if (anonymousObjectOriginName != null) {
-      return KotlinTypeReference.createFromBinaryName(
-          anonymousObjectOriginName, definitionSupplier);
+      return referenceTypeFromBinaryName(anonymousObjectOriginName, definitionSupplier);
     }
     return null;
   }
 
-  private static List<KotlinTypeReference> getNestedClasses(
+  private static List<DexType> getNestedClasses(
       DexClass clazz, List<String> nestedClasses, DexDefinitionSupplier definitionSupplier) {
-    ImmutableList.Builder<KotlinTypeReference> nestedTypes = ImmutableList.builder();
+    ImmutableList.Builder<DexType> nestedTypes = ImmutableList.builder();
     for (String nestedClass : nestedClasses) {
       String binaryName =
           clazz.type.toBinaryName() + DescriptorUtils.INNER_CLASS_SEPARATOR + nestedClass;
-      nestedTypes.add(KotlinTypeReference.createFromBinaryName(binaryName, definitionSupplier));
+      nestedTypes.add(referenceTypeFromBinaryName(binaryName, definitionSupplier));
     }
     return nestedTypes.build();
   }
 
-  private static List<KotlinTypeReference> getSealedSubClasses(
-      List<String> sealedSubclasses, DexDefinitionSupplier definitionSupplier) {
-    ImmutableList.Builder<KotlinTypeReference> sealedTypes = ImmutableList.builder();
+  private static List<DexType> getSealedSubClasses(
+      DexClass clazz, List<String> sealedSubclasses, DexDefinitionSupplier definitionSupplier) {
+    ImmutableList.Builder<DexType> sealedTypes = ImmutableList.builder();
     for (String sealedSubClass : sealedSubclasses) {
       String binaryName =
           sealedSubClass.replace(
               DescriptorUtils.JAVA_PACKAGE_SEPARATOR, DescriptorUtils.INNER_CLASS_SEPARATOR);
-      sealedTypes.add(KotlinTypeReference.createFromBinaryName(binaryName, definitionSupplier));
+      sealedTypes.add(referenceTypeFromBinaryName(binaryName, definitionSupplier));
     }
     return sealedTypes.build();
   }
@@ -204,7 +205,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     kmClass.setName(
         originalDescriptor.equals(rewrittenDescriptor)
             ? this.name
-            : DescriptorUtils.getBinaryNameFromDescriptor(rewrittenDescriptor.toString()));
+            : KotlinMetadataUtils.kotlinNameFromDescriptor(rewrittenDescriptor));
     // Find a companion object.
     for (DexEncodedField field : clazz.fields()) {
       if (field.getKotlinMemberInfo().isCompanion()) {
@@ -239,22 +240,24 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       superType.rewrite(kmClass::visitSupertype, appView, namingLens);
     }
     // Rewrite nested classes.
-    for (KotlinTypeReference nestedClass : nestedClasses) {
-      String nestedDescriptor = nestedClass.toRenamedBinaryNameOrDefault(appView, namingLens, null);
-      if (nestedDescriptor != null) {
+    for (DexType nestedClass : nestedClasses) {
+      if (appView.appInfo().isNonProgramTypeOrLiveProgramType(nestedClass)) {
+        String descriptor =
+            KotlinMetadataUtils.kotlinNameFromDescriptor(namingLens.lookupDescriptor(nestedClass));
         // If the class is a nested class, it should be on the form Foo.Bar$Baz, where Baz is the
         // name we should record.
-        int innerClassIndex = nestedDescriptor.lastIndexOf(DescriptorUtils.INNER_CLASS_SEPARATOR);
-        kmClass.visitNestedClass(nestedDescriptor.substring(innerClassIndex + 1));
+        int innerClassIndex = descriptor.lastIndexOf(DescriptorUtils.INNER_CLASS_SEPARATOR);
+        kmClass.visitNestedClass(descriptor.substring(innerClassIndex + 1));
       }
     }
     // Rewrite sealed sub classes.
-    for (KotlinTypeReference sealedSubClass : sealedSubClasses) {
-      String sealedDescriptor =
-          sealedSubClass.toRenamedBinaryNameOrDefault(appView, namingLens, null);
-      if (sealedDescriptor != null) {
+    for (DexType sealedSubClass : sealedSubClasses) {
+      if (appView.appInfo().isNonProgramTypeOrLiveProgramType(sealedSubClass)) {
+        String descriptor =
+            KotlinMetadataUtils.kotlinNameFromDescriptor(
+                namingLens.lookupDescriptor(sealedSubClass));
         kmClass.visitSealedSubclass(
-            sealedDescriptor.replace(
+            descriptor.replace(
                 DescriptorUtils.INNER_CLASS_SEPARATOR, DescriptorUtils.JAVA_PACKAGE_SEPARATOR));
       }
     }
@@ -263,11 +266,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
 
     JvmExtensionsKt.setModuleName(kmClass, moduleName);
     if (anonymousObjectOrigin != null) {
-      String renamedAnon =
-          anonymousObjectOrigin.toRenamedBinaryNameOrDefault(appView, namingLens, null);
-      if (renamedAnon != null) {
-        JvmExtensionsKt.setAnonymousObjectOriginName(kmClass, renamedAnon);
-      }
+      JvmExtensionsKt.setAnonymousObjectOriginName(
+          kmClass, KotlinMetadataUtils.kotlinNameFromDescriptor(anonymousObjectOrigin.descriptor));
     }
 
     KotlinClassMetadata.Class.Writer writer = new KotlinClassMetadata.Class.Writer();

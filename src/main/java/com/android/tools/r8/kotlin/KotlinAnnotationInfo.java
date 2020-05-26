@@ -4,8 +4,12 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromBinaryName;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -20,12 +24,12 @@ public class KotlinAnnotationInfo {
 
   private static final List<KotlinAnnotationInfo> EMPTY_ANNOTATIONS = ImmutableList.of();
 
-  private final KotlinTypeReference annotationType;
+  private final DexType annotationType;
   // TODO(b/155053894): Model KmAnnotationArgument.
   private final Map<String, KmAnnotationArgument<?>> arguments;
 
   private KotlinAnnotationInfo(
-      KotlinTypeReference annotationType, Map<String, KmAnnotationArgument<?>> arguments) {
+      DexType annotationType, Map<String, KmAnnotationArgument<?>> arguments) {
     this.annotationType = annotationType;
     this.arguments = arguments;
   }
@@ -33,7 +37,7 @@ public class KotlinAnnotationInfo {
   private static KotlinAnnotationInfo create(
       KmAnnotation annotation, DexDefinitionSupplier definitionSupplier) {
     return new KotlinAnnotationInfo(
-        KotlinTypeReference.createFromBinaryName(annotation.getClassName(), definitionSupplier),
+        referenceTypeFromBinaryName(annotation.getClassName(), definitionSupplier),
         annotation.getArguments());
   }
 
@@ -53,13 +57,11 @@ public class KotlinAnnotationInfo {
       KmVisitorProviders.KmAnnotationVisitorProvider visitorProvider,
       AppView<AppInfoWithLiveness> appView,
       NamingLens namingLens) {
-    String renamedDescriptor =
-        annotationType.toRenamedDescriptorOrDefault(appView, namingLens, null);
-    if (renamedDescriptor == null) {
-      // The type has been pruned
+    if (appView.appInfo().wasPruned(annotationType)) {
       return;
     }
-    String classifier = DescriptorUtils.descriptorToKotlinClassifier(renamedDescriptor);
+    DexString descriptor = namingLens.lookupDescriptor(annotationType);
+    String classifier = DescriptorUtils.descriptorToKotlinClassifier(descriptor.toString());
     KmAnnotation annotation = new KmAnnotation(classifier, arguments);
     visitorProvider.get(annotation);
   }

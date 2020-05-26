@@ -4,8 +4,12 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromDescriptor;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -31,8 +35,7 @@ public abstract class KotlinClassifierInfo {
               isLocalOrAnonymous ? originalTypeName.substring(1) : originalTypeName);
       if (DescriptorUtils.isClassDescriptor(descriptor)) {
         return new KotlinClassClassifierInfo(
-            KotlinTypeReference.createFromDescriptor(descriptor, definitionSupplier),
-            isLocalOrAnonymous);
+            referenceTypeFromDescriptor(descriptor, definitionSupplier), isLocalOrAnonymous);
       } else {
         return new KotlinUnknownClassClassifierInfo(originalTypeName);
       }
@@ -51,10 +54,10 @@ public abstract class KotlinClassifierInfo {
 
   public static class KotlinClassClassifierInfo extends KotlinClassifierInfo {
 
-    private final KotlinTypeReference type;
+    private final DexType type;
     private final boolean isLocalOrAnonymous;
 
-    private KotlinClassClassifierInfo(KotlinTypeReference type, boolean isLocalOrAnonymous) {
+    private KotlinClassClassifierInfo(DexType type, boolean isLocalOrAnonymous) {
       this.type = type;
       this.isLocalOrAnonymous = isLocalOrAnonymous;
     }
@@ -62,14 +65,18 @@ public abstract class KotlinClassifierInfo {
     @Override
     void rewrite(
         KmTypeVisitor visitor, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
-      String descriptor =
-          type.toRenamedDescriptorOrDefault(appView, namingLens, ClassClassifiers.anyName);
+      if (appView.appInfo().wasPruned(type)) {
+        visitor.visitClass(ClassClassifiers.anyName);
+        return;
+      }
+      DexString descriptor = namingLens.lookupDescriptor(type);
       // For local or anonymous classes, the classifier is prefixed with '.' and inner classes are
       // separated with '$'.
       if (isLocalOrAnonymous) {
-        visitor.visitClass("." + DescriptorUtils.getBinaryNameFromDescriptor(descriptor));
+        visitor.visitClass(
+            "." + DescriptorUtils.getBinaryNameFromDescriptor(descriptor.toString()));
       } else {
-        visitor.visitClass(DescriptorUtils.descriptorToKotlinClassifier(descriptor));
+        visitor.visitClass(DescriptorUtils.descriptorToKotlinClassifier(descriptor.toString()));
       }
     }
   }

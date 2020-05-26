@@ -5,10 +5,10 @@
 package com.android.tools.r8.kotlin.coroutines;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -79,35 +79,24 @@ public class KotlinxCoroutinesTestRunner extends KotlinTestBase {
   }
 
   @Test
-  public void runKotlinxCoroutinesNewTests_r8() throws Exception {
-    Path baseLib =
-        testForR8(parameters.getBackend())
-            .addProgramFiles(BASE_LIBRARY)
-            .addKeepAllClassesRule()
-            .addKeepAllAttributes()
-            // The BASE_LIBRARY contains proguard rules that do not match.
-            .allowUnusedProguardConfigurationRules()
-            .addKeepRules(
-                "-dontwarn reactor.blockhound.integration.BlockHoundIntegration",
-                "-dontwarn org.junit.runners.model.Statement",
-                "-dontwarn org.junit.rules.TestRule")
-            .compile()
-            .writeToZip();
-    ProcessResult processResult =
-        kotlinc(KOTLINC, targetVersion)
-            .addArguments(
-                "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
-                "-Xuse-experimental=kotlinx.coroutines.ObsoleteCoroutinesApi",
-                "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi")
-            .addClasspathFiles(DEPENDENCIES)
-            .addClasspathFiles(baseLib)
-            .addSourceFiles(TEST_SOURCES)
-            .setOutputPath(temp.newFolder().toPath())
-            .compileRaw();
-    assertEquals(1, processResult.exitCode);
-    assertThat(
-        processResult.stderr,
-        containsString("Couldn't inline method call 'CoroutineExceptionHandler'"));
+  public void runKotlinxCoroutinesNewTests_r8() {
+    // TODO(b/157023682): This should be able to compile.
+    assertThrows(
+        CompilationFailedException.class,
+        () -> {
+          testForR8(parameters.getBackend())
+              .addProgramFiles(BASE_LIBRARY)
+              .addKeepAllClassesRule()
+              .addKeepAllAttributes()
+              // The BASE_LIBRARY contains proguard rules that do not match.
+              .allowUnusedProguardConfigurationRules()
+              .allowDiagnosticInfoMessages()
+              .addKeepRules(
+                  "-dontwarn reactor.blockhound.integration.BlockHoundIntegration",
+                  "-dontwarn org.junit.runners.model.Statement",
+                  "-dontwarn org.junit.rules.TestRule")
+              .compile();
+        });
   }
 
   private void runTestsInJar(Path testJar, Path deps) throws Exception {
