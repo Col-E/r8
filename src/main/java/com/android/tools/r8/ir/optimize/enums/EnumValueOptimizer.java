@@ -124,7 +124,7 @@ public class EnumValueOptimizer {
         }
       } else if (current.isArrayLength()) {
         // Rewrites MyEnum.values().length to a constant int.
-        Instruction arrayDefinition = current.asArrayLength().array().definition;
+        Instruction arrayDefinition = current.asArrayLength().array().getAliasedValue().definition;
         if (arrayDefinition != null && arrayDefinition.isInvokeStatic()) {
           DexMethod invokedMethod = arrayDefinition.asInvokeStatic().getInvokedMethod();
           DexProgramClass enumClass = appView.definitionForProgramType(invokedMethod.holder);
