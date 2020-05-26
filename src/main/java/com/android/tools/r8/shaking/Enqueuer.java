@@ -237,7 +237,7 @@ public class Enqueuer {
   private final Set<DexType> missingTypes = Sets.newIdentityHashSet();
 
   /** Set of proto types that were found to be dead during the first round of tree shaking. */
-  private Set<DexType> initialDeadProtoTypes;
+  private Set<DexType> initialDeadProtoTypes = Sets.newIdentityHashSet();
 
   /** Set of types that were found to be missing during the first round of tree shaking. */
   private Set<DexType> initialMissingTypes;
@@ -1841,7 +1841,7 @@ public class Enqueuer {
   private void reportMissingClass(DexType clazz) {
     assert !mode.isFinalTreeShaking()
             || appView.dexItemFactory().isPossiblyCompilerSynthesizedType(clazz)
-            || (initialDeadProtoTypes != null && initialDeadProtoTypes.contains(clazz))
+            || initialDeadProtoTypes.contains(clazz)
             || initialMissingTypes.contains(clazz)
         : "Unexpected missing class `" + clazz.toSourceString() + "`";
     boolean newReport = missingTypes.add(clazz);
@@ -2847,6 +2847,10 @@ public class Enqueuer {
 
     // Compute the set of dead proto types.
     deadProtoTypeCandidates.removeIf(this::isTypeLive);
+    Set<DexType> deadProtoTypes =
+        SetUtils.newIdentityHashSet(deadProtoTypeCandidates.size() + initialDeadProtoTypes.size());
+    deadProtoTypeCandidates.forEach(deadProtoType -> deadProtoTypes.add(deadProtoType.type));
+    deadProtoTypes.addAll(initialDeadProtoTypes);
 
     // Remove the temporary mappings that have been inserted into the field access info collection
     // and verify that the mapping is then one-to-one.
@@ -2891,7 +2895,7 @@ public class Enqueuer {
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             app,
-            SetUtils.mapIdentityHashSet(deadProtoTypeCandidates, DexProgramClass::getType),
+            deadProtoTypes,
             mode.isFinalTreeShaking()
                 ? Sets.union(initialMissingTypes, missingTypes)
                 : missingTypes,
