@@ -305,15 +305,14 @@ public class AnnotationRemover {
               if (appView.appInfo().isPinned(ica.getInner())) {
                 return false;
               }
-              DexType outer = ica.getOuter();
-              if (outer != null && appView.appInfo().isPinned(outer)) {
+              if (appView.appInfo().isPinned(ica.getOuter())) {
                 return false;
               }
               if (finalKeepForThisInnerClass && ica.getInner() == clazz.type) {
                 return false;
               }
               if (finalKeepForThisEnclosingClass
-                  && outer == clazz.type
+                  && ica.getOuter() == clazz.type
                   && classesToRetainInnerClassAttributeFor.contains(ica.getInner())) {
                 return false;
               }

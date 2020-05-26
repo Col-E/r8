@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
 import com.android.tools.r8.graph.AppView;
@@ -326,17 +325,6 @@ public class EnumUnboxer implements PostOptimization {
       return;
     }
     ImmutableSet<DexType> enumsToUnbox = ImmutableSet.copyOf(this.enumsUnboxingCandidates.keySet());
-    // Update keep info on any of the enum methods of the removed classes.
-    appView
-        .appInfo()
-        .getKeepInfo()
-        .mutate(
-            keepInfo -> {
-              for (DexType type : enumsToUnbox) {
-                DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
-                clazz.forEachProgramMethod(keepInfo::unpinMethod);
-              }
-            });
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox);
     NestedGraphLense enumUnboxingLens = new TreeFixer(enumsToUnbox).fixupTypeReferences();
     appView.setUnboxedEnums(enumUnboxerRewriter.getEnumsToUnbox());

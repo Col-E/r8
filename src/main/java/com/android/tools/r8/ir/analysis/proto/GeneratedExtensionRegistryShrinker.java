@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
@@ -25,7 +26,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.DefaultTreePrunerConfiguration;
 import com.android.tools.r8.shaking.Enqueuer;
-import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.TreePrunerConfiguration;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
@@ -190,7 +190,7 @@ public class GeneratedExtensionRegistryShrinker {
           resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
       return field != null
           && isDeadProtoExtensionField(
-              field, appInfo.getFieldAccessInfoCollection(), appInfo.getKeepInfo());
+              field, appInfo.getFieldAccessInfoCollection(), appInfo.getPinnedItems());
     }
     return false;
   }
@@ -198,8 +198,8 @@ public class GeneratedExtensionRegistryShrinker {
   public boolean isDeadProtoExtensionField(
       ProgramField field,
       FieldAccessInfoCollection<?> fieldAccessInfoCollection,
-      KeepInfoCollection keepInfo) {
-    if (keepInfo.getFieldInfo(field).isPinned()) {
+      Set<DexReference> pinnedItems) {
+    if (pinnedItems.contains(field.getReference())) {
       return false;
     }
 

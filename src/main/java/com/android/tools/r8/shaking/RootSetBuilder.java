@@ -689,59 +689,53 @@ public class RootSetBuilder {
   // TODO(b/67934426): Test this code.
   public static void writeSeeds(
       AppInfoWithLiveness appInfo, PrintStream out, Predicate<DexType> include) {
-    appInfo
-        .getKeepInfo()
-        .forEachPinnedType(
-            type -> {
-              if (include.test(type)) {
-                out.println(type.toSourceString());
-              }
-            });
-    appInfo
-        .getKeepInfo()
-        .forEachPinnedField(
-            field -> {
-              if (include.test(field.holder)) {
-                out.println(
-                    field.holder.toSourceString()
-                        + ": "
-                        + field.type.toSourceString()
-                        + " "
-                        + field.name.toSourceString());
-              }
-            });
-    appInfo
-        .getKeepInfo()
-        .forEachPinnedMethod(
-            method -> {
-              if (!include.test(method.holder)) {
-                return;
-              }
-              out.print(method.holder.toSourceString() + ": ");
-              DexEncodedMethod encodedMethod = appInfo.definitionFor(method);
-              if (encodedMethod.accessFlags.isConstructor()) {
-                if (encodedMethod.accessFlags.isStatic()) {
-                  out.print(Constants.CLASS_INITIALIZER_NAME);
-                } else {
-                  String holderName = method.holder.toSourceString();
-                  String constrName = holderName.substring(holderName.lastIndexOf('.') + 1);
-                  out.print(constrName);
-                }
-              } else {
-                out.print(
-                    method.proto.returnType.toSourceString() + " " + method.name.toSourceString());
-              }
-              boolean first = true;
-              out.print("(");
-              for (DexType param : method.proto.parameters.values) {
-                if (!first) {
-                  out.print(",");
-                }
-                first = false;
-                out.print(param.toSourceString());
-              }
-              out.println(")");
-            });
+    for (DexReference seed : appInfo.getPinnedItems()) {
+      if (seed.isDexType()) {
+        if (include.test(seed.asDexType())) {
+          out.println(seed.toSourceString());
+        }
+      } else if (seed.isDexField()) {
+        DexField field = seed.asDexField();
+        if (include.test(field.holder)) {
+          out.println(
+              field.holder.toSourceString()
+                  + ": "
+                  + field.type.toSourceString()
+                  + " "
+                  + field.name.toSourceString());
+        }
+      } else {
+        assert seed.isDexMethod();
+        DexMethod method = seed.asDexMethod();
+        if (!include.test(method.holder)) {
+          continue;
+        }
+        out.print(method.holder.toSourceString() + ": ");
+        DexEncodedMethod encodedMethod = appInfo.definitionFor(method);
+        if (encodedMethod.accessFlags.isConstructor()) {
+          if (encodedMethod.accessFlags.isStatic()) {
+            out.print(Constants.CLASS_INITIALIZER_NAME);
+          } else {
+            String holderName = method.holder.toSourceString();
+            String constrName = holderName.substring(holderName.lastIndexOf('.') + 1);
+            out.print(constrName);
+          }
+        } else {
+          out.print(
+              method.proto.returnType.toSourceString() + " " + method.name.toSourceString());
+        }
+        boolean first = true;
+        out.print("(");
+        for (DexType param : method.proto.parameters.values) {
+          if (!first) {
+            out.print(",");
+          }
+          first = false;
+          out.print(param.toSourceString());
+        }
+        out.println(")");
+      }
+    }
     out.close();
   }
 
@@ -1649,11 +1643,14 @@ public class RootSetBuilder {
     }
 
     public boolean verifyKeptItemsAreKept(DexApplication application, AppInfo appInfo) {
+      Set<DexReference> pinnedItems =
+          appInfo.hasLiveness() ? appInfo.withLiveness().pinnedItems : null;
+
       // Create a mapping from each required type to the set of required members on that type.
       Map<DexType, Set<DexReference>> requiredReferencesPerType = new IdentityHashMap<>();
       for (DexReference reference : noShrinking.keySet()) {
         // Check that `pinnedItems` is a super set of the root set.
-        assert !appInfo.hasLiveness() || appInfo.withLiveness().isPinned(reference)
+        assert pinnedItems == null || pinnedItems.contains(reference)
             : "Expected reference `" + reference.toSourceString() + "` to be pinned";
         if (reference.isDexType()) {
           DexType type = reference.asDexType();

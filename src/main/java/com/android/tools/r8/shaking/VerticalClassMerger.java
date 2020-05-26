@@ -273,12 +273,7 @@ public class VerticalClassMerger {
     // For all pinned fields, also pin the type of the field (because changing the type of the field
     // implicitly changes the signature of the field). Similarly, for all pinned methods, also pin
     // the return type and the parameter types of the method.
-    // TODO(b/156715504): Compute referenced-by-pinned in the keep info objects.
-    List<DexReference> pinnedItems = new ArrayList<>();
-    appInfo.getKeepInfo().forEachPinnedType(pinnedItems::add);
-    appInfo.getKeepInfo().forEachPinnedMethod(pinnedItems::add);
-    appInfo.getKeepInfo().forEachPinnedField(pinnedItems::add);
-    extractPinnedItems(pinnedItems, AbortReason.PINNED_SOURCE);
+    extractPinnedItems(appInfo.pinnedItems, AbortReason.PINNED_SOURCE);
 
     // TODO(christofferqa): Remove the invariant that the graph lense should not modify any
     // methods from the sets alwaysInline and noSideEffects (see use of assertNotModified).
@@ -685,7 +680,7 @@ public class VerticalClassMerger {
     // that `invoke-super A.method` instructions, which are in one of the methods from C, needs to
     // be rewritten to `invoke-direct C.method$B`. This is valid even though A.method() is actually
     // pinned, because this rewriting does not affect A.method() in any way.
-    assert graphLense.assertPinnedNotModified(appInfo.getKeepInfo());
+    assert graphLense.assertReferencesNotModified(appInfo.pinnedItems);
 
     for (DexProgramClass clazz : appInfo.classes()) {
       for (DexEncodedMethod encodedMethod : clazz.methods()) {
