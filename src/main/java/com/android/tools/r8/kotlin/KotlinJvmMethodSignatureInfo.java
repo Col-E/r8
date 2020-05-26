@@ -25,12 +25,21 @@ public class KotlinJvmMethodSignatureInfo {
   private final String name;
   private final KotlinTypeReference returnType;
   private final List<KotlinTypeReference> parameters;
+  private final String invalidDescriptor;
 
   private KotlinJvmMethodSignatureInfo(
       String name, KotlinTypeReference returnType, List<KotlinTypeReference> parameters) {
     this.name = name;
     this.returnType = returnType;
     this.parameters = parameters;
+    this.invalidDescriptor = null;
+  }
+
+  private KotlinJvmMethodSignatureInfo(String name, String invalidDescriptor) {
+    this.name = name;
+    this.invalidDescriptor = invalidDescriptor;
+    this.parameters = EMPTY_PARAMETERS_LIST;
+    this.returnType = null;
   }
 
   public static KotlinJvmMethodSignatureInfo create(
@@ -39,6 +48,10 @@ public class KotlinJvmMethodSignatureInfo {
       return null;
     }
     String kotlinDescriptor = methodSignature.getDesc();
+    if (!KotlinMetadataUtils.isValidMethodDescriptor(kotlinDescriptor)) {
+      // If the method descriptor is invalid, keep it as invalid.
+      return new KotlinJvmMethodSignatureInfo(methodSignature.getName(), kotlinDescriptor);
+    }
     String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(kotlinDescriptor);
     KotlinTypeReference returnType =
         KotlinTypeReference.createFromDescriptor(returnTypeDescriptor, definitionSupplier);
@@ -57,6 +70,10 @@ public class KotlinJvmMethodSignatureInfo {
 
   public JvmMethodSignature rewrite(
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
+    if (invalidDescriptor != null) {
+      return new JvmMethodSignature(name, invalidDescriptor);
+    }
+    assert returnType != null;
     String finalName = name;
     if (method != null) {
       String methodName = method.method.name.toString();
@@ -74,5 +91,22 @@ public class KotlinJvmMethodSignatureInfo {
     descBuilder.append(")");
     descBuilder.append(returnType.toRenamedDescriptorOrDefault(appView, namingLens, defValue));
     return new JvmMethodSignature(finalName, descBuilder.toString());
+  }
+
+  @Override
+  public String toString() {
+    if (invalidDescriptor != null) {
+      return name + "(" + invalidDescriptor + ")";
+    }
+    assert returnType != null;
+    StringBuilder descBuilder = new StringBuilder();
+    descBuilder.append(name);
+    descBuilder.append("(");
+    for (KotlinTypeReference parameter : parameters) {
+      descBuilder.append(parameter.toString());
+    }
+    descBuilder.append(")");
+    descBuilder.append(returnType.toString());
+    return descBuilder.toString();
   }
 }

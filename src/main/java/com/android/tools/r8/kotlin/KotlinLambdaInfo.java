@@ -14,7 +14,6 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
 import kotlinx.metadata.KmLambda;
-import kotlinx.metadata.KmLambdaVisitor;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
@@ -22,9 +21,11 @@ import kotlinx.metadata.jvm.JvmMethodSignature;
 public class KotlinLambdaInfo {
 
   private final KotlinFunctionInfo function;
+  private final boolean hasBacking;
 
-  private KotlinLambdaInfo(KotlinFunctionInfo function) {
+  private KotlinLambdaInfo(KotlinFunctionInfo function, boolean hasBacking) {
     this.function = function;
+    this.hasBacking = hasBacking;
   }
 
   static KotlinLambdaInfo create(
@@ -36,22 +37,18 @@ public class KotlinLambdaInfo {
       assert false;
       return null;
     }
+    KotlinFunctionInfo kotlinFunctionInfo =
+        KotlinFunctionInfo.create(lambda.function, definitionSupplier, reporter);
     JvmMethodSignature signature = JvmExtensionsKt.getSignature(lambda.function);
-    if (signature == null) {
-      assert false;
-      return null;
-    }
-    for (DexEncodedMethod method : clazz.methods()) {
-      if (toJvmMethodSignature(method.method).asString().equals(signature.asString())) {
-        KotlinFunctionInfo kotlinFunctionInfo =
-            KotlinFunctionInfo.create(lambda.function, definitionSupplier, reporter);
-        method.setKotlinMemberInfo(kotlinFunctionInfo);
-        return new KotlinLambdaInfo(kotlinFunctionInfo);
+    if (signature != null) {
+      for (DexEncodedMethod method : clazz.methods()) {
+        if (toJvmMethodSignature(method.method).asString().equals(signature.asString())) {
+          method.setKotlinMemberInfo(kotlinFunctionInfo);
+          return new KotlinLambdaInfo(kotlinFunctionInfo, true);
+        }
       }
     }
-    // TODO(b/155536535): Resolve this assert for NestTreeShakeJarVerificationTest.
-    // assert false;
-    return null;
+    return new KotlinLambdaInfo(kotlinFunctionInfo, false);
   }
 
   boolean rewrite(
@@ -59,13 +56,26 @@ public class KotlinLambdaInfo {
       DexClass clazz,
       AppView<AppInfoWithLiveness> appView,
       NamingLens namingLens) {
+    if (!hasBacking) {
+      function.rewrite(visitorProvider.get()::visitFunction, null, appView, namingLens);
+      return true;
+    }
+    DexEncodedMethod backing = null;
     for (DexEncodedMethod method : clazz.methods()) {
       if (method.getKotlinMemberInfo() == function) {
-        KmLambdaVisitor kmLambdaVisitor = visitorProvider.get();
-        function.rewrite(kmLambdaVisitor::visitFunction, method, appView, namingLens);
-        return true;
+        backing = method;
+        break;
       }
     }
-    return false;
+    if (backing == null) {
+      appView
+          .options()
+          .reporter
+          .info(
+              KotlinMetadataDiagnostic.lambdaBackingNotFound(clazz.type, function.getSignature()));
+      return false;
+    }
+    function.rewrite(visitorProvider.get()::visitFunction, backing, appView, namingLens);
+    return true;
   }
 }

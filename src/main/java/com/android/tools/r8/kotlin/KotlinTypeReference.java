@@ -61,6 +61,10 @@ class KotlinTypeReference {
     if (unknown != null) {
       return unknown;
     }
+    assert known != null;
+    if (!known.isClassType()) {
+      return known.descriptor.toString();
+    }
     if (!appView.appInfo().isNonProgramTypeOrLiveProgramType(known)) {
       return defaultValue;
     }
@@ -86,5 +90,10 @@ class KotlinTypeReference {
       return descriptor;
     }
     return DescriptorUtils.getBinaryNameFromDescriptor(descriptor);
+  }
+
+  @Override
+  public String toString() {
+    return known != null ? known.descriptor.toString() : unknown;
   }
 }

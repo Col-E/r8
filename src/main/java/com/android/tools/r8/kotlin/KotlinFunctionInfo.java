@@ -132,4 +132,8 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
   public boolean isExtensionFunction() {
     return receiverParameterType != null;
   }
+
+  public KotlinJvmMethodSignatureInfo getSignature() {
+    return signature;
+  }
 }
