@@ -842,7 +842,6 @@ public final class R8Command extends BaseCompilerCommand {
             ? LineNumberOptimization.ON
             : LineNumberOptimization.OFF;
 
-    assert internal.enableDynamicTypeOptimization || !proguardConfiguration.isOptimizing();
     assert internal.enableHorizontalClassMerging || !proguardConfiguration.isOptimizing();
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
     assert internal.enableVerticalClassMerging || !proguardConfiguration.isOptimizing();

@@ -201,11 +201,6 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void methodNeverReturnsNull(DexEncodedMethod method) {
-    getMethodOptimizationInfoForUpdating(method).markNeverReturnsNull();
-  }
-
-  @Override
   public synchronized void methodNeverReturnsNormally(DexEncodedMethod method) {
     getMethodOptimizationInfoForUpdating(method).markNeverReturnsNormally();
   }

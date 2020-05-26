@@ -53,7 +53,6 @@ import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.AssumeInserter;
-import com.android.tools.r8.ir.optimize.Assumer;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
@@ -167,8 +166,7 @@ public class IRConverter {
   private final EnumValueOptimizer enumValueOptimizer;
   private final EnumUnboxer enumUnboxer;
 
-  // Assumers that will insert Assume instructions.
-  public final Collection<Assumer> assumers = new ArrayList<>();
+  public final AssumeInserter assumeInserter;
   private final DynamicTypeOptimization dynamicTypeOptimization;
 
   final AssertionsRewriter assertionsRewriter;
@@ -264,6 +262,7 @@ public class IRConverter {
       this.methodOptimizationInfoCollector = null;
       this.enumValueOptimizer = null;
       this.enumUnboxer = null;
+      this.assumeInserter = null;
       return;
     }
     this.lambdaRewriter =
@@ -291,20 +290,12 @@ public class IRConverter {
       assert appView.appInfo().hasLiveness();
       assert appView.rootSet() != null;
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      if (options.enableNonNullTracking) {
-        assumers.add(new AssumeInserter(appViewWithLiveness));
-      }
+      assumeInserter = new AssumeInserter(appViewWithLiveness);
       this.classInliner =
           options.enableClassInlining && options.enableInlining ? new ClassInliner() : null;
       this.classStaticizer =
           options.enableClassStaticizer ? new ClassStaticizer(appViewWithLiveness, this) : null;
-      this.dynamicTypeOptimization =
-          options.enableDynamicTypeOptimization
-              ? new DynamicTypeOptimization(appViewWithLiveness)
-              : null;
-      if (dynamicTypeOptimization != null) {
-        assumers.add(dynamicTypeOptimization);
-      }
+      this.dynamicTypeOptimization = new DynamicTypeOptimization(appViewWithLiveness);
       this.fieldAccessAnalysis =
           FieldAccessAnalysis.enable(options) ? new FieldAccessAnalysis(appViewWithLiveness) : null;
       this.libraryMethodOverrideAnalysis =
@@ -347,6 +338,7 @@ public class IRConverter {
       this.enumValueOptimizer =
           options.enableEnumValueOptimization ? new EnumValueOptimizer(appViewWithLiveness) : null;
     } else {
+      this.assumeInserter = null;
       this.classInliner = null;
       this.classStaticizer = null;
       this.dynamicTypeOptimization = null;
@@ -1259,9 +1251,9 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);
 
-    timing.begin("Insert assume instructions");
-    CodeRewriter.insertAssumeInstructions(code, assumers, timing);
-    timing.end();
+    if (assumeInserter != null) {
+      assumeInserter.insertAssumeInstructions(code, timing);
+    }
 
     previous = printMethod(code, "IR after inserting assume instructions (SSA)", previous);
 
@@ -1597,7 +1589,7 @@ public class IRConverter {
       timing.end();
     }
 
-    if (!assumers.isEmpty()) {
+    if (assumeInserter != null) {
       timing.begin("Remove assume instructions");
       CodeRewriter.removeAssumeInstructions(appView, code);
       timing.end();

@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
-import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
@@ -85,7 +84,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.SetUtils;
-import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Suppliers;
@@ -157,21 +155,6 @@ public class CodeRewriter {
     this.converter = converter;
     this.options = appView.options();
     this.dexItemFactory = appView.dexItemFactory();
-  }
-
-  public static void insertAssumeInstructions(
-      IRCode code, Collection<Assumer> assumers, Timing timing) {
-    insertAssumeInstructionsInBlocks(code, assumers, alwaysTrue(), timing);
-  }
-
-  public static void insertAssumeInstructionsInBlocks(
-      IRCode code, Collection<Assumer> assumers, Predicate<BasicBlock> blockTester, Timing timing) {
-    timing.begin("Insert assume instructions");
-    for (Assumer assumer : assumers) {
-      assumer.insertAssumeInstructionsInBlocks(code, code.listIterator(), blockTester, timing);
-      assert code.isConsistentSSA();
-    }
-    timing.end();
   }
 
   public static void removeAssumeInstructions(AppView<?> appView, IRCode code) {
@@ -1249,7 +1232,7 @@ public class CodeRewriter {
       return false;
     }
 
-    AssumeDynamicTypeRemover assumeDynamicTypeRemover = new AssumeDynamicTypeRemover(appView, code);
+    AssumeRemover assumeRemover = new AssumeRemover(appView, code);
     boolean changed = false;
     boolean mayHaveRemovedTrivialPhi = false;
     Set<Value> affectedValues = Sets.newIdentityHashSet();
@@ -1282,7 +1265,7 @@ public class CodeRewriter {
             // return false unless it is object.
             if (argument.getType().lessThanOrEqual(outValue.getType(), appView)) {
               affectedValues.addAll(outValue.affectedValues());
-              assumeDynamicTypeRemover.markUsersForRemoval(outValue);
+              assumeRemover.markAssumeDynamicTypeUsersForRemoval(outValue);
               mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
               outValue.replaceUsers(argument);
               invoke.setOutValue(null);
@@ -1292,12 +1275,12 @@ public class CodeRewriter {
         }
       }
     }
-    assumeDynamicTypeRemover.removeMarkedInstructions(blocksToBeRemoved).finish();
+    assumeRemover.removeMarkedInstructions(blocksToBeRemoved).finish();
     if (!blocksToBeRemoved.isEmpty()) {
       code.removeBlocks(blocksToBeRemoved);
       code.removeAllDeadAndTrivialPhis(affectedValues);
       assert code.getUnreachableBlocks().isEmpty();
-    } else if (mayHaveRemovedTrivialPhi || assumeDynamicTypeRemover.mayHaveIntroducedTrivialPhi()) {
+    } else if (mayHaveRemovedTrivialPhi || assumeRemover.mayHaveIntroducedTrivialPhi()) {
       code.removeAllDeadAndTrivialPhis(affectedValues);
     }
     if (!affectedValues.isEmpty()) {
@@ -1502,7 +1485,9 @@ public class CodeRewriter {
       if (result == InstanceOfResult.UNKNOWN) {
         Value aliasedValue =
             inValue.getSpecificAliasedValue(
-                value -> !value.isPhi() && value.definition.isAssumeDynamicType());
+                value ->
+                    value.isDefinedByInstructionSatisfying(
+                        Instruction::isAssumeWithDynamicTypeAssumption));
         if (aliasedValue != null) {
           TypeElement dynamicType =
               aliasedValue

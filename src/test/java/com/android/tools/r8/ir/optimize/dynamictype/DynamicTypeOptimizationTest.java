@@ -7,13 +7,11 @@ package com.android.tools.r8.ir.optimize.dynamictype;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -26,17 +24,14 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class DynamicTypeOptimizationTest extends TestBase {
 
-  private final boolean enableDynamicTypeOptimization;
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{1}, enable dynamic type optimization: {0}")
+  @Parameterized.Parameters(name = "{0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public DynamicTypeOptimizationTest(
-      boolean enableDynamicTypeOptimization, TestParameters parameters) {
-    this.enableDynamicTypeOptimization = enableDynamicTypeOptimization;
+  public DynamicTypeOptimizationTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -47,10 +42,8 @@ public class DynamicTypeOptimizationTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         // Keep B to ensure that we will treat it as being instantiated.
         .addKeepClassRulesWithAllowObfuscation(B.class)
-        .addOptionsModification(
-            options -> options.enableDynamicTypeOptimization = enableDynamicTypeOptimization)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
@@ -81,8 +74,7 @@ public class DynamicTypeOptimizationTest extends TestBase {
     MethodSubject testInstanceOfRemovalMethod =
         mainClassSubject.uniqueMethodWithName("testInstanceOfRemoval");
     assertThat(testInstanceOfRemovalMethod, isPresent());
-    assertEquals(
-        enableDynamicTypeOptimization,
+    assertTrue(
         testInstanceOfRemovalMethod
             .streamInstructions()
             .noneMatch(instruction -> instruction.isInstanceOf(aClassSubject.getFinalName())));
@@ -92,27 +84,16 @@ public class DynamicTypeOptimizationTest extends TestBase {
     MethodSubject testMethodInliningMethod =
         mainClassSubject.uniqueMethodWithName("testMethodInlining");
     assertThat(testMethodInliningMethod, isPresent());
-    assertEquals(
-        enableDynamicTypeOptimization, interfaceSubject.uniqueMethodWithName("world").isAbsent());
-    if (!enableDynamicTypeOptimization) {
-      assertThat(
-          testMethodInliningMethod, invokesMethod(interfaceSubject.uniqueMethodWithName("world")));
-    }
+    assertTrue(interfaceSubject.uniqueMethodWithName("world").isAbsent());
 
     // Verify that exclamationMark() has been rebound in testMethodRebinding() unless the dynamic
     // type optimization is disabled.
     MethodSubject testMethodRebindingMethod =
         mainClassSubject.uniqueMethodWithName("testMethodRebinding");
     assertThat(testMethodRebindingMethod, isPresent());
-    if (enableDynamicTypeOptimization) {
-      assertThat(
-          testMethodRebindingMethod,
-          invokesMethod(aClassSubject.uniqueMethodWithName("exclamationMark")));
-    } else {
-      assertThat(
-          testMethodRebindingMethod,
-          invokesMethod(interfaceSubject.uniqueMethodWithName("exclamationMark")));
-    }
+    assertThat(
+        testMethodRebindingMethod,
+        invokesMethod(aClassSubject.uniqueMethodWithName("exclamationMark")));
   }
 
   static class TestClass {

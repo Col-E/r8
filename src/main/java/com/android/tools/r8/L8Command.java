@@ -162,7 +162,6 @@ public final class L8Command extends BaseCompilerCommand {
     assert !internal.passthroughDexCode;
 
     // Assert some of R8 optimizations are disabled.
-    assert !internal.enableDynamicTypeOptimization;
     assert !internal.enableInlining;
     assert !internal.enableClassInlining;
     assert !internal.enableHorizontalClassMerging;

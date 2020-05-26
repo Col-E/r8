@@ -326,7 +326,7 @@ public class UninstantiatedTypeOptimization {
   }
 
   public void rewrite(IRCode code) {
-    AssumeDynamicTypeRemover assumeDynamicTypeRemover = new AssumeDynamicTypeRemover(appView, code);
+    AssumeRemover assumeRemover = new AssumeRemover(appView, code);
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     Set<Value> affectedValues = Sets.newIdentityHashSet();
@@ -352,13 +352,13 @@ public class UninstantiatedTypeOptimization {
               blockIterator,
               instructionIterator,
               code,
-              assumeDynamicTypeRemover,
+              assumeRemover,
               affectedValues,
               blocksToBeRemoved);
         }
       }
     }
-    assumeDynamicTypeRemover.removeMarkedInstructions(blocksToBeRemoved).finish();
+    assumeRemover.removeMarkedInstructions(blocksToBeRemoved).finish();
     code.removeBlocks(blocksToBeRemoved);
     code.removeAllDeadAndTrivialPhis(affectedValues);
     code.removeUnreachableBlocks();
@@ -398,7 +398,7 @@ public class UninstantiatedTypeOptimization {
       ListIterator<BasicBlock> blockIterator,
       InstructionListIterator instructionIterator,
       IRCode code,
-      AssumeDynamicTypeRemover assumeDynamicTypeRemover,
+      AssumeRemover assumeRemover,
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToBeRemoved) {
     DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.context());
@@ -421,8 +421,7 @@ public class UninstantiatedTypeOptimization {
 
     DexType returnType = target.method.proto.returnType;
     if (returnType.isAlwaysNull(appView)) {
-      replaceOutValueByNull(
-          invoke, instructionIterator, code, assumeDynamicTypeRemover, affectedValues);
+      replaceOutValueByNull(invoke, instructionIterator, code, assumeRemover, affectedValues);
     }
   }
 
@@ -430,13 +429,13 @@ public class UninstantiatedTypeOptimization {
       Instruction instruction,
       InstructionListIterator instructionIterator,
       IRCode code,
-      AssumeDynamicTypeRemover assumeDynamicTypeRemover,
+      AssumeRemover assumeRemover,
       Set<Value> affectedValues) {
     assert instructionIterator.peekPrevious() == instruction;
     if (instruction.hasOutValue()) {
       Value outValue = instruction.outValue();
       if (outValue.numberOfAllUsers() > 0) {
-        assumeDynamicTypeRemover.markUsersForRemoval(outValue);
+        assumeRemover.markAssumeDynamicTypeUsersForRemoval(outValue);
         instructionIterator.previous();
         affectedValues.addAll(outValue.affectedValues());
         outValue.replaceUsers(

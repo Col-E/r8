@@ -932,7 +932,7 @@ public class Inliner implements PostOptimization {
       OptimizationFeedback feedback,
       InliningIRProvider inliningIRProvider,
       Timing timing) {
-    AssumeDynamicTypeRemover assumeDynamicTypeRemover = new AssumeDynamicTypeRemover(appView, code);
+    AssumeRemover assumeRemover = new AssumeRemover(appView, code);
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     BasicBlockIterator blockIterator = code.listIterator();
     ClassInitializationAnalysis classInitializationAnalysis =
@@ -1025,7 +1025,7 @@ public class Inliner implements PostOptimization {
           // Mark AssumeDynamicType instruction for the out-value for removal, if any.
           Value outValue = invoke.outValue();
           if (outValue != null) {
-            assumeDynamicTypeRemover.markUsersForRemoval(outValue);
+            assumeRemover.markAssumeDynamicTypeUsersForRemoval(outValue);
           }
 
           boolean inlineeMayHaveInvokeMethod = inlinee.code.metadata().mayHaveInvokeMethod();
@@ -1073,14 +1073,14 @@ public class Inliner implements PostOptimization {
             IteratorUtils.previousUntil(blockIterator, previous -> previous == block);
             blockIterator.next();
           }
-        } else if (current.isAssumeDynamicType()) {
-          assumeDynamicTypeRemover.removeIfMarked(current.asAssume(), iterator);
+        } else if (current.isAssume()) {
+          assumeRemover.removeIfMarked(current.asAssume(), iterator);
         }
       }
     }
     assert inlineeStack.isEmpty();
-    assumeDynamicTypeRemover.removeMarkedInstructions(blocksToRemove);
-    assumeDynamicTypeRemover.finish();
+    assumeRemover.removeMarkedInstructions(blocksToRemove);
+    assumeRemover.finish();
     classInitializationAnalysis.finish();
     code.removeBlocks(blocksToRemove);
     code.removeAllDeadAndTrivialPhis();
@@ -1129,50 +1129,33 @@ public class Inliner implements PostOptimization {
       BasicBlockIterator blockIterator,
       BasicBlock block,
       Timing timing) {
-    InternalOptions options = appView.options();
-    boolean skip =
-        !(options.enableDynamicTypeOptimization
-            || options.enableNonNullTracking
-            || options.enableValuePropagation);
-    if (skip) {
-      return;
-    }
-
     BasicBlock state = IteratorUtils.peekNext(blockIterator);
 
     Set<BasicBlock> inlineeBlocks = SetUtils.newIdentityHashSet(inlinee.blocks);
 
     // Run member value propagation on the inlinee blocks.
-    if (options.enableValuePropagation) {
+    if (appView.options().enableValuePropagation) {
       rewindBlockIteratorToFirstInlineeBlock(blockIterator, block);
       applyMemberValuePropagationToInlinee(code, blockIterator, block, inlineeBlocks);
     }
 
     // Add non-null IRs only to the inlinee blocks.
-    if (options.enableNonNullTracking) {
-      Assumer nonNullTracker = new AssumeInserter(appView);
-      applyAssumerToInlinee(nonNullTracker, code, blockIterator, block, inlineeBlocks, timing);
-    }
+    insertAssumeInstructions(code, blockIterator, block, inlineeBlocks, timing);
 
-    // Add dynamic type assumptions only to the inlinee blocks.
-    if (options.enableDynamicTypeOptimization) {
-      applyAssumerToInlinee(
-          new DynamicTypeOptimization(appView), code, blockIterator, block, inlineeBlocks, timing);
-    }
     // Restore the old state of the iterator.
     rewindBlockIteratorToFirstInlineeBlock(blockIterator, state);
     // TODO(b/72693244): need a test where refined env in inlinee affects the caller.
   }
 
-  private void applyAssumerToInlinee(
-      Assumer assumer,
+  private void insertAssumeInstructions(
       IRCode code,
       BasicBlockIterator blockIterator,
       BasicBlock block,
       Set<BasicBlock> inlineeBlocks,
       Timing timing) {
     rewindBlockIteratorToFirstInlineeBlock(blockIterator, block);
-    assumer.insertAssumeInstructionsInBlocks(code, blockIterator, inlineeBlocks::contains, timing);
+    new AssumeInserter(appView)
+        .insertAssumeInstructionsInBlocks(code, blockIterator, inlineeBlocks::contains, timing);
     assert !blockIterator.hasNext();
   }
 
