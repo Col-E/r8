@@ -132,7 +132,8 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
-    public BasicBlock split(IRCode code, ListIterator<BasicBlock> blockIterator) {
+    public BasicBlock split(
+        IRCode code, ListIterator<BasicBlock> blockIterator, boolean keepCatchHandlers) {
       throw new Unimplemented();
     }
 

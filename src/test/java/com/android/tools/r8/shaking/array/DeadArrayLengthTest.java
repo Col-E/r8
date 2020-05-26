@@ -4,7 +4,6 @@
 package com.android.tools.r8.shaking.array;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
@@ -48,13 +47,8 @@ public class DeadArrayLengthTest extends TestBase {
     assertEquals(0, countArrayLength(nonNull));
 
     MethodSubject nullable = main.uniqueMethodWithName("isNullable");
-    if (isR8) {
-      // Replaced with null-throwing code at the call site.
-      assertThat(nullable, not(isPresent()));
-    } else {
-      assertThat(nullable, isPresent());
-      assertEquals(1, countArrayLength(nullable));
-    }
+    assertThat(nullable, isPresent());
+    assertEquals(isR8 ? 0 : 1, countArrayLength(nullable));
 
     MethodSubject nullCheck = main.uniqueMethodWithName("afterNullCheck");
     assertThat(nullCheck, isPresent());

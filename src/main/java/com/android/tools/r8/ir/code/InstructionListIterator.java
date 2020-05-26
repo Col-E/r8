@@ -104,20 +104,25 @@ public interface InstructionListIterator
 
   /**
    * Split the block into two blocks at the point of the {@link ListIterator} cursor. The existing
-   * block will have all the instructions before the cursor, and the new block all the
-   * instructions after the cursor.
+   * block will have all the instructions before the cursor, and the new block all the instructions
+   * after the cursor.
    *
-   * If the current block has catch handlers these catch handlers will be attached to the block
+   * <p>If the current block has catch handlers these catch handlers will be attached to the block
    * containing the throwing instruction after the split.
    *
    * @param code the IR code for the block this iterator originates from.
    * @param blockIterator basic block iterator used to iterate the blocks. This must be positioned
-   * just after the block for which this is the instruction iterator. After this method returns it
-   * will be positioned just after the basic block returned. Calling {@link #remove} without
-   * further navigation will remove that block.
+   *     just after the block for which this is the instruction iterator. After this method returns
+   *     it will be positioned just after the basic block returned. Calling {@link #remove} without
+   *     further navigation will remove that block.
+   * @param keepCatchHandlers whether to keep catch handlers on the original block.
    * @return Returns the new block with the instructions after the cursor.
    */
-  BasicBlock split(IRCode code, ListIterator<BasicBlock> blockIterator);
+  BasicBlock split(IRCode code, ListIterator<BasicBlock> blockIterator, boolean keepCatchHandlers);
+
+  default BasicBlock split(IRCode code, ListIterator<BasicBlock> blockIterator) {
+    return split(code, blockIterator, hasPrevious() && peekPrevious().instructionTypeCanThrow());
+  }
 
   default BasicBlock split(IRCode code) {
     return split(code, null);

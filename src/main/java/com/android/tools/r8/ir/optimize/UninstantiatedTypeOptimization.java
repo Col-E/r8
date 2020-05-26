@@ -329,7 +329,7 @@ public class UninstantiatedTypeOptimization {
     AssumeDynamicTypeRemover assumeDynamicTypeRemover = new AssumeDynamicTypeRemover(appView, code);
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
-    Set<Value> valuesToNarrow = Sets.newIdentityHashSet();
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (blocksToBeRemoved.contains(block)) {
@@ -342,7 +342,7 @@ public class UninstantiatedTypeOptimization {
           Value couldBeNullValue = instruction.getNonNullInput();
           if (isThrowNullCandidate(couldBeNullValue, instruction, appView, code.context())) {
             instructionIterator.replaceCurrentInstructionWithThrowNull(
-                appView, code, blockIterator, blocksToBeRemoved, valuesToNarrow);
+                appView, code, blockIterator, blocksToBeRemoved, affectedValues);
             continue;
           }
         }
@@ -353,17 +353,17 @@ public class UninstantiatedTypeOptimization {
               instructionIterator,
               code,
               assumeDynamicTypeRemover,
-              blocksToBeRemoved,
-              valuesToNarrow);
+              affectedValues,
+              blocksToBeRemoved);
         }
       }
     }
     assumeDynamicTypeRemover.removeMarkedInstructions(blocksToBeRemoved).finish();
     code.removeBlocks(blocksToBeRemoved);
-    code.removeAllDeadAndTrivialPhis(valuesToNarrow);
+    code.removeAllDeadAndTrivialPhis(affectedValues);
     code.removeUnreachableBlocks();
-    if (!valuesToNarrow.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(valuesToNarrow);
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }
@@ -399,8 +399,8 @@ public class UninstantiatedTypeOptimization {
       InstructionListIterator instructionIterator,
       IRCode code,
       AssumeDynamicTypeRemover assumeDynamicTypeRemover,
-      Set<BasicBlock> blocksToBeRemoved,
-      Set<Value> affectedValues) {
+      Set<Value> affectedValues,
+      Set<BasicBlock> blocksToBeRemoved) {
     DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.context());
     if (target == null) {
       return;
@@ -411,6 +411,7 @@ public class UninstantiatedTypeOptimization {
       for (int i = 0; i < invoke.arguments().size(); i++) {
         Value argument = invoke.arguments().get(i);
         if (argument.isAlwaysNull(appView) && facts.get(i)) {
+          instructionIterator.next();
           instructionIterator.replaceCurrentInstructionWithThrowNull(
               appView, code, blockIterator, blocksToBeRemoved, affectedValues);
           return;
