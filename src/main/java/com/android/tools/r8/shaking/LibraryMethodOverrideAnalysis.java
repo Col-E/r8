@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
@@ -50,8 +49,10 @@ public class LibraryMethodOverrideAnalysis {
         getClassesWithLibraryMethodOverrides(appView);
 
     // Remove all types that are pinned from the initial set of non-escaping classes.
-    DexReference.filterDexType(appView.appInfo().pinnedItems.stream())
-        .forEach(initialNonEscapingClassesWithLibraryMethodOverrides::remove);
+    appView
+        .appInfo()
+        .getKeepInfo()
+        .forEachPinnedType(initialNonEscapingClassesWithLibraryMethodOverrides::remove);
 
     return initialNonEscapingClassesWithLibraryMethodOverrides;
   }

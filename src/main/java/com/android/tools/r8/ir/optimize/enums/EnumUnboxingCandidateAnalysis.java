@@ -13,11 +13,11 @@ import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -146,22 +146,17 @@ class EnumUnboxingCandidateAnalysis {
     // A holder type, for field or method, should block enum unboxing only if the enum type is
     // also kept. This is to allow the keep rule -keepclassmembers to be used on enums while
     // enum unboxing can still be performed.
-    for (DexReference item : appView.appInfo().getPinnedItems()) {
-      if (item.isDexType()) {
-        removePinnedCandidate(item.asDexType());
-      } else if (item.isDexField()) {
-        DexField field = item.asDexField();
-        removePinnedIfNotHolder(field, field.type);
-      } else {
-        assert item.isDexMethod();
-        DexMethod method = item.asDexMethod();
-        DexProto proto = method.proto;
-        removePinnedIfNotHolder(method, proto.returnType);
-        for (DexType parameterType : proto.parameters.values) {
-          removePinnedIfNotHolder(method, parameterType);
-        }
-      }
-    }
+    KeepInfoCollection keepInfo = appView.appInfo().getKeepInfo();
+    keepInfo.forEachPinnedType(this::removePinnedCandidate);
+    keepInfo.forEachPinnedField((DexField field) -> removePinnedIfNotHolder(field, field.type));
+    keepInfo.forEachPinnedMethod(
+        (DexMethod method) -> {
+          DexProto proto = method.proto;
+          removePinnedIfNotHolder(method, proto.returnType);
+          for (DexType parameterType : proto.parameters.values) {
+            removePinnedIfNotHolder(method, parameterType);
+          }
+        });
   }
 
   private void removePinnedIfNotHolder(DexMember<?, ?> member, DexType type) {

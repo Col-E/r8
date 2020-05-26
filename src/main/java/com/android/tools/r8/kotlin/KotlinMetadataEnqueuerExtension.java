@@ -5,7 +5,6 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -29,14 +28,11 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
   @Override
   public void done(Enqueuer enqueuer) {
     DexType kotlinMetadataType = appView.dexItemFactory().kotlinMetadataType;
-    DexClass kotlinMetadataClass =
-        appView.appInfo().definitionForWithoutExistenceAssert(kotlinMetadataType);
     // We will process kotlin.Metadata even if the type is not present in the program, as long as
     // the annotation will be in the output
     boolean keepMetadata =
-        enqueuer.isPinned(kotlinMetadataType)
-            || enqueuer.isMissing(kotlinMetadataType)
-            || (kotlinMetadataClass != null && kotlinMetadataClass.isNotProgramClass());
+        // This is true for any non-program type (also missing) and for kept program types.
+        enqueuer.isPinned(kotlinMetadataType);
     enqueuer.forAllLiveClasses(
         clazz -> {
           clazz.setKotlinInfo(
