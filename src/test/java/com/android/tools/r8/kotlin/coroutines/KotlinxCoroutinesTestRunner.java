@@ -5,6 +5,9 @@
 package com.android.tools.r8.kotlin.coroutines;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.KotlinTestBase;
@@ -63,7 +66,7 @@ public class KotlinxCoroutinesTestRunner extends KotlinTestBase {
 
   @Test
   public void runKotlinxCoroutinesTests_smoke() throws Exception {
-    Path baseJar =
+    Path testJar =
         kotlinc(KOTLINC, targetVersion)
             .addArguments(
                 "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
@@ -73,7 +76,44 @@ public class KotlinxCoroutinesTestRunner extends KotlinTestBase {
             .addClasspathFiles(BASE_LIBRARY)
             .addSourceFiles(TEST_SOURCES)
             .compile();
-    runTestsInJar(baseJar, BASE_LIBRARY);
+    runTestsInJar(testJar, BASE_LIBRARY);
+  }
+
+  @Test
+  public void runKotlinxCoroutinesTests_r8() throws Exception {
+    Path baseJar =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(BASE_LIBRARY)
+            .addKeepAllClassesRule()
+            .addKeepAllAttributes()
+            // The BASE_LIBRARY contains proguard rules that do not match.
+            .allowUnusedProguardConfigurationRules()
+            .allowDiagnosticInfoMessages()
+            .addKeepRules(
+                "-dontwarn reactor.blockhound.integration.BlockHoundIntegration",
+                "-dontwarn org.junit.runners.model.Statement",
+                "-dontwarn org.junit.rules.TestRule")
+            .compile()
+            .assertAllInfoMessagesMatch(
+                anyOf(
+                    containsString("Unexpected error while reading kotlinx.coroutines"),
+                    containsString("Proguard configuration rule does not match anything")))
+            .writeToZip();
+    ProcessResult kotlincResult =
+        kotlinc(KOTLINC, targetVersion)
+            .addArguments(
+                "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
+                "-Xuse-experimental=kotlinx.coroutines.ObsoleteCoroutinesApi",
+                "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi")
+            .addClasspathFiles(DEPENDENCIES)
+            .addClasspathFiles(baseJar)
+            .addSourceFiles(TEST_SOURCES)
+            .setOutputPath(temp.newFolder().toPath())
+            .compileRaw();
+    assertEquals(1, kotlincResult.exitCode);
+    assertThat(
+        kotlincResult.stderr,
+        containsString("Couldn't inline method call 'CoroutineExceptionHandler'"));
   }
 
   private void runTestsInJar(Path testJar, Path deps) throws Exception {
