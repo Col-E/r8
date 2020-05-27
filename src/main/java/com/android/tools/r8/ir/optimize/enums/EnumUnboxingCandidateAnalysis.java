@@ -69,10 +69,6 @@ class EnumUnboxingCandidateAnalysis {
       enumUnboxer.reportFailure(clazz.type, Reason.UNEXPECTED_STATIC_FIELD);
       return false;
     }
-    if (clazz.getMethodCollection().hasVirtualMethods()) {
-      enumUnboxer.reportFailure(clazz.type, Reason.VIRTUAL_METHOD);
-      return false;
-    }
     EnumValueInfoMap enumValueInfoMap =
         appView.appInfo().withLiveness().getEnumValueInfoMap(clazz.type);
     if (enumValueInfoMap == null) {
@@ -83,8 +79,8 @@ class EnumUnboxingCandidateAnalysis {
     // TODO(b/155036467): Fail lazily when an unsupported method is not only present but also used.
     // Only Enums with default initializers and static methods can be unboxed at the moment.
     for (DexEncodedMethod directMethod : clazz.directMethods()) {
-      if (!(directMethod.isStatic() || isStandardEnumInitializer(directMethod))) {
-        enumUnboxer.reportFailure(clazz.type, Reason.UNEXPECTED_DIRECT_METHOD);
+      if (directMethod.isInstanceInitializer() && !isStandardEnumInitializer(directMethod)) {
+        enumUnboxer.reportFailure(clazz.type, Reason.INVALID_INIT);
         return false;
       }
     }
