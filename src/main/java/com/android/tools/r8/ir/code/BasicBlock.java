@@ -1292,34 +1292,15 @@ public class BasicBlock {
       builder.append(": ");
       builder.append(instruction.toString());
       if (DebugLocalInfo.PRINT_LEVEL != PrintLevel.NONE) {
-        List<Value> localEnds = new ArrayList<>(instruction.getDebugValues().size());
-        List<Value> localStarts = new ArrayList<>(instruction.getDebugValues().size());
-        List<Value> localLive = new ArrayList<>(instruction.getDebugValues().size());
-        for (Value value : instruction.getDebugValues()) {
-          if (value.getDebugLocalEnds().contains(instruction)) {
-            localEnds.add(value);
-          } else if (value.getDebugLocalStarts().contains(instruction)) {
-            localStarts.add(value);
-          } else {
-            assert value.debugUsers().contains(instruction);
-            localLive.add(value);
-          }
+        if (!instruction.getDebugValues().isEmpty()) {
+          builder.append(" [end: ");
+          StringUtils.append(builder, instruction.getDebugValues(), ", ", BraceType.NONE);
+          builder.append("]");
         }
-        printDebugValueSet("live", localLive, builder);
-        printDebugValueSet("end", localEnds, builder);
-        printDebugValueSet("start", localStarts, builder);
       }
       builder.append("\n");
     }
     return builder.toString();
-  }
-
-  private void printDebugValueSet(String header, List<Value> locals, StringBuilder builder) {
-    if (!locals.isEmpty()) {
-      builder.append(" [").append(header).append(": ");
-      StringUtils.append(builder, locals, ", ", BraceType.NONE);
-      builder.append("]");
-    }
   }
 
   public void print(CfgPrinter printer) {
