@@ -2377,10 +2377,12 @@ public class IRBuilder {
     // Add a use if this instruction is overwriting a previous value of the same local.
     if (previousLocalValue != null && previousLocalValue.getLocalInfo() == ir.getLocalInfo()) {
       assert ir.outValue() != null;
+      ir.addDebugValue(previousLocalValue);
       previousLocalValue.addDebugLocalEnd(ir);
     }
     // Add reads of locals if any are pending.
     for (Value value : debugLocalEnds) {
+      ir.addDebugValue(value);
       value.addDebugLocalEnd(ir);
     }
     previousLocalValue = null;
