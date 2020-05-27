@@ -150,7 +150,8 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       return false;
     }
     // Check that the receiver information comes from a dynamic type.
-    if (!getReceiver().definition.isAssumeDynamicType()) {
+    if (!getReceiver()
+        .isDefinedByInstructionSatisfying(Instruction::isAssumeWithDynamicTypeAssumption)) {
       return false;
     }
     // Now, it can be that the upper bound is more precise than the lower:

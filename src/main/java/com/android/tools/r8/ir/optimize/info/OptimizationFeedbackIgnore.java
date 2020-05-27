@@ -90,9 +90,6 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void methodReturnValueOnlyDependsOnArguments(DexEncodedMethod method) {}
 
   @Override
-  public void methodNeverReturnsNull(DexEncodedMethod method) {}
-
-  @Override
   public void methodNeverReturnsNormally(DexEncodedMethod method) {}
 
   @Override

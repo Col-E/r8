@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
+import com.android.tools.r8.ir.optimize.AssumeInserter;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -390,7 +391,10 @@ final class StaticizingProcessor {
   }
 
   private void insertAssumeInstructions(IRCode code, MethodProcessor methodProcessor) {
-    CodeRewriter.insertAssumeInstructions(code, converter.assumers, Timing.empty());
+    AssumeInserter assumeInserter = converter.assumeInserter;
+    if (assumeInserter != null) {
+      assumeInserter.insertAssumeInstructions(code, Timing.empty());
+    }
   }
 
   private BiConsumer<IRCode, MethodProcessor> collectOptimizationInfo(

@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
@@ -16,7 +15,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.utils.BooleanUtils;
 import java.util.Objects;
 import java.util.Set;
 
@@ -25,11 +23,11 @@ public class Assume extends Instruction {
   private static final String ERROR_MESSAGE =
       "Expected Assume instructions to be removed after IR processing.";
 
-  private final DynamicTypeAssumption dynamicTypeAssumption;
+  private DynamicTypeAssumption dynamicTypeAssumption;
   private final NonNullAssumption nonNullAssumption;
   private final Instruction origin;
 
-  private Assume(
+  public Assume(
       DynamicTypeAssumption dynamicTypeAssumption,
       NonNullAssumption nonNullAssumption,
       Value dest,
@@ -38,9 +36,6 @@ public class Assume extends Instruction {
       AppView<?> appView) {
     super(dest, src);
     assert dynamicTypeAssumption != null || nonNullAssumption != null;
-    assert BooleanUtils.intValue(dynamicTypeAssumption != null)
-            + BooleanUtils.intValue(nonNullAssumption != null)
-        == 1;
     assert dynamicTypeAssumption == null
         || dynamicTypeAssumption.verifyCorrectnessOfValues(dest, src, appView);
     assert nonNullAssumption == null
@@ -78,7 +73,7 @@ public class Assume extends Instruction {
   }
 
   public boolean verifyInstructionIsNeeded(AppView<?> appView) {
-    if (isAssumeDynamicType()) {
+    if (hasDynamicTypeAssumption()) {
       assert dynamicTypeAssumption.verifyCorrectnessOfValues(outValue(), src(), appView);
     }
     return true;
@@ -112,13 +107,7 @@ public class Assume extends Instruction {
 
   @Override
   public String getInstructionName() {
-    if (isAssumeDynamicType()) {
-      return "AssumeDynamicType";
-    }
-    if (isAssumeNonNull()) {
-      return "AssumeNonNull";
-    }
-    throw new Unimplemented();
+    return "Assume";
   }
 
   @Override
@@ -131,13 +120,15 @@ public class Assume extends Instruction {
     return this;
   }
 
-  @Override
-  public boolean isAssumeDynamicType() {
+  public boolean hasDynamicTypeAssumption() {
     return dynamicTypeAssumption != null;
   }
 
-  @Override
-  public boolean isAssumeNonNull() {
+  public void unsetDynamicTypeAssumption() {
+    dynamicTypeAssumption = null;
+  }
+
+  public boolean hasNonNullAssumption() {
     return nonNullAssumption != null;
   }
 
@@ -149,7 +140,7 @@ public class Assume extends Instruction {
     if (outType.isPrimitiveType()) {
       return false;
     }
-    if (isAssumeDynamicType()) {
+    if (hasDynamicTypeAssumption()) {
       outType = dynamicTypeAssumption.getDynamicUpperBoundType();
     }
     if (appView.appInfo().hasLiveness()) {
@@ -220,14 +211,11 @@ public class Assume extends Instruction {
 
   @Override
   public TypeElement evaluate(AppView<?> appView) {
-    if (isAssumeDynamicType()) {
-      return src().getType();
-    }
-    if (isAssumeNonNull()) {
+    if (hasNonNullAssumption()) {
       assert src().getType().isReferenceType();
       return src().getType().asReferenceType().asMeetWithNotNull();
     }
-    throw new Unimplemented();
+    return src().getType();
   }
 
   @Override
@@ -255,15 +243,14 @@ public class Assume extends Instruction {
     assert super.verifyTypes(appView);
 
     TypeElement inType = src().getType();
+    assert inType.isReferenceType() : inType;
+
     TypeElement outType = getOutType();
-    if (isAssumeDynamicType()) {
-      assert inType.isReferenceType() : inType;
-      assert outType.equals(inType)
+    if (hasNonNullAssumption()) {
+      assert inType.isNullType() || outType.equals(inType.asReferenceType().asMeetWithNotNull())
           : "At " + this + System.lineSeparator() + outType + " != " + inType;
     } else {
-      assert isAssumeNonNull() : this;
-      assert inType.isReferenceType() : inType;
-      assert inType.isNullType() || outType.equals(inType.asReferenceType().asMeetWithNotNull())
+      assert outType.equals(inType)
           : "At " + this + System.lineSeparator() + outType + " != " + inType;
     }
     return true;
@@ -276,21 +263,21 @@ public class Assume extends Instruction {
     //     assumption became "truth."
     //   2) invoke-interface could be devirtualized, while its dynamic type and/or non-null receiver
     //     are still valid.
-    String originString =
-        origin.hasBlock() ? " (origin: `" + origin.toString() + "`)" : " (obsolete origin)";
-    if (isAssumeNonNull()) {
-      return super.toString() + originString;
+    StringBuilder builder = new StringBuilder(super.toString());
+    if (hasNonNullAssumption()) {
+      builder.append("; not null");
     }
-    if (isAssumeDynamicType()) {
-      return super.toString()
-          + "; upper bound: "
-          + dynamicTypeAssumption.dynamicUpperBoundType
-          + (dynamicTypeAssumption.dynamicLowerBoundType != null
-              ? "; lower bound: " + dynamicTypeAssumption.dynamicLowerBoundType
-              : "")
-          + originString;
+    if (hasDynamicTypeAssumption()) {
+      if (hasOutValue()) {
+        if (!dynamicTypeAssumption.dynamicUpperBoundType.equalUpToNullability(outValue.getType())) {
+          builder.append("; upper bound: ").append(dynamicTypeAssumption.dynamicUpperBoundType);
+        }
+      }
+      if (dynamicTypeAssumption.dynamicLowerBoundType != null) {
+        builder.append("; lower bound: ").append(dynamicTypeAssumption.dynamicLowerBoundType);
+      }
     }
-    return super.toString();
+    return builder.toString();
   }
 
   public static class DynamicTypeAssumption {
@@ -298,7 +285,7 @@ public class Assume extends Instruction {
     private final TypeElement dynamicUpperBoundType;
     private final ClassTypeElement dynamicLowerBoundType;
 
-    private DynamicTypeAssumption(
+    public DynamicTypeAssumption(
         TypeElement dynamicUpperBoundType, ClassTypeElement dynamicLowerBoundType) {
       this.dynamicUpperBoundType = dynamicUpperBoundType;
       this.dynamicLowerBoundType = dynamicLowerBoundType;
