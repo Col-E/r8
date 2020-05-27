@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
 import com.android.tools.r8.graph.AppView;
@@ -53,6 +54,7 @@ import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.AppInfoWithLivenessModifier;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -325,6 +327,8 @@ public class EnumUnboxer implements PostOptimization {
       return;
     }
     ImmutableSet<DexType> enumsToUnbox = ImmutableSet.copyOf(this.enumsUnboxingCandidates.keySet());
+    // Update keep info on any of the enum methods of the removed classes.
+    updatePinnedItems(enumsToUnbox);
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox);
     NestedGraphLense enumUnboxingLens = new TreeFixer(enumsToUnbox).fixupTypeReferences();
     appView.setUnboxedEnums(enumUnboxerRewriter.getEnumsToUnbox());
@@ -366,6 +370,16 @@ public class EnumUnboxer implements PostOptimization {
         });
     postBuilder.put(this);
     postBuilder.rewrittenWithLens(appView, previousLens);
+  }
+
+  private void updatePinnedItems(Set<DexType> enumsToUnbox) {
+    AppInfoWithLivenessModifier modifier = AppInfoWithLiveness.modifier();
+    for (DexType type : enumsToUnbox) {
+      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
+      assert !appView.appInfo().isPinned(clazz.type);
+      modifier.removePinnedClassMembers(clazz);
+    }
+    modifier.modify(appView.appInfo());
   }
 
   public void finishAnalysis() {

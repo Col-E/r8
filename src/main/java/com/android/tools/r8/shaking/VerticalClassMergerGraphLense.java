@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -55,8 +54,6 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
   private Set<DexMethod> mergedMethods;
   private final Map<DexMethod, DexMethod> originalMethodSignaturesForBridges;
 
-  private Map<DexMethod, Set<DexType>> contextsForContextSensitiveMethods;
-
   private VerticalClassMergerGraphLense(
       AppView<?> appView,
       Map<DexType, DexType> typeMap,
@@ -80,24 +77,6 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
     this.contextualVirtualToDirectMethodMaps = contextualVirtualToDirectMethodMaps;
     this.mergedMethods = mergedMethods;
     this.originalMethodSignaturesForBridges = originalMethodSignaturesForBridges;
-  }
-
-  public void initializeCacheForLookupMethodInAllContexts() {
-    assert contextsForContextSensitiveMethods == null;
-    contextsForContextSensitiveMethods = new IdentityHashMap<>();
-    contextualVirtualToDirectMethodMaps.forEach(
-        (type, virtualToDirectMethodMap) -> {
-          for (DexMethod method : virtualToDirectMethodMap.keySet()) {
-            contextsForContextSensitiveMethods
-                .computeIfAbsent(method, ignore -> Sets.newIdentityHashSet())
-                .add(type);
-          }
-        });
-  }
-
-  public void unsetCacheForLookupMethodInAllContexts() {
-    assert contextsForContextSensitiveMethods != null;
-    contextsForContextSensitiveMethods = null;
   }
 
   @Override
@@ -142,22 +121,6 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
   @Override
   protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
     return super.mapVirtualInterfaceInvocationTypes(appView, newMethod, originalMethod, type);
-  }
-
-  @Override
-  public Set<DexMethod> lookupMethodInAllContexts(DexMethod method) {
-    assert contextsForContextSensitiveMethods != null;
-    ImmutableSet.Builder<DexMethod> builder = ImmutableSet.builder();
-    for (DexMethod previous : previousLense.lookupMethodInAllContexts(method)) {
-      builder.add(methodMap.getOrDefault(previous, previous));
-      Set<DexType> contexts = contextsForContextSensitiveMethods.get(previous);
-      if (contexts != null) {
-        for (DexType context : contexts) {
-          builder.add(contextualVirtualToDirectMethodMaps.get(context).get(previous).getMethod());
-        }
-      }
-    }
-    return builder.build();
   }
 
   @Override

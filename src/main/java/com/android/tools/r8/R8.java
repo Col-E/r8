@@ -515,10 +515,8 @@ public class R8 {
             assert changed;
             appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
             application = application.asDirect().rewrittenWithLens(lens);
-            lens.initializeCacheForLookupMethodInAllContexts();
             appViewWithLiveness.setAppInfo(
                 appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
-            lens.unsetCacheForLookupMethodInAllContexts();
           }
           timing.end();
         }

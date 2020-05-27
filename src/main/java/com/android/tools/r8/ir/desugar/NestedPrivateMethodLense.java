@@ -13,10 +13,8 @@ import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.Invoke;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Set;
 
 public class NestedPrivateMethodLense extends NestedGraphLense {
 
@@ -106,19 +104,6 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
     } else {
       return previousLense.lookupPrototypeChanges(method);
     }
-  }
-
-  @Override
-  public Set<DexMethod> lookupMethodInAllContexts(DexMethod method) {
-    Set<DexMethod> result = Sets.newIdentityHashSet();
-    for (DexMethod previous : previousLense.lookupMethodInAllContexts(method)) {
-      result.add(previous);
-      DexMethod bridge = methodMap.get(previous);
-      if (bridge != null) {
-        result.add(bridge);
-      }
-    }
-    return result;
   }
 
   @Override

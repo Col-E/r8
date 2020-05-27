@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Set;
 
 public class MemberRebindingLense extends NestedGraphLense {
 
@@ -96,11 +95,6 @@ public class MemberRebindingLense extends NestedGraphLense {
           newMethod, mapInvocationType(newMethod, method, previous.getType()));
     }
     return previous;
-  }
-
-  @Override
-  public Set<DexMethod> lookupMethodInAllContexts(DexMethod method) {
-    return previousLense.lookupMethodInAllContexts(method);
   }
 
   @Override
