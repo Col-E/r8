@@ -504,10 +504,6 @@ public class Value implements Comparable<Value> {
     return debugData != null && !debugData.users.isEmpty();
   }
 
-  public boolean hasNonDebugUsers() {
-    return hasUsers() || hasPhiUsers();
-  }
-
   public boolean hasPhiUsers() {
     return !phiUsers.isEmpty();
   }
@@ -954,8 +950,8 @@ public class Value implements Comparable<Value> {
    */
   public boolean isNeverNull() {
     assert type.isReferenceType();
-    return isDefinedByInstructionSatisfying(Instruction::isAssumeWithNonNullAssumption)
-        || type.isDefinitelyNotNull();
+    return (definition != null && definition.isAssumeNonNull())
+        || type.nullability().isDefinitelyNotNull();
   }
 
   public boolean isArgument() {
@@ -1174,19 +1170,14 @@ public class Value implements Comparable<Value> {
     Value root = getAliasedValue();
     if (root.isPhi()) {
       assert getSpecificAliasedValue(
-              value ->
-                  value.isDefinedByInstructionSatisfying(
-                      Instruction::isAssumeWithDynamicTypeAssumption))
+              value -> !value.isPhi() && value.definition.isAssumeDynamicType())
           == null;
       return root.getDynamicUpperBoundType(appView);
     }
 
     // Try to find an alias of the receiver, which is defined by an instruction of the type Assume.
     Value aliasedValue =
-        getSpecificAliasedValue(
-            value ->
-                value.isDefinedByInstructionSatisfying(
-                    Instruction::isAssumeWithDynamicTypeAssumption));
+        getSpecificAliasedValue(value -> !value.isPhi() && value.definition.isAssumeDynamicType());
     TypeElement lattice;
     if (aliasedValue != null) {
       // If there is an alias of the receiver, which is defined by an Assume instruction that
@@ -1239,8 +1230,7 @@ public class Value implements Comparable<Value> {
     }
 
     // Try to find an alias of the receiver, which is defined by an instruction of the type Assume.
-    Value aliasedValue =
-        getSpecificAliasedValue(value -> value.definition.isAssumeWithDynamicTypeAssumption());
+    Value aliasedValue = getSpecificAliasedValue(value -> value.definition.isAssumeDynamicType());
     if (aliasedValue != null) {
       ClassTypeElement lattice =
           aliasedValue.definition.asAssume().getDynamicTypeAssumption().getDynamicLowerBoundType();

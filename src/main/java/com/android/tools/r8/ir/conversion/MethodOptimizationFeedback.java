@@ -44,6 +44,8 @@ public interface MethodOptimizationFeedback {
 
   void methodReturnValueOnlyDependsOnArguments(DexEncodedMethod method);
 
+  void methodNeverReturnsNull(DexEncodedMethod method);
+
   void methodNeverReturnsNormally(DexEncodedMethod method);
 
   void markProcessed(DexEncodedMethod method, ConstraintWithTarget state);

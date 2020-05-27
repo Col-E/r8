@@ -26,11 +26,6 @@ public abstract class FieldOptimizationInfo {
 
   public abstract TypeElement getDynamicUpperBoundType();
 
-  public final TypeElement getDynamicUpperBoundTypeOrElse(TypeElement orElse) {
-    TypeElement dynamicUpperBoundType = getDynamicUpperBoundType();
-    return dynamicUpperBoundType != null ? dynamicUpperBoundType : orElse;
-  }
-
   public abstract boolean isDead();
 
   public abstract boolean valueHasBeenPropagated();

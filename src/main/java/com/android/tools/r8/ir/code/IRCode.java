@@ -609,17 +609,17 @@ public class IRCode {
     // We can only type check the program if we have subtyping information. Therefore, we do not
     // require that the program type checks in D8.
     if (appView.enableWholeProgramOptimizations()) {
-      assert validAssumeInstructions(appView);
+      assert validAssumeDynamicTypeInstructions(appView);
       assert new TypeChecker(appView.withLiveness()).check(this);
     }
     assert blocks.stream().allMatch(block -> block.verifyTypes(appView));
     return true;
   }
 
-  private boolean validAssumeInstructions(AppView<?> appView) {
+  private boolean validAssumeDynamicTypeInstructions(AppView<?> appView) {
     for (BasicBlock block : blocks) {
       for (Instruction instruction : block.getInstructions()) {
-        if (instruction.isAssume()) {
+        if (instruction.isAssumeDynamicType()) {
           assert instruction.asAssume().verifyInstructionIsNeeded(appView);
         }
       }

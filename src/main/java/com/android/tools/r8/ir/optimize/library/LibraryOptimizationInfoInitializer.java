@@ -4,15 +4,12 @@
 
 package com.android.tools.r8.ir.optimize.library;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.optimize.info.LibraryOptimizationInfoInitializerFeedback;
@@ -60,16 +57,7 @@ public class LibraryOptimizationInfoInitializer {
     for (DexMethod method : dexItemFactory.libraryMethodsReturningNonNull) {
       DexEncodedMethod definition = lookupMethod(method);
       if (definition != null) {
-        TypeElement staticType =
-            TypeElement.fromDexType(method.proto.returnType, maybeNull(), appView);
-        feedback.methodReturnsObjectWithUpperBoundType(
-            definition,
-            appView,
-            definition
-                .getOptimizationInfo()
-                .getDynamicUpperBoundTypeOrElse(staticType)
-                .asReferenceType()
-                .asDefinitelyNotNull());
+        feedback.methodNeverReturnsNull(definition);
       }
     }
   }

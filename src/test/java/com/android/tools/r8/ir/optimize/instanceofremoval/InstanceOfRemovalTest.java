@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -110,14 +111,16 @@ public class InstanceOfRemovalTest extends TestBase {
     }
   }
 
-  @Parameters(name = "{0}")
+  @Parameters(name = "{1}, enable dynamic type optimization: {0}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimesAndApiLevels().build());
+    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
   }
 
+  private final boolean enableDynamicTypeOptimization;
   private final TestParameters parameters;
 
-  public InstanceOfRemovalTest(TestParameters parameters) {
+  public InstanceOfRemovalTest(boolean enableDynamicTypeOptimization, TestParameters parameters) {
+    this.enableDynamicTypeOptimization = enableDynamicTypeOptimization;
     this.parameters = parameters;
   }
 
@@ -158,8 +161,10 @@ public class InstanceOfRemovalTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(A.class, B.class, TestClass.class)
             .addKeepMainRule(TestClass.class)
+            .addOptionsModification(
+                options -> options.enableDynamicTypeOptimization = enableDynamicTypeOptimization)
             .enableInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();
@@ -177,6 +182,7 @@ public class InstanceOfRemovalTest extends TestBase {
     MethodSubject barMethodSubject = testClass.uniqueMethodWithName("bar");
     Iterator<InstructionSubject> barInstructionIterator =
         barMethodSubject.iterateInstructions(InstructionSubject::isInstanceOf);
-    assertEquals(4, Streams.stream(barInstructionIterator).count());
+    assertEquals(
+        enableDynamicTypeOptimization ? 4 : 6, Streams.stream(barInstructionIterator).count());
   }
 }

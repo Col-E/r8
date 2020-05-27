@@ -717,12 +717,12 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return null;
   }
 
-  public final boolean isAssumeWithDynamicTypeAssumption() {
-    return isAssume() && asAssume().hasDynamicTypeAssumption();
+  public boolean isAssumeDynamicType() {
+    return false;
   }
 
-  public final boolean isAssumeWithNonNullAssumption() {
-    return isAssume() && asAssume().hasNonNullAssumption();
+  public boolean isAssumeNonNull() {
+    return false;
   }
 
   public boolean isBinop() {

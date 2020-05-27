@@ -16,68 +16,60 @@ import com.google.common.collect.Sets;
 import java.util.Set;
 
 /**
- * When we have Assume instructions we generally verify that the Assume instructions contribute with
- * non-trivial information to the IR (e.g., the dynamic type should be more precise than the static
- * type).
+ * When we have Assume instructions with a DynamicTypeAssumption we generally verify that the
+ * dynamic type in the Assume node is always at least as precise as the static type of the
+ * corresponding value.
  *
  * <p>Therefore, when this property may no longer hold for an Assume instruction, we need to remove
  * it.
  *
  * <p>This class is a helper class to remove these instructions. Unlike {@link
  * CodeRewriter#removeAssumeInstructions} this class does not unconditionally remove all Assume
- * instructions.
+ * instructions, not does it remove all Assume instructions with a DynamicTypeAssumption.
  */
-public class AssumeRemover {
+public class AssumeDynamicTypeRemover {
 
   private final AppView<?> appView;
   private final IRCode code;
 
   private final Set<Value> affectedValues = Sets.newIdentityHashSet();
-  private final Set<Assume> assumeInstructionsToRemove = Sets.newIdentityHashSet();
+  private final Set<Assume> assumeDynamicTypeInstructionsToRemove = Sets.newIdentityHashSet();
 
   private boolean mayHaveIntroducedTrivialPhi = false;
 
-  public AssumeRemover(AppView<?> appView, IRCode code) {
+  public AssumeDynamicTypeRemover(AppView<?> appView, IRCode code) {
     this.appView = appView;
     this.code = code;
-  }
-
-  public Set<Value> getAffectedValues() {
-    return affectedValues;
   }
 
   public boolean mayHaveIntroducedTrivialPhi() {
     return mayHaveIntroducedTrivialPhi;
   }
 
-  public void markAssumeDynamicTypeUsersForRemoval(Value value) {
+  public void markForRemoval(Assume assumeDynamicTypeInstruction) {
+    assumeDynamicTypeInstructionsToRemove.add(assumeDynamicTypeInstruction);
+  }
+
+  public void markUsersForRemoval(Value value) {
     for (Instruction user : value.aliasedUsers()) {
-      if (user.isAssume()) {
-        Assume assumeInstruction = user.asAssume();
-        assumeInstruction.unsetDynamicTypeAssumption();
-        if (!assumeInstruction.hasNonNullAssumption()) {
-          assumeInstruction.unsetDynamicTypeAssumption();
-        }
+      if (user.isAssumeDynamicType()) {
+        markForRemoval(user.asAssume());
       }
     }
   }
 
-  private void markForRemoval(Assume assumeInstruction) {
-    assumeInstructionsToRemove.add(assumeInstruction);
-  }
-
   public void removeIfMarked(
-      Assume assumeInstruction, InstructionListIterator instructionIterator) {
-    if (assumeInstructionsToRemove.remove(assumeInstruction)) {
-      Value inValue = assumeInstruction.src();
-      Value outValue = assumeInstruction.outValue();
+      Assume assumeDynamicTypeInstruction, InstructionListIterator instructionIterator) {
+    if (assumeDynamicTypeInstructionsToRemove.remove(assumeDynamicTypeInstruction)) {
+      Value inValue = assumeDynamicTypeInstruction.src();
+      Value outValue = assumeDynamicTypeInstruction.outValue();
 
       // Check if we need to run the type analysis for the affected values of the out-value.
       if (!outValue.getType().equals(inValue.getType())) {
         affectedValues.addAll(outValue.affectedValues());
       }
 
-      if (outValue.hasPhiUsers()) {
+      if (outValue.numberOfPhiUsers() > 0) {
         mayHaveIntroducedTrivialPhi = true;
       }
 
@@ -86,20 +78,16 @@ public class AssumeRemover {
     }
   }
 
-  public AssumeRemover removeMarkedInstructions() {
-    return removeMarkedInstructions(null);
-  }
-
-  public AssumeRemover removeMarkedInstructions(Set<BasicBlock> blocksToBeRemoved) {
-    if (!assumeInstructionsToRemove.isEmpty()) {
+  public AssumeDynamicTypeRemover removeMarkedInstructions(Set<BasicBlock> blocksToBeRemoved) {
+    if (!assumeDynamicTypeInstructionsToRemove.isEmpty()) {
       for (BasicBlock block : code.blocks) {
-        if (blocksToBeRemoved != null && blocksToBeRemoved.contains(block)) {
+        if (blocksToBeRemoved.contains(block)) {
           continue;
         }
         InstructionListIterator instructionIterator = block.listIterator(code);
         while (instructionIterator.hasNext()) {
           Instruction instruction = instructionIterator.next();
-          if (instruction.isAssume()) {
+          if (instruction.isAssumeDynamicType()) {
             removeIfMarked(instruction.asAssume(), instructionIterator);
           }
         }

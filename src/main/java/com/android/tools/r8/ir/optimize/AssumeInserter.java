@@ -3,19 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
-import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
 import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
@@ -32,11 +29,8 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TriConsumer;
-import com.android.tools.r8.utils.TriFunction;
-import com.android.tools.r8.utils.TriPredicate;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -50,23 +44,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-public class AssumeInserter {
+public class AssumeInserter implements Assumer {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
-  private final InternalOptions options;
 
   public AssumeInserter(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
-    this.options = appView.options();
   }
 
+  @Override
   public void insertAssumeInstructions(IRCode code, Timing timing) {
     insertAssumeInstructionsInBlocks(code, code.listIterator(), alwaysTrue(), timing);
   }
 
+  @Override
   public void insertAssumeInstructionsInBlocks(
       IRCode code,
       BasicBlockIterator blockIterator,
@@ -94,7 +89,7 @@ public class AssumeInserter {
     timing.end();
 
     timing.begin("Part 3: Compute dominated users");
-    Map<Instruction, Map<Value, AssumedValueInfo>> redundantAssumedValues =
+    Map<Instruction, Set<Value>> redundantKeys =
         computeDominanceForAssumedValues(code, assumedValues);
     timing.end();
     if (assumedValues.isEmpty()) {
@@ -102,7 +97,7 @@ public class AssumeInserter {
     }
 
     timing.begin("Part 4: Remove redundant dominated assume instructions");
-    removeRedundantDominatedAssumeInstructions(assumedValues, redundantAssumedValues);
+    removeRedundantDominatedAssumeInstructions(assumedValues, redundantKeys);
     timing.end();
     if (assumedValues.isEmpty()) {
       return;
@@ -150,15 +145,29 @@ public class AssumeInserter {
         }
       }
 
+      Value outValue = current.outValue();
       if (current.isInvokeMethod()) {
-        // Case (2) and (3).
-        needsAssumeInstruction |=
-            computeAssumedValuesForInvokeMethod(
-                code, current.asInvokeMethod(), assumedValuesBuilder);
+        InvokeMethod invoke = current.asInvokeMethod();
+        if (invoke.hasOutValue() || !invoke.getInvokedMethod().proto.parameters.isEmpty()) {
+          // Case (2) and (3).
+          needsAssumeInstruction |=
+              computeAssumedValuesFromSingleTarget(code, invoke, assumedValuesBuilder);
+        }
       } else if (current.isFieldGet()) {
         // Case (4), field-get instructions that are guaranteed to read a non-null value.
-        needsAssumeInstruction |=
-            computeAssumedValuesForFieldGet(current.asFieldInstruction(), assumedValuesBuilder);
+        FieldInstruction fieldInstruction = current.asFieldInstruction();
+        DexField field = fieldInstruction.getField();
+        if (isNullableReferenceTypeWithNonDebugUsers(outValue)) {
+          DexEncodedField encodedField = appView.appInfo().resolveField(field).getResolvedField();
+          if (encodedField != null) {
+            FieldOptimizationInfo optimizationInfo = encodedField.getOptimizationInfo();
+            if (optimizationInfo.getDynamicUpperBoundType() != null
+                && optimizationInfo.getDynamicUpperBoundType().isDefinitelyNotNull()) {
+              assumedValuesBuilder.addNonNullValueKnownToDominateAllUsers(current, outValue);
+              needsAssumeInstruction = true;
+            }
+          }
+        }
       }
 
       // If we need to insert an assume instruction into a block with catch handlers, we split the
@@ -193,35 +202,6 @@ public class AssumeInserter {
     }
   }
 
-  private boolean computeAssumedValuesForInvokeMethod(
-      IRCode code, InvokeMethod invoke, AssumedValues.Builder assumedValuesBuilder) {
-    if (!invoke.hasOutValue() && invoke.getInvokedMethod().proto.parameters.isEmpty()) {
-      return false;
-    }
-
-    DexMethod invokedMethod = invoke.getInvokedMethod();
-    if (invokedMethod.holder.isArrayType()
-        && invokedMethod.match(appView.dexItemFactory().objectMembers.clone)) {
-      return computeAssumedValuesFromArrayClone(invoke, assumedValuesBuilder);
-    }
-
-    return computeAssumedValuesFromSingleTarget(code, invoke, assumedValuesBuilder);
-  }
-
-  private boolean computeAssumedValuesFromArrayClone(
-      InvokeMethod invoke, AssumedValues.Builder assumedValuesBuilder) {
-    Value outValue = invoke.outValue();
-    if (outValue == null || !outValue.hasNonDebugUsers()) {
-      return false;
-    }
-
-    TypeElement dynamicUpperBoundType =
-        TypeElement.fromDexType(invoke.getInvokedMethod().holder, definitelyNotNull(), appView);
-    assumedValuesBuilder.addAssumedValueKnownToDominateAllUsers(
-        invoke, outValue, dynamicUpperBoundType, null);
-    return true;
-  }
-
   private boolean computeAssumedValuesFromSingleTarget(
       IRCode code, InvokeMethod invoke, AssumedValues.Builder assumedValuesBuilder) {
     DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
@@ -234,13 +214,11 @@ public class AssumeInserter {
 
     // Case (2), invocations that are guaranteed to return a non-null value.
     Value outValue = invoke.outValue();
-    if (outValue != null && outValue.hasNonDebugUsers()) {
-      needsAssumeInstruction =
-          computeAssumedValuesForOutValue(
-              invoke,
-              optimizationInfo.getDynamicUpperBoundTypeOrElse(outValue.getType()),
-              optimizationInfo.getDynamicLowerBoundType(),
-              assumedValuesBuilder);
+    if (outValue != null
+        && optimizationInfo.neverReturnsNull()
+        && isNullableReferenceTypeWithNonDebugUsers(outValue)) {
+      assumedValuesBuilder.addNonNullValueKnownToDominateAllUsers(invoke, outValue);
+      needsAssumeInstruction = true;
     }
 
     // Case (3), parameters that are not null after the invocation.
@@ -261,116 +239,31 @@ public class AssumeInserter {
     return needsAssumeInstruction;
   }
 
-  private boolean computeAssumedValuesForFieldGet(
-      FieldInstruction fieldGet, AssumedValues.Builder assumedValuesBuilder) {
-    Value outValue = fieldGet.outValue();
-    if (!outValue.hasNonDebugUsers()) {
-      return false;
-    }
-
-    DexEncodedField field = appView.appInfo().resolveField(fieldGet.getField()).getResolvedField();
-    if (field == null) {
-      return false;
-    }
-
-    FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
-    return computeAssumedValuesForOutValue(
-        fieldGet,
-        optimizationInfo.getDynamicUpperBoundTypeOrElse(outValue.getType()),
-        optimizationInfo.getDynamicLowerBoundType(),
-        assumedValuesBuilder);
-  }
-
-  private boolean computeAssumedValuesForOutValue(
-      Instruction instruction,
-      TypeElement dynamicUpperBoundType,
-      ClassTypeElement dynamicLowerBoundType,
-      AssumedValues.Builder assumedValuesBuilder) {
-    Value outValue = instruction.outValue();
-
-    // Do not insert dynamic type information if it does not refine the static type.
-    boolean isRedundant =
-        !dynamicUpperBoundType.strictlyLessThan(outValue.getType(), appView)
-            && dynamicLowerBoundType == null;
-    if (isRedundant) {
-      return false;
-    }
-
-    // Do not insert dynamic type information if the dynamic type only refines the nullability.
-    if (dynamicUpperBoundType.equalUpToNullability(outValue.getType())
-        && dynamicLowerBoundType == null) {
-      assert dynamicUpperBoundType.isDefinitelyNotNull();
-      assumedValuesBuilder.addNonNullValueKnownToDominateAllUsers(instruction, outValue);
-    } else {
-      assumedValuesBuilder.addAssumedValueKnownToDominateAllUsers(
-          instruction, outValue, dynamicUpperBoundType, dynamicLowerBoundType);
-    }
-    return true;
-  }
-
   private void removeRedundantAssumeInstructions(AssumedValues assumedValues) {
     assumedValues.removeIf(
-        (instruction, assumedValue, assumedValueInfo) -> {
-          // Assumed values with dynamic type information are never redundant.
-          if (assumedValueInfo.hasDynamicTypeInfo()) {
-            return false;
-          }
-
-          assert assumedValueInfo.isNonNull();
-
-          // Otherwise, it is redundant if it is defined by another instruction that guarantees its
-          // non-nullness.
+        (instruction, assumedValue) -> {
           if (assumedValue.isPhi()) {
             return false;
           }
-
           Instruction definition = assumedValue.definition;
-          if (definition == instruction) {
-            return false;
-          }
-
-          AssumedValueInfo otherAssumedValueInfo =
-              assumedValues.getAssumedValueInfo(definition, assumedValue);
-          if (otherAssumedValueInfo == null) {
-            return false;
-          }
-
-          if (!otherAssumedValueInfo.isNonNull()) {
-            // This is not redundant, but we can strenghten it with the dynamic type information
-            // from the other assume instruction.
-            assumedValueInfo.setDynamicTypeAssumption(
-                otherAssumedValueInfo.getDynamicTypeAssumption());
-            return false;
-          }
-
-          return true;
+          return definition != instruction && assumedValues.contains(definition, assumedValue);
         });
   }
 
-  private Map<Instruction, Map<Value, AssumedValueInfo>> computeDominanceForAssumedValues(
+  private Map<Instruction, Set<Value>> computeDominanceForAssumedValues(
       IRCode code, AssumedValues assumedValues) {
-    Map<Instruction, Map<Value, AssumedValueInfo>> redundantAssumedValues = new IdentityHashMap<>();
+    Map<Instruction, Set<Value>> redundantKeys = new IdentityHashMap<>();
     LazyDominatorTree lazyDominatorTree = new LazyDominatorTree(code);
     Map<BasicBlock, Set<BasicBlock>> dominatedBlocksCache = new IdentityHashMap<>();
     assumedValues.computeDominance(
-        (instruction, assumedValue, assumedValueInfo) -> {
-          Map<Value, AssumedValueInfo> alreadyAssumedValues =
-              redundantAssumedValues.get(instruction);
-          if (alreadyAssumedValues != null) {
-            AssumedValueInfo alreadyAssumedValueInfo = alreadyAssumedValues.get(assumedValue);
-            if (alreadyAssumedValueInfo != null) {
-              if (assumedValueInfo.isSubsumedBy(alreadyAssumedValueInfo)) {
-                // Returning redundant() will cause the entry (instruction, assumedValue) to be
-                // removed.
-                return AssumedDominance.redundant();
-              }
-
-              // This assume value is dominated by the other assume value, so strengthen this one.
-              assumedValueInfo.strengthenWith(alreadyAssumedValueInfo);
-            }
+        (instruction, assumedValue) -> {
+          Set<Value> alreadyAssumedValues = redundantKeys.get(instruction);
+          if (alreadyAssumedValues != null && alreadyAssumedValues.contains(assumedValue)) {
+            // Returning redundant() will cause the entry (instruction, assumedValue) to be removed.
+            return AssumedDominance.redundant();
           }
 
-          // If this value is the out-value of some instruction it is known to dominate all users.
+          // If this value is non-null since its definition, then it is known to dominate all users.
           if (assumedValue == instruction.outValue()) {
             return AssumedDominance.everything();
           }
@@ -434,9 +327,9 @@ public class AssumeInserter {
 
               // Record that there is no need to insert an assume instruction for the non-null-value
               // after the given user in case the user is also a null check for the non-null-value.
-              redundantAssumedValues
-                  .computeIfAbsent(user, ignore -> new IdentityHashMap<>())
-                  .put(assumedValue, assumedValueInfo);
+              redundantKeys
+                  .computeIfAbsent(user, ignore -> Sets.newIdentityHashSet())
+                  .add(assumedValue);
             }
           }
           for (Phi user : assumedValue.uniquePhiUsers()) {
@@ -448,92 +341,27 @@ public class AssumeInserter {
           }
           return dominance.build();
         });
-    return redundantAssumedValues;
+    return redundantKeys;
   }
 
   private void removeRedundantDominatedAssumeInstructions(
-      AssumedValues assumedValues,
-      Map<Instruction, Map<Value, AssumedValueInfo>> redundantAssumedValues) {
-    assumedValues.removeAll(redundantAssumedValues);
+      AssumedValues assumedValues, Map<Instruction, Set<Value>> redundantKeys) {
+    assumedValues.removeAll(redundantKeys);
   }
 
   private void materializeAssumeInstructions(IRCode code, AssumedValues assumedValues) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     Map<BasicBlock, Map<Instruction, List<Instruction>>> pendingInsertions =
         new IdentityHashMap<>();
-
-    // We materialize the assume instructions in two steps. First, we materialize all the assume
-    // instructions that do not dominate everything. These assume instructions can refine previous
-    // assume instructions, so we materialize those first as they are "stronger".
-    //
-    // Example:
-    //   1. Object value = getNullableValueWithDynamicType();
-    //   2. Object nullableValueWithDynamicType = assume(value, ...)
-    //   3. checkNotNull(value);
-    //   4. Object nonNullValueWithDynamicType = assume(value, ...)
-    //   5. return value;
-    //
-    // In this example, we first materialize the assume instruction in line 4, and replace the
-    // dominated use of `value` in line 5 by the new assumed value `nonNullValueWithDynamicType`.
-    // Afterwards, we materialize the assume instruction in line 2, and replace all remaining users
-    // of `value` by `nullableValueWithDynamicType`.
-    //
-    // Result:
-    //   1. Object value = getNullableValueWithDynamicType();
-    //   2. Object nullableValueWithDynamicType = assume(value, ...)
-    //   3. checkNotNull(nullableValueWithDynamicType);
-    //   4. Object nonNullValueWithDynamicType = assume(value, ...)
-    //   5. return nonNullValueWithDynamicType;
-    materializeSelectedAssumeInstructions(
-        code,
-        assumedValues,
-        affectedValues,
-        pendingInsertions,
-        assumedValueInfo -> !assumedValueInfo.dominance.isEverything());
-    materializeSelectedAssumeInstructions(
-        code,
-        assumedValues,
-        affectedValues,
-        pendingInsertions,
-        assumedValueInfo -> assumedValueInfo.dominance.isEverything());
-    pendingInsertions.forEach(
-        (block, pendingInsertionsPerInstruction) -> {
-          InstructionListIterator instructionIterator = block.listIterator(code);
-          while (instructionIterator.hasNext() && !pendingInsertionsPerInstruction.isEmpty()) {
-            Instruction instruction = instructionIterator.next();
-            List<Instruction> pendingAssumeInstructions =
-                pendingInsertionsPerInstruction.remove(instruction);
-            if (pendingAssumeInstructions != null) {
-              pendingAssumeInstructions.forEach(instructionIterator::add);
-            }
-          }
-        });
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
-  }
-
-  private void materializeSelectedAssumeInstructions(
-      IRCode code,
-      AssumedValues assumedValues,
-      Set<Value> affectedValues,
-      Map<BasicBlock, Map<Instruction, List<Instruction>>> pendingInsertions,
-      Predicate<AssumedValueInfo> predicate) {
-    assumedValues.removeIf(
+    assumedValues.forEach(
         (instruction, assumedValue, assumedValueInfo) -> {
-          if (!predicate.test(assumedValueInfo)) {
-            return false;
-          }
-
           BasicBlock block = instruction.getBlock();
           BasicBlock insertionBlock = getInsertionBlock(instruction);
 
           AssumedDominance dominance = assumedValueInfo.getDominance();
           Value newValue =
               code.createValue(
-                  assumedValueInfo.isNonNull()
-                      ? assumedValue.getType().asReferenceType().asMeetWithNotNull()
-                      : assumedValue.getType(),
+                  assumedValue.getType().asReferenceType().asMeetWithNotNull(),
                   assumedValue.getLocalInfo());
           if (dominance.isEverything()) {
             assumedValue.replaceUsers(newValue);
@@ -550,7 +378,8 @@ public class AssumeInserter {
                       while (iterator.hasNext()) {
                         Value operand = user.getOperand(iterator.nextInt());
                         if (operand != assumedValue) {
-                          assert operand.isDefinedByInstructionSatisfying(Instruction::isAssume);
+                          assert operand.isDefinedByInstructionSatisfying(
+                              Instruction::isAssumeNonNull);
                           iterator.remove();
                         }
                       }
@@ -563,13 +392,7 @@ public class AssumeInserter {
           affectedValues.addAll(newValue.affectedValues());
 
           Assume assumeInstruction =
-              new Assume(
-                  assumedValueInfo.dynamicTypeAssumption,
-                  assumedValueInfo.nonNullAssumption,
-                  newValue,
-                  assumedValue,
-                  instruction,
-                  appView);
+              Assume.createAssumeNonNullInstruction(newValue, assumedValue, instruction, appView);
           assumeInstruction.setPosition(instruction.getPosition());
           if (insertionBlock != block) {
             insertionBlock.listIterator(code).add(assumeInstruction);
@@ -579,8 +402,22 @@ public class AssumeInserter {
                 .computeIfAbsent(instruction, ignore -> new ArrayList<>())
                 .add(assumeInstruction);
           }
-          return true;
         });
+    pendingInsertions.forEach(
+        (block, pendingInsertionsPerInstruction) -> {
+          InstructionListIterator instructionIterator = block.listIterator(code);
+          while (instructionIterator.hasNext() && !pendingInsertionsPerInstruction.isEmpty()) {
+            Instruction instruction = instructionIterator.next();
+            List<Instruction> pendingAssumeInstructions =
+                pendingInsertionsPerInstruction.remove(instruction);
+            if (pendingAssumeInstructions != null) {
+              pendingAssumeInstructions.forEach(instructionIterator::add);
+            }
+          }
+        });
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
   }
 
   private BasicBlock getInsertionBlock(Instruction instruction) {
@@ -624,6 +461,10 @@ public class AssumeInserter {
     return type.isReferenceType() && type.asReferenceType().isNullable();
   }
 
+  private static boolean isNullableReferenceTypeWithNonDebugUsers(Value value) {
+    return isNullableReferenceType(value) && value.numberOfAllNonDebugUsers() > 0;
+  }
+
   private static boolean isNullableReferenceTypeWithOtherNonDebugUsers(
       Value value, Instruction ignore) {
     if (isNullableReferenceType(value)) {
@@ -642,7 +483,6 @@ public class AssumeInserter {
   static class AssumedValueInfo {
 
     AssumedDominance dominance;
-    DynamicTypeAssumption dynamicTypeAssumption;
     NonNullAssumption nonNullAssumption;
 
     AssumedValueInfo(AssumedDominance dominance) {
@@ -657,46 +497,8 @@ public class AssumeInserter {
       this.dominance = dominance;
     }
 
-    boolean hasDynamicTypeInfo() {
-      return dynamicTypeAssumption != null;
-    }
-
-    DynamicTypeAssumption getDynamicTypeAssumption() {
-      return dynamicTypeAssumption;
-    }
-
-    void setDynamicTypeAssumption(DynamicTypeAssumption dynamicTypeAssumption) {
-      this.dynamicTypeAssumption = dynamicTypeAssumption;
-    }
-
-    void setDynamicTypeAssumption(
-        TypeElement dynamicUpperBoundType, ClassTypeElement dynamicLowerBoundType) {
-      dynamicTypeAssumption =
-          new DynamicTypeAssumption(dynamicUpperBoundType, dynamicLowerBoundType);
-      if (dynamicUpperBoundType.isDefinitelyNotNull()) {
-        setNotNull();
-      }
-    }
-
-    boolean isNonNull() {
-      return nonNullAssumption != null;
-    }
-
     void setNotNull() {
       nonNullAssumption = NonNullAssumption.get();
-    }
-
-    boolean isSubsumedBy(AssumedValueInfo other) {
-      return !hasDynamicTypeInfo() && other.isNonNull();
-    }
-
-    void strengthenWith(AssumedValueInfo info) {
-      if (info.isNonNull()) {
-        setNotNull();
-      }
-      if (!hasDynamicTypeInfo() && info.hasDynamicTypeInfo()) {
-        setDynamicTypeAssumption(info.getDynamicTypeAssumption());
-      }
     }
   }
 
@@ -717,8 +519,7 @@ public class AssumeInserter {
       return new Builder();
     }
 
-    void computeDominance(
-        TriFunction<Instruction, Value, AssumedValueInfo, AssumedDominance> function) {
+    void computeDominance(BiFunction<Instruction, Value, AssumedDominance> function) {
       Iterator<Entry<Instruction, Map<Value, AssumedValueInfo>>> outerIterator =
           assumedValues.entrySet().iterator();
       while (outerIterator.hasNext()) {
@@ -738,7 +539,7 @@ public class AssumeInserter {
             continue;
           }
           assert dominance.isUnknown();
-          dominance = function.apply(instruction, assumedValue, assumedValueInfo);
+          dominance = function.apply(instruction, assumedValue);
           if ((dominance.isNothing() && !assumedValue.isArgument()) || dominance.isUnknown()) {
             innerIterator.remove();
           } else {
@@ -751,9 +552,9 @@ public class AssumeInserter {
       }
     }
 
-    AssumedValueInfo getAssumedValueInfo(Instruction instruction, Value assumedValue) {
+    boolean contains(Instruction instruction, Value assumedValue) {
       Map<Value, AssumedValueInfo> dominancePerValue = assumedValues.get(instruction);
-      return dominancePerValue != null ? dominancePerValue.get(assumedValue) : null;
+      return dominancePerValue != null && dominancePerValue.containsKey(assumedValue);
     }
 
     boolean isEmpty() {
@@ -768,12 +569,12 @@ public class AssumeInserter {
                       consumer.accept(instruction, assumedValue, assumedValueInfo)));
     }
 
-    void removeAll(Map<Instruction, Map<Value, AssumedValueInfo>> keys) {
+    void removeAll(Map<Instruction, Set<Value>> keys) {
       keys.forEach(
-          (instruction, redundantAssumedValues) -> {
+          (instruction, values) -> {
             Map<Value, AssumedValueInfo> dominancePerValue = assumedValues.get(instruction);
             if (dominancePerValue != null) {
-              redundantAssumedValues.keySet().forEach(dominancePerValue::remove);
+              values.forEach(dominancePerValue::remove);
               if (dominancePerValue.isEmpty()) {
                 assumedValues.remove(instruction);
               }
@@ -781,7 +582,7 @@ public class AssumeInserter {
           });
     }
 
-    void removeIf(TriPredicate<Instruction, Value, AssumedValueInfo> predicate) {
+    void removeIf(BiPredicate<Instruction, Value> predicate) {
       Iterator<Entry<Instruction, Map<Value, AssumedValueInfo>>> outerIterator =
           assumedValues.entrySet().iterator();
       while (outerIterator.hasNext()) {
@@ -791,10 +592,8 @@ public class AssumeInserter {
         Iterator<Entry<Value, AssumedValueInfo>> innerIterator =
             dominancePerValue.entrySet().iterator();
         while (innerIterator.hasNext()) {
-          Entry<Value, AssumedValueInfo> innerEntry = innerIterator.next();
-          Value assumedValue = innerEntry.getKey();
-          AssumedValueInfo assumedValueInfo = innerEntry.getValue();
-          if (predicate.test(instruction, assumedValue, assumedValueInfo)) {
+          Value assumedValue = innerIterator.next().getKey();
+          if (predicate.test(instruction, assumedValue)) {
             innerIterator.remove();
           }
         }
@@ -810,49 +609,29 @@ public class AssumeInserter {
           new LinkedHashMap<>();
 
       // Used to avoid unnecessary block splitting during phase 1.
-      private final Set<Value> nonNullValuesKnownToDominateAllUsers = Sets.newIdentityHashSet();
+      private final Set<Value> assumedValuesKnownToDominateAllUsers = Sets.newIdentityHashSet();
 
-      private void updateAssumedValueInfo(
-          Instruction instruction,
-          Value assumedValue,
-          AssumedDominance dominance,
-          Consumer<AssumedValueInfo> consumer) {
-        AssumedValueInfo assumedValueInfo =
-            assumedValues
-                .computeIfAbsent(instruction, ignore -> new LinkedHashMap<>())
-                .computeIfAbsent(assumedValue, ignore -> new AssumedValueInfo(dominance));
-        consumer.accept(assumedValueInfo);
-        if (dominance.isEverything() && assumedValueInfo.isNonNull()) {
-          nonNullValuesKnownToDominateAllUsers.add(assumedValue);
+      private void addNonNullValue(
+          Instruction instruction, Value nonNullValue, AssumedDominance dominance) {
+        assumedValues
+            .computeIfAbsent(instruction, ignore -> new LinkedHashMap<>())
+            .computeIfAbsent(nonNullValue, ignore -> new AssumedValueInfo(dominance))
+            .setNotNull();
+        if (dominance.isEverything()) {
+          assumedValuesKnownToDominateAllUsers.add(nonNullValue);
         }
       }
 
-      void addAssumedValueKnownToDominateAllUsers(
-          Instruction instruction,
-          Value assumedValue,
-          TypeElement dynamicUpperBoundType,
-          ClassTypeElement dynamicLowerBoundType) {
-        updateAssumedValueInfo(
-            instruction,
-            assumedValue,
-            AssumedDominance.everything(),
-            assumedValueInfo ->
-                assumedValueInfo.setDynamicTypeAssumption(
-                    dynamicUpperBoundType, dynamicLowerBoundType));
-      }
-
       void addNonNullValueKnownToDominateAllUsers(Instruction instruction, Value nonNullValue) {
-        updateAssumedValueInfo(
-            instruction, nonNullValue, AssumedDominance.everything(), AssumedValueInfo::setNotNull);
+        addNonNullValue(instruction, nonNullValue, AssumedDominance.everything());
       }
 
       void addNonNullValueWithUnknownDominance(Instruction instruction, Value nonNullValue) {
-        updateAssumedValueInfo(
-            instruction, nonNullValue, AssumedDominance.unknown(), AssumedValueInfo::setNotNull);
+        addNonNullValue(instruction, nonNullValue, AssumedDominance.unknown());
       }
 
       public boolean isMaybeNull(Value value) {
-        return !nonNullValuesKnownToDominateAllUsers.contains(value);
+        return !assumedValuesKnownToDominateAllUsers.contains(value);
       }
 
       public AssumedValues build() {

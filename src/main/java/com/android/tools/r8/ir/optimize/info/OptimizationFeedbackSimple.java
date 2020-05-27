@@ -104,7 +104,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeElement type) {
-    method.getMutableOptimizationInfo().markReturnsObjectWithUpperBoundType(appView, type);
+    // Ignored.
   }
 
   @Override
@@ -121,6 +121,11 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void methodReturnValueOnlyDependsOnArguments(DexEncodedMethod method) {
     // Ignored.
+  }
+
+  @Override
+  public void methodNeverReturnsNull(DexEncodedMethod method) {
+    method.getMutableOptimizationInfo().markNeverReturnsNull();
   }
 
   @Override

@@ -172,12 +172,14 @@ public class InternalOptions {
 
   void disableAllOptimizations() {
     disableGlobalOptimizations();
+    enableNonNullTracking = false;
     enableNameReflectionOptimization = false;
     enableStringConcatenationOptimization = false;
   }
 
   public void disableGlobalOptimizations() {
     enableArgumentRemoval = false;
+    enableDynamicTypeOptimization = false;
     enableInlining = false;
     enableClassInlining = false;
     enableClassStaticizer = false;
@@ -213,6 +215,7 @@ public class InternalOptions {
   public boolean libraryInterfacesMayHaveStaticInitialization = false;
 
   // Optimization-related flags. These should conform to -dontoptimize and disableAllOptimizations.
+  public boolean enableDynamicTypeOptimization = true;
   public boolean enableFieldAssignmentTracker = true;
   public boolean enableFieldBitAccessAnalysis =
       System.getProperty("com.android.tools.r8.fieldBitAccessAnalysis") != null;
@@ -221,6 +224,7 @@ public class InternalOptions {
   public boolean enableArgumentRemoval = true;
   public boolean enableUnusedInterfaceRemoval = true;
   public boolean enableDevirtualization = true;
+  public boolean enableNonNullTracking = true;
   public boolean enableInlining =
       !Version.isDevelopmentVersion()
           || System.getProperty("com.android.tools.r8.disableinlining") == null;

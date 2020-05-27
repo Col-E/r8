@@ -53,7 +53,6 @@ public class Devirtualizer {
 
   public void devirtualizeInvokeInterface(IRCode code) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    AssumeRemover assumeRemover = new AssumeRemover(appView, code);
     ProgramMethod context = code.context();
     Map<InvokeInterface, InvokeVirtual> devirtualizedCall = new IdentityHashMap<>();
     DominatorTree dominatorTree = new DominatorTree(code);
@@ -77,7 +76,7 @@ public class Devirtualizer {
         // (out <-) invoke-virtual rcv_c, ... C#foo
         // ...
         // non_null_rcv <- non-null rcv_c  // <- Update the input rcv to the non-null, too.
-        if (current.isAssumeWithNonNullAssumption()) {
+        if (current.isAssumeNonNull()) {
           Assume nonNull = current.asAssume();
           Instruction origin = nonNull.origin();
           if (origin.isInvokeInterface()
@@ -254,8 +253,8 @@ public class Devirtualizer {
                 it.next();
               }
             }
+
             affectedValues.addAll(receiver.affectedValues());
-            assumeRemover.markAssumeDynamicTypeUsersForRemoval(receiver);
             if (!receiver.hasLocalInfo()) {
               receiver.replaceSelectiveUsers(
                   newReceiver, ImmutableSet.of(devirtualizedInvoke), ImmutableMap.of());
@@ -267,8 +266,6 @@ public class Devirtualizer {
         }
       }
     }
-    assumeRemover.removeMarkedInstructions();
-    affectedValues.addAll(assumeRemover.getAffectedValues());
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }

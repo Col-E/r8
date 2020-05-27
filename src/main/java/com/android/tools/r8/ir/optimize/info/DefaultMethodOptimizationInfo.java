@@ -18,7 +18,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.BitSet;
 import java.util.Set;
 
-public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
+public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
 
   public static final MethodOptimizationInfo DEFAULT_INSTANCE = new DefaultMethodOptimizationInfo();
 
@@ -121,6 +121,11 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   public int getReturnedArgument() {
     assert returnsArgument();
     return UNKNOWN_RETURNED_ARGUMENT;
+  }
+
+  @Override
+  public boolean neverReturnsNull() {
+    return UNKNOWN_NEVER_RETURNS_NULL;
   }
 
   @Override

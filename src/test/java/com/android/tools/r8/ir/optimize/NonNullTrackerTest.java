@@ -62,7 +62,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
     while (it.hasNext()) {
       prev = curr != null && !curr.isGoto() ? curr : prev;
       curr = it.next();
-      if (curr.isAssumeWithNonNullAssumption()) {
+      if (curr.isAssumeNonNull()) {
         // Make sure non-null is added to the right place.
         assertTrue(prev == null
             || prev.throwsOnNullInput()
@@ -160,11 +160,11 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
             if (count == 0) {
               // First one in the very first line: its value should not be replaced by NonNullMarker
               // because this instruction will happen _before_ non-null.
-              assertFalse(iput.value().definition.isAssumeWithNonNullAssumption());
+              assertFalse(iput.value().definition.isAssumeNonNull());
             } else if (count == 1) {
               // Second one after a safe invocation, which should use the value added by
               // NonNullMarker.
-              assertTrue(iput.object().definition.isAssumeWithNonNullAssumption());
+              assertTrue(iput.object().definition.isAssumeNonNull());
             }
             count++;
           }

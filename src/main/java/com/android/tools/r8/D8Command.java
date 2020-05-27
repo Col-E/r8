@@ -393,6 +393,7 @@ public final class D8Command extends BaseCompilerCommand {
     assert internal.neverMergePrefixes.contains("j$.");
 
     // Assert some of R8 optimizations are disabled.
+    assert !internal.enableDynamicTypeOptimization;
     assert !internal.enableInlining;
     assert !internal.enableClassInlining;
     assert !internal.enableHorizontalClassMerging;

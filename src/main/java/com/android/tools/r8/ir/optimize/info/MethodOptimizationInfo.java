@@ -15,7 +15,7 @@ import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo
 import java.util.BitSet;
 import java.util.Set;
 
-public abstract class MethodOptimizationInfo {
+public interface MethodOptimizationInfo {
 
   enum InlinePreference {
     NeverInline,
@@ -23,66 +23,63 @@ public abstract class MethodOptimizationInfo {
     Default
   }
 
-  public abstract boolean isDefaultMethodOptimizationInfo();
+  boolean isDefaultMethodOptimizationInfo();
 
-  public abstract boolean isUpdatableMethodOptimizationInfo();
+  boolean isUpdatableMethodOptimizationInfo();
 
-  public abstract UpdatableMethodOptimizationInfo asUpdatableMethodOptimizationInfo();
+  UpdatableMethodOptimizationInfo asUpdatableMethodOptimizationInfo();
 
-  public abstract boolean cannotBeKept();
+  boolean cannotBeKept();
 
-  public abstract boolean classInitializerMayBePostponed();
+  boolean classInitializerMayBePostponed();
 
-  public abstract TypeElement getDynamicUpperBoundType();
+  TypeElement getDynamicUpperBoundType();
 
-  public final TypeElement getDynamicUpperBoundTypeOrElse(TypeElement orElse) {
-    TypeElement dynamicUpperBoundType = getDynamicUpperBoundType();
-    return dynamicUpperBoundType != null ? dynamicUpperBoundType : orElse;
-  }
+  ClassTypeElement getDynamicLowerBoundType();
 
-  public abstract ClassTypeElement getDynamicLowerBoundType();
+  ParameterUsage getParameterUsages(int parameter);
 
-  public abstract ParameterUsage getParameterUsages(int parameter);
+  BitSet getNonNullParamOrThrow();
 
-  public abstract BitSet getNonNullParamOrThrow();
+  BitSet getNonNullParamOnNormalExits();
 
-  public abstract BitSet getNonNullParamOnNormalExits();
+  boolean hasBeenInlinedIntoSingleCallSite();
 
-  public abstract boolean hasBeenInlinedIntoSingleCallSite();
+  boolean isReachabilitySensitive();
 
-  public abstract boolean isReachabilitySensitive();
+  boolean returnsArgument();
 
-  public abstract boolean returnsArgument();
+  int getReturnedArgument();
 
-  public abstract int getReturnedArgument();
+  boolean neverReturnsNull();
 
-  public abstract boolean neverReturnsNormally();
+  boolean neverReturnsNormally();
 
-  public abstract BridgeInfo getBridgeInfo();
+  BridgeInfo getBridgeInfo();
 
-  public abstract ClassInlinerEligibilityInfo getClassInlinerEligibility();
+  ClassInlinerEligibilityInfo getClassInlinerEligibility();
 
-  public abstract Set<DexType> getInitializedClassesOnNormalExit();
+  Set<DexType> getInitializedClassesOnNormalExit();
 
-  public abstract InstanceInitializerInfo getInstanceInitializerInfo();
+  InstanceInitializerInfo getInstanceInitializerInfo();
 
-  public abstract boolean isInitializerEnablingJavaVmAssertions();
+  boolean isInitializerEnablingJavaVmAssertions();
 
-  public abstract AbstractValue getAbstractReturnValue();
+  AbstractValue getAbstractReturnValue();
 
-  public abstract boolean forceInline();
+  boolean forceInline();
 
-  public abstract boolean neverInline();
+  boolean neverInline();
 
-  public abstract boolean checksNullReceiverBeforeAnySideEffect();
+  boolean checksNullReceiverBeforeAnySideEffect();
 
-  public abstract boolean triggersClassInitBeforeAnySideEffect();
+  boolean triggersClassInitBeforeAnySideEffect();
 
-  public abstract boolean mayHaveSideEffects();
+  boolean mayHaveSideEffects();
 
-  public abstract boolean returnValueOnlyDependsOnArguments();
+  boolean returnValueOnlyDependsOnArguments();
 
-  public abstract boolean returnValueHasBeenPropagated();
+  boolean returnValueHasBeenPropagated();
 
-  public abstract UpdatableMethodOptimizationInfo mutableCopy();
+  UpdatableMethodOptimizationInfo mutableCopy();
 }

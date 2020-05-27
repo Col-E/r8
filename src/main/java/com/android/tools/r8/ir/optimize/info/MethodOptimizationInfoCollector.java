@@ -360,12 +360,14 @@ public class MethodOptimizationInfoCollector {
       return;
     }
     Value returnValue = firstExit.returnValue();
+    boolean isNeverNull = returnValue.getType().isReferenceType() && returnValue.isNeverNull();
     for (int i = 1; i < normalExits.size(); i++) {
       Return exit = normalExits.get(i).exit().asReturn();
       Value value = exit.returnValue();
       if (value != returnValue) {
         returnValue = null;
       }
+      isNeverNull &= value.getType().isReferenceType() && value.isNeverNull();
     }
     if (returnValue != null) {
       Value aliasedValue = returnValue.getAliasedValue();
@@ -379,6 +381,9 @@ public class MethodOptimizationInfoCollector {
           feedback.methodReturnsAbstractValue(method, appView, abstractReturnValue);
         }
       }
+    }
+    if (isNeverNull) {
+      feedback.methodNeverReturnsNull(method);
     }
   }
 
@@ -1151,7 +1156,7 @@ public class MethodOptimizationInfoCollector {
       // Collect basic blocks that check nullability of the parameter.
       nullCheckedBlocks.clear();
       for (Instruction user : argument.uniqueUsers()) {
-        if (user.isAssumeWithNonNullAssumption()) {
+        if (user.isAssumeNonNull()) {
           nullCheckedBlocks.add(user.asAssume().getBlock());
         }
         if (user.isIf()
