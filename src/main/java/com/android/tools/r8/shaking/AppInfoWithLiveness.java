@@ -47,11 +47,9 @@ import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
-import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
@@ -133,10 +131,14 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * will have been removed from the code.
    */
   public final Set<DexCallSite> callSites;
-  /** Set of all items that have to be kept independent of whether they are used. */
-  final Set<DexReference> pinnedItems;
-  /** Set of kept items that are allowed to be publicized. */
-  final Set<DexReference> allowAccessModification;
+  /** Collection of keep requirements for the program. */
+  private final KeepInfoCollection keepInfo;
+  /**
+   * Set of kept items that are allowed to be publicized.
+   *
+   * <p>TODO(b/156715504): merge into keep info.
+   */
+  private final Set<DexReference> allowAccessModification;
   /** All items with assumemayhavesideeffects rule. */
   public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
   /** All items with assumenosideeffects rule. */
@@ -214,7 +216,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       SortedMap<DexMethod, ProgramMethodSet> directInvokes,
       SortedMap<DexMethod, ProgramMethodSet> staticInvokes,
       Set<DexCallSite> callSites,
-      Set<DexReference> pinnedItems,
+      KeepInfoCollection keepInfo,
       Set<DexReference> allowAccessModification,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
       Map<DexReference, ProguardMemberRule> noSideEffects,
@@ -250,7 +252,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.liveMethods = liveMethods;
     this.fieldAccessInfoCollection = fieldAccessInfoCollection;
     this.objectAllocationInfoCollection = objectAllocationInfoCollection;
-    this.pinnedItems = pinnedItems;
+    this.keepInfo = keepInfo;
     this.allowAccessModification = allowAccessModification;
     this.mayHaveSideEffects = mayHaveSideEffects;
     this.noSideEffects = noSideEffects;
@@ -301,7 +303,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       SortedMap<DexMethod, ProgramMethodSet> directInvokes,
       SortedMap<DexMethod, ProgramMethodSet> staticInvokes,
       Set<DexCallSite> callSites,
-      Set<DexReference> pinnedItems,
+      KeepInfoCollection keepInfo,
       Set<DexReference> allowAccessModification,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
       Map<DexReference, ProguardMemberRule> noSideEffects,
@@ -337,7 +339,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.liveMethods = liveMethods;
     this.fieldAccessInfoCollection = fieldAccessInfoCollection;
     this.objectAllocationInfoCollection = objectAllocationInfoCollection;
-    this.pinnedItems = pinnedItems;
+    this.keepInfo = keepInfo;
     this.allowAccessModification = allowAccessModification;
     this.mayHaveSideEffects = mayHaveSideEffects;
     this.noSideEffects = noSideEffects;
@@ -389,7 +391,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.directInvokes,
         previous.staticInvokes,
         previous.callSites,
-        previous.pinnedItems,
+        previous.keepInfo,
         previous.allowAccessModification,
         previous.mayHaveSideEffects,
         previous.noSideEffects,
@@ -440,9 +442,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.directInvokes,
         previous.staticInvokes,
         previous.callSites,
-        additionalPinnedItems == null
-            ? previous.pinnedItems
-            : SetUtils.newIdentityHashSet(previous.pinnedItems, additionalPinnedItems),
+        extendPinnedItems(previous, additionalPinnedItems),
         previous.allowAccessModification,
         previous.mayHaveSideEffects,
         previous.noSideEffects,
@@ -468,7 +468,44 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.constClassReferences,
         previous.initClassReferences);
     copyMetadataFromPrevious(previous);
-    assert removedClasses == null || assertNoItemRemoved(previous.pinnedItems, removedClasses);
+    assert keepInfo.verifyNoneArePinned(removedClasses, previous);
+  }
+
+  private static KeepInfoCollection extendPinnedItems(
+      AppInfoWithLiveness previous, Collection<DexReference> additionalPinnedItems) {
+    if (additionalPinnedItems == null || additionalPinnedItems.isEmpty()) {
+      return previous.keepInfo;
+    }
+    return previous.keepInfo.mutate(
+        collection -> {
+          for (DexReference reference : additionalPinnedItems) {
+            if (reference.isDexType()) {
+              DexProgramClass clazz =
+                  asProgramClassOrNull(previous.definitionFor(reference.asDexType()));
+              if (clazz != null) {
+                collection.pinClass(clazz);
+              }
+            } else if (reference.isDexMethod()) {
+              DexMethod method = reference.asDexMethod();
+              DexProgramClass clazz = asProgramClassOrNull(previous.definitionFor(method.holder));
+              if (clazz != null) {
+                DexEncodedMethod definition = clazz.lookupMethod(method);
+                if (definition != null) {
+                  collection.pinMethod(clazz, definition);
+                }
+              }
+            } else {
+              DexField field = reference.asDexField();
+              DexProgramClass clazz = asProgramClassOrNull(previous.definitionFor(field.holder));
+              if (clazz != null) {
+                DexEncodedField definition = clazz.lookupField(field);
+                if (definition != null) {
+                  collection.pinField(clazz, definition);
+                }
+              }
+            }
+          }
+        });
   }
 
   public AppInfoWithLiveness(
@@ -488,7 +525,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.liveMethods = previous.liveMethods;
     this.fieldAccessInfoCollection = previous.fieldAccessInfoCollection;
     this.objectAllocationInfoCollection = previous.objectAllocationInfoCollection;
-    this.pinnedItems = previous.pinnedItems;
+    this.keepInfo = previous.keepInfo;
     this.allowAccessModification = previous.allowAccessModification;
     this.mayHaveSideEffects = previous.mayHaveSideEffects;
     this.noSideEffects = previous.noSideEffects;
@@ -749,27 +786,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     singleTargetLookupCache.removeInstantiatedType(clazz.type, this);
   }
 
-  void removePinnedItem(DexReference item) {
-    pinnedItems.remove(item);
-  }
-
-  private boolean assertNoItemRemoved(Collection<DexReference> items, Collection<DexType> types) {
-    Set<DexType> typeSet = ImmutableSet.copyOf(types);
-    for (DexReference item : items) {
-      DexType typeToCheck;
-      if (item.isDexType()) {
-        typeToCheck = item.asDexType();
-      } else if (item.isDexMethod()) {
-        typeToCheck = item.asDexMethod().holder;
-      } else {
-        assert item.isDexField();
-        typeToCheck = item.asDexField().holder;
-      }
-      assert !typeSet.contains(typeToCheck);
-    }
-    return true;
-  }
-
   private boolean isInstantiatedDirectly(DexProgramClass clazz) {
     assert checkIfObsolete();
     DexType type = clazz.type;
@@ -796,7 +812,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (info != null && info.isRead()) {
       return true;
     }
-    return isPinned(field)
+    return keepInfo.isPinned(field, this)
         // Fields in the class that is synthesized by D8/R8 would be used soon.
         || field.holder.isD8R8SynthesizedClassType()
         // For library classes we don't know whether a field is read.
@@ -868,7 +884,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return method.getDefinition().hasCode()
         && !method.getDefinition().isLibraryMethodOverride().isPossiblyTrue()
         && !neverReprocess.contains(reference)
-        && !pinnedItems.contains(reference);
+        && !keepInfo.getMethodInfo(method).isPinned();
   }
 
   public boolean mayPropagateValueFor(DexReference reference) {
@@ -919,7 +935,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean isPinned(DexReference reference) {
     assert checkIfObsolete();
-    return pinnedItems.contains(reference);
+    return keepInfo.isPinned(reference, this);
   }
 
   public boolean hasPinnedInstanceInitializer(DexType type) {
@@ -935,9 +951,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return false;
   }
 
-  public Set<DexReference> getPinnedItems() {
-    assert checkIfObsolete();
-    return pinnedItems;
+  public KeepInfoCollection getKeepInfo() {
+    return keepInfo;
   }
 
   /**
@@ -987,8 +1002,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             .filter(Objects::nonNull)
             .collect(Collectors.toList()));
 
-    assert lens.assertReferencesNotModified(pinnedItems);
-
     return new AppInfoWithLiveness(
         application,
         deadProtoTypes,
@@ -1011,7 +1024,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         // TODO(sgjesse): Rewrite call sites as well? Right now they are only used by minification
         //   after second tree shaking.
         callSites,
-        pinnedItems,
+        keepInfo.rewrite(lens),
         lens.rewriteReferences(allowAccessModification),
         lens.rewriteReferenceKeys(mayHaveSideEffects),
         lens.rewriteReferenceKeys(noSideEffects),

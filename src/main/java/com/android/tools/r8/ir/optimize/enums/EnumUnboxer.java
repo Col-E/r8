@@ -54,7 +54,6 @@ import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.AppInfoWithLivenessModifier;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -373,13 +372,18 @@ public class EnumUnboxer implements PostOptimization {
   }
 
   private void updatePinnedItems(Set<DexType> enumsToUnbox) {
-    AppInfoWithLivenessModifier modifier = AppInfoWithLiveness.modifier();
-    for (DexType type : enumsToUnbox) {
-      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
-      assert !appView.appInfo().isPinned(clazz.type);
-      modifier.removePinnedClassMembers(clazz);
-    }
-    modifier.modify(appView.appInfo());
+    appView
+        .appInfo()
+        .getKeepInfo()
+        .mutate(
+            keepInfo -> {
+              for (DexType type : enumsToUnbox) {
+                DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
+                assert !keepInfo.getClassInfo(clazz).isPinned();
+                clazz.forEachProgramMethod(keepInfo::unpinMethod);
+                clazz.forEachField(field -> keepInfo.unpinField(clazz, field));
+              }
+            });
   }
 
   public void finishAnalysis() {

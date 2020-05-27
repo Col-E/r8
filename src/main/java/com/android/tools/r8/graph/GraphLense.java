@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -14,9 +15,11 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -254,6 +257,14 @@ public abstract class GraphLense {
       assert isBridge || lookupReference(reference) == reference;
     }
     return true;
+  }
+
+  public <T extends DexReference> boolean assertPinnedNotModified(KeepInfoCollection keepInfo) {
+    List<DexReference> pinnedItems = new ArrayList<>();
+    keepInfo.forEachPinnedType(pinnedItems::add);
+    keepInfo.forEachPinnedMethod(pinnedItems::add);
+    keepInfo.forEachPinnedField(pinnedItems::add);
+    return assertReferencesNotModified(pinnedItems);
   }
 
   public <T extends DexReference> boolean assertReferencesNotModified(Iterable<T> references) {

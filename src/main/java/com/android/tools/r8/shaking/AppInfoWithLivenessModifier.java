@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.google.common.collect.Sets;
@@ -16,7 +15,6 @@ import java.util.Set;
 public class AppInfoWithLivenessModifier {
 
   private final Set<DexProgramClass> noLongerInstantiatedClasses = Sets.newConcurrentHashSet();
-  private final Set<DexReference> noLongerPinnedItems = Sets.newConcurrentHashSet();
   private final Set<DexField> noLongerWrittenFields = Sets.newConcurrentHashSet();
 
   AppInfoWithLivenessModifier() {}
@@ -29,10 +27,6 @@ public class AppInfoWithLivenessModifier {
     noLongerInstantiatedClasses.add(clazz);
   }
 
-  public void removePinnedClassMembers(DexProgramClass clazz) {
-    clazz.members().forEach(member -> noLongerPinnedItems.add(member.toReference()));
-  }
-
   public void removeWrittenField(DexField field) {
     noLongerWrittenFields.add(field);
   }
@@ -42,8 +36,6 @@ public class AppInfoWithLivenessModifier {
     noLongerInstantiatedClasses.forEach(appInfo::removeFromSingleTargetLookupCache);
     appInfo.mutateObjectAllocationInfoCollection(
         mutator -> noLongerInstantiatedClasses.forEach(mutator::markNoLongerInstantiated));
-    // Pinned items.
-    noLongerPinnedItems.forEach(appInfo::removePinnedItem);
     // Written fields.
     FieldAccessInfoCollectionImpl fieldAccessInfoCollection =
         appInfo.getMutableFieldAccessInfoCollection();

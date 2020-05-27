@@ -34,9 +34,9 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
     // We will process kotlin.Metadata even if the type is not present in the program, as long as
     // the annotation will be in the output
     boolean keepMetadata =
-        enqueuer.isPinned(kotlinMetadataType)
-            || enqueuer.isMissing(kotlinMetadataType)
-            || (kotlinMetadataClass != null && kotlinMetadataClass.isNotProgramClass());
+        kotlinMetadataClass == null
+            || kotlinMetadataClass.isNotProgramClass()
+            || enqueuer.isPinned(kotlinMetadataType);
     enqueuer.forAllLiveClasses(
         clazz -> {
           clazz.setKotlinInfo(

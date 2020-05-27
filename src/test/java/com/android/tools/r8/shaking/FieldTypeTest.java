@@ -103,8 +103,7 @@ public class FieldTypeTest extends TestBase {
         */
         "getstatic " + client.name + "/" + obj2.name + " " + itf2.getDescriptor(),
         "invokevirtual java/io/PrintStream/print(Ljava/lang/Object;)V",
-        "return"
-    );
+        "return");
 
     final String mainClassName = mainClass.name;
     String proguardConfig = StringUtils.lines(
