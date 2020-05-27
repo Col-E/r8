@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.constant;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -14,6 +16,7 @@ import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StringSwitch;
 import com.android.tools.r8.ir.code.Value;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Deque;
@@ -21,6 +24,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Implementation of Sparse Conditional Constant Propagation from the paper of Wegman and Zadeck
@@ -29,6 +33,7 @@ import java.util.Map;
  */
 public class SparseConditionalConstantPropagation {
 
+  private final AppView<?> appView;
   private final IRCode code;
   private final Map<Value, LatticeElement> mapping = new HashMap<>();
   private final Deque<Value> ssaEdges = new LinkedList<>();
@@ -37,7 +42,8 @@ public class SparseConditionalConstantPropagation {
   private final BitSet[] executableFlowEdges;
   private final BitSet visitedBlocks;
 
-  public SparseConditionalConstantPropagation(IRCode code) {
+  public SparseConditionalConstantPropagation(AppView<?> appView, IRCode code) {
+    this.appView = appView;
     this.code = code;
     nextBlockNumber = code.getHighestBlockNumber() + 1;
     executableFlowEdges = new BitSet[nextBlockNumber];
@@ -45,7 +51,6 @@ public class SparseConditionalConstantPropagation {
   }
 
   public void run() {
-
     BasicBlock firstBlock = code.entryBlock();
     visitInstructions(firstBlock);
 
@@ -77,8 +82,8 @@ public class SparseConditionalConstantPropagation {
   }
 
   private void rewriteCode() {
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     List<BasicBlock> blockToAnalyze = new ArrayList<>();
-
     mapping.entrySet().stream()
         .filter(entry -> entry.getValue().isConst())
         .forEach(
@@ -86,6 +91,7 @@ public class SparseConditionalConstantPropagation {
               Value value = entry.getKey();
               ConstNumber evaluatedConst = entry.getValue().asConst().getConstNumber();
               if (value.definition != evaluatedConst) {
+                value.addAffectedValuesTo(affectedValues);
                 if (value.isPhi()) {
                   // D8 relies on dead code removal to get rid of the dead phi itself.
                   if (value.hasAnyUsers()) {
@@ -112,11 +118,12 @@ public class SparseConditionalConstantPropagation {
                 }
               }
             });
-
     for (BasicBlock block : blockToAnalyze) {
       block.deduplicatePhis();
     }
-
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
     code.removeAllDeadAndTrivialPhis();
   }
 
