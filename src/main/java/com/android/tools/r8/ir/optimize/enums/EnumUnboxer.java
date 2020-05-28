@@ -381,8 +381,8 @@ public class EnumUnboxer implements PostOptimization {
               for (DexType type : enumsToUnbox) {
                 DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
                 assert !keepInfo.getClassInfo(clazz).isPinned();
-                clazz.forEachProgramMethod(keepInfo::unpinMethod);
-                clazz.forEachField(field -> keepInfo.unpinField(clazz, field));
+                clazz.forEachProgramMethod(keepInfo::unsafeUnpinMethod);
+                clazz.forEachField(field -> keepInfo.unsafeUnpinField(clazz, field));
               }
             });
   }

@@ -4,13 +4,13 @@
 package com.android.tools.r8.shaking;
 
 /** Immutable keep requirements for a method. */
-public final class KeepMethodInfo extends KeepInfo {
+public final class KeepMethodInfo extends KeepInfo<KeepMethodInfo.Builder, KeepMethodInfo> {
 
   // Requires all aspects of a method to be kept.
-  private static final KeepMethodInfo TOP = new KeepMethodInfo(true);
+  private static final KeepMethodInfo TOP = new Builder().makeTop().build();
 
   // Requires no aspects of a method to be kept.
-  private static final KeepMethodInfo BOTTOM = new KeepMethodInfo(false);
+  private static final KeepMethodInfo BOTTOM = new Builder().makeBottom().build();
 
   public static KeepMethodInfo top() {
     return TOP;
@@ -20,15 +20,36 @@ public final class KeepMethodInfo extends KeepInfo {
     return BOTTOM;
   }
 
-  private KeepMethodInfo(boolean pinned) {
-    super(pinned);
+  private KeepMethodInfo(Builder builder) {
+    super(builder);
   }
 
-  public Builder builder() {
+  // This builder is not private as there are known instances where it is safe to modify keep info
+  // in a non-upwards direction.
+  Builder builder() {
     return new Builder(this);
   }
 
+  public Joiner joiner() {
+    assert !isTop();
+    return new Joiner(this);
+  }
+
+  @Override
+  public boolean isTop() {
+    return this.equals(top());
+  }
+
+  @Override
+  public boolean isBottom() {
+    return this.equals(bottom());
+  }
+
   public static class Builder extends KeepInfo.Builder<Builder, KeepMethodInfo> {
+
+    private Builder() {
+      super();
+    }
 
     private Builder(KeepMethodInfo original) {
       super(original);
@@ -40,12 +61,12 @@ public final class KeepMethodInfo extends KeepInfo {
     }
 
     @Override
-    public KeepMethodInfo top() {
+    public KeepMethodInfo getTopInfo() {
       return TOP;
     }
 
     @Override
-    public KeepMethodInfo bottom() {
+    public KeepMethodInfo getBottomInfo() {
       return BOTTOM;
     }
 
@@ -56,7 +77,19 @@ public final class KeepMethodInfo extends KeepInfo {
 
     @Override
     public KeepMethodInfo doBuild() {
-      return new KeepMethodInfo(isPinned());
+      return new KeepMethodInfo(this);
+    }
+  }
+
+  public static class Joiner extends KeepInfo.Joiner<Joiner, Builder, KeepMethodInfo> {
+
+    public Joiner(KeepMethodInfo info) {
+      super(info.builder());
+    }
+
+    @Override
+    Joiner self() {
+      return this;
     }
   }
 }

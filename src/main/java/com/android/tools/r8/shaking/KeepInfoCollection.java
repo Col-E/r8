@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.shaking.KeepFieldInfo.Joiner;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -216,59 +217,110 @@ public abstract class KeepInfoCollection {
       return keepFieldInfo.getOrDefault(field.field, KeepFieldInfo.bottom());
     }
 
-    public void pinClass(DexProgramClass clazz) {
+    public void joinClass(DexProgramClass clazz, Consumer<KeepClassInfo.Joiner> fn) {
       KeepClassInfo info = getClassInfo(clazz);
-      if (!info.isPinned()) {
-        keepClassInfo.put(clazz.type, info.builder().pin().build());
+      if (info.isTop()) {
+        return;
+      }
+      KeepClassInfo.Joiner joiner = info.joiner();
+      fn.accept(joiner);
+      KeepClassInfo joined = joiner.join();
+      if (!info.equals(joined)) {
+        keepClassInfo.put(clazz.type, joined);
       }
     }
 
-    public void pinMember(DexProgramClass holder, DexEncodedMember<?, ?> member) {
-      if (member.isDexEncodedMethod()) {
-        pinMethod(holder, member.asDexEncodedMethod());
-      } else {
-        assert member.isDexEncodedField();
-        pinField(holder, member.asDexEncodedField());
+    public void keepClass(DexProgramClass clazz) {
+      joinClass(clazz, KeepInfo.Joiner::top);
+    }
+
+    public void pinClass(DexProgramClass clazz) {
+      joinClass(clazz, KeepInfo.Joiner::pin);
+    }
+
+    public void joinMethod(
+        DexProgramClass holder, DexEncodedMethod method, Consumer<KeepMethodInfo.Joiner> fn) {
+      KeepMethodInfo info = getMethodInfo(method, holder);
+      if (info == KeepMethodInfo.top()) {
+        return;
+      }
+      KeepMethodInfo.Joiner joiner = info.joiner();
+      fn.accept(joiner);
+      KeepMethodInfo joined = joiner.join();
+      if (!info.equals(joined)) {
+        keepMethodInfo.put(method.method, joined);
       }
     }
 
-    public void pinMethod(ProgramMethod programMethod) {
-      pinMethod(programMethod.getHolder(), programMethod.getDefinition());
+    public void joinMethod(ProgramMethod programMethod, Consumer<KeepMethodInfo.Joiner> fn) {
+      joinMethod(programMethod.getHolder(), programMethod.getDefinition(), fn);
+    }
+
+    public void keepMethod(ProgramMethod programMethod) {
+      keepMethod(programMethod.getHolder(), programMethod.getDefinition());
+    }
+
+    public void keepMethod(DexProgramClass holder, DexEncodedMethod method) {
+      joinMethod(holder, method, KeepInfo.Joiner::top);
     }
 
     public void pinMethod(DexProgramClass holder, DexEncodedMethod method) {
-      KeepMethodInfo info = getMethodInfo(method, holder);
-      if (!info.isPinned()) {
-        keepMethodInfo.put(method.method, info.builder().pin().build());
-      }
+      joinMethod(holder, method, KeepInfo.Joiner::pin);
     }
 
-    public void unpinMethod(ProgramMethod method) {
+    // Unpinning a method represents a non-monotonic change to the keep info of that item.
+    // This is generally unsound as it requires additional analysis to determine that a method that
+    // was pinned no longer is. A known sound example is the enum analysis that will identify
+    // non-escaping enums on enum types that are not pinned, thus their methods do not need to be
+    // retained even if a rule has marked them as conditionally pinned.
+    public void unsafeUnpinMethod(ProgramMethod method) {
+      // This asserts that the holder is not pinned as some analysis must have established that the
+      // type is not "present" and thus the method need not be pinned.
       assert !getClassInfo(method.getHolder()).isPinned();
-      unpinMethod(method.getReference());
+      unsafeUnpinMethod(method.getReference());
     }
 
-    // TODO(b/156715504): We should never need to unpin items. Rather avoid pinning to begin with.
+    // TODO(b/156715504): Avoid pinning/unpinning references.
     @Deprecated
-    public void unpinMethod(DexMethod method) {
+    public void unsafeUnpinMethod(DexMethod method) {
       KeepMethodInfo info = keepMethodInfo.get(method);
       if (info != null && info.isPinned()) {
         keepMethodInfo.put(method, info.builder().unpin().build());
       }
     }
 
-    public void pinField(ProgramField programField) {
-      pinField(programField.getHolder(), programField.getDefinition());
-    }
-
-    public void pinField(DexProgramClass holder, DexEncodedField field) {
+    public void joinField(
+        DexProgramClass holder, DexEncodedField field, Consumer<KeepFieldInfo.Joiner> fn) {
       KeepFieldInfo info = getFieldInfo(field, holder);
-      if (!info.isPinned()) {
-        keepFieldInfo.put(field.field, info.builder().pin().build());
+      if (info.isTop()) {
+        return;
+      }
+      Joiner joiner = info.joiner();
+      fn.accept(joiner);
+      KeepFieldInfo joined = joiner.join();
+      if (!info.equals(joined)) {
+        keepFieldInfo.put(field.field, joined);
       }
     }
 
-    public void unpinField(DexProgramClass holder, DexEncodedField field) {
+    public void keepField(DexProgramClass holder, DexEncodedField field) {
+      joinField(holder, field, KeepInfo.Joiner::top);
+    }
+
+    public void pinField(DexProgramClass holder, DexEncodedField field) {
+      joinField(holder, field, KeepInfo.Joiner::pin);
+    }
+
+    public void keepMember(DexProgramClass holder, DexEncodedMember<?, ?> member) {
+      if (member.isDexEncodedMethod()) {
+        keepMethod(holder, member.asDexEncodedMethod());
+      } else {
+        assert member.isDexEncodedField();
+        keepField(holder, member.asDexEncodedField());
+      }
+    }
+
+    public void unsafeUnpinField(DexProgramClass holder, DexEncodedField field) {
       assert holder.type == field.holder();
       assert !getClassInfo(holder).isPinned();
       KeepFieldInfo info = this.keepFieldInfo.get(field.toReference());

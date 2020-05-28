@@ -133,12 +133,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public final Set<DexCallSite> callSites;
   /** Collection of keep requirements for the program. */
   private final KeepInfoCollection keepInfo;
-  /**
-   * Set of kept items that are allowed to be publicized.
-   *
-   * <p>TODO(b/156715504): merge into keep info.
-   */
-  private final Set<DexReference> allowAccessModification;
   /** All items with assumemayhavesideeffects rule. */
   public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
   /** All items with assumenosideeffects rule. */
@@ -217,7 +211,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       SortedMap<DexMethod, ProgramMethodSet> staticInvokes,
       Set<DexCallSite> callSites,
       KeepInfoCollection keepInfo,
-      Set<DexReference> allowAccessModification,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
       Map<DexReference, ProguardMemberRule> noSideEffects,
       Map<DexReference, ProguardMemberRule> assumedValues,
@@ -253,7 +246,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.fieldAccessInfoCollection = fieldAccessInfoCollection;
     this.objectAllocationInfoCollection = objectAllocationInfoCollection;
     this.keepInfo = keepInfo;
-    this.allowAccessModification = allowAccessModification;
     this.mayHaveSideEffects = mayHaveSideEffects;
     this.noSideEffects = noSideEffects;
     this.assumedValues = assumedValues;
@@ -304,7 +296,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       SortedMap<DexMethod, ProgramMethodSet> staticInvokes,
       Set<DexCallSite> callSites,
       KeepInfoCollection keepInfo,
-      Set<DexReference> allowAccessModification,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
       Map<DexReference, ProguardMemberRule> noSideEffects,
       Map<DexReference, ProguardMemberRule> assumedValues,
@@ -340,7 +331,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.fieldAccessInfoCollection = fieldAccessInfoCollection;
     this.objectAllocationInfoCollection = objectAllocationInfoCollection;
     this.keepInfo = keepInfo;
-    this.allowAccessModification = allowAccessModification;
     this.mayHaveSideEffects = mayHaveSideEffects;
     this.noSideEffects = noSideEffects;
     this.assumedValues = assumedValues;
@@ -392,7 +382,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.staticInvokes,
         previous.callSites,
         previous.keepInfo,
-        previous.allowAccessModification,
         previous.mayHaveSideEffects,
         previous.noSideEffects,
         previous.assumedValues,
@@ -443,7 +432,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.staticInvokes,
         previous.callSites,
         extendPinnedItems(previous, additionalPinnedItems),
-        previous.allowAccessModification,
         previous.mayHaveSideEffects,
         previous.noSideEffects,
         previous.assumedValues,
@@ -526,7 +514,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.fieldAccessInfoCollection = previous.fieldAccessInfoCollection;
     this.objectAllocationInfoCollection = previous.objectAllocationInfoCollection;
     this.keepInfo = previous.keepInfo;
-    this.allowAccessModification = previous.allowAccessModification;
     this.mayHaveSideEffects = previous.mayHaveSideEffects;
     this.noSideEffects = previous.noSideEffects;
     this.assumedValues = previous.assumedValues;
@@ -930,7 +917,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean isAccessModificationAllowed(DexReference reference) {
     assert options().getProguardConfiguration().isAccessModificationAllowed();
-    return allowAccessModification.contains(reference) || !isPinned(reference);
+    return keepInfo
+        .getInfo(reference, this)
+        .isAccessModificationAllowed(options().getProguardConfiguration());
   }
 
   public boolean isPinned(DexReference reference) {
@@ -1025,7 +1014,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         //   after second tree shaking.
         callSites,
         keepInfo.rewrite(lens),
-        lens.rewriteReferences(allowAccessModification),
         lens.rewriteReferenceKeys(mayHaveSideEffects),
         lens.rewriteReferenceKeys(noSideEffects),
         lens.rewriteReferenceKeys(assumedValues),

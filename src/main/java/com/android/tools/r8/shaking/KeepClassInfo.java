@@ -4,13 +4,13 @@
 package com.android.tools.r8.shaking;
 
 /** Immutable keep requirements for a class. */
-public final class KeepClassInfo extends KeepInfo {
+public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepClassInfo> {
 
   // Requires all aspects of a class to be kept.
-  private static final KeepClassInfo TOP = new KeepClassInfo(true);
+  private static final KeepClassInfo TOP = new Builder().makeTop().build();
 
   // Requires no aspects of a class to be kept.
-  private static final KeepClassInfo BOTTOM = new KeepClassInfo(false);
+  private static final KeepClassInfo BOTTOM = new Builder().makeBottom().build();
 
   public static KeepClassInfo top() {
     return TOP;
@@ -20,27 +20,46 @@ public final class KeepClassInfo extends KeepInfo {
     return BOTTOM;
   }
 
-  private KeepClassInfo(boolean pinned) {
-    super(pinned);
+  private KeepClassInfo(Builder builder) {
+    super(builder);
   }
 
-  public Builder builder() {
+  private Builder builder() {
     return new Builder(this);
   }
 
+  public Joiner joiner() {
+    assert !isTop();
+    return new Joiner(this);
+  }
+
+  @Override
+  public boolean isTop() {
+    return this.equals(top());
+  }
+
+  @Override
+  public boolean isBottom() {
+    return this.equals(bottom());
+  }
+
   public static class Builder extends KeepInfo.Builder<Builder, KeepClassInfo> {
+
+    private Builder() {
+      super();
+    }
 
     private Builder(KeepClassInfo original) {
       super(original);
     }
 
     @Override
-    public KeepClassInfo top() {
+    public KeepClassInfo getTopInfo() {
       return TOP;
     }
 
     @Override
-    public KeepClassInfo bottom() {
+    public KeepClassInfo getBottomInfo() {
       return BOTTOM;
     }
 
@@ -56,7 +75,19 @@ public final class KeepClassInfo extends KeepInfo {
 
     @Override
     public KeepClassInfo doBuild() {
-      return new KeepClassInfo(isPinned());
+      return new KeepClassInfo(this);
+    }
+  }
+
+  public static class Joiner extends KeepInfo.Joiner<Joiner, Builder, KeepClassInfo> {
+
+    public Joiner(KeepClassInfo info) {
+      super(info.builder());
+    }
+
+    @Override
+    Joiner self() {
+      return this;
     }
   }
 }
