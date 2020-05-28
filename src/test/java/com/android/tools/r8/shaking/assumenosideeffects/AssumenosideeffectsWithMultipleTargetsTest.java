@@ -138,7 +138,9 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
 
     @NeverInline
     private static void testInvokeInterface(TestLogger logger, String message) {
-      logger.info(TAG, message);
+      if (logger != null) {
+        logger.info(TAG, message);
+      }
     }
 
     public static void main(String... args) {

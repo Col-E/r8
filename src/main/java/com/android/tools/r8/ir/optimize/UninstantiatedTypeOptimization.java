@@ -326,7 +326,6 @@ public class UninstantiatedTypeOptimization {
   }
 
   public void rewrite(IRCode code) {
-    AssumeRemover assumeRemover = new AssumeRemover(appView, code);
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     Set<Value> affectedValues = Sets.newIdentityHashSet();
@@ -352,13 +351,11 @@ public class UninstantiatedTypeOptimization {
               blockIterator,
               instructionIterator,
               code,
-              assumeRemover,
               affectedValues,
               blocksToBeRemoved);
         }
       }
     }
-    assumeRemover.removeMarkedInstructions(blocksToBeRemoved).finish();
     code.removeBlocks(blocksToBeRemoved);
     code.removeAllDeadAndTrivialPhis(affectedValues);
     code.removeUnreachableBlocks();
@@ -398,7 +395,6 @@ public class UninstantiatedTypeOptimization {
       ListIterator<BasicBlock> blockIterator,
       InstructionListIterator instructionIterator,
       IRCode code,
-      AssumeRemover assumeRemover,
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToBeRemoved) {
     DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.context());
@@ -416,31 +412,6 @@ public class UninstantiatedTypeOptimization {
               appView, code, blockIterator, blocksToBeRemoved, affectedValues);
           return;
         }
-      }
-    }
-
-    DexType returnType = target.method.proto.returnType;
-    if (returnType.isAlwaysNull(appView)) {
-      replaceOutValueByNull(invoke, instructionIterator, code, assumeRemover, affectedValues);
-    }
-  }
-
-  private void replaceOutValueByNull(
-      Instruction instruction,
-      InstructionListIterator instructionIterator,
-      IRCode code,
-      AssumeRemover assumeRemover,
-      Set<Value> affectedValues) {
-    assert instructionIterator.peekPrevious() == instruction;
-    if (instruction.hasOutValue()) {
-      Value outValue = instruction.outValue();
-      if (outValue.numberOfAllUsers() > 0) {
-        assumeRemover.markAssumeDynamicTypeUsersForRemoval(outValue);
-        instructionIterator.previous();
-        affectedValues.addAll(outValue.affectedValues());
-        outValue.replaceUsers(
-            instructionIterator.insertConstNullInstruction(code, appView.options()));
-        instructionIterator.next();
       }
     }
   }

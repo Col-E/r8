@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -209,9 +209,12 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     assert appView.appInfo().hasLiveness();
     AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
-    ResolutionResult resolutionResult =
-        appViewWithLiveness.appInfo().resolveMethod(getInvokedMethod(), getInterfaceBit());
-    if (resolutionResult.isFailedResolution()) {
+    SingleResolutionResult resolutionResult =
+        appViewWithLiveness
+            .appInfo()
+            .resolveMethod(getInvokedMethod(), getInterfaceBit())
+            .asSingleResolution();
+    if (resolutionResult == null) {
       return true;
     }
 
@@ -220,6 +223,12 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
         .isAccessibleFrom(context, appViewWithLiveness.appInfo())
         .isPossiblyFalse()) {
       return true;
+    }
+
+    DexEncodedMethod resolvedMethod = resolutionResult.getResolvedMethod();
+    if (appViewWithLiveness.appInfo().noSideEffects.containsKey(getInvokedMethod())
+        || appViewWithLiveness.appInfo().noSideEffects.containsKey(resolvedMethod.getReference())) {
+      return false;
     }
 
     // Find the target and check if the invoke may have side effects.

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.uninstantiatedtypes;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -46,7 +47,7 @@ public class B146957343 extends TestBase implements Opcodes {
         .addProgramClasses(I.class, J.class, Main.class)
         .addProgramClassFileData(getAimplementsI())
         .addKeepMainRule(Main.class)
-        .addKeepRules("-keep class **A { createA(); }")
+        .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(
             options -> options.enableUninstantiatedTypeOptimizationForInterfaces = true)
@@ -62,7 +63,7 @@ public class B146957343 extends TestBase implements Opcodes {
         .addProgramClasses(I.class, J.class, Main.class)
         .addProgramClassFileData(getAimplementsI())
         .addKeepMainRule(Main.class)
-        .addKeepRules("-keep class **A { createA(); }")
+        .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(
             options -> options.enableUninstantiatedTypeOptimizationForInterfaces = false)
@@ -76,10 +77,13 @@ public class B146957343 extends TestBase implements Opcodes {
   public interface J extends I {}
 
   public static class A implements J {
+
+    @NeverInline
     public static J createA() {
       return new A();
     }
 
+    @NeverInline
     public void f() {
       System.out.println("In A.f()");
     }

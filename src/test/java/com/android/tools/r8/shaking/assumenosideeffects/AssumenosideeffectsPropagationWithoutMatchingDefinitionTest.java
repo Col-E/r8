@@ -116,7 +116,9 @@ public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends
 
     @NeverInline
     private static void testInvokeInterface(LoggerInterface logger, String message) {
-      logger.debug(TAG, message);
+      if (logger != null) {
+        logger.debug(TAG, message);
+      }
     }
 
     @NeverInline

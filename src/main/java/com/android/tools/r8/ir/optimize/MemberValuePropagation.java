@@ -230,21 +230,23 @@ public class MemberValuePropagation {
       Set<Value> affectedValues,
       ListIterator<BasicBlock> blocks,
       InstructionListIterator iterator,
-      InvokeMethod current) {
-    DexMethod invokedMethod = current.getInvokedMethod();
+      InvokeMethod invoke) {
+    DexMethod invokedMethod = invoke.getInvokedMethod();
+    if (invokedMethod.proto.returnType.isVoidType()) {
+      return;
+    }
+
+    if (!invoke.hasOutValue() || !invoke.outValue().hasNonDebugUsers()) {
+      return;
+    }
+
     DexType invokedHolder = invokedMethod.holder;
     if (!invokedHolder.isClassType()) {
       return;
     }
-    DexEncodedMethod target = current.lookupSingleTarget(appView, context);
-    if (target != null && target.isInstanceInitializer()) {
-      // Member value propagation does not apply to constructors. Removing a call to a constructor
-      // that is marked as having no side effects could lead to verification errors, due to
-      // uninitialized instances being used.
-      return;
-    }
 
-    ProguardMemberRuleLookup lookup = lookupMemberRule(target);
+    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
+    ProguardMemberRuleLookup lookup = lookupMemberRule(singleTarget);
     if (lookup == null) {
       // -assumenosideeffects rules are applied to upward visible and overriding methods, but only
       // references that have actual definitions are marked by the root set builder. So, here, we
@@ -253,60 +255,56 @@ public class MemberValuePropagation {
           appView.appInfo().unsafeResolveMethodDueToDexFormat(invokedMethod).getSingleTarget();
       lookup = lookupMemberRule(resolutionTarget);
     }
-    boolean invokeReplaced = false;
-    if (lookup != null) {
-      boolean hasUsedOutValue = current.hasOutValue() && current.outValue().isUsed();
-      if (!hasUsedOutValue) {
-        if (lookup.type == RuleType.ASSUME_NO_SIDE_EFFECTS) {
-          // Remove invoke if marked as having no side effects and the return value is not used.
-          iterator.removeOrReplaceByDebugLocalRead();
-        }
-        return;
-      }
 
+    if (lookup != null) {
       // Check to see if a constant value can be assumed.
       // But, if the current matched rule is -assumenosideeffects without the return value, it won't
       // be transformed into a replacement instruction. Check if there is -assumevalues rule bound
       // to the target.
-      if (target != null
+      if (singleTarget != null
           && lookup.type == RuleType.ASSUME_NO_SIDE_EFFECTS
           && !lookup.rule.hasReturnValue()) {
-        ProguardMemberRule rule = appView.appInfo().assumedValues.get(target.toReference());
+        ProguardMemberRule rule = appView.appInfo().assumedValues.get(singleTarget.toReference());
         if (rule != null) {
           lookup = new ProguardMemberRuleLookup(RuleType.ASSUME_VALUES, rule);
         }
       }
-      invokeReplaced =
-          tryConstantReplacementFromProguard(
-              code, affectedValues, blocks, iterator, current, lookup);
+      if (tryConstantReplacementFromProguard(
+          code, affectedValues, blocks, iterator, invoke, lookup)) {
+        return;
+      }
     }
-    if (invokeReplaced || !current.hasOutValue()) {
-      return;
-    }
+
     // No Proguard rule could replace the instruction check for knowledge about the return value.
-    if (target == null || !mayPropagateValueFor(target)) {
+    if (singleTarget == null || !mayPropagateValueFor(singleTarget)) {
       return;
     }
 
-    AbstractValue abstractReturnValue = target.getOptimizationInfo().getAbstractReturnValue();
+    AbstractValue abstractReturnValue;
+    if (singleTarget.returnType().isAlwaysNull(appView)) {
+      abstractReturnValue = appView.abstractValueFactory().createSingleNumberValue(0);
+    } else {
+      abstractReturnValue = singleTarget.getOptimizationInfo().getAbstractReturnValue();
+    }
+
     if (abstractReturnValue.isSingleValue()) {
       SingleValue singleReturnValue = abstractReturnValue.asSingleValue();
       if (singleReturnValue.isMaterializableInContext(appView, context)) {
-        BasicBlock block = current.getBlock();
-        Position position = current.getPosition();
+        BasicBlock block = invoke.getBlock();
+        Position position = invoke.getPosition();
 
         Instruction replacement =
-            singleReturnValue.createMaterializingInstruction(appView, code, current);
-        affectedValues.addAll(current.outValue().affectedValues());
-        current.moveDebugValues(replacement);
-        current.outValue().replaceUsers(replacement.outValue());
-        current.setOutValue(null);
+            singleReturnValue.createMaterializingInstruction(appView, code, invoke);
+        affectedValues.addAll(invoke.outValue().affectedValues());
+        invoke.moveDebugValues(replacement);
+        invoke.outValue().replaceUsers(replacement.outValue());
+        invoke.setOutValue(null);
 
-        if (current.isInvokeMethodWithReceiver()) {
-          replaceInstructionByNullCheckIfPossible(current, iterator, context);
-        } else if (current.isInvokeStatic()) {
+        if (invoke.isInvokeMethodWithReceiver()) {
+          replaceInstructionByNullCheckIfPossible(invoke, iterator, context);
+        } else if (invoke.isInvokeStatic()) {
           replaceInstructionByInitClassIfPossible(
-              current, target.holder(), code, iterator, context);
+              invoke, singleTarget.holder(), code, iterator, context);
         }
 
         // Insert the definition of the replacement.
@@ -316,7 +314,7 @@ public class MemberValuePropagation {
         } else {
           iterator.add(replacement);
         }
-        target.getMutableOptimizationInfo().markAsPropagated();
+        singleTarget.getMutableOptimizationInfo().markAsPropagated();
       }
     }
   }
