@@ -17,7 +17,7 @@ import zipfile
 import archive_desugar_jdk_libs
 import utils
 
-R8_DEV_BRANCH = '2.1'
+R8_DEV_BRANCH = '2.2'
 R8_VERSION_FILE = os.path.join(
     'src', 'main', 'java', 'com', 'android', 'tools', 'r8', 'Version.java')
 THIS_FILE_RELATIVE = os.path.join('tools', 'r8_release.py')
