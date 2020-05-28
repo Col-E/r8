@@ -245,10 +245,14 @@ public class IRCode {
             liveStack.addLast(use);
           }
         }
-        assert instruction.getDebugValues().stream().allMatch(Value::needsRegister);
-        assert instruction.getDebugValues().stream().allMatch(Value::hasLocalInfo);
-        live.addAll(instruction.getDebugValues());
-        liveLocals.addAll(instruction.getDebugValues());
+        if (!instruction.getDebugValues().isEmpty()) {
+          ArrayList<Value> sortedValues = new ArrayList<>(instruction.getDebugValues());
+          sortedValues.sort(Value::compareTo);
+          assert sortedValues.stream().allMatch(Value::needsRegister);
+          assert sortedValues.stream().allMatch(Value::hasLocalInfo);
+          live.addAll(sortedValues);
+          liveLocals.addAll(sortedValues);
+        }
       }
       for (Phi phi : block.getPhis()) {
         if (phi.isValueOnStack()) {

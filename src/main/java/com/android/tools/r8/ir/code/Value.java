@@ -37,14 +37,10 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntList;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -153,62 +149,10 @@ public class Value implements Comparable<Value> {
   private static class DebugData {
 
     final DebugLocalInfo local;
-    Map<Instruction, DebugUse> users = new HashMap<>();
+    Set<Instruction> users = Sets.newIdentityHashSet();
 
     DebugData(DebugLocalInfo local) {
       this.local = local;
-    }
-  }
-
-  // A debug-value user represents a point where the value is live, ends or starts.
-  // If a point is marked as both ending and starting then it is simply live, but we maintain
-  // the marker so as not to unintentionally end it if marked again.
-  // TODO(b/157466079): Clean/remove the use markers. With the current local construction in the
-  //   IRBuilder, the only needed markers should be 'end' markers.
-  private enum DebugUse {
-    LIVE, START, END, LIVE_FINAL;
-
-    DebugUse start() {
-      switch (this) {
-        case LIVE:
-        case START:
-          return START;
-        case END:
-        case LIVE_FINAL:
-          return LIVE_FINAL;
-        default:
-          throw new Unreachable();
-      }
-    }
-
-    DebugUse end() {
-      switch (this) {
-        case LIVE:
-        case END:
-          return END;
-        case START:
-        case LIVE_FINAL:
-          return LIVE_FINAL;
-        default:
-          throw new Unreachable();
-      }
-    }
-
-    static DebugUse join(DebugUse a, DebugUse b) {
-      if (a == LIVE_FINAL || b == LIVE_FINAL) {
-        return LIVE_FINAL;
-      }
-      if (a == b) {
-        return a;
-      }
-      if (a == LIVE) {
-        return b;
-      }
-      if (b == LIVE) {
-        return a;
-      }
-      assert (a == START && b == END) || (a == END && b == START);
-      return LIVE_FINAL;
     }
   }
 
@@ -328,62 +272,16 @@ public class Value implements Comparable<Value> {
     debugData = new DebugData(local);
   }
 
-  public void clearLocalInfo() {
-    assert debugData.users.isEmpty();
-    debugData = null;
-  }
-
-  public boolean hasSameOrNoLocal(Value other) {
-    assert other != null;
-    return hasLocalInfo()
-        ? other.getLocalInfo() == this.getLocalInfo()
-        : !other.hasLocalInfo();
-  }
-
-  public List<Instruction> getDebugLocalStarts() {
-    if (debugData == null) {
-      return Collections.emptyList();
-    }
-    List<Instruction> starts = new ArrayList<>(debugData.users.size());
-    for (Entry<Instruction, DebugUse> entry : debugData.users.entrySet()) {
-      if (entry.getValue() == DebugUse.START) {
-        starts.add(entry.getKey());
-      }
-    }
-    return starts;
-  }
-
-  public List<Instruction> getDebugLocalEnds() {
-    if (debugData == null) {
-      return Collections.emptyList();
-    }
-    List<Instruction> ends = new ArrayList<>(debugData.users.size());
-    for (Entry<Instruction, DebugUse> entry : debugData.users.entrySet()) {
-      if (entry.getValue() == DebugUse.END) {
-        ends.add(entry.getKey());
-      }
-    }
-    return ends;
-  }
-
-  public void addDebugLocalStart(Instruction start) {
-    assert start != null;
-    debugData.users.put(start, markStart(debugData.users.get(start)));
-  }
-
-  private DebugUse markStart(DebugUse use) {
-    assert use != null;
-    return use == null ? DebugUse.START : use.start();
+  public Set<Instruction> getDebugLocalEnds() {
+    return debugData == null
+        ? Collections.emptySet()
+        : Collections.unmodifiableSet(debugData.users);
   }
 
   public void addDebugLocalEnd(Instruction end) {
     assert end != null;
-    debugData.users.put(end, markEnd(debugData.users.get(end)));
-  }
-
-  private DebugUse markEnd(DebugUse use) {
-    assert use != null;
-    return use == null ? DebugUse.END : use.end();
+    debugData.users.add(end);
+    end.addDebugValue(this);
   }
 
   public void linkTo(Value other) {
@@ -493,7 +391,7 @@ public class Value implements Comparable<Value> {
   }
 
   public Set<Instruction> debugUsers() {
-    return debugData == null ? null : Collections.unmodifiableSet(debugData.users.keySet());
+    return debugData == null ? null : Collections.unmodifiableSet(debugData.users);
   }
 
   public boolean hasAnyUsers() {
@@ -620,11 +518,6 @@ public class Value implements Comparable<Value> {
     uniquePhiUsers = null;
   }
 
-  public void addDebugUser(Instruction user) {
-    assert hasLocalInfo();
-    debugData.users.putIfAbsent(user, DebugUse.LIVE);
-  }
-
   public boolean isUninitializedLocal() {
     return definition != null && definition.isDebugLocalUninitialized();
   }
@@ -686,7 +579,7 @@ public class Value implements Comparable<Value> {
       user.replaceOperand(this, newValue);
     }
     if (debugData != null) {
-      for (Entry<Instruction, DebugUse> user : debugData.users.entrySet()) {
+      for (Instruction user : debugData.users) {
         replaceUserInDebugData(user, newValue);
       }
       debugData.users.clear();
@@ -748,10 +641,10 @@ public class Value implements Comparable<Value> {
       }
     }
     if (debugData != null) {
-      Iterator<Entry<Instruction, DebugUse>> users = debugData.users.entrySet().iterator();
+      Iterator<Instruction> users = debugData.users.iterator();
       while (users.hasNext()) {
-        Entry<Instruction, DebugUse> user = users.next();
-        if (selectedInstructions.contains(user.getKey())) {
+        Instruction user = users.next();
+        if (selectedInstructions.contains(user)) {
           replaceUserInDebugData(user, newValue);
           users.remove();
         }
@@ -759,30 +652,18 @@ public class Value implements Comparable<Value> {
     }
   }
 
-  private void replaceUserInDebugData(Entry<Instruction, DebugUse> user, Value newValue) {
-    Instruction instruction = user.getKey();
-    DebugUse debugUse = user.getValue();
-    instruction.replaceDebugValue(this, newValue);
+  private void replaceUserInDebugData(Instruction user, Value newValue) {
+    user.replaceDebugValue(this, newValue);
     // If user is a DebugLocalRead and now has no debug values, we would like to remove it.
     // However, replaceUserInDebugData() is called in contexts where the instruction list is being
     // iterated, so we cannot remove user from the instruction list at this point.
-    if (newValue.hasLocalInfo()) {
-      DebugUse existing = newValue.debugData.users.get(instruction);
-      assert existing != null;
-      newValue.debugData.users.put(instruction, DebugUse.join(debugUse, existing));
-    }
   }
 
   public void replaceDebugUser(Instruction oldUser, Instruction newUser) {
-    DebugUse use = debugData.users.remove(oldUser);
-    if (use == DebugUse.START && newUser.outValue == this) {
-      // Register allocation requires that debug values are live at the entry to the instruction.
-      // Remove this debug use since it is starting at the instruction that defines it.
-      return;
-    }
-    if (use != null) {
-      newUser.addDebugValue(this);
-      debugData.users.put(newUser, use);
+    boolean removed = debugData.users.remove(oldUser);
+    assert removed;
+    if (removed) {
+      addDebugLocalEnd(newUser);
     }
   }
 

@@ -347,6 +347,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       while (instructionIterator.hasNext()) {
         Instruction instruction = instructionIterator.next();
         if (!instructionIterator.hasNext()) {
+          instruction.clearDebugValues();
           break;
         }
 

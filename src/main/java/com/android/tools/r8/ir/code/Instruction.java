@@ -32,9 +32,9 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -45,7 +45,7 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   protected final List<Value> inValues = new ArrayList<>();
   private BasicBlock block = null;
   private int number = -1;
-  private LinkedHashSet<Value> debugValues = null;
+  private Set<Value> debugValues = null;
   private Position position = null;
 
   protected Instruction(Value outValue) {
@@ -154,11 +154,9 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   public void addDebugValue(Value value) {
     assert value.hasLocalInfo();
     if (debugValues == null) {
-      debugValues = new LinkedHashSet<>();
+      debugValues = Sets.newIdentityHashSet();
     }
-    if (debugValues.add(value)) {
-      value.addDebugUser(this);
-    }
+    debugValues.add(value);
   }
 
   public static void clearUserInfo(Instruction instruction) {
@@ -197,17 +195,19 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   }
 
   public void replaceDebugValue(Value oldValue, Value newValue) {
-    if (debugValues.remove(oldValue)) {
-      assert newValue.getLocalInfo() == oldValue.getLocalInfo()
-          : "Replacing debug values with inconsistent locals "
-              + oldValue.getLocalInfo()
-              + " and "
-              + newValue.getLocalInfo()
-              + ". This is likely a code transformation bug "
-              + "that has not taken local information into account";
-      if (newValue.hasLocalInfo()) {
-        addDebugValue(newValue);
-      }
+    assert oldValue.hasLocalInfo();
+    assert newValue.hasLocalInfo();
+    assert newValue.getLocalInfo() == oldValue.getLocalInfo()
+        : "Replacing debug values with inconsistent locals "
+            + oldValue.getLocalInfo()
+            + " and "
+            + newValue.getLocalInfo()
+            + ". This is likely a code transformation bug "
+            + "that has not taken local information into account";
+    boolean removed = debugValues.remove(oldValue);
+    assert removed;
+    if (removed && newValue.hasLocalInfo()) {
+      newValue.addDebugLocalEnd(this);
     }
   }
 
@@ -219,12 +219,6 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
       value.replaceDebugUser(this, target);
     }
     debugValues.clear();
-  }
-
-  public void moveDebugValue(Value value, Instruction target) {
-    assert debugValues.contains(value);
-    value.replaceDebugUser(this, target);
-    debugValues.remove(value);
   }
 
   public void removeDebugValue(Value value) {
