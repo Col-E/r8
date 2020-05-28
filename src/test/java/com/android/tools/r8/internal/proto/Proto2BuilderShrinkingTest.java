@@ -171,9 +171,7 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
     assertThat(
         outputInspector.clazz(
             "com.android.tools.r8.proto2.Shrinking$HasFlaggedOffExtension$Builder"),
-        mains.equals(ImmutableList.of("proto2.HasFlaggedOffExtensionBuilderTestClass"))
-            ? isPresent()
-            : not(isPresent()));
+        not(isPresent()));
     assertThat(
         outputInspector.clazz("com.android.tools.r8.proto2.TestProto$Primitives$Builder"),
         not(isPresent()));

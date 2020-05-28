@@ -64,8 +64,13 @@ public class FieldAssignmentTracker {
 
   FieldAssignmentTracker(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.fieldAccessGraph = new FieldAccessGraph(appView);
-    this.objectAllocationGraph = new ObjectAllocationGraph(appView);
+    this.fieldAccessGraph = new FieldAccessGraph();
+    this.objectAllocationGraph = new ObjectAllocationGraph();
+  }
+
+  public void initialize() {
+    fieldAccessGraph.initialize(appView);
+    objectAllocationGraph.initialize(appView);
     initializeAbstractInstanceFieldValues();
   }
 
@@ -308,10 +313,11 @@ public class FieldAssignmentTracker {
     private final Reference2IntMap<DexEncodedField> pendingFieldWrites =
         new Reference2IntOpenHashMap<>();
 
-    FieldAccessGraph(AppView<AppInfoWithLiveness> appView) {
+    FieldAccessGraph() {}
+
+    public void initialize(AppView<AppInfoWithLiveness> appView) {
       FieldAccessInfoCollection<?> fieldAccessInfoCollection =
           appView.appInfo().getFieldAccessInfoCollection();
-      fieldAccessInfoCollection.flattenAccessContexts();
       fieldAccessInfoCollection.forEach(
           info -> {
             DexEncodedField field =
@@ -356,7 +362,9 @@ public class FieldAssignmentTracker {
     private final Reference2IntMap<DexProgramClass> pendingObjectAllocations =
         new Reference2IntOpenHashMap<>();
 
-    ObjectAllocationGraph(AppView<AppInfoWithLiveness> appView) {
+    ObjectAllocationGraph() {}
+
+    public void initialize(AppView<AppInfoWithLiveness> appView) {
       ObjectAllocationInfoCollection objectAllocationInfos =
           appView.appInfo().getObjectAllocationInfoCollection();
       objectAllocationInfos.forEachClassWithKnownAllocationSites(

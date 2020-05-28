@@ -4,41 +4,48 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SubtypingInfo;
+import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeVirtual;
-import com.android.tools.r8.ir.code.Switch;
+import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
-import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
-import com.android.tools.r8.ir.optimize.controlflow.SwitchCaseAnalyzer;
 import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.inliner.FixedInliningReasonStrategy;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.EnqueuerWorklist;
+import com.android.tools.r8.utils.ObjectUtils;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -53,6 +60,7 @@ public class GeneratedMessageLiteBuilderShrinker {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final ProtoReferences references;
+  private final boolean enableAggressiveBuilderOptimization;
 
   private final Map<DexProgramClass, ProgramMethod> builders = new IdentityHashMap<>();
 
@@ -60,11 +68,98 @@ public class GeneratedMessageLiteBuilderShrinker {
       AppView<? extends AppInfoWithClassHierarchy> appView, ProtoReferences references) {
     this.appView = appView;
     this.references = references;
+    this.enableAggressiveBuilderOptimization = computeEnableAggressiveBuilderOptimization();
+    // If this fails it is likely an unsupported version of the protobuf library.
+    assert enableAggressiveBuilderOptimization;
+  }
+
+  private boolean computeEnableAggressiveBuilderOptimization() {
+    boolean unexpectedGeneratedMessageLiteBuilder =
+        ObjectUtils.getBooleanOrElse(
+            appView
+                .appInfo()
+                .definitionForWithoutExistenceAssert(references.generatedMessageLiteBuilderType),
+            clazz -> clazz.getMethodCollection().hasMethods(DexEncodedMethod::isAbstract),
+            true);
+    boolean unexpectedGeneratedMessageLiteExtendableBuilder =
+        ObjectUtils.getBooleanOrElse(
+            appView
+                .appInfo()
+                .definitionForWithoutExistenceAssert(
+                    references.generatedMessageLiteExtendableBuilderType),
+            clazz -> clazz.getMethodCollection().hasMethods(DexEncodedMethod::isAbstract),
+            true);
+    if (unexpectedGeneratedMessageLiteBuilder) {
+      appView
+          .options()
+          .reporter
+          .warning(
+              "Unexpected implementation of `"
+                  + references.generatedMessageLiteBuilderType.toSourceString()
+                  + "`: disabling aggressive protobuf builder optimization.");
+      return false;
+    }
+    if (unexpectedGeneratedMessageLiteExtendableBuilder) {
+      appView
+          .options()
+          .reporter
+          .warning(
+              "Unexpected implementation of `"
+                  + references.generatedMessageLiteExtendableBuilderType.toSourceString()
+                  + "`: disabling aggressive protobuf builder optimization.");
+      return false;
+    }
+    return true;
+  }
+
+  public EnqueuerAnalysis createEnqueuerAnalysis() {
+    Set<DexProgramClass> seen = Sets.newIdentityHashSet();
+    return new EnqueuerAnalysis() {
+      @Override
+      public void notifyFixpoint(Enqueuer enqueuer, EnqueuerWorklist worklist, Timing timing) {
+        builders.forEach(
+            (builder, dynamicMethod) -> {
+              if (seen.add(builder)) {
+                // This builder class is never used in the program except from dynamicMethod(),
+                // which creates an instance of the builder. Instead of creating an instance of the
+                // builder class, we just instantiate the parent builder class. For this to work,
+                // we make the parent builder non-abstract.
+                DexProgramClass superClass =
+                    asProgramClassOrNull(appView.definitionFor(builder.superType));
+                assert superClass != null;
+                superClass.accessFlags.demoteFromAbstract();
+                if (superClass.type == references.generatedMessageLiteBuilderType) {
+                  // Manually trace `new GeneratedMessageLite.Builder(DEFAULT_INSTANCE)` since we
+                  // haven't rewritten the code yet.
+                  worklist.enqueueTraceNewInstanceAction(
+                      references.generatedMessageLiteBuilderType, dynamicMethod);
+                  worklist.enqueueTraceInvokeDirectAction(
+                      references.generatedMessageLiteBuilderMethods.constructorMethod,
+                      dynamicMethod);
+                } else {
+                  assert superClass.type == references.generatedMessageLiteExtendableBuilderType;
+                  // Manually trace `new GeneratedMessageLite.ExtendableBuilder(DEFAULT_INSTANCE)`
+                  // since we haven't rewritten the code yet.
+                  worklist.enqueueTraceNewInstanceAction(
+                      references.generatedMessageLiteExtendableBuilderType, dynamicMethod);
+                  worklist.enqueueTraceInvokeDirectAction(
+                      references.generatedMessageLiteExtendableBuilderMethods.constructorMethod,
+                      dynamicMethod);
+                }
+                worklist.enqueueTraceStaticFieldRead(
+                    references.getDefaultInstanceField(dynamicMethod.getHolder()), dynamicMethod);
+              }
+            });
+      }
+    };
   }
 
   /** Returns true if an action was deferred. */
   public boolean deferDeadProtoBuilders(
       DexProgramClass clazz, ProgramMethod method, BooleanSupplier register) {
+    if (!enableAggressiveBuilderOptimization) {
+      return false;
+    }
     DexEncodedMethod definition = method.getDefinition();
     if (references.isDynamicMethod(definition) && references.isGeneratedMessageLiteBuilder(clazz)) {
       if (register.getAsBoolean()) {
@@ -77,40 +172,79 @@ public class GeneratedMessageLiteBuilderShrinker {
   }
 
   /**
-   * Reprocesses each dynamicMethod() that references a dead builder to remove the dead builder
+   * Reprocesses each dynamicMethod() that references a dead builder to rewrite the dead builder
    * references.
    */
-  public void removeDeadBuilderReferencesFromDynamicMethods(
+  public void rewriteDeadBuilderReferencesFromDynamicMethods(
       AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
       throws ExecutionException {
+    if (builders.isEmpty()) {
+      return;
+    }
     timing.begin("Remove dead builder references");
     AppInfoWithLiveness appInfo = appView.appInfo();
     IRConverter converter = new IRConverter(appView, Timing.empty());
-    CodeRewriter codeRewriter = new CodeRewriter(appView, converter);
-    MethodToInvokeSwitchCaseAnalyzer switchCaseAnalyzer = new MethodToInvokeSwitchCaseAnalyzer();
-    if (switchCaseAnalyzer.isInitialized()) {
-      ThreadUtils.processItems(
-          builders.entrySet(),
-          entry -> {
-            if (!appInfo.isLiveProgramClass(entry.getKey())) {
-              removeDeadBuilderReferencesFromDynamicMethod(
-                  appView, entry.getValue(), converter, codeRewriter, switchCaseAnalyzer);
-            }
-          },
-          executorService);
-    }
+    ThreadUtils.processMap(
+        builders,
+        (builder, dynamicMethod) -> {
+          if (!appInfo.isLiveProgramClass(builder)) {
+            rewriteDeadBuilderReferencesFromDynamicMethod(
+                appView, builder, dynamicMethod, converter);
+          }
+        },
+        executorService);
     builders.clear();
     timing.end(); // Remove dead builder references
   }
 
-  private void removeDeadBuilderReferencesFromDynamicMethod(
+  private void rewriteDeadBuilderReferencesFromDynamicMethod(
       AppView<AppInfoWithLiveness> appView,
+      DexProgramClass builder,
       ProgramMethod dynamicMethod,
-      IRConverter converter,
-      CodeRewriter codeRewriter,
-      SwitchCaseAnalyzer switchCaseAnalyzer) {
+      IRConverter converter) {
     IRCode code = dynamicMethod.buildIR(appView);
-    codeRewriter.rewriteSwitch(code, switchCaseAnalyzer);
+    InstructionListIterator instructionIterator = code.instructionListIterator();
+
+    assert builder.superType == references.generatedMessageLiteBuilderType
+        || builder.superType == references.generatedMessageLiteExtendableBuilderType;
+
+    DexField defaultInstanceField = references.getDefaultInstanceField(dynamicMethod.getHolder());
+    Value builderValue =
+        code.createValue(ClassTypeElement.create(builder.superType, definitelyNotNull(), appView));
+    Value defaultInstanceValue =
+        code.createValue(ClassTypeElement.create(defaultInstanceField.type, maybeNull(), appView));
+
+    // Replace `new Message.Builder()` by `new GeneratedMessageLite.Builder()`
+    // (or `new GeneratedMessageLite.ExtendableBuilder()`).
+    NewInstance newInstance =
+        instructionIterator.nextUntil(
+            instruction ->
+                instruction.isNewInstance() && instruction.asNewInstance().clazz == builder.type);
+    assert newInstance != null;
+    instructionIterator.replaceCurrentInstruction(new NewInstance(builder.superType, builderValue));
+
+    // Replace `builder.<init>()` by `builder.<init>(Message.DEFAULT_INSTANCE)`.
+    //
+    // We may also see an accessibility bridge constructor, because the Builder constructor is
+    // private. The accessibility bridge takes null as an argument.
+    InvokeDirect constructorInvoke =
+        instructionIterator.nextUntil(
+            instruction -> {
+              assert instruction.isInvokeDirect() || instruction.isConstNumber();
+              return instruction.isInvokeDirect();
+            });
+    assert constructorInvoke != null;
+    instructionIterator.replaceCurrentInstruction(
+        new StaticGet(defaultInstanceValue, defaultInstanceField));
+    instructionIterator.setInsertionPosition(constructorInvoke.getPosition());
+    instructionIterator.add(
+        new InvokeDirect(
+            builder.superType == references.generatedMessageLiteBuilderType
+                ? references.generatedMessageLiteBuilderMethods.constructorMethod
+                : references.generatedMessageLiteExtendableBuilderMethods.constructorMethod,
+            null,
+            ImmutableList.of(builderValue, defaultInstanceValue)));
+
     converter.removeDeadCodeAndFinalizeIR(
         dynamicMethod, code, OptimizationFeedbackSimple.getInstance(), Timing.empty());
   }
@@ -229,51 +363,6 @@ public class GeneratedMessageLiteBuilderShrinker {
     }
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
-    }
-  }
-
-  private class MethodToInvokeSwitchCaseAnalyzer extends SwitchCaseAnalyzer {
-
-    private final int newBuilderOrdinal;
-
-    private MethodToInvokeSwitchCaseAnalyzer() {
-      EnumValueInfoMap enumValueInfoMap =
-          appView.appInfo().withLiveness().getEnumValueInfoMap(references.methodToInvokeType);
-      if (enumValueInfoMap != null) {
-        EnumValueInfo newBuilderValueInfo =
-            enumValueInfoMap.getEnumValueInfo(references.methodToInvokeMembers.newBuilderField);
-        if (newBuilderValueInfo != null) {
-          newBuilderOrdinal = newBuilderValueInfo.ordinal;
-          return;
-        }
-      }
-      newBuilderOrdinal = -1;
-    }
-
-    public boolean isInitialized() {
-      return newBuilderOrdinal >= 0;
-    }
-
-    @Override
-    public boolean switchCaseIsUnreachable(Switch theSwitch, int index) {
-      if (theSwitch.isStringSwitch()) {
-        assert false : "Unexpected string-switch instruction in dynamicMethod()";
-        return false;
-      }
-      if (index != newBuilderOrdinal) {
-        return false;
-      }
-      Value switchValue = theSwitch.value();
-      if (!switchValue.isDefinedByInstructionSatisfying(Instruction::isInvokeVirtual)) {
-        return false;
-      }
-      InvokeVirtual definition = switchValue.definition.asInvokeVirtual();
-      if (definition.getInvokedMethod() != appView.dexItemFactory().enumMethods.ordinal) {
-        return false;
-      }
-      TypeElement enumType = definition.getReceiver().getType();
-      return enumType.isClassType()
-          && enumType.asClassType().getClassType() == references.methodToInvokeType;
     }
   }
 

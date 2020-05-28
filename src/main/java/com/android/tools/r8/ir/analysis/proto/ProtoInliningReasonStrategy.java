@@ -43,11 +43,19 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
       return Reason.ALWAYS;
     }
     return references.isDynamicMethod(target) || references.isDynamicMethodBridge(target)
-        ? computeInliningReasonForDynamicMethod(invoke)
+        ? computeInliningReasonForDynamicMethod(invoke, target, context)
         : parent.computeInliningReason(invoke, target, context);
   }
 
-  private Reason computeInliningReasonForDynamicMethod(InvokeMethod invoke) {
+  private Reason computeInliningReasonForDynamicMethod(
+      InvokeMethod invoke, ProgramMethod target, ProgramMethod context) {
+    // Do not allow inlining of dynamicMethod() into a proto library class. This should only happen
+    // if there is exactly one proto message in the program, since we would otherwise not be able
+    // to conclude a single target.
+    if (references.isDynamicMethod(target) && references.isProtoLibraryClass(context.getHolder())) {
+      return Reason.NEVER;
+    }
+
     Value methodToInvokeValue =
         invoke
             .inValues()

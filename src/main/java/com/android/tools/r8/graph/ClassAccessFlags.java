@@ -167,6 +167,10 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
     return isSet(Constants.ACC_ABSTRACT);
   }
 
+  public void demoteFromAbstract() {
+    demote(Constants.ACC_ABSTRACT);
+  }
+
   public void setAbstract() {
     set(Constants.ACC_ABSTRACT);
   }

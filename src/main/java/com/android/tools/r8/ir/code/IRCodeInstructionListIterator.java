@@ -152,6 +152,11 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
+  public void setInsertionPosition(Position position) {
+    instructionIterator.setInsertionPosition(position);
+  }
+
+  @Override
   public void replaceCurrentInstruction(Instruction newInstruction, Set<Value> affectedValues) {
     instructionIterator.replaceCurrentInstruction(newInstruction, affectedValues);
   }

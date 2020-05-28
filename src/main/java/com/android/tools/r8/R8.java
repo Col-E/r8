@@ -695,7 +695,7 @@ public class R8 {
 
           appView.withGeneratedMessageLiteBuilderShrinker(
               shrinker ->
-                  shrinker.removeDeadBuilderReferencesFromDynamicMethods(
+                  shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
                       appViewWithLiveness, executorService, timing));
 
           if (options.isShrinking()) {
@@ -912,6 +912,10 @@ public class R8 {
           shrinker ->
               shrinker.setDeadProtoTypes(appViewWithLiveness.appInfo().getDeadProtoTypes()));
     }
+    appView.withGeneratedMessageLiteBuilderShrinker(
+        shrinker ->
+            shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
+                appViewWithLiveness, executorService, timing));
     return appViewWithLiveness;
   }
 

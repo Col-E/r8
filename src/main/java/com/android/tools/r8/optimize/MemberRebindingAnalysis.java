@@ -347,9 +347,9 @@ public class MemberRebindingAnalysis {
     computeMethodRebinding(appInfo.directInvokes, this::anyLookup, Type.DIRECT);
     // Likewise static invokes.
     computeMethodRebinding(appInfo.staticInvokes, this::anyLookup, Type.STATIC);
-
     computeFieldRebinding();
-
-    return builder.build(lense);
+    GraphLense lens = builder.build(lense);
+    appInfo.getFieldAccessInfoCollection().flattenAccessContexts();
+    return lens;
   }
 }

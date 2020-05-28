@@ -17,6 +17,8 @@ import com.android.tools.r8.ir.code.Value;
 
 public class ProtoReferences {
 
+  private final DexItemFactory dexItemFactory;
+
   public final DexType enumLiteMapType;
   public final DexType extendableMessageType;
   public final DexType extensionDescriptorType;
@@ -25,6 +27,7 @@ public class ProtoReferences {
   public final DexType generatedMessageLiteType;
   public final DexType generatedMessageLiteBuilderType;
   public final DexType generatedMessageLiteExtendableBuilderType;
+  public final DexType generatedMessageLiteExtendableMessageType;
   public final DexType rawMessageInfoType;
   public final DexType messageLiteType;
   public final DexType methodToInvokeType;
@@ -37,9 +40,12 @@ public class ProtoReferences {
       generatedMessageLiteExtendableBuilderMethods;
   public final MethodToInvokeMembers methodToInvokeMembers;
 
+  public final DexString defaultInstanceFieldName;
   public final DexString dynamicMethodName;
   public final DexString findLiteExtensionByNumberName;
   public final DexString newBuilderMethodName;
+
+  public final DexString protobufPackageDescriptorPrefix;
 
   public final DexProto dynamicMethodProto;
   public final DexProto findLiteExtensionByNumberProto;
@@ -49,6 +55,8 @@ public class ProtoReferences {
   public final DexMethod rawMessageInfoConstructor;
 
   public ProtoReferences(DexItemFactory factory) {
+    dexItemFactory = factory;
+
     // Types.
     enumLiteMapType = factory.createType("Lcom/google/protobuf/Internal$EnumLiteMap;");
     extendableMessageType =
@@ -63,6 +71,8 @@ public class ProtoReferences {
         factory.createType("Lcom/google/protobuf/GeneratedMessageLite$Builder;");
     generatedMessageLiteExtendableBuilderType =
         factory.createType("Lcom/google/protobuf/GeneratedMessageLite$ExtendableBuilder;");
+    generatedMessageLiteExtendableMessageType =
+        factory.createType("Lcom/google/protobuf/GeneratedMessageLite$ExtendableMessage;");
     rawMessageInfoType = factory.createType("Lcom/google/protobuf/RawMessageInfo;");
     messageLiteType = factory.createType("Lcom/google/protobuf/MessageLite;");
     methodToInvokeType =
@@ -70,9 +80,13 @@ public class ProtoReferences {
     wireFormatFieldType = factory.createType("Lcom/google/protobuf/WireFormat$FieldType;");
 
     // Names.
+    defaultInstanceFieldName = factory.createString("DEFAULT_INSTANCE");
     dynamicMethodName = factory.createString("dynamicMethod");
     findLiteExtensionByNumberName = factory.createString("findLiteExtensionByNumber");
     newBuilderMethodName = factory.createString("newBuilder");
+
+    // Other names.
+    protobufPackageDescriptorPrefix = factory.createString("Lcom/google/protobuf/");
 
     // Protos.
     dynamicMethodProto =
@@ -105,6 +119,10 @@ public class ProtoReferences {
     methodToInvokeMembers = new MethodToInvokeMembers(factory);
   }
 
+  public DexField getDefaultInstanceField(DexProgramClass holder) {
+    return dexItemFactory.createField(holder.type, holder.type, defaultInstanceFieldName);
+  }
+
   public boolean isAbstractGeneratedMessageLiteBuilder(DexProgramClass clazz) {
     return clazz.type == generatedMessageLiteBuilderType
         || clazz.type == generatedMessageLiteExtendableBuilderType;
@@ -123,7 +141,8 @@ public class ProtoReferences {
   }
 
   public boolean isDynamicMethodBridge(DexMethod method) {
-    return method == generatedMessageLiteMethods.dynamicMethodBridgeMethod;
+    return method == generatedMessageLiteMethods.dynamicMethodBridgeMethod
+        || method == generatedMessageLiteMethods.dynamicMethodBridgeMethodWithObject;
   }
 
   public boolean isDynamicMethodBridge(DexEncodedMethod method) {
@@ -152,6 +171,10 @@ public class ProtoReferences {
 
   public boolean isMessageInfoConstructionMethod(DexMethod method) {
     return method.match(newMessageInfoMethod) || method == rawMessageInfoConstructor;
+  }
+
+  public boolean isProtoLibraryClass(DexProgramClass clazz) {
+    return clazz.type.descriptor.startsWith(protobufPackageDescriptorPrefix);
   }
 
   public class GeneratedExtensionMethods {
@@ -192,6 +215,7 @@ public class ProtoReferences {
 
     public final DexMethod createBuilderMethod;
     public final DexMethod dynamicMethodBridgeMethod;
+    public final DexMethod dynamicMethodBridgeMethodWithObject;
     public final DexMethod isInitializedMethod;
     public final DexMethod newRepeatedGeneratedExtension;
     public final DexMethod newSingularGeneratedExtension;
@@ -206,6 +230,12 @@ public class ProtoReferences {
           dexItemFactory.createMethod(
               generatedMessageLiteType,
               dexItemFactory.createProto(dexItemFactory.objectType, methodToInvokeType),
+              "dynamicMethod");
+      dynamicMethodBridgeMethodWithObject =
+          dexItemFactory.createMethod(
+              generatedMessageLiteType,
+              dexItemFactory.createProto(
+                  dexItemFactory.objectType, methodToInvokeType, dexItemFactory.objectType),
               "dynamicMethod");
       isInitializedMethod =
           dexItemFactory.createMethod(
@@ -241,7 +271,7 @@ public class ProtoReferences {
     }
   }
 
-  class GeneratedMessageLiteBuilderMethods {
+  public class GeneratedMessageLiteBuilderMethods {
 
     public final DexMethod buildPartialMethod;
     public final DexMethod constructorMethod;
@@ -260,9 +290,10 @@ public class ProtoReferences {
     }
   }
 
-  class GeneratedMessageLiteExtendableBuilderMethods {
+  public class GeneratedMessageLiteExtendableBuilderMethods {
 
     public final DexMethod buildPartialMethod;
+    public final DexMethod constructorMethod;
 
     private GeneratedMessageLiteExtendableBuilderMethods(DexItemFactory dexItemFactory) {
       buildPartialMethod =
@@ -270,6 +301,12 @@ public class ProtoReferences {
               generatedMessageLiteExtendableBuilderType,
               dexItemFactory.createProto(extendableMessageType),
               "buildPartial");
+      constructorMethod =
+          dexItemFactory.createMethod(
+              generatedMessageLiteExtendableBuilderType,
+              dexItemFactory.createProto(
+                  dexItemFactory.voidType, generatedMessageLiteExtendableMessageType),
+              dexItemFactory.constructorMethodName);
     }
   }
 

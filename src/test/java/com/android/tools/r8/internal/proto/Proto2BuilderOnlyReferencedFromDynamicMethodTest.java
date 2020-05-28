@@ -9,9 +9,11 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -56,10 +58,8 @@ public class Proto2BuilderOnlyReferencedFromDynamicMethodTest extends ProtoShrin
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .inspect(this::inspect)
         .run(parameters.getRuntime(), MAIN)
-        .assertFailureWithErrorThatMatches(containsString("UnsupportedOperationException"));
-    // TODO(b/155416893): Should succeed with the following output.
-    // .assertSuccessWithOutputLines(
-    //     "false", "0", "false", "", "false", "0", "false", "0", "false", "");
+        .assertSuccessWithOutputLines(
+            "false", "0", "false", "", "false", "0", "false", "0", "false", "");
   }
 
   private void inspect(CodeInspector outputInspector) {
@@ -67,6 +67,10 @@ public class Proto2BuilderOnlyReferencedFromDynamicMethodTest extends ProtoShrin
   }
 
   private void verifyBuilderIsAbsent(CodeInspector outputInspector) {
+    ClassSubject generatedMessageLiteBuilder =
+        outputInspector.clazz("com.google.protobuf.GeneratedMessageLite$Builder");
+    assertThat(generatedMessageLiteBuilder, isPresent());
+    assertFalse(generatedMessageLiteBuilder.isAbstract());
     assertThat(
         outputInspector.clazz("com.android.tools.r8.proto2.TestProto$Primitives$Builder"),
         not(isPresent()));

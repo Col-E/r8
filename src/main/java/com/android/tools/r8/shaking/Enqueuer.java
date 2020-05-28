@@ -365,10 +365,15 @@ public class Enqueuer {
     this.useRegistryFactory = createUseRegistryFactory();
     this.workList = EnqueuerWorklist.createWorklist(appView);
 
-    if (options.protoShrinking().enableGeneratedMessageLiteShrinking
-        && mode.isInitialOrFinalTreeShaking()) {
-      registerAnalysis(new ProtoEnqueuerExtension(appView));
+    if (mode.isInitialOrFinalTreeShaking()) {
+      if (options.protoShrinking().enableGeneratedMessageLiteShrinking) {
+        registerAnalysis(new ProtoEnqueuerExtension(appView));
+      }
+      appView.withGeneratedMessageLiteBuilderShrinker(
+          shrinker -> registerAnalysis(shrinker.createEnqueuerAnalysis()));
     }
+
+
     liveTypes = new SetWithReportedReason<>();
     initializedTypes = new SetWithReportedReason<>();
     targetedMethods = new SetWithReason<>(graphReporter::registerMethod);
