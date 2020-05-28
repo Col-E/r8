@@ -130,6 +130,7 @@ public class AppInfo implements DexDefinitionSupplier {
     return app.classesWithDeterministicOrder();
   }
 
+  @Deprecated
   @Override
   public DexDefinition definitionFor(DexReference reference) {
     assert checkIfObsolete();
@@ -181,6 +182,7 @@ public class AppInfo implements DexDefinitionSupplier {
     return definition == null ? Origin.unknown() : definition.origin;
   }
 
+  @Deprecated
   @Override
   public DexEncodedMethod definitionFor(DexMethod method) {
     assert checkIfObsolete();
@@ -195,6 +197,7 @@ public class AppInfo implements DexDefinitionSupplier {
     return clazz.getMethodCollection().getMethod(method);
   }
 
+  @Deprecated
   @Override
   public DexEncodedField definitionFor(DexField field) {
     assert checkIfObsolete();

@@ -6,12 +6,16 @@ package com.android.tools.r8.graph;
 
 public interface DexDefinitionSupplier {
 
+  @Deprecated
   DexDefinition definitionFor(DexReference reference);
 
+  @Deprecated
   DexEncodedField definitionFor(DexField field);
 
+  @Deprecated
   DexEncodedMethod definitionFor(DexMethod method);
 
+  @Deprecated
   @SuppressWarnings("unchecked")
   default <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
       DexEncodedMember<D, R> definitionFor(DexMember<D, R> member) {

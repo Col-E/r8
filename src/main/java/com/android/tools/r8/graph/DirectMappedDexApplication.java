@@ -73,6 +73,7 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
     return classpathClasses;
   }
 
+  @Deprecated
   @Override
   public DexDefinition definitionFor(DexReference reference) {
     if (reference.isDexType()) {
@@ -85,12 +86,14 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
     return definitionFor(reference.asDexField());
   }
 
+  @Deprecated
   @Override
   public DexEncodedField definitionFor(DexField field) {
     DexClass clazz = definitionFor(field.holder);
     return clazz != null ? clazz.lookupField(field) : null;
   }
 
+  @Deprecated
   @Override
   public DexEncodedMethod definitionFor(DexMethod method) {
     DexClass clazz = definitionFor(method.holder);

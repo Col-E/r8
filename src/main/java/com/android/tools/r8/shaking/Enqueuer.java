@@ -4121,16 +4121,19 @@ public class Enqueuer {
       this.enqueuer = enqueuer;
     }
 
+    @Deprecated
     @Override
     public DexDefinition definitionFor(DexReference reference) {
       return enqueuer.definitionFor(reference);
     }
 
+    @Deprecated
     @Override
     public DexEncodedField definitionFor(DexField field) {
       return enqueuer.definitionFor(field);
     }
 
+    @Deprecated
     @Override
     public DexEncodedMethod definitionFor(DexMethod method) {
       return enqueuer.definitionFor(method);
