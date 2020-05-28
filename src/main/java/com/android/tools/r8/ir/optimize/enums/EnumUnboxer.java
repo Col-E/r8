@@ -437,6 +437,7 @@ public class EnumUnboxer implements PostOptimization {
       DexMethod singleTarget = encodedSingleTarget.method;
       DexClass dexClass = appView.definitionFor(singleTarget.holder);
       if (dexClass == null) {
+        assert false;
         return Reason.INVALID_INVOKE;
       }
       if (dexClass.isProgramClass()) {
@@ -448,12 +449,20 @@ public class EnumUnboxer implements PostOptimization {
             return Reason.INVALID_INIT;
           }
         }
+        // Check that the enum-value only flows into parameters whose type exactly matches the
+        // enum's type.
         int offset = BooleanUtils.intValue(!encodedSingleTarget.isStatic());
         for (int i = 0; i < singleTarget.proto.parameters.size(); i++) {
-          if (invokeMethod.inValues().get(offset + i) == enumValue) {
+          if (invokeMethod.getArgument(offset + i) == enumValue) {
             if (singleTarget.proto.parameters.values[i].toBaseType(factory) != enumClass.type) {
               return Reason.GENERIC_INVOKE;
             }
+          }
+        }
+        if (invokeMethod.isInvokeMethodWithReceiver()) {
+          Value receiver = invokeMethod.asInvokeMethodWithReceiver().getReceiver();
+          if (receiver == enumValue && dexClass.isInterface()) {
+            return Reason.DEFAULT_METHOD_INVOKE;
           }
         }
         return Reason.ELIGIBLE;
@@ -666,6 +675,7 @@ public class EnumUnboxer implements PostOptimization {
     INTERFACE,
     INSTANCE_FIELD,
     GENERIC_INVOKE,
+    DEFAULT_METHOD_INVOKE,
     UNEXPECTED_STATIC_FIELD,
     UNRESOLVABLE_FIELD,
     CONST_CLASS,

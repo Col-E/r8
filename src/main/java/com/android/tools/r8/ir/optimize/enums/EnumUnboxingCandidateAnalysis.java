@@ -55,12 +55,6 @@ class EnumUnboxingCandidateAnalysis {
       enumUnboxer.reportFailure(clazz.type, Reason.SUBTYPES);
       return false;
     }
-    // TODO(b/147860220): interfaces without default methods should be acceptable if the build setup
-    // is correct (all abstract methods are implemented).
-    if (!clazz.interfaces.isEmpty()) {
-      enumUnboxer.reportFailure(clazz.type, Reason.INTERFACE);
-      return false;
-    }
     if (!clazz.instanceFields().isEmpty()) {
       enumUnboxer.reportFailure(clazz.type, Reason.INSTANCE_FIELD);
       return false;
