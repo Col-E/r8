@@ -340,7 +340,7 @@ public class AssertionsRewriter {
           if (method.holder() == dexItemFactory.kotlin.assertions.type) {
             rewriteKotlinAssertionEnable(code, transformation, iterator, invoke);
           } else {
-            iterator.replaceCurrentInstruction(code.createIntConstant(0));
+            iterator.replaceCurrentInstruction(code.createIntConstant(0, current.getLocalInfo()));
           }
         }
       } else if (current.isStaticPut()) {
@@ -355,13 +355,16 @@ public class AssertionsRewriter {
         if (isInitializerEnablingJavaVmAssertions
             && staticGet.getField().name == dexItemFactory.assertionsDisabled) {
           iterator.replaceCurrentInstruction(
-              code.createIntConstant(transformation == AssertionTransformation.DISABLE ? 1 : 0));
+              code.createIntConstant(
+                  transformation == AssertionTransformation.DISABLE ? 1 : 0,
+                  current.getLocalInfo()));
         }
         // Rewrite kotlin._Assertions.ENABLED getter.
         if (staticGet.getField() == dexItemFactory.kotlin.assertions.enabledField) {
           iterator.replaceCurrentInstruction(
               code.createIntConstant(
-                  kotlinTransformation == AssertionTransformation.DISABLE ? 0 : 1));
+                  kotlinTransformation == AssertionTransformation.DISABLE ? 0 : 1,
+                  current.getLocalInfo()));
         }
       }
     }
