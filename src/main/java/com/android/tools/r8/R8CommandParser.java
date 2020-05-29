@@ -33,6 +33,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
           "--pg-conf",
           "--pg-map-output",
           "--desugared-lib",
+          "--desugared-lib-pg-conf-output",
           THREAD_COUNT_FLAG);
 
   private static final Set<String> OPTIONS_WITH_TWO_PARAMETERS = ImmutableSet.of("--feature");
@@ -83,6 +84,8 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
                       + " <file>.",
                   "  --desugared-lib <file>  # Specify desugared library configuration.",
                   "                          # <file> is a desugared library configuration (json).",
+                  "  --desugared-lib-pg-conf-output <file>  # Output the Proguard configuration ",
+                  "                          # needed by L8 to <file>.",
                   "  --no-tree-shaking       # Force disable tree shaking of unreachable classes.",
                   "  --no-minification       # Force disable minification of names.",
                   "  --no-data-resources     # Ignore all data resources.",
@@ -252,6 +255,9 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
         builder.setProguardMapOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--desugared-lib")) {
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
+      } else if (arg.equals("--desugared-lib-pg-conf-output")) {
+        StringConsumer consumer = new StringConsumer.FileConsumer(Paths.get(nextArg));
+        builder.setDesugaredLibraryKeepRuleConsumer(consumer);
       } else if (arg.equals("--no-data-resources")) {
         state.includeDataResources = false;
       } else if (arg.startsWith("--")) {
