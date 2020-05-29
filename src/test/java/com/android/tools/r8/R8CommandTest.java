@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.ToolHelper.EXAMPLES_BUILD_DIR;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -37,14 +39,20 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class R8CommandTest {
+@RunWith(Parameterized.class)
+public class R8CommandTest extends TestBase {
 
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public R8CommandTest(TestParameters parameters) {}
 
   @Test(expected = CompilationFailedException.class)
   public void emptyBuilder() throws Throwable {
@@ -756,6 +764,34 @@ public class R8CommandTest {
     R8Command r8Command = parse("--desugared-lib", "src/library_desugar/desugar_jdk_libs.json");
     assertFalse(
         r8Command.getInternalOptions().desugaredLibraryConfiguration.getRewritePrefix().isEmpty());
+  }
+
+  @Test
+  public void desugaredLibraryWithOutputConf() throws CompilationFailedException {
+    Path pgout = temp.getRoot().toPath().resolve("pgout.conf");
+    R8Command r8Command =
+        parse(
+            "--desugared-lib",
+            "src/library_desugar/desugar_jdk_libs.json",
+            "--desugared-lib-pg-conf-output",
+            pgout.toString());
+    assertFalse(
+        r8Command.getInternalOptions().desugaredLibraryConfiguration.getRewritePrefix().isEmpty());
+  }
+
+  @Test
+  public void desugaredLibraryWithOutputConfMissingArg() {
+    TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
+    try {
+      parse(
+          diagnostics,
+          "--desugared-lib",
+          "src/library_desugar/desugar_jdk_libs.json",
+          "--desugared-lib-pg-conf-output");
+      fail("Expected parse error");
+    } catch (CompilationFailedException e) {
+      diagnostics.assertErrorsMatch(diagnosticMessage(containsString("Missing parameter")));
+    }
   }
 
   @Test

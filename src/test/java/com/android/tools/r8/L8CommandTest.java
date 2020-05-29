@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -15,6 +17,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -24,14 +27,20 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class L8CommandTest {
+@RunWith(Parameterized.class)
+public class L8CommandTest extends TestBase {
 
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public L8CommandTest(TestParameters parameters) {}
 
   @Test(expected = CompilationFailedException.class)
   public void emptyBuilder() throws Throwable {
@@ -93,6 +102,34 @@ public class L8CommandTest {
     // TODO(b/134732760): Shouldn't we remove the D8/R8 marker?
     assertEquals(2, markers.size());
     Marker marker = markers.iterator().next();
+  }
+
+  @Test
+  public void testFlagPgConf() throws Exception {
+    TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
+    Path pgconf = temp.newFolder().toPath().resolve("pg.conf");
+    FileUtils.writeTextFile(pgconf, "");
+    parse(
+        diagnostics,
+        "--desugared-lib",
+        ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+        "--pg-conf",
+        pgconf.toString());
+  }
+
+  @Test
+  public void testFlagPgConfMissingParameter() {
+    TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
+    try {
+      parse(
+          diagnostics,
+          "--desugared-lib",
+          ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+          "--pg-conf");
+      fail("Expected parse error");
+    } catch (CompilationFailedException e) {
+      diagnostics.assertErrorsMatch(diagnosticMessage(containsString("Missing parameter")));
+    }
   }
 
   private L8Command.Builder prepareBuilder(DiagnosticsHandler handler) {

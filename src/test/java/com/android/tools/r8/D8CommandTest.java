@@ -37,14 +37,20 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipFile;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class D8CommandTest {
+@RunWith(Parameterized.class)
+public class D8CommandTest extends TestBase {
 
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public D8CommandTest(TestParameters parameters) {}
 
   @Test(expected = CompilationFailedException.class)
   public void emptyBuilder() throws Throwable {
@@ -267,10 +273,29 @@ public class D8CommandTest {
     parse("--main-dex-list", mainDexList.toString());
   }
 
+  @Test
+  public void testFlagFilePerClass() throws Throwable {
+    D8Command command = parse("--file-per-class");
+    assertTrue(command.getProgramConsumer() instanceof DexFilePerClassFileConsumer);
+  }
+
   @Test(expected = CompilationFailedException.class)
   public void mainDexListWithFilePerClass() throws Throwable {
     Path mainDexList = temp.newFile("main-dex-list.txt").toPath();
     D8Command command = parse("--main-dex-list", mainDexList.toString(), "--file-per-class");
+    assertTrue(ToolHelper.getApp(command).hasMainDexListResources());
+  }
+
+  @Test
+  public void testFlagFilePerClassFile() throws Throwable {
+    D8Command command = parse("--file-per-class-file");
+    assertTrue(command.getProgramConsumer() instanceof DexFilePerClassFileConsumer);
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void mainDexListWithFilePerClassFile() throws Throwable {
+    Path mainDexList = temp.newFile("main-dex-list.txt").toPath();
+    D8Command command = parse("--main-dex-list", mainDexList.toString(), "--file-per-class-file");
     assertTrue(ToolHelper.getApp(command).hasMainDexListResources());
   }
 

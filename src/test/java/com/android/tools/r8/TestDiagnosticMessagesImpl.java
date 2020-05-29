@@ -201,7 +201,8 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
         if (!matchedDiagnostics.contains(diagnostic)) {
           builder
               .append("\n  - ")
-              .append(diagnostics.getClass().getName())
+              .append(diagnostic.getClass().getName())
+              .append(": ")
               .append(diagnostic.getDiagnosticMessage());
         }
       }
@@ -220,7 +221,8 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
       for (Diagnostic diagnostic : diagnostics) {
         builder
             .append("\n  - ")
-            .append(diagnostics.getClass().getName())
+            .append(diagnostic.getClass().getName())
+            .append(": ")
             .append(diagnostic.getDiagnosticMessage());
       }
       builder.append("\nAll matchers:");
