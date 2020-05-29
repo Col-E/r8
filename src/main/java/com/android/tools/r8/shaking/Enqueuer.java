@@ -3311,9 +3311,9 @@ public class Enqueuer {
         });
     consequentRootSet.forEachMemberWithDependentItems(
         appView,
-        member -> {
+        (member, dependentItems) -> {
           if (isMemberLive(member)) {
-            enqueueRootItems(consequentRootSet.getDependentItems(member));
+            enqueueRootItems(dependentItems);
           }
         });
     // TODO(b/132600955): This modifies the root set. Should the consequent be persistent?

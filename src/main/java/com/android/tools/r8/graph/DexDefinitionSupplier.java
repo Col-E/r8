@@ -12,17 +12,6 @@ public interface DexDefinitionSupplier {
   @Deprecated
   DexEncodedMethod definitionFor(DexMethod method);
 
-  @Deprecated
-  @SuppressWarnings("unchecked")
-  default <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
-      DexEncodedMember<D, R> definitionFor(DexMember<D, R> member) {
-    if (member.isDexField()) {
-      return (DexEncodedMember<D, R>) definitionFor(member.asDexField());
-    }
-    assert member.isDexMethod();
-    return (DexEncodedMember<D, R>) definitionFor(member.asDexMethod());
-  }
-
   DexClass definitionFor(DexType type);
 
   DexProgramClass definitionForProgramType(DexType type);

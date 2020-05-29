@@ -1305,15 +1305,22 @@ public class RootSetBuilder {
     }
 
     public void forEachMemberWithDependentItems(
-        DexDefinitionSupplier definitions, Consumer<DexEncodedMember<?, ?>> consumer) {
-      for (DexReference reference : dependentNoShrinking.keySet()) {
-        if (reference.isDexMember()) {
-          DexEncodedMember<?, ?> definition = definitions.definitionFor(reference.asDexMember());
-          if (definition != null) {
-            consumer.accept(definition);
-          }
-        }
-      }
+        DexDefinitionSupplier definitions,
+        BiConsumer<DexEncodedMember<?, ?>, DependentItems> consumer) {
+      dependentNoShrinking.forEach(
+          (reference, dependentItems) -> {
+            if (reference.isDexMember()) {
+              DexMember<?, ?> member = reference.asDexMember();
+              DexProgramClass holder =
+                  asProgramClassOrNull(definitions.definitionForHolder(member));
+              if (holder != null) {
+                DexEncodedMember<?, ?> definition = holder.lookupMember(member);
+                if (definition != null) {
+                  consumer.accept(definition, dependentItems);
+                }
+              }
+            }
+          });
     }
 
     public void forEachDependentInstanceConstructor(
