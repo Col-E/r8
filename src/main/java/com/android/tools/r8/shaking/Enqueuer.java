@@ -94,6 +94,7 @@ import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.shaking.KeepInfoCollection.MutableKeepInfoCollection;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
+import com.android.tools.r8.shaking.RootSetBuilder.DependentItems;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.utils.Action;
@@ -503,17 +504,6 @@ public class Enqueuer {
     recordTypeReference(field.type);
   }
 
-  public DexDefinition definitionFor(DexReference reference) {
-    if (reference.isDexType()) {
-      return definitionFor(reference.asDexType());
-    } else if (reference.isDexMethod()) {
-      return definitionFor(reference.asDexMethod());
-    } else {
-      assert reference.isDexField();
-      return definitionFor(reference.asDexField());
-    }
-  }
-
   public DexEncodedField definitionFor(DexField field) {
     DexClass clazz = definitionFor(field.holder);
     if (clazz == null) {
@@ -614,22 +604,96 @@ public class Enqueuer {
     }
   }
 
-  private static <T> SetWithReason<T> newSetWithoutReasonReporter() {
-    return new SetWithReason<>((f, r) -> {});
-  }
-
   private void enqueueRootItems(Map<DexReference, Set<ProguardKeepRuleBase>> items) {
     items.entrySet().forEach(this::enqueueRootItem);
   }
 
+  private void enqueueRootItems(DependentItems items) {
+    items.forEachField(this::enqueueRootField);
+    items.forEachMethod(this::enqueueRootMethod);
+    items.forEachClass(this::enqueueRootClass);
+  }
+
   private void enqueueRootItem(Entry<DexReference, Set<ProguardKeepRuleBase>> root) {
-    DexDefinition item = appView.definitionFor(root.getKey());
-    if (item != null) {
-      enqueueRootItem(item, root.getValue());
+    DexReference reference = root.getKey();
+    Set<ProguardKeepRuleBase> rules = root.getValue();
+    if (reference.isDexField()) {
+      enqueueRootField(reference.asDexField(), rules);
+    } else if (reference.isDexMethod()) {
+      enqueueRootMethod(reference.asDexMethod(), rules);
+    } else if (reference.isDexType()) {
+      enqueueRootClass(reference.asDexType(), rules);
     } else {
-      // TODO(b/123923324): Verify that root items are present.
-      // assert false : "Expected root item `" + root.getKey().toSourceString() + "` to be present";
+      throw new Unreachable();
     }
+  }
+
+  // TODO(b/123923324): Verify that root items are present.
+  private void enqueueRootClass(DexType type, Set<ProguardKeepRuleBase> rules) {
+    DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
+    if (clazz != null) {
+      enqueueRootClass(clazz, rules, null);
+    }
+  }
+
+  private void enqueueRootClass(
+      DexProgramClass clazz, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
+    KeepReasonWitness witness = graphReporter.reportKeepClass(precondition, rules, clazz);
+    keepClassWithRules(clazz, rules);
+    if (clazz.isAnnotation()) {
+      workList.enqueueMarkAnnotationInstantiatedAction(clazz, witness);
+    } else if (clazz.isInterface()) {
+      workList.enqueueMarkInterfaceInstantiatedAction(clazz, witness);
+    } else {
+      workList.enqueueMarkInstantiatedAction(clazz, null, InstantiationReason.KEEP_RULE, witness);
+      if (clazz.hasDefaultInitializer()) {
+        ProgramMethod defaultInitializer = clazz.getProgramDefaultInitializer();
+        if (forceProguardCompatibility) {
+          workList.enqueueMarkMethodKeptAction(
+              defaultInitializer,
+              graphReporter.reportCompatKeepDefaultInitializer(defaultInitializer));
+        }
+        if (clazz.isExternalizable(appView)) {
+          enqueueMarkMethodLiveAction(defaultInitializer, witness);
+        }
+      }
+    }
+  }
+
+  // TODO(b/123923324): Verify that root items are present.
+  private void enqueueRootField(DexField reference, Set<ProguardKeepRuleBase> rules) {
+    DexProgramClass holder = getProgramClassOrNull(reference.holder);
+    if (holder != null) {
+      ProgramField field = holder.lookupProgramField(reference);
+      if (field != null) {
+        enqueueRootField(field, rules, null);
+      }
+    }
+  }
+
+  private void enqueueRootField(
+      ProgramField field, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
+    keepFieldWithRules(field.getHolder(), field.getDefinition(), rules);
+    workList.enqueueMarkFieldKeptAction(
+        field, graphReporter.reportKeepField(precondition, rules, field.getDefinition()));
+  }
+
+  // TODO(b/123923324): Verify that root items are present.
+  private void enqueueRootMethod(DexMethod reference, Set<ProguardKeepRuleBase> rules) {
+    DexProgramClass holder = getProgramClassOrNull(reference.holder);
+    if (holder != null) {
+      ProgramMethod method = holder.lookupProgramMethod(reference);
+      if (method != null) {
+        enqueueRootMethod(method, rules, null);
+      }
+    }
+  }
+
+  private void enqueueRootMethod(
+      ProgramMethod method, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
+    keepMethodWithRules(method.getHolder(), method.getDefinition(), rules);
+    workList.enqueueMarkMethodKeptAction(
+        method, graphReporter.reportKeepMethod(precondition, rules, method.getDefinition()));
   }
 
   private void enqueueRootItem(DexDefinition item, Set<ProguardKeepRuleBase> rules) {
@@ -640,43 +704,20 @@ public class Enqueuer {
       DexDefinition item, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
     if (item.isDexClass()) {
       DexProgramClass clazz = item.asDexClass().asProgramClass();
-      KeepReasonWitness witness = graphReporter.reportKeepClass(precondition, rules, clazz);
-      keepClassWithRules(clazz, rules);
-      if (clazz.isAnnotation()) {
-        workList.enqueueMarkAnnotationInstantiatedAction(clazz, witness);
-      } else if (clazz.isInterface()) {
-        workList.enqueueMarkInterfaceInstantiatedAction(clazz, witness);
-      } else {
-        workList.enqueueMarkInstantiatedAction(clazz, null, InstantiationReason.KEEP_RULE, witness);
-        if (clazz.hasDefaultInitializer()) {
-          ProgramMethod defaultInitializer = clazz.getProgramDefaultInitializer();
-          if (forceProguardCompatibility) {
-            workList.enqueueMarkMethodKeptAction(
-                defaultInitializer,
-                graphReporter.reportCompatKeepDefaultInitializer(defaultInitializer));
-          }
-          if (clazz.isExternalizable(appView)) {
-            enqueueMarkMethodLiveAction(defaultInitializer, witness);
-          }
-        }
+      if (clazz != null) {
+        enqueueRootClass(clazz, rules, precondition);
       }
     } else if (item.isDexEncodedField()) {
       DexEncodedField field = item.asDexEncodedField();
       DexProgramClass holder = getProgramClassOrNull(field.holder());
       if (holder != null) {
-        keepFieldWithRules(holder, field, rules);
-        workList.enqueueMarkFieldKeptAction(
-            new ProgramField(holder, field),
-            graphReporter.reportKeepField(precondition, rules, field));
+        enqueueRootField(new ProgramField(holder, field), rules, precondition);
       }
     } else if (item.isDexEncodedMethod()) {
-      DexEncodedMethod encodedMethod = item.asDexEncodedMethod();
-      DexProgramClass holder = getProgramClassOrNull(encodedMethod.holder());
+      DexEncodedMethod method = item.asDexEncodedMethod();
+      DexProgramClass holder = getProgramClassOrNull(method.holder());
       if (holder != null) {
-        keepMethodWithRules(holder, encodedMethod, rules);
-        workList.enqueueMarkMethodKeptAction(
-            new ProgramMethod(holder, encodedMethod),
-            graphReporter.reportKeepMethod(precondition, rules, encodedMethod));
+        enqueueRootMethod(new ProgramMethod(holder, method), rules, precondition);
       }
     } else {
       throw new IllegalArgumentException(item.toString());
@@ -1621,8 +1662,8 @@ public class Enqueuer {
   }
 
   private void enqueueHolderWithDependentInstanceConstructor(
-      DexProgramClass clazz, ProgramMethod instanceInitializer, Set<ProguardKeepRuleBase> reasons) {
-    enqueueRootItem(clazz, reasons);
+      ProgramMethod instanceInitializer, Set<ProguardKeepRuleBase> reasons) {
+    enqueueRootItem(instanceInitializer.getHolder(), reasons);
   }
 
   private void processAnnotations(DexProgramClass holder, DexDefinition annotatedItem) {
@@ -4125,12 +4166,6 @@ public class Enqueuer {
     private EnqueuerDefinitionSupplier(AppView<?> appView, Enqueuer enqueuer) {
       this.appView = appView;
       this.enqueuer = enqueuer;
-    }
-
-    @Deprecated
-    @Override
-    public DexDefinition definitionFor(DexReference reference) {
-      return enqueuer.definitionFor(reference);
     }
 
     @Deprecated

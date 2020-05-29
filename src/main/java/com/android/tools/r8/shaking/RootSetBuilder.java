@@ -71,6 +71,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -98,8 +99,8 @@ public class RootSetBuilder {
   private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
   private final Set<DexType> neverMerge = Sets.newIdentityHashSet();
   private final Set<DexReference> neverPropagateValue = Sets.newIdentityHashSet();
-  private final Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>>
-      dependentNoShrinking = new IdentityHashMap<>();
+  private final Map<DexReference, MutableDependentItems> dependentNoShrinking =
+      new IdentityHashMap<>();
   private final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule =
       new IdentityHashMap<>();
   private final Map<DexReference, ProguardMemberRule> mayHaveSideEffects = new IdentityHashMap<>();
@@ -1008,9 +1009,8 @@ public class RootSetBuilder {
     }
     // Keep the type if the item is also kept.
     dependentNoShrinking
-        .computeIfAbsent(item.toReference(), x -> new IdentityHashMap<>())
-        .computeIfAbsent(type, k -> new HashSet<>())
-        .add(context);
+        .computeIfAbsent(item.toReference(), x -> new MutableDependentItems())
+        .addDependentClass(type, context);
     // Unconditionally add to no-obfuscation, as that is only checked for surviving items.
     noObfuscation.add(type);
   }
@@ -1097,9 +1097,8 @@ public class RootSetBuilder {
       if (!modifiers.allowsShrinking) {
         if (precondition != null) {
           dependentNoShrinking
-              .computeIfAbsent(precondition.toReference(), x -> new IdentityHashMap<>())
-              .computeIfAbsent(item.toReference(), i -> new HashSet<>())
-              .add(keepRule);
+              .computeIfAbsent(precondition.toReference(), x -> new MutableDependentItems())
+              .addDependentItem(item.toReference(), keepRule);
         } else {
           noShrinking.computeIfAbsent(item.toReference(), i -> new HashSet<>()).add(keepRule);
         }
@@ -1271,7 +1270,7 @@ public class RootSetBuilder {
     final Set<DexType> neverClassInline;
     final Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking;
     final Set<DexReference> noObfuscation;
-    final Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentNoShrinking;
+    final Map<DexReference, MutableDependentItems> dependentNoShrinking;
     final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule;
     final List<DelayedRootSetActionItem> delayedRootSetActionItems;
 
@@ -1280,7 +1279,7 @@ public class RootSetBuilder {
         Set<DexType> neverClassInline,
         Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking,
         Set<DexReference> noObfuscation,
-        Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentNoShrinking,
+        Map<DexReference, MutableDependentItems> dependentNoShrinking,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
         List<DelayedRootSetActionItem> delayedRootSetActionItems) {
       this.neverInline = neverInline;
@@ -1290,10 +1289,6 @@ public class RootSetBuilder {
       this.dependentNoShrinking = dependentNoShrinking;
       this.dependentKeepClassCompatRule = dependentKeepClassCompatRule;
       this.delayedRootSetActionItems = delayedRootSetActionItems;
-    }
-
-    public boolean noShrinking(DexReference reference) {
-      return noShrinking.containsKey(reference);
     }
 
     public void forEachClassWithDependentItems(
@@ -1324,19 +1319,34 @@ public class RootSetBuilder {
     public void forEachDependentInstanceConstructor(
         DexProgramClass clazz,
         AppView<?> appView,
-        Consumer3<DexProgramClass, ProgramMethod, Set<ProguardKeepRuleBase>> fn) {
+        BiConsumer<ProgramMethod, Set<ProguardKeepRuleBase>> fn) {
       getDependentItems(clazz)
-          .forEach(
+          .forEachMethod(
               (reference, reasons) -> {
-                if (reference.isDexMethod()) {
-                  DexMethod methodReference = reference.asDexMethod();
-                  DexProgramClass holder =
-                      asProgramClassOrNull(appView.definitionForHolder(methodReference));
-                  if (holder != null) {
-                    ProgramMethod method = holder.lookupProgramMethod(methodReference);
-                    if (method != null && method.getDefinition().isInstanceInitializer()) {
-                      fn.accept(clazz, method, reasons);
-                    }
+                DexProgramClass holder =
+                    asProgramClassOrNull(appView.definitionForHolder(reference));
+                if (holder != null) {
+                  ProgramMethod method = holder.lookupProgramMethod(reference);
+                  if (method != null && method.getDefinition().isInstanceInitializer()) {
+                    fn.accept(method, reasons);
+                  }
+                }
+              });
+    }
+
+    public void forEachDependentMember(
+        DexDefinition item,
+        AppView<?> appView,
+        Consumer3<DexDefinition, DexDefinition, Set<ProguardKeepRuleBase>> fn) {
+      getDependentItems(item)
+          .forEachMember(
+              (reference, reasons) -> {
+                DexProgramClass holder =
+                    asProgramClassOrNull(appView.definitionForHolder(reference));
+                if (holder != null) {
+                  DexEncodedMember<?, ?> member = holder.lookupMember(reference);
+                  if (member != null) {
+                    fn.accept(item, member, reasons);
                   }
                 }
               });
@@ -1346,39 +1356,127 @@ public class RootSetBuilder {
         DexDefinition item,
         AppView<?> appView,
         Consumer3<DexDefinition, DexDefinition, Set<ProguardKeepRuleBase>> fn) {
-      getDependentItems(item)
-          .forEach(
-              (reference, reasons) -> {
-                DexDefinition definition = appView.definitionFor(reference);
-                if (definition != null
-                    && !definition.isDexClass()
-                    && !definition.isStaticMember()) {
-                  fn.accept(item, definition, reasons);
-                }
-              });
+      forEachDependentMember(
+          item,
+          appView,
+          (precondition, member, reasons) -> {
+            if (!member.isStatic()) {
+              fn.accept(precondition, member, reasons);
+            }
+          });
     }
 
     public void forEachDependentStaticMember(
         DexDefinition item,
         AppView<?> appView,
         Consumer3<DexDefinition, DexDefinition, Set<ProguardKeepRuleBase>> fn) {
-      getDependentItems(item)
-          .forEach(
-              (reference, reasons) -> {
-                DexDefinition definition = appView.definitionFor(reference);
-                if (definition != null && !definition.isDexClass() && definition.isStaticMember()) {
-                  fn.accept(item, definition, reasons);
-                }
-              });
+      forEachDependentMember(
+          item,
+          appView,
+          (precondition, member, reasons) -> {
+            if (member.isStatic()) {
+              fn.accept(precondition, member, reasons);
+            }
+          });
     }
 
-    Map<DexReference, Set<ProguardKeepRuleBase>> getDependentItems(DexDefinition item) {
-      return Collections.unmodifiableMap(
-          dependentNoShrinking.getOrDefault(item.toReference(), Collections.emptyMap()));
+    DependentItems getDependentItems(DexDefinition item) {
+      DependentItems found = dependentNoShrinking.get(item.toReference());
+      return found != null ? found : DependentItems.empty();
     }
 
     Set<ProguardKeepRuleBase> getDependentKeepClassCompatRule(DexType type) {
       return dependentKeepClassCompatRule.get(type);
+    }
+  }
+
+  abstract static class DependentItems {
+
+    public static DependentItems empty() {
+      return MutableDependentItems.EMPTY;
+    }
+
+    public abstract void forEachClass(BiConsumer<DexType, Set<ProguardKeepRuleBase>> consumer);
+
+    public abstract void forEachField(BiConsumer<DexField, Set<ProguardKeepRuleBase>> consumer);
+
+    public abstract void forEachMember(
+        BiConsumer<DexMember<?, ?>, Set<ProguardKeepRuleBase>> consumer);
+
+    public abstract void forEachMethod(BiConsumer<DexMethod, Set<ProguardKeepRuleBase>> consumer);
+  }
+
+  static class MutableDependentItems extends DependentItems {
+
+    private static final DependentItems EMPTY =
+        new MutableDependentItems(
+            Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+
+    final Map<DexType, Set<ProguardKeepRuleBase>> dependentClasses;
+    final Map<DexField, Set<ProguardKeepRuleBase>> dependentFields;
+    final Map<DexMethod, Set<ProguardKeepRuleBase>> dependentMethods;
+
+    MutableDependentItems() {
+      this(new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>());
+    }
+
+    private MutableDependentItems(
+        Map<DexType, Set<ProguardKeepRuleBase>> dependentClasses,
+        Map<DexField, Set<ProguardKeepRuleBase>> dependentFields,
+        Map<DexMethod, Set<ProguardKeepRuleBase>> dependentMethods) {
+      this.dependentClasses = dependentClasses;
+      this.dependentFields = dependentFields;
+      this.dependentMethods = dependentMethods;
+    }
+
+    public void addAll(DependentItems items) {
+      items.forEachClass(dependentClasses::put);
+      items.forEachField(dependentFields::put);
+      items.forEachMethod(dependentMethods::put);
+    }
+
+    public void addDependentItem(DexReference reference, ProguardKeepRuleBase rule) {
+      if (reference.isDexField()) {
+        addDependentField(reference.asDexField(), rule);
+      } else if (reference.isDexMethod()) {
+        addDependentMethod(reference.asDexMethod(), rule);
+      } else {
+        assert reference.isDexType();
+        addDependentClass(reference.asDexType(), rule);
+      }
+    }
+
+    public void addDependentClass(DexType type, ProguardKeepRuleBase rule) {
+      dependentClasses.computeIfAbsent(type, ignore -> new HashSet<>()).add(rule);
+    }
+
+    public void addDependentField(DexField field, ProguardKeepRuleBase rule) {
+      dependentFields.computeIfAbsent(field, ignore -> new HashSet<>()).add(rule);
+    }
+
+    public void addDependentMethod(DexMethod method, ProguardKeepRuleBase rule) {
+      dependentMethods.computeIfAbsent(method, ignore -> new HashSet<>()).add(rule);
+    }
+
+    @Override
+    public void forEachClass(BiConsumer<DexType, Set<ProguardKeepRuleBase>> consumer) {
+      dependentClasses.forEach(consumer);
+    }
+
+    @Override
+    public void forEachField(BiConsumer<DexField, Set<ProguardKeepRuleBase>> consumer) {
+      dependentFields.forEach(consumer);
+    }
+
+    @Override
+    public void forEachMember(BiConsumer<DexMember<?, ?>, Set<ProguardKeepRuleBase>> consumer) {
+      dependentFields.forEach(consumer);
+      dependentMethods.forEach(consumer);
+    }
+
+    @Override
+    public void forEachMethod(BiConsumer<DexMethod, Set<ProguardKeepRuleBase>> consumer) {
+      dependentMethods.forEach(consumer);
     }
   }
 
@@ -1424,7 +1522,7 @@ public class RootSetBuilder {
         Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
         Map<DexReference, ProguardMemberRule> noSideEffects,
         Map<DexReference, ProguardMemberRule> assumedValues,
-        Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentNoShrinking,
+        Map<DexReference, MutableDependentItems> dependentNoShrinking,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
         Set<DexReference> identifierNameStrings,
         Set<ProguardIfRule> ifRules,
@@ -1490,13 +1588,12 @@ public class RootSetBuilder {
     }
 
     // Add dependent items that depend on -if rules.
-    private void addDependentItems(
-        Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentItems) {
+    private void addDependentItems(Map<DexReference, ? extends DependentItems> dependentItems) {
       dependentItems.forEach(
           (reference, dependence) ->
               dependentNoShrinking
-                  .computeIfAbsent(reference, x -> new IdentityHashMap<>())
-                  .putAll(dependence));
+                  .computeIfAbsent(reference, x -> new MutableDependentItems())
+                  .addAll(dependence));
     }
 
     public void copy(DexReference original, DexReference rewritten) {
@@ -1759,7 +1856,7 @@ public class RootSetBuilder {
         Set<DexType> neverClassInline,
         Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking,
         Set<DexReference> noObfuscation,
-        Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentNoShrinking,
+        Map<DexReference, MutableDependentItems> dependentNoShrinking,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
         List<DelayedRootSetActionItem> delayedRootSetActionItems) {
       super(

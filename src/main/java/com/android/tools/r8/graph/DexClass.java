@@ -406,6 +406,15 @@ public abstract class DexClass extends DexDefinition {
     return methodCollection.getVirtualMethod(predicate);
   }
 
+  /** Find member in this class matching {@param member}. */
+  @SuppressWarnings("unchecked")
+  public <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> D lookupMember(
+      DexMember<D, R> member) {
+    DexEncodedMember<?, ?> definition =
+        member.isDexField() ? lookupField(member.asDexField()) : lookupMethod(member.asDexMethod());
+    return (D) definition;
+  }
+
   /** Find method in this class matching {@param method}. */
   public DexEncodedMethod lookupMethod(DexMethod method) {
     return methodCollection.getMethod(method);

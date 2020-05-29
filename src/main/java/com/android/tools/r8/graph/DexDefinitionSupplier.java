@@ -7,9 +7,6 @@ package com.android.tools.r8.graph;
 public interface DexDefinitionSupplier {
 
   @Deprecated
-  DexDefinition definitionFor(DexReference reference);
-
-  @Deprecated
   DexEncodedField definitionFor(DexField field);
 
   @Deprecated
@@ -19,7 +16,11 @@ public interface DexDefinitionSupplier {
   @SuppressWarnings("unchecked")
   default <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
       DexEncodedMember<D, R> definitionFor(DexMember<D, R> member) {
-    return (DexEncodedMember<D, R>) definitionFor((DexReference) member);
+    if (member.isDexField()) {
+      return (DexEncodedMember<D, R>) definitionFor(member.asDexField());
+    }
+    assert member.isDexMethod();
+    return (DexEncodedMember<D, R>) definitionFor(member.asDexMethod());
   }
 
   DexClass definitionFor(DexType type);

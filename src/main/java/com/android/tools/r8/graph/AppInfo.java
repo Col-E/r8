@@ -130,20 +130,6 @@ public class AppInfo implements DexDefinitionSupplier {
     return app.classesWithDeterministicOrder();
   }
 
-  @Deprecated
-  @Override
-  public DexDefinition definitionFor(DexReference reference) {
-    assert checkIfObsolete();
-    if (reference.isDexType()) {
-      return definitionFor(reference.asDexType());
-    }
-    if (reference.isDexMethod()) {
-      return definitionFor(reference.asDexMethod());
-    }
-    assert reference.isDexField();
-    return definitionFor(reference.asDexField());
-  }
-
   @Override
   public DexClass definitionFor(DexType type) {
     return definitionForWithoutExistenceAssert(type);
