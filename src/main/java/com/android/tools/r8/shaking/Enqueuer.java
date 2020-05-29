@@ -3331,6 +3331,7 @@ public class Enqueuer {
     action.getAction().accept(builder);
   }
 
+  // TODO(b/157700141): Determine if this is the right way to avoid modification of pinned lambdas.
   private void unpinLambdaMethods() {
     assert desugaredLambdaImplementationMethods.isEmpty()
         || options.desugarState == DesugarState.ON;

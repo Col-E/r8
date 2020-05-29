@@ -280,7 +280,7 @@ public abstract class KeepInfoCollection {
       unsafeUnpinMethod(method.getReference());
     }
 
-    // TODO(b/156715504): Avoid pinning/unpinning references.
+    // TODO(b/157700141): Avoid pinning/unpinning references.
     @Deprecated
     public void unsafeUnpinMethod(DexMethod method) {
       KeepMethodInfo info = keepMethodInfo.get(method);
