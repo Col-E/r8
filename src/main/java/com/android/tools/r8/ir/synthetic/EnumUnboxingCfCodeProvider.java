@@ -9,6 +9,7 @@ import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfIf;
+import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
@@ -66,7 +67,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
             CfLabel dest = new CfLabel();
             instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));
             instructions.add(new CfConstNumber(enumValueInfo.convertToInt(), ValueType.INT));
-            instructions.add(new CfIf(If.Type.EQ, ValueType.INT, dest));
+            instructions.add(new CfIfCmp(If.Type.NE, ValueType.INT, dest));
             instructions.add(new CfConstString(field.name));
             instructions.add(new CfReturn(ValueType.OBJECT));
             instructions.add(dest);

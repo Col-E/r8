@@ -65,9 +65,13 @@ public class ToStringEnumUnboxingTest extends EnumUnboxingTestBase {
     @SuppressWarnings("ConstantConditions")
     public static void main(String[] args) {
       System.out.println(MyEnum.A.toString());
+      System.out.println("A");
       System.out.println(MyEnum.A.name());
+      System.out.println("A");
       System.out.println(MyEnum.B.toString());
+      System.out.println("B");
       System.out.println(MyEnum.B.name());
+      System.out.println("B");
       try {
         System.out.println(((MyEnum) null).toString());
       } catch (NullPointerException e) {
