@@ -130,7 +130,10 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
                       + ".",
                   "  --intermediate          # Compile an intermediate result intended for later",
                   "                          # merging.",
-                  "  --file-per-class        # Produce a separate dex file per input class",
+                  "  --file-per-class        # Produce a separate dex file per class.",
+                  "                          # Synthetic classes are in their own file.",
+                  "  --file-per-class-file   # Produce a separate dex file per input .class file.",
+                  "                          # Synthetic classes are with their originating class.",
                   "  --no-desugaring         # Force disable desugaring.",
                   "  --desugared-lib <file>  # Specify desugared library configuration.",
                   "                          # <file> is a desugared library configuration (json).",
@@ -210,6 +213,8 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
         compilationMode = CompilationMode.RELEASE;
       } else if (arg.equals("--file-per-class")) {
         outputMode = OutputMode.DexFilePerClass;
+      } else if (arg.equals("--file-per-class-file")) {
+        outputMode = OutputMode.DexFilePerClassFile;
       } else if (arg.equals("--classfile")) {
         outputMode = OutputMode.ClassFile;
       } else if (arg.equals("--output")) {
