@@ -118,26 +118,37 @@ public class Inliner implements PostOptimization {
   }
 
   boolean isBlacklisted(
-      ProgramMethod method, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    DexMethod reference = method.getReference();
-    if (method.getDefinition().getOptimizationInfo().forceInline()
-        && appView.appInfo().neverInline.contains(reference)) {
+      InvokeMethod invoke,
+      SingleResolutionResult resolutionResult,
+      ProgramMethod singleTarget,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    DexMethod singleTargetReference = singleTarget.getReference();
+    if (singleTarget.getDefinition().getOptimizationInfo().forceInline()
+        && appInfo.neverInline.contains(singleTargetReference)) {
       throw new Unreachable();
     }
 
-    if (appView.appInfo().isPinned(reference)) {
+    if (appInfo.isPinned(singleTargetReference)) {
       whyAreYouNotInliningReporter.reportPinned();
       return true;
     }
 
-    if (blacklist.contains(appView.graphLense().getOriginalMethodSignature(reference))
-        || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(reference, appView)) {
+    if (blacklist.contains(appView.graphLense().getOriginalMethodSignature(singleTargetReference))
+        || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(
+            singleTargetReference, appView)) {
       whyAreYouNotInliningReporter.reportBlacklisted();
       return true;
     }
 
-    if (appView.appInfo().neverInline.contains(reference)) {
+    if (appInfo.neverInline.contains(singleTargetReference)) {
       whyAreYouNotInliningReporter.reportMarkedAsNeverInline();
+      return true;
+    }
+
+    if (appInfo.noSideEffects.containsKey(invoke.getInvokedMethod())
+        || appInfo.noSideEffects.containsKey(resolutionResult.getResolvedMethod().getReference())
+        || appInfo.noSideEffects.containsKey(singleTargetReference)) {
       return true;
     }
 

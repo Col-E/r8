@@ -113,6 +113,10 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
     return self();
   }
 
+  public RR assertSuccessWithEmptyOutput() {
+    return assertSuccessWithOutput("");
+  }
+
   public RR assertSuccessWithOutputLines(String... expected) {
     return assertSuccessWithOutputLines(Arrays.asList(expected));
   }

@@ -265,7 +265,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return null;
     }
 
-    if (inliner.isBlacklisted(singleTarget, whyAreYouNotInliningReporter)) {
+    if (inliner.isBlacklisted(
+        invoke, resolutionResult, singleTarget, whyAreYouNotInliningReporter)) {
       return null;
     }
 
