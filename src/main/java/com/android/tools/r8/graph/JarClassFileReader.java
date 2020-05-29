@@ -110,7 +110,7 @@ public class JarClassFileReader {
     if (application.options.getProguardConfiguration() != null) {
       ProguardKeepAttributes keep =
           application.options.getProguardConfiguration().getKeepAttributes();
-      if (!keep.sourceFile && !keep.sourceDebugExtension) {
+      if (!keep.sourceFile && !keep.sourceDebugExtension && !keep.methodParameters) {
         parsingOptions |= SKIP_DEBUG;
       }
     }

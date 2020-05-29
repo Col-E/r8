@@ -1008,8 +1008,9 @@ public class LazyCfCode extends Code {
             || keep.localVariableTypeTable
             || reachabilitySensitive;
     boolean lineInfo = keep.lineNumberTable;
+    boolean methodParaeters = keep.methodParameters;
 
-    if (!localsInfo && !lineInfo) {
+    if (!localsInfo && !lineInfo && !methodParaeters) {
       parsingOptions |= ClassReader.SKIP_DEBUG;
     }
 
