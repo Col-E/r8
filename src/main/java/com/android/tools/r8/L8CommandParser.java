@@ -18,8 +18,8 @@ import java.util.Set;
 
 public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Command.Builder> {
 
-  private static final Set<String> OPTIONS_WITH_PARAMETER =
-      ImmutableSet.of("--output", "--lib", MIN_API_FLAG, "--desugared-lib", THREAD_COUNT_FLAG);
+  private static final Set<String> OPTIONS_WITH_PARAMETER = ImmutableSet.of(
+      "--output", "--lib", MIN_API_FLAG, "--desugared-lib", THREAD_COUNT_FLAG, "--pg-conf");
 
   public static void main(String[] args) throws CompilationFailedException {
     L8Command command = parse(args, Origin.root()).build();
