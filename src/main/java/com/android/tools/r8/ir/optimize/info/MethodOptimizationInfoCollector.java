@@ -953,21 +953,31 @@ public class MethodOptimizationInfoCollector {
       if (!staticReturnTypeRaw.isReferenceType()) {
         return;
       }
-      TypeElement dynamicReturnType =
+      TypeElement dynamicUpperBoundReturnType =
           dynamicTypeOptimization.computeDynamicReturnType(method, code);
-      if (dynamicReturnType != null) {
+      if (dynamicUpperBoundReturnType != null) {
         TypeElement staticReturnType =
             TypeElement.fromDexType(staticReturnTypeRaw, Nullability.maybeNull(), appView);
         // If the dynamic return type is not more precise than the static return type there is no
         // need to record it.
-        if (dynamicReturnType.strictlyLessThan(staticReturnType, appView)) {
-          feedback.methodReturnsObjectWithUpperBoundType(method, appView, dynamicReturnType);
+        if (dynamicUpperBoundReturnType.strictlyLessThan(staticReturnType, appView)) {
+          feedback.methodReturnsObjectWithUpperBoundType(
+              method, appView, dynamicUpperBoundReturnType);
         }
       }
-      ClassTypeElement exactReturnType =
+
+      if (dynamicUpperBoundReturnType != null && dynamicUpperBoundReturnType.isNullType()) {
+        return;
+      }
+
+      ClassTypeElement dynamicLowerBoundReturnType =
           dynamicTypeOptimization.computeDynamicLowerBoundType(method, code);
-      if (exactReturnType != null) {
-        feedback.methodReturnsObjectWithLowerBoundType(method, exactReturnType);
+      if (dynamicLowerBoundReturnType != null) {
+        assert dynamicUpperBoundReturnType == null
+            || dynamicUpperBoundReturnType
+                .nullability()
+                .lessThanOrEqual(dynamicLowerBoundReturnType.nullability());
+        feedback.methodReturnsObjectWithLowerBoundType(method, dynamicLowerBoundReturnType);
       }
     }
   }

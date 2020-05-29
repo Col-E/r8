@@ -1059,7 +1059,11 @@ public class Value implements Comparable<Value> {
                   value.isDefinedByInstructionSatisfying(
                       Instruction::isAssumeWithDynamicTypeAssumption))
           == null;
-      return root.getDynamicUpperBoundType(appView);
+      TypeElement result = root.getDynamicUpperBoundType(appView);
+      if (getType().isReferenceType() && getType().isDefinitelyNotNull()) {
+        return result.asReferenceType().asMeetWithNotNull();
+      }
+      return result;
     }
 
     // Try to find an alias of the receiver, which is defined by an instruction of the type Assume.

@@ -442,6 +442,9 @@ public class Phi extends Value implements InstructionOrPhi {
         }
       }
     }
+    if (getType().isReferenceType() && getType().isDefinitelyNotNull()) {
+      return result.asReferenceType().asMeetWithNotNull();
+    }
     return result;
   }
 }

@@ -684,6 +684,9 @@ public class AssumeInserter {
       if (dynamicUpperBoundType.isDefinitelyNotNull()) {
         setNotNull();
       }
+      if (dynamicLowerBoundType != null && dynamicLowerBoundType.isDefinitelyNotNull()) {
+        setNotNull();
+      }
     }
 
     boolean isNull() {

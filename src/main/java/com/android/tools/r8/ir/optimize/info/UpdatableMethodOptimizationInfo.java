@@ -419,6 +419,9 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
             || type.lessThanOrEqualUpToNullability(returnsObjectWithUpperBoundType, appView)
         : "upper bound type changed from " + returnsObjectWithUpperBoundType + " to " + type;
     returnsObjectWithUpperBoundType = type;
+    if (type.isNullType()) {
+      returnsObjectWithLowerBoundType = null;
+    }
   }
 
   void markReturnsObjectWithLowerBoundType(ClassTypeElement type) {
@@ -426,9 +429,7 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     // Currently, we only have a lower bound type when we have _exact_ runtime type information.
     // Thus, the type should never become more precise (although the nullability could).
     assert returnsObjectWithLowerBoundType == DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE
-            || (type.equalUpToNullability(returnsObjectWithLowerBoundType)
-                && type.nullability()
-                    .lessThanOrEqual(returnsObjectWithLowerBoundType.nullability()))
+            || type.equalUpToNullability(returnsObjectWithLowerBoundType)
         : "lower bound type changed from " + returnsObjectWithLowerBoundType + " to " + type;
     returnsObjectWithLowerBoundType = type;
   }
