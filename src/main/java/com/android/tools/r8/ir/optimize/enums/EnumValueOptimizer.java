@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -15,6 +17,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
@@ -61,6 +64,7 @@ public class EnumValueOptimizer {
       return;
     }
 
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
@@ -103,8 +107,12 @@ public class EnumValueOptimizer {
         if (isOrdinalInvoke) {
           iterator.replaceCurrentInstruction(new ConstNumber(outValue, valueInfo.ordinal));
         } else if (isNameInvoke) {
+          Value newValue =
+              code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
           iterator.replaceCurrentInstruction(
-              new ConstString(outValue, enumField.name, ThrowingInfo.NO_THROW));
+              new ConstString(
+                  newValue, enumField.name, ThrowingInfo.defaultForConstString(appView.options())));
+          newValue.addAffectedValuesTo(affectedValues);
         } else {
           assert isToStringInvoke;
           DexClass enumClazz = appView.appInfo().definitionFor(enumField.type);
@@ -119,8 +127,12 @@ public class EnumValueOptimizer {
           if (singleTarget != null && singleTarget.method != factory.enumMethods.toString) {
             continue;
           }
+          Value newValue =
+              code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
           iterator.replaceCurrentInstruction(
-              new ConstString(outValue, enumField.name, ThrowingInfo.NO_THROW));
+              new ConstString(
+                  newValue, enumField.name, ThrowingInfo.defaultForConstString(appView.options())));
+          newValue.addAffectedValuesTo(affectedValues);
         }
       } else if (current.isArrayLength()) {
         // Rewrites MyEnum.values().length to a constant int.
@@ -139,6 +151,9 @@ public class EnumValueOptimizer {
           }
         }
       }
+    }
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }
