@@ -691,7 +691,7 @@ public class AssumeInserter {
 
     boolean isNull() {
       return dynamicTypeAssumption != null
-          && dynamicTypeAssumption.getDynamicUpperBoundType().isNullType();
+          && dynamicTypeAssumption.getDynamicUpperBoundType().isDefinitelyNull();
     }
 
     boolean isNonNull() {

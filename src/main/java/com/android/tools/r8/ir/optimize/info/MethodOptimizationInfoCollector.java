@@ -956,13 +956,20 @@ public class MethodOptimizationInfoCollector {
       TypeElement dynamicUpperBoundReturnType =
           dynamicTypeOptimization.computeDynamicReturnType(method, code);
       if (dynamicUpperBoundReturnType != null) {
-        TypeElement staticReturnType =
-            TypeElement.fromDexType(staticReturnTypeRaw, Nullability.maybeNull(), appView);
-        // If the dynamic return type is not more precise than the static return type there is no
-        // need to record it.
-        if (dynamicUpperBoundReturnType.strictlyLessThan(staticReturnType, appView)) {
-          feedback.methodReturnsObjectWithUpperBoundType(
-              method, appView, dynamicUpperBoundReturnType);
+        if (dynamicUpperBoundReturnType.isReferenceType()
+            && dynamicUpperBoundReturnType.isDefinitelyNull()) {
+          feedback.methodReturnsAbstractValue(
+              method, appView, appView.abstractValueFactory().createSingleNumberValue(0));
+          feedback.methodReturnsObjectWithUpperBoundType(method, appView, TypeElement.getNull());
+        } else {
+          TypeElement staticReturnType =
+              TypeElement.fromDexType(staticReturnTypeRaw, Nullability.maybeNull(), appView);
+          // If the dynamic return type is not more precise than the static return type there is no
+          // need to record it.
+          if (dynamicUpperBoundReturnType.strictlyLessThan(staticReturnType, appView)) {
+            feedback.methodReturnsObjectWithUpperBoundType(
+                method, appView, dynamicUpperBoundReturnType);
+          }
         }
       }
 
