@@ -542,6 +542,7 @@ public class R8 {
             timing.begin("UninstantiatedTypeOptimization");
             UninstantiatedTypeOptimizationGraphLense lens =
                 new UninstantiatedTypeOptimization(appViewWithLiveness)
+                    .strenghtenOptimizationInfo()
                     .run(
                         new MethodPoolCollection(appViewWithLiveness, subtypingInfo),
                         executorService,

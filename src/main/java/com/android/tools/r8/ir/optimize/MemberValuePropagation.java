@@ -280,12 +280,7 @@ public class MemberValuePropagation {
       return;
     }
 
-    AbstractValue abstractReturnValue;
-    if (singleTarget.returnType().isAlwaysNull(appView)) {
-      abstractReturnValue = appView.abstractValueFactory().createSingleNumberValue(0);
-    } else {
-      abstractReturnValue = singleTarget.getOptimizationInfo().getAbstractReturnValue();
-    }
+    AbstractValue abstractReturnValue = singleTarget.getOptimizationInfo().getAbstractReturnValue();
 
     if (abstractReturnValue.isSingleValue()) {
       SingleValue singleReturnValue = abstractReturnValue.asSingleValue();
@@ -356,9 +351,7 @@ public class MemberValuePropagation {
     }
 
     AbstractValue abstractValue;
-    if (field.type.isAlwaysNull(appView)) {
-      abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);
-    } else if (appView.appInfo().isFieldWrittenByFieldPutInstruction(target)) {
+    if (appView.appInfo().isFieldWrittenByFieldPutInstruction(target)) {
       abstractValue = target.getOptimizationInfo().getAbstractValue();
       if (abstractValue.isUnknown() && !target.isStatic()) {
         AbstractValue abstractReceiverValue =

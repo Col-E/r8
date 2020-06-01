@@ -15,6 +15,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldAccessInfo;
+import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
@@ -22,6 +24,7 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoColl
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -31,6 +34,8 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
@@ -102,6 +107,33 @@ public class UninstantiatedTypeOptimization {
 
   public UninstantiatedTypeOptimization(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
+  }
+
+  public UninstantiatedTypeOptimization strenghtenOptimizationInfo() {
+    OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
+    FieldAccessInfoCollection<?> fieldAccessInfoCollection =
+        appView.appInfo().getFieldAccessInfoCollection();
+    AbstractValue nullValue = appView.abstractValueFactory().createSingleNumberValue(0);
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      clazz.forEachField(
+          field -> {
+            if (field.type().isAlwaysNull(appView)) {
+              FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(field.field);
+              if (fieldAccessInfo != null) {
+                // Clear all writes since each write must write `null` to the field.
+                fieldAccessInfo.asMutable().clearWrites();
+              }
+              feedback.recordFieldHasAbstractValue(field, appView, nullValue);
+            }
+          });
+      clazz.forEachMethod(
+          method -> {
+            if (method.returnType().isAlwaysNull(appView)) {
+              feedback.methodReturnsAbstractValue(method, appView, nullValue);
+            }
+          });
+    }
+    return this;
   }
 
   public UninstantiatedTypeOptimizationGraphLense run(
