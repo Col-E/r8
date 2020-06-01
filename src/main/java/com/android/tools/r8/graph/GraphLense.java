@@ -14,10 +14,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -386,49 +383,11 @@ public abstract class GraphLense {
           continue;
         }
         DexMethod originalMethod = getOriginalMethodSignature(method.method);
-        assert originalMethods.contains(originalMethod)
-                || verifyIsBridgeMethod(
-                    originalMethod, originalApplication, originalMethods, dexItemFactory)
-            : "Unable to map method `"
-                + originalMethod.toSourceString()
-                + "` back to original program";
+        assert originalMethods.contains(originalMethod);
       }
     }
 
     return true;
-  }
-
-  // Check if `method` is a bridge method for a method that is in the original application.
-  // This is needed because member rebinding synthesizes bridge methods for visibility.
-  private static boolean verifyIsBridgeMethod(
-      DexMethod method,
-      DexApplication originalApplication,
-      Set<DexMethod> originalMethods,
-      DexItemFactory dexItemFactory) {
-    Deque<DexType> worklist = new ArrayDeque<>();
-    Set<DexType> visited = Sets.newIdentityHashSet();
-    worklist.add(method.holder);
-    while (!worklist.isEmpty()) {
-      DexType holder = worklist.removeFirst();
-      if (!visited.add(holder)) {
-        // Already visited previously.
-        continue;
-      }
-      DexMethod targetMethod = dexItemFactory.createMethod(holder, method.proto, method.name);
-      if (originalMethods.contains(targetMethod)) {
-        return true;
-      }
-      // Stop traversing upwards if we reach the Object.
-      if (holder == dexItemFactory.objectType) {
-        continue;
-      }
-      DexClass clazz = originalApplication.definitionFor(holder);
-      if (clazz != null) {
-        worklist.add(clazz.superType);
-        Collections.addAll(worklist, clazz.interfaces.values);
-      }
-    }
-    return false;
   }
 
   private static class IdentityGraphLense extends GraphLense {
