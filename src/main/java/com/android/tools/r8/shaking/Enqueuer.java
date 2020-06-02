@@ -504,14 +504,6 @@ public class Enqueuer {
     recordTypeReference(field.type);
   }
 
-  public DexEncodedField definitionFor(DexField field) {
-    DexClass clazz = definitionFor(field.holder);
-    if (clazz == null) {
-      return null;
-    }
-    return clazz.lookupField(field);
-  }
-
   public DexEncodedMethod definitionFor(DexMethod method) {
     DexClass clazz = definitionFor(method.holder);
     if (clazz == null) {
@@ -3349,7 +3341,7 @@ public class Enqueuer {
     ProgramMethod methodToKeep = action.getMethodToKeep();
     ProgramMethod singleTarget = action.getSingleTarget();
     DexEncodedMethod singleTargetMethod = singleTarget.getDefinition();
-    if (rootSet.noShrinking.containsKey(singleTargetMethod.method)) {
+    if (rootSet.noShrinking.containsMethod(singleTarget.getReference())) {
       return;
     }
     if (methodToKeep != singleTarget) {
@@ -4167,12 +4159,6 @@ public class Enqueuer {
     private EnqueuerDefinitionSupplier(AppView<?> appView, Enqueuer enqueuer) {
       this.appView = appView;
       this.enqueuer = enqueuer;
-    }
-
-    @Deprecated
-    @Override
-    public DexEncodedField definitionFor(DexField field) {
-      return enqueuer.definitionFor(field);
     }
 
     @Deprecated

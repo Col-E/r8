@@ -65,7 +65,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
     for (LibraryMembers libraryMembers : appView.dexItemFactory().libraryMembersCollection) {
       libraryMembers.forEachFinalField(
           field -> {
-            DexEncodedField definition = appView.definitionFor(field);
+            DexEncodedField definition = field.lookupOnClass(appView.definitionForHolder(field));
             if (definition != null) {
               if (definition.isFinal()) {
                 finalLibraryFields.add(definition);

@@ -21,9 +21,6 @@ public class AppInfo implements DexDefinitionSupplier {
   private final DexApplication app;
   private final DexItemFactory dexItemFactory;
 
-  // TODO(b/151804585): Remove this cache.
-  private final ConcurrentHashMap<DexType, Map<DexField, DexEncodedField>> fieldDefinitionsCache;
-
   // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve the current
   // class being optimized.
   private final ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses;
@@ -33,31 +30,28 @@ public class AppInfo implements DexDefinitionSupplier {
   private final BooleanBox obsolete;
 
   public AppInfo(DexApplication application) {
-    this(application, new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), new BooleanBox());
+    this(application, new ConcurrentHashMap<>(), new BooleanBox());
   }
 
   // For desugaring.
   protected AppInfo(AppInfo appInfo) {
-    this(appInfo.app, appInfo.fieldDefinitionsCache, appInfo.synthesizedClasses, appInfo.obsolete);
+    this(appInfo.app, appInfo.synthesizedClasses, appInfo.obsolete);
   }
 
   // For AppInfoWithLiveness.
   protected AppInfo(AppInfoWithClassHierarchy previous) {
     this(
         ((AppInfo) previous).app,
-        new ConcurrentHashMap<>(((AppInfo) previous).fieldDefinitionsCache),
         new ConcurrentHashMap<>(((AppInfo) previous).synthesizedClasses),
         new BooleanBox());
   }
 
   private AppInfo(
       DexApplication application,
-      ConcurrentHashMap<DexType, Map<DexField, DexEncodedField>> fieldDefinitionsCache,
       ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses,
       BooleanBox obsolete) {
     this.app = application;
     this.dexItemFactory = application.dexItemFactory;
-    this.fieldDefinitionsCache = fieldDefinitionsCache;
     this.synthesizedClasses = synthesizedClasses;
     this.obsolete = obsolete;
   }
@@ -102,7 +96,6 @@ public class AppInfo implements DexDefinitionSupplier {
     assert checkIfObsolete();
     assert clazz.type.isD8R8SynthesizedClassType();
     DexProgramClass previous = synthesizedClasses.put(clazz.type, clazz);
-    invalidateFieldCacheFor(clazz.type);
     assert previous == null || previous == clazz;
   }
 
@@ -181,21 +174,6 @@ public class AppInfo implements DexDefinitionSupplier {
       return null;
     }
     return clazz.getMethodCollection().getMethod(method);
-  }
-
-  @Deprecated
-  @Override
-  public DexEncodedField definitionFor(DexField field) {
-    assert checkIfObsolete();
-    return getFieldDefinitions(field.holder).get(field);
-  }
-
-  private Map<DexField, DexEncodedField> getFieldDefinitions(DexType type) {
-    return fieldDefinitionsCache.computeIfAbsent(type, this::computeFieldDefinitions);
-  }
-
-  public void invalidateFieldCacheFor(DexType type) {
-    fieldDefinitionsCache.remove(type);
   }
 
   /**

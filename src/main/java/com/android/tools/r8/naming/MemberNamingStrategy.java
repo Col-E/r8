@@ -7,9 +7,9 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.ProgramField;
 import java.util.function.BiPredicate;
 
 public interface MemberNamingStrategy {
@@ -20,9 +20,9 @@ public interface MemberNamingStrategy {
       BiPredicate<DexString, DexMethod> isAvailable);
 
   DexString next(
-      DexField field,
+      ProgramField field,
       InternalNamingState internalState,
-      BiPredicate<DexString, DexField> isAvailable);
+      BiPredicate<DexString, ProgramField> isAvailable);
 
   DexString getReservedName(DexEncodedMethod method, DexClass holder);
 

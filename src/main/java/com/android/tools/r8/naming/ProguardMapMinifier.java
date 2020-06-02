@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
@@ -32,7 +33,6 @@ import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.TriFunction;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
@@ -301,8 +301,9 @@ public class ProguardMapMinifier {
       DexField originalField = ((FieldSignature) signature).toDexField(factory, type);
       addMemberNaming(
           originalField, memberNaming, addToAdditionalMaps ? additionalFieldNamings : null);
-      DexEncodedField encodedField = appView.definitionFor(originalField);
-      if (encodedField == null || !encodedField.accessFlags.isPrivate()) {
+      DexClass holder = appView.definitionForHolder(originalField);
+      DexEncodedField field = originalField.lookupOnClass(holder);
+      if (field == null || !field.isPrivate()) {
         nonPrivateMembers.put(originalField, memberNaming);
       }
     }
@@ -465,62 +466,46 @@ public class ProguardMapMinifier {
 
     @Override
     public DexString next(
-        DexMethod method,
+        DexMethod reference,
         InternalNamingState internalState,
         BiPredicate<DexString, DexMethod> isAvailable) {
-      DexEncodedMethod definition = appView.definitionFor(method);
-      DexString nextName =
-          nextName(
-              method,
-              definition,
-              method.name,
-              method.holder,
-              internalState,
-              isAvailable,
-              super::next);
-      assert nextName == method.name || !definition.isClassInitializer();
-      assert nextName == method.name
-          || !appView.definitionFor(method.holder).accessFlags.isAnnotation();
+      DexClass holder = appView.definitionForHolder(reference);
+      assert holder != null;
+      DexEncodedMethod method = holder.lookupMethod(reference);
+      DexString reservedName = getReservedName(method, reference.name, holder);
+      DexString nextName;
+      if (reservedName != null) {
+        if (!isAvailable.test(reservedName, reference)) {
+          reportReservationError(reference, reservedName);
+        }
+        nextName = reservedName;
+      } else {
+        assert !mappedNames.containsKey(reference);
+        assert appView.rootSet().mayBeMinified(reference, appView);
+        nextName = super.next(reference, internalState, isAvailable);
+      }
+      assert nextName == reference.name || !method.isInitializer();
+      assert nextName == reference.name || !holder.isAnnotation();
       return nextName;
     }
 
     @Override
     public DexString next(
-        DexField field,
+        ProgramField field,
         InternalNamingState internalState,
-        BiPredicate<DexString, DexField> isAvailable) {
-      return nextName(
-          field,
-          appView.definitionFor(field),
-          field.name,
-          field.holder,
-          internalState,
-          isAvailable,
-          super::next);
-    }
-
-    private <T extends DexReference> DexString nextName(
-        T reference,
-        DexDefinition definition,
-        DexString name,
-        DexType holderType,
-        InternalNamingState internalState,
-        BiPredicate<DexString, T> isAvailable,
-        TriFunction<T, InternalNamingState, BiPredicate<DexString, T>, DexString> generateName) {
-      assert definition.isDexEncodedMethod() || definition.isDexEncodedField();
-      assert definition.toReference() == reference;
-      DexClass holder = appView.definitionFor(holderType);
-      assert holder != null;
-      DexString reservedName = getReservedName(definition, name, holder);
+        BiPredicate<DexString, ProgramField> isAvailable) {
+      DexField reference = field.getReference();
+      DexString reservedName =
+          getReservedName(field.getDefinition(), reference.name, field.getHolder());
       if (reservedName != null) {
-        if (!isAvailable.test(reservedName, reference)) {
-          reportReservationError(definition.toReference(), reservedName);
+        if (!isAvailable.test(reservedName, field)) {
+          reportReservationError(reference, reservedName);
         }
         return reservedName;
       }
       assert !mappedNames.containsKey(reference);
       assert appView.rootSet().mayBeMinified(reference, appView);
-      return generateName.apply(reference, internalState, isAvailable);
+      return super.next(field, internalState, isAvailable);
     }
 
     @Override

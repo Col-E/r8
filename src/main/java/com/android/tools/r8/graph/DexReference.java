@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -13,7 +14,17 @@ import java.util.stream.Stream;
  */
 public abstract class DexReference extends IndexedDexItem {
 
-  public abstract <T> void apply(
+  public abstract <T> T apply(
+      Function<DexType, T> classConsumer,
+      Function<DexField, T> fieldConsumer,
+      Function<DexMethod, T> methodConsumer);
+
+  public abstract void accept(
+      Consumer<DexType> classConsumer,
+      Consumer<DexField> fieldConsumer,
+      Consumer<DexMethod> methodConsumer);
+
+  public abstract <T> void accept(
       BiConsumer<DexType, T> classConsumer,
       BiConsumer<DexField, T> fieldConsumer,
       BiConsumer<DexMethod, T> methodConsumer,

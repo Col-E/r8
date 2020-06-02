@@ -1788,10 +1788,10 @@ public class VerticalClassMerger {
     private boolean foundIllegalAccess;
     private ProgramMethod context;
 
-    private final AppView<?> appView;
+    private final AppView<AppInfoWithLiveness> appView;
     private final DexClass source;
 
-    public IllegalAccessDetector(AppView<?> appView, DexClass source) {
+    public IllegalAccessDetector(AppView<AppInfoWithLiveness> appView, DexClass source) {
       super(appView.dexItemFactory());
       this.appView = appView;
       this.source = source;
@@ -1813,7 +1813,7 @@ public class VerticalClassMerger {
           checkTypeReference(field.holder);
           checkTypeReference(field.type);
 
-          DexEncodedField definition = appView.definitionFor(field);
+          DexEncodedField definition = appView.appInfo().resolveField(field).getResolvedField();
           if (definition == null || !definition.accessFlags.isPublic()) {
             foundIllegalAccess = true;
           }
