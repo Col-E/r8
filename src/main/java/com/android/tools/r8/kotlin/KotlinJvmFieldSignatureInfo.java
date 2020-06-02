@@ -4,39 +4,37 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromDescriptor;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toRenamedDescriptorOrDefault;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import kotlinx.metadata.jvm.JvmFieldSignature;
 
 /**
  * The JvmSignature for a method or property does not always correspond to the actual signature, see
  * b/154201250. We therefore need to model the signature as well.
  */
-public class KotlinJvmFieldSignatureInfo {
+public class KotlinJvmFieldSignatureInfo implements EnqueuerMetadataTraceable {
 
-  private final DexType type;
+  private final KotlinTypeReference type;
   private final String name;
 
-  private KotlinJvmFieldSignatureInfo(String name, DexType type) {
+  private KotlinJvmFieldSignatureInfo(String name, KotlinTypeReference type) {
     this.name = name;
     this.type = type;
   }
 
   public static KotlinJvmFieldSignatureInfo create(
-      JvmFieldSignature fieldSignature, DexDefinitionSupplier definitionSupplier) {
+      JvmFieldSignature fieldSignature, DexItemFactory factory) {
     if (fieldSignature == null) {
       return null;
     }
     return new KotlinJvmFieldSignatureInfo(
         fieldSignature.getName(),
-        referenceTypeFromDescriptor(fieldSignature.getDesc(), definitionSupplier));
+        KotlinTypeReference.fromDescriptor(fieldSignature.getDesc(), factory));
   }
 
   public JvmFieldSignature rewrite(
@@ -51,6 +49,11 @@ public class KotlinJvmFieldSignatureInfo {
     }
     String defValue = appView.dexItemFactory().objectType.toDescriptorString();
     return new JvmFieldSignature(
-        finalName, toRenamedDescriptorOrDefault(type, appView, namingLens, defValue));
+        finalName, type.toRenamedDescriptorOrDefault(appView, namingLens, defValue));
+  }
+
+  @Override
+  public void trace(DexDefinitionSupplier definitionSupplier) {
+    type.trace(definitionSupplier);
   }
 }

@@ -5,7 +5,6 @@
 package com.android.tools.r8.kotlin.coroutines;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -88,16 +87,11 @@ public class KotlinxCoroutinesTestRunner extends KotlinTestBase {
             .addKeepAllAttributes()
             // The BASE_LIBRARY contains proguard rules that do not match.
             .allowUnusedProguardConfigurationRules()
-            .allowDiagnosticInfoMessages()
             .addKeepRules(
                 "-dontwarn reactor.blockhound.integration.BlockHoundIntegration",
                 "-dontwarn org.junit.runners.model.Statement",
                 "-dontwarn org.junit.rules.TestRule")
             .compile()
-            .assertAllInfoMessagesMatch(
-                anyOf(
-                    containsString("Unexpected error while reading kotlinx.coroutines"),
-                    containsString("Proguard configuration rule does not match anything")))
             .writeToZip();
     ProcessResult kotlincResult =
         kotlinc(KOTLINC, targetVersion)

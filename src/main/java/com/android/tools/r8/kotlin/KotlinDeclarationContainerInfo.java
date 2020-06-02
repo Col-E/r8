@@ -5,15 +5,18 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.isValidMethodDescriptor;
+import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.kotlin.KotlinMetadataUtils.KmPropertyProcessor;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.IdentityHashMap;
@@ -29,7 +32,7 @@ import kotlinx.metadata.jvm.JvmExtensionsKt;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
 // Holds information about KmDeclarationContainer
-public class KotlinDeclarationContainerInfo {
+public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable {
 
   private final List<KotlinTypeAliasInfo> typeAliases;
   // The functions in notBackedFunctions are KmFunctions where we could not find a representative.
@@ -51,7 +54,7 @@ public class KotlinDeclarationContainerInfo {
       KmDeclarationContainer container,
       Map<String, DexEncodedMethod> methodSignatureMap,
       Map<String, DexEncodedField> fieldSignatureMap,
-      DexDefinitionSupplier definitionSupplier,
+      DexItemFactory factory,
       Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode) {
     ImmutableList.Builder<KotlinFunctionInfo> notBackedFunctions = ImmutableList.builder();
@@ -62,7 +65,7 @@ public class KotlinDeclarationContainerInfo {
         continue;
       }
       KotlinFunctionInfo kotlinFunctionInfo =
-          KotlinFunctionInfo.create(kmFunction, definitionSupplier, reporter);
+          KotlinFunctionInfo.create(kmFunction, factory, reporter);
       DexEncodedMethod method = methodSignatureMap.get(signature.asString());
       if (method == null) {
         notBackedFunctions.add(kotlinFunctionInfo);
@@ -85,7 +88,7 @@ public class KotlinDeclarationContainerInfo {
     ImmutableList.Builder<KotlinPropertyInfo> notBackedProperties = ImmutableList.builder();
     for (KmProperty kmProperty : container.getProperties()) {
       KotlinPropertyInfo kotlinPropertyInfo =
-          KotlinPropertyInfo.create(kmProperty, definitionSupplier, reporter);
+          KotlinPropertyInfo.create(kmProperty, factory, reporter);
       KmPropertyProcessor propertyProcessor = new KmPropertyProcessor(kmProperty);
       boolean hasBacking = false;
       if (propertyProcessor.fieldSignature() != null) {
@@ -119,7 +122,7 @@ public class KotlinDeclarationContainerInfo {
       }
     }
     return new KotlinDeclarationContainerInfo(
-        getTypeAliases(container.getTypeAliases(), definitionSupplier, reporter),
+        getTypeAliases(container.getTypeAliases(), factory, reporter),
         notBackedFunctions.build(),
         notBackedProperties.build());
   }
@@ -139,10 +142,10 @@ public class KotlinDeclarationContainerInfo {
   }
 
   private static List<KotlinTypeAliasInfo> getTypeAliases(
-      List<KmTypeAlias> aliases, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
+      List<KmTypeAlias> aliases, DexItemFactory factory, Reporter reporter) {
     ImmutableList.Builder<KotlinTypeAliasInfo> builder = ImmutableList.builder();
     for (KmTypeAlias alias : aliases) {
-      builder.add(KotlinTypeAliasInfo.create(alias, definitionSupplier, reporter));
+      builder.add(KotlinTypeAliasInfo.create(alias, factory, reporter));
     }
     return builder.build();
   }
@@ -206,6 +209,13 @@ public class KotlinDeclarationContainerInfo {
     for (KotlinPropertyInfo notBackedProperty : propertiesWithNoBacking) {
       notBackedProperty.rewrite(propertyProvider, null, null, null, appView, namingLens);
     }
+  }
+
+  @Override
+  public void trace(DexDefinitionSupplier definitionSupplier) {
+    forEachApply(typeAliases, alias -> alias::trace, definitionSupplier);
+    forEachApply(functionsWithNoBacking, function -> function::trace, definitionSupplier);
+    forEachApply(propertiesWithNoBacking, property -> property::trace, definitionSupplier);
   }
 
   public static class KotlinPropertyGroup {

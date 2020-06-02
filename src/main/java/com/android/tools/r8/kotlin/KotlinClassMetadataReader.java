@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
@@ -31,22 +32,18 @@ public final class KotlinClassMetadataReader {
   public static KotlinClassLevelInfo getKotlinInfo(
       Kotlin kotlin,
       DexClass clazz,
-      DexDefinitionSupplier definitionSupplier,
+      DexItemFactory factory,
       Reporter reporter,
       boolean onlyProcessLambda,
       Consumer<DexEncodedMethod> keepByteCode) {
-    DexAnnotation meta =
-        clazz
-            .annotations()
-            .getFirstMatching(definitionSupplier.dexItemFactory().kotlinMetadataType);
+    DexAnnotation meta = clazz.annotations().getFirstMatching(factory.kotlinMetadataType);
     if (meta != null) {
       try {
         KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, meta.annotation);
         if (onlyProcessLambda && kMetadata.getHeader().getKind() != KOTLIN_METADATA_KIND_LAMBDA) {
           return NO_KOTLIN_INFO;
         }
-        return createKotlinInfo(
-            kotlin, clazz, kMetadata, definitionSupplier, reporter, keepByteCode);
+        return createKotlinInfo(kotlin, clazz, kMetadata, factory, reporter, keepByteCode);
       } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
         reporter.info(
             new StringDiagnostic(
@@ -66,6 +63,14 @@ public final class KotlinClassMetadataReader {
       }
     }
     return NO_KOTLIN_INFO;
+  }
+
+  public static boolean hasKotlinClassMetadataAnnotation(
+      DexClass clazz, DexDefinitionSupplier definitionSupplier) {
+    return clazz
+            .annotations()
+            .getFirstMatching(definitionSupplier.dexItemFactory().kotlinMetadataType)
+        != null;
   }
 
   public static KotlinClassMetadata toKotlinClassMetadata(
@@ -103,7 +108,7 @@ public final class KotlinClassMetadataReader {
       Kotlin kotlin,
       DexClass clazz,
       KotlinClassMetadata kMetadata,
-      DexDefinitionSupplier definitionSupplier,
+      DexItemFactory factory,
       Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode) {
     String packageName = kMetadata.getHeader().getPackageName();
@@ -112,7 +117,7 @@ public final class KotlinClassMetadataReader {
           ((KotlinClassMetadata.Class) kMetadata).toKmClass(),
           packageName,
           clazz,
-          definitionSupplier,
+          factory,
           reporter,
           keepByteCode);
     } else if (kMetadata instanceof KotlinClassMetadata.FileFacade) {
@@ -121,20 +126,20 @@ public final class KotlinClassMetadataReader {
           (KotlinClassMetadata.FileFacade) kMetadata,
           packageName,
           clazz,
-          definitionSupplier,
+          factory,
           reporter,
           keepByteCode);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassFacade) {
       // multi-file class with the same @JvmName.
       return KotlinMultiFileClassFacadeInfo.create(
-          (KotlinClassMetadata.MultiFileClassFacade) kMetadata, packageName, definitionSupplier);
+          (KotlinClassMetadata.MultiFileClassFacade) kMetadata, packageName, factory);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassPart) {
       // A single file, which is part of multi-file class.
       return KotlinMultiFileClassPartInfo.create(
           (KotlinClassMetadata.MultiFileClassPart) kMetadata,
           packageName,
           clazz,
-          definitionSupplier,
+          factory,
           reporter,
           keepByteCode);
     } else if (kMetadata instanceof KotlinClassMetadata.SyntheticClass) {
@@ -143,7 +148,7 @@ public final class KotlinClassMetadataReader {
           packageName,
           clazz,
           kotlin,
-          definitionSupplier,
+          factory,
           reporter);
     } else {
       throw new MetadataError("unsupported 'k' value: " + kMetadata.getHeader().getKind());

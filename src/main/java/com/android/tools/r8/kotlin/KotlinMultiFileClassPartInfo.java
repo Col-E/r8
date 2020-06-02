@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
@@ -20,6 +21,7 @@ import kotlinx.metadata.jvm.KotlinClassMetadata.MultiFileClassPart;
 // Holds information about Metadata.MultiFileClassPartInfo
 public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
 
+  // TODO(b/157630779): Maybe model facadeClassName.
   private final String facadeClassName;
   private final KotlinPackageInfo packageInfo;
   private final String packageName;
@@ -35,13 +37,12 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
       MultiFileClassPart classPart,
       String packageName,
       DexClass clazz,
-      DexDefinitionSupplier definitionSupplier,
+      DexItemFactory factory,
       Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode) {
     return new KotlinMultiFileClassPartInfo(
         classPart.getFacadeClassName(),
-        KotlinPackageInfo.create(
-            classPart.toKmPackage(), clazz, definitionSupplier, reporter, keepByteCode),
+        KotlinPackageInfo.create(classPart.toKmPackage(), clazz, factory, reporter, keepByteCode),
         packageName);
   }
 
@@ -69,5 +70,10 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
   @Override
   public String getPackageName() {
     return packageName;
+  }
+
+  @Override
+  public void trace(DexDefinitionSupplier definitionSupplier) {
+    packageInfo.trace(definitionSupplier);
   }
 }

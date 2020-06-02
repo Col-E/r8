@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.naming.NamingLens;
@@ -26,5 +27,10 @@ public class KotlinCompanionInfo implements KotlinFieldLevelInfo {
     DexString dexString = lens.lookupName(field);
     String finalName = dexString.toString();
     visitor.visitCompanionObject(finalName);
+  }
+
+  @Override
+  public void trace(DexDefinitionSupplier definitionSupplier) {
+    // Do nothing.
   }
 }

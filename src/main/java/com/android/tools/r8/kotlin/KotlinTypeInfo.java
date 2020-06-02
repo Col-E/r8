@@ -4,10 +4,14 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -18,7 +22,7 @@ import kotlinx.metadata.jvm.JvmExtensionsKt;
 import kotlinx.metadata.jvm.JvmTypeExtensionVisitor;
 
 // Provides access to Kotlin information about a kotlin type.
-public class KotlinTypeInfo {
+public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
 
   private static final List<KotlinTypeProjectionInfo> EMPTY_ARGUMENTS = ImmutableList.of();
 
@@ -47,32 +51,29 @@ public class KotlinTypeInfo {
     this.flexibleTypeUpperBoundInfo = flexibleTypeUpperBoundInfo;
   }
 
-  static KotlinTypeInfo create(
-      KmType kmType, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
+  static KotlinTypeInfo create(KmType kmType, DexItemFactory factory, Reporter reporter) {
     if (kmType == null) {
       return null;
     }
     return new KotlinTypeInfo(
         kmType.getFlags(),
-        KotlinClassifierInfo.create(kmType.classifier, definitionSupplier, reporter),
-        KotlinTypeInfo.create(kmType.getAbbreviatedType(), definitionSupplier, reporter),
-        KotlinTypeInfo.create(kmType.getOuterType(), definitionSupplier, reporter),
-        getArguments(kmType.getArguments(), definitionSupplier, reporter),
-        KotlinAnnotationInfo.create(JvmExtensionsKt.getAnnotations(kmType), definitionSupplier),
+        KotlinClassifierInfo.create(kmType.classifier, factory, reporter),
+        KotlinTypeInfo.create(kmType.getAbbreviatedType(), factory, reporter),
+        KotlinTypeInfo.create(kmType.getOuterType(), factory, reporter),
+        getArguments(kmType.getArguments(), factory, reporter),
+        KotlinAnnotationInfo.create(JvmExtensionsKt.getAnnotations(kmType), factory),
         KotlinFlexibleTypeUpperBoundInfo.create(
-            kmType.getFlexibleTypeUpperBound(), definitionSupplier, reporter));
+            kmType.getFlexibleTypeUpperBound(), factory, reporter));
   }
 
   static List<KotlinTypeProjectionInfo> getArguments(
-      List<KmTypeProjection> projections,
-      DexDefinitionSupplier definitionSupplier,
-      Reporter reporter) {
+      List<KmTypeProjection> projections, DexItemFactory factory, Reporter reporter) {
     if (projections.isEmpty()) {
       return EMPTY_ARGUMENTS;
     }
     ImmutableList.Builder<KotlinTypeProjectionInfo> arguments = ImmutableList.builder();
     for (KmTypeProjection projection : projections) {
-      arguments.add(KotlinTypeProjectionInfo.create(projection, definitionSupplier, reporter));
+      arguments.add(KotlinTypeProjectionInfo.create(projection, factory, reporter));
     }
     return arguments.build();
   }
@@ -106,5 +107,19 @@ public class KotlinTypeInfo {
         annotation.rewrite(extensionVisitor::visitAnnotation, appView, namingLens);
       }
     }
+  }
+
+  @Override
+  public void trace(DexDefinitionSupplier definitionSupplier) {
+    classifier.trace(definitionSupplier);
+    if (abbreviatedType != null) {
+      abbreviatedType.trace(definitionSupplier);
+    }
+    if (outerType != null) {
+      outerType.trace(definitionSupplier);
+    }
+    forEachApply(arguments, argument -> argument::trace, definitionSupplier);
+    flexibleTypeUpperBoundInfo.trace(definitionSupplier);
+    forEachApply(annotations, annotation -> annotation::trace, definitionSupplier);
   }
 }

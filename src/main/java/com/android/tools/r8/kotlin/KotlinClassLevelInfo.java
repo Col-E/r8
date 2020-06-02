@@ -8,9 +8,14 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 
-public interface KotlinClassLevelInfo {
+public interface KotlinClassLevelInfo extends EnqueuerMetadataTraceable {
+
+  default boolean isNoKotlinInformation() {
+    return false;
+  }
 
   default boolean isClass() {
     return false;

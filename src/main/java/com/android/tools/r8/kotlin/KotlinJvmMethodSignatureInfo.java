@@ -4,15 +4,15 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromDescriptor;
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toRenamedDescriptorOrDefault;
+import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -22,36 +22,51 @@ import kotlinx.metadata.jvm.JvmMethodSignature;
  * The JvmSignature for a method or property does not always correspond to the actual signature, see
  * b/154201250. We therefore need to model the signature as well.
  */
-public class KotlinJvmMethodSignatureInfo {
+public class KotlinJvmMethodSignatureInfo implements EnqueuerMetadataTraceable {
 
-  private static final List<DexType> EMPTY_PARAMETERS_LIST = ImmutableList.of();
+  private static final List<KotlinTypeReference> EMPTY_PARAMETERS_LIST = ImmutableList.of();
 
   private final String name;
-  private final DexType returnType;
-  private final List<DexType> parameters;
+  private final KotlinTypeReference returnType;
+  private final List<KotlinTypeReference> parameters;
+  private final String invalidDescriptor;
 
-  private KotlinJvmMethodSignatureInfo(String name, DexType returnType, List<DexType> parameters) {
+  private KotlinJvmMethodSignatureInfo(
+      String name, KotlinTypeReference returnType, List<KotlinTypeReference> parameters) {
     this.name = name;
     this.returnType = returnType;
     this.parameters = parameters;
+    this.invalidDescriptor = null;
+  }
+
+  private KotlinJvmMethodSignatureInfo(String name, String invalidDescriptor) {
+    this.name = name;
+    this.invalidDescriptor = invalidDescriptor;
+    this.parameters = EMPTY_PARAMETERS_LIST;
+    this.returnType = null;
   }
 
   public static KotlinJvmMethodSignatureInfo create(
-      JvmMethodSignature methodSignature, DexDefinitionSupplier definitionSupplier) {
+      JvmMethodSignature methodSignature, DexItemFactory factory) {
     if (methodSignature == null) {
       return null;
     }
     String kotlinDescriptor = methodSignature.getDesc();
+    if (!KotlinMetadataUtils.isValidMethodDescriptor(kotlinDescriptor)) {
+      // If the method descriptor is invalid, keep it as invalid.
+      return new KotlinJvmMethodSignatureInfo(methodSignature.getName(), kotlinDescriptor);
+    }
     String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(kotlinDescriptor);
-    DexType returnType = referenceTypeFromDescriptor(returnTypeDescriptor, definitionSupplier);
+    KotlinTypeReference returnType =
+        KotlinTypeReference.fromDescriptor(returnTypeDescriptor, factory);
     String[] descriptors = DescriptorUtils.getArgumentTypeDescriptors(kotlinDescriptor);
     if (descriptors.length == 0) {
       return new KotlinJvmMethodSignatureInfo(
           methodSignature.getName(), returnType, EMPTY_PARAMETERS_LIST);
     }
-    ImmutableList.Builder<DexType> parameters = ImmutableList.builder();
+    ImmutableList.Builder<KotlinTypeReference> parameters = ImmutableList.builder();
     for (String descriptor : descriptors) {
-      parameters.add(referenceTypeFromDescriptor(descriptor, definitionSupplier));
+      parameters.add(KotlinTypeReference.fromDescriptor(descriptor, factory));
     }
     return new KotlinJvmMethodSignatureInfo(
         methodSignature.getName(), returnType, parameters.build());
@@ -59,6 +74,10 @@ public class KotlinJvmMethodSignatureInfo {
 
   public JvmMethodSignature rewrite(
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
+    if (invalidDescriptor != null) {
+      return new JvmMethodSignature(name, invalidDescriptor);
+    }
+    assert returnType != null;
     String finalName = name;
     if (method != null) {
       String methodName = method.method.name.toString();
@@ -70,11 +89,38 @@ public class KotlinJvmMethodSignatureInfo {
     StringBuilder descBuilder = new StringBuilder();
     descBuilder.append("(");
     String defValue = appView.dexItemFactory().objectType.toDescriptorString();
-    for (DexType parameter : parameters) {
-      descBuilder.append(toRenamedDescriptorOrDefault(parameter, appView, namingLens, defValue));
+    for (KotlinTypeReference parameter : parameters) {
+      descBuilder.append(parameter.toRenamedDescriptorOrDefault(appView, namingLens, defValue));
     }
     descBuilder.append(")");
-    descBuilder.append(toRenamedDescriptorOrDefault(returnType, appView, namingLens, defValue));
+    descBuilder.append(returnType.toRenamedDescriptorOrDefault(appView, namingLens, defValue));
     return new JvmMethodSignature(finalName, descBuilder.toString());
+  }
+
+  @Override
+  public String toString() {
+    if (invalidDescriptor != null) {
+      return name + "(" + invalidDescriptor + ")";
+    }
+    assert returnType != null;
+    StringBuilder descBuilder = new StringBuilder();
+    descBuilder.append(name);
+    descBuilder.append("(");
+    for (KotlinTypeReference parameter : parameters) {
+      descBuilder.append(parameter.toString());
+    }
+    descBuilder.append(")");
+    descBuilder.append(returnType.toString());
+    return descBuilder.toString();
+  }
+
+  @Override
+  public void trace(DexDefinitionSupplier definitionSupplier) {
+    if (invalidDescriptor != null) {
+      return;
+    }
+    assert returnType != null;
+    returnType.trace(definitionSupplier);
+    forEachApply(parameters, param -> param::trace, definitionSupplier);
   }
 }

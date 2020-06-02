@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromBinaryName;
+import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
@@ -36,7 +36,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
   // Information about the signature
   private final KotlinJvmMethodSignatureInfo signature;
   // Information about the lambdaClassOrigin.
-  private final DexType lambdaClassOrigin;
+  private final KotlinTypeReference lambdaClassOrigin;
 
   private KotlinFunctionInfo(
       int flags,
@@ -46,7 +46,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
       List<KotlinValueParameterInfo> valueParameters,
       List<KotlinTypeParameterInfo> typeParameters,
       KotlinJvmMethodSignatureInfo signature,
-      DexType lambdaClassOrigin) {
+      KotlinTypeReference lambdaClassOrigin) {
     this.flags = flags;
     this.name = name;
     this.returnType = returnType;
@@ -58,26 +58,23 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
   }
 
   static KotlinFunctionInfo create(
-      KmFunction kmFunction, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
+      KmFunction kmFunction, DexItemFactory factory, Reporter reporter) {
     return new KotlinFunctionInfo(
         kmFunction.getFlags(),
         kmFunction.getName(),
-        KotlinTypeInfo.create(kmFunction.getReturnType(), definitionSupplier, reporter),
-        KotlinTypeInfo.create(kmFunction.getReceiverParameterType(), definitionSupplier, reporter),
-        KotlinValueParameterInfo.create(
-            kmFunction.getValueParameters(), definitionSupplier, reporter),
-        KotlinTypeParameterInfo.create(
-            kmFunction.getTypeParameters(), definitionSupplier, reporter),
-        KotlinJvmMethodSignatureInfo.create(
-            JvmExtensionsKt.getSignature(kmFunction), definitionSupplier),
-        getlambdaClassOrigin(kmFunction, definitionSupplier));
+        KotlinTypeInfo.create(kmFunction.getReturnType(), factory, reporter),
+        KotlinTypeInfo.create(kmFunction.getReceiverParameterType(), factory, reporter),
+        KotlinValueParameterInfo.create(kmFunction.getValueParameters(), factory, reporter),
+        KotlinTypeParameterInfo.create(kmFunction.getTypeParameters(), factory, reporter),
+        KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmFunction), factory),
+        getlambdaClassOrigin(kmFunction, factory));
   }
 
-  private static DexType getlambdaClassOrigin(
-      KmFunction kmFunction, DexDefinitionSupplier definitionSupplier) {
+  private static KotlinTypeReference getlambdaClassOrigin(
+      KmFunction kmFunction, DexItemFactory factory) {
     String lambdaClassOriginName = JvmExtensionsKt.getLambdaClassOriginName(kmFunction);
     if (lambdaClassOriginName != null) {
-      return referenceTypeFromBinaryName(lambdaClassOriginName, definitionSupplier);
+      return KotlinTypeReference.fromBinaryName(lambdaClassOriginName, factory);
     }
     return null;
   }
@@ -114,8 +111,11 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
       extensionVisitor.visit(signature.rewrite(method, appView, namingLens));
     }
     if (lambdaClassOrigin != null && extensionVisitor != null) {
-      extensionVisitor.visitLambdaClassOriginName(
-          KotlinMetadataUtils.kotlinNameFromDescriptor(lambdaClassOrigin.descriptor));
+      String lambdaClassOriginName =
+          lambdaClassOrigin.toRenamedBinaryNameOrDefault(appView, namingLens, null);
+      if (lambdaClassOriginName != null) {
+        extensionVisitor.visitLambdaClassOriginName(lambdaClassOriginName);
+      }
     }
   }
 
@@ -131,5 +131,25 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
 
   public boolean isExtensionFunction() {
     return receiverParameterType != null;
+  }
+
+  public KotlinJvmMethodSignatureInfo getSignature() {
+    return signature;
+  }
+
+  @Override
+  public void trace(DexDefinitionSupplier definitionSupplier) {
+    forEachApply(valueParameters, param -> param::trace, definitionSupplier);
+    returnType.trace(definitionSupplier);
+    if (receiverParameterType != null) {
+      receiverParameterType.trace(definitionSupplier);
+    }
+    forEachApply(typeParameters, param -> param::trace, definitionSupplier);
+    if (signature != null) {
+      signature.trace(definitionSupplier);
+    }
+    if (lambdaClassOrigin != null) {
+      lambdaClassOrigin.trace(definitionSupplier);
+    }
   }
 }

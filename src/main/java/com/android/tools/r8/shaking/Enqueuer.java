@@ -2634,9 +2634,10 @@ public class Enqueuer {
     this.dontWarnPatterns = dontWarnPatterns;
     // Translate the result of root-set computation into enqueuer actions.
     if (appView.options().getProguardConfiguration() != null
-        && !options.kotlinOptimizationOptions().disableKotlinSpecificOptimizations
-        && mode.isInitialTreeShaking()) {
-      registerAnalysis(new KotlinMetadataEnqueuerExtension(appView, enqueuerDefinitionSupplier));
+        && !options.kotlinOptimizationOptions().disableKotlinSpecificOptimizations) {
+      registerAnalysis(
+          new KotlinMetadataEnqueuerExtension(
+              appView, enqueuerDefinitionSupplier, initialPrunedTypes));
     }
     if (appView.options().isShrinking() || appView.options().getProguardConfiguration() == null) {
       enqueueRootItems(rootSet.noShrinking);

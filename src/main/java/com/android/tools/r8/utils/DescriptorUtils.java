@@ -369,13 +369,6 @@ public class DescriptorUtils {
     return 'L' + className.replace(JAVA_PACKAGE_SEPARATOR, INNER_CLASS_SEPARATOR) + ';';
   }
 
-  // TODO(b/151195430): Remove once a new version of kotlinx-metadata is released.
-  // Kotlin @Metadata deserialization has plain "kotlin", which will be relocated in r8lib.
-  // See b/70169921#comment25 for more details.
-  private static String backwardRelocatedName(String name) {
-    return name.replace("com/android/tools/r8/jetbrains/", "");
-  }
-
   /**
    * Get unqualified class name from its binary name.
    *
@@ -510,6 +503,11 @@ public class DescriptorUtils {
       throw new CompilationError("Unexpected class file name: " + name);
     }
     return 'L' + descriptor + ';';
+  }
+
+  public static boolean isValidBinaryName(String binaryName) {
+    return isValidJavaType(
+        binaryName.replace(DESCRIPTOR_PACKAGE_SEPARATOR, JAVA_PACKAGE_SEPARATOR));
   }
 
   public static class ModuleAndDescriptor {

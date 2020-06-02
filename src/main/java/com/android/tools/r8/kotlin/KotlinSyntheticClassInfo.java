@@ -7,6 +7,7 @@ package com.android.tools.r8.kotlin;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
@@ -41,7 +42,7 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
       String packageName,
       DexClass clazz,
       Kotlin kotlin,
-      DexDefinitionSupplier definitionSupplier,
+      DexItemFactory factory,
       Reporter reporter) {
     KmLambda lambda = null;
     if (syntheticClass.isLambda()) {
@@ -49,9 +50,7 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
       assert lambda != null;
     }
     return new KotlinSyntheticClassInfo(
-        lambda != null
-            ? KotlinLambdaInfo.create(clazz, lambda, definitionSupplier, reporter)
-            : null,
+        lambda != null ? KotlinLambdaInfo.create(clazz, lambda, factory, reporter) : null,
         getFlavour(syntheticClass, clazz, kotlin),
         packageName);
   }
@@ -89,6 +88,13 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
       }
     }
     return writer.write().getHeader();
+  }
+
+  @Override
+  public void trace(DexDefinitionSupplier definitionSupplier) {
+    if (lambda != null) {
+      lambda.trace(definitionSupplier);
+    }
   }
 
   @Override

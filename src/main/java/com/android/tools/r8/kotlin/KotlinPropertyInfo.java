@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
@@ -81,27 +84,24 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
   }
 
   public static KotlinPropertyInfo create(
-      KmProperty kmProperty, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
+      KmProperty kmProperty, DexItemFactory factory, Reporter reporter) {
     return new KotlinPropertyInfo(
         kmProperty.getFlags(),
         kmProperty.getGetterFlags(),
         kmProperty.getSetterFlags(),
         kmProperty.getName(),
-        KotlinTypeInfo.create(kmProperty.getReturnType(), definitionSupplier, reporter),
-        KotlinTypeInfo.create(kmProperty.getReceiverParameterType(), definitionSupplier, reporter),
-        KotlinValueParameterInfo.create(
-            kmProperty.getSetterParameter(), definitionSupplier, reporter),
-        KotlinTypeParameterInfo.create(
-            kmProperty.getTypeParameters(), definitionSupplier, reporter),
+        KotlinTypeInfo.create(kmProperty.getReturnType(), factory, reporter),
+        KotlinTypeInfo.create(kmProperty.getReceiverParameterType(), factory, reporter),
+        KotlinValueParameterInfo.create(kmProperty.getSetterParameter(), factory, reporter),
+        KotlinTypeParameterInfo.create(kmProperty.getTypeParameters(), factory, reporter),
         JvmExtensionsKt.getJvmFlags(kmProperty),
-        KotlinJvmFieldSignatureInfo.create(
-            JvmExtensionsKt.getFieldSignature(kmProperty), definitionSupplier),
+        KotlinJvmFieldSignatureInfo.create(JvmExtensionsKt.getFieldSignature(kmProperty), factory),
         KotlinJvmMethodSignatureInfo.create(
-            JvmExtensionsKt.getGetterSignature(kmProperty), definitionSupplier),
+            JvmExtensionsKt.getGetterSignature(kmProperty), factory),
         KotlinJvmMethodSignatureInfo.create(
-            JvmExtensionsKt.getSetterSignature(kmProperty), definitionSupplier),
+            JvmExtensionsKt.getSetterSignature(kmProperty), factory),
         KotlinJvmMethodSignatureInfo.create(
-            JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty), definitionSupplier));
+            JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty), factory));
   }
 
   @Override
@@ -158,6 +158,32 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
         extensionVisitor.visitSyntheticMethodForAnnotations(
             syntheticMethodForAnnotations.rewrite(null, appView, namingLens));
       }
+    }
+  }
+
+  @Override
+  public void trace(DexDefinitionSupplier definitionSupplier) {
+    if (returnType != null) {
+      returnType.trace(definitionSupplier);
+    }
+    if (receiverParameterType != null) {
+      receiverParameterType.trace(definitionSupplier);
+    }
+    if (setterParameter != null) {
+      setterParameter.trace(definitionSupplier);
+    }
+    forEachApply(typeParameters, param -> param::trace, definitionSupplier);
+    if (fieldSignature != null) {
+      fieldSignature.trace(definitionSupplier);
+    }
+    if (getterSignature != null) {
+      getterSignature.trace(definitionSupplier);
+    }
+    if (setterSignature != null) {
+      setterSignature.trace(definitionSupplier);
+    }
+    if (syntheticMethodForAnnotations != null) {
+      syntheticMethodForAnnotations.trace(definitionSupplier);
     }
   }
 }

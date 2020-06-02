@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
@@ -35,13 +38,11 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
   }
 
   public static KotlinConstructorInfo create(
-      KmConstructor kmConstructor, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
+      KmConstructor kmConstructor, DexItemFactory factory, Reporter reporter) {
     return new KotlinConstructorInfo(
         kmConstructor.getFlags(),
-        KotlinValueParameterInfo.create(
-            kmConstructor.getValueParameters(), definitionSupplier, reporter),
-        KotlinJvmMethodSignatureInfo.create(
-            JvmExtensionsKt.getSignature(kmConstructor), definitionSupplier));
+        KotlinValueParameterInfo.create(kmConstructor.getValueParameters(), factory, reporter),
+        KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmConstructor), factory));
   }
 
   public void rewrite(
@@ -70,5 +71,13 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
   @Override
   public KotlinConstructorInfo asConstructor() {
     return this;
+  }
+
+  @Override
+  public void trace(DexDefinitionSupplier definitionSupplier) {
+    forEachApply(valueParameterInfos, param -> param::trace, definitionSupplier);
+    if (signature != null) {
+      signature.trace(definitionSupplier);
+    }
   }
 }

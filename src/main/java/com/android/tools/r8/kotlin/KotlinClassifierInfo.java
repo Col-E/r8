@@ -4,15 +4,13 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromDescriptor;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
-import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Reporter;
 import kotlinx.metadata.KmClassifier;
@@ -20,10 +18,10 @@ import kotlinx.metadata.KmClassifier.TypeAlias;
 import kotlinx.metadata.KmClassifier.TypeParameter;
 import kotlinx.metadata.KmTypeVisitor;
 
-public abstract class KotlinClassifierInfo {
+public abstract class KotlinClassifierInfo implements EnqueuerMetadataTraceable {
 
   public static KotlinClassifierInfo create(
-      KmClassifier classifier, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
+      KmClassifier classifier, DexItemFactory factory, Reporter reporter) {
     if (classifier instanceof KmClassifier.Class) {
       String originalTypeName = ((KmClassifier.Class) classifier).getName();
       // If this name starts with '.', it represents a local class or an anonymous object. This is
@@ -35,7 +33,7 @@ public abstract class KotlinClassifierInfo {
               isLocalOrAnonymous ? originalTypeName.substring(1) : originalTypeName);
       if (DescriptorUtils.isClassDescriptor(descriptor)) {
         return new KotlinClassClassifierInfo(
-            referenceTypeFromDescriptor(descriptor, definitionSupplier), isLocalOrAnonymous);
+            KotlinTypeReference.fromDescriptor(descriptor, factory), isLocalOrAnonymous);
       } else {
         return new KotlinUnknownClassClassifierInfo(originalTypeName);
       }
@@ -54,10 +52,10 @@ public abstract class KotlinClassifierInfo {
 
   public static class KotlinClassClassifierInfo extends KotlinClassifierInfo {
 
-    private final DexType type;
+    private final KotlinTypeReference type;
     private final boolean isLocalOrAnonymous;
 
-    private KotlinClassClassifierInfo(DexType type, boolean isLocalOrAnonymous) {
+    private KotlinClassClassifierInfo(KotlinTypeReference type, boolean isLocalOrAnonymous) {
       this.type = type;
       this.isLocalOrAnonymous = isLocalOrAnonymous;
     }
@@ -65,19 +63,20 @@ public abstract class KotlinClassifierInfo {
     @Override
     void rewrite(
         KmTypeVisitor visitor, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
-      if (appView.appInfo().wasPruned(type)) {
-        visitor.visitClass(ClassClassifiers.anyName);
-        return;
-      }
-      DexString descriptor = namingLens.lookupDescriptor(type);
+      String descriptor =
+          type.toRenamedDescriptorOrDefault(appView, namingLens, ClassClassifiers.anyDescriptor);
       // For local or anonymous classes, the classifier is prefixed with '.' and inner classes are
       // separated with '$'.
       if (isLocalOrAnonymous) {
-        visitor.visitClass(
-            "." + DescriptorUtils.getBinaryNameFromDescriptor(descriptor.toString()));
+        visitor.visitClass("." + DescriptorUtils.getBinaryNameFromDescriptor(descriptor));
       } else {
-        visitor.visitClass(DescriptorUtils.descriptorToKotlinClassifier(descriptor.toString()));
+        visitor.visitClass(DescriptorUtils.descriptorToKotlinClassifier(descriptor));
       }
+    }
+
+    @Override
+    public void trace(DexDefinitionSupplier definitionSupplier) {
+      type.trace(definitionSupplier);
     }
   }
 
@@ -94,6 +93,11 @@ public abstract class KotlinClassifierInfo {
         KmTypeVisitor visitor, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
       visitor.visitTypeParameter(typeId);
     }
+
+    @Override
+    public void trace(DexDefinitionSupplier definitionSupplier) {
+      // Intentionally empty.
+    }
   }
 
   public static class KotlinTypeAliasClassifierInfo extends KotlinClassifierInfo {
@@ -109,6 +113,11 @@ public abstract class KotlinClassifierInfo {
         KmTypeVisitor visitor, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
       visitor.visitTypeAlias(typeAlias);
     }
+
+    @Override
+    public void trace(DexDefinitionSupplier definitionSupplier) {
+      // Intentionally empty.
+    }
   }
 
   public static class KotlinUnknownClassClassifierInfo extends KotlinClassifierInfo {
@@ -123,6 +132,11 @@ public abstract class KotlinClassifierInfo {
         KmTypeVisitor visitor, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
       visitor.visitClass(classifier);
     }
+
+    @Override
+    public void trace(DexDefinitionSupplier definitionSupplier) {
+      // Intentionally empty.
+    }
   }
 
   public static class KotlinUnknownClassifierInfo extends KotlinClassifierInfo {
@@ -136,6 +150,11 @@ public abstract class KotlinClassifierInfo {
     void rewrite(
         KmTypeVisitor visitor, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
       visitor.visitTypeAlias(classifier);
+    }
+
+    @Override
+    public void trace(DexDefinitionSupplier definitionSupplier) {
+      // Intentionally empty.
     }
   }
 }

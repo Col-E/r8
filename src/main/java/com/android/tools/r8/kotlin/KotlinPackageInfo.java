@@ -12,8 +12,10 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,7 +24,7 @@ import kotlinx.metadata.KmPackage;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
 
 // Holds information about a KmPackage object.
-public class KotlinPackageInfo {
+public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
 
   private final String moduleName;
   private final KotlinDeclarationContainerInfo containerInfo;
@@ -35,7 +37,7 @@ public class KotlinPackageInfo {
   public static KotlinPackageInfo create(
       KmPackage kmPackage,
       DexClass clazz,
-      DexDefinitionSupplier definitionSupplier,
+      DexItemFactory factory,
       Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode) {
     Map<String, DexEncodedField> fieldMap = new HashMap<>();
@@ -49,7 +51,7 @@ public class KotlinPackageInfo {
     return new KotlinPackageInfo(
         JvmExtensionsKt.getModuleName(kmPackage),
         KotlinDeclarationContainerInfo.create(
-            kmPackage, methodMap, fieldMap, definitionSupplier, reporter, keepByteCode));
+            kmPackage, methodMap, fieldMap, factory, reporter, keepByteCode));
   }
 
   public void rewrite(
@@ -65,5 +67,10 @@ public class KotlinPackageInfo {
         appView,
         namingLens);
     JvmExtensionsKt.setModuleName(kmPackage, moduleName);
+  }
+
+  @Override
+  public void trace(DexDefinitionSupplier definitionSupplier) {
+    containerInfo.trace(definitionSupplier);
   }
 }
