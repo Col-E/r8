@@ -182,6 +182,10 @@ def ParseOptions(argv):
   result.add_option('--cpu-list',
                     help='Run under \'taskset\' with these CPUs. See '
                          'the \'taskset\' -c option for the format')
+  result.add_option('--quiet',
+                    help='Disable compiler logging',
+                    default=False,
+                    action='store_true')
 
   return result.parse_args(argv)
 
@@ -370,7 +374,7 @@ def main(argv):
     return find_min_xmx(options, args)
   if options.track_time_in_memory:
     return track_time_in_memory(options, args)
-  exit_code = run_with_options(options, args)
+  exit_code = run_with_options(options, args, quiet=options.quiet)
   if options.expect_oom:
     exit_code = 0 if exit_code == OOM_EXIT_CODE else 1
   return exit_code
