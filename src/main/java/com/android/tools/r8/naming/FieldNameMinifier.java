@@ -3,19 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.BottomUpClassHierarchyTraversal;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
-import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -182,7 +178,9 @@ class FieldNameMinifier {
                   getOrCreateReservedFieldNamingState(clazz.type);
               FieldNamingState state = parentState.createChildState(reservedNames);
               if (clazz.isProgramClass()) {
-                clazz.asProgramClass().forEachProgramField(field -> renameField(field, state));
+                for (DexEncodedField field : clazz.fields()) {
+                  renameField(field, state);
+                }
               }
 
               assert !states.containsKey(clazz.type);
@@ -214,14 +212,11 @@ class FieldNameMinifier {
     for (DexClass clazz : partition) {
       if (clazz.isProgramClass()) {
         assert clazz.isInterface();
-        clazz
-            .asProgramClass()
-            .forEachProgramField(
-                field -> {
-                  DexString newName = renameField(field, state);
-                  namesToBeReservedInImplementsSubclasses.markReservedDirectly(
-                      newName, field.getReference().name, field.getReference().type);
-                });
+        for (DexEncodedField field : clazz.fields()) {
+          DexString newName = renameField(field, state);
+          namesToBeReservedInImplementsSubclasses.markReservedDirectly(
+              newName, field.field.name, field.field.type);
+        }
       }
     }
 
@@ -241,10 +236,11 @@ class FieldNameMinifier {
     }
   }
 
-  private DexString renameField(ProgramField field, FieldNamingState state) {
+  private DexString renameField(DexEncodedField encodedField, FieldNamingState state) {
+    DexField field = encodedField.field;
     DexString newName = state.getOrCreateNameFor(field);
-    if (newName != field.getReference().name) {
-      renaming.put(field.getReference(), newName);
+    if (newName != field.name) {
+      renaming.put(field, newName);
     }
     return newName;
   }
@@ -260,17 +256,32 @@ class FieldNameMinifier {
   }
 
   private void renameNonReboundAccessToField(DexField field) {
-    // If the given field reference is a non-rebound reference to a program field, then assign the
-    // same name as the resolved field.
+    // Already renamed
     if (renaming.containsKey(field)) {
       return;
     }
-    DexProgramClass holder = asProgramClassOrNull(appView.definitionForHolder(field));
-    if (holder == null) {
+    DexEncodedField definition = appView.definitionFor(field);
+    if (definition != null) {
+      assert definition.field == field;
       return;
     }
-    DexEncodedField definition = appView.appInfo().resolveFieldOn(holder, field).getResolvedField();
-    if (definition != null && definition.field != field && renaming.containsKey(definition.field)) {
+    // Now, `field` is reference. Find its definition and check if it's renamed.
+    DexClass holder = appView.definitionFor(field.holder);
+    // We don't care pruned types or library classes.
+    if (holder == null || holder.isNotProgramClass()) {
+      return;
+    }
+    definition = appView.appInfo().resolveField(field).getResolvedField();
+    if (definition == null) {
+      // The program is already broken in the sense that it has an unresolvable field reference.
+      // Leave it as-is.
+      return;
+    }
+    assert definition.field != field;
+    assert definition.holder() != field.holder;
+    // If the definition is renamed,
+    if (renaming.containsKey(definition.field)) {
+      // Assign the same, renamed name as the definition to the reference.
       renaming.put(field, renaming.get(definition.field));
     }
   }

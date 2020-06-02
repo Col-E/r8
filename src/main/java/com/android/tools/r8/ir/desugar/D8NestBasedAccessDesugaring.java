@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -85,20 +84,16 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
             }
           }
         } else if (instruction.isFieldInstruction()) {
-          // Since we only need to desugar accesses to private fields, and all accesses to private
-          // fields must be accessing the private field directly on its holder, we can lookup the
-          // field on the holder instead of resolving the field.
-          FieldInstruction fieldInstruction = instruction.asFieldInstruction();
-          DexClass holder = appView.definitionForHolder(fieldInstruction.getField());
-          DexEncodedField field = fieldInstruction.getField().lookupOnClass(holder);
-          if (field != null && fieldAccessRequiresRewriting(field, method)) {
+          DexEncodedField encodedField =
+              appView.definitionFor(instruction.asFieldInstruction().getField());
+          if (encodedField != null && fieldAccessRequiresRewriting(encodedField, method)) {
             if (instruction.isInstanceGet() || instruction.isStaticGet()) {
-              DexMethod bridge = ensureFieldAccessBridge(field, true);
+              DexMethod bridge = ensureFieldAccessBridge(encodedField, true);
               instructions.replaceCurrentInstruction(
                   new InvokeStatic(bridge, instruction.outValue(), instruction.inValues()));
             } else {
               assert instruction.isInstancePut() || instruction.isStaticPut();
-              DexMethod bridge = ensureFieldAccessBridge(field, false);
+              DexMethod bridge = ensureFieldAccessBridge(encodedField, false);
               instructions.replaceCurrentInstruction(
                   new InvokeStatic(bridge, instruction.outValue(), instruction.inValues()));
             }

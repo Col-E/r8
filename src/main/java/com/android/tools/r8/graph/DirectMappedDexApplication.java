@@ -75,6 +75,13 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
 
   @Deprecated
   @Override
+  public DexEncodedField definitionFor(DexField field) {
+    DexClass clazz = definitionFor(field.holder);
+    return clazz != null ? clazz.lookupField(field) : null;
+  }
+
+  @Deprecated
+  @Override
   public DexEncodedMethod definitionFor(DexMethod method) {
     DexClass clazz = definitionFor(method.holder);
     return clazz != null ? clazz.lookupMethod(method) : null;

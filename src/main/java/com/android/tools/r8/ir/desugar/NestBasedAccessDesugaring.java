@@ -84,15 +84,14 @@ public abstract class NestBasedAccessDesugaring {
     return appView.definitionFor(appView.graphLense().lookupType(type));
   }
 
-  private DexEncodedMethod lookupOnHolder(
+  private DexEncodedMethod definitionFor(
       DexMethod method, DexClassAndMethod context, Invoke.Type invokeType) {
     return appView.definitionFor(
         appView.graphLense().lookupMethod(method, context.getReference(), invokeType).getMethod());
   }
 
-  private DexEncodedField lookupOnHolder(DexField field) {
-    DexField rewritten = appView.graphLense().lookupField(field);
-    return rewritten.lookupOnClass(appView.definitionForHolder(rewritten));
+  private DexEncodedField definitionFor(DexField field) {
+    return appView.definitionFor(appView.graphLense().lookupField(field));
   }
 
   // Extract the list of types in the programClass' nest, of host hostClass
@@ -366,7 +365,7 @@ public abstract class NestBasedAccessDesugaring {
       if (!method.holder.isClassType()) {
         return false;
       }
-      DexEncodedMethod encodedMethod = lookupOnHolder(method, context, invokeType);
+      DexEncodedMethod encodedMethod = definitionFor(method, context, invokeType);
       if (encodedMethod != null && invokeRequiresRewriting(encodedMethod, context)) {
         ensureInvokeBridge(encodedMethod);
         return true;
@@ -375,10 +374,7 @@ public abstract class NestBasedAccessDesugaring {
     }
 
     private boolean registerFieldAccess(DexField field, boolean isGet) {
-      // Since we only need to desugar accesses to private fields, and all accesses to private
-      // fields must be accessing the private field directly on its holder, we can lookup the field
-      // on the holder instead of resolving the field.
-      DexEncodedField encodedField = lookupOnHolder(field);
+      DexEncodedField encodedField = definitionFor(field);
       if (encodedField != null && fieldAccessRequiresRewriting(encodedField, context)) {
         ensureFieldAccessBridge(encodedField, isGet);
         return true;

@@ -11,11 +11,11 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassNamingStrategy;
@@ -240,10 +240,10 @@ public class Minifier {
 
     @Override
     public DexString next(
-        ProgramField field,
+        DexField field,
         InternalNamingState internalState,
-        BiPredicate<DexString, ProgramField> isAvailable) {
-      assert checkAllowMemberRenaming(field.getHolderType());
+        BiPredicate<DexString, DexField> isAvailable) {
+      assert checkAllowMemberRenaming(field.holder);
       DexString candidate;
       do {
         candidate = getNextName(internalState, false);

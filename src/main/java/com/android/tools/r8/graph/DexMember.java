@@ -13,10 +13,6 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
     this.holder = holder;
   }
 
-  public DexEncodedMember<?, ?> lookupOnClass(DexClass clazz) {
-    return clazz != null ? clazz.lookupMember(this) : null;
-  }
-
   public abstract boolean match(R entry);
 
   public abstract boolean match(D entry);

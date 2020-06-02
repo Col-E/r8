@@ -5,9 +5,7 @@
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
@@ -73,14 +71,12 @@ public class ConcreteMutableFieldSet extends AbstractFieldSet implements KnownFi
     assert !isEmpty();
     ConcreteMutableFieldSet rewrittenSet = new ConcreteMutableFieldSet();
     for (DexEncodedField field : fields) {
-      DexField rewrittenFieldReference = lens.lookupField(field.field);
-      DexClass holder = appView.definitionForHolder(rewrittenFieldReference);
-      DexEncodedField rewrittenField = rewrittenFieldReference.lookupOnClass(holder);
+      DexEncodedField rewrittenField = appView.definitionFor(lens.lookupField(field.field));
       if (rewrittenField == null) {
         assert false;
         continue;
       }
-      rewrittenSet.add(rewrittenField);
+      rewrittenSet.add(field);
     }
     return rewrittenSet;
   }

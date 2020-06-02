@@ -31,8 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class DexType extends DexReference implements PresortedComparable<DexType> {
@@ -118,23 +116,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   }
 
   @Override
-  public <T> T apply(
-      Function<DexType, T> classConsumer,
-      Function<DexField, T> fieldConsumer,
-      Function<DexMethod, T> methodConsumer) {
-    return classConsumer.apply(this);
-  }
-
-  @Override
-  public void accept(
-      Consumer<DexType> classConsumer,
-      Consumer<DexField> fieldConsumer,
-      Consumer<DexMethod> methodConsumer) {
-    classConsumer.accept(this);
-  }
-
-  @Override
-  public <T> void accept(
+  public <T> void apply(
       BiConsumer<DexType, T> classConsumer,
       BiConsumer<DexField, T> fieldConsumer,
       BiConsumer<DexMethod, T> methodConsumer,

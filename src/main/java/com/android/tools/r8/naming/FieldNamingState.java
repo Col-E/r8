@@ -6,9 +6,11 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.naming.FieldNamingState.InternalState;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -18,7 +20,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
 
   private final ReservedFieldNamingState reservedNames;
   private final MemberNamingStrategy strategy;
-  private final BiPredicate<DexString, ProgramField> isAvailable;
+  private final BiPredicate<DexString, DexField> isAvailable;
 
   public FieldNamingState(
       AppView<? extends AppInfoWithClassHierarchy> appView, MemberNamingStrategy strategy) {
@@ -40,8 +42,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     super(appView, internalStates);
     this.reservedNames = reservedNames;
     this.strategy = strategy;
-    this.isAvailable =
-        (newName, field) -> !reservedNames.isReserved(newName, field.getReference().type);
+    this.isAvailable = (newName, field) -> !reservedNames.isReserved(newName, field.type);
   }
 
   public FieldNamingState createChildState(ReservedFieldNamingState reservedNames) {
@@ -51,13 +52,20 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     return childState;
   }
 
-  public DexString getOrCreateNameFor(ProgramField field) {
-    DexString reservedName = strategy.getReservedName(field.getDefinition(), field.getHolder());
-    if (reservedName != null) {
-      return reservedName;
+  public DexString getOrCreateNameFor(DexField field) {
+    DexEncodedField encodedField = appView.appInfo().resolveField(field).getResolvedField();
+    if (encodedField != null) {
+      DexClass clazz = appView.definitionFor(encodedField.holder());
+      if (clazz == null) {
+        return field.name;
+      }
+      DexString reservedName = strategy.getReservedName(encodedField, clazz);
+      if (reservedName != null) {
+        return reservedName;
+      }
     }
     // TODO(b/133208730) If we cannot resolve the field, are we then allowed to rename it?
-    return getOrCreateInternalState(field.getReference()).createNewName(field);
+    return getOrCreateInternalState(field).createNewName(field);
   }
 
   public void includeReservations(ReservedFieldNamingState reservedNames) {
@@ -92,9 +100,9 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
       this.nextNameIndex = nextNameIndex;
     }
 
-    public DexString createNewName(ProgramField field) {
+    public DexString createNewName(DexField field) {
       DexString name = strategy.next(field, this, isAvailable);
-      assert !reservedNames.isReserved(name, field.getReference().type);
+      assert !reservedNames.isReserved(name, field.type);
       return name;
     }
 

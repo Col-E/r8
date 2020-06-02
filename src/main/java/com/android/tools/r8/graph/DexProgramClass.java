@@ -133,10 +133,6 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     synthesizedDirectlyFrom.forEach(this::addSynthesizedFrom);
   }
 
-  public void forEachProgramField(Consumer<ProgramField> consumer) {
-    forEachField(field -> consumer.accept(new ProgramField(this, field)));
-  }
-
   public void forEachProgramMethod(Consumer<ProgramMethod> consumer) {
     forEachProgramMethodMatching(alwaysTrue(), consumer);
   }
