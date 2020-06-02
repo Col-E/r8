@@ -51,7 +51,9 @@ public class Gmail18082615TreeShakeJarVerificationTest extends GmailCompilationB
             .assertAllInfoMessagesMatch(
                 anyOf(
                     equalTo("Ignoring option: -optimizations"),
-                    containsString("Proguard configuration rule does not match anything")))
+                    containsString("Proguard configuration rule does not match anything"),
+                    containsString("Invalid parameter counts in MethodParameter attributes"),
+                    containsString("Methods with invalid MethodParameter attributes")))
             .assertAllWarningMessagesMatch(containsString("Ignoring option:"));
 
     int appSize = compileResult.app.applicationSize();
