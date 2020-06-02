@@ -5,6 +5,7 @@
 import os
 import utils
 
+ANDROID_L_API = '21'
 BASE = os.path.join(utils.THIRD_PARTY, 'iosched_2019')
 
 INPUT_JARS = [
@@ -168,9 +169,10 @@ INPUT_JARS = [
 VERSIONS = {
   '2019': {
     'deploy' : {
-        'inputs': [os.path.join(BASE, path) for path in INPUT_JARS],
-        'pgconf': [os.path.join(BASE, 'proguard-rules.pro')],
-        'libraries': [utils.get_android_jar(28)],
+      'inputs': [os.path.join(BASE, path) for path in INPUT_JARS],
+      'pgconf': [os.path.join(BASE, 'proguard-rules.pro')],
+      'libraries': [utils.get_android_jar(28)],
+      'min-api' : ANDROID_L_API,
     },
   },
 }
