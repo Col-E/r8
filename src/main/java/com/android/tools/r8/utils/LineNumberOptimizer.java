@@ -408,7 +408,14 @@ public class LineNumberOptimizer {
                   || !Objects.equals(mp.caller, lastPosition.caller)) {
                 break;
               }
-              lastPosition = mp;
+              // The mapped positions are not guaranteed to be in order, so maintain first and last
+              // position.
+              if (firstPosition.obfuscatedLine > mp.obfuscatedLine) {
+                firstPosition = mp;
+              }
+              if (lastPosition.obfuscatedLine < mp.obfuscatedLine) {
+                lastPosition = mp;
+              }
             }
             Range obfuscatedRange =
                 new Range(firstPosition.obfuscatedLine, lastPosition.obfuscatedLine);
