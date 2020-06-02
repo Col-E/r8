@@ -709,15 +709,15 @@ public abstract class DexClass extends DexDefinition {
     return innerClasses;
   }
 
-  public EnclosingMethodAttribute getEnclosingMethod() {
+  public EnclosingMethodAttribute getEnclosingMethodAttribute() {
     return enclosingMethod;
   }
 
-  public void clearEnclosingMethod() {
+  public void clearEnclosingMethodAttribute() {
     enclosingMethod = null;
   }
 
-  public void removeEnclosingMethod(Predicate<EnclosingMethodAttribute> predicate) {
+  public void removeEnclosingMethodAttribute(Predicate<EnclosingMethodAttribute> predicate) {
     if (enclosingMethod != null && predicate.test(enclosingMethod)) {
       enclosingMethod = null;
     }
@@ -761,7 +761,7 @@ public abstract class DexClass extends DexDefinition {
   public boolean isMemberClass() {
     InnerClassAttribute innerClass = getInnerClassAttributeForThisClass();
     boolean isMember = innerClass != null && innerClass.getOuter() != null && innerClass.isNamed();
-    assert !isMember || getEnclosingMethod() == null;
+    assert !isMember || getEnclosingMethodAttribute() == null;
     return isMember;
   }
 

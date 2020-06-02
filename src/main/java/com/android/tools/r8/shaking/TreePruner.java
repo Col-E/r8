@@ -178,7 +178,7 @@ public class TreePruner {
       clazz.setStaticFields(reachableStaticFields);
     }
     clazz.removeInnerClasses(this::isAttributeReferencingPrunedType);
-    clazz.removeEnclosingMethod(this::isAttributeReferencingPrunedItem);
+    clazz.removeEnclosingMethodAttribute(this::isAttributeReferencingPrunedItem);
     rewriteNestAttributes(clazz);
     usagePrinter.visited();
     assert verifyNoDeadFields(clazz);

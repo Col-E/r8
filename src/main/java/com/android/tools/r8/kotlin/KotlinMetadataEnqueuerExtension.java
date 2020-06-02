@@ -59,14 +59,15 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
                     appView.options().reporter,
                     onlyProcessLambdas,
                     method -> keepByteCodeFunctions.add(method.method)));
-            if (clazz.getEnclosingMethod() != null
-                && clazz.getEnclosingMethod().getEnclosingMethod() != null) {
+            if (clazz.getEnclosingMethodAttribute() != null
+                && clazz.getEnclosingMethodAttribute().getEnclosingMethod() != null) {
               localOrAnonymousClasses.add(clazz);
             }
           });
       appView.setCfByteCodePassThrough(keepByteCodeFunctions);
       for (DexProgramClass localOrAnonymousClass : localOrAnonymousClasses) {
-        EnclosingMethodAttribute enclosingAttribute = localOrAnonymousClass.getEnclosingMethod();
+        EnclosingMethodAttribute enclosingAttribute =
+            localOrAnonymousClass.getEnclosingMethodAttribute();
         DexClass holder =
             definitionSupplier.definitionForHolder(enclosingAttribute.getEnclosingMethod());
         if (holder == null) {

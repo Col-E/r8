@@ -455,7 +455,7 @@ public class ApplicationWriter {
   private void insertAttributeAnnotations() {
     // Convert inner-class attributes to DEX annotations
     for (DexProgramClass clazz : application.classes()) {
-      EnclosingMethodAttribute enclosingMethod = clazz.getEnclosingMethod();
+      EnclosingMethodAttribute enclosingMethod = clazz.getEnclosingMethodAttribute();
       List<InnerClassAttribute> innerClasses = clazz.getInnerClasses();
       if (enclosingMethod == null && innerClasses.isEmpty()) {
         continue;
@@ -521,7 +521,7 @@ public class ApplicationWriter {
       }
 
       // Clear the attribute structures now that they are represented in annotations.
-      clazz.clearEnclosingMethod();
+      clazz.clearEnclosingMethodAttribute();
       clazz.clearInnerClasses();
     }
   }

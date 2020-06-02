@@ -401,7 +401,8 @@ public class VerticalClassMerger {
     if (result.shouldBreak()) {
       return false;
     }
-    if (sourceClass.getEnclosingMethod() != null || !sourceClass.getInnerClasses().isEmpty()) {
+    if (sourceClass.getEnclosingMethodAttribute() != null
+        || !sourceClass.getInnerClasses().isEmpty()) {
       // TODO(b/147504070): Consider merging of enclosing-method and inner-class attributes.
       if (Log.ENABLED) {
         AbortReason.UNSUPPORTED_ATTRIBUTES.printLogMessageForClass(sourceClass);
@@ -459,7 +460,8 @@ public class VerticalClassMerger {
       }
       return false;
     }
-    if (targetClass.getEnclosingMethod() != null || !targetClass.getInnerClasses().isEmpty()) {
+    if (targetClass.getEnclosingMethodAttribute() != null
+        || !targetClass.getInnerClasses().isEmpty()) {
       // TODO(b/147504070): Consider merging of enclosing-method and inner-class attributes.
       if (Log.ENABLED) {
         AbortReason.UNSUPPORTED_ATTRIBUTES.printLogMessageForClass(sourceClass);

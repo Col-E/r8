@@ -1517,7 +1517,7 @@ public class Enqueuer {
       recordTypeReference(innerClassAttribute.getInner());
       recordTypeReference(innerClassAttribute.getOuter());
     }
-    EnclosingMethodAttribute enclosingMethodAttribute = holder.getEnclosingMethod();
+    EnclosingMethodAttribute enclosingMethodAttribute = holder.getEnclosingMethodAttribute();
     if (enclosingMethodAttribute != null) {
       DexMethod enclosingMethod = enclosingMethodAttribute.getEnclosingMethod();
       if (enclosingMethod != null) {

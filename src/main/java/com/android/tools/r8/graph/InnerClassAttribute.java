@@ -85,8 +85,8 @@ public class InnerClassAttribute {
     DexType context = getOuter();
     if (context == null) {
       DexClass inner = appInfo.definitionFor(getInner());
-      if (inner != null && inner.getEnclosingMethod() != null) {
-        EnclosingMethodAttribute enclosingMethodAttribute = inner.getEnclosingMethod();
+      if (inner != null && inner.getEnclosingMethodAttribute() != null) {
+        EnclosingMethodAttribute enclosingMethodAttribute = inner.getEnclosingMethodAttribute();
         if (enclosingMethodAttribute.getEnclosingClass() != null) {
           context = enclosingMethodAttribute.getEnclosingClass();
         } else {

@@ -246,8 +246,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       if (interfaces != null) {
         interfaces.collectIndexedItems(indexedItems, method, instructionOffset);
       }
-      if (getEnclosingMethod() != null) {
-        getEnclosingMethod().collectIndexedItems(indexedItems);
+      if (getEnclosingMethodAttribute() != null) {
+        getEnclosingMethodAttribute().collectIndexedItems(indexedItems);
       }
       for (InnerClassAttribute attribute : getInnerClasses()) {
         attribute.collectIndexedItems(indexedItems);
@@ -273,7 +273,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
   @Override
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {
-    assert getEnclosingMethod() == null;
+    assert getEnclosingMethodAttribute() == null;
     assert getInnerClasses().isEmpty();
     if (hasAnnotations()) {
       mixedItems.setAnnotationsDirectoryForClass(this, new DexAnnotationDirectory(this));
@@ -282,7 +282,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
   @Override
   public void addDependencies(MixedSectionCollection collector) {
-    assert getEnclosingMethod() == null;
+    assert getEnclosingMethodAttribute() == null;
     assert getInnerClasses().isEmpty();
     // We only have a class data item if there are methods or fields.
     if (hasMethodsOrFields()) {

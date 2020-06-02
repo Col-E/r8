@@ -73,15 +73,15 @@ public class TreeShakingAnnotationremovalTest extends TreeShakingTest {
     Assert.assertTrue(outer.getDexProgramClass().getInnerClasses().isEmpty());
     ClassSubject inner = inspector.clazz("annotationremoval.OuterClass$InnerClass");
     Assert.assertTrue(inner.isPresent());
-    Assert.assertNull(inner.getDexProgramClass().getEnclosingMethod());
+    Assert.assertNull(inner.getDexProgramClass().getEnclosingMethodAttribute());
     Assert.assertTrue(inner.getDexProgramClass().getInnerClasses().isEmpty());
     ClassSubject anonymous = inspector.clazz("annotationremoval.OuterClass$1");
     Assert.assertTrue(anonymous.isPresent());
-    Assert.assertNull(anonymous.getDexProgramClass().getEnclosingMethod());
+    Assert.assertNull(anonymous.getDexProgramClass().getEnclosingMethodAttribute());
     Assert.assertTrue(anonymous.getDexProgramClass().getInnerClasses().isEmpty());
     ClassSubject local = inspector.clazz("annotationremoval.OuterClass$1LocalMagic");
     Assert.assertTrue(local.isPresent());
-    Assert.assertNull(local.getDexProgramClass().getEnclosingMethod());
+    Assert.assertNull(local.getDexProgramClass().getEnclosingMethodAttribute());
     Assert.assertTrue(local.getDexProgramClass().getInnerClasses().isEmpty());
   }
 

@@ -258,9 +258,9 @@ public class AnnotationRemover {
   }
 
   private boolean enclosingMethodPinned(DexClass clazz) {
-    return clazz.getEnclosingMethod() != null
-        && clazz.getEnclosingMethod().getEnclosingClass() != null
-        && appView.appInfo().isPinned(clazz.getEnclosingMethod().getEnclosingClass());
+    return clazz.getEnclosingMethodAttribute() != null
+        && clazz.getEnclosingMethodAttribute().getEnclosingClass() != null
+        && appView.appInfo().isPinned(clazz.getEnclosingMethodAttribute().getEnclosingClass());
   }
 
   private static boolean hasInnerClassesFromSet(DexProgramClass clazz, Set<DexType> innerClasses) {
@@ -292,7 +292,7 @@ public class AnnotationRemover {
     }
     if (keptAnyway || keepForThisInnerClass || keepForThisEnclosingClass) {
       if (!keep.enclosingMethod) {
-        clazz.clearEnclosingMethod();
+        clazz.clearEnclosingMethodAttribute();
       }
       if (!keep.innerClasses) {
         clazz.clearInnerClasses();
@@ -323,7 +323,7 @@ public class AnnotationRemover {
     } else {
       // These attributes are only relevant for reflection, and this class is not used for
       // reflection. (Note that clearing these attributes can enable more vertical class merging.)
-      clazz.clearEnclosingMethod();
+      clazz.clearEnclosingMethodAttribute();
       clazz.clearInnerClasses();
     }
   }

@@ -172,8 +172,8 @@ public class CfApplicationWriter {
     writeAnnotations(writer::visitAnnotation, clazz.annotations().annotations);
     ImmutableMap<DexString, DexValue> defaults = getAnnotationDefaults(clazz.annotations());
 
-    if (clazz.getEnclosingMethod() != null) {
-      clazz.getEnclosingMethod().write(writer, namingLens);
+    if (clazz.getEnclosingMethodAttribute() != null) {
+      clazz.getEnclosingMethodAttribute().write(writer, namingLens);
     }
 
     if (clazz.getNestHostClassAttribute() != null) {

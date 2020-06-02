@@ -49,7 +49,7 @@ final class KStyleLambdaGroupIdFactory extends KotlinLambdaGroupIdFactory {
         genericSignature,
         mainMethod,
         innerClass,
-        lambda.getEnclosingMethod());
+        lambda.getEnclosingMethodAttribute());
   }
 
   @Override
