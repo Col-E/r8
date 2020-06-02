@@ -69,7 +69,6 @@ import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
-import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
@@ -159,7 +158,6 @@ public class IRConverter {
   private final Devirtualizer devirtualizer;
   private final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
   private final StringSwitchRemover stringSwitchRemover;
-  private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
   private final TypeChecker typeChecker;
   private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
   private final ServiceLoaderRewriter serviceLoaderRewriter;
@@ -254,7 +252,6 @@ public class IRConverter {
       this.lensCodeRewriter = null;
       this.identifierNameStringMarker = null;
       this.devirtualizer = null;
-      this.uninstantiatedTypeOptimization = null;
       this.typeChecker = null;
       this.d8NestBasedAccessDesugaring = null;
       this.stringSwitchRemover = null;
@@ -320,10 +317,6 @@ public class IRConverter {
       }
       this.devirtualizer =
           options.enableDevirtualization ? new Devirtualizer(appViewWithLiveness) : null;
-      this.uninstantiatedTypeOptimization =
-          options.enableUninstantiatedTypeOptimization
-              ? new UninstantiatedTypeOptimization(appViewWithLiveness)
-              : null;
       this.typeChecker = new TypeChecker(appViewWithLiveness);
       this.d8NestBasedAccessDesugaring = null;
       this.serviceLoaderRewriter =
@@ -351,7 +344,6 @@ public class IRConverter {
       this.lensCodeRewriter = null;
       this.identifierNameStringMarker = null;
       this.devirtualizer = null;
-      this.uninstantiatedTypeOptimization = null;
       this.typeChecker = null;
       this.d8NestBasedAccessDesugaring =
           options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
@@ -1318,14 +1310,6 @@ public class IRConverter {
 
     assert code.verifyTypes(appView);
 
-    if (uninstantiatedTypeOptimization != null) {
-      timing.begin("Rewrite uninstantiated types");
-      uninstantiatedTypeOptimization.rewrite(code);
-      timing.end();
-    }
-
-    assert code.verifyTypes(appView);
-
     timing.begin("Remove trivial type checks/casts");
     codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
     timing.end();
@@ -1367,8 +1351,8 @@ public class IRConverter {
     timing.begin("Propogate sparse conditionals");
     new SparseConditionalConstantPropagation(appView, code).run();
     timing.end();
-    timing.begin("Rewrite always throwing invokes");
-    codeRewriter.processMethodsNeverReturningNormally(code);
+    timing.begin("Rewrite always throwing instructions");
+    codeRewriter.optimizeAlwaysThrowingInstructions(code);
     timing.end();
     timing.begin("Simplify control flow");
     if (codeRewriter.simplifyControlFlow(code)) {

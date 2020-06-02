@@ -50,6 +50,10 @@ public interface InstructionSubject {
 
   boolean isConstNull();
 
+  default boolean isConstString() {
+    return isConstString(JumboStringMode.ALLOW);
+  }
+
   boolean isConstString(JumboStringMode jumboStringMode);
 
   boolean isConstString(String value, JumboStringMode jumboStringMode);

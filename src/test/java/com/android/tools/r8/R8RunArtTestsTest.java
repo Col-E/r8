@@ -513,9 +513,6 @@ public abstract class R8RunArtTestsTest {
             // Addition of checks for super-class-initialization cause this to abort on non-ToT art.
             "008-exceptions",
 
-            // Fails due to non-matching Exception messages.
-            "201-built-in-except-detail-messages",
-
             // Generally fails on non-R8/D8 running.
             "156-register-dex-file-multi-loader",
             "412-new-array",
@@ -524,9 +521,6 @@ public abstract class R8RunArtTestsTest {
         .put(DexVm.Version.V6_0_1, ImmutableList.of(
             // Addition of checks for super-class-initialization cause this to abort on non-ToT art.
             "008-exceptions",
-
-            // Fails due to non-matching Exception messages.
-            "201-built-in-except-detail-messages",
 
             // Generally fails on non-R8/D8 running.
             "004-checker-UnsafeTest18",
@@ -543,9 +537,6 @@ public abstract class R8RunArtTestsTest {
         .put(DexVm.Version.V5_1_1, ImmutableList.of(
             // Addition of checks for super-class-initialization cause this to abort on non-ToT art.
             "008-exceptions",
-
-            // Fails due to non-matching Exception messages.
-            "201-built-in-except-detail-messages",
 
             // Generally fails on non R8/D8 running.
             "004-checker-UnsafeTest18",
@@ -567,9 +558,6 @@ public abstract class R8RunArtTestsTest {
             // Addition of checks for super-class-initialization cause this to abort on non-ToT art.
             "008-exceptions",
 
-            // Fails due to non-matching Exception messages.
-            "201-built-in-except-detail-messages",
-
             // Generally fails on non R8/D8 running.
             "004-checker-UnsafeTest18",
             "004-NativeAllocations",
@@ -589,9 +577,6 @@ public abstract class R8RunArtTestsTest {
         .put(DexVm.Version.V4_0_4, ImmutableList.of(
             // Addition of checks for super-class-initialization cause this to abort on non-ToT art.
             "008-exceptions",
-
-            // Fails due to non-matching Exception messages.
-            "201-built-in-except-detail-messages",
 
             // Generally fails on non R8/D8 running.
             "004-checker-UnsafeTest18",
@@ -821,6 +806,11 @@ public abstract class R8RunArtTestsTest {
           .put("138-duplicate-classes-check", TestCondition.any())
           // Array index out of bounds exception.
           .put("150-loadlibrary", TestCondition.any())
+          // Fails due to non-matching Exception messages.
+          .put(
+              "201-built-in-except-detail-messages",
+              TestCondition.match(
+                  TestCondition.compilers(CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8)))
           // Uses dex file version 37 and therefore only runs on Android N and above.
           .put(
               "370-dex-v37",
@@ -1170,13 +1160,6 @@ public abstract class R8RunArtTestsTest {
       "435-new-instance"
   );
 
-  private static List<String> requireUninstantiatedTypeOptimizationToBeDisabled = ImmutableList.of(
-      // This test inspects the message of the exception that is thrown when calling a virtual
-      // method with a null-receiver. This message changes when the invocation is rewritten to
-      // "throw null".
-      "201-built-in-except-detail-messages"
-  );
-
   private static List<String> hasMissingClasses = ImmutableList.of(
       "091-override-package-private-method",
       "003-omnibus-opcodes",
@@ -1279,8 +1262,6 @@ public abstract class R8RunArtTestsTest {
     private final boolean disableInlining;
     // Whether to disable class inlining
     private final boolean disableClassInlining;
-    // Whether to disable the uninitialized type optimization.
-    private final boolean disableUninstantiatedTypeOptimization;
     // Has missing classes.
     private final boolean hasMissingClasses;
     // Explicitly disable desugaring.
@@ -1304,7 +1285,6 @@ public abstract class R8RunArtTestsTest {
         boolean outputMayDiffer,
         boolean disableInlining,
         boolean disableClassInlining,
-        boolean disableUninstantiatedTypeOptimization,
         boolean hasMissingClasses,
         boolean disableDesugaring,
         List<String> keepRules,
@@ -1323,7 +1303,6 @@ public abstract class R8RunArtTestsTest {
       this.outputMayDiffer = outputMayDiffer;
       this.disableInlining = disableInlining;
       this.disableClassInlining = disableClassInlining;
-      this.disableUninstantiatedTypeOptimization = disableUninstantiatedTypeOptimization;
       this.hasMissingClasses = hasMissingClasses;
       this.disableDesugaring = disableDesugaring;
       this.keepRules = keepRules;
@@ -1354,7 +1333,6 @@ public abstract class R8RunArtTestsTest {
           disableInlining,
           true, // Disable class inlining for JCTF tests.
           false,
-          false,
           true, // Disable desugaring for JCTF tests.
           ImmutableList.of(),
           null);
@@ -1382,7 +1360,6 @@ public abstract class R8RunArtTestsTest {
           false,
           disableInlining,
           true, // Disable class inlining for JCTF tests.
-          false,
           false,
           true, // Disable desugaring for JCTF tests.
           ImmutableList.of(),
@@ -1548,7 +1525,6 @@ public abstract class R8RunArtTestsTest {
                 outputMayDiffer.contains(name),
                 requireInliningToBeDisabled.contains(name),
                 requireClassInliningToBeDisabled.contains(name),
-                requireUninstantiatedTypeOptimizationToBeDisabled.contains(name),
                 hasMissingClasses.contains(name),
                 false,
                 keepRules.getOrDefault(name, ImmutableList.of()),
@@ -1619,7 +1595,6 @@ public abstract class R8RunArtTestsTest {
 
     private final boolean disableInlining;
     private final boolean disableClassInlining;
-    private final boolean disableUninstantiatedTypeOptimization;
     private final boolean hasMissingClasses;
     private final boolean disableDesugaring;
     private final List<String> keepRules;
@@ -1628,7 +1603,6 @@ public abstract class R8RunArtTestsTest {
     private CompilationOptions(TestSpecification spec) {
       this.disableInlining = spec.disableInlining;
       this.disableClassInlining = spec.disableClassInlining;
-      this.disableUninstantiatedTypeOptimization = spec.disableUninstantiatedTypeOptimization;
       this.hasMissingClasses = spec.hasMissingClasses;
       this.disableDesugaring = spec.disableDesugaring;
       this.keepRules = spec.keepRules;
@@ -1642,9 +1616,6 @@ public abstract class R8RunArtTestsTest {
       }
       if (disableClassInlining) {
         options.enableClassInlining = false;
-      }
-      if (disableUninstantiatedTypeOptimization) {
-        options.enableUninstantiatedTypeOptimization = false;
       }
       // Some tests actually rely on missing classes for what they test.
       options.ignoreMissingClasses = hasMissingClasses;
@@ -1664,7 +1635,6 @@ public abstract class R8RunArtTestsTest {
       CompilationOptions options = (CompilationOptions) o;
       return disableInlining == options.disableInlining
           && disableClassInlining == options.disableClassInlining
-          && disableUninstantiatedTypeOptimization == options.disableUninstantiatedTypeOptimization
           && hasMissingClasses == options.hasMissingClasses;
     }
 
@@ -1673,7 +1643,6 @@ public abstract class R8RunArtTestsTest {
       return Objects.hash(
           disableInlining,
           disableClassInlining,
-          disableUninstantiatedTypeOptimization,
           hasMissingClasses);
     }
   }

@@ -58,7 +58,15 @@ public interface InstructionListIterator
    */
   void removeOrReplaceByDebugLocalRead();
 
+  default boolean hasInsertionPosition() {
+    return false;
+  }
+
   default void setInsertionPosition(Position position) {
+    // Intentionally empty.
+  }
+
+  default void unsetInsertionPosition() {
     // Intentionally empty.
   }
 

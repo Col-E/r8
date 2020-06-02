@@ -1461,17 +1461,70 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return false;
   }
 
-  public enum SideEffectAssumption {
-    NONE,
-    CLASS_ALREADY_INITIALIZED,
-    RECEIVER_NOT_NULL;
+  public static class SideEffectAssumption {
 
-    boolean canAssumeClassIsAlreadyInitialized() {
-      return this == CLASS_ALREADY_INITIALIZED;
+    public static final SideEffectAssumption NONE = new SideEffectAssumption();
+
+    public static final SideEffectAssumption CLASS_ALREADY_INITIALIZED =
+        new SideEffectAssumption() {
+
+          @Override
+          public boolean canAssumeClassIsAlreadyInitialized() {
+            return true;
+          }
+        };
+
+    public static final SideEffectAssumption INVOKED_METHOD_DOES_NOT_HAVE_SIDE_EFFECTS =
+        new SideEffectAssumption() {
+
+          @Override
+          public boolean canAssumeInvokedMethodDoesNotHaveSideEffects() {
+            return true;
+          }
+        };
+
+    public static final SideEffectAssumption RECEIVER_NOT_NULL =
+        new SideEffectAssumption() {
+
+          @Override
+          public boolean canAssumeReceiverIsNotNull() {
+            return true;
+          }
+        };
+
+    public boolean canAssumeClassIsAlreadyInitialized() {
+      return false;
     }
 
-    boolean canAssumeReceiverIsNotNull() {
-      return this == RECEIVER_NOT_NULL;
+    public boolean canAssumeInvokedMethodDoesNotHaveSideEffects() {
+      return false;
+    }
+
+    public boolean canAssumeReceiverIsNotNull() {
+      return false;
+    }
+
+    public SideEffectAssumption join(SideEffectAssumption other) {
+      return new SideEffectAssumption() {
+
+        @Override
+        public boolean canAssumeClassIsAlreadyInitialized() {
+          return SideEffectAssumption.this.canAssumeClassIsAlreadyInitialized()
+              || other.canAssumeClassIsAlreadyInitialized();
+        }
+
+        @Override
+        public boolean canAssumeInvokedMethodDoesNotHaveSideEffects() {
+          return SideEffectAssumption.this.canAssumeInvokedMethodDoesNotHaveSideEffects()
+              || other.canAssumeInvokedMethodDoesNotHaveSideEffects();
+        }
+
+        @Override
+        public boolean canAssumeReceiverIsNotNull() {
+          return SideEffectAssumption.this.canAssumeInvokedMethodDoesNotHaveSideEffects()
+              || other.canAssumeInvokedMethodDoesNotHaveSideEffects();
+        }
+      };
     }
   }
 }

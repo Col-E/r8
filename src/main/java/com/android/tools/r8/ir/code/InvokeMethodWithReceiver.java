@@ -225,6 +225,10 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       return true;
     }
 
+    if (assumption.canAssumeInvokedMethodDoesNotHaveSideEffects()) {
+      return false;
+    }
+
     DexEncodedMethod resolvedMethod = resolutionResult.getResolvedMethod();
     if (appViewWithLiveness.appInfo().noSideEffects.containsKey(getInvokedMethod())
         || appViewWithLiveness.appInfo().noSideEffects.containsKey(resolvedMethod.getReference())) {

@@ -16,6 +16,9 @@ public interface InstanceFieldInstruction {
 
   Value object();
 
+  boolean instructionInstanceCanThrow(
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption);
+
   boolean instructionMayHaveSideEffects(
       AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption);
 

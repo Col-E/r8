@@ -44,6 +44,10 @@ public abstract class MethodOptimizationInfo {
 
   public abstract ParameterUsage getParameterUsages(int parameter);
 
+  public final boolean hasNonNullParamOrThrow() {
+    return getNonNullParamOrThrow() != null;
+  }
+
   public abstract BitSet getNonNullParamOrThrow();
 
   public abstract BitSet getNonNullParamOnNormalExits();

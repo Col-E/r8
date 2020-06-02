@@ -152,11 +152,6 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
-  public void setInsertionPosition(Position position) {
-    instructionIterator.setInsertionPosition(position);
-  }
-
-  @Override
   public void replaceCurrentInstruction(Instruction newInstruction, Set<Value> affectedValues) {
     instructionIterator.replaceCurrentInstruction(newInstruction, affectedValues);
   }
@@ -164,5 +159,20 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   @Override
   public void removeOrReplaceByDebugLocalRead() {
     instructionIterator.removeOrReplaceByDebugLocalRead();
+  }
+
+  @Override
+  public boolean hasInsertionPosition() {
+    return instructionIterator.hasInsertionPosition();
+  }
+
+  @Override
+  public void setInsertionPosition(Position position) {
+    instructionIterator.setInsertionPosition(position);
+  }
+
+  @Override
+  public void unsetInsertionPosition() {
+    instructionIterator.unsetInsertionPosition();
   }
 }

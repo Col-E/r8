@@ -87,8 +87,18 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public boolean hasInsertionPosition() {
+    return position != null;
+  }
+
+  @Override
   public void setInsertionPosition(Position position) {
     this.position = position;
+  }
+
+  @Override
+  public void unsetInsertionPosition() {
+    this.position = null;
   }
 
   /**
@@ -212,13 +222,15 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       IRCode code, InternalOptions options, long value, TypeElement type) {
     ConstNumber constNumberInstruction = code.createNumberConstant(value, type);
     // Note that we only keep position info for throwing instructions in release mode.
-    Position position;
-    if (options.debug) {
-      position = current != null ? current.getPosition() : block.getPosition();
-    } else {
-      position = Position.none();
+    if (!hasInsertionPosition()) {
+      Position position;
+      if (options.debug) {
+        position = current != null ? current.getPosition() : block.getPosition();
+      } else {
+        position = Position.none();
+      }
+      constNumberInstruction.setPosition(position);
     }
-    constNumberInstruction.setPosition(position);
     add(constNumberInstruction);
     return constNumberInstruction.outValue();
   }
@@ -308,8 +320,13 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
             new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS),
             affectedValues));
 
-    InstructionListIterator throwBlockInstructionIterator =
-        throwBlock == block ? this : throwBlock.listIterator(code);
+    InstructionListIterator throwBlockInstructionIterator;
+    if (throwBlock == block) {
+      throwBlockInstructionIterator = this;
+    } else {
+      throwBlockInstructionIterator = throwBlock.listIterator(code);
+      throwBlockInstructionIterator.setInsertionPosition(position);
+    }
 
     // Insert constant null before the goto instruction.
     Value nullValue =
@@ -321,7 +338,9 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
     // Replace the instruction by throw.
     Throw throwInstruction = new Throw(nullValue);
-    if (toBeReplaced.getPosition().isSome()) {
+    if (hasInsertionPosition()) {
+      throwInstruction.setPosition(position);
+    } else if (toBeReplaced.getPosition().isSome()) {
       throwInstruction.setPosition(toBeReplaced.getPosition());
     } else {
       // The instruction that is being removed cannot throw, and thus it must be unreachable as we
