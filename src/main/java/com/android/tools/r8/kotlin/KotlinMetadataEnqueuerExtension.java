@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.google.common.collect.Sets;
@@ -45,6 +46,7 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
             || enqueuer.isPinned(kotlinMetadataType);
     if (enqueuer.getMode().isInitialTreeShaking()) {
       Set<DexMethod> keepByteCodeFunctions = Sets.newIdentityHashSet();
+      Set<DexProgramClass> localOrAnonymousClasses = Sets.newIdentityHashSet();
       enqueuer.forAllLiveClasses(
           clazz -> {
             boolean onlyProcessLambdas = !keepMetadata || !enqueuer.isPinned(clazz.type);
@@ -57,8 +59,28 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
                     appView.options().reporter,
                     onlyProcessLambdas,
                     method -> keepByteCodeFunctions.add(method.method)));
+            if (clazz.getEnclosingMethod() != null
+                && clazz.getEnclosingMethod().getEnclosingMethod() != null) {
+              localOrAnonymousClasses.add(clazz);
+            }
           });
       appView.setCfByteCodePassThrough(keepByteCodeFunctions);
+      for (DexProgramClass localOrAnonymousClass : localOrAnonymousClasses) {
+        EnclosingMethodAttribute enclosingAttribute = localOrAnonymousClass.getEnclosingMethod();
+        DexClass holder =
+            definitionSupplier.definitionForHolder(enclosingAttribute.getEnclosingMethod());
+        if (holder == null) {
+          continue;
+        }
+        DexEncodedMethod method = holder.lookupMethod(enclosingAttribute.getEnclosingMethod());
+        // If we cannot lookup the method, the conservative choice is keep the byte code.
+        if (method == null
+            || (method.getKotlinMemberInfo().isFunction()
+                && method.getKotlinMemberInfo().asFunction().hasCrossInlineParameter())) {
+          localOrAnonymousClass.forEachProgramMethod(
+              m -> keepByteCodeFunctions.add(m.getReference()));
+        }
+      }
     } else {
       assert verifyKotlinMetadataModeledForAllClasses(enqueuer, keepMetadata);
     }

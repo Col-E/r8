@@ -37,6 +37,8 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
   private final KotlinJvmMethodSignatureInfo signature;
   // Information about the lambdaClassOrigin.
   private final KotlinTypeReference lambdaClassOrigin;
+  // A value describing if any of the parameters are crossinline.
+  private final boolean crossInlineParameter;
 
   private KotlinFunctionInfo(
       int flags,
@@ -46,7 +48,8 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
       List<KotlinValueParameterInfo> valueParameters,
       List<KotlinTypeParameterInfo> typeParameters,
       KotlinJvmMethodSignatureInfo signature,
-      KotlinTypeReference lambdaClassOrigin) {
+      KotlinTypeReference lambdaClassOrigin,
+      boolean crossInlineParameter) {
     this.flags = flags;
     this.name = name;
     this.returnType = returnType;
@@ -55,19 +58,34 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     this.typeParameters = typeParameters;
     this.signature = signature;
     this.lambdaClassOrigin = lambdaClassOrigin;
+    this.crossInlineParameter = crossInlineParameter;
+  }
+
+  public boolean hasCrossInlineParameter() {
+    return crossInlineParameter;
   }
 
   static KotlinFunctionInfo create(
       KmFunction kmFunction, DexItemFactory factory, Reporter reporter) {
+    boolean isCrossInline = false;
+    List<KotlinValueParameterInfo> valueParameters =
+        KotlinValueParameterInfo.create(kmFunction.getValueParameters(), factory, reporter);
+    for (KotlinValueParameterInfo valueParameter : valueParameters) {
+      if (valueParameter.isCrossInline()) {
+        isCrossInline = true;
+        break;
+      }
+    }
     return new KotlinFunctionInfo(
         kmFunction.getFlags(),
         kmFunction.getName(),
         KotlinTypeInfo.create(kmFunction.getReturnType(), factory, reporter),
         KotlinTypeInfo.create(kmFunction.getReceiverParameterType(), factory, reporter),
-        KotlinValueParameterInfo.create(kmFunction.getValueParameters(), factory, reporter),
+        valueParameters,
         KotlinTypeParameterInfo.create(kmFunction.getTypeParameters(), factory, reporter),
         KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmFunction), factory),
-        getlambdaClassOrigin(kmFunction, factory));
+        getlambdaClassOrigin(kmFunction, factory),
+        isCrossInline);
   }
 
   private static KotlinTypeReference getlambdaClassOrigin(

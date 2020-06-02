@@ -2,10 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.kotlin.metadata.crossinline_app
+package com.android.tools.r8.kotlin.metadata.crossinline_concrete_app
 
-import com.android.tools.r8.kotlin.metadata.crossinline_lib.Context
-import com.android.tools.r8.kotlin.metadata.crossinline_lib.Handler
+import com.android.tools.r8.kotlin.metadata.crossinline_concrete_lib.Context
+import com.android.tools.r8.kotlin.metadata.crossinline_concrete_lib.Handler
 
 fun main() {
   Handler({ context, throwable ->

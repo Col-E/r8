@@ -16,6 +16,7 @@ import java.util.List;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmValueParameter;
 import kotlinx.metadata.KmValueParameterVisitor;
+import kotlinx.metadata.internal.metadata.deserialization.Flags;
 
 // Provides access to Kotlin information about value parameter.
 class KotlinValueParameterInfo implements EnqueuerMetadataTraceable {
@@ -35,6 +36,10 @@ class KotlinValueParameterInfo implements EnqueuerMetadataTraceable {
     this.flags = flags;
     this.type = type;
     this.varargElementType = varargElementType;
+  }
+
+  boolean isCrossInline() {
+    return Flags.IS_CROSSINLINE.get(flags);
   }
 
   static KotlinValueParameterInfo create(

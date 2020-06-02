@@ -5,8 +5,6 @@
 package com.android.tools.r8.kotlin.coroutines;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.KotlinTestBase;
@@ -65,17 +63,7 @@ public class KotlinxCoroutinesTestRunner extends KotlinTestBase {
 
   @Test
   public void runKotlinxCoroutinesTests_smoke() throws Exception {
-    Path testJar =
-        kotlinc(KOTLINC, targetVersion)
-            .addArguments(
-                "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
-                "-Xuse-experimental=kotlinx.coroutines.ObsoleteCoroutinesApi",
-                "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi")
-            .addClasspathFiles(DEPENDENCIES)
-            .addClasspathFiles(BASE_LIBRARY)
-            .addSourceFiles(TEST_SOURCES)
-            .compile();
-    runTestsInJar(testJar, BASE_LIBRARY);
+    runTestsInJar(compileTestSources(BASE_LIBRARY), BASE_LIBRARY);
   }
 
   @Test
@@ -93,26 +81,26 @@ public class KotlinxCoroutinesTestRunner extends KotlinTestBase {
                 "-dontwarn org.junit.rules.TestRule")
             .compile()
             .writeToZip();
-    ProcessResult kotlincResult =
-        kotlinc(KOTLINC, targetVersion)
-            .addArguments(
-                "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
-                "-Xuse-experimental=kotlinx.coroutines.ObsoleteCoroutinesApi",
-                "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi")
-            .addClasspathFiles(DEPENDENCIES)
-            .addClasspathFiles(baseJar)
-            .addSourceFiles(TEST_SOURCES)
-            .setOutputPath(temp.newFolder().toPath())
-            .compileRaw();
-    assertEquals(1, kotlincResult.exitCode);
-    assertThat(
-        kotlincResult.stderr,
-        containsString("Couldn't inline method call 'CoroutineExceptionHandler'"));
+    compileTestSources(baseJar);
+    // TODO(b/157977713): We should be able to run tests.
+    // runTestsInJar(testJar, baseJar);
   }
 
-  private void runTestsInJar(Path testJar, Path deps) throws Exception {
+  private Path compileTestSources(Path baseJar) throws Exception {
+    return kotlinc(KOTLINC, targetVersion)
+        .addArguments(
+            "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
+            "-Xuse-experimental=kotlinx.coroutines.ObsoleteCoroutinesApi",
+            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi")
+        .addClasspathFiles(DEPENDENCIES)
+        .addClasspathFiles(baseJar)
+        .addSourceFiles(TEST_SOURCES)
+        .compile();
+  }
+
+  private void runTestsInJar(Path testJar, Path baseJar) throws Exception {
     List<Path> dependencies = new ArrayList<>(DEPENDENCIES);
-    dependencies.add(deps);
+    dependencies.add(baseJar);
     dependencies.add(testJar);
     ZipUtils.iter(
         testJar.toString(),
