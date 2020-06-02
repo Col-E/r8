@@ -11,15 +11,11 @@ import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.shaking.Enqueuer;
@@ -99,16 +95,6 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
         DexDefinitionSupplier baseSupplier, Set<DexType> prunedTypes) {
       this.baseSupplier = baseSupplier;
       this.prunedTypes = prunedTypes;
-    }
-
-    @Override
-    public DexDefinition definitionFor(DexReference reference) {
-      throw new Unreachable("Should not be called");
-    }
-
-    @Override
-    public DexEncodedField definitionFor(DexField field) {
-      throw new Unreachable("Should not be called");
     }
 
     @Override
