@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.naming.NamingLens;
+import java.util.function.BiConsumer;
 
 public class DexField extends DexMember<DexEncodedField, DexField> {
 
@@ -20,6 +21,15 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
       throw new CompilationError(
           "Field name '" + name.toString() + "' cannot be represented in dex format.");
     }
+  }
+
+  @Override
+  public <T> void apply(
+      BiConsumer<DexType, T> classConsumer,
+      BiConsumer<DexField, T> fieldConsumer,
+      BiConsumer<DexMethod, T> methodConsumer,
+      T arg) {
+    fieldConsumer.accept(this, arg);
   }
 
   @Override

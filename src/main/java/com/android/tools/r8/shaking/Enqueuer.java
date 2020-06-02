@@ -94,7 +94,7 @@ import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.shaking.KeepInfoCollection.MutableKeepInfoCollection;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
-import com.android.tools.r8.shaking.RootSetBuilder.DependentItems;
+import com.android.tools.r8.shaking.RootSetBuilder.ItemsWithRules;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.utils.Action;
@@ -608,7 +608,7 @@ public class Enqueuer {
     items.entrySet().forEach(this::enqueueRootItem);
   }
 
-  private void enqueueRootItems(DependentItems items) {
+  private void enqueueRootItems(ItemsWithRules items) {
     items.forEachField(this::enqueueRootField);
     items.forEachMethod(this::enqueueRootMethod);
     items.forEachClass(this::enqueueRootClass);

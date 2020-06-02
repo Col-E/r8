@@ -24,14 +24,13 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
-import com.android.tools.r8.utils.Pair;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 public class DexType extends DexReference implements PresortedComparable<DexType> {
@@ -114,6 +113,15 @@ public class DexType extends DexReference implements PresortedComparable<DexType
         && descriptor.charAt(0) == 'L'
         && descriptor.charAt(descriptor.length() - 1) == ';';
     return descriptor.substring(1, descriptor.length() - 1);
+  }
+
+  @Override
+  public <T> void apply(
+      BiConsumer<DexType, T> classConsumer,
+      BiConsumer<DexField, T> fieldConsumer,
+      BiConsumer<DexMethod, T> methodConsumer,
+      T arg) {
+    classConsumer.accept(this, arg);
   }
 
   @Override
@@ -408,16 +416,5 @@ public class DexType extends DexReference implements PresortedComparable<DexType
 
   public String getPackageName() {
     return DescriptorUtils.getPackageNameFromBinaryName(toBinaryName());
-  }
-
-  public Pair<String, String> rewritingPrefixIn(Map<String, String> map) {
-    // TODO(b/134732760): Rewrite this to use descriptors and not Strings.
-    String javaClassName = this.toString();
-    for (String rewritePrefix : map.keySet()) {
-      if (javaClassName.startsWith(rewritePrefix)) {
-        return new Pair<>(rewritePrefix, map.get(rewritePrefix));
-      }
-    }
-    return null;
   }
 }

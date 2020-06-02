@@ -11,6 +11,7 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
@@ -26,6 +27,15 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
           "Method name '" + name + "' in class '" + holder.toSourceString() +
               "' cannot be represented in dex format.");
     }
+  }
+
+  @Override
+  public <T> void apply(
+      BiConsumer<DexType, T> classConsumer,
+      BiConsumer<DexField, T> fieldConsumer,
+      BiConsumer<DexMethod, T> methodConsumer,
+      T arg) {
+    methodConsumer.accept(this, arg);
   }
 
   @Override
