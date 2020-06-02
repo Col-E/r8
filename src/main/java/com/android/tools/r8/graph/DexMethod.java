@@ -12,6 +12,8 @@ import com.android.tools.r8.references.TypeReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
@@ -30,7 +32,23 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   @Override
-  public <T> void apply(
+  public <T> T apply(
+      Function<DexType, T> classConsumer,
+      Function<DexField, T> fieldConsumer,
+      Function<DexMethod, T> methodConsumer) {
+    return methodConsumer.apply(this);
+  }
+
+  @Override
+  public void accept(
+      Consumer<DexType> classConsumer,
+      Consumer<DexField> fieldConsumer,
+      Consumer<DexMethod> methodConsumer) {
+    methodConsumer.accept(this);
+  }
+
+  @Override
+  public <T> void accept(
       BiConsumer<DexType, T> classConsumer,
       BiConsumer<DexField, T> fieldConsumer,
       BiConsumer<DexMethod, T> methodConsumer,

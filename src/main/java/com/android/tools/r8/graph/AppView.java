@@ -228,12 +228,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   @Deprecated
   @Override
-  public final DexEncodedField definitionFor(DexField field) {
-    return appInfo().definitionFor(field);
-  }
-
-  @Deprecated
-  @Override
   public final DexEncodedMethod definitionFor(DexMethod method) {
     return appInfo().definitionFor(method);
   }

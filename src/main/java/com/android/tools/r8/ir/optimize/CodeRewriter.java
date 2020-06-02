@@ -2537,10 +2537,13 @@ public class CodeRewriter {
                 if (singleFieldValue.getField() == otherSingleFieldValue.getField()) {
                   simplifyIfWithKnownCondition(code, block, theIf, 0);
                 } else {
-                  DexEncodedField field = appView.definitionFor(singleFieldValue.getField());
+                  DexClass holder = appView.definitionForHolder(singleFieldValue.getField());
+                  DexEncodedField field = singleFieldValue.getField().lookupOnClass(holder);
                   if (field != null && field.isEnum()) {
+                    DexClass otherHolder =
+                        appView.definitionForHolder(otherSingleFieldValue.getField());
                     DexEncodedField otherField =
-                        appView.definitionFor(otherSingleFieldValue.getField());
+                        otherSingleFieldValue.getField().lookupOnClass(otherHolder);
                     if (otherField != null && otherField.isEnum()) {
                       simplifyIfWithKnownCondition(code, block, theIf, 1);
                     }

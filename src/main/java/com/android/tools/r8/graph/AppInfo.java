@@ -183,13 +183,6 @@ public class AppInfo implements DexDefinitionSupplier {
     return clazz.getMethodCollection().getMethod(method);
   }
 
-  @Deprecated
-  @Override
-  public DexEncodedField definitionFor(DexField field) {
-    assert checkIfObsolete();
-    return getFieldDefinitions(field.holder).get(field);
-  }
-
   private Map<DexField, DexEncodedField> getFieldDefinitions(DexType type) {
     return fieldDefinitionsCache.computeIfAbsent(type, this::computeFieldDefinitions);
   }

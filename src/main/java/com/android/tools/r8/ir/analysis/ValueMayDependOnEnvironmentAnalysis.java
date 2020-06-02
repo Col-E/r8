@@ -7,8 +7,10 @@ package com.android.tools.r8.ir.analysis;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -106,8 +108,9 @@ public class ValueMayDependOnEnvironmentAnalysis {
       }
       AbstractValue abstractValue = root.getAbstractValue(appView, context);
       if (abstractValue.isSingleFieldValue()) {
-        DexEncodedField field =
-            appView.definitionFor(abstractValue.asSingleFieldValue().getField());
+        DexField fieldReference = abstractValue.asSingleFieldValue().getField();
+        DexClass holder = appView.definitionForHolder(fieldReference);
+        DexEncodedField field = fieldReference.lookupOnClass(holder);
         if (field != null && field.isEnum()) {
           return false;
         }

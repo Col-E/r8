@@ -155,7 +155,7 @@ public class RedundantFieldLoadElimination {
       return appView.appInfo().withLiveness().resolveField(field).getResolvedField();
     }
     if (field.holder == method.getHolderType()) {
-      return appView.definitionFor(field);
+      return method.getHolder().lookupField(field);
     }
     return null;
   }

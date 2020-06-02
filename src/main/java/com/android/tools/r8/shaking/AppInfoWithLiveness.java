@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
+import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.InstantiatedSubTypeInfo;
@@ -975,8 +976,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     // Switchmap classes should never be affected by renaming.
     assert lens.assertDefinitionsNotModified(
         switchMaps.keySet().stream()
-            .map(this::definitionFor)
-            .filter(Objects::nonNull)
+            .map(this::resolveField)
+            .filter(FieldResolutionResult::isSuccessfulResolution)
+            .map(FieldResolutionResult::getResolvedField)
             .collect(Collectors.toList()));
 
     assert lens.assertDefinitionsNotModified(

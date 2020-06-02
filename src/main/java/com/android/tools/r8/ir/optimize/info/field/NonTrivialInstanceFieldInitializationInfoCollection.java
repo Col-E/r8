@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.ir.optimize.info.field;
 
+
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
@@ -32,9 +34,10 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
       BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer) {
     infos.forEach(
         (field, info) -> {
-          DexEncodedField encodedField = definitions.definitionFor(field);
-          if (encodedField != null) {
-            consumer.accept(encodedField, info);
+          DexClass holder = definitions.definitionForHolder(field);
+          DexEncodedField definition = field.lookupOnClass(holder);
+          if (definition != null) {
+            consumer.accept(definition, info);
           } else {
             assert false;
           }
