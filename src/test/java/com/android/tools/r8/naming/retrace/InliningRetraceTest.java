@@ -13,8 +13,10 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ForceInline;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.junit.Test;
@@ -76,6 +78,18 @@ public class InliningRetraceTest extends RetraceTestBase {
           assertThat(retracedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
         });
+  }
+
+  @Override
+  public void configure(R8TestBuilder<?> builder) {
+    builder.applyIf(mode == CompilationMode.RELEASE, R8TestBuilder::enableForceInliningAnnotations);
+  }
+
+  @Override
+  public void inspect(CodeInspector inspector) {
+    if (mode == CompilationMode.RELEASE) {
+      assertEquals(compat ? 2 : 1, inspector.clazz(Main.class).allMethods().size());
+    }
   }
 }
 

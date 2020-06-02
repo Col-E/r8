@@ -9,6 +9,8 @@ import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime.CfRuntime;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
@@ -28,7 +30,9 @@ public abstract class RetraceTestBase extends TestBase {
 
   public StackTrace expectedStackTrace;
 
-  public void configure(R8TestBuilder builder) {}
+  public void configure(R8TestBuilder<?> builder) {}
+
+  public void inspect(CodeInspector inspector) {}
 
   public Collection<Class<?>> getClasses() {
     return ImmutableList.of(getMainClass());
@@ -42,7 +46,7 @@ public abstract class RetraceTestBase extends TestBase {
     expectedStackTrace =
         testForJvm()
             .addTestClasspath()
-            .run(getMainClass())
+            .run(CfRuntime.getSystemRuntime(), getMainClass())
             .assertFailure()
             .map(StackTrace::extractFromJvm);
   }
@@ -53,12 +57,13 @@ public abstract class RetraceTestBase extends TestBase {
     R8TestRunResult result =
         (compat ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
             .setMode(mode)
-            .enableProguardTestOptions()
             .addProgramClasses(getClasses())
             .addKeepMainRule(getMainClass())
             .addKeepRules(keepRules)
             .apply(this::configure)
             .setMinApi(parameters.getApiLevel())
+            .compile()
+            .inspect(this::inspect)
             .run(parameters.getRuntime(), getMainClass())
             .assertFailure();
 
