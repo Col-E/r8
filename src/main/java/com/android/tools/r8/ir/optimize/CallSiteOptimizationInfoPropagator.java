@@ -440,7 +440,14 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     ProgramMethodSet targets = invoke.lookupProgramDispatchTargets(appView, context);
     if (targets != null) {
       for (ProgramMethod target : targets) {
-        assert target.getDefinition().getCallSiteOptimizationInfo().isAbandoned();
+        assert target.getDefinition().getCallSiteOptimizationInfo().isAbandoned()
+            : "Expected method `"
+                + target.toSourceString()
+                + "` to be marked as abandoned (called from `"
+                + invoke.toString()
+                + "` in `"
+                + context.toSourceString()
+                + "`)";
       }
     }
     return true;
