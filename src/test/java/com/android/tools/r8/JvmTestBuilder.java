@@ -7,6 +7,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ObjectArrays;
@@ -149,5 +150,10 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
 
   public JvmTestBuilder addVmArguments(String... arguments) {
     return addVmArguments(Arrays.asList(arguments));
+  }
+
+  public JvmTestBuilder addAndroidBuildVersion() {
+    addVmArguments("-D" + AndroidBuildVersion.PROPERTY + "=10000");
+    return addProgramClasses(AndroidBuildVersion.class);
   }
 }

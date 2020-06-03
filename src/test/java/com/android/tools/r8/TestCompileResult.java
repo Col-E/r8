@@ -243,6 +243,11 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  public CR setSystemProperty(String name, String value) {
+    vmArguments.add("-D" + name + "=" + value);
+    return self();
+  }
+
   public Path writeToZip() throws IOException {
     Path file = state.getNewTempFolder().resolve("out.zip");
     writeToZip(file);
@@ -429,6 +434,13 @@ public abstract class TestCompileResult<
         withArt6Plus64BitsLib && vm.getVersion().isAtLeast(DexVm.Version.V6_0_1)
             ? builder -> builder.appendArtOption("--64")
             : builder -> {};
+    commandConsumer =
+        commandConsumer.andThen(
+            builder -> {
+              for (String vmArgument : vmArguments) {
+                builder.appendArtOption(vmArgument);
+              }
+            });
     ProcessResult result =
         ToolHelper.runArtRaw(
             classPath, mainClass, commandConsumer, vm, withArtFrameworks, arguments);

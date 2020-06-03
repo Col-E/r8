@@ -11,6 +11,7 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -61,6 +62,14 @@ public abstract class TestCompilerBuilder<
   private ByteArrayOutputStream stderr = null;
   private PrintStream oldStderr = null;
   protected OutputMode outputMode = OutputMode.DexIndexed;
+
+  private boolean isAndroidBuildVersionAdded = false;
+
+  public T addAndroidBuildVersion() {
+    addProgramClasses(AndroidBuildVersion.class);
+    isAndroidBuildVersionAdded = true;
+    return self();
+  }
 
   TestCompilerBuilder(TestState state, B builder, Backend backend) {
     super(state, builder);
@@ -133,6 +142,9 @@ public abstract class TestCompilerBuilder<
       cr =
           internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build))
               .addRunClasspathFiles(additionalRunClassPath);
+      if (isAndroidBuildVersionAdded) {
+        cr.setSystemProperty(AndroidBuildVersion.PROPERTY, "" + builder.getMinApiLevel());
+      }
       return cr;
     } finally {
       if (stdout != null) {
