@@ -7,12 +7,13 @@ package com.android.tools.r8.kotlin.coroutines;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.kotlin.metadata.KotlinMetadataTestBase;
 import com.android.tools.r8.utils.ZipUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -27,7 +28,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class KotlinxCoroutinesTestRunner extends KotlinTestBase {
+public class KotlinxCoroutinesTestRunner extends KotlinMetadataTestBase {
 
   private static final String PKG = "kotlinx-coroutines-1.3.6";
   private static final Path BASE_LIBRARY =
@@ -80,6 +81,7 @@ public class KotlinxCoroutinesTestRunner extends KotlinTestBase {
                 "-dontwarn org.junit.runners.model.Statement",
                 "-dontwarn org.junit.rules.TestRule")
             .compile()
+            .inspect(inspector -> assertEqualMetadata(new CodeInspector(BASE_LIBRARY), inspector))
             .writeToZip();
     compileTestSources(baseJar);
     // TODO(b/157977713): We should be able to run tests.
