@@ -33,6 +33,7 @@ import kotlinx.metadata.KmTypeAlias;
 import kotlinx.metadata.KmTypeParameter;
 import kotlinx.metadata.KmTypeProjection;
 import kotlinx.metadata.KmValueParameter;
+import kotlinx.metadata.KmVersionRequirement;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
 import kotlinx.metadata.jvm.JvmFieldSignature;
 import kotlinx.metadata.jvm.JvmMethodSignature;
@@ -351,6 +352,7 @@ public class KotlinMetadataWriter {
                 appendKmProperty(nextNextIndent, sb, kmProperty);
               });
         });
+    appendKmVersionRequirement(indent, sb, kmClass.getVersionRequirements());
     appendKeyValue(
         indent,
         "constructors",
@@ -389,6 +391,7 @@ public class KotlinMetadataWriter {
           JvmMethodSignature signature = JvmExtensionsKt.getSignature(constructor);
           appendKeyValue(
               newIndent, "signature", sb, signature != null ? signature.asString() : "null");
+          appendKmVersionRequirement(newIndent, sb, constructor.getVersionRequirements());
         });
   }
 
@@ -420,6 +423,7 @@ public class KotlinMetadataWriter {
               "valueParameters",
               sb,
               nextIndent -> appendValueParameters(nextIndent, sb, function.getValueParameters()));
+          appendKmVersionRequirement(newIndent, sb, function.getVersionRequirements());
           JvmMethodSignature signature = JvmExtensionsKt.getSignature(function);
           appendKeyValue(
               newIndent, "signature", sb, signature != null ? signature.asString() : "null");
@@ -461,6 +465,7 @@ public class KotlinMetadataWriter {
               "setterParameter",
               sb,
               nextIndent -> appendValueParameter(nextIndent, sb, kmProperty.getSetterParameter()));
+          appendKmVersionRequirement(newIndent, sb, kmProperty.getVersionRequirements());
           appendKeyValue(newIndent, "jvmFlags", sb, JvmExtensionsKt.getJvmFlags(kmProperty) + "");
           JvmFieldSignature fieldSignature = JvmExtensionsKt.getFieldSignature(kmProperty);
           appendKeyValue(
@@ -730,6 +735,7 @@ public class KotlinMetadataWriter {
               nextIndent -> {
                 appendKmType(nextIndent, sb, kmTypeAlias.underlyingType);
               });
+          appendKmVersionRequirement(newIndent, sb, kmTypeAlias.getVersionRequirements());
         });
   }
 
@@ -750,6 +756,46 @@ public class KotlinMetadataWriter {
                 for (String key : arguments.keySet()) {
                   appendKeyValue(nextIndent, key, sb, arguments.get(key).toString());
                 }
+              });
+        });
+  }
+
+  private static void appendKmVersionRequirement(
+      String indent, StringBuilder sb, List<KmVersionRequirement> kmVersionRequirements) {
+    appendKeyValue(
+        indent,
+        "versionRequirements",
+        sb,
+        newIndent -> {
+          appendKmList(
+              newIndent,
+              "KmVersionRequirement",
+              sb,
+              kmVersionRequirements,
+              (nextIndent, kmVersionRequirement) -> {
+                appendKmSection(
+                    nextIndent,
+                    "KmVersionRequirement",
+                    sb,
+                    nextNextIndent -> {
+                      appendKeyValue(nextNextIndent, "kind", sb, kmVersionRequirement.kind.name());
+                      appendKeyValue(
+                          nextNextIndent, "level", sb, kmVersionRequirement.level.name());
+                      appendKeyValue(
+                          nextNextIndent,
+                          "errorCode",
+                          sb,
+                          kmVersionRequirement.getErrorCode() == null
+                              ? "null"
+                              : kmVersionRequirement.getErrorCode().toString());
+                      appendKeyValue(
+                          nextNextIndent, "message", sb, kmVersionRequirement.getMessage());
+                      appendKeyValue(
+                          nextNextIndent,
+                          "version",
+                          sb,
+                          kmVersionRequirement.getVersion().toString());
+                    });
               });
         });
   }

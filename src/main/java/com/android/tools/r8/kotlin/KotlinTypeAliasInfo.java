@@ -26,6 +26,7 @@ public class KotlinTypeAliasInfo implements EnqueuerMetadataTraceable {
   private final KotlinTypeInfo expandedType;
   private final List<KotlinTypeParameterInfo> typeParameters;
   private final List<KotlinAnnotationInfo> annotations;
+  private final KotlinVersionRequirementInfo versionRequirements;
 
   private KotlinTypeAliasInfo(
       int flags,
@@ -33,7 +34,8 @@ public class KotlinTypeAliasInfo implements EnqueuerMetadataTraceable {
       KotlinTypeInfo underlyingType,
       KotlinTypeInfo expandedType,
       List<KotlinTypeParameterInfo> typeParameters,
-      List<KotlinAnnotationInfo> annotations) {
+      List<KotlinAnnotationInfo> annotations,
+      KotlinVersionRequirementInfo versionRequirements) {
     this.flags = flags;
     this.name = name;
     assert underlyingType != null;
@@ -42,6 +44,7 @@ public class KotlinTypeAliasInfo implements EnqueuerMetadataTraceable {
     this.expandedType = expandedType;
     this.typeParameters = typeParameters;
     this.annotations = annotations;
+    this.versionRequirements = versionRequirements;
   }
 
   public static KotlinTypeAliasInfo create(
@@ -52,7 +55,8 @@ public class KotlinTypeAliasInfo implements EnqueuerMetadataTraceable {
         KotlinTypeInfo.create(alias.underlyingType, factory, reporter),
         KotlinTypeInfo.create(alias.expandedType, factory, reporter),
         KotlinTypeParameterInfo.create(alias.getTypeParameters(), factory, reporter),
-        KotlinAnnotationInfo.create(alias.getAnnotations(), factory));
+        KotlinAnnotationInfo.create(alias.getAnnotations(), factory),
+        KotlinVersionRequirementInfo.create(alias.getVersionRequirements()));
   }
 
   void rewrite(
@@ -68,6 +72,7 @@ public class KotlinTypeAliasInfo implements EnqueuerMetadataTraceable {
     for (KotlinAnnotationInfo annotation : annotations) {
       annotation.rewrite(kmTypeAliasVisitor::visitAnnotation, appView, namingLens);
     }
+    versionRequirements.rewrite(kmTypeAliasVisitor::visitVersionRequirement);
   }
 
   @Override

@@ -37,6 +37,8 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
   private final KotlinJvmMethodSignatureInfo signature;
   // Information about the lambdaClassOrigin.
   private final KotlinTypeReference lambdaClassOrigin;
+  // Information about version requirements.
+  private final KotlinVersionRequirementInfo versionRequirements;
   // A value describing if any of the parameters are crossinline.
   private final boolean crossInlineParameter;
 
@@ -49,6 +51,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
       List<KotlinTypeParameterInfo> typeParameters,
       KotlinJvmMethodSignatureInfo signature,
       KotlinTypeReference lambdaClassOrigin,
+      KotlinVersionRequirementInfo versionRequirements,
       boolean crossInlineParameter) {
     this.flags = flags;
     this.name = name;
@@ -58,6 +61,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     this.typeParameters = typeParameters;
     this.signature = signature;
     this.lambdaClassOrigin = lambdaClassOrigin;
+    this.versionRequirements = versionRequirements;
     this.crossInlineParameter = crossInlineParameter;
   }
 
@@ -85,6 +89,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
         KotlinTypeParameterInfo.create(kmFunction.getTypeParameters(), factory, reporter),
         KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmFunction), factory),
         getlambdaClassOrigin(kmFunction, factory),
+        KotlinVersionRequirementInfo.create(kmFunction.getVersionRequirements()),
         isCrossInline);
   }
 
@@ -123,6 +128,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     if (receiverParameterType != null) {
       receiverParameterType.rewrite(kmFunction::visitReceiverParameterType, appView, namingLens);
     }
+    versionRequirements.rewrite(kmFunction::visitVersionRequirement);
     JvmFunctionExtensionVisitor extensionVisitor =
         (JvmFunctionExtensionVisitor) kmFunction.visitExtensions(JvmFunctionExtensionVisitor.TYPE);
     if (signature != null && extensionVisitor != null) {

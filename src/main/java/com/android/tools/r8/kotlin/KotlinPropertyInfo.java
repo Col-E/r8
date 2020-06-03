@@ -44,6 +44,8 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
 
   private final List<KotlinTypeParameterInfo> typeParameters;
 
+  private final KotlinVersionRequirementInfo versionRequirements;
+
   private final int jvmFlags;
 
   private final KotlinJvmFieldSignatureInfo fieldSignature;
@@ -63,6 +65,7 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
       KotlinTypeInfo receiverParameterType,
       KotlinValueParameterInfo setterParameter,
       List<KotlinTypeParameterInfo> typeParameters,
+      KotlinVersionRequirementInfo versionRequirements,
       int jvmFlags,
       KotlinJvmFieldSignatureInfo fieldSignature,
       KotlinJvmMethodSignatureInfo getterSignature,
@@ -76,6 +79,7 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     this.receiverParameterType = receiverParameterType;
     this.setterParameter = setterParameter;
     this.typeParameters = typeParameters;
+    this.versionRequirements = versionRequirements;
     this.jvmFlags = jvmFlags;
     this.fieldSignature = fieldSignature;
     this.getterSignature = getterSignature;
@@ -94,6 +98,7 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
         KotlinTypeInfo.create(kmProperty.getReceiverParameterType(), factory, reporter),
         KotlinValueParameterInfo.create(kmProperty.getSetterParameter(), factory, reporter),
         KotlinTypeParameterInfo.create(kmProperty.getTypeParameters(), factory, reporter),
+        KotlinVersionRequirementInfo.create(kmProperty.getVersionRequirements()),
         JvmExtensionsKt.getJvmFlags(kmProperty),
         KotlinJvmFieldSignatureInfo.create(JvmExtensionsKt.getFieldSignature(kmProperty), factory),
         KotlinJvmMethodSignatureInfo.create(
@@ -146,6 +151,7 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     for (KotlinTypeParameterInfo typeParameter : typeParameters) {
       typeParameter.rewrite(kmProperty::visitTypeParameter, appView, namingLens);
     }
+    versionRequirements.rewrite(kmProperty::visitVersionRequirement);
     JvmPropertyExtensionVisitor extensionVisitor =
         (JvmPropertyExtensionVisitor) kmProperty.visitExtensions(JvmPropertyExtensionVisitor.TYPE);
     if (extensionVisitor != null) {

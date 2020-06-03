@@ -45,6 +45,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   private final List<KotlinTypeReference> nestedClasses;
   // TODO(b/154347404): Understand enum entries.
   private final List<String> enumEntries;
+  private final KotlinVersionRequirementInfo versionRequirements;
   private final KotlinTypeReference anonymousObjectOrigin;
   private final String packageName;
 
@@ -59,6 +60,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       List<KotlinTypeReference> sealedSubClasses,
       List<KotlinTypeReference> nestedClasses,
       List<String> enumEntries,
+      KotlinVersionRequirementInfo versionRequirements,
       KotlinTypeReference anonymousObjectOrigin,
       String packageName) {
     this.flags = flags;
@@ -71,6 +73,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     this.sealedSubClasses = sealedSubClasses;
     this.nestedClasses = nestedClasses;
     this.enumEntries = enumEntries;
+    this.versionRequirements = versionRequirements;
     this.anonymousObjectOrigin = anonymousObjectOrigin;
     this.packageName = packageName;
   }
@@ -120,6 +123,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         getSealedSubClasses(kmClass.getSealedSubclasses(), factory),
         getNestedClasses(hostClass, kmClass.getNestedClasses(), factory),
         kmClass.getEnumEntries(),
+        KotlinVersionRequirementInfo.create(kmClass.getVersionRequirements()),
         getAnonymousObjectOrigin(kmClass, factory),
         packageName);
   }
@@ -261,7 +265,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     }
     // TODO(b/154347404): Understand enum entries.
     kmClass.getEnumEntries().addAll(enumEntries);
-
+    versionRequirements.rewrite(kmClass::visitVersionRequirement);
     JvmExtensionsKt.setModuleName(kmClass, moduleName);
     if (anonymousObjectOrigin != null) {
       String renamedAnon =

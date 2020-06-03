@@ -13,6 +13,7 @@ import kotlinx.metadata.KmTypeParameterVisitor;
 import kotlinx.metadata.KmTypeVisitor;
 import kotlinx.metadata.KmValueParameterVisitor;
 import kotlinx.metadata.KmVariance;
+import kotlinx.metadata.KmVersionRequirementVisitor;
 
 /**
  * The reason for having these visitor providers is to make the separation of concern a bit easier
@@ -100,5 +101,11 @@ public class KmVisitorProviders {
   public interface KmFlexibleUpperBoundVisitorProvider {
 
     KmTypeVisitor get(int flags, String typeFlexibilityId);
+  }
+
+  @FunctionalInterface
+  public interface KmVersionRequirementVisitorProvider {
+
+    KmVersionRequirementVisitor get();
   }
 }

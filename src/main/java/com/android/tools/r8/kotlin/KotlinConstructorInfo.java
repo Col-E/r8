@@ -24,16 +24,20 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
   // Information from original KmValueParameter(s) if available.
   private final int flags;
   // Information about the value parameters.
-  private final List<KotlinValueParameterInfo> valueParameterInfos;
+  private final List<KotlinValueParameterInfo> valueParameters;
+  // Information about version requirements.
+  private final KotlinVersionRequirementInfo versionRequirements;
   // Information about the signature.
   private final KotlinJvmMethodSignatureInfo signature;
 
   private KotlinConstructorInfo(
       int flags,
-      List<KotlinValueParameterInfo> valueParameterInfos,
+      List<KotlinValueParameterInfo> valueParameters,
+      KotlinVersionRequirementInfo versionRequirements,
       KotlinJvmMethodSignatureInfo signature) {
     this.flags = flags;
-    this.valueParameterInfos = valueParameterInfos;
+    this.valueParameters = valueParameters;
+    this.versionRequirements = versionRequirements;
     this.signature = signature;
   }
 
@@ -42,6 +46,7 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
     return new KotlinConstructorInfo(
         kmConstructor.getFlags(),
         KotlinValueParameterInfo.create(kmConstructor.getValueParameters(), factory, reporter),
+        KotlinVersionRequirementInfo.create(kmConstructor.getVersionRequirements()),
         KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmConstructor), factory));
   }
 
@@ -57,9 +62,10 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
     if (signature != null) {
       JvmExtensionsKt.setSignature(kmConstructor, signature.rewrite(method, appView, namingLens));
     }
-    for (KotlinValueParameterInfo valueParameterInfo : valueParameterInfos) {
+    for (KotlinValueParameterInfo valueParameterInfo : valueParameters) {
       valueParameterInfo.rewrite(kmConstructor::visitValueParameter, appView, namingLens);
     }
+    versionRequirements.rewrite(kmConstructor::visitVersionRequirement);
     kmClass.getConstructors().add(kmConstructor);
   }
 
@@ -75,7 +81,7 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
 
   @Override
   public void trace(DexDefinitionSupplier definitionSupplier) {
-    forEachApply(valueParameterInfos, param -> param::trace, definitionSupplier);
+    forEachApply(valueParameters, param -> param::trace, definitionSupplier);
     if (signature != null) {
       signature.trace(definitionSupplier);
     }
