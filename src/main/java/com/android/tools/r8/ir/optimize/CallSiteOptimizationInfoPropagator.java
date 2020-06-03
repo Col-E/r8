@@ -35,6 +35,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ForEachable;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.CallSiteOptimizationOptions;
 import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.Timing;
@@ -276,7 +277,13 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
   }
 
   private void abandonCallSitePropagation(ForEachable<ProgramMethod> methods) {
-    methods.forEach(method -> method.getDefinition().abandonCallSiteOptimizationInfo());
+    if (InternalOptions.assertionsEnabled()) {
+      synchronized (this) {
+        methods.forEach(method -> method.getDefinition().abandonCallSiteOptimizationInfo());
+      }
+    } else {
+      methods.forEach(method -> method.getDefinition().abandonCallSiteOptimizationInfo());
+    }
   }
 
   private CallSiteOptimizationInfo computeCallSiteOptimizationInfoFromArguments(
@@ -435,7 +442,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     return null;
   }
 
-  private boolean verifyAllProgramDispatchTargetsHaveBeenAbandoned(
+  private synchronized boolean verifyAllProgramDispatchTargetsHaveBeenAbandoned(
       InvokeMethod invoke, ProgramMethod context) {
     ProgramMethodSet targets = invoke.lookupProgramDispatchTargets(appView, context);
     if (targets != null) {
