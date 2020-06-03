@@ -126,7 +126,7 @@ public class SmaliTestBase extends TestBase {
       ClassSubject clazz = inspector.clazz(className);
       assertTrue(clazz.isPresent());
       return clazz.getDexProgramClass();
-    } catch (IOException | ExecutionException e) {
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
@@ -135,7 +135,7 @@ public class SmaliTestBase extends TestBase {
     try {
       CodeInspector inspector = new CodeInspector(appPath);
       return getMethodSubject(inspector, signature);
-    } catch (IOException | ExecutionException e) {
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }

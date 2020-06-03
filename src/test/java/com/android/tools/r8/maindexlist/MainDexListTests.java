@@ -635,9 +635,10 @@ public class MainDexListTests extends TestBase {
         .forEach(
             p -> {
               try {
-                CodeInspector i = new CodeInspector(AndroidApp.builder().addProgramFiles(p).build());
+                CodeInspector i =
+                    new CodeInspector(AndroidApp.builder().addProgramFiles(p).build());
                 assertFalse("Found " + clazz + " in file " + p, i.clazz(clazz).isPresent());
-              } catch (IOException | ExecutionException e) {
+              } catch (IOException e) {
                 e.printStackTrace();
               }
             });

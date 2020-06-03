@@ -55,7 +55,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -72,25 +71,25 @@ public class CodeInspector {
   public static MethodSignature MAIN =
       new MethodSignature("main", "void", new String[] {"java.lang.String[]"});
 
-  public CodeInspector(String path) throws IOException, ExecutionException {
+  public CodeInspector(String path) throws IOException {
     this(Paths.get(path));
   }
 
-  public CodeInspector(Path file, String mappingFile) throws IOException, ExecutionException {
+  public CodeInspector(Path file, String mappingFile) throws IOException {
     this(Collections.singletonList(file), mappingFile, null);
   }
 
-  public CodeInspector(Path file) throws IOException, ExecutionException {
+  public CodeInspector(Path file) throws IOException {
     this(Collections.singletonList(file), null, null);
   }
 
-  public CodeInspector(List<Path> files) throws IOException, ExecutionException {
+  public CodeInspector(List<Path> files) throws IOException {
     this(files, null, null);
   }
 
   public CodeInspector(
       List<Path> files, String mappingFile, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, ExecutionException {
+      throws IOException {
     Path mappingPath = mappingFile != null ? Paths.get(mappingFile) : null;
     if (mappingPath != null && Files.exists(mappingPath)) {
       mapping = ClassNameMapper.mapperFromFile(mappingPath);
@@ -109,14 +108,14 @@ public class CodeInspector {
     application = new ApplicationReader(input, options, timing).read();
   }
 
-  public CodeInspector(AndroidApp app) throws IOException, ExecutionException {
+  public CodeInspector(AndroidApp app) throws IOException {
     this(
         new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
             .read(app.getProguardMapOutputData()));
   }
 
   public CodeInspector(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, ExecutionException {
+      throws IOException {
     this(
         new ApplicationReader(app, runOptionsConsumer(optionsConsumer), Timing.empty())
             .read(app.getProguardMapOutputData()));
@@ -130,17 +129,21 @@ public class CodeInspector {
     return internalOptions;
   }
 
-  public CodeInspector(AndroidApp app, Path proguardMapFile)
-      throws IOException, ExecutionException {
+  public CodeInspector(AndroidApp app, Path proguardMapFile) throws IOException {
     this(
         new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
             .read(StringResource.fromFile(proguardMapFile)));
   }
 
-  public CodeInspector(AndroidApp app, String proguardMapContent)
-      throws IOException, ExecutionException {
+  public CodeInspector(AndroidApp app, String proguardMapContent) throws IOException {
+    this(app, proguardMapContent, null);
+  }
+
+  public CodeInspector(
+      AndroidApp app, String proguardMapContent, Consumer<InternalOptions> optionsConsumer)
+      throws IOException {
     this(
-        new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
+        new ApplicationReader(app, runOptionsConsumer(optionsConsumer), Timing.empty())
             .read(StringResource.fromString(proguardMapContent, Origin.unknown())));
   }
 

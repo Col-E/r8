@@ -14,7 +14,6 @@ import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, R8TestRunResult> {
@@ -23,6 +22,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   private final List<ProguardConfigurationRule> syntheticProguardRules;
   private final String proguardMap;
   private final CollectingGraphConsumer graphConsumer;
+  private final int minApiLevel;
 
   R8TestCompileResult(
       TestState state,
@@ -31,12 +31,14 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
       ProguardConfiguration proguardConfiguration,
       List<ProguardConfigurationRule> syntheticProguardRules,
       String proguardMap,
-      CollectingGraphConsumer graphConsumer) {
+      CollectingGraphConsumer graphConsumer,
+      int minApiLevel) {
     super(state, app, outputMode);
     this.proguardConfiguration = proguardConfiguration;
     this.syntheticProguardRules = syntheticProguardRules;
     this.proguardMap = proguardMap;
     this.graphConsumer = graphConsumer;
+    this.minApiLevel = minApiLevel;
   }
 
   @Override
@@ -65,11 +67,20 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   }
 
   @Override
-  public CodeInspector inspector() throws IOException, ExecutionException {
-    return new CodeInspector(app, proguardMap);
+  public CodeInspector inspector() throws IOException {
+    return new CodeInspector(
+        app,
+        proguardMap,
+        options -> {
+          // TODO(b/158069726): The dex parser should not transform abstract methods on non-abstract
+          //  classes into empty throwing methods.
+          if (minApiLevel >= 0) {
+            options.minApiLevel = minApiLevel;
+          }
+        });
   }
 
-  public GraphInspector graphInspector() throws IOException, ExecutionException {
+  public GraphInspector graphInspector() throws IOException {
     assert graphConsumer != null;
     return new GraphInspector(graphConsumer, inspector());
   }

@@ -13,7 +13,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 public class SmaliBuildTest extends SmaliTestBase {
@@ -23,7 +22,7 @@ public class SmaliBuildTest extends SmaliTestBase {
       CodeInspector inspector = new CodeInspector(application);
       ClassSubject clazz = inspector.clazz("java.lang.String");
       assertEquals(present, clazz.isPresent());
-    } catch (IOException | ExecutionException e) {
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
