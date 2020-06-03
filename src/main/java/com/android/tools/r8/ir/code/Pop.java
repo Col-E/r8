@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 
@@ -91,9 +92,9 @@ public class Pop extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
+  public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
     // Pop cannot be dead code as it modifies the stack height.
-    return false;
+    return DeadInstructionResult.notDead();
   }
 
   @Override

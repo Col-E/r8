@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import java.util.Set;
@@ -62,11 +63,11 @@ public class Argument extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appview, IRCode code) {
+  public DeadInstructionResult canBeDeadCode(AppView<?> appview, IRCode code) {
     // Never remove argument instructions. That would change the signature of the method.
     // TODO(b/65810338): If we can tell that a method never uses an argument we might be able to
     // rewrite the signature and call-sites.
-    return false;
+    return DeadInstructionResult.notDead();
   }
 
   @Override

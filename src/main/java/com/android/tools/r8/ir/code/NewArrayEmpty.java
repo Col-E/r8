@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 
@@ -82,13 +83,16 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
+  public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
     if (instructionInstanceCanThrow()) {
-      return false;
+      return DeadInstructionResult.notDead();
     }
     // This would belong better in instructionInstanceCanThrow, but that is not passed an appInfo.
     DexType baseType = type.toBaseType(appView.dexItemFactory());
-    return baseType.isPrimitiveType() || appView.definitionFor(baseType) != null;
+    if (baseType.isPrimitiveType() || appView.definitionFor(baseType) != null) {
+      return DeadInstructionResult.deadIfOutValueIsDead();
+    }
+    return DeadInstructionResult.notDead();
   }
 
   @Override

@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 
@@ -100,8 +101,11 @@ public class Store extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !(outValue instanceof FixedLocalValue);
+  public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
+    if (outValue instanceof FixedLocalValue) {
+      return DeadInstructionResult.notDead();
+    }
+    return DeadInstructionResult.deadIfOutValueIsDead();
   }
 
   @Override

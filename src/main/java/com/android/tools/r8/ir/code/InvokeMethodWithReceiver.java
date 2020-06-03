@@ -252,9 +252,4 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
     return optimizationInfo.mayHaveSideEffects();
   }
-
-  @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.context());
-  }
 }

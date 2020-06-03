@@ -191,11 +191,6 @@ public class ArrayPut extends ArrayAccess {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.context());
-  }
-
-  @Override
   public boolean identicalAfterRegisterAllocation(Instruction other, RegisterAllocator allocator) {
     // We cannot share ArrayPut instructions without knowledge of the type of the array input.
     // If multiple primitive array types flow to the same ArrayPut instruction the art verifier

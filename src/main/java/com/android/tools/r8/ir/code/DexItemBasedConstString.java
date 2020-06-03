@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
@@ -131,9 +132,9 @@ public class DexItemBasedConstString extends ConstInstruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
+  public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
     // No side-effect, such as throwing an exception, in CF.
-    return true;
+    return DeadInstructionResult.deadIfOutValueIsDead();
   }
 
   @Override

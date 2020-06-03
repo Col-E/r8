@@ -123,16 +123,6 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    // instance-get can be dead code as long as it cannot have any of the following:
-    // * NoSuchFieldError (resolution failure)
-    // * IncompatibleClassChangeError (instance-* instruction for static fields)
-    // * IllegalAccessError (not visible from the access context)
-    // * NullPointerException (null receiver)
-    return !instructionMayHaveSideEffects(appView, code.context());
-  }
-
-  @Override
   public int maxInValueRegister() {
     return Constants.U4BIT_MAX;
   }

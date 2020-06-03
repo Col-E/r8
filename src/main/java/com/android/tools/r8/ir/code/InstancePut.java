@@ -142,20 +142,6 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    // instance-put can be dead as long as it cannot have any of the following:
-    // * NoSuchFieldError (resolution failure)
-    // * IncompatibleClassChangeError (static-* instruction for instance fields)
-    // * IllegalAccessError (not visible from the access context)
-    // * NullPointerException (null receiver)
-    // * not read at all
-    boolean haveSideEffects = instructionMayHaveSideEffects(appView, code.context());
-    assert appView.enableWholeProgramOptimizations() || haveSideEffects
-        : "Expected instance-put instruction to have side effects in D8";
-    return !haveSideEffects;
-  }
-
-  @Override
   public boolean identicalAfterRegisterAllocation(Instruction other, RegisterAllocator allocator) {
     if (!super.identicalAfterRegisterAllocation(other, allocator)) {
       return false;

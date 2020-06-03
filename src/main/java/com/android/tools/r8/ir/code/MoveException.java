@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.utils.InternalOptions;
@@ -80,10 +81,14 @@ public class MoveException extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !(appView.options().debug
-            || code.method().getOptimizationInfo().isReachabilitySensitive())
-        && appView.options().isGeneratingDex();
+  public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
+    InternalOptions options = appView.options();
+    if (options.debug
+        || code.context().getDefinition().getOptimizationInfo().isReachabilitySensitive()
+        || options.isGeneratingClassFiles()) {
+      return DeadInstructionResult.notDead();
+    }
+    return DeadInstructionResult.deadIfOutValueIsDead();
   }
 
   @Override

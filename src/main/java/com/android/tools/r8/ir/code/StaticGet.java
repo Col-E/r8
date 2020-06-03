@@ -149,16 +149,6 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    // static-get can be dead as long as it cannot have any of the following:
-    // * NoSuchFieldError (resolution failure)
-    // * IncompatibleClassChangeError (static-* instruction for instance fields)
-    // * IllegalAccessError (not visible from the access context)
-    // * side-effects in <clinit>
-    return !instructionMayHaveSideEffects(appView, code.context());
-  }
-
-  @Override
   public int maxInValueRegister() {
     return Constants.U8BIT_MAX;
   }

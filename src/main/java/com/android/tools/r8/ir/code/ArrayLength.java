@@ -84,11 +84,6 @@ public class ArrayLength extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.context());
-  }
-
-  @Override
   public boolean identicalAfterRegisterAllocation(Instruction other, RegisterAllocator allocator) {
     if (super.identicalAfterRegisterAllocation(other, allocator)) {
       // The array length instruction doesn't carry the element type. The art verifier doesn't

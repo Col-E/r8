@@ -229,9 +229,4 @@ public class InvokeStatic extends InvokeMethod {
             type -> appInfoWithLiveness.isSubtype(context.getHolderType(), type),
             Sets.newIdentityHashSet());
   }
-
-  @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.context());
-  }
 }

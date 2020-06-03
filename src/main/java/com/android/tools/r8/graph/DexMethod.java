@@ -219,4 +219,8 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return name == dexItemFactory.deserializeLambdaMethodName
         && proto == dexItemFactory.deserializeLambdaMethodProto;
   }
+
+  public boolean isInstanceInitializer(DexDefinitionSupplier definitions) {
+    return definitions.dexItemFactory().isConstructor(this);
+  }
 }

@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.io.UTFDataFormatException;
 
@@ -133,9 +134,12 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
+  public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
     // No side-effect, such as throwing an exception, in CF.
-    return appView.options().isGeneratingClassFiles() || !instructionInstanceCanThrow();
+    if (appView.options().isGeneratingClassFiles() || !instructionInstanceCanThrow()) {
+      return DeadInstructionResult.deadIfOutValueIsDead();
+    }
+    return DeadInstructionResult.notDead();
   }
 
   @Override

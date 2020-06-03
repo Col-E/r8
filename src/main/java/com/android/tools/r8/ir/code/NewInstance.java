@@ -198,11 +198,6 @@ public class NewInstance extends Instruction {
     return false;
   }
 
-  @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.context());
-  }
-
   public void markNoSpilling() {
     allowSpilling = false;
   }

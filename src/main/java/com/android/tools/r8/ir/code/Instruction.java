@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -585,10 +586,10 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   }
 
   /** Returns true is this instruction can be treated as dead code if its outputs are not used. */
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    // TODO(b/129530569): instructions with fine-grained side effect analysis may use:
-    // return !instructionMayHaveSideEffects(appView, code.method.holder());
-    return !instructionInstanceCanThrow();
+  public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
+    return instructionMayHaveSideEffects(appView, code.context())
+        ? DeadInstructionResult.notDead()
+        : DeadInstructionResult.deadIfOutValueIsDead();
   }
 
   /**

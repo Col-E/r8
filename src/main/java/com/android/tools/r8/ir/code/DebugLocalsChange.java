@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.utils.StringUtils;
@@ -83,8 +84,8 @@ public class DebugLocalsChange extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return false;
+  public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
+    return DeadInstructionResult.notDead();
   }
 
   @Override

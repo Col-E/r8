@@ -138,20 +138,6 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    // static-put can be dead as long as it cannot have any of the following:
-    // * NoSuchFieldError (resolution failure)
-    // * IncompatibleClassChangeError (static-* instruction for instance fields)
-    // * IllegalAccessError (not visible from the access context)
-    // * side-effects in <clinit>
-    // * not read _globally_
-    boolean haveSideEffects = instructionMayHaveSideEffects(appView, code.context());
-    assert appView.enableWholeProgramOptimizations() || haveSideEffects
-        : "Expected static-put instruction to have side effects in D8";
-    return !haveSideEffects;
-  }
-
-  @Override
   public int maxInValueRegister() {
     return Constants.U8BIT_MAX;
   }

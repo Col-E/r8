@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -19,6 +20,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -68,7 +70,7 @@ public class DeadCodeRemover {
             || !instruction.hasOutValue()
             || instruction.outValue().hasAnyUsers();
         // No dead instructions.
-        assert !instruction.canBeDeadCode(appView, code)
+        assert !instruction.canBeDeadCode(appView, code).isDeadIfOutValueIsDead()
             || (instruction.hasOutValue() && !instruction.outValue().isDead(appView, code));
       }
     }
@@ -117,13 +119,24 @@ public class DeadCodeRemover {
     while (iterator.hasPrevious()) {
       Instruction current = iterator.previous();
       // Remove unused invoke results.
-      if (current.isInvoke()
-          && current.outValue() != null
-          && !current.outValue().isUsed()) {
+      if (current.isInvoke() && current.hasOutValue() && !current.outValue().isUsed()) {
         current.setOutValue(null);
       }
-      if (!current.canBeDeadCode(appView, code)) {
+      DeadInstructionResult deadInstructionResult = current.canBeDeadCode(appView, code);
+      if (deadInstructionResult.isNotDead()) {
         continue;
+      }
+      if (deadInstructionResult.isMaybeDead()) {
+        boolean satisfied = true;
+        for (Value valueRequiredToBeDead : deadInstructionResult.getValuesRequiredToBeDead()) {
+          if (!valueRequiredToBeDead.isDead(appView, code)) {
+            satisfied = false;
+            break;
+          }
+        }
+        if (!satisfied) {
+          continue;
+        }
       }
       Value outValue = current.outValue();
       if (outValue != null && !outValue.isDead(appView, code)) {
@@ -206,5 +219,62 @@ public class DeadCodeRemover {
       }
     }
     return builder.build();
+  }
+
+  public abstract static class DeadInstructionResult {
+
+    private static final DeadInstructionResult DEFINITELY_DEAD_INSTANCE =
+        new DeadInstructionResult() {
+          @Override
+          public boolean isDeadIfOutValueIsDead() {
+            return true;
+          }
+        };
+
+    private static final DeadInstructionResult DEFINITELY_NOT_DEAD_INSTANCE =
+        new DeadInstructionResult() {
+          @Override
+          public boolean isNotDead() {
+            return true;
+          }
+        };
+
+    public static DeadInstructionResult deadIfOutValueIsDead() {
+      return DEFINITELY_DEAD_INSTANCE;
+    }
+
+    public static DeadInstructionResult notDead() {
+      return DEFINITELY_NOT_DEAD_INSTANCE;
+    }
+
+    public static DeadInstructionResult deadIfInValueIsDead(Value inValueRequiredToBeDead) {
+      return new DeadInstructionResult() {
+        @Override
+        public boolean isMaybeDead() {
+          return true;
+        }
+
+        @Override
+        public Iterable<Value> getValuesRequiredToBeDead() {
+          return () -> Iterators.singletonIterator(inValueRequiredToBeDead);
+        }
+      };
+    }
+
+    public boolean isDeadIfOutValueIsDead() {
+      return false;
+    }
+
+    public boolean isNotDead() {
+      return false;
+    }
+
+    public boolean isMaybeDead() {
+      return false;
+    }
+
+    public Iterable<Value> getValuesRequiredToBeDead() {
+      throw new Unreachable();
+    }
   }
 }

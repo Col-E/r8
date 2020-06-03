@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import java.util.List;
@@ -32,8 +33,8 @@ public abstract class JumpInstruction extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return false;
+  public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
+    return DeadInstructionResult.notDead();
   }
 
   @Override

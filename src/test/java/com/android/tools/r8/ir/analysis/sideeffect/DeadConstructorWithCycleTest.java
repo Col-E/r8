@@ -4,9 +4,10 @@
 
 package com.android.tools.r8.ir.analysis.sideeffect;
 
-import static org.junit.Assert.fail;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -31,17 +32,15 @@ public class DeadConstructorWithCycleTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addInnerClasses(DeadConstructorWithCycleTest.class)
-          .addKeepMainRule(TestClass.class)
-          .enableNeverClassInliningAnnotations()
-          .setMinApi(parameters.getApiLevel())
-          .compile();
-      fail();
-    } catch (CompilationFailedException e) {
-      // TODO(b/157926129): Fixme.
-    }
+    testForR8(parameters.getBackend())
+        .addInnerClasses(DeadConstructorWithCycleTest.class)
+        .addKeepMainRule(TestClass.class)
+        .enableNeverClassInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(inspector -> assertThat(inspector.clazz(A.class), not(isPresent())))
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithEmptyOutput();
   }
 
   static class TestClass {

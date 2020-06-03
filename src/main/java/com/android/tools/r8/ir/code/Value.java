@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
@@ -980,8 +981,17 @@ public class Value implements Comparable<Value> {
       if (ignoreUser.test(instruction)) {
         continue;
       }
-      if (!instruction.canBeDeadCode(appView, code)) {
+      DeadInstructionResult result = instruction.canBeDeadCode(appView, code);
+      if (result.isNotDead()) {
         return false;
+      }
+      if (result.isMaybeDead()) {
+        for (Value valueRequiredToBeDead : result.getValuesRequiredToBeDead()) {
+          if (!active.contains(valueRequiredToBeDead)
+              && !valueRequiredToBeDead.isDead(appView, code, ignoreUser, active)) {
+            return false;
+          }
+        }
       }
       Value outValue = instruction.outValue();
       if (outValue != null
