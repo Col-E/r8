@@ -810,7 +810,8 @@ public abstract class R8RunArtTestsTest {
           .put(
               "201-built-in-except-detail-messages",
               TestCondition.match(
-                  TestCondition.compilers(CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8)))
+                  TestCondition.compilers(
+                      CompilerUnderTest.D8, CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8)))
           // Uses dex file version 37 and therefore only runs on Android N and above.
           .put(
               "370-dex-v37",
