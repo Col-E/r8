@@ -30,7 +30,6 @@ import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -361,8 +360,6 @@ public class ClassInitializerDefaultsOptimization {
 
   private Map<DexEncodedField, StaticPut> findFinalFieldPutsWhileCollectingUnnecessaryStaticPuts(
       IRCode code, ProgramMethod context, Set<StaticPut> unnecessaryStaticPuts) {
-    ValueMayDependOnEnvironmentAnalysis environmentAnalysis =
-        new ValueMayDependOnEnvironmentAnalysis(appView, code);
     Map<DexEncodedField, StaticPut> finalFieldPuts = Maps.newIdentityHashMap();
     Map<DexField, Set<StaticPut>> isWrittenBefore = Maps.newIdentityHashMap();
     Set<DexEncodedField> isReadBefore = Sets.newIdentityHashSet();
@@ -471,12 +468,7 @@ public class ClassInitializerDefaultsOptimization {
             // the value of one of the fields in the enclosing class.
             if (instruction.isInvoke() && instruction.hasOutValue()) {
               Value outValue = instruction.outValue();
-              if (outValue.numberOfAllUsers() > 0) {
-                if (instruction.isInvokeNewArray()
-                    && environmentAnalysis.isConstantArrayThroughoutMethod(outValue)) {
-                  // OK, this value is technically a constant.
-                  continue;
-                }
+              if (outValue.hasNonDebugUsers()) {
                 return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
               }
             }
