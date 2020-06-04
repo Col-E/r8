@@ -68,16 +68,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
 
   @Override
   public CodeInspector inspector() throws IOException {
-    return new CodeInspector(
-        app,
-        proguardMap,
-        options -> {
-          // TODO(b/158069726): The dex parser should not transform abstract methods on non-abstract
-          //  classes into empty throwing methods.
-          if (minApiLevel >= 0) {
-            options.minApiLevel = minApiLevel;
-          }
-        });
+    return new CodeInspector(app, proguardMap);
   }
 
   public GraphInspector graphInspector() throws IOException {

@@ -1246,6 +1246,22 @@ public class InternalOptions {
     return minApiLevel >= level.getLevel();
   }
 
+  /**
+   * Dex2Oat issues a warning for abstract methods on non-abstract classes, so we never allow this.
+   *
+   * <p>Note that having an invoke instruction that targets an abstract method on a non-abstract
+   * class will fail with a verification error on Dalvik. Therefore, this must not be more
+   * permissive than {@code return minApiLevel >= AndroidApiLevel.L.getLevel()}.
+   *
+   * <p>See b/132953944.
+   */
+  @SuppressWarnings("ConstantConditions")
+  public boolean canUseAbstractMethodOnNonAbstractClass() {
+    boolean result = false;
+    assert !(result && canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug());
+    return result;
+  }
+
   public boolean canUseConstClassInstructions(int cfVersion) {
     assert isGeneratingClassFiles();
     return cfVersion >= requiredCfVersionForConstClassInstructions();

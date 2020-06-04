@@ -176,12 +176,10 @@ public abstract class DexClass extends DexDefinition {
 
   private boolean verifyNoAbstractMethodsOnNonAbstractClasses(
       Iterable<DexEncodedMethod> methods, InternalOptions options) {
-    if (options.canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug()) {
-      if (!isAbstract()) {
-        for (DexEncodedMethod method : methods) {
-          assert !method.isAbstract()
-              : "Non-abstract method on abstract class: `" + method.method.toSourceString() + "`";
-        }
+    if (options.canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug() && !isAbstract()) {
+      for (DexEncodedMethod method : methods) {
+        assert !method.isAbstract()
+            : "Non-abstract method on abstract class: `" + method.method.toSourceString() + "`";
       }
     }
     return true;

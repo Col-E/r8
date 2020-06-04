@@ -11,14 +11,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.Dex2OatTestRunResult;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
@@ -56,29 +52,15 @@ public class AbstractMethodOnNonAbstractClassTest extends TestBase {
     assertThat(classSubject, isPresent());
     assertFalse(classSubject.isAbstract());
 
+    // A.m() is also not made abstract in compat mode.
     MethodSubject methodSubject = classSubject.uniqueMethodWithName("m");
     assertThat(methodSubject, isPresent());
+    assertFalse(methodSubject.isAbstract());
 
     if (parameters.isDexRuntime()) {
-      Dex2OatTestRunResult dex2OatResult = compileResult.runDex2Oat(parameters.getRuntime());
-      if (parameters.getApiLevel().isLessThan(AndroidApiLevel.L)) {
-        // Dalvik does not allow abstract methods on non-abstract classes, so R8 emits an empty
-        // throwing method instead.
-        assertFalse(methodSubject.isAbstract());
-        dex2OatResult.assertStderrMatches(not(containsString(DEX2OAT_WARNING)));
-      } else {
-        // Verify that the method has become abstract.
-        assertTrue(methodSubject.isAbstract());
-
-        DexVm.Version version = parameters.getRuntime().asDex().getVm().getVersion();
-        if (version.equals(Version.V5_1_1) || version.equals(Version.V6_0_1)) {
-          // Art 5.1.1 and 6.0.1 did not report a warning for having an abstract method on a
-          // non-abstract class.
-          dex2OatResult.assertStderrMatches(not(containsString(DEX2OAT_WARNING)));
-        } else {
-          dex2OatResult.assertStderrMatches(containsString(DEX2OAT_WARNING));
-        }
-      }
+      compileResult
+          .runDex2Oat(parameters.getRuntime())
+          .assertStderrMatches(not(containsString(DEX2OAT_WARNING)));
     }
 
     compileResult

@@ -136,14 +136,8 @@ public class CodeInspector {
   }
 
   public CodeInspector(AndroidApp app, String proguardMapContent) throws IOException {
-    this(app, proguardMapContent, null);
-  }
-
-  public CodeInspector(
-      AndroidApp app, String proguardMapContent, Consumer<InternalOptions> optionsConsumer)
-      throws IOException {
     this(
-        new ApplicationReader(app, runOptionsConsumer(optionsConsumer), Timing.empty())
+        new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
             .read(StringResource.fromString(proguardMapContent, Origin.unknown())));
   }
 
