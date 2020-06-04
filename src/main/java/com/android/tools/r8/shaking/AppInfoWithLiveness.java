@@ -44,6 +44,7 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
+import com.android.tools.r8.utils.AssertionUtils;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -60,7 +61,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -984,13 +984,13 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     assert lens.assertDefinitionsNotModified(
         neverMerge.stream()
             .map(this::definitionFor)
-            .filter(Objects::nonNull)
+            .filter(AssertionUtils::assertNotNull)
             .collect(Collectors.toList()));
 
     assert lens.assertDefinitionsNotModified(
         alwaysInline.stream()
-            .map(this::definitionFor)
-            .filter(Objects::nonNull)
+            .map(method -> method.lookupOnClass(definitionForHolder(method)))
+            .filter(AssertionUtils::assertNotNull)
             .collect(Collectors.toList()));
 
     return new AppInfoWithLiveness(

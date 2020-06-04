@@ -49,6 +49,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.AssertionUtils;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -75,7 +76,6 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -655,8 +655,8 @@ public class VerticalClassMerger {
   private boolean verifyGraphLens(VerticalClassMergerGraphLense graphLense) {
     assert graphLense.assertDefinitionsNotModified(
         appInfo.alwaysInline.stream()
-            .map(appInfo::definitionFor)
-            .filter(Objects::nonNull)
+            .map(method -> method.lookupOnClass(appView.definitionForHolder(method)))
+            .filter(AssertionUtils::assertNotNull)
             .collect(Collectors.toList()));
 
     assert graphLense.assertReferencesNotModified(appInfo.noSideEffects.keySet());
@@ -1824,7 +1824,7 @@ public class VerticalClassMerger {
       return true;
     }
 
-    private boolean checkMethodReference(DexMethod method) {
+    private boolean checkMethodReference(DexMethod method, OptionalBool isInterface) {
       if (!foundIllegalAccess) {
         DexType baseType =
             appView.graphLense().lookupType(method.holder.toBaseType(appView.dexItemFactory()));
@@ -1834,8 +1834,12 @@ public class VerticalClassMerger {
           for (DexType type : method.proto.parameters.values) {
             checkTypeReference(type);
           }
-          DexEncodedMethod definition = appView.definitionFor(method);
-          if (definition == null || !definition.accessFlags.isPublic()) {
+          ResolutionResult resolutionResult =
+              isInterface.isUnknown()
+                  ? appView.appInfo().unsafeResolveMethodDueToDexFormat(method)
+                  : appView.appInfo().resolveMethod(method, isInterface.isTrue());
+          if (!resolutionResult.isSingleResolution()
+              || !resolutionResult.asSingleResolution().getResolvedMethod().isPublic()) {
             foundIllegalAccess = true;
           }
         }
@@ -1867,7 +1871,7 @@ public class VerticalClassMerger {
       assert context != null;
       GraphLenseLookupResult lookup =
           appView.graphLense().lookupMethod(method, context.getReference(), Type.VIRTUAL);
-      return checkMethodReference(lookup.getMethod());
+      return checkMethodReference(lookup.getMethod(), OptionalBool.FALSE);
     }
 
     @Override
@@ -1875,7 +1879,7 @@ public class VerticalClassMerger {
       assert context != null;
       GraphLenseLookupResult lookup =
           appView.graphLense().lookupMethod(method, context.getReference(), Type.DIRECT);
-      return checkMethodReference(lookup.getMethod());
+      return checkMethodReference(lookup.getMethod(), OptionalBool.UNKNOWN);
     }
 
     @Override
@@ -1883,7 +1887,7 @@ public class VerticalClassMerger {
       assert context != null;
       GraphLenseLookupResult lookup =
           appView.graphLense().lookupMethod(method, context.getReference(), Type.STATIC);
-      return checkMethodReference(lookup.getMethod());
+      return checkMethodReference(lookup.getMethod(), OptionalBool.UNKNOWN);
     }
 
     @Override
@@ -1891,7 +1895,7 @@ public class VerticalClassMerger {
       assert context != null;
       GraphLenseLookupResult lookup =
           appView.graphLense().lookupMethod(method, context.getReference(), Type.INTERFACE);
-      return checkMethodReference(lookup.getMethod());
+      return checkMethodReference(lookup.getMethod(), OptionalBool.TRUE);
     }
 
     @Override
@@ -1899,7 +1903,7 @@ public class VerticalClassMerger {
       assert context != null;
       GraphLenseLookupResult lookup =
           appView.graphLense().lookupMethod(method, context.getReference(), Type.SUPER);
-      return checkMethodReference(lookup.getMethod());
+      return checkMethodReference(lookup.getMethod(), OptionalBool.UNKNOWN);
     }
 
     @Override

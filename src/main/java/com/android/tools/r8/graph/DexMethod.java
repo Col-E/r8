@@ -57,6 +57,11 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   @Override
+  public DexEncodedMethod lookupOnClass(DexClass clazz) {
+    return clazz != null ? clazz.lookupMember(this) : null;
+  }
+
+  @Override
   public String toString() {
     return "Method " + holder + "." + name + " " + proto.toString();
   }

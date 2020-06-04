@@ -717,16 +717,19 @@ public class RootSetBuilder {
               if (!include.test(method.holder)) {
                 return;
               }
+              DexProgramClass holder = asProgramClassOrNull(appInfo.definitionForHolder(method));
+              DexEncodedMethod definition = method.lookupOnClass(holder);
+              if (definition == null) {
+                assert false;
+                return;
+              }
               out.print(method.holder.toSourceString() + ": ");
-              DexEncodedMethod encodedMethod = appInfo.definitionFor(method);
-              if (encodedMethod.accessFlags.isConstructor()) {
-                if (encodedMethod.accessFlags.isStatic()) {
-                  out.print(Constants.CLASS_INITIALIZER_NAME);
-                } else {
-                  String holderName = method.holder.toSourceString();
-                  String constrName = holderName.substring(holderName.lastIndexOf('.') + 1);
-                  out.print(constrName);
-                }
+              if (definition.isClassInitializer()) {
+                out.print(Constants.CLASS_INITIALIZER_NAME);
+              } else if (definition.isInstanceInitializer()) {
+                String holderName = method.holder.toSourceString();
+                String constrName = holderName.substring(holderName.lastIndexOf('.') + 1);
+                out.print(constrName);
               } else {
                 out.print(
                     method.proto.returnType.toSourceString() + " " + method.name.toSourceString());
