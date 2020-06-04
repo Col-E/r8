@@ -40,6 +40,7 @@ import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Consumer3;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.OriginWithPosition;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -112,6 +113,9 @@ public class RootSetBuilder {
 
   private final DexStringCache dexStringCache = new DexStringCache();
   private final Set<ProguardIfRule> ifRules = Sets.newIdentityHashSet();
+
+  private final Map<OriginWithPosition, List<DexMethod>> assumeNoSideEffectsWarnings =
+      new HashMap<>();
 
   public RootSetBuilder(
       AppView<? extends AppInfoWithClassHierarchy> appView,
@@ -304,6 +308,7 @@ public class RootSetBuilder {
     } finally {
       application.timing.end();
     }
+    generateAssumeNoSideEffectsWarnings();
     if (!noSideEffects.isEmpty() || !assumedValues.isEmpty()) {
       BottomUpClassHierarchyTraversal.forAllClasses(appView, subtypingInfo)
           .visit(appView.appInfo().classes(), this::propagateAssumeRules);
@@ -1124,6 +1129,7 @@ public class RootSetBuilder {
       mayHaveSideEffects.put(item.toReference(), rule);
       context.markAsUsed();
     } else if (context instanceof ProguardAssumeNoSideEffectRule) {
+      checkAssumeNoSideEffectsWarnings(item, (ProguardAssumeNoSideEffectRule) context, rule);
       noSideEffects.put(item.toReference(), rule);
       context.markAsUsed();
     } else if (context instanceof ProguardWhyAreYouKeepingRule) {
@@ -1623,6 +1629,66 @@ public class RootSetBuilder {
     public int size() {
       return classesWithRules.size() + fieldsWithRules.size() + methodsWithRules.size();
     }
+  }
+
+  private void checkAssumeNoSideEffectsWarnings(
+      DexDefinition item, ProguardAssumeNoSideEffectRule context, ProguardMemberRule rule) {
+    if (rule.getRuleType() == ProguardMemberType.METHOD && rule.isSpecific()) {
+      return;
+    }
+    if (item.isDexEncodedMethod()) {
+      DexEncodedMethod method = item.asDexEncodedMethod();
+      if (method.holder() == options.itemFactory.objectType) {
+        OriginWithPosition key = new OriginWithPosition(context.getOrigin(), context.getPosition());
+        assumeNoSideEffectsWarnings.computeIfAbsent(key, k -> new ArrayList<>()).add(method.method);
+      }
+    }
+  }
+
+  private boolean isWaitOrNotifyMethod(DexMethod method) {
+    return method.name == options.itemFactory.waitMethodName
+        || method.name == options.itemFactory.notifyMethodName
+        || method.name == options.itemFactory.notifyAllMethodName;
+  }
+
+  private void generateAssumeNoSideEffectsWarnings() {
+    ProguardClassFilter dontWarnPatterns =
+        options.getProguardConfiguration() != null
+            ? options.getProguardConfiguration().getDontWarnPatterns()
+            : ProguardClassFilter.empty();
+    if (dontWarnPatterns.matches(options.itemFactory.objectType)) {
+      return;
+    }
+
+    assumeNoSideEffectsWarnings.forEach(
+        (originWithPosition, methods) -> {
+          boolean waitOrNotifyMethods = methods.stream().anyMatch(this::isWaitOrNotifyMethod);
+          StringBuilder message = new StringBuilder();
+          message.append(
+              "The -assumenosideeffects rule matches methods on `java.lang.Object` with wildcards");
+          if (waitOrNotifyMethods) {
+            message.append(" including the method(s) ");
+            for (int i = 0; i < methods.size(); i++) {
+              if (i > 0) {
+                message.append(i < methods.size() - 1 ? ", " : " and ");
+              }
+              message.append("`");
+              message.append(methods.get(i).toSourceStringWithoutHolder());
+              message.append("`");
+            }
+            message.append(". ");
+            message.append("This will most likely cause problems. ");
+          } else {
+            message.append(". ");
+            message.append("This is most likely not intended. ");
+          }
+          message.append("Consider specifying the methods more precisely.");
+          options.reporter.warning(
+              new StringDiagnostic(
+                  message.toString(),
+                  originWithPosition.getOrigin(),
+                  originWithPosition.getPosition()));
+        });
   }
 
   public static class RootSet extends RootSetBase {

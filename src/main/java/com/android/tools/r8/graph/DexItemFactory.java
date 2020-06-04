@@ -147,6 +147,10 @@ public class DexItemFactory {
   public final DexString boxedNumberDescriptor = createString("Ljava/lang/Number;");
   public final DexString boxedVoidDescriptor = createString("Ljava/lang/Void;");
 
+  public final DexString waitMethodName = createString("wait");
+  public final DexString notifyMethodName = createString("notify");
+  public final DexString notifyAllMethodName = createString("notifyAll");
+
   public final DexString unboxBooleanMethodName = createString("booleanValue");
   public final DexString unboxByteMethodName = createString("byteValue");
   public final DexString unboxCharMethodName = createString("charValue");
