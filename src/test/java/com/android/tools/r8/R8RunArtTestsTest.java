@@ -809,9 +809,21 @@ public abstract class R8RunArtTestsTest {
           // Fails due to non-matching Exception messages.
           .put(
               "201-built-in-except-detail-messages",
-              TestCondition.match(
-                  TestCondition.compilers(
-                      CompilerUnderTest.D8, CompilerUnderTest.R8, CompilerUnderTest.R8_AFTER_D8)))
+              TestCondition.or(
+                  TestCondition.match(
+                      TestCondition.compilers(
+                          CompilerUnderTest.D8, CompilerUnderTest.D8_AFTER_R8CF),
+                      TestCondition.runtimes(
+                          DexVm.Version.V4_0_4,
+                          DexVm.Version.V4_4_4,
+                          DexVm.Version.V5_1_1,
+                          DexVm.Version.V6_0_1,
+                          DexVm.Version.V7_0_0)),
+                  TestCondition.match(
+                      TestCondition.compilers(
+                          CompilerUnderTest.R8,
+                          CompilerUnderTest.R8CF,
+                          CompilerUnderTest.R8_AFTER_D8))))
           // Uses dex file version 37 and therefore only runs on Android N and above.
           .put(
               "370-dex-v37",
