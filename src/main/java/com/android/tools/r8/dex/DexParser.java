@@ -642,8 +642,7 @@ public class DexParser {
       int size,
       DexMethodAnnotation[] annotations,
       DexParameterAnnotation[] parameters,
-      boolean skipCodes,
-      boolean ensureNonAbstract) {
+      boolean skipCodes) {
     DexEncodedMethod[] methods = new DexEncodedMethod[size];
     int methodIndex = 0;
     MemberAnnotationIterator<DexMethod, DexAnnotationSet> annotationIterator =
@@ -661,19 +660,13 @@ public class DexParser {
         code = codes.get(codeOff);
       }
       DexMethod method = indexedItems.getMethod(methodIndex);
-      DexEncodedMethod encodedMethod =
+      methods[i] =
           new DexEncodedMethod(
               method,
               accessFlags,
               annotationIterator.getNextFor(method),
               parameterAnnotationsIterator.getNextFor(method),
               code);
-      if (accessFlags.isAbstract() && ensureNonAbstract) {
-        accessFlags.unsetAbstract();
-        assert !options.isGeneratingClassFiles();
-        encodedMethod = encodedMethod.toEmptyThrowingMethodDex(false);
-      }
-      methods[i] = encodedMethod;
     }
     return methods;
   }
@@ -754,17 +747,13 @@ public class DexParser {
                 directMethodsSize,
                 annotationsDirectory.methods,
                 annotationsDirectory.parameters,
-                classKind != ClassKind.PROGRAM,
-                options.canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug()
-                    && !flags.isAbstract());
+                classKind != ClassKind.PROGRAM);
         virtualMethods =
             readMethods(
                 virtualMethodsSize,
                 annotationsDirectory.methods,
                 annotationsDirectory.parameters,
-                classKind != ClassKind.PROGRAM,
-                options.canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug()
-                    && !flags.isAbstract());
+                classKind != ClassKind.PROGRAM);
       }
 
       AttributesAndAnnotations attrs =

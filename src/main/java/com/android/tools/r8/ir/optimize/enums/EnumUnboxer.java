@@ -754,11 +754,7 @@ public class EnumUnboxer implements PostOptimization {
       // enumUnboxerRewriter will generate invalid code.
       // To work around this problem we clear such methods, i.e., we replace the code object by
       // an empty throwing code object, so reprocessing won't take time and will be valid.
-      enumMethod.setCode(
-          appView.options().isGeneratingClassFiles()
-              ? enumMethod.buildEmptyThrowingCfCode()
-              : enumMethod.buildEmptyThrowingDexCode(),
-          appView);
+      enumMethod.setCode(enumMethod.buildEmptyThrowingCode(appView.options()), appView);
     }
 
     private DexEncodedMethod fixupEncodedMethodToUtility(

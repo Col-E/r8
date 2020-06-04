@@ -771,11 +771,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         null);
   }
 
-  public DexCode buildEmptyThrowingDexCode() {
-    Instruction insn[] = {new Const(0, 0), new Throw(0)};
-    return generateCodeFromTemplate(1, 0, insn);
-  }
-
   public DexEncodedMethod toEmptyThrowingMethod(InternalOptions options) {
     return options.isGeneratingClassFiles()
         ? toEmptyThrowingMethodCf()
@@ -795,17 +790,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return result;
   }
 
-  public CfCode buildEmptyThrowingCfCode() {
-    CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
-    return new CfCode(
-        method.holder,
-        1,
-        method.proto.parameters.size() + 1,
-        Arrays.asList(insn),
-        Collections.emptyList(),
-        Collections.emptyList());
-  }
-
   private DexEncodedMethod toEmptyThrowingMethodCf() {
     checkIfObsolete();
     assert !shouldNotHaveCode();
@@ -817,6 +801,28 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     DexEncodedMethod result = builder.build();
     setObsolete();
     return result;
+  }
+
+  public Code buildEmptyThrowingCode(InternalOptions options) {
+    return options.isGeneratingClassFiles()
+        ? buildEmptyThrowingCfCode()
+        : buildEmptyThrowingDexCode();
+  }
+
+  public CfCode buildEmptyThrowingCfCode() {
+    CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
+    return new CfCode(
+        method.holder,
+        1,
+        method.proto.parameters.size() + 1,
+        Arrays.asList(insn),
+        Collections.emptyList(),
+        Collections.emptyList());
+  }
+
+  public DexCode buildEmptyThrowingDexCode() {
+    Instruction insn[] = {new Const(0, 0), new Throw(0)};
+    return generateCodeFromTemplate(1, 0, insn);
   }
 
   public DexEncodedMethod toMethodThatLogsError(AppView<?> appView) {

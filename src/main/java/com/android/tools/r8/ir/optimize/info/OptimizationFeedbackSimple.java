@@ -135,8 +135,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
 
   @Override
   public void markProcessed(DexEncodedMethod method, ConstraintWithTarget state) {
-    // Just as processed, don't provide any inlining constraints.
-    method.markProcessed(ConstraintWithTarget.NEVER);
+    method.markProcessed(state);
   }
 
   @Override

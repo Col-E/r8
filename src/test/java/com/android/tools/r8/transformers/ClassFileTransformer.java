@@ -337,6 +337,10 @@ public class ClassFileTransformer {
             });
   }
 
+  public ClassFileTransformer unsetAbstract() {
+    return setAccessFlags(ClassAccessFlags::unsetAbstract);
+  }
+
   public ClassFileTransformer setAnnotation() {
     return setAccessFlags(
         accessFlags -> {

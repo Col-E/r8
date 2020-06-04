@@ -1669,7 +1669,7 @@ public class InternalOptions {
   //
   // See b/132953944.
   public boolean canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug() {
-    return minApiLevel < AndroidApiLevel.L.getLevel();
+    return isGeneratingDex() && minApiLevel < AndroidApiLevel.L.getLevel();
   }
 
   // On dalvik we see issues when using an int value in places where a boolean, byte, char, or short
