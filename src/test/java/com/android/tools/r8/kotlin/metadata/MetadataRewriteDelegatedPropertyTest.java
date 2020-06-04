@@ -5,14 +5,11 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
@@ -151,24 +148,25 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
         testForR8(parameters.getBackend())
             .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(libJars.get(targetVersion))
+            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addKeepRules("-keep class " + PKG_LIB + ".Delegates { *; }")
             .addKeepRules("-keep class " + PKG_LIB + ".Resource { *; }")
             .addKeepRules("-keep class " + PKG_LIB + ".CustomDelegate { *; }")
             .compile()
             .writeToZip();
-    ProcessResult result =
+    Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(
                     DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main_reflect"))
             .setOutputPath(temp.newFolder().toPath())
-            .compileRaw();
-    assertEquals(1, result.exitCode);
-    assertThat(
-        result.stderr,
-        containsString(
-            "unsupported [reference to the synthetic extension property for a Java get/set"
-                + " method]"));
+            .compile();
+    testForJvm()
+        .addRunClasspathFiles(
+            ToolHelper.getKotlinStdlibJar(), ToolHelper.getKotlinReflectJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), PKG_APP + ".Main_reflectKt")
+        .assertSuccessWithOutput(EXPECTED_REFLECT);
   }
 }
