@@ -394,8 +394,9 @@ public class GeneratedMessageLiteBuilderShrinker {
     void extend(SubtypingInfo subtypingInfo) {
       alwaysClassInlineGeneratedMessageLiteBuilders();
 
-      // GeneratedMessageLite heuristics.
+      // MessageLite and GeneratedMessageLite heuristics.
       alwaysInlineCreateBuilderFromGeneratedMessageLite();
+      neverMergeMessageLite();
 
       // * extends GeneratedMessageLite heuristics.
       bypassClinitforInliningNewBuilderMethods(subtypingInfo);
@@ -441,6 +442,12 @@ public class GeneratedMessageLiteBuilderShrinker {
       // testing.
       neverMerge.add(references.generatedMessageLiteBuilderType);
       neverMerge.add(references.generatedMessageLiteExtendableBuilderType);
+    }
+
+    private void neverMergeMessageLite() {
+      // MessageLite is used in several signatures that we use for recognizing methods, so don't
+      // allow it to me merged.
+      neverMerge.add(references.messageLiteType);
     }
   }
 }

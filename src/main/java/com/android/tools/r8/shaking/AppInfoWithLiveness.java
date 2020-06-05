@@ -987,12 +987,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             .filter(AssertionUtils::assertNotNull)
             .collect(Collectors.toList()));
 
-    assert lens.assertDefinitionsNotModified(
-        alwaysInline.stream()
-            .map(method -> method.lookupOnClass(definitionForHolder(method)))
-            .filter(AssertionUtils::assertNotNull)
-            .collect(Collectors.toList()));
-
     return new AppInfoWithLiveness(
         application,
         deadProtoTypes,

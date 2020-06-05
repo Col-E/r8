@@ -49,7 +49,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.logging.Log;
-import com.android.tools.r8.utils.AssertionUtils;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -82,7 +81,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -279,11 +277,6 @@ public class VerticalClassMerger {
     appInfo.getKeepInfo().forEachPinnedMethod(pinnedItems::add);
     appInfo.getKeepInfo().forEachPinnedField(pinnedItems::add);
     extractPinnedItems(pinnedItems, AbortReason.PINNED_SOURCE);
-
-    // TODO(christofferqa): Remove the invariant that the graph lense should not modify any
-    // methods from the sets alwaysInline and noSideEffects (see use of assertNotModified).
-    extractPinnedItems(appInfo.alwaysInline, AbortReason.ALWAYS_INLINE);
-    extractPinnedItems(appInfo.noSideEffects.keySet(), AbortReason.NO_SIDE_EFFECTS);
 
     for (DexProgramClass clazz : classes) {
       for (DexEncodedMethod method : clazz.methods()) {
@@ -653,14 +646,6 @@ public class VerticalClassMerger {
   }
 
   private boolean verifyGraphLens(VerticalClassMergerGraphLense graphLense) {
-    assert graphLense.assertDefinitionsNotModified(
-        appInfo.alwaysInline.stream()
-            .map(method -> method.lookupOnClass(appView.definitionForHolder(method)))
-            .filter(AssertionUtils::assertNotNull)
-            .collect(Collectors.toList()));
-
-    assert graphLense.assertReferencesNotModified(appInfo.noSideEffects.keySet());
-
     // Note that the method assertReferencesNotModified() relies on getRenamedFieldSignature() and
     // getRenamedMethodSignature() instead of lookupField() and lookupMethod(). This is important
     // for this check to succeed, since it is not guaranteed that calling lookupMethod() with a
