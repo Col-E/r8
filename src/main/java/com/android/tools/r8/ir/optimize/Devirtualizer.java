@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
@@ -290,61 +290,39 @@ public class Devirtualizer {
     if (!receiver.getType().isClassType()) {
       return target;
     }
-    DexEncodedMethod encodedTarget = appView.definitionFor(target);
-    if (encodedTarget == null
-        || !canInvokeTargetWithInvokeVirtual(encodedTarget)
-        || !hasAccessToInvokeTargetFromContext(encodedTarget, context)) {
-      // Don't rewrite this instruction as it could remove an error from the program.
+
+    SingleResolutionResult resolutionResult =
+        appView.appInfo().resolveMethodOnClass(target).asSingleResolution();
+    if (resolutionResult == null
+        || resolutionResult
+            .isAccessibleForVirtualDispatchFrom(context, appView.appInfo())
+            .isPossiblyFalse()) {
+      // Method does not resolve or is not accessible.
       return target;
     }
-    DexType receiverType =
-        appView.graphLense().lookupType(receiver.getType().asClassType().getClassType());
+
+    DexType receiverType = receiver.getType().asClassType().getClassType();
     if (receiverType == target.holder) {
       // Virtual invoke is already as specific as it can get.
       return target;
     }
-    ResolutionResult resolutionResult =
-        appView.appInfo().resolveMethodOnClass(target, receiverType);
-    DexEncodedMethod newTarget =
-        resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
-    if (newTarget == null || newTarget.method == target) {
-      // Most likely due to a missing class, or invoke is already as specific as it gets.
+
+    SingleResolutionResult newResolutionResult =
+        appView.appInfo().resolveMethodOnClass(target, receiverType).asSingleResolution();
+    if (newResolutionResult == null
+        || newResolutionResult
+            .isAccessibleForVirtualDispatchFrom(context, appView.appInfo())
+            .isPossiblyFalse()) {
       return target;
     }
-    DexClass newTargetClass = appView.definitionFor(newTarget.holder());
-    if (newTargetClass == null
-        || newTargetClass.isLibraryClass()
-        || !canInvokeTargetWithInvokeVirtual(newTarget)
-        || !hasAccessToInvokeTargetFromContext(newTarget, context)) {
-      // Not safe to invoke `newTarget` with virtual invoke from the current context.
+
+    DexClass newTargetHolder = newResolutionResult.getResolvedHolder();
+    if (!newTargetHolder.isProgramClass() || newTargetHolder.isInterface()) {
+      // Not safe to invoke the new resolution result with virtual invoke from the current context.
       return target;
     }
-    return newTarget.method;
-  }
 
-  private boolean canInvokeTargetWithInvokeVirtual(DexEncodedMethod target) {
-    return target.isNonPrivateVirtualMethod() && appView.isInterface(target.holder()).isFalse();
-  }
-
-  private boolean hasAccessToInvokeTargetFromContext(
-      DexEncodedMethod target, ProgramMethod context) {
-    assert !target.accessFlags.isPrivate();
-    DexType holder = target.holder();
-    if (holder == context.getHolderType()) {
-      // It is always safe to invoke a method from the same enclosing class.
-      return true;
-    }
-    DexClass clazz = appView.definitionFor(holder);
-    if (clazz == null) {
-      // Conservatively report an illegal access.
-      return false;
-    }
-    if (holder.isSamePackage(context.getHolderType())) {
-      // The class must be accessible (note that we have already established that the method is not
-      // private).
-      return !clazz.accessFlags.isPrivate();
-    }
-    // If the method is in another package, then the method and its holder must be public.
-    return clazz.accessFlags.isPublic() && target.accessFlags.isPublic();
+    // Change the invoke-virtual instruction to target the refined resolution result instead.
+    return newResolutionResult.getResolvedMethod().method;
   }
 }

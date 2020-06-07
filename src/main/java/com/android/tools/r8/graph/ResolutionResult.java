@@ -70,6 +70,11 @@ public abstract class ResolutionResult {
   public abstract OptionalBool isAccessibleForVirtualDispatchFrom(
       DexProgramClass context, AppInfoWithClassHierarchy appInfo);
 
+  public final OptionalBool isAccessibleForVirtualDispatchFrom(
+      ProgramMethod context, AppInfoWithClassHierarchy appInfo) {
+    return isAccessibleForVirtualDispatchFrom(context.getHolder(), appInfo);
+  }
+
   public abstract boolean isVirtualTarget();
 
   /** Lookup the single target of an invoke-special on this resolution result if possible. */

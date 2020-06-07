@@ -484,21 +484,25 @@ final class InlineCandidateProcessor {
               throw new IllegalClassInlinerStateException();
             }
 
-            DexEncodedMethod singleTarget = appView.definitionFor(invokedMethod);
-            if (singleTarget == null
-                || !singleTarget.isInliningCandidate(
-                    method,
-                    Reason.SIMPLE,
-                    appView.appInfo(),
-                    NopWhyAreYouNotInliningReporter.getInstance())) {
+            DexProgramClass holder =
+                asProgramClassOrNull(appView.definitionForHolder(invokedMethod));
+            if (holder == null) {
               throw new IllegalClassInlinerStateException();
             }
 
-            ProgramMethod singleTargetMethod =
-                new ProgramMethod(
-                    appView.definitionForHolder(singleTarget).asProgramClass(), singleTarget);
-            methodCallsOnInstance.put(
-                invoke, new InliningInfo(singleTargetMethod, root.asNewInstance().clazz));
+            ProgramMethod singleTarget = holder.lookupProgramMethod(invokedMethod);
+            if (singleTarget == null
+                || !singleTarget
+                    .getDefinition()
+                    .isInliningCandidate(
+                        method,
+                        Reason.SIMPLE,
+                        appView.appInfo(),
+                        NopWhyAreYouNotInliningReporter.getInstance())) {
+              throw new IllegalClassInlinerStateException();
+            }
+
+            methodCallsOnInstance.put(invoke, new InliningInfo(singleTarget, eligibleClass.type));
             break;
           }
         }
@@ -787,7 +791,11 @@ final class InlineCandidateProcessor {
       if (parent == null) {
         return null;
       }
-      ProgramMethod encodedParent = asProgramMethodOrNull(appView.definitionFor(parent), appView);
+      DexProgramClass parentClass = asProgramClassOrNull(appView.definitionForHolder(parent));
+      if (parentClass == null) {
+        return null;
+      }
+      ProgramMethod encodedParent = parentClass.lookupProgramMethod(parent);
       if (encodedParent == null) {
         return null;
       }
@@ -1250,12 +1258,13 @@ final class InlineCandidateProcessor {
     if (method == dexItemFactory.objectMembers.constructor) {
       return true;
     }
-    DexEncodedMethod encodedMethod = appView.definitionFor(method);
-    if (encodedMethod == null) {
+    DexProgramClass holder = asProgramClassOrNull(appView.definitionForHolder(method));
+    DexEncodedMethod definition = method.lookupOnClass(holder);
+    if (definition == null) {
       return false;
     }
     InstanceInitializerInfo initializerInfo =
-        encodedMethod.getOptimizationInfo().getInstanceInitializerInfo();
+        definition.getOptimizationInfo().getInstanceInitializerInfo();
     return initializerInfo.receiverNeverEscapesOutsideConstructorChain();
   }
 
