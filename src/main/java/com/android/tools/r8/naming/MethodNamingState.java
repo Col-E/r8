@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.naming.MethodNamingState.InternalNewNameState;
@@ -44,37 +45,38 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
         this, this.keyTransform, this.namingStrategy, frontierReservationState);
   }
 
-  DexString newOrReservedNameFor(DexMethod method) {
+  DexString newOrReservedNameFor(DexEncodedMethod method) {
     return newOrReservedNameFor(method, this::isAvailable);
   }
 
-  DexString newOrReservedNameFor(DexMethod method, BiPredicate<DexString, DexMethod> isAvailable) {
-    DexString newName = getAssignedName(method);
+  DexString newOrReservedNameFor(
+      DexEncodedMethod method, BiPredicate<DexString, DexMethod> isAvailable) {
+    DexString newName = getAssignedName(method.getReference());
     if (newName != null) {
       return newName;
     }
-    Set<DexString> reservedNamesFor = reservationState.getReservedNamesFor(method);
+    Set<DexString> reservedNamesFor = reservationState.getReservedNamesFor(method.getReference());
     // Reservations with applymapping can cause multiple reserved names added to the frontier. In
     // that case, the strategy will return the correct one.
     if (reservedNamesFor != null && reservedNamesFor.size() == 1) {
       DexString candidate = reservedNamesFor.iterator().next();
-      if (isAvailable(candidate, method)) {
+      if (isAvailable(candidate, method.getReference())) {
         return candidate;
       }
     }
     return nextName(method, isAvailable);
   }
 
-  DexString nextName(DexMethod method, BiPredicate<DexString, DexMethod> isAvailable) {
-    InternalNewNameState internalState = getOrCreateInternalState(method);
+  DexString nextName(DexEncodedMethod method, BiPredicate<DexString, DexMethod> isAvailable) {
+    InternalNewNameState internalState = getOrCreateInternalState(method.getReference());
     DexString newName = namingStrategy.next(method, internalState, isAvailable);
     assert newName != null;
     return newName;
   }
 
-  void addRenaming(DexString newName, DexMethod method) {
-    InternalNewNameState internalState = getOrCreateInternalState(method);
-    internalState.addRenaming(newName, method);
+  void addRenaming(DexString newName, DexEncodedMethod method) {
+    InternalNewNameState internalState = getOrCreateInternalState(method.getReference());
+    internalState.addRenaming(newName, method.getReference());
   }
 
   boolean isAvailable(DexString candidate, DexMethod method) {

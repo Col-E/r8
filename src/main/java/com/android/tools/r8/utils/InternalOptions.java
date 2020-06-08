@@ -1210,10 +1210,11 @@ public class InternalOptions {
 
       public Comparator<DexMethod> interfaceMethodOrdering = null;
 
-      public Comparator<Wrapper<DexMethod>> getInterfaceMethodOrderingOrDefault(
-          Comparator<Wrapper<DexMethod>> comparator) {
+      public Comparator<Wrapper<DexEncodedMethod>> getInterfaceMethodOrderingOrDefault(
+          Comparator<Wrapper<DexEncodedMethod>> comparator) {
         if (interfaceMethodOrdering != null) {
-          return (a, b) -> interfaceMethodOrdering.compare(a.get(), b.get());
+          return (a, b) ->
+              interfaceMethodOrdering.compare(a.get().getReference(), b.get().getReference());
         }
         return comparator;
       }

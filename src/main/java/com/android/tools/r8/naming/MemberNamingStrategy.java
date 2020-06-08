@@ -15,7 +15,7 @@ import java.util.function.BiPredicate;
 public interface MemberNamingStrategy {
 
   DexString next(
-      DexMethod method,
+      DexEncodedMethod method,
       InternalNamingState internalState,
       BiPredicate<DexString, DexMethod> isAvailable);
 

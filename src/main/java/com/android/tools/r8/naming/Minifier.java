@@ -225,16 +225,15 @@ public class Minifier {
 
     @Override
     public DexString next(
-        DexMethod method,
+        DexEncodedMethod method,
         InternalNamingState internalState,
         BiPredicate<DexString, DexMethod> isAvailable) {
-      assert checkAllowMemberRenaming(method.holder);
-      DexEncodedMethod encodedMethod = appView.definitionFor(method);
-      boolean isDirectOrStatic = encodedMethod.isDirectMethod() || encodedMethod.isStatic();
+      assert checkAllowMemberRenaming(method.getHolderType());
+      boolean isDirectOrStatic = method.isDirectMethod() || method.isStatic();
       DexString candidate;
       do {
         candidate = getNextName(internalState, isDirectOrStatic);
-      } while (!isAvailable.test(candidate, method));
+      } while (!isAvailable.test(candidate, method.getReference()));
       return candidate;
     }
 

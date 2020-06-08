@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.naming.MethodReservationState.InternalReservationState;
@@ -36,9 +37,9 @@ class MethodReservationState<KeyType>
     return new MethodReservationState<>(this, this.keyTransform);
   }
 
-  void reserveName(DexString reservedName, DexMethod method) {
+  void reserveName(DexString reservedName, DexEncodedMethod method) {
     try {
-      getOrCreateInternalState(method).reserveName(method, reservedName);
+      getOrCreateInternalState(method.getReference()).reserveName(method, reservedName);
     } catch (AssertionError err) {
       throw new RuntimeException(
           String.format(
@@ -91,13 +92,14 @@ class MethodReservationState<KeyType>
       return originalToReservedNames.get(MethodSignatureEquivalence.get().wrap(method));
     }
 
-    void reserveName(DexMethod method, DexString name) {
+    void reserveName(DexEncodedMethod method, DexString name) {
       if (reservedNames == null) {
         assert originalToReservedNames == null;
         originalToReservedNames = new HashMap<>();
         reservedNames = new HashSet<>();
       }
-      final Wrapper<DexMethod> wrapped = MethodSignatureEquivalence.get().wrap(method);
+      final Wrapper<DexMethod> wrapped =
+          MethodSignatureEquivalence.get().wrap(method.getReference());
       originalToReservedNames.computeIfAbsent(wrapped, ignore -> new HashSet<>()).add(name);
       reservedNames.add(name);
     }

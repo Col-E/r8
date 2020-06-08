@@ -89,8 +89,8 @@ class MethodNameMinifier {
   // from the method name minifier to the interface method name minifier.
   class State {
 
-    void putRenaming(DexMethod key, DexString value) {
-      renaming.put(key, value);
+    void putRenaming(DexEncodedMethod key, DexString value) {
+      renaming.put(key.getReference(), value);
     }
 
     MethodReservationState<?> getReservationState(DexType type) {
@@ -221,21 +221,21 @@ class MethodNameMinifier {
   }
 
   private void assignNameToMethod(
-      DexClass holder, DexEncodedMethod encodedMethod, MethodNamingState<?> state) {
-    if (encodedMethod.accessFlags.isConstructor()) {
+      DexClass holder, DexEncodedMethod method, MethodNamingState<?> state) {
+    if (method.isInitializer()) {
       return;
     }
     // The strategy may have an explicit naming for this member which we query first. It may be that
     // the strategy will return the identity name, for which we have to look into a previous
     // renaming tracked by the state.
-    DexString newName = strategy.getReservedName(encodedMethod, holder);
-    if (newName == null || newName == encodedMethod.method.name) {
-      newName = state.newOrReservedNameFor(encodedMethod.method);
+    DexString newName = strategy.getReservedName(method, holder);
+    if (newName == null || newName == method.getName()) {
+      newName = state.newOrReservedNameFor(method);
     }
-    if (encodedMethod.method.name != newName) {
-      renaming.put(encodedMethod.method, newName);
+    if (method.getName() != newName) {
+      renaming.put(method.getReference(), newName);
     }
-    state.addRenaming(newName, encodedMethod.method);
+    state.addRenaming(newName, method);
   }
 
   private void reserveNamesInClasses() {
@@ -280,7 +280,7 @@ class MethodNameMinifier {
       for (DexEncodedMethod method : shuffleMethods(holder.methods(), appView.options())) {
         DexString reservedName = strategy.getReservedName(method, holder);
         if (reservedName != null) {
-          state.reserveName(reservedName, method.method);
+          state.reserveName(reservedName, method);
         }
       }
     }

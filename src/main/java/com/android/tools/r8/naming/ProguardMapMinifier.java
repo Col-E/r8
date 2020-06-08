@@ -188,11 +188,11 @@ public class ProguardMapMinifier {
       Set<DexReference> notMappedReferences,
       SubtypingInfo subtypingInfo) {
     ClassNamingForMapApplier classNaming = seedMapper.getClassNaming(type);
-    DexClass dexClass = appView.definitionFor(type);
+    DexClass clazz = appView.definitionFor(type);
 
     // Keep track of classes that needs to get renamed.
-    if (dexClass != null && (classNaming != null || dexClass.isProgramClass())) {
-      mappedClasses.add(dexClass);
+    if (clazz != null && (classNaming != null || clazz.isProgramClass())) {
+      mappedClasses.add(clazz);
     }
 
     Map<DexReference, MemberNaming> nonPrivateMembers = new IdentityHashMap<>();
@@ -205,7 +205,7 @@ public class ProguardMapMinifier {
           memberNaming -> addMemberNamings(type, memberNaming, nonPrivateMembers, false));
     } else {
       // We have to ensure we do not rename to an existing member, that cannot be renamed.
-      if (dexClass == null || !appView.options().isMinifying()) {
+      if (clazz == null || !appView.options().isMinifying()) {
         notMappedReferences.add(type);
       } else if (appView.options().isMinifying()
           && appView.rootSet().mayNotBeMinified(type, appView)) {
@@ -222,10 +222,10 @@ public class ProguardMapMinifier {
           if (!memberNames.containsKey(parentReferenceOnCurrentType)) {
             addMemberNaming(
                 parentReferenceOnCurrentType, parentMembers.get(key), additionalMethodNamings);
-          } else {
-            DexEncodedMethod encodedMethod = appView.definitionFor(parentReferenceOnCurrentType);
-            assert encodedMethod == null
-                || encodedMethod.accessFlags.isStatic()
+          } else if (clazz != null) {
+            DexEncodedMethod method = clazz.lookupMethod(parentReferenceOnCurrentType);
+            assert method == null
+                || method.isStatic()
                 || memberNames
                     .get(parentReferenceOnCurrentType)
                     .getRenamedName()
@@ -245,12 +245,12 @@ public class ProguardMapMinifier {
       }
     }
 
-    if (dexClass != null) {
+    if (clazz != null) {
       // If a class is marked as abstract it is allowed to not implement methods from interfaces
       // thus the map will not contain a mapping. Also, if an interface is defined in the library
       // and the class is in the program, we have to build up the correct names to reserve them.
-      if (dexClass.isProgramClass() || dexClass.isAbstract()) {
-        addNonPrivateInterfaceMappings(type, nonPrivateMembers, dexClass.interfaces.values);
+      if (clazz.isProgramClass() || clazz.isAbstract()) {
+        addNonPrivateInterfaceMappings(type, nonPrivateMembers, clazz.interfaces.values);
       }
     }
 
@@ -293,8 +293,9 @@ public class ProguardMapMinifier {
       DexMethod originalMethod = ((MethodSignature) signature).toDexMethod(factory, type);
       addMemberNaming(
           originalMethod, memberNaming, addToAdditionalMaps ? additionalMethodNamings : null);
-      DexEncodedMethod encodedMethod = appView.definitionFor(originalMethod);
-      if (encodedMethod == null || !encodedMethod.accessFlags.isPrivate()) {
+      DexClass holder = appView.definitionForHolder(originalMethod);
+      DexEncodedMethod definition = originalMethod.lookupOnClass(holder);
+      if (definition == null || !definition.accessFlags.isPrivate()) {
         nonPrivateMembers.put(originalMethod, memberNaming);
       }
     } else {
@@ -466,12 +467,12 @@ public class ProguardMapMinifier {
 
     @Override
     public DexString next(
-        DexMethod reference,
+        DexEncodedMethod method,
         InternalNamingState internalState,
         BiPredicate<DexString, DexMethod> isAvailable) {
+      DexMethod reference = method.getReference();
       DexClass holder = appView.definitionForHolder(reference);
       assert holder != null;
-      DexEncodedMethod method = holder.lookupMethod(reference);
       DexString reservedName = getReservedName(method, reference.name, holder);
       DexString nextName;
       if (reservedName != null) {
@@ -482,7 +483,7 @@ public class ProguardMapMinifier {
       } else {
         assert !mappedNames.containsKey(reference);
         assert appView.rootSet().mayBeMinified(reference, appView);
-        nextName = super.next(reference, internalState, isAvailable);
+        nextName = super.next(method, internalState, isAvailable);
       }
       assert nextName == reference.name || !method.isInitializer();
       assert nextName == reference.name || !holder.isAnnotation();
