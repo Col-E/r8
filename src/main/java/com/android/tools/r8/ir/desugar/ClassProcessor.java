@@ -337,8 +337,7 @@ final class ClassProcessor {
     if (method.isFinal()) {
       return false;
     }
-    return appView.options().desugaredLibraryConfiguration.retargetMethod(method.method, appView)
-        != null;
+    return appView.options().desugaredLibraryConfiguration.retargetMethod(method, appView) != null;
   }
 
   private boolean dontRewrite(DexClass clazz, DexEncodedMethod method) {
@@ -396,7 +395,7 @@ final class ClassProcessor {
     DexMethod forwardMethod =
         targetHolder.isInterface()
             ? rewriter.defaultAsMethodOfCompanionClass(method)
-            : appView.options().desugaredLibraryConfiguration.retargetMethod(method, appView);
+            : appView.options().desugaredLibraryConfiguration.retargetMethod(target, appView);
     DexEncodedMethod desugaringForwardingMethod =
         DexEncodedMethod.createDesugaringForwardingMethod(
             target, clazz, forwardMethod, dexItemFactory);

@@ -1887,6 +1887,10 @@ public class DexItemFactory {
     return createProto(proto.returnType, parameterTypes);
   }
 
+  public DexProto prependHolderToProto(DexMethod method) {
+    return prependTypeToProto(method.holder, method.proto);
+  }
+
   public DexProto prependTypeToProto(DexType extraFirstType, DexProto initialProto) {
     DexType[] parameterTypes = new DexType[initialProto.parameters.size() + 1];
     parameterTypes[0] = extraFirstType;
