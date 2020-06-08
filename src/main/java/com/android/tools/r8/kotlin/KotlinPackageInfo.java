@@ -22,16 +22,22 @@ import java.util.Map;
 import java.util.function.Consumer;
 import kotlinx.metadata.KmPackage;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
+import kotlinx.metadata.jvm.JvmPackageExtensionVisitor;
 
 // Holds information about a KmPackage object.
 public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
 
   private final String moduleName;
   private final KotlinDeclarationContainerInfo containerInfo;
+  private final KotlinLocalDelegatedPropertyInfo localDelegatedProperties;
 
-  private KotlinPackageInfo(String moduleName, KotlinDeclarationContainerInfo containerInfo) {
+  private KotlinPackageInfo(
+      String moduleName,
+      KotlinDeclarationContainerInfo containerInfo,
+      KotlinLocalDelegatedPropertyInfo localDelegatedProperties) {
     this.moduleName = moduleName;
     this.containerInfo = containerInfo;
+    this.localDelegatedProperties = localDelegatedProperties;
   }
 
   public static KotlinPackageInfo create(
@@ -51,7 +57,9 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
     return new KotlinPackageInfo(
         JvmExtensionsKt.getModuleName(kmPackage),
         KotlinDeclarationContainerInfo.create(
-            kmPackage, methodMap, fieldMap, factory, reporter, keepByteCode));
+            kmPackage, methodMap, fieldMap, factory, reporter, keepByteCode),
+        KotlinLocalDelegatedPropertyInfo.create(
+            JvmExtensionsKt.getLocalDelegatedProperties(kmPackage), factory, reporter));
   }
 
   public void rewrite(
@@ -66,11 +74,17 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
         clazz,
         appView,
         namingLens);
-    JvmExtensionsKt.setModuleName(kmPackage, moduleName);
+    JvmPackageExtensionVisitor extensionVisitor =
+        (JvmPackageExtensionVisitor) kmPackage.visitExtensions(JvmPackageExtensionVisitor.TYPE);
+    localDelegatedProperties.rewrite(
+        extensionVisitor::visitLocalDelegatedProperty, appView, namingLens);
+    extensionVisitor.visitModuleName(moduleName);
+    extensionVisitor.visitEnd();
   }
 
   @Override
   public void trace(DexDefinitionSupplier definitionSupplier) {
     containerInfo.trace(definitionSupplier);
+    localDelegatedProperties.trace(definitionSupplier);
   }
 }

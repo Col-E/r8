@@ -129,6 +129,18 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     return this;
   }
 
+  public KotlinJvmFieldSignatureInfo getFieldSignature() {
+    return fieldSignature;
+  }
+
+  public KotlinJvmMethodSignatureInfo getGetterSignature() {
+    return getterSignature;
+  }
+
+  public KotlinJvmMethodSignatureInfo getSetterSignature() {
+    return setterSignature;
+  }
+
   void rewrite(
       KmVisitorProviders.KmPropertyVisitorProvider visitorProvider,
       DexEncodedField field,

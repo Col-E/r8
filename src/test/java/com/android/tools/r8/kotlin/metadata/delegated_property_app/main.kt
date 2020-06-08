@@ -3,29 +3,57 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata.delegated_property_app
 
-import com.android.tools.r8.kotlin.metadata.delegated_property_lib.Delegates
-import com.android.tools.r8.kotlin.metadata.delegated_property_lib.ProvidedDelegates
-import com.android.tools.r8.kotlin.metadata.delegated_property_lib.Resource
-import com.android.tools.r8.kotlin.metadata.delegated_property_lib.User
+import kotlin.reflect.KMutableProperty1
+import kotlin.reflect.KProperty
+import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.jvm.isAccessible
+
+class Resource(private var s : String = "Initial string") {
+
+  override fun toString(): String {
+    return s;
+  }
+}
+
+object CustomDelegate {
+
+  private var resource : Resource = Resource()
+
+  operator fun getValue(thisRef: Any?, property: KProperty<*>): Resource {
+    println("$resource has been read in CustomDelegate from '${property.name}'")
+    return resource;
+  }
+
+  operator fun setValue(thisRef: Any?, property: KProperty<*>, value: Resource) {
+    println("$value has been assigned to '${property.name}'")
+    this.resource = resource;
+  }
+}
+
+open class Base {
+
+  fun doSomethingOnBarRef() : Resource {
+    var x by CustomDelegate
+    val propRef = x.javaClass.kotlin.declaredMemberProperties.first() as KMutableProperty1<Resource, String>
+    propRef.isAccessible = true
+    propRef.set(x, "New value")
+    propRef.get(x)
+    // Getting the delegate is not yet supported and will return null. We are printing the value
+    // allowing us to observe if the behavior changes.
+    println(propRef.getDelegate(x))
+    return x
+  }
+}
+
+object Impl : Base() {
+  operator fun invoke(): Impl {
+    return this
+  }
+}
+
 
 fun main() {
-
-  val delegates = Delegates()
-  delegates.customDelegate = Resource("foo");
-  println(delegates.customDelegate)
-  println(delegates.customReadOnlyDelegate)
-  println(delegates.lazyString)
-  println(delegates.localDelegatedProperties { Resource("Hello World!") })
-
-  val user = User(mapOf(
-    "name" to "Jane Doe",
-    "age"  to 42
-  ))
-
-  println(user.name)
-  println(user.age)
-
-  val providedDelegates = ProvidedDelegates()
-  println(providedDelegates.image)
-  println(providedDelegates.text)
+  val impl = Impl()
+  impl.doSomethingOnBarRef()
 }
+

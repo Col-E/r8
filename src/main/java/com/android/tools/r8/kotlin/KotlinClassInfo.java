@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 import kotlinx.metadata.KmClass;
 import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmType;
+import kotlinx.metadata.jvm.JvmClassExtensionVisitor;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 import kotlinx.metadata.jvm.KotlinClassHeader;
@@ -48,6 +49,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   private final KotlinVersionRequirementInfo versionRequirements;
   private final KotlinTypeReference anonymousObjectOrigin;
   private final String packageName;
+  private final KotlinLocalDelegatedPropertyInfo localDelegatedProperties;
 
   private KotlinClassInfo(
       int flags,
@@ -62,7 +64,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       List<String> enumEntries,
       KotlinVersionRequirementInfo versionRequirements,
       KotlinTypeReference anonymousObjectOrigin,
-      String packageName) {
+      String packageName,
+      KotlinLocalDelegatedPropertyInfo localDelegatedProperties) {
     this.flags = flags;
     this.name = name;
     this.moduleName = moduleName;
@@ -76,6 +79,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     this.versionRequirements = versionRequirements;
     this.anonymousObjectOrigin = anonymousObjectOrigin;
     this.packageName = packageName;
+    this.localDelegatedProperties = localDelegatedProperties;
   }
 
   public static KotlinClassInfo create(
@@ -125,7 +129,9 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         kmClass.getEnumEntries(),
         KotlinVersionRequirementInfo.create(kmClass.getVersionRequirements()),
         getAnonymousObjectOrigin(kmClass, factory),
-        packageName);
+        packageName,
+        KotlinLocalDelegatedPropertyInfo.create(
+            JvmExtensionsKt.getLocalDelegatedProperties(kmClass), factory, reporter));
   }
 
   private static KotlinTypeReference getAnonymousObjectOrigin(
@@ -266,15 +272,19 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     // TODO(b/154347404): Understand enum entries.
     kmClass.getEnumEntries().addAll(enumEntries);
     versionRequirements.rewrite(kmClass::visitVersionRequirement);
-    JvmExtensionsKt.setModuleName(kmClass, moduleName);
+    JvmClassExtensionVisitor extensionVisitor =
+        (JvmClassExtensionVisitor) kmClass.visitExtensions(JvmClassExtensionVisitor.TYPE);
+    extensionVisitor.visitModuleName(moduleName);
     if (anonymousObjectOrigin != null) {
       String renamedAnon =
           anonymousObjectOrigin.toRenamedBinaryNameOrDefault(appView, namingLens, null);
       if (renamedAnon != null) {
-        JvmExtensionsKt.setAnonymousObjectOriginName(kmClass, renamedAnon);
+        extensionVisitor.visitAnonymousObjectOriginName(renamedAnon);
       }
     }
-
+    localDelegatedProperties.rewrite(
+        extensionVisitor::visitLocalDelegatedProperty, appView, namingLens);
+    extensionVisitor.visitEnd();
     KotlinClassMetadata.Class.Writer writer = new KotlinClassMetadata.Class.Writer();
     kmClass.accept(writer);
     return writer.write().getHeader();
@@ -293,6 +303,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     forEachApply(superTypes, type -> type::trace, definitionSupplier);
     forEachApply(sealedSubClasses, sealed -> sealed::trace, definitionSupplier);
     forEachApply(nestedClasses, nested -> nested::trace, definitionSupplier);
+    localDelegatedProperties.trace(definitionSupplier);
     // TODO(b/154347404): trace enum entries.
     if (anonymousObjectOrigin != null) {
       anonymousObjectOrigin.trace(definitionSupplier);
