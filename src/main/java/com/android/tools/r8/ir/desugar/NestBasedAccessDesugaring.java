@@ -86,9 +86,8 @@ public abstract class NestBasedAccessDesugaring {
 
   private DexEncodedMethod lookupOnHolder(
       DexMethod method, DexClassAndMethod context, Invoke.Type invokeType) {
-    DexMethod rewritten =
-        appView.graphLense().lookupMethod(method, context.getReference(), invokeType).getMethod();
-    return rewritten.lookupOnClass(appView.definitionForHolder(rewritten));
+    return appView.definitionFor(
+        appView.graphLense().lookupMethod(method, context.getReference(), invokeType).getMethod());
   }
 
   private DexEncodedField lookupOnHolder(DexField field) {
@@ -236,7 +235,7 @@ public abstract class NestBasedAccessDesugaring {
     DexProto proto =
         encodedMethod.accessFlags.isStatic()
             ? method.proto
-            : appView.dexItemFactory().prependHolderToProto(method);
+            : appView.dexItemFactory().prependTypeToProto(method.holder, method.proto);
     return appView
         .dexItemFactory()
         .createMethod(method.holder, proto, computeMethodBridgeName(encodedMethod));

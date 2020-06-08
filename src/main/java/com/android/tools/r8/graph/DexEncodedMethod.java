@@ -258,10 +258,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return getReference().name;
   }
 
-  public DexProto getProto() {
-    return getReference().proto;
-  }
-
   public DexMethod getReference() {
     return method;
   }

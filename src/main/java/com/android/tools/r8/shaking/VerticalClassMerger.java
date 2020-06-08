@@ -997,7 +997,9 @@ public class VerticalClassMerger {
                           && !methodPoolForTarget.hasSeen(
                               MethodSignatureEquivalence.get().wrap(method)),
                   Rename.ALWAYS,
-                  appView.dexItemFactory().prependHolderToProto(virtualMethod.getReference()));
+                  appView
+                      .dexItemFactory()
+                      .prependTypeToProto(virtualMethod.holder(), virtualMethod.method.proto));
           makeStatic(resultingDirectMethod);
 
           // Update method pool collection now that we are adding a new public method.

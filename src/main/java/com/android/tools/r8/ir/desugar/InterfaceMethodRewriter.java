@@ -324,7 +324,7 @@ public final class InterfaceMethodRewriter {
                   // retarget or if it just calls a companion class method and rewrite.
                   DexMethod retargetMethod =
                       options.desugaredLibraryConfiguration.retargetMethod(
-                          dexEncodedMethod, appView);
+                          dexEncodedMethod.method, appView);
                   if (retargetMethod == null) {
                     DexMethod originalCompanionMethod =
                         instanceAsMethodOfCompanionClass(
@@ -357,7 +357,7 @@ public final class InterfaceMethodRewriter {
             continue;
           }
 
-          DexClass clazz = appInfo.definitionForHolder(method);
+          DexClass clazz = appInfo.definitionFor(method.holder);
           if (clazz == null) {
             // Report missing class since we don't know if it is an interface.
             warnMissingType(encodedMethod.method, method.holder);
@@ -367,7 +367,7 @@ public final class InterfaceMethodRewriter {
                   "defined in library class " + clazz.toSourceString(),
                   getMethodOrigin(encodedMethod.method));
             }
-            DexEncodedMethod directTarget = clazz.lookupDirectMethod(method);
+            DexEncodedMethod directTarget = appView.definitionFor(method);
             if (directTarget != null) {
               // This can be a private instance method call. Note that the referenced
               // method is expected to be in the current class since it is private, but desugaring

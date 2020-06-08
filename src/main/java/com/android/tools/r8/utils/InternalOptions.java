@@ -867,7 +867,7 @@ public class InternalOptions {
       DexType libraryType,
       DexType invalidSuperType,
       String message,
-      Set<DexEncodedMethod> retarget) {
+      Set<DexMethod> retarget) {
     if (invalidLibraryClasses.add(invalidSuperType)) {
       reporter.warning(
           new InvalidLibrarySuperclassDiagnostic(
@@ -875,7 +875,7 @@ public class InternalOptions {
               Reference.classFromDescriptor(libraryType.toDescriptorString()),
               Reference.classFromDescriptor(invalidSuperType.toDescriptorString()),
               message,
-              ListUtils.map(retarget, method -> method.getReference().asMethodReference())));
+              ListUtils.map(retarget, DexMethod::asMethodReference)));
     }
   }
 

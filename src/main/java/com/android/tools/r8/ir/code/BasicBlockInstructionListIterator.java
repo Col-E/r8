@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
@@ -545,14 +544,12 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       Set<BasicBlock> blocksToRemove,
       DexType downcast) {
     assert blocksToRemove != null;
-    ProgramMethod callerContext = code.context();
-    ProgramMethod calleeContext = inlinee.context();
-    if (callerContext.getHolder() != calleeContext.getHolder()
-        && calleeContext.getDefinition().isOnlyInlinedIntoNestMembers()) {
+    DexType codeHolder = code.method().holder();
+    DexType inlineeHolder = inlinee.method().holder();
+    if (codeHolder != inlineeHolder && inlinee.method().isOnlyInlinedIntoNestMembers()) {
       // Should rewrite private calls to virtual calls.
-      assert NestUtils.sameNest(
-          callerContext.getHolderType(), calleeContext.getHolderType(), appView);
-      NestUtils.rewriteNestCallsForInlining(inlinee, callerContext, appView);
+      assert NestUtils.sameNest(codeHolder, inlineeHolder, appView);
+      NestUtils.rewriteNestCallsForInlining(inlinee, codeHolder, appView);
     }
     boolean inlineeCanThrow = canThrow(inlinee);
     // Split the block with the invocation into three blocks, where the first block contains all

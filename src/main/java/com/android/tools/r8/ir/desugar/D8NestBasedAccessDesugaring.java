@@ -65,18 +65,12 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
         Instruction instruction = instructions.next();
         if (instruction.isInvokeMethod()) {
           InvokeMethod invokeMethod = instruction.asInvokeMethod();
-          DexMethod invokedMethod = invokeMethod.getInvokedMethod();
-          if (!invokedMethod.holder.isClassType()) {
-            continue;
-          }
-          // Since we only need to desugar accesses to private methods, and all accesses to private
-          // methods must be accessing the private method directly on its holder, we can lookup the
-          // method on the holder instead of resolving the method.
-          DexClass holder = appView.definitionForHolder(invokedMethod);
-          DexEncodedMethod definition = invokedMethod.lookupOnClass(holder);
-          if (definition != null && invokeRequiresRewriting(definition, method)) {
-            DexMethod bridge = ensureInvokeBridge(definition);
-            if (definition.isInstanceInitializer()) {
+          DexMethod methodCalled = invokeMethod.getInvokedMethod();
+          DexEncodedMethod encodedMethodCalled =
+              methodCalled.holder.isClassType() ? appView.definitionFor(methodCalled) : null;
+          if (encodedMethodCalled != null && invokeRequiresRewriting(encodedMethodCalled, method)) {
+            DexMethod bridge = ensureInvokeBridge(encodedMethodCalled);
+            if (encodedMethodCalled.isInstanceInitializer()) {
               instructions.previous();
               Value extraNullValue =
                   instructions.insertConstNullInstruction(code, appView.options());
