@@ -96,11 +96,6 @@ DESUGAR_CONFIGUATION_POMTEMPLATE = Template(
       <distribution>repo</distribution>
     </license>
   </licenses>
-  <dependencies>
-    <groupId>com.android.tools</groupId>
-    <artifactId>desugar_jdk_libs</artifactId>
-    <version>1.0.1</version>
-  </dependencies>
   <developers>
     <developer>
       <name>The Android Open Source Project</name>
