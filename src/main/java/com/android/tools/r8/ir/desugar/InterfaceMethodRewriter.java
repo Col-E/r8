@@ -293,11 +293,9 @@ public final class InterfaceMethodRewriter {
             continue;
           }
           if (!clazz.isInterface()) {
-            assert !invokeSuper.isInterface;
             // Skip non-interface invokes.
             continue;
           }
-          assert invokeSuper.isInterface;
           if (!clazz.isLibraryClass()) {
             // For program and classpath retarget call to an appropriate method of companion class.
             DexMethod amendedMethod =
