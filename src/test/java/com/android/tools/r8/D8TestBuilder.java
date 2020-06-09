@@ -74,12 +74,9 @@ public class D8TestBuilder
 
   @Override
   public D8TestBuilder enableCoreLibraryDesugaring(
-      AndroidApiLevel minAPILevel, KeepRuleConsumer keepRuleConsumer) {
-    if (minAPILevel.getLevel() < AndroidApiLevel.O.getLevel()) {
-      // Use P to mimic current Android Studio.
-      builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P));
-      builder.addDesugaredLibraryConfiguration(
-          StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING));
+      AndroidApiLevel minApiLevel, KeepRuleConsumer keepRuleConsumer) {
+    if (minApiLevel.getLevel() < AndroidApiLevel.O.getLevel()) {
+      super.enableCoreLibraryDesugaring(minApiLevel, keepRuleConsumer);
       builder.setDesugaredLibraryKeepRuleConsumer(keepRuleConsumer);
     }
     return self();

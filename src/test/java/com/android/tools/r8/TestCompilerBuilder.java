@@ -10,7 +10,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -390,8 +389,16 @@ public abstract class TestCompilerBuilder<
   }
 
   public T enableCoreLibraryDesugaring(
-      AndroidApiLevel minAPILevel, KeepRuleConsumer keepRuleConsumer) {
-    throw new Unreachable("Should be overridden or is unsupported.");
+      AndroidApiLevel minApiLevel, KeepRuleConsumer keepRuleConsumer) {
+    assert minApiLevel.getLevel() < AndroidApiLevel.O.getLevel();
+    builder.addDesugaredLibraryConfiguration(
+        StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING));
+    // TODO(b/158543446): This should not be setting an implicit library file. Doing so causes
+    //  inconsistent library setup depending on the api level and makes tests hard to read and
+    //  reason about.
+    // Use P to mimic current Android Studio.
+    builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P));
+    return self();
   }
 
   @Override
