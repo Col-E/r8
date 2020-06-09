@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
+import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -1656,38 +1657,50 @@ public class RootSetBuilder {
         options.getProguardConfiguration() != null
             ? options.getProguardConfiguration().getDontWarnPatterns()
             : ProguardClassFilter.empty();
-    if (dontWarnPatterns.matches(options.itemFactory.objectType)) {
-      return;
-    }
 
     assumeNoSideEffectsWarnings.forEach(
         (originWithPosition, methods) -> {
           boolean waitOrNotifyMethods = methods.stream().anyMatch(this::isWaitOrNotifyMethod);
+          boolean dontWarnObject = dontWarnPatterns.matches(options.itemFactory.objectType);
           StringBuilder message = new StringBuilder();
           message.append(
               "The -assumenosideeffects rule matches methods on `java.lang.Object` with wildcards");
-          if (waitOrNotifyMethods) {
-            message.append(" including the method(s) ");
-            for (int i = 0; i < methods.size(); i++) {
-              if (i > 0) {
-                message.append(i < methods.size() - 1 ? ", " : " and ");
-              }
-              message.append("`");
-              message.append(methods.get(i).toSourceStringWithoutHolder());
-              message.append("`");
+          message.append(" including the method(s) ");
+          for (int i = 0; i < methods.size(); i++) {
+            if (i > 0) {
+              message.append(i < methods.size() - 1 ? ", " : " and ");
             }
-            message.append(". ");
-            message.append("This will most likely cause problems. ");
-          } else {
-            message.append(". ");
-            message.append("This is most likely not intended. ");
+            message.append("`");
+            message.append(methods.get(i).toSourceStringWithoutHolder());
+            message.append("`.");
           }
-          message.append("Consider specifying the methods more precisely.");
-          options.reporter.warning(
+          if (waitOrNotifyMethods) {
+            message.append(" This will most likely cause problems.");
+          } else {
+            message.append(" This is most likely not intended.");
+          }
+          if (waitOrNotifyMethods && !dontWarnObject) {
+            message.append(" Specify the methods more precisely.");
+          } else {
+            message.append(" Consider specifying the methods more precisely.");
+          }
+          Diagnostic diagnostic =
               new StringDiagnostic(
                   message.toString(),
                   originWithPosition.getOrigin(),
-                  originWithPosition.getPosition()));
+                  originWithPosition.getPosition());
+          if (waitOrNotifyMethods) {
+            if (!dontWarnObject) {
+              options.reporter.error(diagnostic);
+            } else {
+              options.reporter.warning(diagnostic);
+            }
+
+          } else {
+            if (!dontWarnObject) {
+              options.reporter.warning(diagnostic);
+            }
+          }
         });
   }
 

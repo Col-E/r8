@@ -11,23 +11,28 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.google.common.collect.ImmutableList;
+import java.util.Collection;
+import java.util.List;
 import org.hamcrest.Matcher;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,14 +41,17 @@ import org.junit.runners.Parameterized;
 public class B152492625 extends TestBase {
 
   private final TestParameters parameters;
+  private final boolean dontWarnObject;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameterized.Parameters(name = "{0}, dontWarnObject {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public B152492625(TestParameters parameters) {
+  public B152492625(TestParameters parameters, boolean dontWarnObject) {
     this.parameters = parameters;
+    this.dontWarnObject = dontWarnObject;
   }
 
   private void noCallToWait(CodeInspector inspector) {
@@ -60,14 +68,14 @@ public class B152492625 extends TestBase {
                     }));
   }
 
-  private Matcher<Diagnostic> matchAssumeNoSideEffectsWarningMessage() {
+  private Matcher<Diagnostic> matchAssumeNoSideEffectsMessage() {
     return diagnosticMessage(
         containsString(
             "The -assumenosideeffects rule matches methods on `java.lang.Object` with"
                 + " wildcards"));
   }
 
-  private Matcher<Diagnostic> matchWarningMessageForAllProblematicMethods() {
+  private Matcher<Diagnostic> matchMessageForAllProblematicMethods() {
     return diagnosticMessage(
         allOf(
             containsString("void notify()"),
@@ -77,12 +85,23 @@ public class B152492625 extends TestBase {
             containsString("void wait(long, int)")));
   }
 
-  private Matcher<Diagnostic> matchWarningMessageForWaitMethods() {
+  private Matcher<Diagnostic> matchMessageForWaitMethods() {
     return diagnosticMessage(
         allOf(
             containsString("void wait()"),
             containsString("void wait(long)"),
             containsString("void wait(long, int)")));
+  }
+
+  private void assertErrorsOrWarnings(
+      TestDiagnosticMessages diagnostics, List<Matcher<Diagnostic>> matchers) {
+    if (dontWarnObject) {
+      diagnostics.assertOnlyWarnings();
+      diagnostics.assertWarningsMatch(matchers);
+    } else {
+      diagnostics.assertOnlyErrors();
+      diagnostics.assertErrorsMatch(matchers);
+    }
   }
 
   private TextRange textRangeForString(String s) {
@@ -92,21 +111,27 @@ public class B152492625 extends TestBase {
 
   @Test
   public void testR8AllMatch() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(TestClass.class, B.class)
-        .addKeepMainRule(TestClass.class)
-        .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { *; }")
-        .setMinApi(parameters.getApiLevel())
-        .allowDiagnosticWarningMessages()
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertOnlyWarnings();
-              diagnostics.assertWarningsMatch(matchAssumeNoSideEffectsWarningMessage());
-              diagnostics.assertWarningsMatch(matchWarningMessageForAllProblematicMethods());
-            })
-        .inspect(this::noCallToWait)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello, world");
+    List<Matcher<Diagnostic>> matchers =
+        ImmutableList.of(
+            allOf(matchAssumeNoSideEffectsMessage(), matchMessageForAllProblematicMethods()));
+
+    try {
+      testForR8(parameters.getBackend())
+          .addProgramClasses(TestClass.class, B.class)
+          .addKeepMainRule(TestClass.class)
+          .applyIf(dontWarnObject, tb -> tb.addKeepRules("-dontwarn java.lang.Object"))
+          .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { *; }")
+          .setMinApi(parameters.getApiLevel())
+          .allowDiagnosticWarningMessages()
+          .compileWithExpectedDiagnostics(
+              diagnostics -> assertErrorsOrWarnings(diagnostics, matchers))
+          .inspect(this::noCallToWait)
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutputLines("Hello, world");
+      assertTrue(dontWarnObject);
+    } catch (CompilationFailedException e) {
+      assertFalse(dontWarnObject);
+    }
   }
 
   @Test
@@ -131,93 +156,124 @@ public class B152492625 extends TestBase {
     String starRule = "-assumenosideeffects class " + B.class.getTypeName() + " { *; }";
     String methodsRule = "-assumenosideeffects class " + B.class.getTypeName() + " { <methods>; }";
 
-    testForR8(parameters.getBackend())
-        .addProgramClasses(TestClass.class, B.class)
-        .addKeepMainRule(TestClass.class)
-        .apply(
-            b ->
-                b.getBuilder().addProguardConfiguration(ImmutableList.of(starRule), starRuleOrigin))
-        .apply(
-            b ->
-                b.getBuilder()
-                    .addProguardConfiguration(ImmutableList.of(methodsRule), methodsRuleOrigin))
-        .setMinApi(parameters.getApiLevel())
-        .allowDiagnosticWarningMessages()
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertOnlyWarnings();
-              diagnostics.assertWarningsMatch(
-                  ImmutableList.of(
-                      allOf(
-                          matchAssumeNoSideEffectsWarningMessage(),
-                          matchWarningMessageForAllProblematicMethods(),
-                          diagnosticOrigin(starRuleOrigin),
-                          diagnosticPosition(textRangeForString(starRule))),
-                      allOf(
-                          matchAssumeNoSideEffectsWarningMessage(),
-                          matchWarningMessageForAllProblematicMethods(),
-                          diagnosticOrigin(methodsRuleOrigin),
-                          diagnosticPosition(textRangeForString(methodsRule)))));
-            })
-        .inspect(this::noCallToWait)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello, world");
+    List<Matcher<Diagnostic>> matchers =
+        ImmutableList.of(
+            allOf(
+                matchAssumeNoSideEffectsMessage(),
+                matchMessageForAllProblematicMethods(),
+                diagnosticOrigin(starRuleOrigin),
+                diagnosticPosition(textRangeForString(starRule))),
+            allOf(
+                matchAssumeNoSideEffectsMessage(),
+                matchMessageForAllProblematicMethods(),
+                diagnosticOrigin(methodsRuleOrigin),
+                diagnosticPosition(textRangeForString(methodsRule))));
+
+    try {
+      testForR8(parameters.getBackend())
+          .addProgramClasses(TestClass.class, B.class)
+          .addKeepMainRule(TestClass.class)
+          .applyIf(dontWarnObject, tb -> tb.addKeepRules("-dontwarn java.lang.Object"))
+          .apply(
+              b ->
+                  b.getBuilder()
+                      .addProguardConfiguration(ImmutableList.of(starRule), starRuleOrigin))
+          .apply(
+              b ->
+                  b.getBuilder()
+                      .addProguardConfiguration(ImmutableList.of(methodsRule), methodsRuleOrigin))
+          .setMinApi(parameters.getApiLevel())
+          .allowDiagnosticWarningMessages()
+          .compileWithExpectedDiagnostics(
+              diagnostics -> assertErrorsOrWarnings(diagnostics, matchers))
+          .inspect(this::noCallToWait)
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutputLines("Hello, world");
+      assertTrue(dontWarnObject);
+    } catch (CompilationFailedException e) {
+      assertFalse(dontWarnObject);
+    }
   }
 
   @Test
-  public void testR8AllMatchDontWarn() throws Exception {
+  public void testR8NonProblemeticMatchDontWarn() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class, B.class)
         .addKeepMainRule(TestClass.class)
-        .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { *; }")
-        .addKeepRules("-dontwarn java.lang.Object")
+        .applyIf(dontWarnObject, tb -> tb.addKeepRules("-dontwarn java.lang.Object"))
+        .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { hash*(); }")
         .setMinApi(parameters.getApiLevel())
-        .compile()
-        .inspect(this::noCallToWait)
+        .allowDiagnosticWarningMessages(!dontWarnObject)
+        .compileWithExpectedDiagnostics(
+            diagnostics -> {
+              if (dontWarnObject) {
+                diagnostics.assertNoMessages();
+              } else {
+                diagnostics.assertOnlyWarnings();
+                diagnostics.assertWarningsMatch(
+                    allOf(
+                        matchAssumeNoSideEffectsMessage(),
+                        diagnosticMessage(containsString("int hashCode()"))));
+              }
+            })
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello, world");
+        // Code fails with exception if wait call is not removed.
+        .assertFailureWithErrorThatThrows(IllegalMonitorStateException.class);
   }
 
   @Test
   public void testR8AllMethodsMatch() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(TestClass.class, B.class)
-        .addKeepMainRule(TestClass.class)
-        .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { <methods>; }")
-        .setMinApi(parameters.getApiLevel())
-        .allowDiagnosticWarningMessages()
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertOnlyWarnings();
-              diagnostics.assertWarningsMatch(matchAssumeNoSideEffectsWarningMessage());
-              diagnostics.assertWarningsMatch(matchWarningMessageForAllProblematicMethods());
-            })
-        .inspect(this::noCallToWait)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello, world");
+    List<Matcher<Diagnostic>> matchers =
+        ImmutableList.of(
+            allOf(matchAssumeNoSideEffectsMessage(), matchMessageForAllProblematicMethods()));
+
+    try {
+      testForR8(parameters.getBackend())
+          .addProgramClasses(TestClass.class, B.class)
+          .addKeepMainRule(TestClass.class)
+          .applyIf(dontWarnObject, tb -> tb.addKeepRules("-dontwarn java.lang.Object"))
+          .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { <methods>; }")
+          .setMinApi(parameters.getApiLevel())
+          .allowDiagnosticWarningMessages()
+          .compileWithExpectedDiagnostics(
+              diagnostics -> assertErrorsOrWarnings(diagnostics, matchers))
+          .inspect(this::noCallToWait)
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutputLines("Hello, world");
+      assertTrue(dontWarnObject);
+    } catch (CompilationFailedException e) {
+      assertFalse(dontWarnObject);
+    }
   }
 
   @Test
   public void testR8WaitMethodMatch() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(TestClass.class, B.class)
-        .addKeepMainRule(TestClass.class)
-        .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { *** w*(...); }")
-        .setMinApi(parameters.getApiLevel())
-        .allowDiagnosticWarningMessages()
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertOnlyWarnings();
-              diagnostics.assertWarningsMatch(matchAssumeNoSideEffectsWarningMessage());
-              diagnostics.assertWarningsMatch(matchWarningMessageForWaitMethods());
-            })
-        .inspect(this::noCallToWait)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello, world");
+    List<Matcher<Diagnostic>> matchers =
+        ImmutableList.of(allOf(matchAssumeNoSideEffectsMessage(), matchMessageForWaitMethods()));
+
+    try {
+      testForR8(parameters.getBackend())
+          .addProgramClasses(TestClass.class, B.class)
+          .addKeepMainRule(TestClass.class)
+          .applyIf(dontWarnObject, tb -> tb.addKeepRules("-dontwarn java.lang.Object"))
+          .addKeepRules("-assumenosideeffects class " + B.class.getTypeName() + " { *** w*(...); }")
+          .setMinApi(parameters.getApiLevel())
+          .allowDiagnosticWarningMessages()
+          .compileWithExpectedDiagnostics(
+              diagnostics -> assertErrorsOrWarnings(diagnostics, matchers))
+          .inspect(this::noCallToWait)
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutputLines("Hello, world");
+      assertTrue(dontWarnObject);
+    } catch (CompilationFailedException e) {
+      assertFalse(dontWarnObject);
+    }
   }
 
   @Test
   public void testR8WaitSpecificMethodMatch() throws Exception {
+    assumeTrue("No need to run this with -dontwarn java.lang.Object", !dontWarnObject);
+
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class, B.class)
         .addKeepMainRule(TestClass.class)
@@ -254,7 +310,8 @@ public class B152492625 extends TestBase {
 
   @Test
   public void testProguardNotRemovingWait() throws Exception {
-    Assume.assumeTrue(parameters.isCfRuntime());
+    assumeTrue("No need to run this with -dontwarn java.lang.Object", !dontWarnObject);
+    assumeTrue(parameters.isCfRuntime());
 
     testForProguard()
         .addProgramClasses(TestClass.class, B.class)
@@ -269,7 +326,8 @@ public class B152492625 extends TestBase {
 
   @Test
   public void testProguardRemovingWait() throws Exception {
-    Assume.assumeTrue(parameters.isCfRuntime());
+    assumeTrue("No need to run this with -dontwarn java.lang.Object", !dontWarnObject);
+    assumeTrue(parameters.isCfRuntime());
 
     testForProguard()
         .addProgramClasses(TestClass.class, B.class)
