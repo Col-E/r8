@@ -83,27 +83,33 @@ public class KotlinMetadataRewriter {
       KotlinClassHeader header, String packageName) {
     List<DexAnnotationElement> elements = new ArrayList<>();
     elements.add(
-        new DexAnnotationElement(kotlin.metadata.kind, DexValueInt.create(header.getKind())));
-    elements.add(
         new DexAnnotationElement(
             kotlin.metadata.metadataVersion, createIntArray(header.getMetadataVersion())));
     elements.add(
         new DexAnnotationElement(
             kotlin.metadata.bytecodeVersion, createIntArray(header.getBytecodeVersion())));
     elements.add(
+        new DexAnnotationElement(kotlin.metadata.kind, DexValueInt.create(header.getKind())));
+    elements.add(
         new DexAnnotationElement(kotlin.metadata.data1, createStringArray(header.getData1())));
     elements.add(
         new DexAnnotationElement(kotlin.metadata.data2, createStringArray(header.getData2())));
-    elements.add(
-        new DexAnnotationElement(
-            kotlin.metadata.extraString,
-            new DexValueString(factory.createString(header.getExtraString()))));
-    elements.add(
-        new DexAnnotationElement(
-            kotlin.metadata.packageName, new DexValueString(factory.createString(packageName))));
-    elements.add(
-        new DexAnnotationElement(
-            kotlin.metadata.extraInt, DexValueInt.create(header.getExtraInt())));
+    if (packageName != null && !packageName.isEmpty()) {
+      elements.add(
+          new DexAnnotationElement(
+              kotlin.metadata.packageName, new DexValueString(factory.createString(packageName))));
+    }
+    if (!header.getExtraString().isEmpty()) {
+      elements.add(
+          new DexAnnotationElement(
+              kotlin.metadata.extraString,
+              new DexValueString(factory.createString(header.getExtraString()))));
+    }
+    if (header.getExtraInt() != 0) {
+      elements.add(
+          new DexAnnotationElement(
+              kotlin.metadata.extraInt, DexValueInt.create(header.getExtraInt())));
+    }
     DexEncodedAnnotation encodedAnnotation =
         new DexEncodedAnnotation(
             factory.kotlinMetadataType, elements.toArray(DexAnnotationElement.EMPTY_ARRAY));
