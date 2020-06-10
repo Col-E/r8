@@ -307,7 +307,23 @@ public final class InterfaceMethodRewriter {
                     invokeSuper.outValue(), invokeSuper.arguments()));
           } else {
             DexType dexType = maximallySpecificEmulatedInterfaceOrNull(invokedMethod);
-            if (dexType != null) {
+            if (dexType == null) {
+              if (clazz.isInterface()
+                  && appView.rewritePrefix.hasRewrittenType(clazz.type, appView)) {
+                DexEncodedMethod target =
+                    appView.appInfoForDesugaring().lookupSuperTarget(invokedMethod, code.context());
+                if (target != null && target.isDefaultMethod()) {
+                  DexClass holder = appView.definitionFor(target.holder());
+                  if (holder.isLibraryClass() && holder.isInterface()) {
+                    instructions.replaceCurrentInstruction(
+                        new InvokeStatic(
+                            defaultAsMethodOfCompanionClass(target.method, factory),
+                            invokeSuper.outValue(),
+                            invokeSuper.arguments()));
+                  }
+                }
+              }
+            } else {
               // That invoke super may not resolve since the super method may not be present
               // since it's in the emulated interface. We need to force resolution. If it resolves
               // to a library method, then it needs to be rewritten.

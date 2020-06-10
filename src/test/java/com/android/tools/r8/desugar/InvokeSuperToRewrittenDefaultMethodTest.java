@@ -24,7 +24,6 @@ import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -64,7 +63,6 @@ public class InvokeSuperToRewrittenDefaultMethodTest extends DesugaredLibraryTes
   }
 
   @Test
-  @Ignore("b/157806261")
   public void testDesugaring() throws Exception {
     assumeTrue(needsDefaultInterfaceMethodDesugaring());
     try {
