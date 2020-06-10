@@ -80,8 +80,7 @@ public abstract class ProguardTypeMatcher {
     if (matchers.isEmpty()) {
       return Collections.emptyList();
     }
-    ImmutableList.Builder<ProguardTypeMatcher> builder =
-        ImmutableList.builderWithExpectedSize(matchers.size());
+    ImmutableList.Builder<ProguardTypeMatcher> builder = ImmutableList.builder();
     for (ProguardTypeMatcher matcher : matchers) {
       builder.add(matcher.materialize(dexItemFactory));
     }
