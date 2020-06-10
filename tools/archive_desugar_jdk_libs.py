@@ -115,7 +115,7 @@ def Main(argv):
             'Target archive directory %s already exists' % destination)
 
       bazel = os.path.join(utils.BAZEL_TOOL, 'lib', 'bazel', 'bin', 'bazel')
-      cmd = [bazel, 'build', '--host_force_python=PY2', 'maven_release']
+      cmd = [bazel, 'build', 'maven_release']
       utils.PrintCmd(cmd)
       subprocess.check_call(cmd)
       cmd = [bazel, 'shutdown']
