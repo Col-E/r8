@@ -390,41 +390,6 @@ def prepare_desugar_library(args):
   return make_release
 
 
-def prepare_push_desugar_library(args):
-  client_name = 'push-desugar-library'
-  # Check if an existing client exists.
-  check_no_google3_client(args, client_name)
-
-  def push_desugar_library(options):
-    print 'Pushing to %s' % GITHUB_DESUGAR_JDK_LIBS
-
-    google3_base = subprocess.check_output(
-        ['p4', 'g4d', '-f', client_name]).rstrip()
-    third_party_desugar_jdk_libs = \
-        os.path.join(google3_base, 'third_party', 'java_src', 'desugar_jdk_libs')
-    version = archive_desugar_jdk_libs.GetVersion(
-        os.path.join(third_party_desugar_jdk_libs, 'oss', 'VERSION.txt'))
-    if args.push_desugar_library != version:
-      print ("Failed, version of desugared library is %s, but version %s was expected." %
-        (version, args.push_desugar_library))
-      sys.exit(1)
-    with utils.ChangedWorkingDirectory(google3_base):
-      cmd = [
-          'copybara',
-           os.path.join(
-              'third_party',
-              'java_src',
-              'desugar_jdk_libs',
-              'copy.bara.sky'),
-           'push-to-github']
-      if options.dry_run:
-        print "Dry-run, not running '%s'" % ' '.join(cmd)
-      else:
-        subprocess.check_call(cmd)
-
-  return push_desugar_library
-
-
 def download_configuration(hash, archive):
   print
   print 'Downloading %s from GCS' % archive
@@ -662,10 +627,6 @@ def parse_options():
   group.add_argument('--version',
                       metavar=('<version>'),
                       help='The new version of R8 (e.g., 1.4.51) to release to selected channels')
-  group.add_argument('--push-desugar-library',
-                      metavar=('<version>'),
-                      help='The expected version of '
-                          + 'com.android.tools:desugar_jdk_libs to push to GitHub')
   group.add_argument('--desugar-library',
                       nargs=2,
                       metavar=('<version>', '<configuration hash>'),
@@ -751,8 +712,7 @@ def main():
 
   if (args.google3
       or (args.studio and not args.no_sync)
-      or (args.desugar_library and not args.dry_run)
-      or (args.push_desugar_library and not args.dry_run)):
+      or (args.desugar_library and not args.dry_run)):
     utils.check_prodacces()
 
   if args.google3:
@@ -764,9 +724,6 @@ def main():
 
   if args.desugar_library:
     targets_to_run.append(prepare_desugar_library(args))
-
-  if args.push_desugar_library:
-    targets_to_run.append(prepare_push_desugar_library(args))
 
   final_results = []
   for target_closure in targets_to_run:
