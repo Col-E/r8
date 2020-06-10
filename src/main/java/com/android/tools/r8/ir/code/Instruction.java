@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoSupplier {
 
@@ -104,8 +105,12 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   }
 
   public boolean hasInValueWithLocalInfo() {
-    for (Value inValue : inValues()) {
-      if (inValue.hasLocalInfo()) {
+    return hasInValueThatMatches(Value::hasLocalInfo);
+  }
+
+  public boolean hasInValueThatMatches(Predicate<Value> predicate) {
+    for (Value value : inValues()) {
+      if (predicate.test(value)) {
         return true;
       }
     }

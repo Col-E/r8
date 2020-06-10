@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
+import com.android.tools.r8.algorithms.scc.SCC;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -117,12 +118,10 @@ import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -3591,7 +3590,8 @@ public class CodeRewriter {
   // This is a simplified variant of the removeRedundantPhis algorithm in Section 3.2 of:
   // http://compilers.cs.uni-saarland.de/papers/bbhlmz13cc.pdf
   private static void replaceTrivialNewInstancePhis(Value newInstanceValue) {
-    List<Set<Value>> components = new SCC().computeSCC(newInstanceValue);
+    List<Set<Value>> components =
+        new SCC<Value>(Value::uniquePhiUsers).computeSCC(newInstanceValue);
     for (int i = components.size() - 1; i >= 0; i--) {
       Set<Value> component = components.get(i);
       if (component.size() == 1 && component.iterator().next() == newInstanceValue) {
@@ -3617,61 +3617,6 @@ public class CodeRewriter {
         }
         trivialPhi.replaceUsers(newInstanceValue);
         trivialPhi.getBlock().removePhi(trivialPhi);
-      }
-    }
-  }
-
-  // Dijkstra's path-based strongly-connected components algorithm.
-  // https://en.wikipedia.org/wiki/Path-based_strong_component_algorithm
-  private static class SCC {
-
-    private int currentTime = 0;
-    private final Reference2IntMap<Value> discoverTime = new Reference2IntOpenHashMap<>();
-    private final Set<Value> unassignedSet = Sets.newIdentityHashSet();
-    private final Deque<Value> unassignedStack = new ArrayDeque<>();
-    private final Deque<Value> preorderStack = new ArrayDeque<>();
-    private final List<Set<Value>> components = new ArrayList<>();
-
-    public List<Set<Value>> computeSCC(Value v) {
-      assert currentTime == 0;
-      dfs(v);
-      return components;
-    }
-
-    private void dfs(Value value) {
-      discoverTime.put(value, currentTime++);
-      unassignedSet.add(value);
-      unassignedStack.push(value);
-      preorderStack.push(value);
-      for (Phi phi : value.uniquePhiUsers()) {
-        if (!discoverTime.containsKey(phi)) {
-          // If not seen yet, continue the search.
-          dfs(phi);
-        } else if (unassignedSet.contains(phi)) {
-          // If seen already and the element is on the unassigned stack we have found a cycle.
-          // Pop off everything discovered later than the target from the preorder stack. This may
-          // not coincide with the cycle as an outer cycle may already have popped elements off.
-          int discoverTimeOfPhi = discoverTime.getInt(phi);
-          while (discoverTimeOfPhi < discoverTime.getInt(preorderStack.peek())) {
-            preorderStack.pop();
-          }
-        }
-      }
-      if (preorderStack.peek() == value) {
-        // If the current element is the top of the preorder stack, then we are at entry to a
-        // strongly-connected component consisting of this element and every element above this
-        // element on the stack.
-        Set<Value> component = SetUtils.newIdentityHashSet(unassignedStack.size());
-        while (true) {
-          Value member = unassignedStack.pop();
-          unassignedSet.remove(member);
-          component.add(member);
-          if (member == value) {
-            components.add(component);
-            break;
-          }
-        }
-        preorderStack.pop();
       }
     }
   }

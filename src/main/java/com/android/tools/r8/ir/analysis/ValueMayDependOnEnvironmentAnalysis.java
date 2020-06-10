@@ -12,12 +12,15 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.environmentdependence.ValueGraph;
+import com.android.tools.r8.ir.analysis.environmentdependence.ValueGraph.Node;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.ArrayPut;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
@@ -26,9 +29,14 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
-import com.android.tools.r8.utils.LongInterval;
-import com.google.common.collect.ImmutableSet;
+import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -68,219 +76,175 @@ import java.util.Set;
 public class ValueMayDependOnEnvironmentAnalysis {
 
   private final AppView<?> appView;
-  private final IRCode code;
   private final ProgramMethod context;
-
-  private final Set<Value> knownNotToDependOnEnvironment = Sets.newIdentityHashSet();
-  private final Set<Value> visited = Sets.newIdentityHashSet();
 
   public ValueMayDependOnEnvironmentAnalysis(AppView<?> appView, IRCode code) {
     this.appView = appView;
-    this.code = code;
     this.context = code.context();
   }
 
-  public boolean valueMayDependOnEnvironment(Value value) {
-    boolean result = valueMayDependOnEnvironment(value, Sets.newIdentityHashSet());
-    assert visited.isEmpty();
-    return result;
-  }
+  public boolean anyValueMayDependOnEnvironment(Iterable<Value> values) {
+    ValueGraph graph = new ValueGraph();
+    Set<Instruction> consumedInstructions = Sets.newIdentityHashSet();
+    Set<Value> mutableValues = Sets.newIdentityHashSet();
+    WorkList<Value> worklist = WorkList.newIdentityWorkList(values);
+    while (worklist.hasNext()) {
+      Value value = worklist.next();
+      Value root = value.getAliasedValue();
+      Node node = graph.createNodeIfAbsent(root);
+      if (root != value) {
+        // An alias depends on the environment if the aliased value depends on the environment, thus
+        // an edge is added from the alias to the aliased value.
+        graph.addDirectedEdge(graph.createNodeIfAbsent(value), node);
+      }
+      if (!addValueToValueGraph(root, node, graph, consumedInstructions, mutableValues, worklist)) {
+        return true;
+      }
+    }
 
-  private boolean valueMayDependOnEnvironment(
-      Value value, Set<Value> assumedNotToDependOnEnvironment) {
-    Value root = value.getAliasedValue();
-    if (assumedNotToDependOnEnvironment.contains(root)) {
-      return false;
-    }
-    if (knownNotToDependOnEnvironment.contains(root)) {
-      return false;
-    }
-    if (!visited.add(root)) {
-      // Guard against cycle by conservatively returning true.
-      return true;
-    }
-    try {
-      if (root.isConstant()) {
-        return false;
-      }
-      if (isConstantArrayThroughoutMethod(root, assumedNotToDependOnEnvironment)) {
-        return false;
-      }
-      AbstractValue abstractValue = root.getAbstractValue(appView, context);
-      if (abstractValue.isSingleFieldValue()) {
-        DexField fieldReference = abstractValue.asSingleFieldValue().getField();
-        DexClass holder = appView.definitionForHolder(fieldReference);
-        DexEncodedField field = fieldReference.lookupOnClass(holder);
-        if (field != null && field.isEnum()) {
-          return false;
+    // At this point, the graph has been populated with a node for each value of interest, and edges
+    // have been added to reflect the dependency. We now attempt to prove that no values depend on
+    // environment, starting from the leaves of the graph.
+    //
+    // First we collapse strongly connected components in the graph. By doing so we will attempt to
+    // prove that all values in a strongly connected component are independent of the environment at
+    // once.
+    graph.mergeStronglyConnectedComponents();
+
+    Set<Node> nodesDependentOnEnvironment = SetUtils.newIdentityHashSet(graph.getNodes());
+    while (!nodesDependentOnEnvironment.isEmpty()) {
+      Set<Node> newNodesIndependentOfEnvironment = Sets.newIdentityHashSet();
+      for (Node node : nodesDependentOnEnvironment) {
+        boolean isDependentOfEnvironment =
+            node.hasSuccessorThatMatches(
+                successor ->
+                    nodesDependentOnEnvironment.contains(successor)
+                        && !newNodesIndependentOfEnvironment.contains(successor));
+        if (!isDependentOfEnvironment) {
+          newNodesIndependentOfEnvironment.add(node);
         }
       }
-      if (isNewInstanceWithoutEnvironmentDependentFields(root, assumedNotToDependOnEnvironment)) {
-        return false;
+      if (newNodesIndependentOfEnvironment.isEmpty()) {
+        return true;
       }
+      nodesDependentOnEnvironment.removeAll(newNodesIndependentOfEnvironment);
+    }
+
+    // At this point, we have proved that all values in the graph are independent on the
+    // environment. However, we still need to prove that they are not mutated between the point
+    // where they are defined and all normal exits.
+    return anyValueMayBeMutatedBeforeMethodExit(mutableValues, consumedInstructions);
+  }
+
+  private boolean addValueToValueGraph(
+      Value value,
+      Node node,
+      ValueGraph graph,
+      Set<Instruction> consumedInstructions,
+      Set<Value> mutableValues,
+      WorkList<Value> worklist) {
+    return addConstantValueToValueGraph(value)
+        || addArrayValueToValueGraph(
+            value, node, graph, consumedInstructions, mutableValues, worklist)
+        || addNewInstanceValueToValueGraph(
+            value, node, graph, consumedInstructions, mutableValues, worklist);
+  }
+
+  private boolean addConstantValueToValueGraph(Value value) {
+    // Constants do not depend on any other values, thus no edges are added to the graph.
+    if (value.isConstant()) {
       return true;
-    } finally {
-      boolean changed = visited.remove(root);
-      assert changed;
     }
-  }
-
-  private boolean valueMayNotDependOnEnvironmentAssumingArrayDoesNotDependOnEnvironment(
-      Value value, Value array, Set<Value> assumedNotToDependOnEnvironment) {
-    assert !value.hasAliasedValue();
-    assert !array.hasAliasedValue();
-
-    if (assumedNotToDependOnEnvironment.add(array)) {
-      boolean valueMayDependOnEnvironment =
-          valueMayDependOnEnvironment(value, assumedNotToDependOnEnvironment);
-      boolean changed = assumedNotToDependOnEnvironment.remove(array);
-      assert changed;
-      return !valueMayDependOnEnvironment;
+    assert !value.getAliasedValue().isConstant();
+    AbstractValue abstractValue = value.getAbstractValue(appView, context);
+    if (abstractValue.isSingleConstValue()) {
+      return true;
     }
-    return !valueMayDependOnEnvironment(value, assumedNotToDependOnEnvironment);
+    if (abstractValue.isSingleFieldValue()) {
+      DexField fieldReference = abstractValue.asSingleFieldValue().getField();
+      DexClass holder = appView.definitionForHolder(fieldReference);
+      DexEncodedField field = fieldReference.lookupOnClass(holder);
+      if (field != null && field.isEnum()) {
+        return true;
+      }
+    }
+    return false;
   }
 
-  /**
-   * Used to identify if an array is "constant" in the sense that none of the values written into
-   * the array may depend on the environment.
-   *
-   * <p>Examples include {@code new int[] {1,2,3}} and {@code new Object[]{new Object()}}.
-   */
-  public boolean isConstantArrayThroughoutMethod(Value value) {
-    boolean result = isConstantArrayThroughoutMethod(value, Sets.newIdentityHashSet());
-    assert visited.isEmpty();
-    return result;
-  }
-
-  private boolean isConstantArrayThroughoutMethod(
-      Value value, Set<Value> assumedNotToDependOnEnvironment) {
-    Value root = value.getAliasedValue();
-    if (root.isPhi()) {
+  private boolean addArrayValueToValueGraph(
+      Value value,
+      Node node,
+      ValueGraph graph,
+      Set<Instruction> consumedInstructions,
+      Set<Value> mutableValues,
+      WorkList<Value> worklist) {
+    if (value.isPhi()) {
       // Would need to track the aliases, just give up.
       return false;
     }
 
-    Instruction definition = root.definition;
+    Instruction definition = value.definition;
 
     // Check that it is a constant array with a known size at this point in the IR.
-    long size;
     if (definition.isInvokeNewArray()) {
       InvokeNewArray invokeNewArray = definition.asInvokeNewArray();
       for (Value argument : invokeNewArray.arguments()) {
-        if (!argument.isConstant()) {
-          return false;
-        }
+        graph.addDirectedEdge(node, graph.createNodeIfAbsent(argument));
+        worklist.addIfNotSeen(argument);
       }
-      size = invokeNewArray.arguments().size();
     } else if (definition.isNewArrayEmpty()) {
       NewArrayEmpty newArrayEmpty = definition.asNewArrayEmpty();
-      Value sizeValue = newArrayEmpty.size().getAliasedValue();
-      if (!sizeValue.hasValueRange()) {
-        return false;
-      }
-      LongInterval sizeRange = sizeValue.getValueRange();
-      if (!sizeRange.isSingleValue()) {
-        return false;
-      }
-      size = sizeRange.getSingleValue();
+      Value sizeValue = newArrayEmpty.size();
+      graph.addDirectedEdge(node, graph.createNodeIfAbsent(sizeValue));
+      worklist.addIfNotSeen(sizeValue);
     } else {
       // Some other array creation.
       return false;
     }
 
-    if (size < 0) {
-      // Check for NegativeArraySizeException.
-      return false;
-    }
-
-    if (size == 0) {
-      // Empty arrays are always constant.
-      return true;
-    }
-
     // Allow array-put and new-array-filled-data instructions that immediately follow the array
     // creation.
-    Set<Value> arrayValues = Sets.newIdentityHashSet();
-    Set<Instruction> consumedInstructions = Sets.newIdentityHashSet();
-
     for (Instruction instruction : definition.getBlock().instructionsAfter(definition)) {
       if (instruction.isArrayPut()) {
         ArrayPut arrayPut = instruction.asArrayPut();
         Value array = arrayPut.array().getAliasedValue();
-        if (array != root) {
+        if (array != value) {
           // This ends the chain of array-put instructions that are allowed immediately after the
           // array creation.
           break;
         }
-
-        LongInterval indexRange = arrayPut.index().getValueRange();
-        if (!indexRange.isSingleValue()) {
-          return false;
-        }
-
-        long index = indexRange.getSingleValue();
-        if (index < 0 || index >= size) {
-          return false;
-        }
-
-        // Check if the value being written into the array may depend on the environment.
-        //
-        // When analyzing if the value may depend on the environment, we assume that the current
-        // array does not depend on the environment. Otherwise, we would classify the value as
-        // possibly depending on the environment since it could escape via the array and then
-        // be mutated indirectly.
-        Value rhs = arrayPut.value().getAliasedValue();
-        if (!valueMayNotDependOnEnvironmentAssumingArrayDoesNotDependOnEnvironment(
-            rhs, root, assumedNotToDependOnEnvironment)) {
-          return false;
-        }
-
-        arrayValues.add(rhs);
-        consumedInstructions.add(arrayPut);
-        continue;
-      }
-
-      if (instruction.isNewArrayFilledData()) {
+        graph.addDirectedEdge(node, graph.createNodeIfAbsent(arrayPut.index()));
+        worklist.addIfNotSeen(arrayPut.index());
+        graph.addDirectedEdge(node, graph.createNodeIfAbsent(arrayPut.value()));
+        worklist.addIfNotSeen(arrayPut.value());
+      } else if (instruction.isNewArrayFilledData()) {
         NewArrayFilledData newArrayFilledData = instruction.asNewArrayFilledData();
         Value array = newArrayFilledData.src();
-        if (array != root) {
+        if (array != value) {
+          // This ends the chain of array-put instructions that are allowed immediately after the
+          // array creation.
           break;
         }
-
-        consumedInstructions.add(newArrayFilledData);
-        continue;
-      }
-
-      if (instruction.instructionMayHaveSideEffects(appView, context)) {
+        consumedInstructions.add(instruction);
+      } else if (instruction.instructionMayHaveSideEffects(appView, context)) {
         // This ends the chain of array-put instructions that are allowed immediately after the
         // array creation.
         break;
       }
+      consumedInstructions.add(instruction);
     }
-
-    // Check that the array is not mutated before the end of this method.
-    //
-    // Currently, we only allow the array to flow into static-put instructions that are not
-    // followed by an instruction that may have side effects. Instructions that do not have any
-    // side effects are ignored because they cannot mutate the array.
-    if (valueMayBeMutatedBeforeMethodExit(
-        root, assumedNotToDependOnEnvironment, consumedInstructions)) {
-      return false;
-    }
-
-    if (assumedNotToDependOnEnvironment.isEmpty()) {
-      knownNotToDependOnEnvironment.add(root);
-      knownNotToDependOnEnvironment.addAll(arrayValues);
-    }
-
+    mutableValues.add(value);
     return true;
   }
 
-  private boolean isNewInstanceWithoutEnvironmentDependentFields(
-      Value value, Set<Value> assumedNotToDependOnEnvironment) {
-    assert !value.hasAliasedValue();
-
-    if (value.isPhi() || !value.definition.isNewInstance()) {
+  private boolean addNewInstanceValueToValueGraph(
+      Value value,
+      Node node,
+      ValueGraph graph,
+      Set<Instruction> consumedInstructions,
+      Set<Value> mutableValues,
+      WorkList<Value> worklist) {
+    if (!value.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
       return false;
     }
 
@@ -291,123 +255,154 @@ public class ValueMayDependOnEnvironmentAnalysis {
     }
 
     // Find the single constructor invocation.
-    InvokeMethod constructorInvoke = null;
-    for (Instruction instruction : value.uniqueUsers()) {
-      if (!instruction.isInvokeDirect()) {
-        continue;
-      }
-
-      InvokeDirect invoke = instruction.asInvokeDirect();
-      if (!appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())) {
-        continue;
-      }
-
-      if (invoke.getReceiver().getAliasedValue() != value) {
-        continue;
-      }
-
-      if (constructorInvoke == null) {
-        constructorInvoke = invoke;
-      } else {
-        // Not a single constructor invocation, give up.
-        return false;
-      }
-    }
-
-    if (constructorInvoke == null) {
-      // Didn't find a constructor invocation, give up.
+    InvokeMethod constructorInvoke =
+        newInstance.getUniqueConstructorInvoke(appView.dexItemFactory());
+    if (constructorInvoke == null || constructorInvoke.getInvokedMethod().holder != clazz.type) {
+      // Didn't find a (valid) constructor invocation, give up.
       return false;
     }
 
     // Check that it is a trivial initializer (otherwise, the constructor could do anything).
-    DexEncodedMethod constructor = appView.definitionFor(constructorInvoke.getInvokedMethod());
+    DexEncodedMethod constructor = clazz.lookupMethod(constructorInvoke.getInvokedMethod());
     if (constructor == null) {
       return false;
     }
 
-    if (clazz.hasInstanceFieldsDirectlyOrIndirectly(appView)) {
-      InstanceInitializerInfo initializerInfo =
-          constructor.getOptimizationInfo().getInstanceInitializerInfo();
+    InstanceInitializerInfo initializerInfo =
+        constructor.getOptimizationInfo().getInstanceInitializerInfo();
+
+    List<DexEncodedField> fields = clazz.getDirectAndIndirectInstanceFields(appView);
+    if (!fields.isEmpty()) {
       if (initializerInfo.instanceFieldInitializationMayDependOnEnvironment()) {
         return false;
       }
 
       // Check that none of the arguments to the constructor depend on the environment.
       for (int i = 1; i < constructorInvoke.arguments().size(); i++) {
-        Value argument = constructorInvoke.arguments().get(i);
-        if (valueMayDependOnEnvironment(argument, assumedNotToDependOnEnvironment)) {
-          return false;
-        }
+        Value argument = constructorInvoke.getArgument(i);
+        graph.addDirectedEdge(node, graph.createNodeIfAbsent(argument));
+        worklist.addIfNotSeen(argument);
       }
 
-      // Finally, check that the object does not escape.
-      if (valueMayBeMutatedBeforeMethodExit(
-          value, assumedNotToDependOnEnvironment, ImmutableSet.of(constructorInvoke))) {
-        return false;
+      // Mark this value as mutable if it has a non-final field.
+      boolean hasNonFinalField = false;
+      for (DexEncodedField field : fields) {
+        if (!field.isFinal()) {
+          hasNonFinalField = true;
+          break;
+        }
+      }
+      if (hasNonFinalField) {
+        mutableValues.add(value);
       }
     }
 
-    if (assumedNotToDependOnEnvironment.isEmpty()) {
-      knownNotToDependOnEnvironment.add(value);
+    if (!initializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
+      consumedInstructions.add(constructorInvoke);
     }
 
     return true;
   }
 
-  private boolean valueMayBeMutatedBeforeMethodExit(
-      Value value, Set<Value> assumedNotToDependOnEnvironment, Set<Instruction> whitelist) {
-    assert !value.hasAliasedValue();
-
-    if (value.numberOfPhiUsers() > 0) {
-      // Could be mutated indirectly.
-      return true;
+  private boolean anyValueMayBeMutatedBeforeMethodExit(
+      Set<Value> values, Set<Instruction> whitelist) {
+    Set<BasicBlock> initialBlocks = Sets.newIdentityHashSet();
+    for (Value value : values) {
+      assert !value.isPhi();
+      initialBlocks.add(value.definition.getBlock());
     }
-
-    Set<Instruction> visited = Sets.newIdentityHashSet();
-    for (Instruction user : value.uniqueUsers()) {
-      if (whitelist.contains(user)) {
-        continue;
-      }
-
-      if (user.isArrayPut()) {
-        ArrayPut arrayPut = user.asArrayPut();
-        if (value == arrayPut.value()
-            && !valueMayDependOnEnvironment(arrayPut.array(), assumedNotToDependOnEnvironment)) {
+    Map<BasicBlock, TrackedValuesState> blockExitStates = new IdentityHashMap<>();
+    Deque<BasicBlock> worklist = new ArrayDeque<>(initialBlocks);
+    while (!worklist.isEmpty()) {
+      BasicBlock block = worklist.removeFirst();
+      TrackedValuesState state = computeBlockEntryState(block, blockExitStates);
+      boolean changed = false;
+      for (Instruction instruction : block.getInstructions()) {
+        if (whitelist.contains(instruction)) {
           continue;
         }
-      }
-
-      if (user.isStaticPut()) {
-        StaticPut staticPut = user.asStaticPut();
-        if (visited.contains(staticPut)) {
-          // Already visited previously.
-          continue;
-        }
-        for (Instruction instruction : code.getInstructionsReachableFrom(staticPut)) {
-          if (!visited.add(instruction)) {
-            // Already visited previously.
-            continue;
+        if (instruction.isStaticPut()) {
+          StaticPut staticPut = instruction.asStaticPut();
+          if (state.isTrackingValue(staticPut.value())) {
+            changed |= state.recordTrackedValueHasEscaped();
           }
-          if (instruction.isStaticPut()) {
-            StaticPut otherStaticPut = instruction.asStaticPut();
-            if (otherStaticPut.getField().holder == staticPut.getField().holder
-                && !instruction.instructionInstanceCanThrow(appView, context)) {
-              continue;
+          if (state.hasTrackedValueEscaped()) {
+            DexType holder = staticPut.getField().holder;
+            if (holder.classInitializationMayHaveSideEffects(
+                appView,
+                // Types that are a super type of the current context are guaranteed to be
+                // initialized already.
+                type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
+                Sets.newIdentityHashSet())) {
+              return true;
             }
-            return true;
           }
-          if (instruction.instructionMayTriggerMethodInvocation(appView, context)
+          continue;
+        }
+        if (instruction.instructionMayTriggerMethodInvocation(appView, context)) {
+          if (instruction.hasInValueThatMatches(state::isTrackingValue)) {
+            changed |= state.recordTrackedValueHasEscaped();
+          }
+          if (state.hasTrackedValueEscaped()
               && instruction.instructionMayHaveSideEffects(appView, context)) {
             return true;
           }
         }
-        continue;
+        if (instruction.hasOutValue() && values.contains(instruction.outValue())) {
+          changed |= state.startTrackingValue(instruction.outValue());
+        }
       }
+      blockExitStates.put(block, state);
+      if (changed) {
+        worklist.addAll(block.getSuccessors());
+      }
+    }
+    return false;
+  }
 
-      // Other user than array-put or static-put, just give up.
-      return false;
+  private TrackedValuesState computeBlockEntryState(
+      BasicBlock block, Map<BasicBlock, TrackedValuesState> states) {
+    TrackedValuesState state = new TrackedValuesState();
+    for (BasicBlock predecessor : block.getPredecessors()) {
+      state.add(states.getOrDefault(predecessor, TrackedValuesState.empty()));
+    }
+    return state;
+  }
+
+  static class TrackedValuesState {
+
+    private static final TrackedValuesState EMPTY = new TrackedValuesState();
+
+    boolean hasTrackedValueEscaped;
+    Set<Value> trackedValues = Sets.newIdentityHashSet();
+
+    public static TrackedValuesState empty() {
+      return EMPTY;
     }
 
-    return false;
+    public void add(TrackedValuesState state) {
+      hasTrackedValueEscaped |= state.hasTrackedValueEscaped;
+      trackedValues.addAll(state.trackedValues);
+    }
+
+    public boolean hasTrackedValueEscaped() {
+      return hasTrackedValueEscaped;
+    }
+
+    public boolean isTrackingValue(Value value) {
+      return trackedValues.contains(value);
+    }
+
+    public boolean recordTrackedValueHasEscaped() {
+      if (hasTrackedValueEscaped) {
+        return false;
+      }
+      hasTrackedValueEscaped = true;
+      return true;
+    }
+
+    public boolean startTrackingValue(Value value) {
+      return trackedValues.add(value);
+    }
   }
 }

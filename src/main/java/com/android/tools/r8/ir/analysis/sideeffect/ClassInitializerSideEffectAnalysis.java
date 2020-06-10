@@ -11,12 +11,11 @@ import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InvokeNewArray;
-import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.OptionalBool;
+import com.google.common.collect.Sets;
+import java.util.Set;
 
 public class ClassInitializerSideEffectAnalysis {
 
@@ -41,69 +40,28 @@ public class ClassInitializerSideEffectAnalysis {
   public static ClassInitializerSideEffect classInitializerCanBePostponed(
       AppView<AppInfoWithLiveness> appView, IRCode code) {
     ProgramMethod context = code.context();
-    OptionalBool controlFlowMayDependOnEnvironment = OptionalBool.unknown();
-    boolean mayHaveSideEffects = false;
-
-    ValueMayDependOnEnvironmentAnalysis environmentAnalysis =
-        new ValueMayDependOnEnvironmentAnalysis(appView, code);
+    // Will be set to true if the control flow must be independent of the environment in order for
+    // this class initializer to be postponeable.
+    boolean controlFlowRequiredToBeIndependentOfControlFlow = false;
+    // The set of values that must be independent of the environment in order for this class
+    // initializer to be postponeable.
+    Set<Value> valuesRequiredToBeIndependentOfEnvironment = Sets.newIdentityHashSet();
     for (Instruction instruction : code.instructions()) {
-      // Array stores to a newly created array are only observable if they may throw, or if the
-      // array content may depend on the environment.
+      // Array stores are observable if they mutate a non-local array or if they may throw.
       if (instruction.isArrayPut()) {
         ArrayPut arrayPut = instruction.asArrayPut();
         Value array = arrayPut.array().getAliasedValue();
-        if (array.isPhi()
-            || !array.definition.isCreatingArray()
-            || environmentAnalysis.valueMayDependOnEnvironment(arrayPut.index())
-            || environmentAnalysis.valueMayDependOnEnvironment(arrayPut.value())
+        if (!array.isDefinedByInstructionSatisfying(Instruction::isCreatingArray)
             || arrayPut.instructionInstanceCanThrow(appView, context)) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
-        if (controlFlowMayDependOnEnvironment.isUnknown()) {
-          controlFlowMayDependOnEnvironment =
-              OptionalBool.of(code.controlFlowMayDependOnEnvironment(environmentAnalysis));
-        }
-        if (controlFlowMayDependOnEnvironment.isTrue()) {
-          return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
-        }
         continue;
       }
 
-      // NewArrayFilledData is handled similarly to ArrayPut.
-      if (instruction.isNewArrayFilledData()) {
-        NewArrayFilledData newArrayFilledData = instruction.asNewArrayFilledData();
-        Value array = newArrayFilledData.src();
-        if (array.isPhi()
-            || !array.definition.isCreatingArray()
-            || newArrayFilledData.instructionInstanceCanThrow(appView, context)) {
-          return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
-        }
-        if (controlFlowMayDependOnEnvironment.isUnknown()) {
-          controlFlowMayDependOnEnvironment =
-              OptionalBool.of(code.controlFlowMayDependOnEnvironment(environmentAnalysis));
-        }
-        if (controlFlowMayDependOnEnvironment.isTrue()) {
-          return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
-        }
-        continue;
-      }
-
-      // Array creations are only observable if they may throw, or if the array content may depend
-      // on the environment.
-      if (instruction.isInvokeNewArray()) {
-        InvokeNewArray invokeNewArray = instruction.asInvokeNewArray();
-        if (invokeNewArray.instructionInstanceCanThrow(appView, context)) {
-          return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
-        }
-        for (Value argument : invokeNewArray.arguments()) {
-          if (environmentAnalysis.valueMayDependOnEnvironment(argument)) {
-            return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
-          }
-        }
-        continue;
-      }
-
-      if (instruction.isNewArrayEmpty()) {
+      // Array creations are observable if they may throw.
+      if (instruction.isInvokeNewArray()
+          || instruction.isNewArrayEmpty()
+          || instruction.isNewArrayFilledData()) {
         if (instruction.instructionInstanceCanThrow(appView, context)) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
@@ -116,11 +74,11 @@ public class ClassInitializerSideEffectAnalysis {
             appView.appInfo().resolveField(staticPut.getField()).getResolvedField();
         if (field == null
             || field.holder() != context.getHolderType()
-            || environmentAnalysis.valueMayDependOnEnvironment(staticPut.value())
             || instruction.instructionInstanceCanThrow(appView, context)) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
-        mayHaveSideEffects = true;
+        controlFlowRequiredToBeIndependentOfControlFlow = true;
+        valuesRequiredToBeIndependentOfEnvironment.add(staticPut.value());
         continue;
       }
 
@@ -130,8 +88,21 @@ public class ClassInitializerSideEffectAnalysis {
       }
     }
 
-    return mayHaveSideEffects
-        ? ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CAN_BE_POSTPONED
-        : ClassInitializerSideEffect.NONE;
+    if (controlFlowRequiredToBeIndependentOfControlFlow) {
+      if (code.controlFlowMayDependOnEnvironment(valuesRequiredToBeIndependentOfEnvironment::add)) {
+        return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
+      }
+    }
+
+    if (!valuesRequiredToBeIndependentOfEnvironment.isEmpty()) {
+      ValueMayDependOnEnvironmentAnalysis environmentAnalysis =
+          new ValueMayDependOnEnvironmentAnalysis(appView, code);
+      if (environmentAnalysis.anyValueMayDependOnEnvironment(
+          valuesRequiredToBeIndependentOfEnvironment)) {
+        return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
+      }
+      return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CAN_BE_POSTPONED;
+    }
+    return ClassInitializerSideEffect.NONE;
   }
 }

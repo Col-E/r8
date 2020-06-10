@@ -15,6 +15,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -825,6 +826,16 @@ public abstract class DexClass extends DexDefinition {
     }
     DexClass superClass = appView.definitionFor(superType);
     return superClass == null || superClass.hasInstanceFieldsDirectlyOrIndirectly(appView);
+  }
+
+  public List<DexEncodedField> getDirectAndIndirectInstanceFields(AppView<?> appView) {
+    List<DexEncodedField> result = new ArrayList<>();
+    DexClass current = this;
+    while (current != null && current.type != appView.dexItemFactory().objectType) {
+      result.addAll(current.instanceFields());
+      current = appView.definitionFor(current.superType);
+    }
+    return result;
   }
 
   public boolean isValid(InternalOptions options) {

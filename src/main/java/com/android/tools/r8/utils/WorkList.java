@@ -65,6 +65,14 @@ public class WorkList<T> {
     return !workingList.isEmpty();
   }
 
+  public void markAsSeen(T item) {
+    seen.add(item);
+  }
+
+  public void markAsSeen(Iterable<T> items) {
+    items.forEach(this::markAsSeen);
+  }
+
   public T next() {
     assert hasNext();
     return workingList.removeFirst();

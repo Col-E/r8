@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.TypeChecker;
-import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -50,6 +49,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -283,8 +283,16 @@ public class IRCode {
     return liveAtEntrySets;
   }
 
+  /**
+   * Returns true if the control flow of this code object may depend on the environment. If false is
+   * returned, then the control flow of this code object does not depend on the environment if none
+   * of the values passed to the given consumer depend on the environment.
+   *
+   * <p>It is the responsibility of the client to prove that none of the values passed to {@param
+   * valueRequiredToBeIndependentOfEnvironmentConsumer} may depend on the environment.
+   */
   public boolean controlFlowMayDependOnEnvironment(
-      ValueMayDependOnEnvironmentAnalysis environmentAnalysis) {
+      Consumer<Value> valueRequiredToBeIndependentOfEnvironmentConsumer) {
     for (BasicBlock block : blocks) {
       if (block.hasCatchHandlers()) {
         // Whether an instruction throws may generally depend on the environment.
@@ -292,18 +300,13 @@ public class IRCode {
       }
       if (block.exit().isIf()) {
         If ifInstruction = block.exit().asIf();
-        if (environmentAnalysis.valueMayDependOnEnvironment(ifInstruction.lhs())) {
-          return true;
-        }
-        if (!ifInstruction.isZeroTest()
-            && environmentAnalysis.valueMayDependOnEnvironment(ifInstruction.rhs())) {
-          return true;
+        valueRequiredToBeIndependentOfEnvironmentConsumer.accept(ifInstruction.lhs());
+        if (!ifInstruction.isZeroTest()) {
+          valueRequiredToBeIndependentOfEnvironmentConsumer.accept(ifInstruction.rhs());
         }
       } else if (block.exit().isSwitch()) {
         Switch switchInstruction = block.exit().asSwitch();
-        if (environmentAnalysis.valueMayDependOnEnvironment(switchInstruction.value())) {
-          return true;
-        }
+        valueRequiredToBeIndependentOfEnvironmentConsumer.accept(switchInstruction.value());
       }
     }
     return false;
