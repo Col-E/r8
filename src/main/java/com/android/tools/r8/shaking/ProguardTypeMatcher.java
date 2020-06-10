@@ -36,6 +36,10 @@ public abstract class ProguardTypeMatcher {
     TYPE
   }
 
+  public MatchSpecificType asSpecificTypeMatcher() {
+    return null;
+  }
+
   // Evaluates this matcher on the given type.
   public abstract boolean matches(DexType type);
 
@@ -59,8 +63,29 @@ public abstract class ProguardTypeMatcher {
     return typeMatcher == null ? Collections::emptyIterator : typeMatcher.getWildcards();
   }
 
+  static Iterable<ProguardWildcard> getWildcardsOrEmpty(List<ProguardTypeMatcher> typeMatchers) {
+    List<ProguardWildcard> result = new ArrayList<>();
+    for (ProguardTypeMatcher typeMatcher : typeMatchers) {
+      typeMatcher.getWildcards().forEach(result::add);
+    }
+    return result;
+  }
+
   protected ProguardTypeMatcher materialize(DexItemFactory dexItemFactory) {
     return this;
+  }
+
+  public static List<ProguardTypeMatcher> materializeList(
+      List<ProguardTypeMatcher> matchers, DexItemFactory dexItemFactory) {
+    if (matchers.isEmpty()) {
+      return Collections.emptyList();
+    }
+    ImmutableList.Builder<ProguardTypeMatcher> builder =
+        ImmutableList.builderWithExpectedSize(matchers.size());
+    for (ProguardTypeMatcher matcher : matchers) {
+      builder.add(matcher.materialize(dexItemFactory));
+    }
+    return builder.build();
   }
 
   @Override
@@ -309,6 +334,11 @@ public abstract class ProguardTypeMatcher {
 
     private MatchSpecificType(DexType type) {
       this.type = type;
+    }
+
+    @Override
+    public MatchSpecificType asSpecificTypeMatcher() {
+      return this;
     }
 
     @Override

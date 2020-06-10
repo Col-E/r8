@@ -12,7 +12,7 @@ public class IfRuleClassPartEquivalence extends Equivalence<ProguardIfRule> {
 
   @Override
   protected boolean doEquivalent(ProguardIfRule p1, ProguardIfRule p2) {
-    if (!Objects.equals(p1.getClassAnnotation(), p2.getClassAnnotation())) {
+    if (!p1.getClassAnnotations().equals(p2.getClassAnnotations())) {
       return false;
     }
     if (!p1.getClassAccessFlags().equals(p2.getClassAccessFlags())
@@ -26,7 +26,7 @@ public class IfRuleClassPartEquivalence extends Equivalence<ProguardIfRule> {
     if (p1.getInheritanceIsExtends() != p2.getInheritanceIsExtends()) {
       return false;
     }
-    if (!Objects.equals(p1.getInheritanceAnnotation(), p2.getInheritanceAnnotation())) {
+    if (!p1.getInheritanceAnnotations().equals(p2.getInheritanceAnnotations())) {
       return false;
     }
     if (!Objects.equals(p1.getInheritanceClassName(), p2.getInheritanceClassName())) {
@@ -40,17 +40,13 @@ public class IfRuleClassPartEquivalence extends Equivalence<ProguardIfRule> {
 
   @Override
   protected int doHash(ProguardIfRule rule) {
-    int result = (rule.getClassAnnotation() != null ? rule.getClassAnnotation().hashCode() : 0);
+    int result = rule.getClassAnnotations().hashCode();
     result = 3 * result + rule.getClassAccessFlags().hashCode();
     result = 3 * result + rule.getNegatedClassAccessFlags().hashCode();
     result = 3 * result + (rule.getClassTypeNegated() ? 1 : 0);
     result = 3 * result + (rule.getClassType() != null ? rule.getClassType().hashCode() : 0);
     result = 3 * result + rule.getClassNames().hashCode();
-    result =
-        3 * result
-            + (rule.getInheritanceAnnotation() != null
-                ? rule.getInheritanceAnnotation().hashCode()
-                : 0);
+    result = 3 * result + rule.getInheritanceAnnotations().hashCode();
     result =
         3 * result
             + (rule.getInheritanceClassName() != null

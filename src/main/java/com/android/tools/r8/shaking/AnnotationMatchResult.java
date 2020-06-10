@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexAnnotation;
+import java.util.List;
 
 public abstract class AnnotationMatchResult {
 
@@ -30,14 +31,14 @@ public abstract class AnnotationMatchResult {
 
   static class ConcreteAnnotationMatchResult extends AnnotationMatchResult {
 
-    private final DexAnnotation matchedAnnotation;
+    private final List<DexAnnotation> matchedAnnotations;
 
-    public ConcreteAnnotationMatchResult(DexAnnotation matchedAnnotation) {
-      this.matchedAnnotation = matchedAnnotation;
+    public ConcreteAnnotationMatchResult(List<DexAnnotation> matchedAnnotations) {
+      this.matchedAnnotations = matchedAnnotations;
     }
 
-    public DexAnnotation getMatchedAnnotation() {
-      return matchedAnnotation;
+    public List<DexAnnotation> getMatchedAnnotations() {
+      return matchedAnnotations;
     }
 
     @Override

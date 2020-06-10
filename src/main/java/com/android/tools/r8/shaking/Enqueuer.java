@@ -3376,10 +3376,10 @@ public class Enqueuer {
     desugaredLambdaImplementationMethods.clear();
   }
 
-  void retainAnnotationForFinalTreeShaking(DexAnnotation annotation) {
+  void retainAnnotationForFinalTreeShaking(List<DexAnnotation> annotations) {
     assert mode.isInitialTreeShaking();
     if (annotationRemoverBuilder != null) {
-      annotationRemoverBuilder.retainAnnotation(annotation);
+      annotations.forEach(annotationRemoverBuilder::retainAnnotation);
     }
   }
 

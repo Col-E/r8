@@ -27,19 +27,30 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
       Origin origin,
       Position position,
       String source,
-      ProguardTypeMatcher classAnnotation,
+      List<ProguardTypeMatcher> classAnnotations,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,
       boolean classTypeNegated,
       ProguardClassType classType,
       ProguardClassNameList classNames,
-      ProguardTypeMatcher inheritanceAnnotation,
+      List<ProguardTypeMatcher> inheritanceAnnotations,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules) {
-    super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
-        classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
-        inheritanceIsExtends, memberRules);
+    super(
+        origin,
+        position,
+        source,
+        classAnnotations,
+        classAccessFlags,
+        negatedClassAccessFlags,
+        classTypeNegated,
+        classType,
+        classNames,
+        inheritanceAnnotations,
+        inheritanceClassName,
+        inheritanceIsExtends,
+        memberRules);
   }
 
   public boolean isUsed() {
@@ -124,17 +135,16 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
   protected Iterable<ProguardWildcard> getWildcards() {
     List<ProguardMemberRule> memberRules = getMemberRules();
     return Iterables.concat(
-        ProguardTypeMatcher.getWildcardsOrEmpty(getClassAnnotation()),
+        ProguardTypeMatcher.getWildcardsOrEmpty(getClassAnnotations()),
         ProguardClassNameList.getWildcardsOrEmpty(getClassNames()),
-        ProguardTypeMatcher.getWildcardsOrEmpty(getInheritanceAnnotation()),
+        ProguardTypeMatcher.getWildcardsOrEmpty(getInheritanceAnnotations()),
         ProguardTypeMatcher.getWildcardsOrEmpty(getInheritanceClassName()),
         memberRules != null
             ? memberRules.stream()
-                .map(ProguardMemberRule::getWildcards)
-                .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
+                    .map(ProguardMemberRule::getWildcards)
+                    .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
                 ::iterator
-            : Collections::emptyIterator
-    );
+            : Collections::emptyIterator);
   }
 
   @Override

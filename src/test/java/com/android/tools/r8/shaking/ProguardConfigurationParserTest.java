@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.DiagnosticsChecker.checkDiagnostics;
 import static com.android.tools.r8.shaking.ProguardConfigurationSourceStrings.createConfigurationForTesting;
+import static com.android.tools.r8.utils.BooleanUtils.intValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
@@ -17,6 +18,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.ClassAccessFlags;
@@ -34,10 +37,12 @@ import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.KeepingDiagnosticHandler;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -47,6 +52,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -55,6 +62,8 @@ import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 class EmptyMainClassForProguardTests {
 
@@ -62,6 +71,7 @@ class EmptyMainClassForProguardTests {
   }
 }
 
+@RunWith(Parameterized.class)
 public class ProguardConfigurationParserTest extends TestBase {
 
   private static final String VALID_PROGUARD_DIR = "src/test/proguard/valid/";
@@ -151,6 +161,13 @@ public class ProguardConfigurationParserTest extends TestBase {
   private List<String> lineSeparators = ImmutableList.of("\n", "\r\n");
   private List<Character> quotes = ImmutableList.of('"', '\'');
 
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public ProguardConfigurationParserTest(TestParameters parameters) {}
+
   @Before
   public void reset() {
     handler = new KeepingDiagnosticHandler();
@@ -187,7 +204,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseMultipleNamePatterns() throws Exception {
+  public void parseMultipleNamePatterns() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(MULTIPLE_NAME_PATTERNS_FILE));
@@ -210,7 +227,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseNonJavaIdentifiers() throws Exception {
+  public void parseNonJavaIdentifiers() {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, new Reporter());
@@ -250,8 +267,8 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals(0x03, matches);
   }
 
-  private void testDontXXX(String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern)
-      throws Exception {
+  private void testDontXXX(
+      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
@@ -265,13 +282,13 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void testDontXXX() throws Exception {
+  public void testDontXXX() {
     testDontXXX("warn", ProguardConfiguration::getDontWarnPatterns);
     testDontXXX("note", ProguardConfiguration::getDontNotePatterns);
   }
 
   private void testDontXXXMultiple(
-      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) throws Exception {
+      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
@@ -288,13 +305,13 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void testDontWarnMultiple() throws Exception {
+  public void testDontWarnMultiple() {
     testDontXXXMultiple("warn", ProguardConfiguration::getDontWarnPatterns);
     testDontXXXMultiple("note", ProguardConfiguration::getDontNotePatterns);
   }
 
   private void testDontXXXAllExplicitly(
-      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) throws Exception {
+      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
@@ -308,13 +325,13 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void testDontWarnAllExplicitly() throws Exception {
+  public void testDontWarnAllExplicitly() {
     testDontXXXAllExplicitly("warn", ProguardConfiguration::getDontWarnPatterns);
     testDontXXXAllExplicitly("note", ProguardConfiguration::getDontNotePatterns);
   }
 
   private void testDontXXXAllImplicitly(
-      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) throws Exception {
+      String xxx, Function<ProguardConfiguration, ProguardClassFilter> pattern) {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
@@ -328,13 +345,13 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void testDontWarnAllImplicitly() throws Exception {
+  public void testDontWarnAllImplicitly() {
     testDontXXXAllImplicitly("warn", ProguardConfiguration::getDontWarnPatterns);
     testDontXXXAllImplicitly("note", ProguardConfiguration::getDontNotePatterns);
   }
 
   @Test
-  public void parseAccessFlags() throws Exception {
+  public void parseAccessFlags() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(ACCESS_FLAGS_FILE));
@@ -380,7 +397,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseWhyAreYouKeeping() throws Exception {
+  public void parseWhyAreYouKeeping() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(WHY_ARE_YOU_KEEPING_FILE));
@@ -395,7 +412,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseAssumeNoSideEffects() throws Exception {
+  public void parseAssumeNoSideEffects() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(ASSUME_NO_SIDE_EFFECTS));
@@ -408,7 +425,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseAssumeNoSideEffectsWithReturnValue() throws Exception {
+  public void parseAssumeNoSideEffectsWithReturnValue() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(ASSUME_NO_SIDE_EFFECTS_WITH_RETURN_VALUE));
@@ -477,7 +494,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseAssumeValuesWithReturnValue() throws Exception {
+  public void parseAssumeValuesWithReturnValue() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(ASSUME_VALUES_WITH_RETURN_VALUE));
@@ -546,7 +563,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void testAdaptClassStrings() throws Exception {
+  public void testAdaptClassStrings() {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
@@ -563,7 +580,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void testAdaptClassStringsMultiple() throws Exception {
+  public void testAdaptClassStringsMultiple() {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
@@ -584,7 +601,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void testAdaptClassStringsAllExplicitly() throws Exception {
+  public void testAdaptClassStringsAllExplicitly() {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
@@ -601,7 +618,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void testAdaptClassStringsAllImplicitly() throws Exception {
+  public void testAdaptClassStringsAllImplicitly() {
     DexItemFactory dexItemFactory = new DexItemFactory();
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(dexItemFactory, reporter);
@@ -618,7 +635,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void testIdentifierNameString() throws Exception {
+  public void testIdentifierNameString() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     String config1 =
@@ -656,14 +673,22 @@ public class ProguardConfigurationParserTest extends TestBase {
     });
     assertEquals(1, identifierNameStrings.get(2).getClassNames().size());
     assertEquals("*", identifierNameStrings.get(2).getClassNames().toString());
-    identifierNameStrings.get(2).getMemberRules().forEach(memberRule -> {
-      assertEquals(ProguardMemberType.ALL, memberRule.getRuleType());
-      assertTrue(memberRule.getAnnotation().toString().endsWith("IdentifierNameString"));
-    });
+    identifierNameStrings
+        .get(2)
+        .getMemberRules()
+        .forEach(
+            memberRule -> {
+              assertEquals(ProguardMemberType.ALL, memberRule.getRuleType());
+              assertEquals(1, memberRule.getAnnotations().size());
+              assertTrue(
+                  ListUtils.first(memberRule.getAnnotations())
+                      .toString()
+                      .endsWith("IdentifierNameString"));
+            });
   }
 
   @Test
-  public void parseDontobfuscate() throws Exception {
+  public void parseDontobfuscate() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(DONT_OBFUSCATE));
@@ -673,7 +698,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseRepackageClassesEmpty() throws Exception {
+  public void parseRepackageClassesEmpty() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PACKAGE_OBFUSCATION_1));
@@ -685,7 +710,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseRepackageClassesNonEmpty() throws Exception {
+  public void parseRepackageClassesNonEmpty() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PACKAGE_OBFUSCATION_2));
@@ -697,7 +722,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseFlattenPackageHierarchyEmpty() throws Exception {
+  public void parseFlattenPackageHierarchyEmpty() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PACKAGE_OBFUSCATION_3));
@@ -709,7 +734,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseFlattenPackageHierarchyNonEmpty() throws Exception {
+  public void parseFlattenPackageHierarchyNonEmpty() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(PACKAGE_OBFUSCATION_4));
@@ -721,7 +746,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void flattenPackageHierarchyCannotOverrideRepackageClasses() throws Exception {
+  public void flattenPackageHierarchyCannotOverrideRepackageClasses() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     Path path = Paths.get(PACKAGE_OBFUSCATION_5);
@@ -735,7 +760,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void repackageClassesOverridesFlattenPackageHierarchy() throws Exception {
+  public void repackageClassesOverridesFlattenPackageHierarchy() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     Path path = Paths.get(PACKAGE_OBFUSCATION_6);
@@ -749,7 +774,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseApplyMapping() throws Exception {
+  public void parseApplyMapping() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(APPLY_MAPPING));
@@ -759,7 +784,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseApplyMappingWithoutFile() throws Exception {
+  public void parseApplyMappingWithoutFile() {
     Path path = Paths.get(APPLY_MAPPING_WITHOUT_FILE);
     try {
       ProguardConfigurationParser parser =
@@ -781,7 +806,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseIncluding() throws Exception {
+  public void parseIncluding() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(Paths.get(INCLUDING));
@@ -789,7 +814,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseInvalidIncluding1() throws IOException {
+  public void parseInvalidIncluding1() {
     Path path = Paths.get(INVALID_INCLUDING_1);
     try {
       new ProguardConfigurationParser(new DexItemFactory(), reporter)
@@ -1442,7 +1467,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseKeepParameterNames() throws Exception {
+  public void parseKeepParameterNames() {
     try {
       ProguardConfigurationParser parser =
           new ProguardConfigurationParser(new DexItemFactory(), reporter);
@@ -1458,7 +1483,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseKeepParameterNamesWithoutMinification() throws Exception {
+  public void parseKeepParameterNamesWithoutMinification() {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(createConfigurationForTesting(ImmutableList.of(
@@ -1483,7 +1508,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseShortLine() throws IOException {
+  public void parseShortLine() {
     try {
       ProguardConfigurationParser parser =
           new ProguardConfigurationParser(new DexItemFactory(), reporter);
@@ -1496,7 +1521,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseNoLocals() throws IOException {
+  public void parseNoLocals() {
     try {
       ProguardConfigurationParser parser =
           new ProguardConfigurationParser(new DexItemFactory(), reporter);
@@ -2914,5 +2939,240 @@ public class ProguardConfigurationParserTest extends TestBase {
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(proguardConfig);
     verifyParserEndsCleanly();
+  }
+
+  @Test
+  public void parseClassAnnotationsAndFlags() {
+    List<String> configurationContents =
+        ImmutableList.of(
+            // 1 annotation without flags.
+            "-keep @Foo class *",
+            // 1 annotation with public flag.
+            "-keep public @Foo class *",
+            "-keep @Foo public class *",
+            // 1 annotation with public final flags.
+            "-keep public final @Foo class *",
+            "-keep public @Foo final class *",
+            "-keep @Foo public final class *",
+            // 2 annotations without flags.
+            "-keep @Foo @Bar class *",
+            // 2 annotations with public flag.
+            "-keep public @Foo @Bar class *",
+            "-keep @Foo public @Bar class *",
+            "-keep @Foo @Bar public class *",
+            // 2 annotations with public final flags.
+            "-keep public final @Foo @Bar class *",
+            "-keep public @Foo final @Bar class *",
+            "-keep public @Foo @Bar final class *",
+            "-keep @Foo public final @Bar class *",
+            "-keep @Foo public @Bar final class *",
+            "-keep @Foo @Bar public final class *");
+    for (String configurationContent : configurationContents) {
+      DexItemFactory dexItemFactory = new DexItemFactory();
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(dexItemFactory, reporter);
+      parser.parse(createConfigurationForTesting(ImmutableList.of(configurationContent)));
+      verifyParserEndsCleanly();
+
+      ProguardConfiguration configuration = parser.getConfig();
+      assertEquals(1, configuration.getRules().size());
+
+      ProguardKeepRule rule = ListUtils.first(configuration.getRules()).asProguardKeepRule();
+      assertEquals(configurationContent.contains("final"), rule.getClassAccessFlags().isFinal());
+      assertEquals(configurationContent.contains("public"), rule.getClassAccessFlags().isPublic());
+      assertEquals(
+          1 + intValue(configurationContent.contains("@Bar")), rule.getClassAnnotations().size());
+
+      ProguardTypeMatcher.MatchSpecificType fooAnnotation =
+          rule.getClassAnnotations().get(0).asSpecificTypeMatcher();
+      assertEquals("Foo", fooAnnotation.getSpecificType().toSourceString());
+
+      if (configurationContent.contains("@Bar")) {
+        ProguardTypeMatcher.MatchSpecificType barAnnotation =
+            rule.getClassAnnotations().get(1).asSpecificTypeMatcher();
+        assertEquals("Bar", barAnnotation.getSpecificType().toSourceString());
+      }
+    }
+  }
+
+  @Test
+  public void parseFieldAnnotationsAndFlags() {
+    Map<String, Optional<Class<? extends Exception>>> configurationContents =
+        ImmutableMap.<String, Optional<Class<? extends Exception>>>builder()
+            // 1 annotation without flags.
+            .put("-keep class * { @Foo Type FIELD; }", Optional.empty())
+            // 1 annotation with public flag.
+            .put("-keep class * { public @Foo Type FIELD; }", Optional.of(RuntimeException.class))
+            .put("-keep class * { @Foo public Type FIELD; }", Optional.empty())
+            // 1 annotation with public final flags.
+            .put(
+                "-keep class * { public final @Foo Type FIELD; }",
+                Optional.of(RuntimeException.class))
+            .put(
+                "-keep class * { public @Foo final Type FIELD; }",
+                Optional.of(RuntimeException.class))
+            .put("-keep class * { @Foo public final Type FIELD; }", Optional.empty())
+            //// 2 annotations without flags.
+            .put("-keep class * { @Foo @Bar Type FIELD; }", Optional.empty())
+            //// 2 annotations with public flag.
+            .put(
+                "-keep class * { public @Foo @Bar Type FIELD; }",
+                Optional.of(RuntimeException.class))
+            .put(
+                "-keep class * { @Foo public @Bar Type FIELD; }",
+                Optional.of(RuntimeException.class))
+            .put("-keep class * { @Foo @Bar public Type FIELD; }", Optional.empty())
+            //// 2 annotations with public final flags.
+            .put(
+                "-keep class * { public final @Foo @Bar Type FIELD; }",
+                Optional.of(RuntimeException.class))
+            .put(
+                "-keep class * { public @Foo final @Bar Type FIELD; }",
+                Optional.of(RuntimeException.class))
+            .put(
+                "-keep class * { public @Foo @Bar final Type FIELD; }",
+                Optional.of(RuntimeException.class))
+            .put(
+                "-keep class * { @Foo public final @Bar Type FIELD; }",
+                Optional.of(RuntimeException.class))
+            .put(
+                "-keep class * { @Foo public @Bar final Type FIELD; }",
+                Optional.of(RuntimeException.class))
+            .put("-keep class * { @Foo @Bar public final Type FIELD; }", Optional.empty())
+            .build();
+    configurationContents.forEach(
+        (configurationContent, expectedExceptionClass) -> {
+          DexItemFactory dexItemFactory = new DexItemFactory();
+          ProguardConfigurationParser parser =
+              new ProguardConfigurationParser(dexItemFactory, reporter);
+          try {
+            parser.parse(createConfigurationForTesting(ImmutableList.of(configurationContent)));
+            assertFalse(expectedExceptionClass.isPresent());
+          } catch (Throwable e) {
+            assertTrue(expectedExceptionClass.isPresent());
+            assertEquals(expectedExceptionClass.get(), e.getClass());
+            reset();
+            return;
+          }
+
+          verifyParserEndsCleanly();
+
+          ProguardConfiguration configuration = parser.getConfig();
+          assertEquals(1, configuration.getRules().size());
+
+          ProguardKeepRule rule = ListUtils.first(configuration.getRules()).asProguardKeepRule();
+          assertEquals(1, rule.getMemberRules().size());
+
+          ProguardMemberRule memberRule = ListUtils.first(rule.getMemberRules());
+
+          assertEquals(
+              configurationContent.contains("final"), memberRule.getAccessFlags().isFinal());
+          assertEquals(
+              configurationContent.contains("public"), memberRule.getAccessFlags().isPublic());
+          assertEquals(
+              1 + intValue(configurationContent.contains("@Bar")),
+              memberRule.getAnnotations().size());
+
+          ProguardTypeMatcher.MatchSpecificType fooAnnotation =
+              memberRule.getAnnotations().get(0).asSpecificTypeMatcher();
+          assertEquals("Foo", fooAnnotation.getSpecificType().toSourceString());
+
+          if (configurationContent.contains("@Bar")) {
+            ProguardTypeMatcher.MatchSpecificType barAnnotation =
+                memberRule.getAnnotations().get(1).asSpecificTypeMatcher();
+            assertEquals("Bar", barAnnotation.getSpecificType().toSourceString());
+          }
+        });
+  }
+
+  @Test
+  public void parseMethodAnnotationsAndFlags() {
+    Map<String, Optional<Class<? extends Exception>>> configurationContents =
+        ImmutableMap.<String, Optional<Class<? extends Exception>>>builder()
+            // 1 annotation without flags.
+            .put("-keep class * { @Foo Type method(); }", Optional.empty())
+            // 1 annotation with public flag.
+            .put(
+                "-keep class * { public @Foo Type method(); }", Optional.of(RuntimeException.class))
+            .put("-keep class * { @Foo public Type method(); }", Optional.empty())
+            // 1 annotation with public final flags.
+            .put(
+                "-keep class * { public final @Foo Type method(); }",
+                Optional.of(RuntimeException.class))
+            .put(
+                "-keep class * { public @Foo final Type method(); }",
+                Optional.of(RuntimeException.class))
+            .put("-keep class * { @Foo public final Type method(); }", Optional.empty())
+            //// 2 annotations without flags.
+            .put("-keep class * { @Foo @Bar Type method(); }", Optional.empty())
+            //// 2 annotations with public flag.
+            .put(
+                "-keep class * { public @Foo @Bar Type method(); }",
+                Optional.of(RuntimeException.class))
+            .put(
+                "-keep class * { @Foo public @Bar Type method(); }",
+                Optional.of(RuntimeException.class))
+            .put("-keep class * { @Foo @Bar public Type method(); }", Optional.empty())
+            //// 2 annotations with public final flags.
+            .put(
+                "-keep class * { public final @Foo @Bar Type method(); }",
+                Optional.of(RuntimeException.class))
+            .put(
+                "-keep class * { public @Foo final @Bar Type method(); }",
+                Optional.of(RuntimeException.class))
+            .put(
+                "-keep class * { public @Foo @Bar final Type method(); }",
+                Optional.of(RuntimeException.class))
+            .put(
+                "-keep class * { @Foo public final @Bar Type method(); }",
+                Optional.of(RuntimeException.class))
+            .put(
+                "-keep class * { @Foo public @Bar final Type method(); }",
+                Optional.of(RuntimeException.class))
+            .put("-keep class * { @Foo @Bar public final Type method(); }", Optional.empty())
+            .build();
+    configurationContents.forEach(
+        (configurationContent, expectedExceptionClass) -> {
+          DexItemFactory dexItemFactory = new DexItemFactory();
+          ProguardConfigurationParser parser =
+              new ProguardConfigurationParser(dexItemFactory, reporter);
+          try {
+            parser.parse(createConfigurationForTesting(ImmutableList.of(configurationContent)));
+            assertFalse(expectedExceptionClass.isPresent());
+          } catch (Throwable e) {
+            assertTrue(expectedExceptionClass.isPresent());
+            assertEquals(expectedExceptionClass.get(), e.getClass());
+            reset();
+            return;
+          }
+
+          verifyParserEndsCleanly();
+
+          ProguardConfiguration configuration = parser.getConfig();
+          assertEquals(1, configuration.getRules().size());
+
+          ProguardKeepRule rule = ListUtils.first(configuration.getRules()).asProguardKeepRule();
+          assertEquals(1, rule.getMemberRules().size());
+
+          ProguardMemberRule memberRule = ListUtils.first(rule.getMemberRules());
+
+          assertEquals(
+              configurationContent.contains("final"), memberRule.getAccessFlags().isFinal());
+          assertEquals(
+              configurationContent.contains("public"), memberRule.getAccessFlags().isPublic());
+          assertEquals(
+              1 + intValue(configurationContent.contains("@Bar")),
+              memberRule.getAnnotations().size());
+
+          ProguardTypeMatcher.MatchSpecificType fooAnnotation =
+              memberRule.getAnnotations().get(0).asSpecificTypeMatcher();
+          assertEquals("Foo", fooAnnotation.getSpecificType().toSourceString());
+
+          if (configurationContent.contains("@Bar")) {
+            ProguardTypeMatcher.MatchSpecificType barAnnotation =
+                memberRule.getAnnotations().get(1).asSpecificTypeMatcher();
+            assertEquals("Bar", barAnnotation.getSpecificType().toSourceString());
+          }
+        });
   }
 }

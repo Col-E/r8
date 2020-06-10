@@ -58,13 +58,13 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
           origin,
           getPosition(),
           source,
-          classAnnotation,
+          buildClassAnnotations(),
           classAccessFlags,
           negatedClassAccessFlags,
           classTypeNegated,
           classType,
           classNames,
-          inheritanceAnnotation,
+          buildInheritanceAnnotations(),
           inheritanceClassName,
           inheritanceIsExtends,
           memberRules,
@@ -77,22 +77,34 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
       Origin origin,
       Position position,
       String source,
-      ProguardTypeMatcher classAnnotation,
+      List<ProguardTypeMatcher> classAnnotations,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,
       boolean classTypeNegated,
       ProguardClassType classType,
       ProguardClassNameList classNames,
-      ProguardTypeMatcher inheritanceAnnotation,
+      List<ProguardTypeMatcher> inheritanceAnnotations,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules,
       ProguardKeepRule subsequentRule,
       Set<DexReference> preconditions) {
-    super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
-        classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
-        inheritanceIsExtends, memberRules,
-        ProguardKeepRuleType.CONDITIONAL, ProguardKeepRuleModifiers.builder().build());
+    super(
+        origin,
+        position,
+        source,
+        classAnnotations,
+        classAccessFlags,
+        negatedClassAccessFlags,
+        classTypeNegated,
+        classType,
+        classNames,
+        inheritanceAnnotations,
+        inheritanceClassName,
+        inheritanceIsExtends,
+        memberRules,
+        ProguardKeepRuleType.CONDITIONAL,
+        ProguardKeepRuleModifiers.builder().build());
     this.subsequentRule = subsequentRule;
     this.preconditions = preconditions;
   }
@@ -122,15 +134,13 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
         getOrigin(),
         getPosition(),
         getSource(),
-        getClassAnnotation() == null ? null : getClassAnnotation().materialize(dexItemFactory),
+        ProguardTypeMatcher.materializeList(getClassAnnotations(), dexItemFactory),
         getClassAccessFlags(),
         getNegatedClassAccessFlags(),
         getClassTypeNegated(),
         getClassType(),
         getClassNames().materialize(dexItemFactory),
-        getInheritanceAnnotation() == null
-            ? null
-            : getInheritanceAnnotation().materialize(dexItemFactory),
+        ProguardTypeMatcher.materializeList(getInheritanceAnnotations(), dexItemFactory),
         getInheritanceClassName() == null
             ? null
             : getInheritanceClassName().materialize(dexItemFactory),
@@ -149,15 +159,13 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
         neverInlineOrigin,
         Position.UNKNOWN,
         null,
-        getClassAnnotation() == null ? null : getClassAnnotation().materialize(dexItemFactory),
+        ProguardTypeMatcher.materializeList(getClassAnnotations(), dexItemFactory),
         getClassAccessFlags(),
         getNegatedClassAccessFlags(),
         getClassTypeNegated(),
         getClassType(),
         getClassNames().materialize(dexItemFactory),
-        getInheritanceAnnotation() == null
-            ? null
-            : getInheritanceAnnotation().materialize(dexItemFactory),
+        ProguardTypeMatcher.materializeList(getInheritanceAnnotations(), dexItemFactory),
         getInheritanceClassName() == null
             ? null
             : getInheritanceClassName().materialize(dexItemFactory),
@@ -196,15 +204,13 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
         neverInlineOrigin,
         Position.UNKNOWN,
         null,
-        getClassAnnotation() == null ? null : getClassAnnotation().materialize(dexItemFactory),
+        ProguardTypeMatcher.materializeList(getClassAnnotations(), dexItemFactory),
         getClassAccessFlags(),
         getNegatedClassAccessFlags(),
         getClassTypeNegated(),
         getClassType(),
         getClassNames().materialize(dexItemFactory),
-        getInheritanceAnnotation() == null
-            ? null
-            : getInheritanceAnnotation().materialize(dexItemFactory),
+        ProguardTypeMatcher.materializeList(getInheritanceAnnotations(), dexItemFactory),
         getInheritanceClassName() == null
             ? null
             : getInheritanceClassName().materialize(dexItemFactory),

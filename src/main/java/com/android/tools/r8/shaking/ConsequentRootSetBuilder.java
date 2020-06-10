@@ -24,7 +24,7 @@ class ConsequentRootSetBuilder extends RootSetBuilder {
     if (enqueuer.getMode().isInitialTreeShaking()
         && annotationMatchResult.isConcreteAnnotationMatchResult()) {
       enqueuer.retainAnnotationForFinalTreeShaking(
-          annotationMatchResult.asConcreteAnnotationMatchResult().getMatchedAnnotation());
+          annotationMatchResult.asConcreteAnnotationMatchResult().getMatchedAnnotations());
     }
   }
 }

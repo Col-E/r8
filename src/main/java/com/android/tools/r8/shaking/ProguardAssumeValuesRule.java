@@ -23,9 +23,20 @@ public class ProguardAssumeValuesRule extends ProguardConfigurationRule {
 
     @Override
     public ProguardAssumeValuesRule build() {
-      return new ProguardAssumeValuesRule(origin, getPosition(), source, classAnnotation,
-          classAccessFlags, negatedClassAccessFlags, classTypeNegated, classType, classNames,
-          inheritanceAnnotation, inheritanceClassName, inheritanceIsExtends, memberRules);
+      return new ProguardAssumeValuesRule(
+          origin,
+          getPosition(),
+          source,
+          buildClassAnnotations(),
+          classAccessFlags,
+          negatedClassAccessFlags,
+          classTypeNegated,
+          classType,
+          classNames,
+          buildInheritanceAnnotations(),
+          inheritanceClassName,
+          inheritanceIsExtends,
+          memberRules);
     }
   }
 
@@ -33,19 +44,30 @@ public class ProguardAssumeValuesRule extends ProguardConfigurationRule {
       Origin origin,
       Position position,
       String source,
-      ProguardTypeMatcher classAnnotation,
+      List<ProguardTypeMatcher> classAnnotations,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,
       boolean classTypeNegated,
       ProguardClassType classType,
       ProguardClassNameList classNames,
-      ProguardTypeMatcher inheritanceAnnotation,
+      List<ProguardTypeMatcher> inheritanceAnnotations,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules) {
-    super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
-        classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
-        inheritanceIsExtends, memberRules);
+    super(
+        origin,
+        position,
+        source,
+        classAnnotations,
+        classAccessFlags,
+        negatedClassAccessFlags,
+        classTypeNegated,
+        classType,
+        classNames,
+        inheritanceAnnotations,
+        inheritanceClassName,
+        inheritanceIsExtends,
+        memberRules);
   }
 
   /**

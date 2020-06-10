@@ -897,7 +897,7 @@ public class ProguardConfigurationParser {
         ProguardClassSpecification.Builder<C, B> builder,
         boolean allowValueSpecification)
         throws ProguardRuleParserException {
-      parseClassFlagsAndAnnotations(builder);
+      parseClassAnnotationsAndFlags(builder);
       parseClassType(builder);
       builder.setClassNames(parseClassNames());
       parseInheritance(builder);
@@ -965,6 +965,18 @@ public class ProguardConfigurationParser {
       }
     }
 
+    private List<ProguardTypeMatcher> parseAnnotationList() throws ProguardRuleParserException {
+      List<ProguardTypeMatcher> annotations = null;
+      ProguardTypeMatcher current;
+      while ((current = parseAnnotation()) != null) {
+        if (annotations == null) {
+          annotations = new ArrayList<>(2);
+        }
+        annotations.add(current);
+      }
+      return annotations != null ? annotations : Collections.emptyList();
+    }
+
     private ProguardTypeMatcher parseAnnotation() throws ProguardRuleParserException {
       skipWhitespace();
       int startPosition = position;
@@ -988,16 +1000,14 @@ public class ProguardConfigurationParser {
       return acceptChar('!');
     }
 
-    private void parseClassFlagsAndAnnotations(ProguardClassSpecification.Builder builder)
+    private void parseClassAnnotationsAndFlags(ProguardClassSpecification.Builder<?, ?> builder)
         throws ProguardRuleParserException {
+      // We allow interleaving the class annotations and class flags for compatibility with
+      // Proguard, although this should not be possible according to the grammar.
       while (true) {
-        skipWhitespace();
         ProguardTypeMatcher annotation = parseAnnotation();
         if (annotation != null) {
-          // TODO(ager): Should we only allow one annotation? It looks that way from the
-          // proguard keep rule description, but that seems like a strange restriction?
-          assert builder.getClassAnnotation() == null;
-          builder.setClassAnnotation(annotation);
+          builder.addClassAnnotation(annotation);
         } else {
           int start = position;
           ProguardAccessFlags flags =
@@ -1025,7 +1035,7 @@ public class ProguardConfigurationParser {
           "Expected [!]interface|@interface|class|enum", origin, getPosition(start));
     }
 
-    private void parseClassType(ProguardClassSpecification.Builder builder) {
+    private void parseClassType(ProguardClassSpecification.Builder<?, ?> builder) {
       skipWhitespace();
       TextPosition start = getPosition();
       if (acceptChar('!')) {
@@ -1049,7 +1059,8 @@ public class ProguardConfigurationParser {
       }
     }
 
-    private void parseInheritance(ProguardClassSpecification.Builder classSpecificationBuilder)
+    private void parseInheritance(
+        ProguardClassSpecification.Builder<?, ?> classSpecificationBuilder)
         throws ProguardRuleParserException {
       skipWhitespace();
       if (acceptString("implements")) {
@@ -1059,7 +1070,7 @@ public class ProguardConfigurationParser {
       } else {
         return;
       }
-      classSpecificationBuilder.setInheritanceAnnotation(parseAnnotation());
+      classSpecificationBuilder.addInheritanceAnnotations(parseAnnotationList());
       classSpecificationBuilder.setInheritanceClassName(ProguardTypeMatcher.create(parseClassName(),
           ClassOrType.CLASS, dexItemFactory));
     }
@@ -1084,8 +1095,7 @@ public class ProguardConfigurationParser {
     private ProguardMemberRule parseMemberRule(boolean allowValueSpecification)
         throws ProguardRuleParserException {
       ProguardMemberRule.Builder ruleBuilder = ProguardMemberRule.builder();
-      skipWhitespace();
-      ruleBuilder.setAnnotation(parseAnnotation());
+      ruleBuilder.setAnnotations(parseAnnotationList());
       parseMemberAccessFlags(ruleBuilder);
       parseMemberPattern(ruleBuilder, allowValueSpecification);
       return ruleBuilder.isValid() ? ruleBuilder.build() : null;

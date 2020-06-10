@@ -24,7 +24,7 @@ public class ProguardMemberRule {
 
   public static class Builder {
 
-    private ProguardTypeMatcher annotation;
+    private List<ProguardTypeMatcher> annotations = Collections.emptyList();
     private ProguardAccessFlags accessFlags = new ProguardAccessFlags();
     private ProguardAccessFlags negatedAccessFlags = new ProguardAccessFlags();
     private ProguardMemberType ruleType;
@@ -35,8 +35,9 @@ public class ProguardMemberRule {
 
     private Builder() {}
 
-    public void setAnnotation(ProguardTypeMatcher annotation) {
-      this.annotation = annotation;
+    public void setAnnotations(List<ProguardTypeMatcher> annotations) {
+      assert annotations != null;
+      this.annotations = annotations;
     }
 
     public ProguardAccessFlags getAccessFlags() {
@@ -91,12 +92,19 @@ public class ProguardMemberRule {
 
     public ProguardMemberRule build() {
       assert isValid();
-      return new ProguardMemberRule(annotation, accessFlags, negatedAccessFlags, ruleType, type,
-          name, arguments, returnValue);
+      return new ProguardMemberRule(
+          annotations,
+          accessFlags,
+          negatedAccessFlags,
+          ruleType,
+          type,
+          name,
+          arguments,
+          returnValue);
     }
   }
 
-  private final ProguardTypeMatcher annotation;
+  private final List<ProguardTypeMatcher> annotations;
   private final ProguardAccessFlags accessFlags;
   private final ProguardAccessFlags negatedAccessFlags;
   private final ProguardMemberType ruleType;
@@ -106,7 +114,7 @@ public class ProguardMemberRule {
   private final ProguardMemberRuleReturnValue returnValue;
 
   private ProguardMemberRule(
-      ProguardTypeMatcher annotation,
+      List<ProguardTypeMatcher> annotations,
       ProguardAccessFlags accessFlags,
       ProguardAccessFlags negatedAccessFlags,
       ProguardMemberType ruleType,
@@ -114,7 +122,7 @@ public class ProguardMemberRule {
       ProguardNameMatcher name,
       List<ProguardTypeMatcher> arguments,
       ProguardMemberRuleReturnValue returnValue) {
-    this.annotation = annotation;
+    this.annotations = annotations;
     this.accessFlags = accessFlags;
     this.negatedAccessFlags = negatedAccessFlags;
     this.ruleType = ruleType;
@@ -131,8 +139,8 @@ public class ProguardMemberRule {
     return new Builder();
   }
 
-  public ProguardTypeMatcher getAnnotation() {
-    return annotation;
+  public List<ProguardTypeMatcher> getAnnotations() {
+    return annotations;
   }
 
   public ProguardAccessFlags getAccessFlags() {
@@ -187,7 +195,8 @@ public class ProguardMemberRule {
             break;
           }
           // Annotations check.
-          return RootSetBuilder.containsAnnotation(annotation, field, matchedAnnotationsConsumer);
+          return RootSetBuilder.containsAllAnnotations(
+              annotations, field, matchedAnnotationsConsumer);
         }
 
       case FIELD:
@@ -207,7 +216,8 @@ public class ProguardMemberRule {
             break;
           }
           // Annotations check
-          return RootSetBuilder.containsAnnotation(annotation, field, matchedAnnotationsConsumer);
+          return RootSetBuilder.containsAllAnnotations(
+              annotations, field, matchedAnnotationsConsumer);
         }
 
       case ALL_METHODS:
@@ -241,7 +251,8 @@ public class ProguardMemberRule {
             break;
           }
           // Annotations check.
-          return RootSetBuilder.containsAnnotation(annotation, method, matchedAnnotationsConsumer);
+          return RootSetBuilder.containsAllAnnotations(
+              annotations, method, matchedAnnotationsConsumer);
         }
 
       case METHOD:
@@ -266,7 +277,8 @@ public class ProguardMemberRule {
             break;
           }
           // Annotations check.
-          if (!RootSetBuilder.containsAnnotation(annotation, method, matchedAnnotationsConsumer)) {
+          if (!RootSetBuilder.containsAllAnnotations(
+              annotations, method, matchedAnnotationsConsumer)) {
             return false;
           }
           // Parameter types check.
@@ -309,21 +321,20 @@ public class ProguardMemberRule {
 
   Iterable<ProguardWildcard> getWildcards() {
     return Iterables.concat(
-        ProguardTypeMatcher.getWildcardsOrEmpty(annotation),
+        ProguardTypeMatcher.getWildcardsOrEmpty(annotations),
         ProguardTypeMatcher.getWildcardsOrEmpty(type),
         ProguardNameMatcher.getWildcardsOrEmpty(name),
         arguments != null
             ? arguments.stream()
-                .map(ProguardTypeMatcher::getWildcards)
-                .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
+                    .map(ProguardTypeMatcher::getWildcards)
+                    .flatMap(it -> StreamSupport.stream(it.spliterator(), false))
                 ::iterator
-            : Collections::emptyIterator
-    );
+            : Collections::emptyIterator);
   }
 
   ProguardMemberRule materialize(DexItemFactory dexItemFactory) {
     return new ProguardMemberRule(
-        getAnnotation() == null ? null : getAnnotation().materialize(dexItemFactory),
+        ProguardTypeMatcher.materializeList(getAnnotations(), dexItemFactory),
         getAccessFlags(),
         getNegatedAccessFlags(),
         getRuleType(),
@@ -345,7 +356,7 @@ public class ProguardMemberRule {
 
     ProguardMemberRule that = (ProguardMemberRule) o;
 
-    if (annotation != null ? !annotation.equals(that.annotation) : that.annotation != null) {
+    if (!annotations.equals(that.annotations)) {
       return false;
     }
     if (!accessFlags.equals(that.accessFlags)) {
@@ -368,7 +379,7 @@ public class ProguardMemberRule {
 
   @Override
   public int hashCode() {
-    int result = annotation != null ? annotation.hashCode() : 0;
+    int result = annotations.hashCode();
     result = 31 * result + accessFlags.hashCode();
     result = 31 * result + negatedAccessFlags.hashCode();
     result = 31 * result + (ruleType != null ? ruleType.hashCode() : 0);
@@ -381,7 +392,9 @@ public class ProguardMemberRule {
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
-    ProguardKeepRule.appendNonEmpty(result, "@", annotation, " ");
+    for (ProguardTypeMatcher annotation : annotations) {
+      ProguardKeepRule.appendNonEmpty(result, "@", annotation, " ");
+    }
     ProguardKeepRule.appendNonEmpty(result, null, accessFlags, " ");
     ProguardKeepRule
         .appendNonEmpty(result, null, negatedAccessFlags.toString().replace(" ", " !"), " ");

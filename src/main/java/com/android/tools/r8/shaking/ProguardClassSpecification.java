@@ -9,6 +9,7 @@ import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -22,13 +23,15 @@ public abstract class ProguardClassSpecification {
     protected Position start;
     protected Position end;
     protected String source;
-    protected ProguardTypeMatcher classAnnotation;
+    private final ImmutableList.Builder<ProguardTypeMatcher> classAnnotations =
+        ImmutableList.builder();
     protected ProguardAccessFlags classAccessFlags = new ProguardAccessFlags();
     protected ProguardAccessFlags negatedClassAccessFlags = new ProguardAccessFlags();
     protected boolean classTypeNegated = false;
     protected ProguardClassType classType = ProguardClassType.UNSPECIFIED;
     protected ProguardClassNameList classNames;
-    protected ProguardTypeMatcher inheritanceAnnotation;
+    private final ImmutableList.Builder<ProguardTypeMatcher> inheritanceAnnotations =
+        ImmutableList.builder();
     protected ProguardTypeMatcher inheritanceClassName;
     protected boolean inheritanceIsExtends = false;
     protected List<ProguardMemberRule> memberRules = new LinkedList<>();
@@ -105,12 +108,13 @@ public abstract class ProguardClassSpecification {
       this.inheritanceClassName = inheritanceClassName;
     }
 
-    public ProguardTypeMatcher getInheritanceAnnotation() {
-      return inheritanceAnnotation;
+    public void addInheritanceAnnotations(List<ProguardTypeMatcher> inheritanceAnnotations) {
+      assert inheritanceAnnotations != null;
+      this.inheritanceAnnotations.addAll(inheritanceAnnotations);
     }
 
-    public void setInheritanceAnnotation(ProguardTypeMatcher inheritanceAnnotation) {
-      this.inheritanceAnnotation = inheritanceAnnotation;
+    public List<ProguardTypeMatcher> buildInheritanceAnnotations() {
+      return inheritanceAnnotations.build();
     }
 
     public ProguardClassNameList getClassNames() {
@@ -155,12 +159,17 @@ public abstract class ProguardClassSpecification {
       negatedClassAccessFlags = flags;
     }
 
-    public ProguardTypeMatcher getClassAnnotation() {
-      return classAnnotation;
+    public void addClassAnnotation(ProguardTypeMatcher classAnnotation) {
+      classAnnotations.add(classAnnotation);
     }
 
-    public void setClassAnnotation(ProguardTypeMatcher classAnnotation) {
-      this.classAnnotation = classAnnotation;
+    public void addClassAnnotations(List<ProguardTypeMatcher> classAnnotations) {
+      assert classAnnotations != null;
+      this.classAnnotations.addAll(classAnnotations);
+    }
+
+    public List<ProguardTypeMatcher> buildClassAnnotations() {
+      return classAnnotations.build();
     }
 
     protected void matchAllSpecification() {
@@ -172,13 +181,13 @@ public abstract class ProguardClassSpecification {
   private final Origin origin;
   private final Position position;
   private final String source;
-  private final ProguardTypeMatcher classAnnotation;
+  private final List<ProguardTypeMatcher> classAnnotations;
   private final ProguardAccessFlags classAccessFlags;
   private final ProguardAccessFlags negatedClassAccessFlags;
   private final boolean classTypeNegated;
   private final ProguardClassType classType;
   private final ProguardClassNameList classNames;
-  private final ProguardTypeMatcher inheritanceAnnotation;
+  private final List<ProguardTypeMatcher> inheritanceAnnotations;
   private final ProguardTypeMatcher inheritanceClassName;
   private final boolean inheritanceIsExtends;
   private final List<ProguardMemberRule> memberRules;
@@ -187,13 +196,13 @@ public abstract class ProguardClassSpecification {
       Origin origin,
       Position position,
       String source,
-      ProguardTypeMatcher classAnnotation,
+      List<ProguardTypeMatcher> classAnnotations,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,
       boolean classTypeNegated,
       ProguardClassType classType,
       ProguardClassNameList classNames,
-      ProguardTypeMatcher inheritanceAnnotation,
+      List<ProguardTypeMatcher> inheritanceAnnotations,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules) {
@@ -202,15 +211,15 @@ public abstract class ProguardClassSpecification {
     assert source != null || origin != Origin.unknown();
     this.origin = origin;
     this.position = position;
-    this.source =source;
-    this.classAnnotation = classAnnotation;
+    this.source = source;
+    this.classAnnotations = classAnnotations;
     this.classAccessFlags = classAccessFlags;
     this.negatedClassAccessFlags = negatedClassAccessFlags;
     this.classTypeNegated = classTypeNegated;
     this.classType = classType;
     assert classType != null;
     this.classNames = classNames;
-    this.inheritanceAnnotation = inheritanceAnnotation;
+    this.inheritanceAnnotations = inheritanceAnnotations;
     this.inheritanceClassName = inheritanceClassName;
     this.inheritanceIsExtends = inheritanceIsExtends;
     this.memberRules = memberRules;
@@ -248,8 +257,8 @@ public abstract class ProguardClassSpecification {
     return inheritanceClassName;
   }
 
-  public ProguardTypeMatcher getInheritanceAnnotation() {
-    return inheritanceAnnotation;
+  public List<ProguardTypeMatcher> getInheritanceAnnotations() {
+    return inheritanceAnnotations;
   }
 
   public ProguardClassNameList getClassNames() {
@@ -272,8 +281,8 @@ public abstract class ProguardClassSpecification {
     return negatedClassAccessFlags;
   }
 
-  public ProguardTypeMatcher getClassAnnotation() {
-    return classAnnotation;
+  public List<ProguardTypeMatcher> getClassAnnotations() {
+    return classAnnotations;
   }
 
   @Override
@@ -289,7 +298,7 @@ public abstract class ProguardClassSpecification {
     if (inheritanceIsExtends != that.inheritanceIsExtends) {
       return false;
     }
-    if (!Objects.equals(classAnnotation, that.classAnnotation)) {
+    if (!Objects.equals(classAnnotations, that.classAnnotations)) {
       return false;
     }
     if (!classAccessFlags.equals(that.classAccessFlags)) {
@@ -304,7 +313,7 @@ public abstract class ProguardClassSpecification {
     if (!classNames.equals(that.classNames)) {
       return false;
     }
-    if (!Objects.equals(inheritanceAnnotation, that.inheritanceAnnotation)) {
+    if (!Objects.equals(inheritanceAnnotations, that.inheritanceAnnotations)) {
       return false;
     }
     if (!Objects.equals(inheritanceClassName, that.inheritanceClassName)) {
@@ -316,13 +325,13 @@ public abstract class ProguardClassSpecification {
   @Override
   public int hashCode() {
     // Used multiplier 3 to avoid too much overflow when computing hashCode.
-    int result = (classAnnotation != null ? classAnnotation.hashCode() : 0);
+    int result = classAnnotations.hashCode();
     result = 3 * result + classAccessFlags.hashCode();
     result = 3 * result + negatedClassAccessFlags.hashCode();
     result = 3 * result + (classTypeNegated ? 1 : 0);
     result = 3 * result + (classType != null ? classType.hashCode() : 0);
     result = 3 * result + classNames.hashCode();
-    result = 3 * result + (inheritanceAnnotation != null ? inheritanceAnnotation.hashCode() : 0);
+    result = 3 * result + inheritanceAnnotations.hashCode();
     result = 3 * result + (inheritanceClassName != null ? inheritanceClassName.hashCode() : 0);
     result = 3 * result + (inheritanceIsExtends ? 1 : 0);
     result = 3 * result + memberRules.hashCode();
@@ -330,9 +339,9 @@ public abstract class ProguardClassSpecification {
   }
 
   protected StringBuilder append(StringBuilder builder, boolean includeMemberRules) {
+    appendAnnotations(classAnnotations, builder);
     boolean needsSpaceBeforeClassType =
-        StringUtils.appendNonEmpty(builder, "@", classAnnotation, null)
-            | StringUtils.appendNonEmpty(builder, "", classAccessFlags, null)
+        StringUtils.appendNonEmpty(builder, null, classAccessFlags, null)
             | StringUtils.appendNonEmpty(
                 builder, "!", negatedClassAccessFlags.toString().replace(" ", " !"), null);
     if (needsSpaceBeforeClassType) {
@@ -345,9 +354,8 @@ public abstract class ProguardClassSpecification {
     builder.append(' ');
     classNames.writeTo(builder);
     if (hasInheritanceClassName()) {
-      builder.append(' ').append(inheritanceIsExtends ? "extends" : "implements");
-      StringUtils.appendNonEmpty(builder, "@", inheritanceAnnotation, null);
-      builder.append(' ');
+      builder.append(' ').append(inheritanceIsExtends ? "extends" : "implements").append(' ');
+      appendAnnotations(inheritanceAnnotations, builder);
       builder.append(inheritanceClassName);
     }
     if (includeMemberRules && !memberRules.isEmpty()) {
@@ -360,6 +368,18 @@ public abstract class ProguardClassSpecification {
       builder.append("}");
     }
     return builder;
+  }
+
+  private static void appendAnnotations(
+      List<ProguardTypeMatcher> annotations, StringBuilder builder) {
+    if (!annotations.isEmpty()) {
+      Iterator<ProguardTypeMatcher> annotationIterator = annotations.iterator();
+      builder.append('@').append(annotationIterator.next());
+      while (annotationIterator.hasNext()) {
+        builder.append(" @").append(annotationIterator.next());
+      }
+      builder.append(' ');
+    }
   }
 
   /**

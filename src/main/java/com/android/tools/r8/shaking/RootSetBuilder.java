@@ -764,7 +764,7 @@ public class RootSetBuilder {
   }
 
   static AnnotationMatchResult satisfyAnnotation(ProguardConfigurationRule rule, DexClass clazz) {
-    return containsAnnotation(rule.getClassAnnotation(), clazz);
+    return containsAllAnnotations(rule.getClassAnnotations(), clazz);
   }
 
   boolean satisfyInheritanceRule(DexClass clazz, ProguardConfigurationRule rule) {
@@ -796,7 +796,7 @@ public class RootSetBuilder {
       // annotations of `class`.
       if (rule.getInheritanceClassName().matches(clazz.type, appView)) {
         AnnotationMatchResult annotationMatchResult =
-            containsAnnotation(rule.getInheritanceAnnotation(), clazz);
+            containsAllAnnotations(rule.getInheritanceAnnotations(), clazz);
         if (annotationMatchResult != null) {
           handleMatchedAnnotation(annotationMatchResult);
           return true;
@@ -833,7 +833,7 @@ public class RootSetBuilder {
       // annotations of `ifaceClass`.
       if (rule.getInheritanceClassName().matches(iface, appView)) {
         AnnotationMatchResult annotationMatchResult =
-            containsAnnotation(rule.getInheritanceAnnotation(), ifaceClass);
+            containsAllAnnotations(rule.getInheritanceAnnotations(), ifaceClass);
         if (annotationMatchResult != null) {
           handleMatchedAnnotation(annotationMatchResult);
           return true;
@@ -909,17 +909,18 @@ public class RootSetBuilder {
     return false;
   }
 
-  static AnnotationMatchResult containsAnnotation(
-      ProguardTypeMatcher classAnnotation, DexClass clazz) {
-    return containsAnnotation(classAnnotation, clazz.annotations());
+  static AnnotationMatchResult containsAllAnnotations(
+      List<ProguardTypeMatcher> annotationMatchers, DexClass clazz) {
+    return containsAllAnnotations(annotationMatchers, clazz.annotations());
   }
 
-  static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> boolean containsAnnotation(
-      ProguardTypeMatcher classAnnotation,
-      DexEncodedMember<D, R> member,
-      Consumer<AnnotationMatchResult> matchedAnnotationsConsumer) {
+  static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+      boolean containsAllAnnotations(
+          List<ProguardTypeMatcher> annotationMatchers,
+          DexEncodedMember<D, R> member,
+          Consumer<AnnotationMatchResult> matchedAnnotationsConsumer) {
     AnnotationMatchResult annotationMatchResult =
-        containsAnnotation(classAnnotation, member.annotations());
+        containsAllAnnotations(annotationMatchers, member.annotations());
     if (annotationMatchResult != null) {
       matchedAnnotationsConsumer.accept(annotationMatchResult);
       return true;
@@ -928,7 +929,7 @@ public class RootSetBuilder {
       DexEncodedMethod method = member.asDexEncodedMethod();
       for (int i = 0; i < method.parameterAnnotationsList.size(); i++) {
         annotationMatchResult =
-            containsAnnotation(classAnnotation, method.parameterAnnotationsList.get(i));
+            containsAllAnnotations(annotationMatchers, method.parameterAnnotationsList.get(i));
         if (annotationMatchResult != null) {
           matchedAnnotationsConsumer.accept(annotationMatchResult);
           return true;
@@ -938,14 +939,28 @@ public class RootSetBuilder {
     return false;
   }
 
-  private static AnnotationMatchResult containsAnnotation(
-      ProguardTypeMatcher classAnnotation, DexAnnotationSet annotations) {
-    if (classAnnotation == null) {
+  private static AnnotationMatchResult containsAllAnnotations(
+      List<ProguardTypeMatcher> annotationMatchers, DexAnnotationSet annotations) {
+    if (annotationMatchers.isEmpty()) {
       return AnnotationsIgnoredMatchResult.getInstance();
     }
+    List<DexAnnotation> matchedAnnotations = new ArrayList<>();
+    for (ProguardTypeMatcher annotationMatcher : annotationMatchers) {
+      DexAnnotation matchedAnnotation =
+          getFirstAnnotationThatMatches(annotationMatcher, annotations);
+      if (matchedAnnotation == null) {
+        return null;
+      }
+      matchedAnnotations.add(matchedAnnotation);
+    }
+    return new ConcreteAnnotationMatchResult(matchedAnnotations);
+  }
+
+  private static DexAnnotation getFirstAnnotationThatMatches(
+      ProguardTypeMatcher annotationMatcher, DexAnnotationSet annotations) {
     for (DexAnnotation annotation : annotations.annotations) {
-      if (classAnnotation.matches(annotation.annotation.type)) {
-        return new ConcreteAnnotationMatchResult(annotation);
+      if (annotationMatcher.matches(annotation.getAnnotationType())) {
+        return annotation;
       }
     }
     return null;

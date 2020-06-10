@@ -25,9 +25,22 @@ public class ProguardKeepRule extends ProguardKeepRuleBase {
 
     @Override
     public ProguardKeepRule build() {
-      return new ProguardKeepRule(origin, getPosition(), source, classAnnotation, classAccessFlags,
-          negatedClassAccessFlags, classTypeNegated, classType, classNames, inheritanceAnnotation,
-          inheritanceClassName, inheritanceIsExtends, memberRules, type, modifiersBuilder.build());
+      return new ProguardKeepRule(
+          origin,
+          getPosition(),
+          source,
+          buildClassAnnotations(),
+          classAccessFlags,
+          negatedClassAccessFlags,
+          classTypeNegated,
+          classType,
+          classNames,
+          buildInheritanceAnnotations(),
+          inheritanceClassName,
+          inheritanceIsExtends,
+          memberRules,
+          type,
+          modifiersBuilder.build());
     }
   }
 
@@ -35,21 +48,34 @@ public class ProguardKeepRule extends ProguardKeepRuleBase {
       Origin origin,
       Position position,
       String source,
-      ProguardTypeMatcher classAnnotation,
+      List<ProguardTypeMatcher> classAnnotations,
       ProguardAccessFlags classAccessFlags,
       ProguardAccessFlags negatedClassAccessFlags,
       boolean classTypeNegated,
       ProguardClassType classType,
       ProguardClassNameList classNames,
-      ProguardTypeMatcher inheritanceAnnotation,
+      List<ProguardTypeMatcher> inheritanceAnnotations,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules,
       ProguardKeepRuleType type,
       ProguardKeepRuleModifiers modifiers) {
-    super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
-        classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
-        inheritanceIsExtends, memberRules, type, modifiers);
+    super(
+        origin,
+        position,
+        source,
+        classAnnotations,
+        classAccessFlags,
+        negatedClassAccessFlags,
+        classTypeNegated,
+        classType,
+        classNames,
+        inheritanceAnnotations,
+        inheritanceClassName,
+        inheritanceIsExtends,
+        memberRules,
+        type,
+        modifiers);
   }
 
   /**
@@ -64,15 +90,13 @@ public class ProguardKeepRule extends ProguardKeepRuleBase {
         getOrigin(),
         getPosition(),
         getSource(),
-        getClassAnnotation() == null ? null : getClassAnnotation().materialize(dexItemFactory),
+        ProguardTypeMatcher.materializeList(getClassAnnotations(), dexItemFactory),
         getClassAccessFlags(),
         getNegatedClassAccessFlags(),
         getClassTypeNegated(),
         getClassType(),
         getClassNames() == null ? null : getClassNames().materialize(dexItemFactory),
-        getInheritanceAnnotation() == null
-            ? null
-            : getInheritanceAnnotation().materialize(dexItemFactory),
+        ProguardTypeMatcher.materializeList(getInheritanceAnnotations(), dexItemFactory),
         getInheritanceClassName() == null
             ? null
             : getInheritanceClassName().materialize(dexItemFactory),
