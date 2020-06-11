@@ -39,6 +39,8 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
   private final KotlinTypeReference lambdaClassOrigin;
   // Information about version requirements.
   private final KotlinVersionRequirementInfo versionRequirements;
+  // Kotlin contract information.
+  private final KotlinContractInfo contract;
   // A value describing if any of the parameters are crossinline.
   private final boolean crossInlineParameter;
 
@@ -52,6 +54,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
       KotlinJvmMethodSignatureInfo signature,
       KotlinTypeReference lambdaClassOrigin,
       KotlinVersionRequirementInfo versionRequirements,
+      KotlinContractInfo contract,
       boolean crossInlineParameter) {
     this.flags = flags;
     this.name = name;
@@ -62,6 +65,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     this.signature = signature;
     this.lambdaClassOrigin = lambdaClassOrigin;
     this.versionRequirements = versionRequirements;
+    this.contract = contract;
     this.crossInlineParameter = crossInlineParameter;
   }
 
@@ -90,6 +94,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
         KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmFunction), factory),
         getlambdaClassOrigin(kmFunction, factory),
         KotlinVersionRequirementInfo.create(kmFunction.getVersionRequirements()),
+        KotlinContractInfo.create(kmFunction.getContract(), factory, reporter),
         isCrossInline);
   }
 
@@ -141,6 +146,7 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
         extensionVisitor.visitLambdaClassOriginName(lambdaClassOriginName);
       }
     }
+    contract.rewrite(kmFunction::visitContract, appView, namingLens);
   }
 
   @Override
@@ -175,5 +181,6 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     if (lambdaClassOrigin != null) {
       lambdaClassOrigin.trace(definitionSupplier);
     }
+    contract.trace(definitionSupplier);
   }
 }

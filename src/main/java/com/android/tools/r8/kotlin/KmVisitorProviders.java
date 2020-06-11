@@ -5,6 +5,11 @@
 package com.android.tools.r8.kotlin;
 
 import kotlinx.metadata.KmAnnotation;
+import kotlinx.metadata.KmContractVisitor;
+import kotlinx.metadata.KmEffectExpressionVisitor;
+import kotlinx.metadata.KmEffectInvocationKind;
+import kotlinx.metadata.KmEffectType;
+import kotlinx.metadata.KmEffectVisitor;
 import kotlinx.metadata.KmFunctionVisitor;
 import kotlinx.metadata.KmLambdaVisitor;
 import kotlinx.metadata.KmPropertyVisitor;
@@ -107,5 +112,23 @@ public class KmVisitorProviders {
   public interface KmVersionRequirementVisitorProvider {
 
     KmVersionRequirementVisitor get();
+  }
+
+  @FunctionalInterface
+  public interface KmContractVisitorProvider {
+
+    KmContractVisitor get();
+  }
+
+  @FunctionalInterface
+  public interface KmEffectVisitorProvider {
+
+    KmEffectVisitor get(KmEffectType type, KmEffectInvocationKind effectInvocationKind);
+  }
+
+  @FunctionalInterface
+  public interface KmEffectExpressionVisitorProvider {
+
+    KmEffectExpressionVisitor get();
   }
 }
