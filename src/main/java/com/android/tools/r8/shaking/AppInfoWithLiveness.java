@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -1338,22 +1339,17 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return isInstantiatedDirectly(clazz) || isPinned(clazz.type) || isInstantiatedInterface(clazz);
   }
 
-  public boolean isPinnedNotProgramOrLibraryOverride(DexReference reference) {
-    if (isPinned(reference)) {
+  public boolean isPinnedNotProgramOrLibraryOverride(DexDefinition definition) {
+    if (isPinned(definition.toReference())) {
       return true;
     }
-    if (reference.isDexMethod()) {
-      DexEncodedMethod method = definitionFor(reference.asDexMethod());
-      return method == null
-          || !method.isProgramMethod(this)
-          || method.isLibraryMethodOverride().isPossiblyTrue();
-    } else {
-      assert reference.isDexType();
-      DexClass clazz = definitionFor(reference.asDexType());
-      return clazz == null
-          || clazz.isNotProgramClass()
-          || isInstantiatedInterface(clazz.asProgramClass());
+    if (definition.isDexEncodedMethod()) {
+      DexEncodedMethod method = definition.asDexEncodedMethod();
+      return !method.isProgramMethod(this) || method.isLibraryMethodOverride().isPossiblyTrue();
     }
+    assert definition.isDexClass();
+    DexClass clazz = definition.asDexClass();
+    return clazz.isNotProgramClass() || isInstantiatedInterface(clazz.asProgramClass());
   }
 
   public SubtypingInfo computeSubtypingInfo() {

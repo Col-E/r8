@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -126,10 +128,10 @@ public class PostMethodProcessor implements MethodProcessor {
             .reprocess
             .forEach(
                 reference -> {
-                  DexEncodedMethod definition = appView.definitionFor(reference);
+                  DexProgramClass clazz =
+                      asProgramClassOrNull(appView.definitionForHolder(reference));
+                  DexEncodedMethod definition = reference.lookupOnClass(clazz);
                   if (definition != null) {
-                    DexProgramClass clazz =
-                        appView.definitionForHolder(definition).asProgramClass();
                     set.createAndAdd(clazz, definition);
                   }
                 });

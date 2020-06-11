@@ -121,11 +121,6 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
     }
 
     @Override
-    public DexEncodedMethod definitionFor(DexMethod method) {
-      throw new Unreachable("Should not be called");
-    }
-
-    @Override
     public DexClass definitionFor(DexType type) {
       // TODO(b/157700128) Metadata cannot at this point keep anything alive. Therefore, if a type
       //  has been pruned it may still be referenced, so we do an early check here to ensure it will

@@ -21,7 +21,7 @@ public class LookupCompletenessHelper {
   }
 
   void checkClass(DexClass clazz) {
-    if (pinnedPredicate.isPinned(clazz.type)) {
+    if (pinnedPredicate.isPinned(clazz)) {
       if (pinnedInstantiations == null) {
         pinnedInstantiations = Sets.newIdentityHashSet();
       }
@@ -30,7 +30,7 @@ public class LookupCompletenessHelper {
   }
 
   void checkMethod(DexEncodedMethod method) {
-    if (pinnedPredicate.isPinned(method.method)) {
+    if (pinnedPredicate.isPinned(method)) {
       if (pinnedMethods == null) {
         pinnedMethods = Sets.newIdentityHashSet();
       }
@@ -70,7 +70,7 @@ public class LookupCompletenessHelper {
       }
       DexEncodedMethod methodInClass = parent.lookupVirtualMethod(method);
       if (methodInClass != null
-          && (parent.isNotProgramClass() || pinnedPredicate.isPinned(methodInClass.method))) {
+          && (parent.isNotProgramClass() || pinnedPredicate.isPinned(methodInClass))) {
         return true;
       }
       if (parent.superType != null) {

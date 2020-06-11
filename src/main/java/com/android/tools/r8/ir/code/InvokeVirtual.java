@@ -130,7 +130,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
       DexClass clazz = appView.definitionFor(holder);
       if (clazz != null
           && (clazz.isLibraryClass() || appView.libraryMethodOptimizer().isModeled(clazz.type))) {
-        DexEncodedMethod singleTargetCandidate = appView.definitionFor(method);
+        DexEncodedMethod singleTargetCandidate = clazz.lookupMethod(method);
         if (singleTargetCandidate != null && (clazz.isFinal() || singleTargetCandidate.isFinal())) {
           return singleTargetCandidate;
         }

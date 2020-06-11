@@ -161,21 +161,6 @@ public class AppInfo implements DexDefinitionSupplier {
     return definition == null ? Origin.unknown() : definition.origin;
   }
 
-  @Deprecated
-  @Override
-  public DexEncodedMethod definitionFor(DexMethod method) {
-    assert checkIfObsolete();
-    assert method.holder.isClassType();
-    if (!method.holder.isClassType()) {
-      return null;
-    }
-    DexClass clazz = definitionFor(method.holder);
-    if (clazz == null) {
-      return null;
-    }
-    return clazz.getMethodCollection().getMethod(method);
-  }
-
   /**
    * Lookup static method on the method holder, or answers null.
    *

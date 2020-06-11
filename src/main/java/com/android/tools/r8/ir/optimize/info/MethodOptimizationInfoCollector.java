@@ -44,6 +44,7 @@ import static com.android.tools.r8.ir.code.Opcodes.USHR;
 import static com.android.tools.r8.ir.code.Opcodes.XOR;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -549,7 +550,8 @@ public class MethodOptimizationInfoCollector {
             {
               InvokeDirect invoke = instruction.asInvokeDirect();
               DexMethod invokedMethod = invoke.getInvokedMethod();
-              DexEncodedMethod singleTarget = appView.definitionFor(invokedMethod);
+              DexClass holder = appView.definitionForHolder(invokedMethod);
+              DexEncodedMethod singleTarget = invokedMethod.lookupOnClass(holder);
               if (singleTarget == null) {
                 return null;
               }

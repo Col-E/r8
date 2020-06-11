@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.library;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -101,10 +102,11 @@ public class LibraryOptimizationInfoInitializer {
   }
 
   private DexEncodedMethod lookupMethod(DexMethod method) {
-    DexEncodedMethod encodedMethod = appView.definitionFor(method);
-    if (encodedMethod != null) {
+    DexClass holder = appView.definitionForHolder(method);
+    DexEncodedMethod definition = method.lookupOnClass(holder);
+    if (definition != null) {
       modeledLibraryTypes.add(method.holder);
-      return encodedMethod;
+      return definition;
     }
     return null;
   }

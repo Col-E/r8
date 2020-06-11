@@ -120,7 +120,7 @@ public class PrintUses {
 
     @Override
     public boolean registerInvokeStatic(DexMethod method) {
-      DexEncodedMethod target = appInfo.lookupStaticTarget(method, context);
+      DexEncodedMethod target = appInfo.unsafeResolveMethodDueToDexFormat(method).getSingleTarget();
       if (target != null && target.method != method) {
         addType(method.holder);
         addMethod(target.method);
@@ -148,13 +148,13 @@ public class PrintUses {
 
     @Override
     public boolean registerInstanceFieldWrite(DexField field) {
-      addField(field, false);
+      addField(field);
       return false;
     }
 
     @Override
     public boolean registerInstanceFieldRead(DexField field) {
-      addField(field, false);
+      addField(field);
       return false;
     }
 
@@ -166,13 +166,13 @@ public class PrintUses {
 
     @Override
     public boolean registerStaticFieldRead(DexField field) {
-      addField(field, true);
+      addField(field);
       return false;
     }
 
     @Override
     public boolean registerStaticFieldWrite(DexField field) {
-      addField(field, true);
+      addField(field);
       return false;
     }
 
@@ -200,10 +200,9 @@ public class PrintUses {
       return descriptors.contains(type.toDescriptorString());
     }
 
-    private void addField(DexField field, boolean isStatic) {
+    private void addField(DexField field) {
       addType(field.type);
-      DexEncodedField baseField =
-          isStatic ? appInfo.lookupStaticTarget(field) : appInfo.lookupInstanceTarget(field);
+      DexEncodedField baseField = appInfo.resolveField(field).getResolvedField();
       if (baseField != null && baseField.holder() != field.holder) {
         field = baseField.field;
       }
@@ -229,13 +228,14 @@ public class PrintUses {
       addType(method.proto.returnType);
       Set<DexMethod> typeMethods = methods.get(method.holder);
       if (typeMethods != null) {
-        DexEncodedMethod encodedMethod = appInfo.definitionFor(method);
-        assert encodedMethod != null : "Could not find method " + method.toString();
+        DexClass holder = appInfo.definitionForHolder(method);
+        DexEncodedMethod definition = method.lookupOnClass(holder);
+        assert definition != null : "Could not find method " + method.toString();
         if (!allowObfuscation) {
           noObfuscationTypes.add(method.holder);
         }
-        if (encodedMethod.accessFlags.isVisibilityDependingOnPackage()) {
-          keepPackageNames.add(encodedMethod.holder().getPackageName());
+        if (definition.accessFlags.isVisibilityDependingOnPackage()) {
+          keepPackageNames.add(definition.holder().getPackageName());
         }
         typeMethods.add(method);
       }

@@ -6,9 +6,6 @@ package com.android.tools.r8.graph;
 
 public interface DexDefinitionSupplier {
 
-  @Deprecated
-  DexEncodedMethod definitionFor(DexMethod method);
-
   DexClass definitionFor(DexType type);
 
   DexProgramClass definitionForProgramType(DexType type);

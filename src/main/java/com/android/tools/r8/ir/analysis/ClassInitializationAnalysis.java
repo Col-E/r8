@@ -297,7 +297,9 @@ public class ClassInitializationAnalysis {
           return false;
         }
       }
-      DexEncodedMethod method = appView.definitionFor(instruction.getInvokedMethod());
+      DexMethod invokedMethod = instruction.getInvokedMethod();
+      DexClass holder = appView.definitionForHolder(invokedMethod);
+      DexEncodedMethod method = invokedMethod.lookupOnClass(holder);
       return method != null && isTypeInitializedBy(instruction, type, method, appView, mode);
     }
 

@@ -7,5 +7,5 @@ package com.android.tools.r8.graph;
 @FunctionalInterface
 public interface PinnedPredicate {
 
-  boolean isPinned(DexReference reference);
+  boolean isPinned(DexDefinition reference);
 }

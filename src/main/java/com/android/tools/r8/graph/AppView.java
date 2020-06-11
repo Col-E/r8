@@ -226,12 +226,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return this.sourceDebugExtensions.get(clazz);
   }
 
-  @Deprecated
-  @Override
-  public final DexEncodedMethod definitionFor(DexMethod method) {
-    return appInfo().definitionFor(method);
-  }
-
   @Override
   public final DexClass definitionFor(DexType type) {
     return appInfo().definitionFor(type);
