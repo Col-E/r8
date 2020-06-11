@@ -13,9 +13,10 @@ public class ProtoOneOfFieldType extends ProtoFieldType {
   ProtoOneOfFieldType(
       int id,
       boolean isRequired,
+      boolean enforceUtf8Mask,
       boolean needsIsInitializedCheck,
       boolean isMapFieldWithProto2EnumValue) {
-    super(id, isRequired, needsIsInitializedCheck, isMapFieldWithProto2EnumValue);
+    super(id, isRequired, enforceUtf8Mask, needsIsInitializedCheck, isMapFieldWithProto2EnumValue);
   }
 
   public ProtoFieldType getActualFieldType(ProtoFieldTypeFactory factory) {

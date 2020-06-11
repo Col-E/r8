@@ -15,6 +15,7 @@ public class ProtoFieldTypeFactory {
     ProtoFieldType result = fieldTypes.get(fieldTypeIdWithExtraBits);
     if (result == null) {
       result = ProtoFieldType.fromFieldIdWithExtraBits(fieldTypeIdWithExtraBits);
+      assert result.serialize() == fieldTypeIdWithExtraBits;
       fieldTypes.put(fieldTypeIdWithExtraBits, result);
     }
     return result;

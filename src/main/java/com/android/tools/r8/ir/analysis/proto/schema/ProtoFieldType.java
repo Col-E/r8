@@ -22,21 +22,25 @@ public class ProtoFieldType {
 
   private static final int FIELD_ID_MASK = 0xFF;
   private static final int FIELD_IS_REQUIRED_MASK = 0x100;
+  private static final int FIELD_ENFORCE_UTF8_MASK = 0x200;
   private static final int FIELD_NEEDS_IS_INITIALIZED_CHECK_MASK = 0x400;
   private static final int FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK = 0x800;
 
   private final int id;
   private final boolean isRequired;
+  private final boolean enforceUtf8Mask;
   private final boolean needsIsInitializedCheck;
   private final boolean isMapFieldWithProto2EnumValue;
 
   ProtoFieldType(
       int id,
       boolean isRequired,
+      boolean enforceUtf8Mask,
       boolean needsIsInitializedCheck,
       boolean isMapFieldWithProto2EnumValue) {
     this.id = id;
     this.isRequired = isRequired;
+    this.enforceUtf8Mask = enforceUtf8Mask;
     this.needsIsInitializedCheck = needsIsInitializedCheck;
     this.isMapFieldWithProto2EnumValue = isMapFieldWithProto2EnumValue;
     assert isValid();
@@ -48,12 +52,14 @@ public class ProtoFieldType {
       return new ProtoFieldType(
           fieldTypeWithExtraBits & FIELD_ID_MASK,
           isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_REQUIRED_MASK),
+          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_ENFORCE_UTF8_MASK),
           isBitInMaskSet(fieldTypeWithExtraBits, FIELD_NEEDS_IS_INITIALIZED_CHECK_MASK),
           isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK));
     } else {
       return new ProtoOneOfFieldType(
           fieldTypeWithExtraBits & FIELD_ID_MASK,
           isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_REQUIRED_MASK),
+          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_ENFORCE_UTF8_MASK),
           isBitInMaskSet(fieldTypeWithExtraBits, FIELD_NEEDS_IS_INITIALIZED_CHECK_MASK),
           isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK));
     }
@@ -140,6 +146,9 @@ public class ProtoFieldType {
     int result = id;
     if (isRequired) {
       result |= FIELD_IS_REQUIRED_MASK;
+    }
+    if (enforceUtf8Mask) {
+      result |= FIELD_ENFORCE_UTF8_MASK;
     }
     if (needsIsInitializedCheck) {
       result |= FIELD_NEEDS_IS_INITIALIZED_CHECK_MASK;

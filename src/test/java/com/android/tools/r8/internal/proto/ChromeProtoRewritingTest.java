@@ -8,7 +8,6 @@ import static com.android.tools.r8.internal.proto.ProtoShrinkingTestBase.assertR
 import static com.android.tools.r8.internal.proto.ProtoShrinkingTestBase.keepAllProtosRule;
 import static com.android.tools.r8.internal.proto.ProtoShrinkingTestBase.keepDynamicMethodSignatureRule;
 import static com.android.tools.r8.internal.proto.ProtoShrinkingTestBase.keepNewMessageInfoSignatureRule;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -52,12 +51,6 @@ public class ChromeProtoRewritingTest extends ChromeCompilationBase {
   }
 
   private void inspect(CodeInspector inspector) throws Exception {
-    try {
-      assertRewrittenProtoSchemasMatch(new CodeInspector(getProgramFiles()), inspector);
-    } catch (AssertionError e) {
-      // TODO(b/158623350): Proto schemas should be identical.
-      return;
-    }
-    fail("Unreachable");
+    assertRewrittenProtoSchemasMatch(new CodeInspector(getProgramFiles()), inspector);
   }
 }
