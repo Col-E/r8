@@ -12,6 +12,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import kotlinx.metadata.KmAnnotation;
@@ -23,19 +24,18 @@ public class KotlinAnnotationInfo implements EnqueuerMetadataTraceable {
   private static final List<KotlinAnnotationInfo> EMPTY_ANNOTATIONS = ImmutableList.of();
 
   private final KotlinTypeReference annotationType;
-  // TODO(b/155053894): Model KmAnnotationArgument.
-  private final Map<String, KmAnnotationArgument<?>> arguments;
+  private final Map<String, KotlinAnnotationArgumentInfo> arguments;
 
   private KotlinAnnotationInfo(
-      KotlinTypeReference annotationType, Map<String, KmAnnotationArgument<?>> arguments) {
+      KotlinTypeReference annotationType, Map<String, KotlinAnnotationArgumentInfo> arguments) {
     this.annotationType = annotationType;
     this.arguments = arguments;
   }
 
-  private static KotlinAnnotationInfo create(KmAnnotation annotation, DexItemFactory factory) {
+  static KotlinAnnotationInfo create(KmAnnotation annotation, DexItemFactory factory) {
     return new KotlinAnnotationInfo(
         KotlinTypeReference.fromBinaryName(annotation.getClassName(), factory),
-        annotation.getArguments());
+        KotlinAnnotationArgumentInfo.create(annotation.getArguments(), factory));
   }
 
   static List<KotlinAnnotationInfo> create(List<KmAnnotation> annotations, DexItemFactory factory) {
@@ -60,13 +60,20 @@ public class KotlinAnnotationInfo implements EnqueuerMetadataTraceable {
       return;
     }
     String classifier = DescriptorUtils.descriptorToKotlinClassifier(renamedDescriptor);
-    KmAnnotation annotation = new KmAnnotation(classifier, arguments);
-    visitorProvider.get(annotation);
+    Map<String, KmAnnotationArgument<?>> rewrittenArguments = new LinkedHashMap<>();
+    arguments.forEach(
+        (key, arg) -> {
+          KmAnnotationArgument<?> rewrittenArg = arg.rewrite(appView, namingLens);
+          if (rewrittenArg != null) {
+            rewrittenArguments.put(key, rewrittenArg);
+          }
+        });
+    visitorProvider.get(new KmAnnotation(classifier, rewrittenArguments));
   }
 
   @Override
   public void trace(DexDefinitionSupplier definitionSupplier) {
     annotationType.trace(definitionSupplier);
-    // TODO(b/155053894): Trace annotation arguments.
+    arguments.forEach((ignored, arg) -> arg.trace(definitionSupplier));
   }
 }

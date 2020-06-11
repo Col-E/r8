@@ -17,9 +17,10 @@ enum class Direction {
 @Retention(AnnotationRetention.RUNTIME)
 annotation class AnnoWithClassAndEnum(val clazz : KClass<*>, val direction : Direction)
 
-@Target(AnnotationTarget.CLASS, AnnotationTarget.CONSTRUCTOR, AnnotationTarget.TYPEALIAS)
+@Target(AnnotationTarget.CLASS, AnnotationTarget.CONSTRUCTOR, AnnotationTarget.TYPEALIAS,
+        AnnotationTarget.TYPE)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class AnnoWithClassArr(val classes : Array<KClass<*>>)
+annotation class AnnoWithClassArr(val classes: Array<KClass<*>>)
 
 class Foo
 
@@ -38,10 +39,23 @@ class Bar @AnnoWithClassArr([Foo::class]) constructor()
 @AnnoWithClassArr([Foo::class, Bar::class])
 typealias Qux = Foo
 
+annotation class AnnoNotKept
+
+@Target(AnnotationTarget.TYPE)
+annotation class Nested(
+  val message: String,
+  val kept: AnnoWithClassAndEnum,
+  val notKept: AnnoNotKept
+)
 
 class Quux {
 
   fun methodWithTypeAnnotations() : Array<@AnnoWithClassAndEnum(Foo::class, Direction.UP) Int> {
     return arrayOf(1)
   }
+
+  fun methodWithNestedAnnotations() : Array<@Nested("Top most", AnnoWithClassAndEnum(Foo::class, Direction.DOWN), AnnoNotKept()) Int> {
+    return arrayOf(1)
+  }
 }
+

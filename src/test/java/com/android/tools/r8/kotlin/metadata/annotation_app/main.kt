@@ -8,7 +8,9 @@ import com.android.tools.r8.kotlin.metadata.annotation_lib.AnnoWithClassAndEnum
 import com.android.tools.r8.kotlin.metadata.annotation_lib.AnnoWithClassArr
 import com.android.tools.r8.kotlin.metadata.annotation_lib.Bar
 import com.android.tools.r8.kotlin.metadata.annotation_lib.Baz
+import com.android.tools.r8.kotlin.metadata.annotation_lib.Nested
 import com.android.tools.r8.kotlin.metadata.annotation_lib.Quux
+import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.full.valueParameters
 
@@ -23,6 +25,14 @@ fun main() {
   // https://youtrack.jetbrains.com/issue/KT-21489
   Quux::methodWithTypeAnnotations
       .returnType.arguments.get(0).type?.annotations?.get(0)?.printAnnoWithClassAndEnum()
+  val nested = Quux::methodWithNestedAnnotations.returnType.arguments[0].type?.annotations?.get(0) as Nested
+  println(nested.message)
+  nested.kept.printAnnoWithClassAndEnum()
+  if (nested::class::memberProperties.get().any { it.name.equals("notKept") }) {
+    println("com.android.tools.r8.kotlin.metadata.annotation_lib.Foo")
+  } else {
+    println("a.b.c")
+  }
 }
 
 fun Annotation.printAnnoWithClassArr() {

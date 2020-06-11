@@ -8,7 +8,6 @@ import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -36,7 +35,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
 
-  private final String EXPECTED_SMOKE =
+  private final String EXPECTED =
       StringUtils.lines(
           "class com.android.tools.r8.kotlin.metadata.annotation_lib.Foo",
           "class com.android.tools.r8.kotlin.metadata.annotation_lib.Foo",
@@ -50,9 +49,14 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
           "class com.android.tools.r8.kotlin.metadata.annotation_lib.Foo",
           "DOWN",
           "class com.android.tools.r8.kotlin.metadata.annotation_lib.Foo",
-          "UP");
+          "UP",
+          "Top most",
+          "class com.android.tools.r8.kotlin.metadata.annotation_lib.Foo",
+          "DOWN",
+          "com.android.tools.r8.kotlin.metadata.annotation_lib.Foo");
   private static final String PKG_LIB = PKG + ".annotation_lib";
   private static final String PKG_APP = PKG + ".annotation_app";
+  private static final String FOO_ORIGINAL_NAME = PKG_LIB + ".Foo";
   private static final String FOO_FINAL_NAME = "a.b.c";
 
   @Parameterized.Parameters(name = "{0} target: {1}")
@@ -97,21 +101,23 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
             ToolHelper.getKotlinStdlibJar(), ToolHelper.getKotlinReflectJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
-        .assertSuccessWithOutput(EXPECTED_SMOKE);
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
   public void testMetadataForLib() throws Exception {
-    String fooTypeName = PKG_LIB + ".Foo";
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.get(targetVersion))
             /// Keep the annotations
             .addKeepClassAndMembersRules(PKG_LIB + ".AnnoWithClassAndEnum")
             .addKeepClassAndMembersRules(PKG_LIB + ".AnnoWithClassArr")
+            .addKeepRules("-keep class " + PKG_LIB + ".Nested { *** kept(); } ")
+            .addKeepRules("-keep class " + PKG_LIB + ".Nested { *** message(); } ")
+            // .addKeepRules("-keep class " + PKG_LIB + ".Nested { *** kept; *** getKept(); } ")
             // Keep Foo but rename to test arguments
-            .addKeepClassAndMembersRulesWithAllowObfuscation(fooTypeName)
-            .addApplyMapping(fooTypeName + " -> " + FOO_FINAL_NAME + ":")
+            .addKeepClassAndMembersRulesWithAllowObfuscation(FOO_ORIGINAL_NAME)
+            .addApplyMapping(FOO_ORIGINAL_NAME + " -> " + FOO_FINAL_NAME + ":")
             // Keep Direction but rename the enum
             .addKeepClassAndMembersRules(PKG_LIB + ".Direction")
             // Keep Bar and Baz and Quux because we are directly reflecting on them
@@ -120,7 +126,6 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
             .addKeepClassAndMembersRules(PKG_LIB + ".Quux")
             // Keep the static class for the type alias
             .addKeepClassAndMembersRules(PKG_LIB + ".LibKt")
-            .addKeepRuntimeVisibleAnnotations()
             .addKeepAttributes(
                 ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
                 ProguardKeepAttributes.RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS,
@@ -139,8 +144,7 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
             ToolHelper.getKotlinStdlibJar(), ToolHelper.getKotlinReflectJar(), libJar)
         .addProgramFiles(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
-        // TODO(b/155053894): Fails because reflect cannot find the class.
-        .assertFailureWithErrorThatMatches(containsString("KotlinReflectionInternalError"));
+        .assertSuccessWithOutput(EXPECTED.replace(FOO_ORIGINAL_NAME, FOO_FINAL_NAME));
   }
 
   private void inspect(CodeInspector inspector) {
@@ -171,9 +175,8 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
     Map<String, KmAnnotationArgument<?>> arguments = annotation.getArguments();
     assertEquals(1, arguments.size());
     ArrayValue classes = (ArrayValue) arguments.get("classes");
-    // TODO(b/155053894): This should be renamed.
     assertEquals(
-        "KClassValue(value=" + foo.getOriginalBinaryName() + ")",
+        "KClassValue(value=" + foo.getFinalBinaryName() + ")",
         classes.getValue().get(0).toString());
     assertEquals(
         "KClassValue(value=" + bar.getFinalBinaryName() + ")",
