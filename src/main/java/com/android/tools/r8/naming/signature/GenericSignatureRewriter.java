@@ -13,14 +13,13 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.google.common.collect.Maps;
 import java.lang.reflect.GenericSignatureFormatError;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
@@ -32,23 +31,24 @@ import java.util.function.Supplier;
 public class GenericSignatureRewriter {
 
   private final AppView<?> appView;
-  private final Map<DexType, DexString> renaming;
+  private final NamingLens namingLens;
   private final InternalOptions options;
   private final Reporter reporter;
 
-  public GenericSignatureRewriter(AppView<?> appView) {
-    this(appView, Maps.newIdentityHashMap());
-  }
-
-  public GenericSignatureRewriter(AppView<?> appView, Map<DexType, DexString> renaming) {
+  public GenericSignatureRewriter(AppView<?> appView, NamingLens namingLens) {
     this.appView = appView;
-    this.renaming = renaming;
+    this.namingLens = namingLens;
     this.options = appView.options();
     this.reporter = options.reporter;
   }
 
   public void run(Iterable<? extends DexProgramClass> classes, ExecutorService executorService)
       throws ExecutionException {
+    // Rewrite signature annotations for applications that are minified or if we have liveness
+    // information, since we could have pruned types.
+    if (namingLens.isIdentityLens() && !appView.appInfo().hasLiveness()) {
+      return;
+    }
     // Classes may not be the same as appInfo().classes() if applymapping is used on classpath
     // arguments. If that is the case, the ProguardMapMinifier will pass in all classes that is
     // either ProgramClass or has a mapping. This is then transitively called inside the
@@ -204,7 +204,7 @@ public class GenericSignatureRewriter {
       if (appView.appInfo().hasLiveness() && appView.withLiveness().appInfo().wasPruned(type)) {
         type = appView.dexItemFactory().objectType;
       }
-      DexString renamedDescriptor = renaming.getOrDefault(type, type.descriptor);
+      DexString renamedDescriptor = namingLens.lookupDescriptor(type);
       if (parserPosition == ParserPosition.CLASS_SUPER_OR_INTERFACE_ANNOTATION
           && currentClassContext != null) {
         // We may have merged the type down to the current class type.
@@ -251,16 +251,14 @@ public class GenericSignatureRewriter {
                       getClassBinaryNameFromDescriptor(enclosingDescriptor)
                           + DescriptorUtils.INNER_CLASS_SEPARATOR
                           + name));
-      String enclosingRenamedBinaryName =
-          getClassBinaryNameFromDescriptor(
-              renaming.getOrDefault(enclosingType, enclosingType.descriptor).toString());
       type = appView.graphLense().lookupType(type);
-      DexString renamedDescriptor = renaming.get(type);
-      if (renamedDescriptor != null) {
+      String renamedDescriptor = namingLens.lookupDescriptor(type).toString();
+      if (!renamedDescriptor.equals(type.toDescriptorString())) {
         // TODO(b/147504070): If this is a merged class equal to the class context, do not add.
         // Pick the renamed inner class from the fully renamed binary name.
-        String fullRenamedBinaryName =
-            getClassBinaryNameFromDescriptor(renamedDescriptor.toString());
+        String fullRenamedBinaryName = getClassBinaryNameFromDescriptor(renamedDescriptor);
+        String enclosingRenamedBinaryName =
+            getClassBinaryNameFromDescriptor(namingLens.lookupDescriptor(enclosingType).toString());
         int innerClassPos = enclosingRenamedBinaryName.length() + 1;
         if (innerClassPos < fullRenamedBinaryName.length()) {
           renamedSignature.append(fullRenamedBinaryName.substring(innerClassPos));

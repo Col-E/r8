@@ -93,11 +93,10 @@ public class DesugaredGenericSignatureTest extends DesugaredLibraryTestBase {
     ClassSubject box = inspector.clazz(Box.class);
     assertThat(box, isPresent());
     String finalBoxDescriptor = box.getFinalDescriptor();
-    // TODO(b/158124557): This should be J$.
     assertEquals(
         "Ljava/lang/Object;"
             + finalBoxDescriptor.substring(0, finalBoxDescriptor.length() - 1)
-            + "<Ljava/time/LocalDate;>;",
+            + "<Lj$/time/LocalDate;>;",
         javaTimeBox.getFinalSignatureAttribute());
   }
 

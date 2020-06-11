@@ -15,7 +15,9 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.jar.CfApplicationWriter;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
+import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.L8TreePruner;
@@ -132,13 +134,16 @@ public class L8 {
       app = converter.convert(app, executor);
       assert appView.appInfo() == appInfo;
 
+      NamingLens namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
+      new GenericSignatureRewriter(appView, namingLens).run(appInfo.classes(), executor);
+
       new CfApplicationWriter(
               app,
               appView,
               options,
               options.getMarker(Tool.L8),
               GraphLense.getIdentityLense(),
-              PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView),
+              namingLens,
               null)
           .write(options.getClassFileConsumer());
       options.printWarnings();

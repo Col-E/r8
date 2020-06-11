@@ -87,8 +87,7 @@ public class Relocator {
       SimplePackagesRewritingMapper packageRemapper = new SimplePackagesRewritingMapper(appView);
       NamingLens namingLens = packageRemapper.compute(command.getMapping());
 
-      new GenericSignatureRewriter(appView, packageRemapper.getTypeMappings())
-          .run(appInfo.classes(), executor);
+      new GenericSignatureRewriter(appView, namingLens).run(appInfo.classes(), executor);
 
       new CfApplicationWriter(
               app,

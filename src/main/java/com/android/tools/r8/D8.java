@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
+import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -256,6 +257,8 @@ public final class D8 {
               hasDexResources
                   ? NamingLens.getIdentityLens()
                   : PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
+          new GenericSignatureRewriter(appView.withLiveness(), namingLens)
+              .run(appView.appInfo().classes(), executor);
         } else {
           // There are both cf and dex inputs in the program, and rewriting is required for
           // desugared library only on cf inputs. We cannot easily rewrite part of the program
@@ -315,6 +318,10 @@ public final class D8 {
     }
     DexApplication cfApp = app.builder().replaceProgramClasses(nonDexProgramClasses).build();
     ConvertedCfFiles convertedCfFiles = new ConvertedCfFiles();
+    NamingLens prefixRewritingNamingLens =
+        PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
+    new GenericSignatureRewriter(appView.withLiveness(), prefixRewritingNamingLens)
+        .run(appView.appInfo().classes(), executor);
     new ApplicationWriter(
             cfApp,
             null,
@@ -322,7 +329,7 @@ public final class D8 {
             null,
             GraphLense.getIdentityLense(),
             InitClassLens.getDefault(),
-            PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView),
+            prefixRewritingNamingLens,
             null,
             convertedCfFiles)
         .write(executor);

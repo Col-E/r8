@@ -17,13 +17,11 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardPackageNameList;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
-import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -144,13 +142,6 @@ class ClassNameMinifier {
     for (DexClass clazz : classes) {
       renameDanglingTypes(clazz);
     }
-    timing.end();
-
-    timing.begin("rename-generic");
-    new GenericSignatureRewriter(appView, renaming)
-        .run(
-            () -> IteratorUtils.filter(classes.iterator(), DexClass::isProgramClass),
-            executorService);
     timing.end();
 
     timing.begin("rename-arrays");
