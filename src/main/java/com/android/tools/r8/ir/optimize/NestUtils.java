@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -41,42 +42,45 @@ public class NestUtils {
   }
 
   public static void rewriteNestCallsForInlining(
-      IRCode code, DexType callerHolder, AppView<?> appView) {
+      IRCode code, ProgramMethod callerContext, AppView<?> appView) {
     // This method is called when inlining code into the nest member callerHolder.
     InstructionListIterator iterator = code.instructionListIterator();
-    DexClass callerHolderClass = appView.definitionFor(callerHolder);
-    assert callerHolderClass != null;
-    assert code.method().holder() != callerHolder;
+    assert code.context().getHolder() != callerContext.getHolder();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
       if (instruction.isInvokeDirect()) {
         InvokeDirect invoke = instruction.asInvokeDirect();
         DexMethod method = invoke.getInvokedMethod();
-        DexEncodedMethod encodedMethod = appView.definitionFor(method);
+        DexClass holder = appView.definitionForHolder(method);
+        DexEncodedMethod encodedMethod = method.lookupOnClass(holder);
         if (encodedMethod != null && !encodedMethod.isInstanceInitializer()) {
           assert encodedMethod.isPrivateMethod();
           // Call to private method which has now to be interface/virtual
           // (Now call to nest member private method).
           if (invoke.getInterfaceBit()) {
             iterator.replaceCurrentInstruction(
-                new InvokeInterface(method, invoke.outValue(), invoke.inValues()));
+                new InvokeInterface(method, invoke.outValue(), invoke.arguments()));
           } else {
             iterator.replaceCurrentInstruction(
-                new InvokeVirtual(method, invoke.outValue(), invoke.inValues()));
+                new InvokeVirtual(method, invoke.outValue(), invoke.arguments()));
           }
         }
       } else if (instruction.isInvokeInterface() || instruction.isInvokeVirtual()) {
         InvokeMethod invoke = instruction.asInvokeMethod();
         DexMethod method = invoke.getInvokedMethod();
-        if (method.holder == callerHolder) {
-          DexEncodedMethod encodedMethod = appView.definitionFor(method);
+        if (method.holder == callerContext.getHolderType()) {
+          DexClass holder = appView.definitionForHolder(method);
+          DexEncodedMethod encodedMethod = method.lookupOnClass(holder);
           if (encodedMethod != null && encodedMethod.isPrivateMethod()) {
             // Interface/virtual nest member call to private method,
             // which has now to be a direct call
             // (Now call to same class private method).
             iterator.replaceCurrentInstruction(
                 new InvokeDirect(
-                    method, invoke.outValue(), invoke.inValues(), callerHolderClass.isInterface()));
+                    method,
+                    invoke.outValue(),
+                    invoke.arguments(),
+                    callerContext.getHolder().isInterface()));
           }
         }
       }

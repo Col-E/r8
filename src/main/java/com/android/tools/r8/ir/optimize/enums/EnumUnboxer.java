@@ -768,9 +768,7 @@ public class EnumUnboxer implements PostOptimization {
                   + "$"
                   + method.name.toString());
       DexProto proto =
-          encodedMethod.isStatic()
-              ? method.proto
-              : factory.prependTypeToProto(method.holder, method.proto);
+          encodedMethod.isStatic() ? method.proto : factory.prependHolderToProto(method);
       DexMethod newMethod = factory.createMethod(newHolder, fixupProto(proto), newMethodName);
       lensBuilder.move(method, encodedMethod.isStatic(), newMethod, true);
       encodedMethod.accessFlags.promoteToPublic();
