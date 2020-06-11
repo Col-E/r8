@@ -94,6 +94,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public String getOriginalBinaryName() {
+    return null;
+  }
+
+  @Override
   public String getFinalName() {
     return null;
   }

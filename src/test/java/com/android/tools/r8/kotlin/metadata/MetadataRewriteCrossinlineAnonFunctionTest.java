@@ -76,7 +76,6 @@ public class MetadataRewriteCrossinlineAnonFunctionTest extends KotlinMetadataTe
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.get(targetVersion))
-            // Allow renaming A to ensure that we rename in the flexible upper bound type.
             .addKeepAllClassesRule()
             .addKeepAllAttributes()
             .compile()

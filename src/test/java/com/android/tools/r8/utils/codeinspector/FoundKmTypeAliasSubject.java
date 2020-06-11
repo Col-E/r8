@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromJavaTy
 
 import java.util.List;
 import java.util.stream.Collectors;
+import kotlinx.metadata.KmAnnotation;
 import kotlinx.metadata.KmTypeAlias;
 
 public class FoundKmTypeAliasSubject extends KmTypeAliasSubject {
@@ -61,5 +62,10 @@ public class FoundKmTypeAliasSubject extends KmTypeAliasSubject {
   @Override
   public KmTypeSubject underlyingType() {
     return new KmTypeSubject(codeInspector, kmTypeAlias.underlyingType);
+  }
+
+  @Override
+  public List<KmAnnotation> annotations() {
+    return kmTypeAlias.getAnnotations();
   }
 }

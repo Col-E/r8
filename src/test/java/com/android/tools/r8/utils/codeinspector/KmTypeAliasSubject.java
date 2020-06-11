@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import java.util.List;
+import kotlinx.metadata.KmAnnotation;
 
 public abstract class KmTypeAliasSubject extends Subject {
 
@@ -17,4 +18,6 @@ public abstract class KmTypeAliasSubject extends Subject {
   public abstract KmTypeSubject expandedType();
 
   public abstract KmTypeSubject underlyingType();
+
+  public abstract List<KmAnnotation> annotations();
 }

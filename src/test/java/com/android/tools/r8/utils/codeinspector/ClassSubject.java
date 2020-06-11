@@ -165,6 +165,8 @@ public abstract class ClassSubject extends Subject {
 
   public abstract String getOriginalDescriptor();
 
+  public abstract String getOriginalBinaryName();
+
   public abstract String getFinalName();
 
   public abstract String getFinalDescriptor();

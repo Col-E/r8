@@ -5,7 +5,9 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
+import kotlinx.metadata.KmAnnotation;
 
 public class AbsentKmTypeAliasSubject extends KmTypeAliasSubject {
 
@@ -47,5 +49,10 @@ public class AbsentKmTypeAliasSubject extends KmTypeAliasSubject {
   @Override
   public KmTypeSubject underlyingType() {
     return null;
+  }
+
+  @Override
+  public List<KmAnnotation> annotations() {
+    return ImmutableList.of();
   }
 }

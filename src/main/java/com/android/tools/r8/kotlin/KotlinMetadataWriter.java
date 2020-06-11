@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 import kotlinx.metadata.InconsistentKotlinMetadataException;
 import kotlinx.metadata.KmAnnotation;
 import kotlinx.metadata.KmAnnotationArgument;
+import kotlinx.metadata.KmAnnotationArgument.ArrayValue;
 import kotlinx.metadata.KmClass;
 import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmContract;
@@ -177,7 +179,7 @@ public class KotlinMetadataWriter {
       String indent,
       String typeDescription,
       StringBuilder sb,
-      List<T> items,
+      Collection<T> items,
       BiConsumer<String, T> appendItem) {
     if (items.isEmpty()) {
       sb.append(typeDescription).append("[]");
@@ -768,11 +770,45 @@ public class KotlinMetadataWriter {
               sb,
               nextIndent -> {
                 Map<String, KmAnnotationArgument<?>> arguments = kmAnnotation.getArguments();
-                for (String key : arguments.keySet()) {
-                  appendKeyValue(nextIndent, key, sb, arguments.get(key).toString());
-                }
+                appendKmList(
+                    nextIndent,
+                    "{ key: String, value: KmAnnotationArgument<?> }",
+                    sb,
+                    arguments.keySet(),
+                    (nextNextIndent, key) -> {
+                      appendKmSection(
+                          nextNextIndent,
+                          "",
+                          sb,
+                          nextNextNextIndent -> {
+                            appendKeyValue(
+                                nextNextNextIndent,
+                                key,
+                                sb,
+                                nextNextNextNextIndent -> {
+                                  appendKmArgument(nextNextNextIndent, sb, arguments.get(key));
+                                });
+                          });
+                    });
               });
         });
+  }
+
+  private static void appendKmArgument(
+      String indent, StringBuilder sb, KmAnnotationArgument<?> annotationArgument) {
+    if (annotationArgument instanceof KmAnnotationArgument.ArrayValue) {
+      List<KmAnnotationArgument<?>> value = ((ArrayValue) annotationArgument).getValue();
+      appendKmList(
+          indent,
+          "ArrayValue",
+          sb,
+          value,
+          (newIndent, annoArg) -> {
+            appendKmArgument(newIndent, sb, annoArg);
+          });
+    } else {
+      sb.append(annotationArgument.toString());
+    }
   }
 
   private static void appendKmVersionRequirement(
