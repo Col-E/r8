@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -42,6 +43,8 @@ public class BooleanMethodOptimizer implements LibraryMethodModelCollection {
       Set<Value> affectedValues) {
     if (singleTarget.method == dexItemFactory.booleanMembers.booleanValue) {
       optimizeBooleanValue(code, instructionIterator, invoke);
+    } else if (singleTarget.method == dexItemFactory.booleanMembers.parseBoolean) {
+      optimizeParseBoolean(code, instructionIterator, invoke);
     } else if (singleTarget.method == dexItemFactory.booleanMembers.valueOf) {
       optimizeValueOf(code, instructionIterator, invoke, affectedValues);
     }
@@ -59,6 +62,25 @@ public class BooleanMethodOptimizer implements LibraryMethodModelCollection {
           instructionIterator.replaceCurrentInstructionWithConstInt(code, 1);
         } else if (field == dexItemFactory.booleanMembers.FALSE) {
           instructionIterator.replaceCurrentInstructionWithConstInt(code, 0);
+        }
+      }
+    }
+  }
+
+  private void optimizeParseBoolean(
+      IRCode code, InstructionListIterator instructionIterator, InvokeMethod invoke) {
+    Value argument = invoke.arguments().get(0).getAliasedValue();
+    if (!argument.isPhi()) {
+      Instruction definition = argument.definition;
+      if (definition.isConstString()) {
+        ConstString constString = definition.asConstString();
+        if (!constString.instructionInstanceCanThrow()) {
+          String value = constString.getValue().toString().toLowerCase();
+          if (value.equals("true")) {
+            instructionIterator.replaceCurrentInstructionWithConstInt(code, 1);
+          } else if (value.equals("false")) {
+            instructionIterator.replaceCurrentInstructionWithConstInt(code, 0);
+          }
         }
       }
     }

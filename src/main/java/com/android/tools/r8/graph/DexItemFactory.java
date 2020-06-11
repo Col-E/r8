@@ -764,6 +764,8 @@ public class DexItemFactory {
 
     public final DexMethod booleanValue =
         createMethod(boxedBooleanType, createProto(booleanType), "booleanValue");
+    public final DexMethod parseBoolean =
+        createMethod(boxedBooleanType, createProto(booleanType, stringType), "parseBoolean");
     public final DexMethod valueOf =
         createMethod(boxedBooleanType, createProto(boxedBooleanType, booleanType), "valueOf");
 
