@@ -976,9 +976,7 @@ public class R8 {
           new StringDiagnostic(
               "Item " + definition.toSourceString() + " was not discarded.\n" + baos.toString()));
     }
-    if (!options.testing.allowCheckDiscardedErrors) {
-      throw new CompilationError("Discard checks failed.");
-    }
+    throw new CompilationError("Discard checks failed.");
   }
 
   private static boolean verifyNoJarApplicationReaders(List<DexProgramClass> classes) {

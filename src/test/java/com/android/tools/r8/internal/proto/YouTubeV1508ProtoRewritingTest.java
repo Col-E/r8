@@ -8,48 +8,67 @@ import static com.android.tools.r8.internal.proto.ProtoShrinkingTestBase.assertR
 import static com.android.tools.r8.internal.proto.ProtoShrinkingTestBase.keepAllProtosRule;
 import static com.android.tools.r8.internal.proto.ProtoShrinkingTestBase.keepDynamicMethodSignatureRule;
 import static com.android.tools.r8.internal.proto.ProtoShrinkingTestBase.keepNewMessageInfoSignatureRule;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.internal.LibrarySanitizer;
 import com.android.tools.r8.internal.YouTubeCompilationBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class YouTubeProtoRewritingTest extends YouTubeCompilationBase {
-
-  private final TestParameters parameters;
+public class YouTubeV1508ProtoRewritingTest extends YouTubeCompilationBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
-  public YouTubeProtoRewritingTest(TestParameters parameters) {
-    super(14, 19);
-    this.parameters = parameters;
+  public YouTubeV1508ProtoRewritingTest(TestParameters parameters) {
+    super(15, 8);
   }
 
-  @Ignore
   @Test
   public void test() throws Exception {
     assumeTrue(shouldRunSlowTests());
 
-    testForR8(parameters.getBackend())
+    LibrarySanitizer librarySanitizer =
+        new LibrarySanitizer(temp)
+            .addProgramFiles(getProgramFiles())
+            .addLibraryFiles(getLibraryFiles())
+            .sanitize()
+            .assertSanitizedProguardConfigurationIsEmpty();
+
+    testForR8(Backend.DEX)
+        .addProgramFiles(getProgramFiles())
+        .addLibraryFiles(librarySanitizer.getSanitizedLibrary())
         .addKeepRuleFiles(getKeepRuleFiles())
-        // Retain all protos.
-        .addKeepRules(keepAllProtosRule())
-        // Retain the signature of dynamicMethod() and newMessageInfo().
-        .addKeepRules(keepDynamicMethodSignatureRule(), keepNewMessageInfoSignatureRule())
+        .addKeepRules(
+            keepAllProtosRule(),
+            keepDynamicMethodSignatureRule(),
+            keepNewMessageInfoSignatureRule())
+        .addMainDexRuleFiles(getMainDexRuleFiles())
+        .allowCheckDiscardedErrors(true)
+        .allowDiagnosticMessages()
         .allowUnusedProguardConfigurationRules()
+        .setMinApi(AndroidApiLevel.H_MR2)
         .compile()
-        .inspect(
-            inspector ->
-                assertRewrittenProtoSchemasMatch(new CodeInspector(getProgramFiles()), inspector));
+        .inspect(this::inspect);
+  }
+
+  private void inspect(CodeInspector inspector) throws Exception {
+    try {
+      assertRewrittenProtoSchemasMatch(new CodeInspector(getProgramFiles()), inspector);
+    } catch (AssertionError e) {
+      // TODO(b/158623350): Proto schemas should be identical.
+      return;
+    }
+    fail("Unreachable");
   }
 }

@@ -92,8 +92,12 @@ public abstract class TestCompilerBuilder<
     return self();
   }
 
-  public T allowCheckDiscardedErrors() {
-    return addOptionsModification(options -> options.testing.allowCheckDiscardedErrors = true);
+  public T allowCheckDiscardedErrors(boolean skipReporting) {
+    return addOptionsModification(
+        options -> {
+          options.testing.allowCheckDiscardedErrors = true;
+          options.testing.dontReportFailingCheckDiscarded = skipReporting;
+        });
   }
 
   public CR compile() throws CompilationFailedException {

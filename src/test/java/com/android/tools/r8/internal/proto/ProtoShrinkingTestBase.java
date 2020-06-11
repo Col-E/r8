@@ -79,7 +79,8 @@ public abstract class ProtoShrinkingTestBase extends TestBase {
 
   static String keepAllProtosRule() {
     return StringUtils.lines(
-        "-keep class * extends com.google.protobuf.GeneratedMessageLite { *; }");
+        "-if class * extends com.google.protobuf.GeneratedMessageLite",
+        "-keep,allowobfuscation class <1> { <init>(...); <fields>; }");
   }
 
   static String keepDynamicMethodSignatureRule() {

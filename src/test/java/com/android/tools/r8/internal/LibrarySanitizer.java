@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.rules.TemporaryFolder;
 
-class LibrarySanitizer {
+public class LibrarySanitizer {
 
   private final Path sanitizedLibrary;
   private final Path sanitizedPgConf;
@@ -26,12 +26,12 @@ class LibrarySanitizer {
   private final List<Path> programFiles = new ArrayList<>();
   private final List<Path> proguardConfigurationFiles = new ArrayList<>();
 
-  LibrarySanitizer(TemporaryFolder temp) {
+  public LibrarySanitizer(TemporaryFolder temp) {
     this.sanitizedLibrary = temp.getRoot().toPath().resolve("sanitized_lib.jar");
     this.sanitizedPgConf = temp.getRoot().toPath().resolve("sanitized.config");
   }
 
-  LibrarySanitizer assertSanitizedProguardConfigurationIsEmpty() throws IOException {
+  public LibrarySanitizer assertSanitizedProguardConfigurationIsEmpty() throws IOException {
     if (sanitizedPgConf.toFile().exists()) {
       List<String> lines = FileUtils.readAllLines(sanitizedPgConf);
       for (String line : lines) {
@@ -41,12 +41,12 @@ class LibrarySanitizer {
     return this;
   }
 
-  LibrarySanitizer addLibraryFiles(List<Path> libraryFiles) {
+  public LibrarySanitizer addLibraryFiles(List<Path> libraryFiles) {
     this.libraryFiles.addAll(libraryFiles);
     return this;
   }
 
-  LibrarySanitizer addProgramFiles(List<Path> programFiles) {
+  public LibrarySanitizer addProgramFiles(List<Path> programFiles) {
     this.programFiles.addAll(programFiles);
     return this;
   }
@@ -56,7 +56,7 @@ class LibrarySanitizer {
     return this;
   }
 
-  Path getSanitizedLibrary() {
+  public Path getSanitizedLibrary() {
     return sanitizedLibrary;
   }
 
@@ -64,7 +64,7 @@ class LibrarySanitizer {
     return sanitizedPgConf;
   }
 
-  LibrarySanitizer sanitize() throws IOException {
+  public LibrarySanitizer sanitize() throws IOException {
     ImmutableList.Builder<String> command =
         new ImmutableList.Builder<String>()
             .add("tools/sanitize_libraries.py")

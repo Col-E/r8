@@ -59,7 +59,6 @@ public class YouTubeV1508TreeShakeJarVerificationTest extends YouTubeCompilation
             .addLibraryFiles(librarySanitizer.getSanitizedLibrary())
             .addKeepRuleFiles(getKeepRuleFiles())
             .addMainDexRuleFiles(getMainDexRuleFiles())
-            .allowCheckDiscardedErrors()
             .allowDiagnosticMessages()
             .allowUnusedProguardConfigurationRules()
             .setMinApi(AndroidApiLevel.H_MR2)
