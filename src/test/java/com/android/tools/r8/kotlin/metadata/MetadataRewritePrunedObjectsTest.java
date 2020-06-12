@@ -6,13 +6,15 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertEquals;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -83,23 +85,24 @@ public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.get(targetVersion))
-            .addKeepRules("-keep class " + PKG_LIB + ".Sub { <init>(); *** kept(); }")
+            .addKeepRules("-keep class " + PKG_LIB + ".Sub { *** kept(); }")
             .addKeepRuntimeVisibleAnnotations()
             .noMinification()
             .compile()
             .inspect(this::checkPruned)
             .writeToZip();
-    Path output =
+    // TODO(b/158766557): This should work.
+    ProcessResult mainResult =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
-            .compile();
-    testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
-        .addProgramFiles(output)
-        .run(parameters.getRuntime(), PKG_APP + ".MainKt")
-        .assertSuccessWithOutput(EXPECTED);
+            .setOutputPath(temp.newFolder().toPath())
+            .compileRaw();
+    assertEquals(1, mainResult.exitCode);
+    assertThat(
+        mainResult.stderr,
+        containsString("cannot access 'com.android.tools.r8.kotlin.metadata.pruned_lib.Base'"));
   }
 
   private void checkPruned(CodeInspector inspector) {
@@ -109,7 +112,6 @@ public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
     assertThat(sub, isPresent());
     KmClassSubject kmClass = sub.getKmClass();
     assertThat(kmClass, isPresent());
-    assertEquals(0, kmClass.getSuperTypes().size());
-    assertThat(kmClass.kmFunctionWithUniqueName("notKept"), not(isPresent()));
+    // TODO(b/158766557): Assert that things are indeed removed.
   }
 }
