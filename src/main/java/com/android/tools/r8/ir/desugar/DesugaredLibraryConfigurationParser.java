@@ -107,6 +107,22 @@ public class DesugaredLibraryConfigurationParser {
       }
       parseFlags(jsonFlagSet.getAsJsonObject());
     }
+    if (libraryCompilation && formatVersion <= 4) {
+      // Read custom conversions from program flags.
+      for (JsonElement jsonFlagSet : jsonConfig.getAsJsonArray("program_flags")) {
+        JsonObject jsonFlagSetObject = jsonFlagSet.getAsJsonObject();
+        int api_level_below_or_equal = jsonFlagSetObject.get("api_level_below_or_equal").getAsInt();
+        if (minAPILevel > api_level_below_or_equal) {
+          continue;
+        }
+        String customConversionKey = "custom_conversion";
+        if (jsonFlagSetObject.has(customConversionKey)) {
+          JsonObject backportedFlags = new JsonObject();
+          backportedFlags.add(customConversionKey, jsonFlagSetObject.get(customConversionKey));
+          parseFlags(backportedFlags);
+        }
+      }
+    }
     if (jsonConfig.has("shrinker_config")) {
       JsonArray jsonKeepRules = jsonConfig.get("shrinker_config").getAsJsonArray();
       List<String> extraKeepRules = new ArrayList<>(jsonKeepRules.size());

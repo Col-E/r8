@@ -57,6 +57,7 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
         .addLibraryClasses(CustomLibClass.class)
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
+        .assertNoMessages()
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),

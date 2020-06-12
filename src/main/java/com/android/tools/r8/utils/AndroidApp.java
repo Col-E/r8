@@ -419,7 +419,8 @@ public class AndroidApp {
       if (outputMode == OutputMode.DexIndexed) {
         DexIndexedConsumer.ArchiveConsumer.writeResources(
             archive, getDexProgramResourcesForTesting(), getDataEntryResourcesForTesting());
-      } else if (outputMode == OutputMode.DexFilePerClassFile) {
+      } else if (outputMode == OutputMode.DexFilePerClassFile
+          || outputMode == OutputMode.DexFilePerClass) {
         List<ProgramResource> resources = getDexProgramResourcesForTesting();
         DexFilePerClassFileConsumer.ArchiveConsumer.writeResources(
             archive, resources, programResourcesMainDescriptor);

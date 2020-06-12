@@ -64,7 +64,14 @@ public abstract class CodeToKeep {
     }
 
     private boolean shouldKeep(DexType type) {
-      return namingLens.prefixRewrittenType(type) != null || potentialTypesToKeep.contains(type);
+      return namingLens.prefixRewrittenType(type) != null
+          || potentialTypesToKeep.contains(type)
+          // TODO(b/158632510): This should prefix match on DexString.
+          || type.toDescriptorString()
+              .startsWith(
+                  "L"
+                      + options.desugaredLibraryConfiguration
+                          .getSynthesizedLibraryClassesPackagePrefix());
     }
 
     @Override

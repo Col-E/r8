@@ -74,11 +74,11 @@ public class ApplicationReader {
     this.inputApp = inputApp;
   }
 
-  public DexApplication read() throws IOException {
+  public LazyLoadedDexApplication read() throws IOException {
     return read((StringResource) null);
   }
 
-  public DexApplication read(StringResource proguardMap) throws IOException {
+  public LazyLoadedDexApplication read(StringResource proguardMap) throws IOException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     try {
       return read(proguardMap, executor);
@@ -87,20 +87,20 @@ public class ApplicationReader {
     }
   }
 
-  public final DexApplication read(ExecutorService executorService) throws IOException {
+  public final LazyLoadedDexApplication read(ExecutorService executorService) throws IOException {
     return read(
         null, executorService, ProgramClassCollection.defaultConflictResolver(options.reporter));
   }
 
-  public final DexApplication read(StringResource proguardMap, ExecutorService executorService)
-      throws IOException {
+  public final LazyLoadedDexApplication read(
+      StringResource proguardMap, ExecutorService executorService) throws IOException {
     return read(
         proguardMap,
         executorService,
         ProgramClassCollection.defaultConflictResolver(options.reporter));
   }
 
-  public final DexApplication read(
+  public final LazyLoadedDexApplication read(
       StringResource proguardMap,
       ExecutorService executorService,
       ProgramClassConflictResolver resolver)

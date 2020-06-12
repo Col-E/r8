@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.jar.CfApplicationWriter;
@@ -118,11 +119,16 @@ public class L8 {
       // on it.
       options.enableLoadStoreOptimization = false;
 
-      DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
+      LazyLoadedDexApplication lazyApp =
+          new ApplicationReader(inputApp, options, timing).read(executor);
+      // Store a direct lookup to determine actual library definitions for wrapper generation.
+      options.desugaredLibraryBootclasspathDefinitions =
+          t -> lazyApp.libraryDefintionFor(t) != null;
+
       PrefixRewritingMapper rewritePrefix =
           options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
 
-      app = new L8TreePruner(options).prune(app, rewritePrefix);
+      DexApplication app = new L8TreePruner(options).prune(lazyApp, rewritePrefix);
       AppInfo appInfo = new AppInfo(app);
 
       AppView<?> appView = AppView.createForL8(appInfo, options, rewritePrefix);

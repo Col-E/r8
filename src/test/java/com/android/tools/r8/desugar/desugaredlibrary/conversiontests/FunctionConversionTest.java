@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -21,8 +20,6 @@ import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
-import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -99,43 +96,6 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
         .addRunClasspathFiles(CUSTOM_LIB)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
-  }
-
-  @Test
-  public void testWrapperWithChecksum() throws Exception {
-    Assume.assumeTrue(
-        shrinkDesugaredLibrary && parameters.getApiLevel().getLevel() <= MIN_SUPPORTED.getLevel());
-    testForD8()
-        .addProgramClasses(
-            Executor.class, Executor.Object1.class, Executor.Object2.class, Executor.Object3.class)
-        .addLibraryClasses(CustomLibClass.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
-        .setIncludeClassesChecksum(true) // Compilation fails if some classes are missing checksum.
-        .compile()
-        .inspect(
-            inspector -> {
-              Assert.assertEquals(
-                  9,
-                  inspector.allClasses().stream()
-                      .filter(
-                          clazz ->
-                              clazz
-                                  .getFinalName()
-                                  .contains(DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX))
-                      .count());
-              Assert.assertEquals(
-                  9,
-                  inspector.allClasses().stream()
-                      .filter(
-                          clazz ->
-                              clazz
-                                  .getFinalName()
-                                  .contains(
-                                      DesugaredLibraryWrapperSynthesizer
-                                          .VIVIFIED_TYPE_WRAPPER_SUFFIX))
-                      .count());
-            });
   }
 
   static class Executor {

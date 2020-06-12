@@ -31,7 +31,7 @@ public class APIConversionTest extends DesugaredLibraryTestBase {
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
   private static final String EXPECTED_RESULT =
       StringUtils.lines(
-          "[5, 6, 7]", "$r8$wrapper$java$util$stream$IntStream$-V-WRP", "IntSummaryStatistics");
+          "[5, 6, 7]", "j$.$r8$wrapper$java$util$stream$IntStream$-V-WRP", "IntSummaryStatistics");
 
   @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
   public static List<Object[]> data() {

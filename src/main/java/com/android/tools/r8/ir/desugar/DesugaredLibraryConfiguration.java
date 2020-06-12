@@ -29,7 +29,7 @@ public class DesugaredLibraryConfiguration {
 
   public static final String FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX = "j$/";
 
-  // TODO(b/134732760): should use DexString, DexType, DexMethod or so on when possible.
+  // TODO(b/158632510): should use DexString, DexType, DexMethod or so on when possible.
   private final AndroidApiLevel requiredCompilationAPILevel;
   private final boolean libraryCompilation;
   private final String synthesizedLibraryClassesPackagePrefix;
