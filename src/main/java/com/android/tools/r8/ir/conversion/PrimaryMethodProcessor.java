@@ -89,7 +89,7 @@ class PrimaryMethodProcessor implements MethodProcessor {
       SortedProgramMethodSet wave = callGraph.extractLeaves();
       wave.forEach(
           method -> {
-            if (callSiteInformation.hasSingleCallSite(method)) {
+            if (callSiteInformation.hasSingleCallSite(method) && options.enableInlining) {
               callGraph.cycleEliminationResult.forEachRemovedCaller(method, reprocessing::add);
             }
           });
