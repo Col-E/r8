@@ -862,7 +862,7 @@ public class R8 {
       NamingLens prefixRewritingNamingLens =
           PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
 
-      new GenericSignatureRewriter(appView.withLiveness(), prefixRewritingNamingLens)
+      new GenericSignatureRewriter(appView, prefixRewritingNamingLens)
           .run(appView.appInfo().classes(), executorService);
 
       // Generate the resulting application resources.

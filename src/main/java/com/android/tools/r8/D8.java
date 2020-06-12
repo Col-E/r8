@@ -257,7 +257,7 @@ public final class D8 {
               hasDexResources
                   ? NamingLens.getIdentityLens()
                   : PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
-          new GenericSignatureRewriter(appView.withLiveness(), namingLens)
+          new GenericSignatureRewriter(appView, namingLens)
               .run(appView.appInfo().classes(), executor);
         } else {
           // There are both cf and dex inputs in the program, and rewriting is required for
@@ -320,7 +320,7 @@ public final class D8 {
     ConvertedCfFiles convertedCfFiles = new ConvertedCfFiles();
     NamingLens prefixRewritingNamingLens =
         PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
-    new GenericSignatureRewriter(appView.withLiveness(), prefixRewritingNamingLens)
+    new GenericSignatureRewriter(appView, prefixRewritingNamingLens)
         .run(appView.appInfo().classes(), executor);
     new ApplicationWriter(
             cfApp,
