@@ -44,7 +44,6 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   private final List<KotlinTypeInfo> superTypes;
   private final List<KotlinTypeReference> sealedSubClasses;
   private final List<KotlinTypeReference> nestedClasses;
-  // TODO(b/154347404): Understand enum entries.
   private final List<String> enumEntries;
   private final KotlinVersionRequirementInfo versionRequirements;
   private final KotlinTypeReference anonymousObjectOrigin;

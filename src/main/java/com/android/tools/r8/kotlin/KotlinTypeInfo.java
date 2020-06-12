@@ -32,7 +32,7 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
   private final KotlinTypeInfo outerType;
   private final List<KotlinTypeProjectionInfo> arguments;
   private final List<KotlinAnnotationInfo> annotations;
-  private final KotlinFlexibleTypeUpperBoundInfo flexibleTypeUpperBoundInfo;
+  private final KotlinFlexibleTypeUpperBoundInfo flexibleTypeUpperBound;
 
   KotlinTypeInfo(
       int flags,
@@ -41,14 +41,14 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
       KotlinTypeInfo outerType,
       List<KotlinTypeProjectionInfo> arguments,
       List<KotlinAnnotationInfo> annotations,
-      KotlinFlexibleTypeUpperBoundInfo flexibleTypeUpperBoundInfo) {
+      KotlinFlexibleTypeUpperBoundInfo flexibleTypeUpperBound) {
     this.flags = flags;
     this.classifier = classifier;
     this.abbreviatedType = abbreviatedType;
     this.outerType = outerType;
     this.arguments = arguments;
     this.annotations = annotations;
-    this.flexibleTypeUpperBoundInfo = flexibleTypeUpperBoundInfo;
+    this.flexibleTypeUpperBound = flexibleTypeUpperBound;
   }
 
   static KotlinTypeInfo create(KmType kmType, DexItemFactory factory, Reporter reporter) {
@@ -95,8 +95,7 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
       argument.rewrite(
           kmTypeVisitor::visitArgument, kmTypeVisitor::visitStarProjection, appView, namingLens);
     }
-    flexibleTypeUpperBoundInfo.rewrite(
-        kmTypeVisitor::visitFlexibleTypeUpperBound, appView, namingLens);
+    flexibleTypeUpperBound.rewrite(kmTypeVisitor::visitFlexibleTypeUpperBound, appView, namingLens);
     if (annotations.isEmpty()) {
       return;
     }
@@ -119,7 +118,7 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
       outerType.trace(definitionSupplier);
     }
     forEachApply(arguments, argument -> argument::trace, definitionSupplier);
-    flexibleTypeUpperBoundInfo.trace(definitionSupplier);
+    flexibleTypeUpperBound.trace(definitionSupplier);
     forEachApply(annotations, annotation -> annotation::trace, definitionSupplier);
   }
 }
