@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import java.util.List;
 import java.util.function.Consumer;
@@ -135,6 +136,11 @@ public class AbsentClassSubject extends ClassSubject {
   @Override
   public boolean isSynthesizedJavaLambdaClass() {
     throw new Unreachable("Cannot determine if an absent class is a synthesized lambda class");
+  }
+
+  @Override
+  public DexMethod getFinalEnclosingMethod() {
+    throw new Unreachable("Cannot determine EnclosingMethod attribute of an absent class");
   }
 
   @Override

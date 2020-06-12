@@ -83,12 +83,12 @@ public class CodeInspector {
     this(Collections.singletonList(file), null, null);
   }
 
-  public CodeInspector(List<Path> files) throws IOException {
+  public CodeInspector(Collection<Path> files) throws IOException {
     this(files, null, null);
   }
 
   public CodeInspector(
-      List<Path> files, String mappingFile, Consumer<InternalOptions> optionsConsumer)
+      Collection<Path> files, String mappingFile, Consumer<InternalOptions> optionsConsumer)
       throws IOException {
     Path mappingPath = mappingFile != null ? Paths.get(mappingFile) : null;
     if (mappingPath != null && Files.exists(mappingPath)) {

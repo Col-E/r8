@@ -308,6 +308,11 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public DexMethod getFinalEnclosingMethod() {
+    return dexClass.getEnclosingMethodAttribute().getEnclosingMethod();
+  }
+
+  @Override
   public String getOriginalSignatureAttribute() {
     return codeInspector.getOriginalSignatureAttribute(
         dexClass.annotations(), GenericSignatureParser::parseClassSignature);
