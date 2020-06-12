@@ -23,7 +23,6 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
-import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldArgumentInitializationInfo;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
@@ -131,8 +130,6 @@ public class FieldAssignmentTracker {
   }
 
   private void recordFieldPut(DexEncodedField field, Value value, ProgramMethod context) {
-    assert verifyValueIsConsistentWithFieldOptimizationInfo(
-        value, field.getOptimizationInfo(), context);
     if (!value.isZero()) {
       nonZeroFields.add(field);
     }
@@ -291,16 +288,6 @@ public class FieldAssignmentTracker {
     }
     feedback.refineAppInfoWithLiveness(appView.appInfo().withLiveness());
     feedback.updateVisibleOptimizationInfo();
-  }
-
-  private boolean verifyValueIsConsistentWithFieldOptimizationInfo(
-      Value value, FieldOptimizationInfo optimizationInfo, ProgramMethod context) {
-    AbstractValue abstractValue = optimizationInfo.getAbstractValue();
-    if (abstractValue.isUnknown()) {
-      return true;
-    }
-    assert abstractValue == value.getAbstractValue(appView, context);
-    return true;
   }
 
   static class FieldAccessGraph {
