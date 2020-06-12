@@ -10,6 +10,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -74,19 +75,24 @@ public class GeneratedMessageLiteBuilderShrinker {
   }
 
   private boolean computeEnableAggressiveBuilderOptimization() {
+    DexClass generatedMessageLiteBuilderClass =
+        appView
+            .appInfo()
+            .definitionForWithoutExistenceAssert(references.generatedMessageLiteBuilderType);
+    DexClass generatedMessageLiteExtendableBuilderClass =
+        appView
+            .appInfo()
+            .definitionForWithoutExistenceAssert(
+                references.generatedMessageLiteExtendableBuilderType);
+    if (generatedMessageLiteBuilderClass == null
+        && generatedMessageLiteExtendableBuilderClass == null) {
+      // This build likely doesn't contain any proto, so disable the optimization. Don't report a
+      // warning in this case.
+      return false;
+    }
     boolean unexpectedGeneratedMessageLiteBuilder =
         ObjectUtils.getBooleanOrElse(
-            appView
-                .appInfo()
-                .definitionForWithoutExistenceAssert(references.generatedMessageLiteBuilderType),
-            clazz -> clazz.getMethodCollection().hasMethods(DexEncodedMethod::isAbstract),
-            true);
-    boolean unexpectedGeneratedMessageLiteExtendableBuilder =
-        ObjectUtils.getBooleanOrElse(
-            appView
-                .appInfo()
-                .definitionForWithoutExistenceAssert(
-                    references.generatedMessageLiteExtendableBuilderType),
+            generatedMessageLiteBuilderClass,
             clazz -> clazz.getMethodCollection().hasMethods(DexEncodedMethod::isAbstract),
             true);
     if (unexpectedGeneratedMessageLiteBuilder) {
@@ -99,6 +105,11 @@ public class GeneratedMessageLiteBuilderShrinker {
                   + "`: disabling aggressive protobuf builder optimization.");
       return false;
     }
+    boolean unexpectedGeneratedMessageLiteExtendableBuilder =
+        ObjectUtils.getBooleanOrElse(
+            generatedMessageLiteExtendableBuilderClass,
+            clazz -> clazz.getMethodCollection().hasMethods(DexEncodedMethod::isAbstract),
+            true);
     if (unexpectedGeneratedMessageLiteExtendableBuilder) {
       appView
           .options()
