@@ -25,24 +25,28 @@ public class ProtoFieldType {
   private static final int FIELD_ENFORCE_UTF8_MASK = 0x200;
   private static final int FIELD_NEEDS_IS_INITIALIZED_CHECK_MASK = 0x400;
   private static final int FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK = 0x800;
+  private static final int FIELD_HAS_HAS_BIT_MASK = 0x1000;
 
   private final int id;
   private final boolean isRequired;
   private final boolean enforceUtf8Mask;
   private final boolean needsIsInitializedCheck;
   private final boolean isMapFieldWithProto2EnumValue;
+  private final boolean hasHasBit;
 
   ProtoFieldType(
       int id,
       boolean isRequired,
       boolean enforceUtf8Mask,
       boolean needsIsInitializedCheck,
-      boolean isMapFieldWithProto2EnumValue) {
+      boolean isMapFieldWithProto2EnumValue,
+      boolean hasHasBit) {
     this.id = id;
     this.isRequired = isRequired;
     this.enforceUtf8Mask = enforceUtf8Mask;
     this.needsIsInitializedCheck = needsIsInitializedCheck;
     this.isMapFieldWithProto2EnumValue = isMapFieldWithProto2EnumValue;
+    this.hasHasBit = hasHasBit;
     assert isValid();
   }
 
@@ -54,14 +58,16 @@ public class ProtoFieldType {
           isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_REQUIRED_MASK),
           isBitInMaskSet(fieldTypeWithExtraBits, FIELD_ENFORCE_UTF8_MASK),
           isBitInMaskSet(fieldTypeWithExtraBits, FIELD_NEEDS_IS_INITIALIZED_CHECK_MASK),
-          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK));
+          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK),
+          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_HAS_HAS_BIT_MASK));
     } else {
       return new ProtoOneOfFieldType(
           fieldTypeWithExtraBits & FIELD_ID_MASK,
           isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_REQUIRED_MASK),
           isBitInMaskSet(fieldTypeWithExtraBits, FIELD_ENFORCE_UTF8_MASK),
           isBitInMaskSet(fieldTypeWithExtraBits, FIELD_NEEDS_IS_INITIALIZED_CHECK_MASK),
-          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK));
+          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK),
+          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_HAS_HAS_BIT_MASK));
     }
   }
 
@@ -155,6 +161,9 @@ public class ProtoFieldType {
     }
     if (isMapFieldWithProto2EnumValue) {
       result |= FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK;
+    }
+    if (hasHasBit) {
+      result |= FIELD_HAS_HAS_BIT_MASK;
     }
     return result;
   }

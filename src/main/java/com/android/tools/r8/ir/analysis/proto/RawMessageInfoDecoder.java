@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis.proto;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getInfoValueFromMessageInfoConstructionInvoke;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getObjectsValueFromMessageInfoConstructionInvoke;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexReference;
@@ -152,6 +153,10 @@ public class RawMessageInfoDecoder {
         int fieldNumber = infoIterator.nextIntComputeIfAbsent(this::invalidInfoFailure);
         int fieldTypeWithExtraBits = infoIterator.nextIntComputeIfAbsent(this::invalidInfoFailure);
         ProtoFieldType fieldType = factory.createField(fieldTypeWithExtraBits);
+        if (fieldType.serialize() != fieldTypeWithExtraBits) {
+          throw new CompilationError(
+              "Unexpected proto field type `" + fieldTypeWithExtraBits + "`");
+        }
 
         OptionalInt auxData;
         if (fieldType.hasAuxData(isProto2)) {
