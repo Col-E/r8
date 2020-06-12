@@ -741,14 +741,17 @@ public class IRConverter {
       enumUnboxer.finishAnalysis();
       enumUnboxer.unboxEnums(postMethodProcessorBuilder, executorService, feedback);
     }
-    new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
-        .run(executorService, feedback, timing);
+    if (!options.debug) {
+      new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
+          .run(executorService, feedback, timing);
+    }
 
     timing.begin("IR conversion phase 2");
     graphLenseForIR = appView.graphLense();
     PostMethodProcessor postMethodProcessor =
         postMethodProcessorBuilder.build(appView.withLiveness(), executorService, timing);
     if (postMethodProcessor != null) {
+      assert !options.debug;
       postMethodProcessor.forEachWave(feedback, executorService);
       feedback.updateVisibleOptimizationInfo();
       assert graphLenseForIR == appView.graphLense();
@@ -1193,6 +1196,10 @@ public class IRConverter {
     }
 
     if (method.isProcessed()) {
+      // We loose locals information when processing dex code, so if in debug mode only process
+      // synthesized methods.
+      // TODO(b/158818229): Check if the synthesized check is needed.
+      assert !isDebugMode || method.isD8R8Synthesized();
       assert !appView.enableWholeProgramOptimizations()
           || !appView.appInfo().withLiveness().neverReprocess.contains(method.method);
     } else {
