@@ -51,6 +51,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumValueInfoMapCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
+import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.kotlin.KotlinMetadataUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.Minifier;
@@ -804,6 +805,10 @@ public class R8 {
       } else {
         namingLens = NamingLens.getIdentityLens();
       }
+
+      timing.begin("MinifyKotlinMetadata");
+      new KotlinMetadataRewriter(appView, namingLens).run(executorService);
+      timing.end();
 
       timing.begin("Line number remapping");
       // When line number optimization is turned off the identity mapping for line numbers is
