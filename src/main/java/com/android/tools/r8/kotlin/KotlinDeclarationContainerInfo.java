@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.kotlin.KotlinMetadataUtils.KmPropertyProcessor;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
@@ -155,7 +154,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
       KmVisitorProviders.KmPropertyVisitorProvider propertyProvider,
       KmVisitorProviders.KmTypeAliasVisitorProvider typeAliasProvider,
       DexClass clazz,
-      AppView<AppInfoWithLiveness> appView,
+      AppView<?> appView,
       NamingLens namingLens) {
     // Type aliases only have a representation here, so we can generate them directly.
     for (KotlinTypeAliasInfo typeAlias : typeAliases) {

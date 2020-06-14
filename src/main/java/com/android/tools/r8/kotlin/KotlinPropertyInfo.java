@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
 import kotlinx.metadata.KmProperty;
@@ -146,7 +145,7 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
       DexEncodedField field,
       DexEncodedMethod getter,
       DexEncodedMethod setter,
-      AppView<AppInfoWithLiveness> appView,
+      AppView<?> appView,
       NamingLens namingLens) {
     // TODO(b/154348683): Flags again.
     KmPropertyVisitor kmProperty = visitorProvider.get(flags, name, getterFlags, setterFlags);

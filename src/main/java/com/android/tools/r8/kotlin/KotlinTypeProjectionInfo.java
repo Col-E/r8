@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import kotlinx.metadata.KmTypeProjection;
@@ -39,7 +38,7 @@ public class KotlinTypeProjectionInfo implements EnqueuerMetadataTraceable {
   public void rewrite(
       KmVisitorProviders.KmTypeProjectionVisitorProvider visitorProvider,
       KmVisitorProviders.KmTypeStarProjectionVisitorProvider starProjectionProvider,
-      AppView<AppInfoWithLiveness> appView,
+      AppView<?> appView,
       NamingLens namingLens) {
     if (isStarProjection()) {
       starProjectionProvider.get();

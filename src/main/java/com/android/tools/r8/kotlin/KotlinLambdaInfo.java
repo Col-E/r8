@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import kotlinx.metadata.KmLambda;
@@ -53,7 +52,7 @@ public class KotlinLambdaInfo implements EnqueuerMetadataTraceable {
   boolean rewrite(
       KmVisitorProviders.KmLambdaVisitorProvider visitorProvider,
       DexClass clazz,
-      AppView<AppInfoWithLiveness> appView,
+      AppView<?> appView,
       NamingLens namingLens) {
     if (!hasBacking) {
       function.rewrite(visitorProvider.get()::visitFunction, null, appView, namingLens);

@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import java.util.HashMap;
@@ -63,10 +62,7 @@ public class KotlinPackageInfo implements EnqueuerMetadataTraceable {
   }
 
   public void rewrite(
-      KmPackage kmPackage,
-      DexClass clazz,
-      AppView<AppInfoWithLiveness> appView,
-      NamingLens namingLens) {
+      KmPackage kmPackage, DexClass clazz, AppView<?> appView, NamingLens namingLens) {
     containerInfo.rewrite(
         kmPackage::visitFunction,
         kmPackage::visitProperty,

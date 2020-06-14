@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import kotlinx.metadata.jvm.JvmFieldSignature;
 
@@ -38,7 +37,7 @@ public class KotlinJvmFieldSignatureInfo implements EnqueuerMetadataTraceable {
   }
 
   public JvmFieldSignature rewrite(
-      DexEncodedField field, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
+      DexEncodedField field, AppView<?> appView, NamingLens namingLens) {
     String finalName = name;
     if (field != null) {
       String fieldName = field.field.name.toString();

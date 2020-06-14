@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.kotlin.KmVisitorProviders.KmEffectExpressionVisitorProvider;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
@@ -87,9 +86,7 @@ public class KotlinEffectExpressionInfo implements EnqueuerMetadataTraceable {
   }
 
   public void rewrite(
-      KmEffectExpressionVisitorProvider provider,
-      AppView<AppInfoWithLiveness> appView,
-      NamingLens namingLens) {
+      KmEffectExpressionVisitorProvider provider, AppView<?> appView, NamingLens namingLens) {
     if (this == NO_EXPRESSION) {
       return;
     }

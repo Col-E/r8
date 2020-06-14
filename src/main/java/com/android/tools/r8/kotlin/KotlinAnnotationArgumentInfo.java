@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Box;
 import com.google.common.collect.ImmutableList;
@@ -30,8 +29,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
   private static final Map<String, KotlinAnnotationArgumentInfo> EMPTY_ARGUMENTS =
       ImmutableMap.of();
 
-  abstract KmAnnotationArgument<?> rewrite(
-      AppView<AppInfoWithLiveness> appView, NamingLens namingLens);
+  abstract KmAnnotationArgument<?> rewrite(AppView<?> appView, NamingLens namingLens);
 
   private static KotlinAnnotationArgumentInfo createArgument(
       KmAnnotationArgument<?> arg, DexItemFactory factory) {
@@ -77,7 +75,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
     }
 
     @Override
-    KmAnnotationArgument<?> rewrite(AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
+    KmAnnotationArgument<?> rewrite(AppView<?> appView, NamingLens namingLens) {
       return new KClassValue(
           value.toRenamedBinaryNameOrDefault(appView, namingLens, ClassClassifiers.anyName));
     }
@@ -105,7 +103,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
     }
 
     @Override
-    KmAnnotationArgument<?> rewrite(AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
+    KmAnnotationArgument<?> rewrite(AppView<?> appView, NamingLens namingLens) {
       return new EnumValue(
           enumClassName.toRenamedBinaryNameOrDefault(appView, namingLens, ClassClassifiers.anyName),
           enumEntryName);
@@ -132,7 +130,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
     }
 
     @Override
-    KmAnnotationArgument<?> rewrite(AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
+    KmAnnotationArgument<?> rewrite(AppView<?> appView, NamingLens namingLens) {
       Box<KmAnnotation> rewrittenAnnotation = new Box<>();
       value.rewrite(rewrittenAnnotation::set, appView, namingLens);
       if (rewrittenAnnotation.isSet()) {
@@ -172,7 +170,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
     }
 
     @Override
-    KmAnnotationArgument<?> rewrite(AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
+    KmAnnotationArgument<?> rewrite(AppView<?> appView, NamingLens namingLens) {
       List<KmAnnotationArgument<?>> rewrittenArguments = new ArrayList<>();
       for (KotlinAnnotationArgumentInfo kotlinAnnotationArgumentInfo : value) {
         KmAnnotationArgument<?> rewrittenArg =
@@ -203,7 +201,7 @@ abstract class KotlinAnnotationArgumentInfo implements EnqueuerMetadataTraceable
     }
 
     @Override
-    KmAnnotationArgument<?> rewrite(AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
+    KmAnnotationArgument<?> rewrite(AppView<?> appView, NamingLens namingLens) {
       return argument;
     }
   }

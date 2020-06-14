@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.kotlin.KmVisitorProviders.KmPropertyVisitorProvider;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
@@ -54,9 +53,7 @@ public class KotlinLocalDelegatedPropertyInfo implements EnqueuerMetadataTraceab
   }
 
   public void rewrite(
-      KmPropertyVisitorProvider visitorProvider,
-      AppView<AppInfoWithLiveness> appView,
-      NamingLens namingLens) {
+      KmPropertyVisitorProvider visitorProvider, AppView<?> appView, NamingLens namingLens) {
     for (KotlinPropertyInfo propertyInfo : propertyInfos) {
       propertyInfo.rewrite(visitorProvider, null, null, null, appView, namingLens);
     }

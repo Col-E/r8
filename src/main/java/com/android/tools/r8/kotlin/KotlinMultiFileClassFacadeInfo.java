@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,8 +50,7 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
   }
 
   @Override
-  public KotlinClassHeader rewrite(
-      DexClass clazz, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
+  public KotlinClassHeader rewrite(DexClass clazz, AppView<?> appView, NamingLens namingLens) {
     KotlinClassMetadata.MultiFileClassFacade.Writer writer =
         new KotlinClassMetadata.MultiFileClassFacade.Writer();
     List<String> partClassNameStrings = new ArrayList<>(partClassNames.size());

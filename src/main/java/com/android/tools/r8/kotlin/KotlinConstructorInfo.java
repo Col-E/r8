@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
 import java.util.List;
 import kotlinx.metadata.KmClass;
@@ -51,10 +50,7 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
   }
 
   public void rewrite(
-      KmClass kmClass,
-      DexEncodedMethod method,
-      AppView<AppInfoWithLiveness> appView,
-      NamingLens namingLens) {
+      KmClass kmClass, DexEncodedMethod method, AppView<?> appView, NamingLens namingLens) {
     // Note that JvmExtensionsKt.setSignature does not have an overload for KmConstructorVisitor,
     // thus we rely on creating the KmConstructor manually.
     // TODO(b/154348683): Check for special flags to pass in.

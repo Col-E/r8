@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.DescriptorUtils;
 
@@ -58,7 +57,7 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
   }
 
   String toRenamedDescriptorOrDefault(
-      AppView<AppInfoWithLiveness> appView, NamingLens namingLens, String defaultValue) {
+      AppView<?> appView, NamingLens namingLens, String defaultValue) {
     if (unknown != null) {
       return unknown;
     }
@@ -66,7 +65,8 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
     if (!known.isClassType()) {
       return known.descriptor.toString();
     }
-    if (!appView.appInfo().isNonProgramTypeOrLiveProgramType(known)) {
+    if (appView.appInfo().hasLiveness()
+        && !appView.withLiveness().appInfo().isNonProgramTypeOrLiveProgramType(known)) {
       return defaultValue;
     }
     DexString descriptor = namingLens.lookupDescriptor(known);
@@ -77,7 +77,7 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
   }
 
   String toRenamedBinaryNameOrDefault(
-      AppView<AppInfoWithLiveness> appView, NamingLens namingLens, String defaultValue) {
+      AppView<?> appView, NamingLens namingLens, String defaultValue) {
     if (unknown != null) {
       // Unknown values are always on the input form, so we can just return it.
       return unknown;
