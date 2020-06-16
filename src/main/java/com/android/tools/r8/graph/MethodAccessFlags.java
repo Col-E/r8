@@ -3,14 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static kotlinx.metadata.FlagsKt.flagsOf;
-
 import com.android.tools.r8.dex.Constants;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
-import kotlinx.metadata.Flag;
 
 public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
 
@@ -108,16 +104,6 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
       copy.setDeclaredSynchronized();
     }
     return copy.materialize();
-  }
-
-  @Override
-  public int getAsKotlinFlags() {
-    int flag = super.getAsKotlinFlags();
-    List<Flag> flags = new ArrayList<>();
-    if (isAbstract()) {
-      flags.add(Flag.IS_ABSTRACT);
-    }
-    return flag | flagsOf(flags.toArray(EMPTY_FLAG));
   }
 
   public boolean isSynchronized() {

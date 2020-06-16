@@ -77,11 +77,6 @@ public class FieldAccessFlags extends AccessFlags<FieldAccessFlags> {
     return materialize();
   }
 
-  @Override
-  public int getAsKotlinFlags() {
-    return super.getAsKotlinFlags();
-  }
-
   public boolean isVolatile() {
     return isSet(Constants.ACC_VOLATILE);
   }

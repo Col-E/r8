@@ -3,19 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static kotlinx.metadata.FlagsKt.flagsOf;
-
 import com.android.tools.r8.dex.Constants;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
-import kotlinx.metadata.Flag;
 
 /** Access flags common to classes, methods and fields. */
 public abstract class AccessFlags<T extends AccessFlags<T>> {
-
-  protected Flag[] EMPTY_FLAG = {};
 
   protected static final int BASE_FLAGS
       = Constants.ACC_PUBLIC
@@ -70,26 +64,6 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
   public abstract int getAsCfAccessFlags();
 
   public abstract int getAsDexAccessFlags();
-
-  public int getAsKotlinFlags() {
-    List<Flag> flags = new ArrayList<>();
-    if (isPrivate()) {
-      flags.add(Flag.IS_PRIVATE);
-    }
-    if (isProtected()) {
-      flags.add(Flag.IS_PROTECTED);
-    }
-    if (isPublic()) {
-      flags.add(Flag.IS_PUBLIC);
-    }
-    if (isFinal()) {
-      flags.add(Flag.IS_FINAL);
-    }
-    if (isOpen()) {
-      flags.add(Flag.IS_OPEN);
-    }
-    return flagsOf(flags.toArray(EMPTY_FLAG));
-  }
 
   public final int getOriginalAccessFlags() {
     return originalFlags;
