@@ -89,6 +89,10 @@ public abstract class MethodSubject extends MemberSubject {
     return Streams.stream(iterateInstructions());
   }
 
+  public Stream<TryCatchSubject> streamTryCatches() {
+    return Streams.stream(iterateTryCatches());
+  }
+
   public void getLineNumberForInstruction(InstructionSubject subject) {
     assert hasLineNumberTable();
     getLineNumberTable().getLineForInstruction(subject);

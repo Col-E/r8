@@ -3,10 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
+import java.util.Collection;
+import java.util.stream.Stream;
+
 public interface TryCatchSubject {
   RangeSubject getRange();
   boolean isCatching(String exceptionType);
   boolean hasCatchAll();
+
+  Stream<TypeSubject> streamGuards();
+
+  Collection<TypeSubject> guards();
 
   int getNumberOfHandlers();
 }

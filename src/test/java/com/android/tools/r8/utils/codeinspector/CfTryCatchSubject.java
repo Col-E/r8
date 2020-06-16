@@ -11,12 +11,17 @@ import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import java.util.Collection;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class CfTryCatchSubject implements TryCatchSubject {
+  private final CodeInspector inspector;
   private final CfCode cfCode;
   private final CfTryCatch tryCatch;
 
-  CfTryCatchSubject(CfCode cfCode, CfTryCatch tryCatch) {
+  CfTryCatchSubject(CodeInspector inspector, CfCode cfCode, CfTryCatch tryCatch) {
+    this.inspector = inspector;
     this.cfCode = cfCode;
     this.tryCatch = tryCatch;
   }
@@ -59,6 +64,16 @@ class CfTryCatchSubject implements TryCatchSubject {
   @Override
   public boolean hasCatchAll() {
     return isCatching(DexItemFactory.throwableDescriptorString);
+  }
+
+  @Override
+  public Stream<TypeSubject> streamGuards() {
+    return tryCatch.guards.stream().map(type -> new TypeSubject(inspector, type));
+  }
+
+  @Override
+  public Collection<TypeSubject> guards() {
+    return streamGuards().collect(Collectors.toList());
   }
 
   @Override

@@ -9,13 +9,20 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class DexTryCatchSubject implements TryCatchSubject {
+  private final CodeInspector inspector;
   private final DexCode dexCode;
   private final Try tryElement;
   private final TryHandler tryHandler;
 
-  DexTryCatchSubject(DexCode dexCode, Try tryElement, TryHandler tryHandler) {
+  DexTryCatchSubject(
+      CodeInspector inspector, DexCode dexCode, Try tryElement, TryHandler tryHandler) {
+    this.inspector = inspector;
     this.dexCode = dexCode;
     this.tryElement = tryElement;
     this.tryHandler = tryHandler;
@@ -42,6 +49,18 @@ class DexTryCatchSubject implements TryCatchSubject {
   @Override
   public boolean hasCatchAll() {
     return tryHandler.catchAllAddr != NO_HANDLER;
+  }
+
+  @Override
+  public Stream<TypeSubject> streamGuards() {
+    return Arrays.stream(tryHandler.pairs)
+        .map(pair -> pair.type)
+        .map(type -> new TypeSubject(inspector, type));
+  }
+
+  @Override
+  public Collection<TypeSubject> guards() {
+    return streamGuards().collect(Collectors.toList());
   }
 
   @Override

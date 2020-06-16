@@ -386,11 +386,11 @@ public class CodeInspector {
   }
 
   TryCatchSubject createTryCatchSubject(DexCode code, Try tryElement, TryHandler tryHandler) {
-    return new DexTryCatchSubject(code, tryElement, tryHandler);
+    return new DexTryCatchSubject(this, code, tryElement, tryHandler);
   }
 
   TryCatchSubject createTryCatchSubject(CfCode code, CfTryCatch tryCatch) {
-    return new CfTryCatchSubject(code, tryCatch);
+    return new CfTryCatchSubject(this, code, tryCatch);
   }
 
   TryCatchIterator createTryCatchIterator(MethodSubject method) {
