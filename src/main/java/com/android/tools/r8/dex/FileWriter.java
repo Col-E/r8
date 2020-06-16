@@ -519,6 +519,7 @@ public class FileWriter {
         for (TypeAddrPair pair : handler.pairs) {
           dest.putUleb128(mapping.getOffsetFor(pair.type));
           dest.putUleb128(pair.addr);
+          desugaredLibraryCodeToKeep.recordClass(pair.type);
         }
         if (hasCatchAll) {
           dest.putUleb128(handler.catchAllAddr);
