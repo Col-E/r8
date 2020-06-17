@@ -23,6 +23,16 @@ public class InstanceOf extends Format22c {
   }
 
   @Override
+  public InstanceOf asInstanceOf() {
+    return this;
+  }
+
+  @Override
+  public boolean isInstanceOf() {
+    return true;
+  }
+
+  @Override
   public String getName() {
     return NAME;
   }

@@ -112,6 +112,10 @@ public class DexOutputBuffer {
         desugaredLibraryCodeToKeep.recordMethod(method);
       } else if (insn.isConstClass()) {
         desugaredLibraryCodeToKeep.recordClass(insn.asConstClass().getType());
+      } else if (insn.isInstanceOf()) {
+        desugaredLibraryCodeToKeep.recordClass(insn.asInstanceOf().getType());
+      } else if (insn.isCheckCast()) {
+        desugaredLibraryCodeToKeep.recordClass(insn.asCheckCast().getType());
       }
       insn.write(shortBuffer, mapping);
     }

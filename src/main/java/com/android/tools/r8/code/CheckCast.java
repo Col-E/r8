@@ -38,6 +38,11 @@ public class CheckCast extends Format21c {
   }
 
   @Override
+  public CheckCast asCheckCast() {
+    return this;
+  }
+
+  @Override
   public boolean isCheckCast() {
     return true;
   }
