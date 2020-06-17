@@ -4,12 +4,9 @@
 
 package com.android.tools.r8.ir.optimize.staticizer;
 
-import static org.junit.Assert.assertThrows;
-
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -38,21 +35,14 @@ public class HostWithStaticMethodTest extends TestBase {
 
   @Test
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
-    R8FullTestBuilder r8Builder =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(Outer.class, SingletonHolder.class, Main.class)
-            .addKeepMainRule(Main.class)
-            .setMinApi(parameters.getApiLevel())
-            .enableNeverClassInliningAnnotations()
-            .enableInliningAnnotations();
-    if (parameters.isCfRuntime()) {
-      r8Builder
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutputLines("foo", "bar", "foo");
-    } else {
-      // TODO(b/158018192): This should compile.
-      assertThrows(CompilationFailedException.class, r8Builder::compile);
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Outer.class, SingletonHolder.class, Main.class)
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("foo", "bar", "foo");
   }
 
   @NeverClassInline

@@ -46,8 +46,9 @@ public class InstanceInsideCompanionTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutputLines("Candidate#foo(false)")
-        .inspect(this::inspect);
+        .assertSuccessWithOutputLines("Candidate#foo(false)");
+    // TODO(b/159174309): Disable inspection until fixed.
+    // .inspect(this::inspect);
   }
 
   private void inspect(CodeInspector inspector) {

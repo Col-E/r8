@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.staticizer;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+import static com.android.tools.r8.utils.PredicateUtils.not;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -762,7 +763,8 @@ final class StaticizingProcessor {
       if (candidateClass.type != hostType) {
         DexProgramClass hostClass = asProgramClassOrNull(appView.definitionFor(hostType));
         assert hostClass != null;
-        if (!classMembersConflict(candidateClass, hostClass)) {
+        if (!classMembersConflict(candidateClass, hostClass)
+            && !hasMembersNotStaticized(candidateClass, staticizedMethods)) {
           // Move all members of the candidate class into host class.
           moveMembersIntoHost(staticizedMethods,
               candidateClass, hostType, hostClass, methodMapping, fieldMapping);
@@ -781,6 +783,16 @@ final class StaticizingProcessor {
     assert a.instanceFields().size() == 0;
     return a.staticFields().stream().anyMatch(fld -> b.lookupField(fld.field) != null)
         || Streams.stream(a.methods()).anyMatch(method -> b.lookupMethod(method.method) != null);
+  }
+
+  private boolean hasMembersNotStaticized(
+      DexProgramClass candidateClass, ProgramMethodSet staticizedMethods) {
+    // TODO(b/159174309): Refine the analysis to allow for fields.
+    if (candidateClass.hasFields()) {
+      return true;
+    }
+    // TODO(b/158018192): Activate again when picking up all references.
+    return candidateClass.methods(not(staticizedMethods::contains)).iterator().hasNext();
   }
 
   private void moveMembersIntoHost(

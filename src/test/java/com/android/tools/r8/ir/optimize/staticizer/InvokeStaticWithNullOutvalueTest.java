@@ -59,11 +59,13 @@ public class InvokeStaticWithNullOutvalueTest extends TestBase {
     assertThat(instance, not(isPresent()));
 
     ClassSubject companion = inspector.clazz(Host.Companion.class);
-    assertThat(companion, not(isPresent()));
+    // TODO(b/158018192): This should not be present.
+    assertThat(companion, isPresent());
 
     // Check if the candidate methods are staticized (if necessary) and migrated.
     for (String name : ImmutableList.of("boo", "foo")) {
-      MethodSubject oo = host.uniqueMethodWithName(name);
+      // TODO(b/158018192): This should be host and not companion.
+      MethodSubject oo = companion.uniqueMethodWithName(name);
       assertThat(oo, isPresent());
       assertTrue(oo.isStatic());
       assertTrue(
