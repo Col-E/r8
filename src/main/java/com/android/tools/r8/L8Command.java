@@ -290,7 +290,7 @@ public final class L8Command extends BaseCompilerCommand {
 
       if (isShrinking()) {
         R8Command.Builder r8Builder =
-            R8Command.builder(getReporter())
+            new CompatProguardCommandBuilder(true, getReporter())
                 .addProgramResourceProvider(desugaredLibrary)
                 .setSynthesizedClassesPrefix(
                     libraryConfiguration.getSynthesizedLibraryClassesPackagePrefix())

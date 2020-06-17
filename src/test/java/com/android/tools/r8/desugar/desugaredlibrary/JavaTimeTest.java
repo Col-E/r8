@@ -37,7 +37,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
   private static final String expectedOutput =
-      StringUtils.lines("Caught java.time.format.DateTimeParseException", "Hello, world");
+      StringUtils.lines("Caught java.time.format.DateTimeParseException", "true", "Hello, world");
 
   @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
@@ -61,12 +61,14 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     Set<String> expectedCheckCastType;
     String expectedInstanceOfTypes;
     if (parameters.getApiLevel().getLevel() >= 26) {
-      expectedInvokeHolders = ImmutableSet.of("java.time.Clock", "java.time.LocalDate");
+      expectedInvokeHolders =
+          ImmutableSet.of("java.time.Clock", "java.time.LocalDate", "java.time.ZoneOffset");
       expectedCatchGuards = ImmutableSet.of("java.time.format.DateTimeParseException");
       expectedCheckCastType = ImmutableSet.of("java.time.ZoneId");
       expectedInstanceOfTypes = "java.time.ZoneOffset";
     } else {
-      expectedInvokeHolders = ImmutableSet.of("j$.time.Clock", "j$.time.LocalDate");
+      expectedInvokeHolders =
+          ImmutableSet.of("j$.time.Clock", "j$.time.LocalDate", "j$.time.ZoneOffset");
       expectedCatchGuards = ImmutableSet.of("j$.time.format.DateTimeParseException");
       expectedCheckCastType = ImmutableSet.of("j$.time.ZoneId");
       expectedInstanceOfTypes = "j$.time.ZoneOffset";
@@ -163,6 +165,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
       if (newObjectInstance() instanceof java.time.ZoneOffset) {
         System.out.println("NOT!");
       }
+      System.out.println(java.time.ZoneOffset.getAvailableZoneIds().size() > 0);
       System.out.println("Hello, world");
     }
   }
