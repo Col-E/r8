@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -71,15 +72,20 @@ public abstract class DiagnosticsMatcher extends TypeSafeMatcher<Diagnostic> {
   }
 
   public static Matcher<Diagnostic> diagnosticPosition(Position position) {
+    return diagnosticPosition(CoreMatchers.equalTo(position));
+  }
+
+  public static Matcher<Diagnostic> diagnosticPosition(Matcher<Position> positionMatcher) {
     return new DiagnosticsMatcher() {
       @Override
       protected boolean eval(Diagnostic diagnostic) {
-        return diagnostic.getPosition().equals(position);
+        return positionMatcher.matches(diagnostic.getPosition());
       }
 
       @Override
       protected void explain(Description description) {
-        description.appendText("position ").appendText(position.getDescription());
+        description.appendText("position ");
+        positionMatcher.describeTo(description);
       }
     };
   }

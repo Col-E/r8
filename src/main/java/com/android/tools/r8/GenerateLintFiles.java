@@ -69,7 +69,7 @@ public class GenerateLintFiles {
 
   private final Set<DexMethod> parallelMethods = Sets.newIdentityHashSet();
 
-  private GenerateLintFiles(String desugarConfigurationPath, String outputDirectory) {
+  public GenerateLintFiles(String desugarConfigurationPath, String outputDirectory) {
     this.desugaredLibraryConfiguration =
         readDesugaredLibraryConfiguration(desugarConfigurationPath);
     this.outputDirectory =
@@ -356,18 +356,22 @@ public class GenerateLintFiles {
         apiLevel >= desugaredLibraryConfiguration.getRequiredCompilationApiLevel().getLevel();
         apiLevel--) {
       System.out.println("Generating lint files for compile API " + apiLevel);
-      generateLintFiles(
-          AndroidApiLevel.getAndroidApiLevel(apiLevel),
-          minApiLevel -> minApiLevel == AndroidApiLevel.L || minApiLevel == AndroidApiLevel.B,
-          (minApiLevel, method) -> {
-            assert minApiLevel == AndroidApiLevel.L || minApiLevel == AndroidApiLevel.B;
-            if (minApiLevel == AndroidApiLevel.L) {
-              return true;
-            }
-            assert minApiLevel == AndroidApiLevel.B;
-            return !parallelMethods.contains(method.method);
-          });
+      run(apiLevel);
     }
+  }
+
+  public void run(int apiLevel) throws Exception {
+    generateLintFiles(
+        AndroidApiLevel.getAndroidApiLevel(apiLevel),
+        minApiLevel -> minApiLevel == AndroidApiLevel.L || minApiLevel == AndroidApiLevel.B,
+        (minApiLevel, method) -> {
+          assert minApiLevel == AndroidApiLevel.L || minApiLevel == AndroidApiLevel.B;
+          if (minApiLevel == AndroidApiLevel.L) {
+            return true;
+          }
+          assert minApiLevel == AndroidApiLevel.B;
+          return !parallelMethods.contains(method.method);
+        });
   }
 
   public static void main(String[] args) throws Exception {

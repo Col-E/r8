@@ -121,9 +121,6 @@ public class L8 {
 
       LazyLoadedDexApplication lazyApp =
           new ApplicationReader(inputApp, options, timing).read(executor);
-      // Store a direct lookup to determine actual library definitions for wrapper generation.
-      options.desugaredLibraryBootclasspathDefinitions =
-          t -> lazyApp.libraryDefintionFor(t) != null;
 
       PrefixRewritingMapper rewritePrefix =
           options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);

@@ -75,12 +75,10 @@ public class B135627418 extends TestBase {
                 com.android.tools.r8.memberrebinding.b135627418.runtime.InsetDrawable.class)
             .setMinApi(parameters.getRuntime())
             .addOptionsModification(
-                options -> {
-                  options.desugaredLibraryConfiguration =
-                      DesugaredLibraryConfiguration.withOnlyRewritePrefixForTesting(
-                          ImmutableMap.of(packageName + ".runtime", packageName + ".library"));
-                  options.desugaredLibraryBootclasspathDefinitions = type -> false;
-                })
+                options ->
+                    options.desugaredLibraryConfiguration =
+                        DesugaredLibraryConfiguration.withOnlyRewritePrefixForTesting(
+                            ImmutableMap.of(packageName + ".runtime", packageName + ".library")))
             .compile();
 
     testForR8(parameters.getBackend())

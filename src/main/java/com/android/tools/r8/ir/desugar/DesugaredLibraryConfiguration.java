@@ -12,18 +12,26 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.DesugarPrefixRewritingMapper;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class DesugaredLibraryConfiguration {
 
@@ -41,9 +49,10 @@ public class DesugaredLibraryConfiguration {
   private final Map<DexType, DexType> customConversions;
   private final List<Pair<DexType, DexString>> dontRewriteInvocation;
   private final List<String> extraKeepRules;
+  private final Set<DexType> wrapperConversions;
 
-  public static Builder builder(DexItemFactory dexItemFactory) {
-    return new Builder(dexItemFactory);
+  public static Builder builder(DexItemFactory dexItemFactory, Reporter reporter, Origin origin) {
+    return new Builder(dexItemFactory, reporter, origin);
   }
 
   public static DesugaredLibraryConfiguration withOnlyRewritePrefixForTesting(
@@ -58,6 +67,7 @@ public class DesugaredLibraryConfiguration {
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
+        ImmutableSet.of(),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -73,11 +83,12 @@ public class DesugaredLibraryConfiguration {
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
+        ImmutableSet.of(),
         ImmutableList.of(),
         ImmutableList.of());
   }
 
-  public DesugaredLibraryConfiguration(
+  private DesugaredLibraryConfiguration(
       AndroidApiLevel requiredCompilationAPILevel,
       boolean libraryCompilation,
       String packagePrefix,
@@ -87,6 +98,7 @@ public class DesugaredLibraryConfiguration {
       Map<DexString, Map<DexType, DexType>> retargetCoreLibMember,
       Map<DexType, DexType> backportCoreLibraryMember,
       Map<DexType, DexType> customConversions,
+      Set<DexType> wrapperConversions,
       List<Pair<DexType, DexString>> dontRewriteInvocation,
       List<String> extraKeepRules) {
     this.requiredCompilationAPILevel = requiredCompilationAPILevel;
@@ -98,6 +110,7 @@ public class DesugaredLibraryConfiguration {
     this.retargetCoreLibMember = retargetCoreLibMember;
     this.backportCoreLibraryMember = backportCoreLibraryMember;
     this.customConversions = customConversions;
+    this.wrapperConversions = wrapperConversions;
     this.dontRewriteInvocation = dontRewriteInvocation;
     this.extraKeepRules = extraKeepRules;
   }
@@ -158,6 +171,10 @@ public class DesugaredLibraryConfiguration {
     return customConversions;
   }
 
+  public Set<DexType> getWrapperConversions() {
+    return wrapperConversions;
+  }
+
   public List<Pair<DexType, DexString>> getDontRewriteInvocation() {
     return dontRewriteInvocation;
   }
@@ -169,6 +186,8 @@ public class DesugaredLibraryConfiguration {
   public static class Builder {
 
     private final DexItemFactory factory;
+    private final Reporter reporter;
+    private final Origin origin;
 
     private AndroidApiLevel requiredCompilationAPILevel;
     private boolean libraryCompilation = false;
@@ -176,15 +195,34 @@ public class DesugaredLibraryConfiguration {
         FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX;
     private String identifier;
     private Map<String, String> rewritePrefix = new HashMap<>();
-    private Map<DexType, DexType> emulateLibraryInterface = new HashMap<>();
+    private Map<DexType, DexType> emulateLibraryInterface = new IdentityHashMap<>();
     private Map<DexString, Map<DexType, DexType>> retargetCoreLibMember = new IdentityHashMap<>();
-    private Map<DexType, DexType> backportCoreLibraryMember = new HashMap<>();
-    private Map<DexType, DexType> customConversions = new HashMap<>();
+    private Map<DexType, DexType> backportCoreLibraryMember = new IdentityHashMap<>();
+    private Map<DexType, DexType> customConversions = new IdentityHashMap<>();
+    private Set<DexType> wrapperConversions = Sets.newIdentityHashSet();
     private List<Pair<DexType, DexString>> dontRewriteInvocation = new ArrayList<>();
     private List<String> extraKeepRules = Collections.emptyList();
 
-    public Builder(DexItemFactory dexItemFactory) {
+    private Builder(DexItemFactory dexItemFactory, Reporter reporter, Origin origin) {
       this.factory = dexItemFactory;
+      this.reporter = reporter;
+      this.origin = origin;
+    }
+
+    // Utility to set values. Currently assumes the key is fresh.
+    private <K, V> void put(Map<K, V> map, K key, V value, String desc) {
+      if (map.containsKey(key)) {
+        throw reporter.fatalError(
+            new StringDiagnostic(
+                "Invalid desugared library configuration. "
+                    + " Duplicate assignment of key: '"
+                    + key
+                    + "' in sections for '"
+                    + desc
+                    + "'",
+                origin));
+      }
+      map.put(key, value);
     }
 
     public Builder setSynthesizedLibraryClassesPackagePrefix(String prefix) {
@@ -218,7 +256,11 @@ public class DesugaredLibraryConfiguration {
     }
 
     public Builder putRewritePrefix(String prefix, String rewrittenPrefix) {
-      rewritePrefix.put(prefix, rewrittenPrefix);
+      put(
+          rewritePrefix,
+          prefix,
+          rewrittenPrefix,
+          DesugaredLibraryConfigurationParser.REWRITE_PREFIX_KEY);
       return this;
     }
 
@@ -226,14 +268,28 @@ public class DesugaredLibraryConfiguration {
         String emulateLibraryItf, String rewrittenEmulateLibraryItf) {
       DexType interfaceType = stringClassToDexType(emulateLibraryItf);
       DexType rewrittenType = stringClassToDexType(rewrittenEmulateLibraryItf);
-      emulateLibraryInterface.put(interfaceType, rewrittenType);
+      put(
+          emulateLibraryInterface,
+          interfaceType,
+          rewrittenType,
+          DesugaredLibraryConfigurationParser.EMULATE_INTERFACE_KEY);
       return this;
     }
 
     public Builder putCustomConversion(String type, String conversionHolder) {
       DexType dexType = stringClassToDexType(type);
       DexType conversionType = stringClassToDexType(conversionHolder);
-      customConversions.put(dexType, conversionType);
+      put(
+          customConversions,
+          dexType,
+          conversionType,
+          DesugaredLibraryConfigurationParser.CUSTOM_CONVERSION_KEY);
+      return this;
+    }
+
+    public Builder addWrapperConversion(String type) {
+      DexType dexType = stringClassToDexType(type);
+      wrapperConversions.add(dexType);
       return this;
     }
 
@@ -245,14 +301,22 @@ public class DesugaredLibraryConfiguration {
       DexType originalType = stringClassToDexType(retarget.substring(0, index));
       DexType finalType = stringClassToDexType(rewrittenRetarget);
       assert !typeMap.containsKey(originalType);
-      typeMap.put(originalType, finalType);
+      put(
+          typeMap,
+          originalType,
+          finalType,
+          DesugaredLibraryConfigurationParser.RETARGET_LIB_MEMBER_KEY);
       return this;
     }
 
     public Builder putBackportCoreLibraryMember(String backport, String rewrittenBackport) {
       DexType backportType = stringClassToDexType(backport);
       DexType rewrittenBackportType = stringClassToDexType(rewrittenBackport);
-      backportCoreLibraryMember.put(backportType, rewrittenBackportType);
+      put(
+          backportCoreLibraryMember,
+          backportType,
+          rewrittenBackportType,
+          DesugaredLibraryConfigurationParser.BACKPORT_KEY);
       return this;
     }
 
@@ -279,6 +343,7 @@ public class DesugaredLibraryConfiguration {
     }
 
     public DesugaredLibraryConfiguration build() {
+      validate();
       return new DesugaredLibraryConfiguration(
           requiredCompilationAPILevel,
           libraryCompilation,
@@ -289,8 +354,22 @@ public class DesugaredLibraryConfiguration {
           ImmutableMap.copyOf(retargetCoreLibMember),
           ImmutableMap.copyOf(backportCoreLibraryMember),
           ImmutableMap.copyOf(customConversions),
+          ImmutableSet.copyOf(wrapperConversions),
           ImmutableList.copyOf(dontRewriteInvocation),
           ImmutableList.copyOf(extraKeepRules));
+    }
+
+    private void validate() {
+      SetView<DexType> dups = Sets.intersection(customConversions.keySet(), wrapperConversions);
+      if (!dups.isEmpty()) {
+        throw reporter.fatalError(
+            new StringDiagnostic(
+                "Invalid desugared library configuration. "
+                    + "Duplicate types in custom conversions and wrapper conversions: "
+                    + String.join(
+                        ", ", dups.stream().map(DexType::toString).collect(Collectors.toSet())),
+                origin));
+      }
     }
   }
 }

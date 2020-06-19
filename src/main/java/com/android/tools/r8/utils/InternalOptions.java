@@ -680,9 +680,6 @@ public class InternalOptions {
   public DesugaredLibraryConfiguration desugaredLibraryConfiguration =
       DesugaredLibraryConfiguration.empty();
 
-  // Method to lookup library definitions.
-  public Predicate<DexType> desugaredLibraryBootclasspathDefinitions;
-
   public boolean relocatorCompilation = false;
 
   // If null, no keep rules are recorded.

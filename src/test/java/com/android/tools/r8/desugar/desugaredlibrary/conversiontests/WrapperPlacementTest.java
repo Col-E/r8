@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -26,7 +27,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class WrapperMergeTest extends DesugaredLibraryTestBase {
+public class WrapperPlacementTest extends DesugaredLibraryTestBase {
 
   private static final String EXPECTED = StringUtils.lines("[1, 2, 3]", "[2, 3, 4]");
 
@@ -37,7 +38,7 @@ public class WrapperMergeTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 
-  public WrapperMergeTest(TestParameters parameters) {
+  public WrapperPlacementTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -96,11 +97,8 @@ public class WrapperMergeTest extends DesugaredLibraryTestBase {
 
   private void assertCoreLibContainsWrappers(Path coreLib) throws IOException {
     CodeInspector inspector = new CodeInspector(coreLib);
-    // TODO(b/158645207): Consider having wrappers in the spec and avoiding this issue.
-    assertEquals(
-        "Number of generated wrappers changes. Manually verify validity of the change.",
-        144,
-        getWrappers(inspector).count());
+    Stream<FoundClassSubject> wrappers = getWrappers(inspector);
+    assertNotEquals(0, wrappers.count());
   }
 
   private void assertNoWrappers(CodeInspector inspector) {

@@ -20,6 +20,7 @@ import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,6 +68,7 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
         .addLibraryClasses(CustomLibClass.class)
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
+        .assertNoMessages()
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
@@ -106,16 +108,16 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
       BiFunction<String, String, Character> biFunction =
           CustomLibClass.mixBiFunctions((String i, String j) -> i + j, (String s) -> s.charAt(1));
       System.out.println(biFunction.apply("1", "2"));
-      BooleanSupplier booleanSupplier = CustomLibClass.mixBoolSuppliers(() -> true, () -> false);
+      BooleanSupplier booleanSupplier =
+          () -> CustomLibClass.mixBoolSuppliers(() -> true, () -> false).get();
       System.out.println(booleanSupplier.getAsBoolean());
       LongConsumer longConsumer = CustomLibClass.mixLong(() -> 1L, System.out::println);
       longConsumer.accept(2L);
       DoublePredicate doublePredicate =
           CustomLibClass.mixPredicate(d -> d > 1.0, d -> d == 2.0, d -> d < 3.0);
       System.out.println(doublePredicate.test(2.0));
-      // Reverse wrapper should not exist.
       System.out.println(CustomLibClass.extractInt(() -> 5));
-      System.out.println(CustomLibClass.getDoubleSupplier().getAsDouble());
+      System.out.println(CustomLibClass.getDoubleSupplier().get());
     }
 
     static class Object1 {}
@@ -163,13 +165,18 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
       return operator.andThen(function);
     }
 
-    public static BooleanSupplier mixBoolSuppliers(
-        BooleanSupplier supplier1, BooleanSupplier supplier2) {
-      return () -> supplier1.getAsBoolean() && supplier2.getAsBoolean();
+    // BooleanSupplier is not a wrapped type, so it can't be placed on the boundary.
+    public static Supplier<Boolean> mixBoolSuppliers(
+        Supplier<Boolean> supplier1, Supplier<Boolean> supplier2) {
+      BooleanSupplier wrap1 = supplier1::get;
+      BooleanSupplier wrap2 = supplier2::get;
+      return () -> wrap1.getAsBoolean() && wrap2.getAsBoolean();
     }
 
-    public static LongConsumer mixLong(LongSupplier supplier, LongConsumer consumer) {
-      return l -> consumer.accept(l + supplier.getAsLong());
+    // LongSupplier is not a wrapped type, so it can't be placed on the boundary.
+    public static LongConsumer mixLong(Supplier<Long> supplier, LongConsumer consumer) {
+      LongSupplier wrap = supplier::get;
+      return l -> consumer.accept(l + wrap.getAsLong());
     }
 
     public static DoublePredicate mixPredicate(
@@ -177,12 +184,16 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
       return predicate1.and(predicate2).and(predicate3);
     }
 
-    public static int extractInt(IntSupplier supplier) {
-      return supplier.getAsInt();
+    // IntSupplier is not a wrapped type, so it can't be placed on the boundary.
+    public static int extractInt(Supplier<Integer> supplier) {
+      IntSupplier wrap = supplier::get;
+      return wrap.getAsInt();
     }
 
-    public static DoubleSupplier getDoubleSupplier() {
-      return () -> 42.0;
+    // DoubleSupplier is not a wrapped type, so it can't be placed on the boundary.
+    public static Supplier<Double> getDoubleSupplier() {
+      DoubleSupplier supplier = () -> 42.0;
+      return supplier::getAsDouble;
     }
   }
 }

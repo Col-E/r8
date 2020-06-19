@@ -112,7 +112,6 @@ public class DesugaredLibraryWrapperSynthesizer {
   private final Set<DexType> invalidWrappers = Sets.newConcurrentHashSet();
   private final DexItemFactory factory;
   private final DesugaredLibraryAPIConverter converter;
-  private final DexString vivifiedSourceFile;
 
   DesugaredLibraryWrapperSynthesizer(AppView<?> appView, DesugaredLibraryAPIConverter converter) {
     this.appView = appView;
@@ -126,7 +125,6 @@ public class DesugaredLibraryWrapperSynthesizer {
             + WRAPPER_PREFIX;
     dexWrapperPrefixDexString = factory.createString(dexWrapperPrefixString);
     this.converter = converter;
-    this.vivifiedSourceFile = appView.dexItemFactory().createString("vivified");
   }
 
   boolean hasSynthesized(DexType type) {
@@ -134,96 +132,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   boolean canGenerateWrapper(DexType type) {
-    return typeWrappers.containsKey(type) || canGenerateWrapper(appView.definitionFor(type));
-  }
-
-  /**
-   * Wrappers can/are generated for all types that appear to support wrapper generation. The
-   * assumptions right now are that the 'type' must be specified in the bootclasspath library, that
-   * means the library component for any build (all of D8, R8 *and* L8). For L8 the type lookup
-   * needs to bypass the usual definitionsFor and look directly in the library on the initial app.
-   *
-   * <p>In addition (or rather before doing the lookup) the class to be wrapped must satisfy several
-   * requirements: its super types can also be wrapped, it has no instance fields, all instance
-   * methods are non-final and public and the types in them are also library defined. If all of that
-   * holds wrappers for the type are created.
-   *
-   * <p>TODO(b/158645207): Consider adding wrappers to the spec and have this be precise.
-   */
-  boolean canGenerateWrapper(DexClass clazz) {
-    if (typeWrappers.containsKey(clazz.type)) {
-      return true;
-    }
-    if (clazz == null
-        || clazz.accessFlags.isFinal()
-        || !clazz.accessFlags.isPublic()
-        || clazz.isAnonymousClass()) {
-      return false;
-    }
-    if (!clazz.isLibraryClass()) {
-      if (!appView.options().isDesugaredLibraryCompilation()) {
-        return false;
-      }
-      // If doing the desugared library compilation, then the class to be wrapped must be defined on
-      // the actual bootclasspath (not the desugared library). The definition lookup must thus
-      // bypass the usual lookup in this case.
-      if (!appView.options().desugaredLibraryBootclasspathDefinitions.test(clazz.type)) {
-        return false;
-      }
-    }
-    if (clazz.superType == null) {
-      return false;
-    }
-    if (clazz.superType != factory.objectType) {
-      if (!canGenerateWrapper(clazz.superType)) {
-        return false;
-      }
-    }
-    for (DexType iface : clazz.interfaces.values) {
-      if (!canGenerateWrapper(iface)) {
-        return false;
-      }
-    }
-    for (DexEncodedField field : clazz.instanceFields()) {
-      return false;
-    }
-    for (DexEncodedMethod method : clazz.virtualMethods()) {
-      if (method.isFinal() || !method.isPublic()) {
-        return false;
-      }
-      if (isUndefinedOrNonLibraryType(method.proto().returnType)) {
-        return false;
-      }
-      for (DexType param : method.proto().parameters.values) {
-        if (isUndefinedOrNonLibraryType(param)) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  private boolean isUndefinedOrNonLibraryType(DexType type) {
-    if (type.isPrimitiveType()) {
-      return false;
-    }
-    DexType baseType = type.toBaseType(appView.dexItemFactory());
-    if (!baseType.isClassType()) {
-      return false;
-    }
-    DexClass clazz = appView.definitionFor(baseType);
-    if (clazz == null) {
-      return true;
-    }
-    if (clazz.isLibraryClass()) {
-      return false;
-    }
-    if (!appView.options().isDesugaredLibraryCompilation()) {
-      return true;
-    }
-    // The wrapper referenced type is also considered undefined if not on the bootclasspath.
-    // TODO(b/158718959): Notice use of 'type' vs 'clazz.type' as emulated interfaces are mutated.
-    return !appView.options().desugaredLibraryBootclasspathDefinitions.test(type);
+    return appView.options().desugaredLibraryConfiguration.getWrapperConversions().contains(type);
   }
 
   DexType getTypeWrapper(DexType type) {
@@ -248,7 +157,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     return wrappers.computeIfAbsent(
         type,
         t -> {
-          assert canGenerateWrapper(type);
+          assert canGenerateWrapper(type) : type;
           DexType wrapperType = createWrapperType(type, suffix);
           assert converter.canGenerateWrappersAndCallbacks()
                   || appView.definitionFor(wrapperType).isClasspathClass()
@@ -544,7 +453,7 @@ public class DesugaredLibraryWrapperSynthesizer {
         true);
   }
 
-  void finalizeWrappersForD8(
+  void finalizeWrappersForL8(
       DexApplication.Builder<?> builder, IRConverter irConverter, ExecutorService executorService)
       throws ExecutionException {
     List<DexProgramClass> synthesizedWrappers = synthesizeWrappers();
@@ -552,16 +461,13 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private List<DexProgramClass> synthesizeWrappers() {
+    DesugaredLibraryConfiguration conf = appView.options().desugaredLibraryConfiguration;
+    for (DexType type : conf.getWrapperConversions()) {
+      assert !conf.getCustomConversions().containsKey(type);
+      getTypeWrapper(type);
+    }
     Map<DexType, DexClass> synthesizedWrappers = new IdentityHashMap<>();
     List<DexProgramClass> additions = new ArrayList<>();
-    DesugaredLibraryConfiguration conf = appView.options().desugaredLibraryConfiguration;
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (conf.getCustomConversions().get(clazz.type) == null
-          && appView.rewritePrefix.hasRewrittenType(clazz.type, appView)
-          && canGenerateWrapper(clazz)) {
-        getTypeWrapper(clazz.type);
-      }
-    }
     int total = typeWrappers.size() + vivifiedTypeWrappers.size();
     generateWrappers(
         ClassKind.PROGRAM,
@@ -587,7 +493,7 @@ public class DesugaredLibraryWrapperSynthesizer {
         });
   }
 
-  void generateWrappers(
+  private void generateWrappers(
       ClassKind classKind,
       Set<DexType> synthesized,
       BiConsumer<DexType, DexClass> generatedCallback) {
