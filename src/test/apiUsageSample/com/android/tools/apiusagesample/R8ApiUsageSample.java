@@ -409,8 +409,9 @@ public class R8ApiUsageSample {
     try {
       R8.run(
           R8Command.builder(handler)
+              .setDisableTreeShaking(true)
               .setMinApiLevel(minApiLevel)
-              .setProgramConsumer(new R8ApiUsageSample.EnsureOutputConsumer())
+              .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs)
               .addAssertionsConfiguration(b -> b.setScopeAll().setEnable().build())
