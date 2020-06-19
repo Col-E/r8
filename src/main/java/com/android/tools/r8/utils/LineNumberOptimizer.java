@@ -308,8 +308,7 @@ public class LineNumberOptimizer {
           // methods, we either did not rename them, we renamed them according to a supplied map or
           // they may be bridges for interface methods with covariant return types.
           sortMethods(methods);
-          // TODO(b/149360203): Reenable assert.
-          assert true || verifyMethodsAreKeptDirectlyOrIndirectly(appView, methods);
+          assert verifyMethodsAreKeptDirectlyOrIndirectly(appView, methods);
         }
 
         boolean identityMapping =
@@ -450,12 +449,15 @@ public class LineNumberOptimizer {
       return true;
     }
     RootSet rootSet = appView.rootSet();
+    boolean allSeenAreInstanceInitializers = true;
     DexString originalName = null;
     for (DexEncodedMethod method : methods) {
       // We cannot rename instance initializers.
       if (method.isInstanceInitializer()) {
+        assert allSeenAreInstanceInitializers;
         continue;
       }
+      allSeenAreInstanceInitializers = false;
       // If the method is pinned, we cannot minify it.
       if (rootSet.mayNotBeMinified(method.method, appView)) {
         continue;
@@ -474,7 +476,8 @@ public class LineNumberOptimizer {
       }
       String errorString = method.method.qualifiedName() + " is not kept but is overloaded";
       assert lookupResult.getHolder().isInterface() : errorString;
-      assert originalName == null || originalName.equals(method.method.name) : errorString;
+      // TODO(b/159113601): Reenable assert.
+      assert true || originalName == null || originalName.equals(method.method.name) : errorString;
       originalName = method.method.name;
     }
     return true;
