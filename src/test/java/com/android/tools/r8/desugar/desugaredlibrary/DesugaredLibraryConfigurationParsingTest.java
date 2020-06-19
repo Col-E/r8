@@ -167,7 +167,7 @@ public class DesugaredLibraryConfigurationParsingTest extends TestBase {
         diagnostics ->
             diagnostics.assertErrorsMatch(
                 allOf(
-                    diagnosticMessage(containsString("upgrade the configuration file")),
+                    diagnosticMessage(containsString("upgrade the desugared library")),
                     diagnosticOrigin(origin))));
   }
 
