@@ -35,6 +35,13 @@ import java.util.Scanner;
 @Keep
 public class Retrace {
 
+  // This is a slight modification of the default regular expression shown for proguard retrace
+  // that allow for retracing classes in the form <class>: lorem ipsum...
+  // Seems like Proguard retrace is expecting the form "Caused by: <class>".
+  public static final String DEFAULT_REGULAR_EXPRESSION =
+      "(?:.*?\\bat\\s+%c\\.%m\\s*\\(%s(?::%l)?\\)\\s*(?:~\\[.*\\])?)"
+          + "|(?:(?:(?:%c|.*)?[:\"]\\s+)?%c(?::.*)?)";
+
   public static final String USAGE_MESSAGE =
       StringUtils.lines(
           "Usage: retrace <proguard-map> <stacktrace-file> [--regex <regexp>, --verbose, --info]",
@@ -45,6 +52,7 @@ public class Retrace {
     Builder builder = RetraceCommand.builder(diagnosticsHandler);
     boolean hasSetProguardMap = false;
     boolean hasSetStackTrace = false;
+    boolean hasSetRegularExpression = false;
     while (context.head() != null) {
       Boolean help = OptionsParsing.tryParseBoolean(context, "--help");
       if (help != null) {
@@ -63,6 +71,7 @@ public class Retrace {
       String regex = OptionsParsing.tryParseSingle(context, "--regex", "r");
       if (regex != null && !regex.isEmpty()) {
         builder.setRegularExpression(regex);
+        hasSetRegularExpression = true;
         continue;
       }
       if (!hasSetProguardMap) {
@@ -87,6 +96,9 @@ public class Retrace {
     }
     if (!hasSetStackTrace) {
       builder.setStackTrace(getStackTraceFromStandardInput());
+    }
+    if (!hasSetRegularExpression) {
+      builder.setRegularExpression(DEFAULT_REGULAR_EXPRESSION);
     }
     return builder;
   }

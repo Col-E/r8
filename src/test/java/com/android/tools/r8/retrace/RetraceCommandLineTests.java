@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.retrace;
 
-import static com.android.tools.r8.retrace.RetraceTests.DEFAULT_REGULAR_EXPRESSION;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
@@ -76,8 +75,7 @@ public class RetraceCommandLineTests {
         stackTrace.mapping(),
         StringUtils.joinLines(stackTrace.obfuscatedStackTrace()),
         false,
-        StringUtils.joinLines(stackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR,
-        "--regex=" + DEFAULT_REGULAR_EXPRESSION);
+        StringUtils.joinLines(stackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR);
   }
 
   @Test
@@ -88,7 +86,6 @@ public class RetraceCommandLineTests {
         StringUtils.joinLines(stackTrace.obfuscatedStackTrace()),
         false,
         StringUtils.joinLines(stackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR,
-        "--regex=" + DEFAULT_REGULAR_EXPRESSION,
         "--info");
   }
 
