@@ -23,6 +23,7 @@ import com.android.tools.r8.kotlin.metadata.typealias_lib.OuterNestedInner
 import com.android.tools.r8.kotlin.metadata.typealias_lib.OuterTester
 import com.android.tools.r8.kotlin.metadata.typealias_lib.SimpleClassTester
 import com.android.tools.r8.kotlin.metadata.typealias_lib.StillCWithConstructor
+import com.android.tools.r8.kotlin.metadata.typealias_lib.SubTypeOfAlias
 import com.android.tools.r8.kotlin.metadata.typealias_lib.UnderlyingTypeTester
 import com.android.tools.r8.kotlin.metadata.typealias_lib.UnusedTypeArgument
 import com.android.tools.r8.kotlin.metadata.typealias_lib.VerticalClassMergingTester
@@ -107,6 +108,10 @@ fun testVerticalClassMerging() {
   VerticalClassMergingTester.passThrough(apiImpl).foo()
 }
 
+fun testSuperType() {
+  println(SubTypeOfAlias::class.supertypes[0].classifier)
+}
+
 fun main() {
   val instance = ProgramClass()
   val l = seq(instance)
@@ -122,6 +127,7 @@ fun main() {
   testNestedClasses()
   testCompanion()
   testConstructor()
-  testUnderlyingType();
-  testVerticalClassMerging();
+  testUnderlyingType()
+  testVerticalClassMerging()
+  testSuperType()
 }

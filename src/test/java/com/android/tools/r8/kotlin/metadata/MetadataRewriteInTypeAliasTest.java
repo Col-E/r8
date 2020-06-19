@@ -58,7 +58,8 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
           "42",
           "42",
           "1",
-          "Hello World!");
+          "Hello World!",
+          "class com.android.tools.r8.kotlin.metadata.typealias_lib.Super");
 
   private final TestParameters parameters;
 
@@ -102,7 +103,8 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(
+            ToolHelper.getKotlinStdlibJar(), ToolHelper.getKotlinReflectJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".typealias_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -110,9 +112,11 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
 
   @Test
   public void testMetadataInTypeAlias_renamed() throws Exception {
+    String superTypeName = "com.android.tools.r8.kotlin.metadata.typealias_lib.Super";
+    String renamedSuperTypeName = "com.android.tools.r8.kotlin.metadata.typealias_lib.FooBar";
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(), ToolHelper.getKotlinReflectJar())
             .addProgramFiles(typeAliasLibJarMap.get(targetVersion))
             // Keep non-private members of Impl
             .addKeepRules("-keep class **.Impl { !private *; }")
@@ -128,6 +132,8 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
             // Keep the library test methods
             .addKeepRules("-keep class " + PKG + ".typealias_lib.*Tester { *; }")
             .addKeepRules("-keep class " + PKG + ".typealias_lib.*Tester$Companion { *; }")
+            .addKeepRules("-keep class " + PKG + ".typealias_lib.SubTypeOfAlias { *; }")
+            .addApplyMapping(superTypeName + " -> " + renamedSuperTypeName + ":")
             .addKeepAttributes(
                 ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
                 ProguardKeepAttributes.SIGNATURE,
@@ -144,10 +150,11 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(
+            ToolHelper.getKotlinStdlibJar(), ToolHelper.getKotlinReflectJar(), libJar)
         .addClasspath(appJar)
         .run(parameters.getRuntime(), PKG + ".typealias_app.MainKt")
-        .assertSuccessWithOutput(EXPECTED);
+        .assertSuccessWithOutput(EXPECTED.replace(superTypeName, renamedSuperTypeName));
   }
 
   private void inspect(CodeInspector inspector) {

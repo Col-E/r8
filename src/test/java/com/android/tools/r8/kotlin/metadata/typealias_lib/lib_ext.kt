@@ -420,6 +420,11 @@ class UnderlyingTypeTester {
     fun i(a : MyAdvancedMap) : MutableMap<OuterNested, OuterNestedInner> {
       return a;
     }
-
   }
 }
+
+open class Super
+
+typealias TypeAliasForSuper = Super
+
+class SubTypeOfAlias : TypeAliasForSuper()
