@@ -162,7 +162,7 @@ def Main():
 
   gradle_args = ['--stacktrace']
   if utils.is_bot():
-    # Bots don't like dangling processes
+    # Bots don't like dangling processes.
     gradle_args.append('--no-daemon')
 
   # Set all necessary Gradle properties and options first.
