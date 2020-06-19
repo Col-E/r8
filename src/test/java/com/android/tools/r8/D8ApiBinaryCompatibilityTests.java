@@ -37,7 +37,7 @@ public class D8ApiBinaryCompatibilityTests extends TestBase {
 
   @Test
   public void testCompatibility() throws IOException {
-    Path jar = Paths.get("tests", "d8_api_usage_sample.jar");
+    Path jar = ToolHelper.API_SAMPLE_JAR;
     String main = "com.android.tools.apiusagesample.D8ApiUsageSample";
     int minApiLevel = AndroidApiLevel.K.getLevel();
 

@@ -25,7 +25,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class R8ApiBinaryCompatibilityTests extends TestBase {
 
-  static final Path JAR = Paths.get("tests", "r8_api_usage_sample.jar");
+  static final Path JAR = ToolHelper.API_SAMPLE_JAR;
   static final String MAIN = "com.android.tools.apiusagesample.R8ApiUsageSample";
   static final AndroidApiLevel MIN_API = AndroidApiLevel.K;
 

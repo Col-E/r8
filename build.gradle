@@ -1050,12 +1050,6 @@ task buildCfSegments(type: Jar, dependsOn: downloadDeps) {
     destinationDir file('build/libs')
 }
 
-task buildD8ApiUsageSample(type: Jar) {
-    from sourceSets.apiUsageSample.output
-    baseName 'd8_api_usage_sample'
-    destinationDir file('tests')
-}
-
 task buildR8ApiUsageSample(type: Jar) {
     from sourceSets.apiUsageSample.output
     baseName 'r8_api_usage_sample'
@@ -1063,7 +1057,6 @@ task buildR8ApiUsageSample(type: Jar) {
 }
 
 task buildApiSampleJars {
-    dependsOn buildD8ApiUsageSample
     dependsOn buildR8ApiUsageSample
 }
 
