@@ -1195,20 +1195,16 @@ public class IRConverter {
       timing.end();
     }
 
-    if (method.isProcessed()) {
-      // We loose locals information when processing dex code, so if in debug mode only process
-      // synthesized methods.
-      // TODO(b/158818229): Check if the synthesized check is needed.
-      assert !isDebugMode || method.isD8R8Synthesized();
-      assert !appView.enableWholeProgramOptimizations()
-          || !appView.appInfo().withLiveness().neverReprocess.contains(method.method);
-    } else {
-      if (lambdaRewriter != null) {
-        timing.begin("Desugar lambdas");
-        lambdaRewriter.desugarLambdas(code);
-        timing.end();
-        assert code.isConsistentSSA();
-      }
+    assert !method.isProcessed() || !isDebugMode;
+    assert !method.isProcessed()
+        || !appView.enableWholeProgramOptimizations()
+        || !appView.appInfo().withLiveness().neverReprocess.contains(method.method);
+
+    if (!method.isProcessed() && lambdaRewriter != null) {
+      timing.begin("Desugar lambdas");
+      lambdaRewriter.desugarLambdas(code);
+      timing.end();
+      assert code.isConsistentSSA();
     }
 
     if (lambdaMerger != null) {

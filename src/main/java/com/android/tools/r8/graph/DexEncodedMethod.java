@@ -1312,7 +1312,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       accessFlags = from.accessFlags.copy();
       annotations = from.annotations();
       code = from.code;
-      compilationState = from.compilationState;
+      compilationState = CompilationState.NOT_PROCESSED;
       optimizationInfo = from.optimizationInfo.mutableCopy();
       kotlinMemberInfo = from.kotlinMemberInfo;
       classFileVersion = from.classFileVersion;
