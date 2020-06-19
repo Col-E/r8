@@ -25,6 +25,8 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -559,6 +561,26 @@ public class R8ApiUsageSample {
   }
 
   private static void checkVersionApi() {
+    String labelValue;
+    int labelAccess;
+    try {
+      Field field = Version.class.getDeclaredField("LABEL");
+      labelAccess = field.getModifiers();
+      labelValue = (String) field.get(Version.class);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    if (!Modifier.isPublic(labelAccess)
+        || !Modifier.isStatic(labelAccess)
+        || !Modifier.isFinal(labelAccess)) {
+      throw new RuntimeException("Expected public static final LABEL");
+    }
+    if (labelValue.isEmpty()) {
+      throw new RuntimeException("Expected LABEL constant");
+    }
+    if (Version.LABEL.isEmpty()) {
+      throw new RuntimeException("Expected LABEL constant");
+    }
     if (Version.getVersionString() == null) {
       throw new RuntimeException("Expected getVersionString API");
     }

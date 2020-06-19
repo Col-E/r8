@@ -10,6 +10,7 @@
 -keep public class com.android.tools.r8.ExtractMarker { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.dexsplitter.DexSplitter { public static void main(java.lang.String[]); }
 
+-keep public class com.android.tools.r8.Version { public static final java.lang.String LABEL; }
 -keep public class com.android.tools.r8.Version { public static java.lang.String getVersionString(); }
 -keep public class com.android.tools.r8.Version { public static int getMajorVersion(); }
 -keep public class com.android.tools.r8.Version { public static int getMinorVersion(); }
