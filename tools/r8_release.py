@@ -22,6 +22,7 @@ R8_VERSION_FILE = os.path.join(
     'src', 'main', 'java', 'com', 'android', 'tools', 'r8', 'Version.java')
 THIS_FILE_RELATIVE = os.path.join('tools', 'r8_release.py')
 ADMRT = '/google/data/ro/teams/android-devtools-infra/tools/admrt'
+GMAVEN_PUBLISHER = '/google/bin/releases/android-devtools/gmaven/publisher/gmaven-publisher'
 
 DESUGAR_JDK_LIBS = 'desugar_jdk_libs'
 DESUGAR_JDK_LIBS_CONFIGURATION = DESUGAR_JDK_LIBS + '_configuration'
@@ -222,6 +223,34 @@ Test: TARGET_PRODUCT=aosp_arm64 m -j core-oj"""
 
   return release_aosp
 
+
+def prepare_maven(args):
+  assert args.version
+
+  def release_maven(options):
+    release_id = gmaven_publisher_stage(args)
+
+    print ("Staged Release ID " + release_id + ". To test the staged content "
+           " with 'redir' run:")
+    print ("/google/data/ro/teams/android-devtools-infra/tools/redir "
+           + "--alsologtostderr "
+           + "--gcs_bucket_path=/studio_staging/maven2/${USER}/"
+           + release_id + " "
+           + "--port=1480")
+
+    print
+    input = raw_input("Continue with publishing [y/N]:")
+
+    if input != 'y':
+      print 'Aborting release to Google maven'
+      sys.exit(1)
+
+    gmaven_publisher_publish(args, release_id)
+
+    print
+    print "Published. Use the email workflow for approval."
+
+  return release_maven
 
 def git_message_dev(version):
   return """Update D8 R8 master to %s
@@ -436,6 +465,49 @@ def extract_version_from_pom(pom_file):
     tree.parse(pom_file)
     return tree.getroot().find("{%s}version" % ns).text
 
+def gmaven_publisher_gfile(args):
+  return '/bigstore/r8-releases/raw/%s/r8lib.zip' % args.version
+
+GMAVEN_PUBLISH_STAGE_RELEASE_ID_PATTERN = re.compile('Release ID = ([0-9a-f\-]+)')
+
+def gmaven_publisher_stage(args):
+  gfile = gmaven_publisher_gfile(args)
+  if args.dry_run:
+    print 'Dry-run, would have staged %s' % gfile
+    return 'dry-run-release-id'
+
+  print "Staging '%s'" % gfile
+  print
+
+  cmd = [GMAVEN_PUBLISHER, 'stage', '--gfile', gfile]
+  output = subprocess.check_output(cmd)
+
+  # Expect output to contain:
+  # [INFO] 06/19/2020 09:35:12 CEST: >>>>>>>>>> Staged
+  # [INFO] 06/19/2020 09:35:12 CEST: Release ID = 9171d015-18f6-4a90-9984-1c362589dc1b
+  # [INFO] 06/19/2020 09:35:12 CEST: Stage Path = /bigstore/studio_staging/maven2/sgjesse/9171d015-18f6-4a90-9984-1c362589dc1b
+
+  matches = GMAVEN_PUBLISH_STAGE_RELEASE_ID_PATTERN.findall(output)
+  if matches == None or len(matches) > 1:
+    print ("Could not determine the release ID from the gmaven_publisher " +
+           "output. Expected a line with 'Release ID = <release id>'.")
+    print "Output was:"
+    print output
+    sys.exit(1)
+
+  print output
+
+  release_id = matches[0]
+  return release_id
+
+def gmaven_publisher_publish(args, release_id):
+  gfile = gmaven_publisher_gfile(args)
+  if args.dry_run:
+    print 'Dry-run, would have published %s' % release_id
+    return
+
+  cmd = [GMAVEN_PUBLISHER, 'publish', release_id]
+  output = subprocess.check_output(cmd)
 
 def admrt_stage(archives, artifact_ids, args):
   if args.dry_run:
@@ -658,6 +730,10 @@ def parse_options():
                       metavar=('<path>'),
                       help='Release for aosp by setting the path to the '
                            'checkout')
+  result.add_argument('--maven',
+                      default=False,
+                      action='store_true',
+                      help='Release to Google Maven')
   result.add_argument('--google3',
                       default=False,
                       action='store_true',
@@ -683,8 +759,12 @@ def parse_options():
                       metavar=('<path>'),
                       help='Location for dry run output.')
   args = result.parse_args()
-  if args.version and not 'dev' in args.version and args.bug == []:
-    print "When releasing a release version add the list of bugs by using '--bug'"
+  if (args.studio
+      and args.version
+      and not 'dev' in args.version
+      and args.bug == []):
+    print ("When releasing a release version to Android Studio add the "
+           + "list of bugs by using '--bug'")
     sys.exit(1)
 
   if args.version and not 'dev' in args.version and args.google3:
@@ -711,6 +791,7 @@ def main():
     targets_to_run.append(prepare_release(args))
 
   if (args.google3
+      or args.maven
       or (args.studio and not args.no_sync)
       or (args.desugar_library and not args.dry_run)):
     utils.check_prodacces()
@@ -721,6 +802,8 @@ def main():
     targets_to_run.append(prepare_studio(args))
   if args.aosp:
     targets_to_run.append(prepare_aosp(args))
+  if args.maven:
+    targets_to_run.append(prepare_maven(args))
 
   if args.desugar_library:
     targets_to_run.append(prepare_desugar_library(args))
