@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import static com.android.tools.r8.utils.FileUtils.isArchive;
-
 import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
@@ -50,6 +48,14 @@ public class CompileDumpCompatR8 {
 
   private static final List<String> VALID_OPTIONS_WITH_TWO_OPERANDS =
       Arrays.asList("--feature-jar");
+
+  private static boolean FileUtils_isArchive(Path path) {
+    String name = path.getFileName().toString().toLowerCase();
+    return name.endsWith(".apk")
+        || name.endsWith(".jar")
+        || name.endsWith(".zip")
+        || name.endsWith(".aar");
+  }
 
   public static void main(String[] args) throws CompilationFailedException {
     boolean isCompatMode = false;
@@ -134,7 +140,7 @@ public class CompileDumpCompatR8 {
             {
               Path featureIn = Paths.get(firstOperand);
               Path featureOut = Paths.get(secondOperand);
-              if (!isArchive(featureIn)) {
+              if (!FileUtils_isArchive(featureIn)) {
                 throw new IllegalArgumentException(
                     "Expected an archive, got `" + featureIn.toString() + "`.");
               }
