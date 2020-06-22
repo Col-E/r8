@@ -71,7 +71,29 @@ public class RetraceCommandLineTests {
   }
 
   @Test
+  public void testVerboseSingleHyphen() throws IOException {
+    FoundMethodVerboseStackTrace stackTrace = new FoundMethodVerboseStackTrace();
+    // TODO(b/159562137): Add proper support for -verbose when using regexp.
+    runTestNotEquals(
+        stackTrace.mapping(),
+        StringUtils.joinLines(stackTrace.obfuscatedStackTrace()),
+        false,
+        StringUtils.joinLines(stackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR,
+        "-verbose");
+  }
+
+  @Test
   public void testRegularExpression() throws IOException {
+    ActualRetraceBotStackTrace stackTrace = new ActualRetraceBotStackTrace();
+    runTest(
+        stackTrace.mapping(),
+        StringUtils.joinLines(stackTrace.obfuscatedStackTrace()),
+        false,
+        StringUtils.joinLines(stackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR);
+  }
+
+  @Test
+  public void testRegularExpressionSingleHyphen() throws IOException {
     ActualRetraceBotStackTrace stackTrace = new ActualRetraceBotStackTrace();
     runTest(
         stackTrace.mapping(),

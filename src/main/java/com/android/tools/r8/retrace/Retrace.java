@@ -168,13 +168,30 @@ public class Retrace {
   }
 
   public static void run(String[] args) {
+    // To be compatible with standard retrace and remapper, we translate -arg into --arg.
+    String[] mappedArgs = new String[args.length];
+    boolean printInfo = false;
+    for (int i = 0; i < args.length; i++) {
+      String arg = args[i];
+      if (arg == null || arg.length() < 2) {
+        mappedArgs[i] = arg;
+        continue;
+      }
+      if (arg.charAt(0) == '-' && arg.charAt(1) != '-') {
+        mappedArgs[i] = "-" + arg;
+      } else {
+        mappedArgs[i] = arg;
+      }
+      if (mappedArgs[i].equals("--info")) {
+        printInfo = true;
+      }
+    }
     RetraceDiagnosticsHandler retraceDiagnosticsHandler =
-        new RetraceDiagnosticsHandler(
-            new DiagnosticsHandler() {}, Arrays.asList(args).contains("--info"));
-    Builder builder = parseArguments(args, retraceDiagnosticsHandler);
+        new RetraceDiagnosticsHandler(new DiagnosticsHandler() {}, printInfo);
+    Builder builder = parseArguments(mappedArgs, retraceDiagnosticsHandler);
     if (builder == null) {
       // --help was an argument to list
-      assert Arrays.asList(args).contains("--help");
+      assert Arrays.asList(mappedArgs).contains("--help");
       System.out.print(USAGE_MESSAGE);
       return;
     }
