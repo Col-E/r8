@@ -427,6 +427,7 @@ def x20Dependencies = [
         "proguardsettings",
         "proto",
         "protobuf-lite",
+        "retrace_internal",
         "youtube/youtube.android_12.10",
         "youtube/youtube.android_12.17",
         "youtube/youtube.android_12.22",
