@@ -390,7 +390,8 @@ public class RetraceRegularExpression {
   }
 
   // TODO(b/145731185): Extend support for identifiers with strings inside back ticks.
-  private static final String javaIdentifierSegment = "[\\p{L}\\p{N}_\\p{Sc}]+";
+  private static final String javaIdentifierSegment =
+      "\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*";
 
   private abstract static class ClassNameGroup extends RegularExpressionGroup {
 

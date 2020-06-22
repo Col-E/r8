@@ -10,7 +10,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.internal.retrace.stacktraces.CoreStackTrace;
 import com.android.tools.r8.internal.retrace.stacktraces.CronetStackTrace;
 import com.android.tools.r8.internal.retrace.stacktraces.FinskyStackTrace;
 import com.android.tools.r8.internal.retrace.stacktraces.VelvetStackTrace;
@@ -20,7 +19,6 @@ import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
 import java.util.List;
 import java.util.function.BiConsumer;
 import junit.framework.TestCase;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,12 +47,6 @@ public class RetraceTests extends TestBase {
   @Test
   public void testVelvetStackTrace() {
     runRetraceTest(new VelvetStackTrace());
-  }
-
-  @Test
-  public void testCoreStackTrace() {
-    // TODO(b/159420576): Figure out why we cannot retrace this.
-    runRetraceTest(new CoreStackTrace(), DEFAULT_REGULAR_EXPRESSION, Assert::assertNotEquals);
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {
