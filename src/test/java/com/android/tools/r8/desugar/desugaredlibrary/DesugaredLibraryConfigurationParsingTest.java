@@ -141,7 +141,6 @@ public class DesugaredLibraryConfigurationParsingTest extends TestBase {
             "version",
             "required_compilation_api_level",
             "synthesized_library_classes_package_prefix",
-            "common_flags",
             "program_flags",
             "library_flags");
     for (String key : requiredKeys) {
@@ -159,9 +158,9 @@ public class DesugaredLibraryConfigurationParsingTest extends TestBase {
   }
 
   @Test
-  public void testUnsupportedBelow() {
+  public void testUnsupportedFormatMissingFlags() {
     LinkedHashMap<String, Object> data = template();
-    data.put("configuration_format_version", 4);
+    data.remove("common_flags");
     runFailing(
         toJson(data),
         diagnostics ->

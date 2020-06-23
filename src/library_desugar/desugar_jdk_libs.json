@@ -1,51 +1,19 @@
 {
-  "configuration_format_version": 5,
+  "configuration_format_version": 3,
   "group_id" : "com.tools.android",
   "artifact_id" : "desugar_jdk_libs",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "required_compilation_api_level": 26,
   "synthesized_library_classes_package_prefix": "j$.",
   "common_flags": [
     {
       "api_level_below_or_equal": 25,
-      "custom_conversion": {
-        "java.time.ZonedDateTime": "java.time.TimeConversions",
-        "java.time.LocalDate": "java.time.TimeConversions",
-        "java.time.Duration": "java.time.TimeConversions",
-        "java.time.ZoneId": "java.time.TimeConversions",
-        "java.time.MonthDay": "java.time.TimeConversions",
-        "java.time.Instant": "java.time.TimeConversions"
-      },
       "wrapper_conversion": [
         "java.time.Clock"
       ]
     },
     {
       "api_level_below_or_equal": 23,
-      "dont_rewrite": [
-        "java.util.Iterator#remove"
-      ],
-      "emulate_interface": {
-        "java.lang.Iterable": "j$.lang.Iterable",
-        "java.util.Map$Entry": "j$.util.Map$Entry",
-        "java.util.Collection": "j$.util.Collection",
-        "java.util.Map": "j$.util.Map",
-        "java.util.Iterator": "j$.util.Iterator",
-        "java.util.Comparator": "j$.util.Comparator",
-        "java.util.List": "j$.util.List",
-        "java.util.SortedSet": "j$.util.SortedSet",
-        "java.util.Set": "j$.util.Set",
-        "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
-      },
-      "custom_conversion": {
-        "java.util.Optional": "java.util.OptionalConversions",
-        "java.util.OptionalDouble": "java.util.OptionalConversions",
-        "java.util.OptionalInt": "java.util.OptionalConversions",
-        "java.util.OptionalLong": "java.util.OptionalConversions",
-        "java.util.LongSummaryStatistics": "java.util.LongSummaryStatisticsConversions",
-        "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",
-        "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions"
-      },
       "wrapper_conversion": [
         "java.util.PrimitiveIterator$OfDouble",
         "java.util.PrimitiveIterator$OfInt",
@@ -117,6 +85,14 @@
       "retarget_lib_member": {
         "java.util.Date#toInstant": "java.util.DesugarDate",
         "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar"
+      },
+      "custom_conversion": {
+        "java.time.ZonedDateTime": "java.time.TimeConversions",
+        "java.time.LocalDate": "java.time.TimeConversions",
+        "java.time.Duration": "java.time.TimeConversions",
+        "java.time.ZoneId": "java.time.TimeConversions",
+        "java.time.MonthDay": "java.time.TimeConversions",
+        "java.time.Instant": "java.time.TimeConversions"
       }
     },
     {
@@ -148,6 +124,30 @@
         "java.util.Arrays#stream": "java.util.DesugarArrays",
         "java.util.Arrays#spliterator": "java.util.DesugarArrays",
         "java.util.LinkedHashSet#spliterator": "java.util.DesugarLinkedHashSet"
+      },
+      "dont_rewrite": [
+        "java.util.Iterator#remove"
+      ],
+      "emulate_interface": {
+        "java.lang.Iterable": "j$.lang.Iterable",
+        "java.util.Map$Entry": "j$.util.Map$Entry",
+        "java.util.Collection": "j$.util.Collection",
+        "java.util.Map": "j$.util.Map",
+        "java.util.Iterator": "j$.util.Iterator",
+        "java.util.Comparator": "j$.util.Comparator",
+        "java.util.List": "j$.util.List",
+        "java.util.SortedSet": "j$.util.SortedSet",
+        "java.util.Set": "j$.util.Set",
+        "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
+      },
+      "custom_conversion": {
+        "java.util.Optional": "java.util.OptionalConversions",
+        "java.util.OptionalDouble": "java.util.OptionalConversions",
+        "java.util.OptionalInt": "java.util.OptionalConversions",
+        "java.util.OptionalLong": "java.util.OptionalConversions",
+        "java.util.LongSummaryStatistics": "java.util.LongSummaryStatisticsConversions",
+        "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",
+        "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions"
       }
     }
   ],
@@ -164,6 +164,14 @@
         "java.util.Date#toInstant": "java.util.DesugarDate",
         "java.util.GregorianCalendar#from": "java.util.DesugarGregorianCalendar",
         "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar"
+      },
+      "custom_conversion": {
+        "java.time.ZonedDateTime": "java.time.TimeConversions",
+        "java.time.LocalDate": "java.time.TimeConversions",
+        "java.time.Duration": "java.time.TimeConversions",
+        "java.time.ZoneId": "java.time.TimeConversions",
+        "java.time.MonthDay": "java.time.TimeConversions",
+        "java.time.Instant": "java.time.TimeConversions"
       }
     },
     {
@@ -200,6 +208,30 @@
         "java.util.concurrent.atomic.AtomicReference#accumulateAndGet": "java.util.concurrent.atomic.DesugarAtomicReference",
         "java.util.Collections#synchronizedMap": "java.util.DesugarCollections",
         "java.util.Collections#synchronizedSortedMap": "java.util.DesugarCollections"
+      },
+      "dont_rewrite": [
+        "java.util.Iterator#remove"
+      ],
+      "emulate_interface": {
+        "java.lang.Iterable": "j$.lang.Iterable",
+        "java.util.Map$Entry": "j$.util.Map$Entry",
+        "java.util.Collection": "j$.util.Collection",
+        "java.util.Map": "j$.util.Map",
+        "java.util.Iterator": "j$.util.Iterator",
+        "java.util.Comparator": "j$.util.Comparator",
+        "java.util.List": "j$.util.List",
+        "java.util.SortedSet": "j$.util.SortedSet",
+        "java.util.Set": "j$.util.Set",
+        "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
+      },
+      "custom_conversion": {
+        "java.util.Optional": "java.util.OptionalConversions",
+        "java.util.OptionalDouble": "java.util.OptionalConversions",
+        "java.util.OptionalInt": "java.util.OptionalConversions",
+        "java.util.OptionalLong": "java.util.OptionalConversions",
+        "java.util.LongSummaryStatistics": "java.util.LongSummaryStatisticsConversions",
+        "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",
+        "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions"
       }
     }
   ],
