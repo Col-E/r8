@@ -8,6 +8,7 @@ import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.androidapi.AvailableApiExceptions;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -64,6 +65,7 @@ import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -978,6 +980,16 @@ public class Inliner implements PostOptimization {
           ProgramMethod singleTarget = oracle.lookupSingleTarget(invoke, context);
           if (singleTarget == null) {
             WhyAreYouNotInliningReporter.handleInvokeWithUnknownTarget(invoke, appView, context);
+            continue;
+          }
+
+          OptionalBool methodAccessible =
+              AccessControl.isMethodAccessible(
+                  singleTarget.getDefinition(),
+                  singleTarget.getHolder().asDexClass(),
+                  context.getHolder(),
+                  appView.withClassHierarchy().appInfo());
+          if (!methodAccessible.isTrue()) {
             continue;
           }
 

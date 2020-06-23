@@ -4,13 +4,10 @@
 
 package com.android.tools.r8.regress.b158429654;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.regress.b158429654.innerpackage.InnerClass;
-import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,9 +26,7 @@ public class InliningNonAccessible extends TestBase {
   }
 
   @Test
-  public void testCompileToInvalidFileD8()
-      throws CompilationFailedException, IOException, ExecutionException {
-
+  public void testCompileToInvalidFileD8() throws Exception {
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(OuterAbstract.class, OuterImpl.class, InnerClass.class)
@@ -39,8 +34,7 @@ public class InliningNonAccessible extends TestBase {
         .addKeepMainRule(Main.class)
         .noMinification()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/158429654): should succeed.
-        .assertFailure();
+        .assertSuccessWithOutputLines("42");
   }
 
   static class Main {
@@ -48,6 +42,7 @@ public class InliningNonAccessible extends TestBase {
       OuterImpl.register(args);
       InnerClass inner = new InnerClass();
       inner.foobar();
+      System.out.println("42");
     }
   }
 }

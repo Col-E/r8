@@ -9,6 +9,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.google.common.base.Predicates.alwaysFalse;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -58,6 +59,7 @@ import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
@@ -307,6 +309,13 @@ final class InlineCandidateProcessor {
             return user; // Not eligible.
           }
 
+          OptionalBool methodAccessible =
+              AccessControl.isMethodAccessible(
+                  singleTargetMethod, singleTarget.getHolder().asDexClass(), method, appView);
+
+          if (!methodAccessible.isTrue()) {
+            return user; // Not eligible.
+          }
           // Eligible constructor call (for new instance roots only).
           if (user.isInvokeDirect()) {
             InvokeDirect invoke = user.asInvokeDirect();
