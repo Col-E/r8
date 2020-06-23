@@ -21,7 +21,6 @@ R8_DEV_BRANCH = '2.2'
 R8_VERSION_FILE = os.path.join(
     'src', 'main', 'java', 'com', 'android', 'tools', 'r8', 'Version.java')
 THIS_FILE_RELATIVE = os.path.join('tools', 'r8_release.py')
-ADMRT = '/google/data/ro/teams/android-devtools-infra/tools/admrt'
 GMAVEN_PUBLISHER = '/google/bin/releases/android-devtools/gmaven/publisher/gmaven-publisher'
 
 DESUGAR_JDK_LIBS = 'desugar_jdk_libs'
@@ -228,15 +227,12 @@ def prepare_maven(args):
   assert args.version
 
   def release_maven(options):
-    release_id = gmaven_publisher_stage(args)
+    gfile = '/bigstore/r8-releases/raw/%s/r8lib.zip' % args.version
+    release_id = gmaven_publisher_stage(options, [gfile])
 
-    print ("Staged Release ID " + release_id + ". To test the staged content "
-           " with 'redir' run:")
-    print ("/google/data/ro/teams/android-devtools-infra/tools/redir "
-           + "--alsologtostderr "
-           + "--gcs_bucket_path=/studio_staging/maven2/${USER}/"
-           + release_id + " "
-           + "--port=1480")
+    print "Staged Release ID " + release_id + ".\n"
+    gmaven_publisher_stage_redir_test_info(
+        release_id, "com.android.tools:r8:%s" % args.version, "r8lib.jar")
 
     print
     input = raw_input("Continue with publishing [y/N]:")
@@ -326,6 +322,14 @@ def download_file(version, file, dst):
       ('https://storage.googleapis.com/r8-releases/raw/%s/%s' % (version, file)),
       dst)
 
+def download_gfile(gfile, dst):
+  if not gfile.startswith('/bigstore/r8-releases'):
+    print 'Unexpected gfile prefix for %s' % gfile
+    sys.exit(1)
+
+  urllib.urlretrieve(
+      'https://storage.googleapis.com/%s' % gfile[len('/bigstore/'):],
+      dst)
 
 def blaze_run(target):
   return subprocess.check_output(
@@ -385,46 +389,52 @@ def prepare_desugar_library(args):
 
   def make_release(args):
     library_version = args.desugar_library[0]
-    configuration_hash = args.desugar_library[1]
+    configuration_version = args.desugar_library[1]
 
     library_archive = DESUGAR_JDK_LIBS + '.zip'
+    library_jar = DESUGAR_JDK_LIBS + '.jar'
     library_artifact_id = \
         '%s:%s:%s' % (ANDROID_TOOLS_PACKAGE, DESUGAR_JDK_LIBS, library_version)
 
+    configuration_archive = DESUGAR_JDK_LIBS_CONFIGURATION + '.zip'
+
     with utils.TempDir() as temp:
       with utils.ChangedWorkingDirectory(temp):
-        download_file(
-          '%s/%s' % (DESUGAR_JDK_LIBS, library_version),
-          library_archive,
-          library_archive)
-        configuration_archive = DESUGAR_JDK_LIBS_CONFIGURATION + '.zip'
-        configuration_artifact_id = \
-            download_configuration(configuration_hash, configuration_archive)
+        library_gfile = ('/bigstore/r8-releases/raw/%s/%s/%s'
+              % (DESUGAR_JDK_LIBS, library_version, library_archive))
+        configuration_gfile = ('/bigstore/r8-releases/raw/master/%s/%s'
+              % (configuration_version, configuration_archive))
 
-        print 'Preparing maven release of:'
-        print '  %s' % library_artifact_id
-        print '  %s' % configuration_artifact_id
+        download_gfile(library_gfile, library_archive)
+        download_gfile(configuration_gfile, configuration_archive)
+        check_configuration(configuration_archive)
+
+        release_id = gmaven_publisher_stage(
+            args, [library_gfile, configuration_gfile])
+
+        print "Staged Release ID " + release_id + ".\n"
+        gmaven_publisher_stage_redir_test_info(
+            release_id,
+            "com.android.tools:%s:%s" % (DESUGAR_JDK_LIBS, library_version),
+            library_jar)
+
         print
+        input = raw_input("Continue with publishing [y/N]:")
 
-        admrt_stage(
-          [library_archive, configuration_archive],
-          [library_artifact_id, configuration_artifact_id],
-          args)
+        if input != 'y':
+          print 'Aborting release to Google maven'
+          sys.exit(1)
 
-        admrt_lorry(
-          [library_archive, configuration_archive],
-          [library_artifact_id, configuration_artifact_id],
-          args)
+        gmaven_publisher_publish(args, release_id)
+
+        print
+        print "Published. Use the email workflow for approval."
 
   return make_release
 
 
-def download_configuration(hash, archive):
-  print
-  print 'Downloading %s from GCS' % archive
-  print
-  download_file('master/' + hash, archive, archive)
-  zip = zipfile.ZipFile(archive)
+def check_configuration(configuration_archive):
+  zip = zipfile.ZipFile(configuration_archive)
   zip.extractall()
   dirs = os.listdir(
     os.path.join('com', 'android', 'tools', DESUGAR_JDK_LIBS_CONFIGURATION))
@@ -444,9 +454,6 @@ def download_configuration(hash, archive):
   if version != version_from_pom:
     print 'Version mismatch, %s != %s' % (version, version_from_pom)
     sys.exit(1)
-  return '%s:%s:%s' % \
-      (ANDROID_TOOLS_PACKAGE, DESUGAR_JDK_LIBS_CONFIGURATION, version)
-
 
 def check_no_google3_client(args, client_name):
   if not args.use_existing_work_branch:
@@ -465,21 +472,19 @@ def extract_version_from_pom(pom_file):
     tree.parse(pom_file)
     return tree.getroot().find("{%s}version" % ns).text
 
-def gmaven_publisher_gfile(args):
-  return '/bigstore/r8-releases/raw/%s/r8lib.zip' % args.version
 
 GMAVEN_PUBLISH_STAGE_RELEASE_ID_PATTERN = re.compile('Release ID = ([0-9a-f\-]+)')
 
-def gmaven_publisher_stage(args):
-  gfile = gmaven_publisher_gfile(args)
+
+def gmaven_publisher_stage(args, gfiles):
   if args.dry_run:
-    print 'Dry-run, would have staged %s' % gfile
+    print 'Dry-run, would have staged %s' % gfiles
     return 'dry-run-release-id'
 
-  print "Staging '%s'" % gfile
+  print "Staging: %s" % ', '.join(gfiles)
   print
 
-  cmd = [GMAVEN_PUBLISHER, 'stage', '--gfile', gfile]
+  cmd = [GMAVEN_PUBLISHER, 'stage', '--gfile', ','.join(gfiles)]
   output = subprocess.check_output(cmd)
 
   # Expect output to contain:
@@ -500,77 +505,46 @@ def gmaven_publisher_stage(args):
   release_id = matches[0]
   return release_id
 
+
+def gmaven_publisher_stage_redir_test_info(release_id, artifact, dst):
+
+  redir_command = ("/google/data/ro/teams/android-devtools-infra/tools/redir "
+                 + "--alsologtostderr "
+                 + "--gcs_bucket_path=/studio_staging/maven2/${USER}/%s "
+                 + "--port=1480") % release_id
+
+  get_command = ("mvn org.apache.maven.plugins:maven-dependency-plugin:2.4:get "
+                + "-Dmaven.repo.local=/tmp/maven_repo_local "
+                + "-DremoteRepositories=http://localhost:1480 "
+                + "-Dartifact=%s "
+                + "-Ddest=%s") % (artifact, dst)
+
+  print """To test the staged content with 'redir' run:
+
+%s
+
+Add the following repository to gradle.build for using 'redir':
+
+repositories {
+  maven {
+    url 'http://localhost:1480'
+  }
+}
+
+Use this commands to get artifact from 'redir':
+
+rm -rf /tmp/maven_repo_local
+%s
+""" % (redir_command, get_command)
+
+
 def gmaven_publisher_publish(args, release_id):
-  gfile = gmaven_publisher_gfile(args)
   if args.dry_run:
     print 'Dry-run, would have published %s' % release_id
     return
 
   cmd = [GMAVEN_PUBLISHER, 'publish', release_id]
   output = subprocess.check_output(cmd)
-
-def admrt_stage(archives, artifact_ids, args):
-  if args.dry_run:
-    print 'Dry-run, just copying archives to %s' % args.dry_run_output
-    for archive in archives:
-      print 'Copying: %s' % archive
-      shutil.copyfile(archive, os.path.join(args.dry_run_output, archive))
-    return
-
-  admrt(archives, 'stage')
-
-  jdk9_home = os.path.join(
-      utils.REPO_ROOT, 'third_party', 'openjdk', 'openjdk-9.0.4', 'linux')
-  print
-  print "Use the following commands to test with 'redir':"
-  print
-  print 'export BUCKET_PATH=/studio_staging/maven2/<user>/<id>'
-  print '/google/data/ro/teams/android-devtools-infra/tools/redir \\'
-  print '  --alsologtostderr \\'
-  print '  --gcs_bucket_path=$BUCKET_PATH \\'
-  print '  --port=1480'
-  print
-  print 'The path for BUCKET_PATH has to be taken from the admrt info line:'
-  print '  INFO: Stage Available at: ...'
-  print '(without the /bigstore prefix).'
-  print
-  print "When the 'redir' server is running use the following commands"
-  print 'to retreive the artifact:'
-  print
-  print 'rm -rf /tmp/maven_repo_local'
-  print ('JAVA_HOME=%s ' % jdk9_home
-      + 'mvn org.apache.maven.plugins:maven-dependency-plugin:2.4:get \\')
-  print '  -Dmaven.repo.local=/tmp/maven_repo_local \\'
-  print '  -DremoteRepositories=http://localhost:1480 \\'
-  print '  -Dartifact=%s \\' % artifact_ids[0]
-  print '  -Ddest=%s' % archives[0]
-  print
-
-
-def admrt_lorry(archives, artifact_ids, args):
-  if args.dry_run:
-    print 'Dry run - no lorry action'
-    return
-
-  print
-  print 'Continue with running in lorry mode for release of:'
-  for artifact_id in artifact_ids:
-    print '  %s' % artifact_id
-  input = raw_input('[y/N]:')
-
-  if input != 'y':
-    print 'Aborting release to Google maven'
-    sys.exit(1)
-
-  admrt(archives, 'lorry')
-
-
-def admrt(archives, action):
-  cmd = [ADMRT, '--archives']
-  cmd.append(','.join(archives))
-  cmd.extend(['--action', action])
-  subprocess.check_call(cmd)
-
 
 def branch_change_diff(diff, old_version, new_version):
   invalid_line = None
