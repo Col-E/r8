@@ -17,7 +17,9 @@ import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.base.Charsets;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -210,7 +212,7 @@ public class Retrace {
   }
 
   private static List<String> getStackTraceFromStandardInput() {
-    Scanner sc = new Scanner(System.in);
+    Scanner sc = new Scanner(new InputStreamReader(System.in, Charsets.UTF_8));
     List<String> readLines = new ArrayList<>();
     while (sc.hasNext()) {
       readLines.add(sc.nextLine());
