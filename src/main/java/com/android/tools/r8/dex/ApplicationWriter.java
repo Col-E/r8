@@ -235,8 +235,8 @@ public class ApplicationWriter {
       proguardMapId = proguardMapSupplier.writeProguardMap();
     }
 
-    // If we do have a map then we're called from R8. In that case we have exactly one marker.
-    assert proguardMapId == null || (markers != null && markers.size() == 1);
+    // If we do have a map then we're called from R8. In that case we have at least one marker.
+    assert proguardMapId == null || (markers != null && markers.size() >= 1);
 
     if (markers != null && !markers.isEmpty()) {
       if (proguardMapId != null) {
