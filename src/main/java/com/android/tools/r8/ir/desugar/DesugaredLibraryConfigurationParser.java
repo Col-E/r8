@@ -10,6 +10,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.SemanticVersion;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -22,14 +23,7 @@ import java.util.Map;
 public class DesugaredLibraryConfigurationParser {
 
   public static final int MAX_SUPPORTED_VERSION = 4;
-
-  private static final String MIN_DESUGARED_LIBRARY_WITH_COMMON_FLAGS = "1.0.9";
-
-  private static final String UNSUPPORTED_MESSAGE =
-      "Unsupported desugared library version, please upgrade the"
-          + " desugared library to at least version "
-          + MIN_DESUGARED_LIBRARY_WITH_COMMON_FLAGS
-          + ".";
+  public static final SemanticVersion MIN_SUPPORTED_VERSION = new SemanticVersion(1, 0, 9);
 
   static final String CONFIGURATION_FORMAT_VERSION_KEY = "configuration_format_version";
   static final String VERSION_KEY = "version";
@@ -73,15 +67,11 @@ public class DesugaredLibraryConfigurationParser {
   }
 
   private JsonElement required(JsonObject json, String key) {
-    return required(
-        json,
-        key,
-        "Invalid desugared library configuration. " + "Expected required key '" + key + "'");
-  }
-
-  private JsonElement required(JsonObject json, String key, String message) {
     if (!json.has(key)) {
-      throw reporter.fatalError(new StringDiagnostic(message, origin));
+      throw reporter.fatalError(
+          new StringDiagnostic(
+              "Invalid desugared library configuration. Expected required key '" + key + "'",
+              origin));
     }
     return json.get(key);
   }
@@ -115,6 +105,18 @@ public class DesugaredLibraryConfigurationParser {
     }
 
     String version = required(jsonConfig, VERSION_KEY).getAsString();
+    SemanticVersion semanticVersion = SemanticVersion.parse(version);
+    if (!semanticVersion.isNewerOrEqual(MIN_SUPPORTED_VERSION)) {
+      throw reporter.fatalError(
+          new StringDiagnostic(
+              "Unsupported desugared library version: "
+                  + version
+                  + ", please upgrade the desugared library to at least version "
+                  + MIN_SUPPORTED_VERSION
+                  + ".",
+              origin));
+    }
+
     String groupID = required(jsonConfig, GROUP_ID_KEY).getAsString();
     String artifactID = required(jsonConfig, ARTIFACT_ID_KEY).getAsString();
     String identifier = String.join(":", groupID, artifactID, version);
@@ -126,7 +128,7 @@ public class DesugaredLibraryConfigurationParser {
         required(jsonConfig, REQUIRED_COMPILATION_API_LEVEL_KEY).getAsInt();
     configurationBuilder.setRequiredCompilationAPILevel(
         AndroidApiLevel.getAndroidApiLevel(required_compilation_api_level));
-    JsonElement commonFlags = required(jsonConfig, COMMON_FLAGS_KEY, UNSUPPORTED_MESSAGE);
+    JsonElement commonFlags = required(jsonConfig, COMMON_FLAGS_KEY);
     JsonElement libraryFlags = required(jsonConfig, LIBRARY_FLAGS_KEY);
     JsonElement programFlags = required(jsonConfig, PROGRAM_FLAGS_KEY);
     parseFlagsList(commonFlags.getAsJsonArray());
