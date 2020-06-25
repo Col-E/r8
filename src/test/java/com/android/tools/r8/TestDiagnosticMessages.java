@@ -34,6 +34,18 @@ public interface TestDiagnosticMessages {
 
   TestDiagnosticMessages assertErrorsCount(int count);
 
+  default TestDiagnosticMessages assertNoInfos() {
+    return assertInfosCount(0);
+  }
+
+  default TestDiagnosticMessages assertNoWarnings() {
+    return assertWarningsCount(0);
+  }
+
+  default TestDiagnosticMessages assertNoErrors() {
+    return assertErrorsCount(0);
+  }
+
   // Match exact.
 
   default TestDiagnosticMessages assertDiagnosticsMatch(Matcher<Diagnostic> matcher) {

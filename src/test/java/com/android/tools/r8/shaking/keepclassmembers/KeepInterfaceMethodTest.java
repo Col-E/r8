@@ -40,6 +40,7 @@ public class KeepInterfaceMethodTest extends TestBase {
   @Test
   public void testIProguard() throws CompilationFailedException, IOException, ExecutionException {
     testForProguard()
+        // TODO(b/159694276): Run the resulting code on runtime.
         .addProgramClasses(I.class)
         .addKeepRules(
             "-keepclassmembers class " + I.class.getTypeName() + " { void foo(); }",
@@ -51,6 +52,7 @@ public class KeepInterfaceMethodTest extends TestBase {
 
   @Test
   public void testIR8() throws CompilationFailedException, IOException, ExecutionException {
+    // TODO(b/159694276): Add compat variant of this.
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class)
         .addKeepRules("-keepclassmembers class " + I.class.getTypeName() + " { void foo(); }")
@@ -75,6 +77,7 @@ public class KeepInterfaceMethodTest extends TestBase {
 
   @Test
   public void testAR8() throws CompilationFailedException, IOException, ExecutionException {
+    // TODO(b/159694276): Add non-compat variant of this.
     testForR8Compat(parameters.getBackend())
         .addProgramClasses(I.class, A.class, B.class, Main.class)
         .addKeepRules("-keepclassmembers class " + I.class.getTypeName() + " { void foo(); }")

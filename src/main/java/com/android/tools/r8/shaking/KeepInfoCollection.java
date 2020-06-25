@@ -20,8 +20,10 @@ import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.KeepFieldInfo.Joiner;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -42,6 +44,8 @@ public abstract class KeepInfoCollection {
   private static KeepFieldInfo keepInfoForNonProgramField() {
     return KeepFieldInfo.bottom();
   }
+
+  abstract Map<DexReference, List<Consumer<KeepInfo.Joiner<?, ?, ?>>>> getRuleInstances();
 
   /**
    * Base accessor for keep info on a class.
@@ -127,6 +131,14 @@ public abstract class KeepInfoCollection {
     return getFieldInfo(field, definitions).isPinned();
   }
 
+  public final boolean isMinificationAllowed(
+      DexReference reference,
+      DexDefinitionSupplier definitions,
+      GlobalKeepInfoConfiguration configuration) {
+    return configuration.isMinificationEnabled()
+        && getInfo(reference, definitions).isMinificationAllowed(configuration);
+  }
+
   public final boolean verifyNoneArePinned(Collection<DexType> types, AppInfo appInfo) {
     for (DexType type : types) {
       DexProgramClass clazz =
@@ -161,17 +173,26 @@ public abstract class KeepInfoCollection {
     private final Map<DexMethod, KeepMethodInfo> keepMethodInfo;
     private final Map<DexField, KeepFieldInfo> keepFieldInfo;
 
+    // Map of applied rules for which keys may need to be mutated.
+    private final Map<DexReference, List<Consumer<KeepInfo.Joiner<?, ?, ?>>>> ruleInstances;
+
     MutableKeepInfoCollection() {
-      this(new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>());
+      this(
+          new IdentityHashMap<>(),
+          new IdentityHashMap<>(),
+          new IdentityHashMap<>(),
+          new IdentityHashMap<>());
     }
 
     private MutableKeepInfoCollection(
         Map<DexType, KeepClassInfo> keepClassInfo,
         Map<DexMethod, KeepMethodInfo> keepMethodInfo,
-        Map<DexField, KeepFieldInfo> keepFieldInfo) {
+        Map<DexField, KeepFieldInfo> keepFieldInfo,
+        Map<DexReference, List<Consumer<KeepInfo.Joiner<?, ?, ?>>>> ruleInstances) {
       this.keepClassInfo = keepClassInfo;
       this.keepMethodInfo = keepMethodInfo;
       this.keepFieldInfo = keepFieldInfo;
+      this.ruleInstances = ruleInstances;
     }
 
     @Override
@@ -197,7 +218,43 @@ public abstract class KeepInfoCollection {
             assert !info.isPinned() || field == newField;
             newFieldInfo.put(newField, info);
           });
-      return new MutableKeepInfoCollection(newClassInfo, newMethodInfo, newFieldInfo);
+      Map<DexReference, List<Consumer<KeepInfo.Joiner<?, ?, ?>>>> newRuleInstances =
+          new IdentityHashMap<>(ruleInstances.size());
+      ruleInstances.forEach(
+          (reference, consumers) -> {
+            DexReference newReference;
+            if (reference.isDexType()) {
+              DexType newType = lens.lookupType(reference.asDexType());
+              if (!newType.isClassType()) {
+                assert newType.isIntType() : "Expected only enum unboxing type changes.";
+                return;
+              }
+              newReference = newType;
+            } else if (reference.isDexMethod()) {
+              newReference = lens.getRenamedMethodSignature(reference.asDexMethod());
+            } else {
+              assert reference.isDexField();
+              newReference = lens.getRenamedFieldSignature(reference.asDexField());
+            }
+            newRuleInstances.put(newReference, consumers);
+          });
+      return new MutableKeepInfoCollection(
+          newClassInfo, newMethodInfo, newFieldInfo, newRuleInstances);
+    }
+
+    @Override
+    Map<DexReference, List<Consumer<KeepInfo.Joiner<?, ?, ?>>>> getRuleInstances() {
+      return ruleInstances;
+    }
+
+    void evaluateRule(
+        DexReference reference,
+        DexDefinitionSupplier definitions,
+        Consumer<KeepInfo.Joiner<?, ?, ?>> fn) {
+      joinInfo(reference, definitions, fn);
+      if (!getInfo(reference, definitions).isBottom()) {
+        ruleInstances.computeIfAbsent(reference, k -> new ArrayList<>()).add(fn);
+      }
     }
 
     @Override
@@ -227,6 +284,34 @@ public abstract class KeepInfoCollection {
       KeepClassInfo joined = joiner.join();
       if (!info.equals(joined)) {
         keepClassInfo.put(clazz.type, joined);
+      }
+    }
+
+    public void joinInfo(
+        DexReference reference,
+        DexDefinitionSupplier definitions,
+        Consumer<KeepInfo.Joiner<?, ?, ?>> fn) {
+      if (reference.isDexType()) {
+        DexType type = reference.asDexType();
+        DexProgramClass clazz = asProgramClassOrNull(definitions.definitionFor(type));
+        if (clazz != null) {
+          joinClass(clazz, fn::accept);
+        }
+      } else if (reference.isDexMethod()) {
+        DexMethod method = reference.asDexMethod();
+        DexProgramClass clazz = asProgramClassOrNull(definitions.definitionFor(method.holder));
+        DexEncodedMethod definition = method.lookupOnClass(clazz);
+        if (definition != null) {
+          joinMethod(clazz, definition, fn::accept);
+        }
+      } else {
+        assert reference.isDexField();
+        DexField field = reference.asDexField();
+        DexProgramClass clazz = asProgramClassOrNull(definitions.definitionFor(field.holder));
+        DexEncodedField definition = field.lookupOnClass(clazz);
+        if (definition != null) {
+          joinField(clazz, definition, fn::accept);
+        }
       }
     }
 

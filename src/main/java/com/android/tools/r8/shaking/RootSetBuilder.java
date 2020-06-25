@@ -29,10 +29,12 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AnnotationMatchResult.AnnotationsIgnoredMatchResult;
 import com.android.tools.r8.shaking.AnnotationMatchResult.ConcreteAnnotationMatchResult;
@@ -1368,7 +1370,7 @@ public class RootSetBuilder {
     public void forEachDependentMember(
         DexDefinition item,
         AppView<?> appView,
-        Consumer3<DexDefinition, DexDefinition, Set<ProguardKeepRuleBase>> fn) {
+        Consumer3<DexDefinition, DexEncodedMember<?, ?>, Set<ProguardKeepRuleBase>> fn) {
       getDependentItems(item)
           .forEachMember(
               (reference, reasons) -> {
@@ -1386,7 +1388,7 @@ public class RootSetBuilder {
     public void forEachDependentNonStaticMember(
         DexDefinition item,
         AppView<?> appView,
-        Consumer3<DexDefinition, DexDefinition, Set<ProguardKeepRuleBase>> fn) {
+        Consumer3<DexDefinition, DexEncodedMember<?, ?>, Set<ProguardKeepRuleBase>> fn) {
       forEachDependentMember(
           item,
           appView,
@@ -1400,7 +1402,7 @@ public class RootSetBuilder {
     public void forEachDependentStaticMember(
         DexDefinition item,
         AppView<?> appView,
-        Consumer3<DexDefinition, DexDefinition, Set<ProguardKeepRuleBase>> fn) {
+        Consumer3<DexDefinition, DexEncodedMember<?, ?>, Set<ProguardKeepRuleBase>> fn) {
       forEachDependentMember(
           item,
           appView,
@@ -1904,21 +1906,50 @@ public class RootSetBuilder {
     }
 
     public boolean mayBeMinified(DexReference reference, AppView<?> appView) {
-      return !mayNotBeMinified(reference, appView);
+      boolean minificationAllowed =
+          appView.getKeepInfo().isMinificationAllowed(reference, appView, appView.options());
+      // TODO: Remove this once consistency is established.
+      //  Assert consistency with existing root set info.
+      //  Split in to checks to make the direction clean in errors.
+      // minify -> not-in-set
+      assert !minificationAllowed
+          || !noObfuscation.contains(getOriginal(reference, appView))
+          // Compiler synthesized methods can be renamed regardless of keep rules.
+          || isCompilerSynthesizedMethod(reference, appView);
+      // !minify -> in-set
+      assert minificationAllowed
+          || noObfuscation.contains(getOriginal(reference, appView))
+          || !appView.options().isMinificationEnabled();
+      return minificationAllowed;
     }
 
     public boolean mayNotBeMinified(DexReference reference, AppView<?> appView) {
-      if (reference.isDexType()) {
-        return noObfuscation.contains(
-            appView.graphLense().getOriginalType(reference.asDexType()));
-      } else if (reference.isDexMethod()) {
-        return noObfuscation.contains(
-            appView.graphLense().getOriginalMethodSignature(reference.asDexMethod()));
-      } else {
-        assert reference.isDexField();
-        return noObfuscation.contains(
-            appView.graphLense().getOriginalFieldSignature(reference.asDexField()));
+      return !mayBeMinified(reference, appView);
+    }
+
+    private boolean isCompilerSynthesizedMethod(DexReference reference, AppView<?> appView) {
+      DexMethod method = reference.asDexMethod();
+      if (method == null) {
+        return false;
       }
+      DexEncodedMethod definition = method.lookupOnClass(appView.definitionForHolder(method));
+      return definition != null
+          && (definition.isD8R8Synthesized()
+              || definition
+                  .qualifiedName()
+                  .contains(EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_CLASS_NAME));
+    }
+
+    private DexReference getOriginal(DexReference reference, AppView<?> appView) {
+      GraphLense lens = appView.graphLense();
+      if (reference.isDexType()) {
+        return lens.getOriginalType(reference.asDexType());
+      }
+      if (reference.isDexMethod()) {
+        return lens.getOriginalMethodSignature(reference.asDexMethod());
+      }
+      assert reference.isDexField();
+      return lens.getOriginalFieldSignature(reference.asDexField());
     }
 
     public boolean verifyKeptFieldsAreAccessedAndLive(AppInfoWithLiveness appInfo) {

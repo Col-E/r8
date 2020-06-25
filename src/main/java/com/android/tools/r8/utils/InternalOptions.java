@@ -45,6 +45,7 @@ import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.GlobalKeepInfoConfiguration;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
@@ -77,7 +78,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.objectweb.asm.Opcodes;
 
-public class InternalOptions {
+public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   // Set to true to run compilation in a single thread and without randomly shuffling the input.
   // This makes life easier when running R8 in a debugger.
@@ -481,11 +482,31 @@ public class InternalOptions {
   private final boolean enableMinification;
 
   public boolean isShrinking() {
+    assert proguardConfiguration == null
+        || enableTreeShaking == proguardConfiguration.isShrinking();
     return enableTreeShaking;
   }
 
   public boolean isMinifying() {
+    assert proguardConfiguration == null
+        || enableMinification == proguardConfiguration.isObfuscating();
     return enableMinification;
+  }
+
+  @Override
+  public boolean isTreeShakingEnabled() {
+    return isShrinking();
+  }
+
+  @Override
+  public boolean isMinificationEnabled() {
+    return isMinifying();
+  }
+
+  @Override
+  public boolean isAccessModificationEnabled() {
+    return getProguardConfiguration() != null
+        && getProguardConfiguration().isAccessModificationAllowed();
   }
 
   public boolean keepInnerClassStructure() {

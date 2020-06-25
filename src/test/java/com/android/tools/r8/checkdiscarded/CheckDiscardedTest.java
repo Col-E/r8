@@ -3,25 +3,27 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.checkdiscarded;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.checkdiscarded.testclasses.Main;
 import com.android.tools.r8.checkdiscarded.testclasses.UnusedClass;
 import com.android.tools.r8.checkdiscarded.testclasses.UsedClass;
 import com.android.tools.r8.checkdiscarded.testclasses.WillBeGone;
 import com.android.tools.r8.checkdiscarded.testclasses.WillStay;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.Consumer;
 import org.junit.Test;
@@ -32,19 +34,19 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class CheckDiscardedTest extends TestBase {
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+  @Parameters(name = "{0}, minify:{1}")
+  public static List<Object[]> data() {
+    return buildParameters(getTestParameters().withNoneRuntime().build(), BooleanUtils.values());
   }
 
-  private final TestParameters parameters;
+  public final boolean minify;
 
-  public CheckDiscardedTest(TestParameters parameters) {
-    this.parameters = parameters;
+  public CheckDiscardedTest(TestParameters parameters, boolean minify) {
+    assertEquals(NoneRuntime.getInstance(), parameters.getRuntime());
+    this.minify = minify;
   }
 
   private void compile(
-      boolean obfuscate,
       Class annotation,
       boolean checkMembers,
       Consumer<TestDiagnosticMessages> onCompilationFailure) {
@@ -56,7 +58,7 @@ public class CheckDiscardedTest extends TestBase {
               .addProgramClasses(UnusedClass.class, UsedClass.class, Main.class)
               .addKeepMainRule(Main.class)
               .addKeepRules(checkDiscardRule(checkMembers, annotation))
-              .minification(obfuscate)
+              .minification(minify)
               .addOptionsModification(this::noInlining)
               .compile();
       assertNull(onCompilationFailure);
@@ -80,45 +82,44 @@ public class CheckDiscardedTest extends TestBase {
 
   @Test
   public void classesAreGone() {
-    compile(false, WillBeGone.class, false, null);
-    compile(true, WillBeGone.class, false, null);
+    compile(WillBeGone.class, false, null);
   }
 
   @Test
   public void classesAreNotGone() {
     Consumer<TestDiagnosticMessages> check =
-        diagnostics -> {
-          List<Diagnostic> infos = diagnostics.getInfos();
-          assertEquals(2, infos.size());
-          String messageUsedClass = infos.get(1).getDiagnosticMessage();
-          assertThat(messageUsedClass, containsString("UsedClass was not discarded"));
-          assertThat(messageUsedClass, containsString("is instantiated in"));
-          String messageMain = infos.get(0).getDiagnosticMessage();
-          assertThat(messageMain, containsString("Main was not discarded"));
-          assertThat(messageMain, containsString("is referenced in keep rule"));
-        };
-    compile(false, WillStay.class, false, check);
-    compile(true, WillStay.class, false, check);
+        diagnostics ->
+            diagnostics
+                .assertNoWarnings()
+                .assertErrorsMatch(diagnosticMessage(containsString("Discard checks failed")))
+                .assertInfosMatch(
+                    ImmutableList.of(
+                        allOf(
+                            diagnosticMessage(containsString("UsedClass was not discarded")),
+                            diagnosticMessage(containsString("is instantiated in"))),
+                        allOf(
+                            diagnosticMessage(containsString("Main was not discarded")),
+                            diagnosticMessage(containsString("is referenced in keep rule")))));
+    compile(WillStay.class, false, check);
   }
 
   @Test
   public void membersAreGone() {
-    compile(false, WillBeGone.class, true, null);
-    compile(true, WillBeGone.class, true, null);
+    compile(WillBeGone.class, true, null);
   }
 
   @Test
   public void membersAreNotGone() {
     Consumer<TestDiagnosticMessages> check =
-        diagnostics -> {
-          List<Diagnostic> infos = diagnostics.getInfos();
-          assertEquals(1, infos.size());
-          String message = infos.get(0).getDiagnosticMessage();
-          assertThat(message, containsString("was not discarded"));
-          assertThat(message, containsString("is invoked from"));
-        };
-    compile(false, WillStay.class, true, check);
-    compile(true, WillStay.class, true, check);
+        diagnostics ->
+            diagnostics
+                .assertNoWarnings()
+                .assertErrorsMatch(diagnosticMessage(containsString("Discard checks failed")))
+                .assertInfosMatch(
+                    allOf(
+                        diagnosticMessage(containsString("was not discarded")),
+                        diagnosticMessage(containsString("is invoked from"))));
+    compile(WillStay.class, true, check);
   }
 
 }

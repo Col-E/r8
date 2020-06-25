@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.ir.optimize.library.LibraryMemberOptimizer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.LibraryModeledPredicate;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
@@ -47,6 +48,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private GraphLense graphLense;
   private InitClassLens initClassLens;
   private RootSet rootSet;
+  // This should perferably always be obtained via AppInfoWithLiveness.
+  // Currently however the liveness may be downgraded thus loosing the computed keep info.
+  private KeepInfoCollection keepInfo = null;
   private final AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
   private final InstanceFieldInitializationInfoFactory instanceFieldInitializationInfoFactory =
       new InstanceFieldInitializationInfoFactory();
@@ -175,6 +179,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     unsetAppInfoForDesugaring();
     if (appInfo != previous) {
       previous.markObsolete();
+    }
+    if (appInfo.hasLiveness()) {
+      keepInfo = appInfo.withLiveness().getKeepInfo();
     }
     @SuppressWarnings("unchecked")
     AppView<U> appViewWithSpecializedAppInfo = (AppView<U>) this;
@@ -375,6 +382,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   public void setRootSet(RootSet rootSet) {
     assert this.rootSet == null : "Root set should never be recomputed";
     this.rootSet = rootSet;
+  }
+
+  public KeepInfoCollection getKeepInfo() {
+    return keepInfo;
   }
 
   public MergedClassesCollection allMergedClasses() {

@@ -919,9 +919,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean isAccessModificationAllowed(DexReference reference) {
     assert options().getProguardConfiguration().isAccessModificationAllowed();
-    return keepInfo
-        .getInfo(reference, this)
-        .isAccessModificationAllowed(options().getProguardConfiguration());
+    return keepInfo.getInfo(reference, this).isAccessModificationAllowed(options());
   }
 
   public boolean isPinned(DexReference reference) {

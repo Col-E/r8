@@ -92,6 +92,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
 import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
+import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.shaking.KeepInfoCollection.MutableKeepInfoCollection;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetBuilder.ItemsWithRules;
@@ -630,8 +631,13 @@ public class Enqueuer {
 
   private void enqueueRootClass(
       DexProgramClass clazz, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
-    KeepReasonWitness witness = graphReporter.reportKeepClass(precondition, rules, clazz);
     keepClassWithRules(clazz, rules);
+    enqueueKeepRuleInstantiatedType(clazz, rules, precondition);
+  }
+
+  private void enqueueKeepRuleInstantiatedType(
+      DexProgramClass clazz, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
+    KeepReasonWitness witness = graphReporter.reportKeepClass(precondition, rules, clazz);
     if (clazz.isAnnotation()) {
       workList.enqueueMarkAnnotationInstantiatedAction(clazz, witness);
     } else if (clazz.isInterface()) {
@@ -743,11 +749,12 @@ public class Enqueuer {
   }
 
   private void compatEnqueueHolderIfDependentNonStaticMember(
-      DexClass holder, Set<ProguardKeepRuleBase> compatRules) {
+      DexProgramClass holder, Set<ProguardKeepRuleBase> compatRules) {
     if (!forceProguardCompatibility || compatRules == null) {
       return;
     }
-    enqueueRootItem(holder, compatRules);
+    // TODO(b/120959039): This needs the set of instance member as preconditon.
+    enqueueKeepRuleInstantiatedType(holder, compatRules, null);
   }
 
   //
@@ -1583,7 +1590,7 @@ public class Enqueuer {
 
     rootSet.forEachDependentInstanceConstructor(
         holder, appView, this::enqueueHolderWithDependentInstanceConstructor);
-    rootSet.forEachDependentStaticMember(holder, appView, this::enqueueDependentItem);
+    rootSet.forEachDependentStaticMember(holder, appView, this::enqueueDependentMember);
     compatEnqueueHolderIfDependentNonStaticMember(
         holder, rootSet.getDependentKeepClassCompatRule(holder.getType()));
 
@@ -1648,14 +1655,17 @@ public class Enqueuer {
     }
   }
 
-  private void enqueueDependentItem(
-      DexDefinition precondition, DexDefinition consequent, Set<ProguardKeepRuleBase> reasons) {
+  private void enqueueDependentMember(
+      DexDefinition precondition,
+      DexEncodedMember<?, ?> consequent,
+      Set<ProguardKeepRuleBase> reasons) {
     internalEnqueueRootItem(consequent, reasons, precondition);
   }
 
   private void enqueueHolderWithDependentInstanceConstructor(
       ProgramMethod instanceInitializer, Set<ProguardKeepRuleBase> reasons) {
-    enqueueRootItem(instanceInitializer.getHolder(), reasons);
+    DexProgramClass holder = instanceInitializer.getHolder();
+    enqueueKeepRuleInstantiatedType(holder, reasons, instanceInitializer.getDefinition());
   }
 
   private void processAnnotations(DexProgramClass holder, DexDefinition annotatedItem) {
@@ -2246,7 +2256,7 @@ public class Enqueuer {
   private void transitionDependentItemsForInstantiatedItem(DexProgramClass clazz) {
     do {
       // Handle keep rules that are dependent on the class being instantiated.
-      rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueDependentItem);
+      rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueDependentMember);
 
       // Visit the super type.
       clazz =
@@ -2658,6 +2668,24 @@ public class Enqueuer {
           new KotlinMetadataEnqueuerExtension(
               appView, enqueuerDefinitionSupplier, initialPrunedTypes));
     }
+    if (mode.isInitialTreeShaking()) {
+      // This is simulating the effect of the "root set" applied rules.
+      // This is done only in the initial pass, in subsequent passes the "rules" are reapplied
+      // by iterating the instances.
+      for (DexReference reference : rootSet.noObfuscation) {
+        keepInfo.evaluateRule(reference, appInfo, Joiner::disallowMinification);
+      }
+    } else if (appView.getKeepInfo() != null) {
+      appView
+          .getKeepInfo()
+          .getRuleInstances()
+          .forEach(
+              (reference, rules) -> {
+                for (Consumer<Joiner<?, ?, ?>> rule : rules) {
+                  keepInfo.evaluateRule(reference, appInfo, rule);
+                }
+              });
+    }
     if (appView.options().isShrinking() || appView.options().getProguardConfiguration() == null) {
       enqueueRootItems(rootSet.noShrinking);
     } else {
@@ -2688,43 +2716,35 @@ public class Enqueuer {
   }
 
   private void keepClassWithRules(DexProgramClass clazz, Set<ProguardKeepRuleBase> rules) {
-    keepInfo.joinClass(
-        clazz,
-        info ->
-            info.pin()
-                .lazyDisallowAccessModification(() -> computeDisallowAccessModification(rules)));
+    keepInfo.joinClass(clazz, info -> applyKeepRules(rules, info));
   }
 
   private void keepMethodWithRules(
       DexProgramClass holder, DexEncodedMethod method, Set<ProguardKeepRuleBase> rules) {
-    keepInfo.joinMethod(
-        holder,
-        method,
-        info ->
-            info.pin()
-                .lazyDisallowAccessModification(() -> computeDisallowAccessModification(rules)));
+    keepInfo.joinMethod(holder, method, info -> applyKeepRules(rules, info));
   }
 
   private void keepFieldWithRules(
       DexProgramClass holder, DexEncodedField field, Set<ProguardKeepRuleBase> rules) {
-    keepInfo.joinField(
-        holder,
-        field,
-        info ->
-            info.pin()
-                .lazyDisallowAccessModification(() -> computeDisallowAccessModification(rules)));
+    keepInfo.joinField(holder, field, info -> applyKeepRules(rules, info));
   }
 
-  private boolean computeDisallowAccessModification(Set<ProguardKeepRuleBase> rules) {
+  private void applyKeepRules(Set<ProguardKeepRuleBase> rules, KeepInfo.Joiner<?, ?, ?> joiner) {
     for (ProguardKeepRuleBase rule : rules) {
       ProguardKeepRuleModifiers modifiers =
           (rule.isProguardIfRule() ? rule.asProguardIfRule().getSubsequentRule() : rule)
               .getModifiers();
+      if (!modifiers.allowsShrinking) {
+        // TODO(b/159589281): Evaluate this interpretation.
+        joiner.pin();
+      }
+      if (!modifiers.allowsObfuscation) {
+        joiner.disallowMinification();
+      }
       if (!modifiers.allowsAccessModification) {
-        return true;
+        joiner.disallowAccessModification();
       }
     }
-    return false;
   }
 
   private static class SyntheticAdditions {
@@ -3302,11 +3322,11 @@ public class Enqueuer {
             consequentRootSet.forEachDependentInstanceConstructor(
                 clazz, appView, this::enqueueHolderWithDependentInstanceConstructor);
             consequentRootSet.forEachDependentStaticMember(
-                clazz, appView, this::enqueueDependentItem);
+                clazz, appView, this::enqueueDependentMember);
             if (objectAllocationInfoCollection.isInstantiatedDirectlyOrHasInstantiatedSubtype(
                 clazz)) {
               consequentRootSet.forEachDependentNonStaticMember(
-                  clazz, appView, this::enqueueDependentItem);
+                  clazz, appView, this::enqueueDependentMember);
             }
             compatEnqueueHolderIfDependentNonStaticMember(
                 clazz, consequentRootSet.getDependentKeepClassCompatRule(clazz.type));
@@ -3321,13 +3341,18 @@ public class Enqueuer {
         });
     // TODO(b/132600955): This modifies the root set. Should the consequent be persistent?
     rootSet.addConsequentRootSet(consequentRootSet, addNoShrinking);
+    if (mode.isInitialTreeShaking()) {
+      for (DexReference reference : consequentRootSet.noObfuscation) {
+        keepInfo.evaluateRule(reference, appView, Joiner::disallowMinification);
+      }
+    }
     enqueueRootItems(consequentRootSet.noShrinking);
     // Check for compatibility rules indicating that the holder must be implicitly kept.
     if (forceProguardCompatibility) {
       consequentRootSet.dependentKeepClassCompatRule.forEach(
           (precondition, compatRules) -> {
             assert precondition.isDexType();
-            DexClass preconditionHolder = appView.definitionFor(precondition.asDexType());
+            DexProgramClass preconditionHolder = getProgramClassOrNull(precondition.asDexType());
             compatEnqueueHolderIfDependentNonStaticMember(preconditionHolder, compatRules);
           });
     }

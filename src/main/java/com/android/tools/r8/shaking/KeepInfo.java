@@ -4,26 +4,42 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.shaking.KeepInfo.Builder;
-import java.util.function.Supplier;
 
 /** Keep information that can be associated with any item, i.e., class, method or field. */
 public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
 
   private final boolean pinned;
+  private final boolean allowMinification;
   private final boolean allowAccessModification;
 
-  private KeepInfo(boolean pinned, boolean allowAccessModification) {
+  private KeepInfo(boolean pinned, boolean allowMinification, boolean allowAccessModification) {
     this.pinned = pinned;
+    this.allowMinification = allowMinification;
     this.allowAccessModification = allowAccessModification;
   }
 
   KeepInfo(B builder) {
-    this(builder.isPinned(), builder.isAccessModificationAllowed());
+    this(
+        builder.isPinned(), builder.isMinificationAllowed(), builder.isAccessModificationAllowed());
   }
 
   /** True if an item must be present in the output. */
   public boolean isPinned() {
     return pinned;
+  }
+
+  /**
+   * True if an item may have its name minified/changed.
+   *
+   * <p>This method requires knowledge of the global configuration as that can override the concrete
+   * value on a given item.
+   */
+  public boolean isMinificationAllowed(GlobalKeepInfoConfiguration configuration) {
+    return configuration.isMinificationEnabled() && internalIsMinificationAllowed();
+  }
+
+  boolean internalIsMinificationAllowed() {
+    return allowMinification;
   }
 
   /**
@@ -34,8 +50,8 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
    *
    * @param configuration Global configuration object to determine access modification.
    */
-  public boolean isAccessModificationAllowed(ProguardConfiguration configuration) {
-    return configuration.isAccessModificationAllowed() && internalIsAccessModificationAllowed();
+  public boolean isAccessModificationAllowed(GlobalKeepInfoConfiguration configuration) {
+    return configuration.isAccessModificationEnabled() && internalIsAccessModificationAllowed();
   }
 
   // Internal accessor for the items access-modification bit.
@@ -69,6 +85,7 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
 
     private K original;
     private boolean pinned;
+    private boolean allowMinification;
     private boolean allowAccessModification;
 
     Builder() {
@@ -78,17 +95,20 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
     Builder(K original) {
       this.original = original;
       pinned = original.isPinned();
+      allowMinification = original.internalIsMinificationAllowed();
       allowAccessModification = original.internalIsAccessModificationAllowed();
     }
 
     B makeTop() {
       pin();
+      disallowMinification();
       disallowAccessModification();
       return self();
     }
 
     B makeBottom() {
       unpin();
+      allowMinification();
       allowAccessModification();
       return self();
     }
@@ -110,12 +130,17 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
 
     private boolean internalIsEqualTo(K other) {
       return isPinned() == other.isPinned()
+          && isMinificationAllowed() == other.internalIsMinificationAllowed()
           && isAccessModificationAllowed() == other.internalIsAccessModificationAllowed()
           && isEqualTo(other);
     }
 
     public boolean isPinned() {
       return pinned;
+    }
+
+    public boolean isMinificationAllowed() {
+      return allowMinification;
     }
 
     public boolean isAccessModificationAllowed() {
@@ -133,6 +158,19 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
 
     public B unpin() {
       return setPinned(false);
+    }
+
+    public B setAllowMinification(boolean allowMinification) {
+      this.allowMinification = allowMinification;
+      return self();
+    }
+
+    public B allowMinification() {
+      return setAllowMinification(true);
+    }
+
+    public B disallowMinification() {
+      return setAllowMinification(false);
     }
 
     public B setAllowAccessModification(boolean allowAccessModification) {
@@ -175,12 +213,13 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
       return self();
     }
 
-    // Lazy modification of access modification.
-    // Only forced if access modification is still allowed.
-    public J lazyDisallowAccessModification(Supplier<Boolean> lazyShouldDisallow) {
-      if (builder.isAccessModificationAllowed() && lazyShouldDisallow.get()) {
-        builder.disallowAccessModification();
-      }
+    public J disallowMinification() {
+      builder.disallowMinification();
+      return self();
+    }
+
+    public J disallowAccessModification() {
+      builder.disallowAccessModification();
       return self();
     }
 
