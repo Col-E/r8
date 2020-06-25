@@ -17,7 +17,6 @@ import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -52,7 +51,7 @@ public class DesugaredLibraryConfigurationParsingTest extends TestBase {
   }
 
   public DesugaredLibraryConfigurationParsingTest(TestParameters parameters) {
-    assertEquals(NoneRuntime.getInstance(), parameters.getRuntime());
+    parameters.assertNoneRuntime();
   }
 
   final AndroidApiLevel minApi = AndroidApiLevel.B;

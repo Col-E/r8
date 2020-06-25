@@ -372,8 +372,8 @@ public class IRConverter {
     this(appView, timing, printer, MainDexClasses.NONE);
   }
 
-  public IRConverter(AppInfo appInfo, InternalOptions options, Timing timing, CfgPrinter printer) {
-    this(AppView.createForD8(appInfo, options), timing, printer, MainDexClasses.NONE);
+  public IRConverter(AppInfo appInfo, Timing timing, CfgPrinter printer) {
+    this(AppView.createForD8(appInfo), timing, printer, MainDexClasses.NONE);
   }
 
   private boolean enableTwrCloseResourceDesugaring() {

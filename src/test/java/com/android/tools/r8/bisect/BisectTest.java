@@ -37,10 +37,8 @@ public class BisectTest extends TestBase {
     return TestParametersBuilder.builder().withNoneRuntime().build();
   }
 
-  private final TestParameters parameters;
-
   public BisectTest(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   private final String[] CLASSES = {"A", "B", "C", "D", "E", "F", "G", "H"};

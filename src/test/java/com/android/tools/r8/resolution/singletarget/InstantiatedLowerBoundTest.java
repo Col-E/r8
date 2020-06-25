@@ -24,7 +24,6 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,7 +47,8 @@ public class InstantiatedLowerBoundTest extends TestBase {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
             buildClasses(A.class, B.class, Main.class).build(),
-            factory -> new ArrayList<>(buildKeepRuleForClassAndMethods(Main.class, factory)));
+            factory ->
+                buildConfigForRules(factory, buildKeepRuleForClassAndMethods(Main.class, factory)));
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexType typeA = buildType(A.class, appInfo.dexItemFactory());
     DexType typeB = buildType(B.class, appInfo.dexItemFactory());
@@ -72,7 +72,8 @@ public class InstantiatedLowerBoundTest extends TestBase {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
             buildClasses(A.class, B.class, C.class, Main.class).build(),
-            factory -> new ArrayList<>(buildKeepRuleForClassAndMethods(Main.class, factory)));
+            factory ->
+                buildConfigForRules(factory, buildKeepRuleForClassAndMethods(Main.class, factory)));
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexType typeA = buildType(A.class, appInfo.dexItemFactory());
     DexType typeB = buildType(B.class, appInfo.dexItemFactory());
@@ -97,8 +98,8 @@ public class InstantiatedLowerBoundTest extends TestBase {
         computeAppViewWithLiveness(
             buildClasses(A.class, B.class, C.class, MainAllInstantiated.class).build(),
             factory ->
-                new ArrayList<>(
-                    buildKeepRuleForClassAndMethods(MainAllInstantiated.class, factory)));
+                buildConfigForRules(
+                    factory, buildKeepRuleForClassAndMethods(MainAllInstantiated.class, factory)));
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexType typeA = buildType(A.class, appInfo.dexItemFactory());
     DexType typeC = buildType(C.class, appInfo.dexItemFactory());

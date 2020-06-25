@@ -6,9 +6,11 @@ package com.android.tools.r8.ir.optimize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Argument;
@@ -26,13 +28,26 @@ import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.util.LinkedList;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class TrivialGotoEliminationTest {
+@RunWith(Parameterized.class)
+public class TrivialGotoEliminationTest extends TestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public TrivialGotoEliminationTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   private final IRMetadata metadata = IRMetadata.unknown();
 
@@ -92,10 +107,9 @@ public class TrivialGotoEliminationTest {
   }
 
   @Test
-  public void trivialGotoLoopAsFallthrough() {
-    InternalOptions options = new InternalOptions();
-    DexApplication app = DexApplication.builder(new InternalOptions(), Timing.empty()).build();
-    AppView<AppInfo> appView = AppView.createForD8(new AppInfo(app), options);
+  public void trivialGotoLoopAsFallthrough() throws Exception {
+    AppView<AppInfo> appView = computeAppView(AndroidApp.builder().build());
+    InternalOptions options = appView.options();
     // Setup block structure:
     // block0:
     //   v0 <- argument
@@ -135,7 +149,7 @@ public class TrivialGotoEliminationTest {
         new Value(
             0,
             TypeElement.fromDexType(
-                app.dexItemFactory.throwableType, Nullability.definitelyNotNull(), appView),
+                options.itemFactory.throwableType, Nullability.definitelyNotNull(), appView),
             null);
     instruction = new Argument(value, 0, false);
     instruction.setPosition(position);

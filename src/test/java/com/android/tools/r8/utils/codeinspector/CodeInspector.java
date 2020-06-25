@@ -5,6 +5,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfTryCatch;
@@ -125,6 +126,10 @@ public class CodeInspector {
     InternalOptions internalOptions = new InternalOptions();
     if (optionsConsumer != null) {
       optionsConsumer.accept(internalOptions);
+    }
+    if (internalOptions.programConsumer == null) {
+      // The inspector allows building IR for a method. An output type must be defined for that.
+      internalOptions.programConsumer = DexIndexedConsumer.emptyConsumer();
     }
     return internalOptions;
   }

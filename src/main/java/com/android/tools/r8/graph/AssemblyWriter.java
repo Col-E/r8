@@ -140,7 +140,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
 
   private void writeIR(ProgramMethod method, PrintStream ps) {
     CfgPrinter printer = new CfgPrinter();
-    IRConverter converter = new IRConverter(appInfo, options, timing, printer);
+    IRConverter converter = new IRConverter(appInfo, timing, printer);
     OneTimeMethodProcessor methodProcessor =
         OneTimeMethodProcessor.create(method, methodProcessingIdFactory);
     methodProcessor.forEachWave(

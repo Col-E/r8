@@ -187,7 +187,7 @@ public final class D8 {
             executor);
       }
 
-      AppView<?> appView = AppView.createForD8(appInfo, options, rewritePrefix);
+      AppView<?> appView = AppView.createForD8(appInfo, rewritePrefix);
 
       IRConverter converter = new IRConverter(appView, timing, printer);
       app = converter.convert(app, executor);
@@ -354,7 +354,7 @@ public final class D8 {
       throws IOException, ExecutionException {
     final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
-    IRConverter converter = new IRConverter(appInfo, options, timing, printer);
+    IRConverter converter = new IRConverter(appInfo, timing, printer);
     application = converter.convert(application, executor);
 
     if (options.printCfg) {

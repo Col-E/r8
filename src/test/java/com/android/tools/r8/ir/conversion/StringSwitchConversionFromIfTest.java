@@ -17,8 +17,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
@@ -75,15 +73,12 @@ public class StringSwitchConversionFromIfTest extends TestBase {
               for (String methodName : methodNames) {
                 MethodSubject methodSubject = classSubject.uniqueMethodWithName(methodName);
                 assertThat(methodSubject, isPresent());
-
-                DexItemFactory dexItemFactory = new DexItemFactory();
-                InternalOptions options = new InternalOptions(dexItemFactory, new Reporter());
-                options.enableStringSwitchConversion = enableStringSwitchConversion;
-
-                IRCode code = methodSubject.buildIR(options);
+                IRCode code = methodSubject.buildIR();
                 List<Value> hashCodeValues =
                     Streams.stream(code.instructions())
-                        .filter(instruction -> isInvokeStringHashCode(instruction, dexItemFactory))
+                        .filter(
+                            instruction ->
+                                isInvokeStringHashCode(instruction, inspector.getFactory()))
                         .map(Instruction::asInvokeVirtual)
                         .map(Instruction::outValue)
                         .collect(Collectors.toList());

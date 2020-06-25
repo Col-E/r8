@@ -11,10 +11,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.CheckCast;
@@ -32,9 +30,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Smali;
-import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
@@ -57,7 +53,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class TypeAnalysisTest extends SmaliTestBase {
-  private static final InternalOptions TEST_OPTIONS = new InternalOptions();
   private static final TypeElement NULL = TypeElement.getNull();
   private static final TypeElement SINGLE = TypeElement.getSingle();
   private static final TypeElement INT = TypeElement.getInt();
@@ -112,11 +107,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         .forEach(s -> smaliStringBuilder.append(s).append(System.lineSeparator()));
     byte[] content = Smali.compile(smaliStringBuilder.toString());
     AndroidApp app = AndroidApp.builder().addDexProgramData(content, Origin.unknown()).build();
-    DexApplication dexApplication =
-        new ApplicationReader(app, TEST_OPTIONS, Timing.empty()).read().toDirect();
-    inspection.accept(
-        AppView.createForD8(new AppInfo(dexApplication), TEST_OPTIONS),
-        new CodeInspector(dexApplication));
+    AppView<AppInfo> appView = computeAppView(app);
+    inspection.accept(appView, new CodeInspector(appView.appInfo().app()));
   }
 
   private static void forEachOutValue(IRCode irCode, BiConsumer<Value, TypeElement> consumer) {

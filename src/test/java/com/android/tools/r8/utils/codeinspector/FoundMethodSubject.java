@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.code.Instruction;
@@ -32,7 +31,6 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.LocalVariableTable.LocalVariableTableEntry;
 import com.google.common.base.Predicates;
@@ -58,10 +56,9 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
-  public IRCode buildIR(InternalOptions options) {
-    options.programConsumer = DexIndexedConsumer.emptyConsumer();
-    return getProgramMethod()
-        .buildIR(AppView.createForD8(new AppInfo(codeInspector.application), options));
+  public IRCode buildIR() {
+    assert codeInspector.application.options.programConsumer != null;
+    return getProgramMethod().buildIR(AppView.createForD8(new AppInfo(codeInspector.application)));
   }
 
   @Override

@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.google.common.collect.ImmutableList;
@@ -33,7 +32,7 @@ public class BackwardsCompatibleSpecificationTest extends TestBase {
   private final String release;
 
   public BackwardsCompatibleSpecificationTest(TestParameters parameters, String release) {
-    assertEquals(NoneRuntime.getInstance(), parameters.getRuntime());
+    parameters.assertNoneRuntime();
     this.release = release;
   }
 

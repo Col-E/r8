@@ -107,7 +107,7 @@ public final class BackportedMethodRewriter {
           new ApplicationReader(androidApp, options, Timing.empty()).read(executor);
       appInfo = new AppInfo(app);
     }
-    AppView<?> appView = AppView.createForD8(appInfo, options, rewritePrefix);
+    AppView<?> appView = AppView.createForD8(appInfo, rewritePrefix);
     BackportedMethodRewriter.RewritableMethods rewritableMethods =
         new BackportedMethodRewriter.RewritableMethods(options, appView);
     rewritableMethods.visit(methods::add);

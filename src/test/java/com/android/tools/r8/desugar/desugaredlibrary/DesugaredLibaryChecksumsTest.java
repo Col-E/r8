@@ -5,7 +5,6 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationMode;
@@ -16,7 +15,6 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -36,7 +34,7 @@ public class DesugaredLibaryChecksumsTest extends TestBase {
   }
 
   public DesugaredLibaryChecksumsTest(TestParameters parameters) {
-    assertEquals(NoneRuntime.getInstance(), parameters.getRuntime());
+    parameters.assertNoneRuntime();
   }
 
   @Test

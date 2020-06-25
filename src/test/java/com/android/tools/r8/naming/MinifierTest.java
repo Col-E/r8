@@ -36,7 +36,7 @@ public class MinifierTest extends NamingTestBase {
   @Test
   public void minifierTest() throws Exception {
     NamingLens naming = runMinifier(ListUtils.map(keepRulesFiles, Paths::get));
-    inspection.accept(dexItemFactory, naming);
+    inspection.accept(naming);
   }
 
   @Parameters(name = "test: {0} keep: {1}")

@@ -19,10 +19,9 @@ import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,13 +44,14 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
       Class<?> methodToBeKept, Class<?> classToBeKept) throws Exception {
     return computeAppViewWithLiveness(
         buildClasses(I.class, J.class, K.class, L.class, A.class, Main.class).build(),
-        factory -> {
-          List<ProguardConfigurationRule> rules = new ArrayList<>();
-          rules.addAll(buildKeepRuleForClassAndMethods(methodToBeKept, factory));
-          rules.addAll(buildKeepRuleForClass(classToBeKept, factory));
-          rules.addAll(buildKeepRuleForClassAndMethods(Main.class, factory));
-          return rules;
-        });
+        factory ->
+            buildConfigForRules(
+                factory,
+                ImmutableList.<ProguardConfigurationRule>builder()
+                    .addAll(buildKeepRuleForClassAndMethods(methodToBeKept, factory))
+                    .addAll(buildKeepRuleForClass(classToBeKept, factory))
+                    .addAll(buildKeepRuleForClassAndMethods(Main.class, factory))
+                    .build()));
   }
 
   @Test

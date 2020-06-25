@@ -10,12 +10,11 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
-import com.android.tools.r8.utils.InternalOptions;
 
 public class AbsentMethodSubject extends MethodSubject {
 
   @Override
-  public IRCode buildIR(InternalOptions options) {
+  public IRCode buildIR() {
     throw new Unreachable("Cannot build IR for an absent method");
   }
 

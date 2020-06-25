@@ -5,12 +5,9 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.Streams;
 import java.util.Iterator;
 import java.util.function.Predicate;
@@ -18,15 +15,7 @@ import java.util.stream.Stream;
 
 public abstract class MethodSubject extends MemberSubject {
 
-  public final IRCode buildIR() {
-    return buildIR(new DexItemFactory());
-  }
-
-  public IRCode buildIR(DexItemFactory dexItemFactory) {
-    return buildIR(new InternalOptions(dexItemFactory, new Reporter()));
-  }
-
-  public abstract IRCode buildIR(InternalOptions options);
+  public abstract IRCode buildIR();
 
   public final boolean isAbsent() {
     return !isPresent();

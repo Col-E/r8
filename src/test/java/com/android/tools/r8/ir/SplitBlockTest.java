@@ -8,9 +8,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -23,16 +24,28 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class SplitBlockTest extends IrInjectionTestBase {
 
-  private TestApplication codeWithoutCatchHandlers() {
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public SplitBlockTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
+
+  private TestApplication codeWithoutCatchHandlers() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -59,12 +72,10 @@ public class SplitBlockTest extends IrInjectionTestBase {
         "    return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppView<?> appView = AppView.createForD8(new AppInfo(application), options);
+    AppView<AppInfo> appView = computeAppView(builder.build());
 
     // Return the processed method for inspection.
-    MethodSubject methodSubject = getMethodSubject(application, signature);
+    MethodSubject methodSubject = getMethodSubject(appView.appInfo().app(), signature);
     return new TestApplication(appView, methodSubject);
   }
 
@@ -137,7 +148,8 @@ public class SplitBlockTest extends IrInjectionTestBase {
     }
   }
 
-  private TestApplication codeWithCatchHandlers(boolean shouldThrow, boolean twoGuards) {
+  private TestApplication codeWithCatchHandlers(boolean shouldThrow, boolean twoGuards)
+      throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String secondGuard = twoGuards ?
@@ -175,12 +187,10 @@ public class SplitBlockTest extends IrInjectionTestBase {
         "    return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppView<?> appView = AppView.createForD8(new AppInfo(application), options);
+    AppView<?> appView = computeAppView(builder.build());
 
     // Return the processed method for inspection.
-    MethodSubject methodSubject = getMethodSubject(application, signature);
+    MethodSubject methodSubject = getMethodSubject(appView.appInfo().app(), signature);
     return new TestApplication(appView, methodSubject);
   }
 
@@ -270,7 +280,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     runCatchHandlerSplitThreeTest(true, true);
   }
 
-  private TestApplication codeWithIf(boolean hitTrueBranch) {
+  private TestApplication codeWithIf(boolean hitTrueBranch) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -299,12 +309,10 @@ public class SplitBlockTest extends IrInjectionTestBase {
         "    return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppView<?> appView = AppView.createForD8(new AppInfo(application), options);
+    AppView<?> appView = computeAppView(builder.build());
 
     // Return the processed method for inspection.
-    MethodSubject methodSubject = getMethodSubject(application, signature);
+    MethodSubject methodSubject = getMethodSubject(appView.appInfo().app(), signature);
     return new TestApplication(appView, methodSubject);
   }
 
@@ -385,7 +393,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     splitBeforeReturn(true);
   }
 
-  private TestApplication codeWithSwitch(boolean hitCase) {
+  private TestApplication codeWithSwitch(boolean hitCase) throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     String returnType = "int";
@@ -422,12 +430,10 @@ public class SplitBlockTest extends IrInjectionTestBase {
         "    return-void"
     );
 
-    InternalOptions options = new InternalOptions();
-    DexApplication application = buildApplication(builder, options);
-    AppView<?> appView = AppView.createForD8(new AppInfo(application), options);
+    AppView<?> appView = computeAppView(builder.build());
 
     // Return the processed method for inspection.
-    MethodSubject methodSubject = getMethodSubject(application, signature);
+    MethodSubject methodSubject = getMethodSubject(appView.appInfo().app(), signature);
     return new TestApplication(appView, methodSubject);
   }
 

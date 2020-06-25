@@ -115,7 +115,7 @@ public abstract class ProtoShrinkingTestBase extends TestBase {
           continue;
         }
 
-        IRCode code = methodSubject.buildIR(dexItemFactory);
+        IRCode code = methodSubject.buildIR();
         InvokeMethod invoke =
             GeneratedMessageLiteShrinker.getNewMessageInfoInvoke(code, references);
         assert invoke != null;

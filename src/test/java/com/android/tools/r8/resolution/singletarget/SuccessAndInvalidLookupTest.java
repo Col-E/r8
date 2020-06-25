@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.ArrayList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -40,7 +39,8 @@ public class SuccessAndInvalidLookupTest extends TestBase {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
             buildClasses(I.class, A.class, Main.class).build(),
-            factory -> new ArrayList<>(buildKeepRuleForClassAndMethods(Main.class, factory)));
+            factory ->
+                buildConfigForRules(factory, buildKeepRuleForClassAndMethods(Main.class, factory)));
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexType typeMain = buildType(Main.class, appInfo.dexItemFactory());
     DexMethod mainMethodReference =
@@ -63,7 +63,8 @@ public class SuccessAndInvalidLookupTest extends TestBase {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
             buildClasses(I.class, A.class, Main.class).build(),
-            factory -> new ArrayList<>(buildKeepRuleForClassAndMethods(Main.class, factory)));
+            factory ->
+                buildConfigForRules(factory, buildKeepRuleForClassAndMethods(Main.class, factory)));
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexType typeMain = buildType(Main.class, appInfo.dexItemFactory());
     DexMethod mainMethodReference =

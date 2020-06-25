@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir;
 
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -24,10 +26,24 @@ import java.util.ListIterator;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class BasicBlockIteratorTest extends SmaliTestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
   @Rule
   public ExpectedException thrown = ExpectedException.none();
+
+  public BasicBlockIteratorTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   /**
    * Simple test IR, which has three blocks:
@@ -55,7 +71,7 @@ public class BasicBlockIteratorTest extends SmaliTestBase {
     InternalOptions options = new InternalOptions();
     DexApplication dexApplication =
         new ApplicationReader(application, options, Timing.empty()).read();
-    AppView<?> appView = AppView.createForD8(new AppInfo(dexApplication), options);
+    AppView<?> appView = AppView.createForD8(new AppInfo(dexApplication));
 
     // Build the code, and split the code into three blocks.
     MethodSubject methodSubject = getMethodSubject(application, signature);

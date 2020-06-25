@@ -279,7 +279,7 @@ public class R8 {
       inputApp.closeInternalArchiveProviders();
 
       AppView<AppInfoWithClassHierarchy> appView =
-          AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
+          AppView.createForR8(new AppInfoWithClassHierarchy(application));
       appView.setAppServices(AppServices.builder(appView).build());
 
       // Check for potentially having pass-through of Cf-code for kotlin libraries.

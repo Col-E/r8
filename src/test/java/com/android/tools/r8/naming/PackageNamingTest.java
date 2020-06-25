@@ -44,7 +44,7 @@ public class PackageNamingTest extends NamingTestBase {
   @Test
   public void packageNamingTest() throws Exception {
     NamingLens naming = runMinifier(ListUtils.map(keepRulesFiles, Paths::get));
-    inspection.accept(dexItemFactory, naming);
+    inspection.accept(naming);
   }
 
   private static final List<String> CLASSES_IN_NAMING044 = ImmutableList.of(

@@ -13,7 +13,6 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -99,7 +98,7 @@ public class ExtractWrapperTypesTest extends TestBase {
   private final AndroidApiLevel targetApi = AndroidApiLevel.Q;
 
   public ExtractWrapperTypesTest(TestParameters parameters) {
-    assertEquals(NoneRuntime.getInstance(), parameters.getRuntime());
+    parameters.assertNoneRuntime();
   }
 
   @Test

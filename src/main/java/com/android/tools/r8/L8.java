@@ -128,7 +128,7 @@ public class L8 {
       DexApplication app = new L8TreePruner(options).prune(lazyApp, rewritePrefix);
       AppInfo appInfo = new AppInfo(app);
 
-      AppView<?> appView = AppView.createForL8(appInfo, options, rewritePrefix);
+      AppView<?> appView = AppView.createForL8(appInfo, rewritePrefix);
       IRConverter converter = new IRConverter(appView, timing);
 
       if (!options.testing.disableL8AnnotationRemoval) {

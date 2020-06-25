@@ -9,7 +9,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -30,11 +31,24 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collections;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class TargetLookupTest extends SmaliTestBase {
 
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public TargetLookupTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
+
   @Test
-  public void lookupDirect() {
+  public void lookupDirect() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     builder.addDefaultConstructor();
@@ -100,7 +114,7 @@ public class TargetLookupTest extends SmaliTestBase {
   }
 
   @Test
-  public void lookupDirectSuper() {
+  public void lookupDirectSuper() throws Exception {
     SmaliBuilder builder = new SmaliBuilder("TestSuper");
 
     builder.addDefaultConstructor();
@@ -185,7 +199,7 @@ public class TargetLookupTest extends SmaliTestBase {
   }
 
   @Test
-  public void lookupFieldWithDefaultInInterface() throws CompilationFailedException {
+  public void lookupFieldWithDefaultInInterface() throws Exception {
     SmaliBuilder builder = new SmaliBuilder();
 
     builder.addInterface("Interface");

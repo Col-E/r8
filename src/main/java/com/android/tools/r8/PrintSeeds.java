@@ -88,7 +88,7 @@ public class PrintSeeds {
       DirectMappedDexApplication application =
           new ApplicationReader(command.getInputApp(), options, timing).read(executor).toDirect();
       AppView<? extends AppInfoWithClassHierarchy> appView =
-          AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
+          AppView.createForR8(new AppInfoWithClassHierarchy(application));
       appView.setAppServices(AppServices.builder(appView).build());
       SubtypingInfo subtypingInfo = new SubtypingInfo(application.allClasses(), application);
       RootSet rootSet =

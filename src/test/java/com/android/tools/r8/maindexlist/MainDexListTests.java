@@ -809,7 +809,7 @@ public class MainDexListTests extends TestBase {
     options.intermediate = intermediate;
     DexItemFactory factory = options.itemFactory;
     AppInfo appInfo = new AppInfo(DexApplication.builder(options, timing).build());
-    AppView<?> appView = AppView.createForR8(appInfo, options);
+    AppView<?> appView = AppView.createForR8(appInfo);
     DexApplication.Builder<?> builder = DexApplication.builder(options, timing);
     for (String clazz : classes) {
       DexString desc = factory.createString(DescriptorUtils.javaTypeToDescriptor(clazz));

@@ -6,7 +6,6 @@ package com.android.tools.r8;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
@@ -32,7 +31,7 @@ public class D8ApiBinaryCompatibilityTests extends TestBase {
   }
 
   public D8ApiBinaryCompatibilityTests(TestParameters parameters) {
-    assertEquals(NoneRuntime.getInstance(), parameters.getRuntime());
+    parameters.assertNoneRuntime();
   }
 
   @Test

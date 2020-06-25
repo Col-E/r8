@@ -14,7 +14,6 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
@@ -34,18 +33,8 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
   protected DexApplication buildApplication(SmaliBuilder builder, InternalOptions options) {
     try {
-      return buildApplication(
-          AndroidApp.builder().addDexProgramData(builder.compile(), Origin.unknown()).build(),
-          options);
+      return new ApplicationReader(builder.build(), options, Timing.empty()).read();
     } catch (IOException | RecognitionException | ExecutionException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  protected DexApplication buildApplication(AndroidApp input, InternalOptions options) {
-    try {
-      return new ApplicationReader(input, options, Timing.empty()).read();
-    } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
@@ -89,7 +78,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
       this.application = appView.appInfo().app();
       this.appView = appView;
       this.method = method.getMethod();
-      this.code = method.buildIR(appView.dexItemFactory());
+      this.code = method.buildIR();
       this.additionalCode = additionalCode;
       this.consumers = new AndroidAppConsumers(appView.options());
     }

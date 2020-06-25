@@ -45,7 +45,7 @@ public class PartialCallGraphTest extends CallGraphTestBase {
               parser.parse(
                   createConfigurationForTesting(
                       ImmutableList.of("-keep class ** { void m1(); void m5(); }")));
-              return parser.getConfig().getRules();
+              return parser.getConfig();
             });
     this.options = appView.options();
     this.executorService = ThreadUtils.getExecutorService(options);

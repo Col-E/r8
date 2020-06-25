@@ -64,7 +64,7 @@ public abstract class AnalysisTestBase extends TestBase {
   public void buildAndCheckIR(String methodName, Consumer<IRCode> irInspector) {
     CodeInspector inspector = new CodeInspector(appView.appInfo().app());
     MethodSubject methodSubject = inspector.clazz(className).uniqueMethodWithName(methodName);
-    irInspector.accept(methodSubject.buildIR(appView.dexItemFactory()));
+    irInspector.accept(methodSubject.buildIR());
   }
 
   @SuppressWarnings("unchecked")

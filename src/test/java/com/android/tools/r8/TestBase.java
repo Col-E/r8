@@ -47,6 +47,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.shaking.ProguardClassNameList;
+import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.ProguardKeepRule.Builder;
@@ -66,6 +67,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.android.tools.r8.utils.Timing;
@@ -574,35 +576,40 @@ public class TestBase {
     return newJar;
   }
 
-  protected static AppInfo computeAppInfo(AndroidApp application) {
-    try {
-      DexApplication dexApplication =
-          new ApplicationReader(application, new InternalOptions(), Timing.empty()).read();
-      return new AppInfo(dexApplication);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  private static DexApplication readApplicationForDexOutput(AndroidApp app, InternalOptions options)
+      throws Exception {
+    assert options.programConsumer == null;
+    options.programConsumer = DexIndexedConsumer.emptyConsumer();
+    return new ApplicationReader(app, options, Timing.empty()).read();
   }
 
-  protected static AppInfoWithClassHierarchy computeAppInfoWithClassHierarchy(
-      AndroidApp application) {
-    try {
-      DexApplication dexApplication =
-          new ApplicationReader(application, new InternalOptions(), Timing.empty()).read();
-      return new AppInfoWithClassHierarchy(dexApplication);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  protected static AppView<AppInfo> computeAppView(AndroidApp app) throws Exception {
+    AppInfo appInfo = new AppInfo(readApplicationForDexOutput(app, new InternalOptions()));
+    return AppView.createForD8(appInfo);
+  }
+
+  protected static AppInfoWithClassHierarchy computeAppInfoWithClassHierarchy(AndroidApp app)
+      throws Exception {
+    return new AppInfoWithClassHierarchy(readApplicationForDexOutput(app, new InternalOptions()));
   }
 
   protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithSubtyping(AndroidApp app)
       throws Exception {
-    Timing timing = Timing.empty();
-    InternalOptions options = new InternalOptions();
-    DirectMappedDexApplication application =
-        new ApplicationReader(app, options, timing).read().toDirect();
+    return computeAppViewWithSubtyping(
+        app,
+        factory ->
+            buildConfigForRules(
+                factory,
+                Collections.singletonList(ProguardKeepRule.defaultKeepAllRule(unused -> {}))));
+  }
+
+  private static AppView<AppInfoWithClassHierarchy> computeAppViewWithSubtyping(
+      AndroidApp app, Function<DexItemFactory, ProguardConfiguration> keepConfig) throws Exception {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    InternalOptions options = new InternalOptions(keepConfig.apply(dexItemFactory), new Reporter());
+    DexApplication dexApplication = readApplicationForDexOutput(app, options);
     AppView<AppInfoWithClassHierarchy> appView =
-        AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
+        AppView.createForR8(new AppInfoWithClassHierarchy(dexApplication.toDirect()));
     appView.setAppServices(AppServices.builder(appView).build());
     return appView;
   }
@@ -610,31 +617,32 @@ public class TestBase {
   protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(AndroidApp app)
       throws Exception {
     return computeAppViewWithLiveness(
-        app, factory -> ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})));
+        app,
+        factory ->
+            buildConfigForRules(
+                factory, ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {}))));
   }
 
   protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
       AndroidApp app, Class<?> mainClass) throws Exception {
     return computeAppViewWithLiveness(
-        app, factory -> buildKeepRuleForClassAndMethods(mainClass, factory));
+        app,
+        factory ->
+            buildConfigForRules(factory, buildKeepRuleForClassAndMethods(mainClass, factory)));
   }
 
   protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
-      AndroidApp app,
-      Function<DexItemFactory, Collection<ProguardConfigurationRule>>
-          proguardConfigurationRulesGenerator)
-      throws Exception {
-    AppView<AppInfoWithClassHierarchy> appView = computeAppViewWithSubtyping(app);
+      AndroidApp app, Function<DexItemFactory, ProguardConfiguration> keepConfig) throws Exception {
+    AppView<AppInfoWithClassHierarchy> appView = computeAppViewWithSubtyping(app, keepConfig);
     // Run the tree shaker to compute an instance of AppInfoWithLiveness.
     ExecutorService executor = Executors.newSingleThreadExecutor();
     DirectMappedDexApplication application = appView.appInfo().app().asDirect();
     SubtypingInfo subtypingInfo = new SubtypingInfo(application.allClasses(), application);
     RootSet rootSet =
         new RootSetBuilder(
-                appView,
-                subtypingInfo,
-                proguardConfigurationRulesGenerator.apply(appView.appInfo().dexItemFactory()))
+                appView, subtypingInfo, application.options.getProguardConfiguration().getRules())
             .run(executor);
+    appView.setRootSet(rootSet);
     AppInfoWithLiveness appInfoWithLiveness =
         EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo)
             .traceApplication(rootSet, ProguardClassFilter.empty(), executor, application.timing);
@@ -712,6 +720,18 @@ public class TestBase {
         Lists.newArrayList(
             ProguardMemberRule.builder().setRuleType(ProguardMemberType.ALL_METHODS).build()));
     return Collections.singletonList(keepRuleBuilder.build());
+  }
+
+  protected static ProguardConfiguration buildConfigForRules(
+      DexItemFactory factory, Collection<ProguardConfigurationRule> rules) {
+    return buildConfigForRules(factory, new Reporter(), rules);
+  }
+
+  protected static ProguardConfiguration buildConfigForRules(
+      DexItemFactory factory, Reporter reporter, Collection<ProguardConfigurationRule> rules) {
+    ProguardConfiguration.Builder builder = ProguardConfiguration.builder(factory, reporter);
+    rules.forEach(builder::addRule);
+    return builder.build();
   }
 
   /** Returns a list containing all the data resources in the given app. */

@@ -134,7 +134,7 @@ public class ConstantRemovalTest {
     InternalOptions options = new InternalOptions();
     options.debug = true;
     AppInfo appInfo = new AppInfo(DexApplication.builder(options, null).build());
-    AppView<?> appView = AppView.createForD8(appInfo, options);
+    AppView<?> appView = AppView.createForD8(appInfo);
     IRCode code =
         new IRCode(
             options,

@@ -3,83 +3,55 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
-import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.SubtypingInfo;
-import com.android.tools.r8.shaking.Enqueuer;
-import com.android.tools.r8.shaking.EnqueuerFactory;
-import com.android.tools.r8.shaking.ProguardConfiguration;
-import com.android.tools.r8.shaking.RootSetBuilder;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
-import org.junit.Before;
+import java.util.function.Consumer;
 
-public abstract class NamingTestBase {
+public abstract class NamingTestBase extends TestBase {
 
   private final String appFileName;
   protected final List<String> keepRulesFiles;
-  protected final BiConsumer<DexItemFactory, NamingLens> inspection;
+  protected final Consumer<NamingLens> inspection;
 
-  private final Timing timing;
-
-  private DirectMappedDexApplication program;
-  protected DexItemFactory dexItemFactory;
+  private DexItemFactory dexItemFactory = null;
 
   protected NamingTestBase(
       String test, List<String> keepRulesFiles, BiConsumer<DexItemFactory, NamingLens> inspection) {
     appFileName = ToolHelper.EXAMPLES_BUILD_DIR + test + "/classes.dex";
     this.keepRulesFiles = keepRulesFiles;
-    this.inspection = inspection;
-    this.timing = Timing.empty();
+    this.inspection = lens -> inspection.accept(dexItemFactory, lens);
   }
 
-  @Before
-  public void readApp() throws IOException, ExecutionException {
-    program = ToolHelper.buildApplication(ImmutableList.of(appFileName));
-    dexItemFactory = program.dexItemFactory;
-  }
-
-  protected NamingLens runMinifier(List<Path> configPaths) throws ExecutionException {
-    ProguardConfiguration configuration =
-        ToolHelper.loadProguardConfiguration(dexItemFactory, configPaths);
-
-    InternalOptions options = new InternalOptions(configuration, new Reporter());
-    options.programConsumer = DexIndexedConsumer.emptyConsumer();
-
-    ExecutorService executor = ThreadUtils.getExecutorService(1);
-
-    AppView<AppInfoWithClassHierarchy> appView =
-        AppView.createForR8(new AppInfoWithClassHierarchy(program), options);
-    SubtypingInfo subtypingInfo = new SubtypingInfo(program.allClasses(), program);
-    appView.setRootSet(
-        new RootSetBuilder(appView, subtypingInfo, configuration.getRules()).run(executor));
-    appView.setAppServices(AppServices.builder(appView).build());
-
-    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo);
-    appView.setAppInfo(
-        enqueuer.traceApplication(
-            appView.rootSet(), configuration.getDontWarnPatterns(), executor, timing));
-    return new Minifier(appView.withLiveness()).run(executor, timing);
+  protected NamingLens runMinifier(List<Path> configPaths) throws Exception {
+    AppView<AppInfoWithLiveness> appView =
+        computeAppViewWithLiveness(
+            AndroidApp.builder().addProgramFile(Paths.get(appFileName)).build(),
+            factory -> ToolHelper.loadProguardConfiguration(factory, configPaths));
+    dexItemFactory = appView.dexItemFactory();
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      return new Minifier(appView).run(executor, Timing.empty());
+    } finally {
+      executor.shutdown();
+    }
   }
 
   protected static <T> Collection<Object[]> createTests(

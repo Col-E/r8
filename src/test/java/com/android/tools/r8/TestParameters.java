@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -69,5 +71,9 @@ public class TestParameters {
       return runtime.toString() + ", api:" + apiLevel.getLevel();
     }
     return runtime.toString();
+  }
+
+  public void assertNoneRuntime() {
+    assertEquals(NoneRuntime.getInstance(), runtime);
   }
 }

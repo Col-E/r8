@@ -312,7 +312,7 @@ public class GenerateLintFiles {
 
     // Write a header jar with the desugared APIs.
     AppInfo appInfo = new AppInfo(app);
-    AppView<?> appView = AppView.createForD8(appInfo, options);
+    AppView<?> appView = AppView.createForD8(appInfo);
     CfApplicationWriter writer =
         new CfApplicationWriter(
             builder.build(),

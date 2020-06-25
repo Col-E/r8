@@ -81,7 +81,7 @@ public class Relocator {
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
 
       AppInfo appInfo = new AppInfo(app);
-      AppView<?> appView = AppView.createForRelocator(appInfo, options);
+      AppView<?> appView = AppView.createForRelocator(appInfo);
       appView.setAppServices(AppServices.builder(appView).build());
 
       SimplePackagesRewritingMapper packageRemapper = new SimplePackagesRewritingMapper(appView);

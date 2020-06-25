@@ -82,7 +82,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
               rules.addAll(buildKeepRuleForClassAndMethods(methodToBeKept, factory));
               rules.addAll(buildKeepRuleForClass(classToBeKept, factory));
               rules.addAll(buildKeepRuleForClassAndMethods(main, factory));
-              return rules;
+              return buildConfigForRules(factory, rules);
             });
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(initial, "foo", appInfo.dexItemFactory());

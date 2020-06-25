@@ -43,11 +43,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private T appInfo;
   private AppInfoWithClassHierarchy appInfoForDesugaring;
   private AppServices appServices;
-  private final DexItemFactory dexItemFactory;
   private final WholeProgramOptimizations wholeProgramOptimizations;
   private GraphLense graphLense;
   private InitClassLens initClassLens;
-  private final InternalOptions options;
   private RootSet rootSet;
   private final AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
   private final InstanceFieldInitializationInfoFactory instanceFieldInitializationInfoFactory =
@@ -74,32 +72,19 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private Map<DexClass, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
 
   private AppView(
-      T appInfo, WholeProgramOptimizations wholeProgramOptimizations, InternalOptions options) {
-    this(
-        appInfo,
-        wholeProgramOptimizations,
-        options,
-        appInfo == null
-            ? PrefixRewritingMapper.empty()
-            : options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options));
-  }
-
-  private AppView(
       T appInfo,
       WholeProgramOptimizations wholeProgramOptimizations,
-      InternalOptions options,
       PrefixRewritingMapper mapper) {
+    assert appInfo != null;
     this.appInfo = appInfo;
-    this.dexItemFactory = appInfo != null ? appInfo.dexItemFactory() : null;
     this.wholeProgramOptimizations = wholeProgramOptimizations;
     this.graphLense = GraphLense.getIdentityLense();
     this.initClassLens = InitClassLens.getDefault();
     this.methodProcessingIdFactory =
-        new MethodProcessingId.Factory(options.testing.methodProcessingIdConsumer);
-    this.options = options;
+        new MethodProcessingId.Factory(options().testing.methodProcessingIdConsumer);
     this.rewritePrefix = mapper;
 
-    if (enableWholeProgramOptimizations() && options.callSiteOptimizationOptions().isEnabled()) {
+    if (enableWholeProgramOptimizations() && options().callSiteOptimizationOptions().isEnabled()) {
       this.callSiteOptimizationInfoPropagator =
           new CallSiteOptimizationInfoPropagator(withLiveness());
     } else {
@@ -108,7 +93,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
     this.libraryMemberOptimizer = new LibraryMemberOptimizer(this);
 
-    if (enableWholeProgramOptimizations() && options.protoShrinking().isProtoShrinkingEnabled()) {
+    if (enableWholeProgramOptimizations() && options().protoShrinking().isProtoShrinkingEnabled()) {
       this.protoShrinker = new ProtoShrinker(withLiveness());
     } else {
       this.protoShrinker = null;
@@ -120,27 +105,34 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return libraryMemberOptimizer.isModeled(type);
   }
 
-  public static <T extends AppInfo> AppView<T> createForD8(T appInfo, InternalOptions options) {
-    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, options);
+  private static <T extends AppInfo> PrefixRewritingMapper defaultPrefixRewritingMapper(T appInfo) {
+    InternalOptions options = appInfo.options();
+    return options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
+  }
+
+  public static <T extends AppInfo> AppView<T> createForD8(T appInfo) {
+    return new AppView<>(
+        appInfo, WholeProgramOptimizations.OFF, defaultPrefixRewritingMapper(appInfo));
   }
 
   public static <T extends AppInfo> AppView<T> createForD8(
-      T appInfo, InternalOptions options, PrefixRewritingMapper mapper) {
-    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, options, mapper);
+      T appInfo, PrefixRewritingMapper mapper) {
+    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, mapper);
   }
 
-  public static <T extends AppInfo> AppView<T> createForR8(T appInfo, InternalOptions options) {
-    return new AppView<>(appInfo, WholeProgramOptimizations.ON, options);
+  public static <T extends AppInfo> AppView<T> createForR8(T appInfo) {
+    return new AppView<>(
+        appInfo, WholeProgramOptimizations.ON, defaultPrefixRewritingMapper(appInfo));
   }
 
   public static <T extends AppInfo> AppView<T> createForL8(
-      T appInfo, InternalOptions options, PrefixRewritingMapper mapper) {
-    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, options, mapper);
+      T appInfo, PrefixRewritingMapper mapper) {
+    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, mapper);
   }
 
-  public static <T extends AppInfo> AppView<T> createForRelocator(
-      T appInfo, InternalOptions options) {
-    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, options);
+  public static <T extends AppInfo> AppView<T> createForRelocator(T appInfo) {
+    return new AppView<>(
+        appInfo, WholeProgramOptimizations.OFF, defaultPrefixRewritingMapper(appInfo));
   }
 
   public AbstractValueFactory abstractValueFactory() {
@@ -252,7 +244,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   @Override
   public DexItemFactory dexItemFactory() {
-    return dexItemFactory;
+    return appInfo.dexItemFactory();
   }
 
   public boolean enableWholeProgramOptimizations() {
@@ -344,7 +336,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public boolean canUseInitClass() {
-    return options.isShrinking() && !initClassLens.isFinal();
+    return options().isShrinking() && !initClassLens.isFinal();
   }
 
   public InitClassLens initClassLens() {
@@ -373,7 +365,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public InternalOptions options() {
-    return options;
+    return appInfo.options();
   }
 
   public RootSet rootSet() {
@@ -455,14 +447,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public boolean isCfByteCodePassThrough(DexEncodedMethod method) {
-    if (!options.isGeneratingClassFiles()) {
+    if (!options().isGeneratingClassFiles()) {
       return false;
     }
     if (cfByteCodePassThrough.contains(method.method)) {
       return true;
     }
-    return options.testing.cfByteCodePassThrough != null
-        && options.testing.cfByteCodePassThrough.test(method.method);
+    return options().testing.cfByteCodePassThrough != null
+        && options().testing.cfByteCodePassThrough.test(method.method);
   }
 
   public boolean hasCfByteCodePassThroughMethods() {

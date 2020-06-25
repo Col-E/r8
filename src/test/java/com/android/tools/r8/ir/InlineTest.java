@@ -6,6 +6,9 @@ package com.android.tools.r8.ir;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
@@ -40,8 +43,21 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class InlineTest extends IrInjectionTestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public InlineTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   private TestApplication buildTestApplication(
       DexApplication application,
@@ -51,7 +67,7 @@ public class InlineTest extends IrInjectionTestBase {
       throws ExecutionException {
     DirectMappedDexApplication directApp = application.asDirect();
     AppView<AppInfoWithClassHierarchy> appView =
-        AppView.createForR8(new AppInfoWithClassHierarchy(directApp), options);
+        AppView.createForR8(new AppInfoWithClassHierarchy(directApp));
     appView.setAppServices(AppServices.builder(appView).build());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     SubtypingInfo subtypingInfo = new SubtypingInfo(directApp.allClasses(), directApp);
@@ -73,7 +89,9 @@ public class InlineTest extends IrInjectionTestBase {
     Reporter reporter = new Reporter();
     ProguardConfiguration proguardConfiguration =
         ProguardConfiguration.builder(new DexItemFactory(), reporter).build();
-    return new InternalOptions(proguardConfiguration, reporter);
+    InternalOptions options = new InternalOptions(proguardConfiguration, reporter);
+    options.programConsumer = DexIndexedConsumer.emptyConsumer();
+    return options;
   }
 
   private TestApplication codeForMethodReplaceTest(int a, int b) throws ExecutionException {
@@ -129,10 +147,10 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     MethodSubject methodASubject = getMethodSubject(application, signatureA);
-    IRCode codeA = methodASubject.buildIR(options.itemFactory);
+    IRCode codeA = methodASubject.buildIR();
 
     MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-    IRCode codeB = methodBSubject.buildIR(options.itemFactory);
+    IRCode codeB = methodBSubject.buildIR();
 
     return buildTestApplication(
         application, options, methodSubject, ImmutableList.of(codeA, codeB));
@@ -211,7 +229,7 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     MethodSubject methodASubject = getMethodSubject(application, signatureA);
-    IRCode codeA = methodASubject.buildIR(options.itemFactory);
+    IRCode codeA = methodASubject.buildIR();
 
     return buildTestApplication(application, options, methodSubject, ImmutableList.of(codeA));
   }
@@ -291,13 +309,13 @@ public class InlineTest extends IrInjectionTestBase {
     List<IRCode> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       MethodSubject methodASubject = getMethodSubject(application, signatureA);
-      IRCode codeA = methodASubject.buildIR(options.itemFactory);
+      IRCode codeA = methodASubject.buildIR();
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
       MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-      IRCode codeB = methodBSubject.buildIR(options.itemFactory);
+      IRCode codeB = methodBSubject.buildIR();
       additionalCode.add(codeB);
     }
 
@@ -421,10 +439,10 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     MethodSubject methodASubject = getMethodSubject(application, signatureA);
-    IRCode codeA = methodASubject.buildIR(options.itemFactory);
+    IRCode codeA = methodASubject.buildIR();
 
     MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-    IRCode codeB = methodBSubject.buildIR(options.itemFactory);
+    IRCode codeB = methodBSubject.buildIR();
 
     return buildTestApplication(
         application, options, methodSubject, ImmutableList.of(codeA, codeB));
@@ -534,10 +552,10 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     MethodSubject methodASubject = getMethodSubject(application, signatureA);
-    IRCode codeA = methodASubject.buildIR(options.itemFactory);
+    IRCode codeA = methodASubject.buildIR();
 
     MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-    IRCode codeB = methodBSubject.buildIR(options.itemFactory);
+    IRCode codeB = methodBSubject.buildIR();
 
     return buildTestApplication(
         application, options, methodSubject, ImmutableList.of(codeA, codeB));
@@ -645,10 +663,10 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     MethodSubject methodASubject = getMethodSubject(application, signatureA);
-    IRCode codeA = methodASubject.buildIR(options.itemFactory);
+    IRCode codeA = methodASubject.buildIR();
 
     MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-    IRCode codeB = methodBSubject.buildIR(options.itemFactory);
+    IRCode codeB = methodBSubject.buildIR();
 
     return buildTestApplication(
         application, options, methodSubject, ImmutableList.of(codeA, codeB));
@@ -761,13 +779,13 @@ public class InlineTest extends IrInjectionTestBase {
     List<IRCode> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       MethodSubject methodASubject = getMethodSubject(application, signatureA);
-      IRCode codeA = methodASubject.buildIR(options.itemFactory);
+      IRCode codeA = methodASubject.buildIR();
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
       MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-      IRCode codeB = methodBSubject.buildIR(options.itemFactory);
+      IRCode codeB = methodBSubject.buildIR();
       additionalCode.add(codeB);
     }
 
@@ -917,13 +935,13 @@ public class InlineTest extends IrInjectionTestBase {
     List<IRCode> additionalCode = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       MethodSubject methodASubject = getMethodSubject(application, signatureA);
-      IRCode codeA = methodASubject.buildIR(options.itemFactory);
+      IRCode codeA = methodASubject.buildIR();
       additionalCode.add(codeA);
     }
 
     for (int i = 0; i < 3; i++) {
       MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-      IRCode codeB = methodBSubject.buildIR(options.itemFactory);
+      IRCode codeB = methodBSubject.buildIR();
       additionalCode.add(codeB);
     }
 
@@ -1160,10 +1178,10 @@ public class InlineTest extends IrInjectionTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
 
     MethodSubject methodASubject = getMethodSubject(application, signatureA);
-    IRCode codeA = methodASubject.buildIR(options.itemFactory);
+    IRCode codeA = methodASubject.buildIR();
 
     MethodSubject methodBSubject = getMethodSubject(application, signatureB);
-    IRCode codeB = methodBSubject.buildIR(options.itemFactory);
+    IRCode codeB = methodBSubject.buildIR();
 
     return buildTestApplication(
         application, options, methodSubject, ImmutableList.of(codeA, codeB));

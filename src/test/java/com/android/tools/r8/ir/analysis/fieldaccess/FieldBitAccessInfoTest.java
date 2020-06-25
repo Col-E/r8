@@ -134,7 +134,7 @@ public class FieldBitAccessInfoTest extends TestBase {
                 timing)
             .read()
             .toDirect();
-    return AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
+    return AppView.createForR8(new AppInfoWithClassHierarchy(application));
   }
 
   private DexEncodedField uniqueFieldByName(DexProgramClass clazz, String name) {
