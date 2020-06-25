@@ -917,6 +917,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return this;
   }
 
+  public boolean isMinificationAllowed(DexReference reference) {
+    return options().isMinificationEnabled()
+        && keepInfo.getInfo(reference, this).isMinificationAllowed(options());
+  }
+
   public boolean isAccessModificationAllowed(DexReference reference) {
     assert options().getProguardConfiguration().isAccessModificationAllowed();
     return keepInfo.getInfo(reference, this).isAccessModificationAllowed(options());

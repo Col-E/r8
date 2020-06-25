@@ -165,7 +165,7 @@ public final class ClassAndMemberPublicizer {
       boolean wasSeen = methodPoolCollection.markIfNotSeen(holder, method.method);
       if (wasSeen) {
         // We can't do anything further because even renaming is not allowed due to the keep rule.
-        if (appView.rootSet().mayNotBeMinified(method.method, appView)) {
+        if (!appView.appInfo().isMinificationAllowed(method.method)) {
           return false;
         }
         // TODO(b/111118390): Renaming will enable more private instance methods to be publicized.

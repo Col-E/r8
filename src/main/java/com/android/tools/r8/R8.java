@@ -611,7 +611,7 @@ public class R8 {
 
       // Overwrite SourceFile if specified. This step should be done after IR conversion.
       timing.begin("Rename SourceFile");
-      new SourceFileRewriter(appView).run();
+      new SourceFileRewriter(appViewWithLiveness).run();
       timing.end();
 
       // Collect the already pruned types before creating a new app info without liveness.

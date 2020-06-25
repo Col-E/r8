@@ -354,7 +354,8 @@ public class StringOptimizer {
         continue;
       }
       boolean mayBeRenamed =
-          appView.options().isMinifying() && appView.rootSet().mayBeMinified(holder.type, appView);
+          appView.enableWholeProgramOptimizations()
+              && appView.withLiveness().appInfo().isMinificationAllowed(holder.type);
       // b/120138731: Filter out escaping uses. In such case, the result of this optimization will
       // be stored somewhere, which can lead to a regression if the corresponding class is in a deep
       // package hierarchy. For local cases, it is likely a one-time computation, but make sure the

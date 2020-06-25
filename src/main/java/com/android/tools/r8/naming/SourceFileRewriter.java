@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import java.util.Arrays;
 
@@ -20,9 +21,9 @@ import java.util.Arrays;
  */
 public class SourceFileRewriter {
 
-  private final AppView<?> appView;
+  private final AppView<AppInfoWithLiveness> appView;
 
-  public SourceFileRewriter(AppView<?> appView) {
+  public SourceFileRewriter(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 
@@ -45,7 +46,7 @@ public class SourceFileRewriter {
       // of ART.
       if (!hasRenameSourceFileAttribute
           && proguardConfiguration.getKeepAttributes().sourceFile
-          && appView.rootSet().mayNotBeMinified(clazz.type, appView)) {
+          && !appView.appInfo().isMinificationAllowed(clazz.type)) {
         continue;
       }
       clazz.sourceFile = defaultRenaming;

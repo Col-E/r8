@@ -47,7 +47,7 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.google.common.base.Suppliers;
 import java.util.ArrayList;
@@ -448,7 +448,7 @@ public class LineNumberOptimizer {
     if (appView.options().isGeneratingClassFiles()) {
       return true;
     }
-    RootSet rootSet = appView.rootSet();
+    KeepInfoCollection keepInfo = appView.getKeepInfo();
     boolean allSeenAreInstanceInitializers = true;
     DexString originalName = null;
     for (DexEncodedMethod method : methods) {
@@ -459,7 +459,7 @@ public class LineNumberOptimizer {
       }
       allSeenAreInstanceInitializers = false;
       // If the method is pinned, we cannot minify it.
-      if (rootSet.mayNotBeMinified(method.method, appView)) {
+      if (!keepInfo.isMinificationAllowed(method.method, appView, appView.options())) {
         continue;
       }
       // With desugared library, call-backs names are reserved here.

@@ -203,7 +203,7 @@ public class ProguardMapMinifier {
       if (clazz == null || !appView.options().isMinifying()) {
         notMappedReferences.add(type);
       } else if (appView.options().isMinifying()
-          && appView.rootSet().mayNotBeMinified(type, appView)) {
+          && !appView.appInfo().isMinificationAllowed(type)) {
         notMappedReferences.add(type);
       }
     }
@@ -392,7 +392,9 @@ public class ProguardMapMinifier {
     private final Set<String> mappedNames;
 
     ApplyMappingClassNamingStrategy(
-        AppView<?> appView, Map<DexType, DexString> mappings, Set<String> mappedNames) {
+        AppView<AppInfoWithLiveness> appView,
+        Map<DexType, DexString> mappings,
+        Set<String> mappedNames) {
       super(appView);
       this.mappings = mappings;
       this.mappedNames = mappedNames;
@@ -402,7 +404,7 @@ public class ProguardMapMinifier {
     public DexString next(
         DexType type, char[] packagePrefix, InternalNamingState state, Predicate<String> isUsed) {
       assert !mappings.containsKey(type);
-      assert appView.rootSet().mayBeMinified(type, appView);
+      assert appView.appInfo().isMinificationAllowed(type);
       return super.next(
           type,
           packagePrefix,
@@ -427,15 +429,12 @@ public class ProguardMapMinifier {
       if (clazz.isNotProgramClass() && mappings.containsKey(type)) {
         return mappings.get(type);
       }
-      if (clazz.isProgramClass() && appView.rootSet().mayBeMinified(type, appView)) {
-        if (mappings.containsKey(type)) {
+      if (clazz.isProgramClass()) {
+        if (appView.appInfo().isMinificationAllowed(type)) {
           return mappings.get(type);
         }
-        return null;
-      } else if (clazz.isProgramClass()
-          && !appView.rootSet().mayBeMinified(type, appView)
-          && mappings.containsKey(type)) {
-        // TODO(b/136694827): Report a warning here since the user may find this not intuitive.
+        // TODO(b/136694827): Report a warning here if in the mapping since the user may find this
+        //  non intuitive.
       }
       return type.descriptor;
     }
@@ -453,7 +452,7 @@ public class ProguardMapMinifier {
     private final Reporter reporter;
 
     public ApplyMappingMemberNamingStrategy(
-        AppView<?> appView, Map<DexReference, MemberNaming> mappedNames) {
+        AppView<AppInfoWithLiveness> appView, Map<DexReference, MemberNaming> mappedNames) {
       super(appView);
       this.mappedNames = mappedNames;
       this.factory = appView.dexItemFactory();
@@ -477,7 +476,7 @@ public class ProguardMapMinifier {
         nextName = reservedName;
       } else {
         assert !mappedNames.containsKey(reference);
-        assert appView.rootSet().mayBeMinified(reference, appView);
+        assert appView.appInfo().isMinificationAllowed(reference);
         nextName = super.next(method, internalState, isAvailable);
       }
       assert nextName == reference.name || !method.isInitializer();
@@ -500,7 +499,7 @@ public class ProguardMapMinifier {
         return reservedName;
       }
       assert !mappedNames.containsKey(reference);
-      assert appView.rootSet().mayBeMinified(reference, appView);
+      assert appView.appInfo().isMinificationAllowed(reference);
       return super.next(field, internalState, isAvailable);
     }
 

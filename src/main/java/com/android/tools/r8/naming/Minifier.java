@@ -130,10 +130,10 @@ public class Minifier {
   static class MinificationClassNamingStrategy extends BaseMinificationNamingStrategy
       implements ClassNamingStrategy {
 
-    final AppView<?> appView;
+    final AppView<AppInfoWithLiveness> appView;
     final DexItemFactory factory;
 
-    MinificationClassNamingStrategy(AppView<?> appView) {
+    MinificationClassNamingStrategy(AppView<AppInfoWithLiveness> appView) {
       super(
           appView.options().getProguardConfiguration().getClassObfuscationDictionary(),
           appView.options().getProguardConfiguration().hasDontUseMixedCaseClassnames());
@@ -169,7 +169,7 @@ public class Minifier {
 
     @Override
     public DexString reservedDescriptor(DexType type) {
-      if (appView.rootSet().mayNotBeMinified(type, appView)) {
+      if (!appView.appInfo().isMinificationAllowed(type)) {
         return type.descriptor;
       }
       return null;
@@ -207,11 +207,11 @@ public class Minifier {
   static class MinifierMemberNamingStrategy extends BaseMinificationNamingStrategy
       implements MemberNamingStrategy {
 
-    final AppView<?> appView;
+    final AppView<AppInfoWithLiveness> appView;
     private final DexItemFactory factory;
     private final boolean desugaredLibraryRenaming;
 
-    public MinifierMemberNamingStrategy(AppView<?> appView) {
+    public MinifierMemberNamingStrategy(AppView<AppInfoWithLiveness> appView) {
       super(appView.options().getProguardConfiguration().getObfuscationDictionary(), false);
       this.appView = appView;
       this.factory = appView.dexItemFactory();
@@ -254,7 +254,7 @@ public class Minifier {
       if (!allowMemberRenaming(holder)
           || holder.accessFlags.isAnnotation()
           || method.accessFlags.isConstructor()
-          || appView.rootSet().mayNotBeMinified(method.method, appView)) {
+          || !appView.appInfo().isMinificationAllowed(method.method)) {
         return method.method.name;
       }
       if (desugaredLibraryRenaming
@@ -268,7 +268,7 @@ public class Minifier {
 
     @Override
     public DexString getReservedName(DexEncodedField field, DexClass holder) {
-      if (holder.isLibraryClass() || appView.rootSet().mayNotBeMinified(field.field, appView)) {
+      if (holder.isLibraryClass() || !appView.appInfo().isMinificationAllowed(field.field)) {
         return field.field.name;
       }
       return null;
