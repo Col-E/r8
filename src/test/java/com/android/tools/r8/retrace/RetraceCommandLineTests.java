@@ -125,16 +125,6 @@ public class RetraceCommandLineTests {
     assertEquals(Retrace.USAGE_MESSAGE, processResult.stdout);
   }
 
-  @Test
-  public void testNonAscii() throws IOException {
-    runTest("", "\uD83D\uDE00", false, "\uD83D\uDE00" + StringUtils.LINE_SEPARATOR);
-  }
-
-  @Test
-  public void testNonAsciiStdIn() throws IOException {
-    runTest("", "\uD83D\uDE00", true, "\uD83D\uDE00" + StringUtils.LINE_SEPARATOR);
-  }
-
   private final String nonMappableStackTrace =
       StringUtils.lines(
           "com.android.r8.R8Exception: Problem when compiling program",

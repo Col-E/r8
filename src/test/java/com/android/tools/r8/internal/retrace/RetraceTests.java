@@ -16,7 +16,6 @@ import com.android.tools.r8.internal.retrace.stacktraces.VelvetStackTrace;
 import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import junit.framework.TestCase;
@@ -33,8 +32,6 @@ public class RetraceTests extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  private static String SMILEY_EMOJI = "\uD83D\uDE00";
-
   public RetraceTests(TestParameters parameters) {}
 
   @Test
@@ -50,39 +47,6 @@ public class RetraceTests extends TestBase {
   @Test
   public void testVelvetStackTrace() {
     runRetraceTest(new VelvetStackTrace());
-  }
-
-  @Test
-  public void testNonAscii() {
-    CronetStackTrace cronetStackTrace = new CronetStackTrace();
-    runRetraceTest(
-        new StackTraceForTest() {
-          @Override
-          public List<String> obfuscatedStackTrace() {
-            ArrayList<String> smileyObf = new ArrayList<>();
-            smileyObf.add(SMILEY_EMOJI);
-            smileyObf.addAll(cronetStackTrace.obfuscatedStackTrace());
-            return smileyObf;
-          }
-
-          @Override
-          public String mapping() {
-            return cronetStackTrace.mapping();
-          }
-
-          @Override
-          public List<String> retracedStackTrace() {
-            ArrayList<String> smileyObf = new ArrayList<>();
-            smileyObf.add(SMILEY_EMOJI);
-            smileyObf.addAll(cronetStackTrace.retracedStackTrace());
-            return smileyObf;
-          }
-
-          @Override
-          public int expectedWarnings() {
-            return 0;
-          }
-        });
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {
