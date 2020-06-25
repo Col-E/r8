@@ -4,14 +4,11 @@
 
 package com.android.tools.r8.classlookup;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.references.Reference;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
-import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -63,7 +60,12 @@ public class ClasspathClassExtendsProgramClassTest extends TestBase {
   public void testReference() throws Exception {
     testForRuntime(parameters)
         .addProgramClasses(Main.class, ProgramClass.class)
-        .addRunClasspathFiles(compileClasspath())
+        .addRunClasspathFiles(
+            compileToZip(
+                parameters,
+                ImmutableList.of(ProgramClass.class),
+                ClasspathClass.class,
+                ClasspathIndirection.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("ClasspathClass::foo");
   }
@@ -77,29 +79,13 @@ public class ClasspathClassExtendsProgramClassTest extends TestBase {
         .addKeepMainRule(Main.class)
         // Keep the method that is overridden by the classpath class.
         .addKeepMethodRules(Reference.methodFromMethod(ProgramClass.class.getDeclaredMethod("foo")))
-        .addRunClasspathFiles(compileClasspath())
+        .addRunClasspathFiles(
+            compileToZip(
+                parameters,
+                ImmutableList.of(ProgramClass.class),
+                ClasspathClass.class,
+                ClasspathIndirection.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("ClasspathClass::foo");
-  }
-
-  private Path compileClasspath() throws java.io.IOException, CompilationFailedException {
-    return compile(
-        ImmutableList.of(ClasspathClass.class, ClasspathIndirection.class),
-        ImmutableList.of(ProgramClass.class));
-  }
-
-  private Path compile(Collection<Class<?>> compilationUnit, Collection<Class<?>> classpath)
-      throws java.io.IOException, CompilationFailedException {
-    if (parameters.isCfRuntime()) {
-      Path out = temp.newFolder().toPath().resolve("out.jar");
-      writeClassesToJar(out, compilationUnit);
-      return out;
-    }
-    return testForD8()
-        .setMinApi(parameters.getApiLevel())
-        .addProgramClasses(compilationUnit)
-        .addClasspathClasses(classpath)
-        .compile()
-        .writeToZip();
   }
 }

@@ -303,6 +303,10 @@ public abstract class KeepInfoCollection {
       }
     }
 
+    public void keepField(ProgramField programField) {
+      keepField(programField.getHolder(), programField.getDefinition());
+    }
+
     public void keepField(DexProgramClass holder, DexEncodedField field) {
       joinField(holder, field, KeepInfo.Joiner::top);
     }

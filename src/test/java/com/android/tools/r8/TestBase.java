@@ -1500,4 +1500,28 @@ public class TestBase {
   public static AndroidApiLevel apiLevelWithInvokeCustomSupport() {
     return AndroidApiLevel.O;
   }
+
+  public Path compileToZip(
+      TestParameters parameters, Collection<Class<?>> classPath, Class<?>... compilationUnit)
+      throws Exception {
+    return compileToZip(parameters, classPath, Arrays.asList(compilationUnit));
+  }
+
+  public Path compileToZip(
+      TestParameters parameters,
+      Collection<Class<?>> classpath,
+      Collection<Class<?>> compilationUnit)
+      throws Exception {
+    if (parameters.isCfRuntime()) {
+      Path out = temp.newFolder().toPath().resolve("out.jar");
+      writeClassesToJar(out, compilationUnit);
+      return out;
+    }
+    return testForD8()
+        .setMinApi(parameters.getApiLevel())
+        .addProgramClasses(compilationUnit)
+        .addClasspathClasses(classpath)
+        .compile()
+        .writeToZip();
+  }
 }

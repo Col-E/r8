@@ -1828,36 +1828,36 @@ public class Enqueuer {
   }
 
   private void ensureFromLibraryOrThrow(DexType type, DexClass context) {
-    if (!mode.isInitialTreeShaking()) {
+    if (mode.isTracingMainDex()) {
       // b/72312389: android.jar contains parts of JUnit and most developers include JUnit in
       // their programs. This leads to library classes extending program classes. When tracing
       // main dex lists we allow this.
       return;
     }
-    DexClass holder = appView.definitionFor(type);
-    if (holder != null && !holder.isLibraryClass()) {
-      if (forceProguardCompatibility) {
-        // To ensure that the program works correctly we have to pin all super types and members
-        // in the tree.
-        appInfo.forEachSuperType(
-            holder,
-            (dexType, ignored) -> {
-              if (holder.isProgramClass()) {
-                DexProgramClass holderClass = holder.asProgramClass();
-                keepInfo.keepClass(holderClass);
-                rootSet.shouldNotBeMinified(holder.toReference());
-                for (DexEncodedMember<?, ?> member : holder.members()) {
-                  keepInfo.keepMember(holderClass, member);
-                  DexMember<?, ?> memberReference = member.toReference();
-                  rootSet.shouldNotBeMinified(memberReference);
-                }
-              }
-            });
-      }
-      if (dontWarnPatterns.matches(context.type)) {
-        // Ignore.
-        return;
-      }
+    DexProgramClass holder = getProgramClassOrNull(type);
+    if (holder == null) {
+      return;
+    }
+    if (forceProguardCompatibility) {
+      // To ensure that the program works correctly we have to pin all super types and members
+      // in the tree.
+      KeepReason keepReason = KeepReason.reachableFromLiveType(context.type);
+      keepClassAndAllMembers(holder, keepReason);
+      appInfo.forEachSuperType(
+          holder,
+          (dexType, ignored) -> {
+            DexProgramClass superClass = getProgramClassOrNull(dexType);
+            if (superClass != null) {
+              keepClassAndAllMembers(superClass, keepReason);
+            }
+          });
+    }
+    if (dontWarnPatterns.matches(context.type)) {
+      // Ignore.
+      return;
+    }
+    // Only report an error during the first round of treeshaking.
+    if (mode.isInitialTreeShaking()) {
       Diagnostic message =
           new StringDiagnostic(
               "Library class "
@@ -1871,6 +1871,25 @@ public class Enqueuer {
         options.reporter.error(message);
       }
     }
+  }
+
+  private void keepClassAndAllMembers(DexProgramClass clazz, KeepReason keepReason) {
+    KeepReasonWitness keepReasonWitness = graphReporter.registerClass(clazz, keepReason);
+    markClassAsInstantiatedWithCompatRule(clazz.asProgramClass(), keepReasonWitness);
+    keepInfo.keepClass(clazz);
+    rootSet.shouldNotBeMinified(clazz.toReference());
+    clazz.forEachProgramField(
+        field -> {
+          keepInfo.keepField(field);
+          rootSet.shouldNotBeMinified(field.getReference());
+          markFieldAsKept(field, keepReasonWitness);
+        });
+    clazz.forEachProgramMethod(
+        method -> {
+          keepInfo.keepMethod(method);
+          rootSet.shouldNotBeMinified(method.getReference());
+          markMethodAsKept(method, keepReasonWitness);
+        });
   }
 
   private void reportMissingClass(DexType clazz) {
