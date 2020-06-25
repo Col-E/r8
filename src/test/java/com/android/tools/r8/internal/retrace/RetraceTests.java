@@ -16,6 +16,7 @@ import com.android.tools.r8.internal.retrace.stacktraces.VelvetStackTrace;
 import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import junit.framework.TestCase;
@@ -32,6 +33,12 @@ public class RetraceTests extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
+  private static String REMAPPER_REGEX =
+      "(?:.*?\\bat\\s+%c\\.%m\\s*\\(%S\\)\\s*)"
+          + "|(?:(?:.*?[:\"]\\s+)?%c(?::.*)?)"
+          + "|(?:.*?%t\\s+%c\\.%m\\s*\\(%a\\)\\s*)";
+  private static String FINSKY_REGEX = "(?:.*Finsky\\s+:\\s+\\[\\d+\\]\\s+%c\\.%m\\(%l\\):.*)";
+
   public RetraceTests(TestParameters parameters) {}
 
   @Test
@@ -41,7 +48,82 @@ public class RetraceTests extends TestBase {
 
   @Test
   public void testFinskyStackTrace() {
-    runRetraceTest(new FinskyStackTrace(), "(?:.*Finsky\\s+:\\s+\\[\\d+\\]\\s+%c\\.%m\\(%l\\):.*)");
+    runRetraceTest(new FinskyStackTrace(), FINSKY_REGEX);
+  }
+
+  @Test
+  public void testCronetRemapperRegexpTest() {
+    runRetraceTest(new CronetStackTrace(), REMAPPER_REGEX);
+  }
+
+  @Test
+  public void testCronetAndFinskyStackTrace() {
+    CronetStackTrace cronetStackTrace = new CronetStackTrace();
+    FinskyStackTrace finskyStackTrace = new FinskyStackTrace();
+    runRetraceTest(
+        new StackTraceForTest() {
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            ArrayList<String> obfuscated = new ArrayList<>();
+            obfuscated.addAll(cronetStackTrace.obfuscatedStackTrace());
+            obfuscated.addAll(finskyStackTrace.obfuscatedStackTrace());
+            return obfuscated;
+          }
+
+          @Override
+          public String mapping() {
+            return cronetStackTrace.mapping();
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            ArrayList<String> retraced = new ArrayList<>();
+            retraced.addAll(cronetStackTrace.retracedStackTrace());
+            retraced.addAll(finskyStackTrace.retracedStackTrace());
+            return retraced;
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        },
+        FINSKY_REGEX + "|" + DEFAULT_REGULAR_EXPRESSION);
+  }
+
+  @Test
+  public void testCronetAndFinskyStackTraceRemapperRegExp() {
+    CronetStackTrace cronetStackTrace = new CronetStackTrace();
+    FinskyStackTrace finskyStackTrace = new FinskyStackTrace();
+    runRetraceTest(
+        new StackTraceForTest() {
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            ArrayList<String> obfuscated = new ArrayList<>();
+            obfuscated.addAll(cronetStackTrace.obfuscatedStackTrace());
+            obfuscated.addAll(finskyStackTrace.obfuscatedStackTrace());
+            return obfuscated;
+          }
+
+          @Override
+          public String mapping() {
+            return cronetStackTrace.mapping();
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            ArrayList<String> retraced = new ArrayList<>();
+            retraced.addAll(cronetStackTrace.retracedStackTrace());
+            retraced.addAll(finskyStackTrace.retracedStackTrace());
+            return retraced;
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        },
+        FINSKY_REGEX + "|" + REMAPPER_REGEX);
   }
 
   @Test

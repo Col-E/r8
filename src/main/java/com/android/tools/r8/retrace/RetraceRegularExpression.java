@@ -767,7 +767,7 @@ public class RetraceRegularExpression {
     }
   }
 
-  private class SourceFileLineNumberGroup extends RegularExpressionGroup {
+  private static class SourceFileLineNumberGroup extends RegularExpressionGroup {
 
     @Override
     String shortName() {
