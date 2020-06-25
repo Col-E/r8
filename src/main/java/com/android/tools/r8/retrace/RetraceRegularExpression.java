@@ -5,6 +5,7 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -32,6 +33,9 @@ public class RetraceRegularExpression {
   private final String regularExpression;
 
   private static final int NO_MATCH = -1;
+
+  private final RegularExpressionGroup[] syntheticGroups =
+      new RegularExpressionGroup[] {new SourceFileLineNumberGroup()};
 
   private final RegularExpressionGroup[] groups =
       new RegularExpressionGroup[] {
@@ -130,19 +134,17 @@ public class RetraceRegularExpression {
       String regularExpression, List<RegularExpressionGroupHandler> handlers) {
     int currentIndex = 0;
     int captureGroupIndex = 0;
+    regularExpression = registerSyntheticGroups(regularExpression);
     while (currentIndex < regularExpression.length()) {
       RegularExpressionGroup firstGroup = null;
       int firstIndexFromCurrent = regularExpression.length();
       for (RegularExpressionGroup group : groups) {
-        int nextIndexOf = regularExpression.indexOf(group.shortName(), currentIndex);
-        if (nextIndexOf > NO_MATCH && nextIndexOf < firstIndexFromCurrent) {
-          // Check if previous character in the regular expression is not \\ to ensure not
-          // overriding a matching on shortName.
-          if (nextIndexOf > 0 && regularExpression.charAt(nextIndexOf - 1) == '\\') {
-            continue;
-          }
+        int firstIndex =
+            firstIndexOfGroup(
+                currentIndex, firstIndexFromCurrent, regularExpression, group.shortName());
+        if (firstIndex > NO_MATCH) {
           firstGroup = group;
-          firstIndexFromCurrent = nextIndexOf;
+          firstIndexFromCurrent = firstIndex;
         }
       }
       if (firstGroup != null) {
@@ -158,6 +160,49 @@ public class RetraceRegularExpression {
       }
       currentIndex = firstIndexFromCurrent;
     }
+    return regularExpression;
+  }
+
+  private int firstIndexOfGroup(int startIndex, int endIndex, String expression, String shortName) {
+    int nextIndexOf = startIndex;
+    while (nextIndexOf != NO_MATCH) {
+      nextIndexOf = expression.indexOf(shortName, nextIndexOf);
+      if (nextIndexOf > NO_MATCH) {
+        if (nextIndexOf < endIndex && !isEscaped(expression, nextIndexOf)) {
+          return nextIndexOf;
+        }
+        nextIndexOf++;
+      }
+    }
+    return NO_MATCH;
+  }
+
+  private boolean isEscaped(String expression, int index) {
+    boolean escaped = false;
+    while (index > 0 && expression.charAt(--index) == '\\') {
+      escaped = !escaped;
+    }
+    return escaped;
+  }
+
+  private String registerSyntheticGroups(String regularExpression) {
+    boolean modifiedExpression;
+    do {
+      modifiedExpression = false;
+      for (RegularExpressionGroup syntheticGroup : syntheticGroups) {
+        int firstIndex =
+            firstIndexOfGroup(
+                0, regularExpression.length(), regularExpression, syntheticGroup.shortName());
+        if (firstIndex > NO_MATCH) {
+          regularExpression =
+              regularExpression.substring(0, firstIndex)
+                  + syntheticGroup.subExpression()
+                  + regularExpression.substring(firstIndex + syntheticGroup.shortName().length());
+          // Loop as long as we can replace.
+          modifiedExpression = true;
+        }
+      }
+    } while (modifiedExpression);
     return regularExpression;
   }
 
@@ -387,6 +432,10 @@ public class RetraceRegularExpression {
     abstract String subExpression();
 
     abstract RegularExpressionGroupHandler createHandler(String captureGroup);
+
+    boolean isSynthetic() {
+      return false;
+    }
   }
 
   // TODO(b/145731185): Extend support for identifiers with strings inside back ticks.
@@ -715,6 +764,29 @@ public class RetraceRegularExpression {
         }
         return seenRange ? retracedStrings : strings;
       };
+    }
+  }
+
+  private class SourceFileLineNumberGroup extends RegularExpressionGroup {
+
+    @Override
+    String shortName() {
+      return "%S";
+    }
+
+    @Override
+    String subExpression() {
+      return "%s(?::%l)?";
+    }
+
+    @Override
+    RegularExpressionGroupHandler createHandler(String captureGroup) {
+      throw new Unreachable("Should never be called");
+    }
+
+    @Override
+    boolean isSynthetic() {
+      return true;
     }
   }
 
