@@ -37,7 +37,13 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
   private static final String expectedOutput =
-      StringUtils.lines("Caught java.time.format.DateTimeParseException", "true", "Hello, world");
+      StringUtils.lines(
+          "Caught java.time.format.DateTimeParseException",
+          "true",
+          "1970-01-02T10:17:36.789Z",
+          "GMT",
+          "GMT",
+          "Hello, world");
 
   @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
@@ -62,13 +68,15 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     String expectedInstanceOfTypes;
     if (parameters.getApiLevel().getLevel() >= 26) {
       expectedInvokeHolders =
-          ImmutableSet.of("java.time.Clock", "java.time.LocalDate", "java.time.ZoneOffset");
+          ImmutableSet.of(
+              "java.time.Clock", "java.time.LocalDate", "java.time.ZoneOffset", "java.time.ZoneId");
       expectedCatchGuards = ImmutableSet.of("java.time.format.DateTimeParseException");
       expectedCheckCastType = ImmutableSet.of("java.time.ZoneId");
       expectedInstanceOfTypes = "java.time.ZoneOffset";
     } else {
       expectedInvokeHolders =
-          ImmutableSet.of("j$.time.Clock", "j$.time.LocalDate", "j$.time.ZoneOffset");
+          ImmutableSet.of(
+              "j$.time.Clock", "j$.time.LocalDate", "j$.time.ZoneOffset", "j$.time.ZoneId");
       expectedCatchGuards = ImmutableSet.of("j$.time.format.DateTimeParseException");
       expectedCheckCastType = ImmutableSet.of("j$.time.ZoneId");
       expectedInstanceOfTypes = "j$.time.ZoneOffset";
@@ -166,6 +174,14 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
         System.out.println("NOT!");
       }
       System.out.println(java.time.ZoneOffset.getAvailableZoneIds().size() > 0);
+
+      System.out.println(
+          java.util.Date.from(new java.util.Date(123456789).toInstant()).toInstant());
+
+      java.util.TimeZone timeZone = java.util.TimeZone.getTimeZone(java.time.ZoneId.of("GMT"));
+      System.out.println(timeZone.getID());
+      System.out.println(timeZone.toZoneId().getId());
+
       System.out.println("Hello, world");
     }
   }

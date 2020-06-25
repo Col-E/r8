@@ -2,7 +2,7 @@
   "configuration_format_version": 3,
   "group_id" : "com.tools.android",
   "artifact_id" : "desugar_jdk_libs",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "required_compilation_api_level": 26,
   "synthesized_library_classes_package_prefix": "j$.",
   "common_flags": [
@@ -84,7 +84,8 @@
       },
       "retarget_lib_member": {
         "java.util.Date#toInstant": "java.util.DesugarDate",
-        "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar"
+        "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar",
+        "java.util.TimeZone#toZoneId": "java.util.DesugarTimeZone"
       },
       "custom_conversion": {
         "java.time.ZonedDateTime": "java.time.TimeConversions",
@@ -163,7 +164,9 @@
         "java.util.Date#from": "java.util.DesugarDate",
         "java.util.Date#toInstant": "java.util.DesugarDate",
         "java.util.GregorianCalendar#from": "java.util.DesugarGregorianCalendar",
-        "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar"
+        "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar",
+        "java.util.TimeZone#getTimeZone": "java.util.DesugarTimeZone",
+        "java.util.TimeZone#toZoneId": "java.util.DesugarTimeZone"
       },
       "custom_conversion": {
         "java.time.ZonedDateTime": "java.time.TimeConversions",
