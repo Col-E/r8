@@ -69,7 +69,7 @@ public class MarkersTest extends TestBase {
         allOf(
             markerTool(Tool.L8),
             markerCompilationMode(compilationMode),
-            markerDesugaredLibraryIdentifier("com.tools.android:desugar_jdk_libs:1.0.9"),
+            markerDesugaredLibraryIdentifier("com.tools.android:desugar_jdk_libs:1.0.10"),
             markerHasChecksums(false));
     Matcher<Marker> d8Matcher =
         allOf(

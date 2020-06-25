@@ -122,6 +122,26 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
       System.out.println("43");
       System.out.println(myAtomicInteger.updateAndGet(x -> x + 100));
       System.out.println("145");
+
+      try {
+        MyDateNoOverride.from(myCal.toInstant());
+        System.out.println("b/159441805 fixed");
+      } catch (NoSuchMethodError e) {
+        // TODO(b/159441805): Should not throw.
+      }
+
+      try {
+        MyDateOverride.from(myCal.toInstant());
+        System.out.println("b/159441805 fixed");
+      } catch (NoSuchMethodError e) {
+        // TODO(b/159441805): Should not throw.
+      }
+
+      System.out.println(MyDateDoubleOverride.from(myCal.toInstant()).toInstant());
+      System.out.println("1970-01-02T10:17:36.788Z");
+
+      System.out.println(MyDateTrippleOverride.from(myCal.toInstant()).toInstant());
+      System.out.println("1970-01-02T10:17:36.788Z");
     }
 
     public static void polyTypes() {
@@ -211,6 +231,22 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
     @Override
     public Instant toInstant() {
       return super.toInstant().plusSeconds(3);
+    }
+
+    public static Date from(Instant instant) {
+      return new Date(123456788);
+    }
+  }
+
+  static class MyDateTrippleOverride extends MyDateDoubleOverride {
+
+    public MyDateTrippleOverride(long date) {
+      super(date);
+    }
+
+    @Override
+    public Instant toInstant() {
+      return super.toInstant().plusSeconds(6);
     }
   }
 
