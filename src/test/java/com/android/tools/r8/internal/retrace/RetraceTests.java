@@ -38,6 +38,7 @@ public class RetraceTests extends TestBase {
           + "|(?:(?:.*?[:\"]\\s+)?%c(?::.*)?)"
           + "|(?:.*?%t\\s+%c\\.%m\\s*\\(%a\\)\\s*)";
   private static String FINSKY_REGEX = "(?:.*Finsky\\s+:\\s+\\[\\d+\\]\\s+%c\\.%m\\(%l\\):.*)";
+  private static String SMILEY_EMOJI = "\uD83D\uDE00";
 
   public RetraceTests(TestParameters parameters) {}
 
@@ -129,6 +130,39 @@ public class RetraceTests extends TestBase {
   @Test
   public void testVelvetStackTrace() {
     runRetraceTest(new VelvetStackTrace());
+  }
+
+  @Test
+  public void testNonAscii() {
+    CronetStackTrace cronetStackTrace = new CronetStackTrace();
+    runRetraceTest(
+        new StackTraceForTest() {
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            ArrayList<String> smileyObf = new ArrayList<>();
+            smileyObf.add(SMILEY_EMOJI);
+            smileyObf.addAll(cronetStackTrace.obfuscatedStackTrace());
+            return smileyObf;
+          }
+
+          @Override
+          public String mapping() {
+            return cronetStackTrace.mapping();
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            ArrayList<String> smileyObf = new ArrayList<>();
+            smileyObf.add(SMILEY_EMOJI);
+            smileyObf.addAll(cronetStackTrace.retracedStackTrace());
+            return smileyObf;
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        });
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {

@@ -15,12 +15,14 @@ import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTraceWithInfo;
 import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.base.Charsets;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -37,6 +39,8 @@ public class RetraceCommandLineTests {
   private static final boolean testExternal = false;
 
   @Rule public TemporaryFolder folder = new TemporaryFolder();
+
+  private static String SMILEY_EMOJI = "\uD83D\uDE00";
 
   @Test
   public void testPrintIdentityStackTraceFile() throws IOException {
@@ -125,6 +129,16 @@ public class RetraceCommandLineTests {
     assertEquals(Retrace.USAGE_MESSAGE, processResult.stdout);
   }
 
+  @Test
+  public void testNonAscii() throws IOException {
+    runTest("", SMILEY_EMOJI, false, SMILEY_EMOJI + StringUtils.LINE_SEPARATOR);
+  }
+
+  @Test
+  public void testNonAsciiStdIn() throws IOException {
+    runTest("", SMILEY_EMOJI, true, SMILEY_EMOJI + StringUtils.LINE_SEPARATOR);
+  }
+
   private final String nonMappableStackTrace =
       StringUtils.lines(
           "com.android.r8.R8Exception: Problem when compiling program",
@@ -164,7 +178,7 @@ public class RetraceCommandLineTests {
     Path mappingFile = folder.newFile("mapping.txt").toPath();
     Files.write(mappingFile, mapping.getBytes());
     File stackTraceFile = folder.newFile("stacktrace.txt");
-    Files.write(stackTraceFile.toPath(), stackTrace.getBytes());
+    Files.write(stackTraceFile.toPath(), stackTrace.getBytes(StandardCharsets.UTF_8));
 
     Collection<String> args = new ArrayList<>();
     args.add(mappingFile.toString());
@@ -216,8 +230,8 @@ public class RetraceCommandLineTests {
       System.setErr(originalErr);
       return new ProcessResult(
           exitCode,
-          outputByteStream.toString(),
-          errorByteStream.toString(),
+          outputByteStream.toString(Charsets.UTF_8.name()),
+          errorByteStream.toString(Charsets.UTF_8.name()),
           StringUtils.joinLines(args));
     }
   }

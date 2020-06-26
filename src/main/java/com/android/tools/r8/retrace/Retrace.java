@@ -17,7 +17,11 @@ import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.base.Charsets;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -117,7 +121,7 @@ public class Retrace {
   private static List<String> getStackTraceFromFile(
       String stackTracePath, DiagnosticsHandler diagnostics) {
     try {
-      return Files.readAllLines(Paths.get(stackTracePath));
+      return Files.readAllLines(Paths.get(stackTracePath), Charsets.UTF_8);
     } catch (IOException e) {
       diagnostics.error(new StringDiagnostic("Could not find stack trace file: " + stackTracePath));
       throw new RetraceAbortException();
@@ -196,7 +200,15 @@ public class Retrace {
       return;
     }
     builder.setRetracedStackTraceConsumer(
-        retraced -> System.out.print(StringUtils.lines(retraced)));
+        retraced -> {
+          try (PrintStream printStream = new PrintStream(System.out, true, Charsets.UTF_8.name())) {
+            for (String line : retraced) {
+              printStream.println(line);
+            }
+          } catch (UnsupportedEncodingException e) {
+            retraceDiagnosticsHandler.error(new StringDiagnostic(e.getMessage()));
+          }
+        });
     run(builder.build());
   }
 
@@ -210,7 +222,7 @@ public class Retrace {
   }
 
   private static List<String> getStackTraceFromStandardInput() {
-    Scanner sc = new Scanner(System.in);
+    Scanner sc = new Scanner(new InputStreamReader(System.in, Charsets.UTF_8));
     List<String> readLines = new ArrayList<>();
     while (sc.hasNext()) {
       readLines.add(sc.nextLine());
