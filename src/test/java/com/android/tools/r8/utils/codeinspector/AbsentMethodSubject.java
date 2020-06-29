@@ -142,4 +142,9 @@ public class AbsentMethodSubject extends MethodSubject {
   public String getJvmMethodSignatureAsString() {
     return null;
   }
+
+  @Override
+  public MethodSubject toMethodOnCompanionClass() {
+    throw new Unreachable("Cannot determine companion class method");
+  }
 }

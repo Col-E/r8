@@ -4,17 +4,15 @@
 
 package com.android.tools.r8.shaking.defaultmethods;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbstract;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -24,47 +22,33 @@ import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class DefaultMethodsTest extends TestBase {
 
-  private Backend backend;
+  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public DefaultMethodsTest(Backend backend) {
-    this.backend = backend;
+  public DefaultMethodsTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   private void runTest(List<String> additionalKeepRules, Consumer<CodeInspector> inspection)
       throws Exception {
-    R8Command.Builder builder = R8Command.builder();
-    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(InterfaceWithDefaultMethods.class));
-    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(ClassImplementingInterface.class));
-    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
-    if (backend == Backend.DEX) {
-      builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-      int apiLevel = AndroidApiLevel.O.getLevel();
-      builder.setMinApiLevel(apiLevel);
-      builder.addLibraryFiles(ToolHelper.getAndroidJar(apiLevel));
-    } else {
-      assert backend == Backend.CF;
-      builder.setProgramConsumer(ClassFileConsumer.emptyConsumer());
-      builder.addLibraryFiles(ToolHelper.getJava8RuntimeJar());
-    }
-    // Always keep main in the test class, so the output never becomes empty.
-    builder.addProguardConfiguration(ImmutableList.of(
-        "-keep class " + TestClass.class.getCanonicalName() + "{",
-        "  public static void main(java.lang.String[]);",
-        "}",
-        "-dontobfuscate"),
-        Origin.unknown());
-    builder.addProguardConfiguration(additionalKeepRules, Origin.unknown());
-    AndroidApp app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
-    inspection.accept(new CodeInspector(app));
+    testForR8(parameters.getBackend())
+        .addProgramClasses(
+            InterfaceWithDefaultMethods.class, ClassImplementingInterface.class, TestClass.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(TestClass.class)
+        .addKeepRules(additionalKeepRules)
+        .noMinification()
+        .compile()
+        .inspect(inspection);
   }
 
   private void interfaceNotKept(CodeInspector inspector) {
@@ -73,53 +57,98 @@ public class DefaultMethodsTest extends TestBase {
 
   private void defaultMethodNotKept(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(InterfaceWithDefaultMethods.class);
-    assertTrue(clazz.isPresent());
-    assertFalse(clazz.method("int", "method", ImmutableList.of()).isPresent());
+    assertThat(clazz, isPresent());
+    assertThat(clazz.method("int", "method", ImmutableList.of()), not(isPresent()));
   }
 
   private void defaultMethodKept(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(InterfaceWithDefaultMethods.class);
-    assertTrue(clazz.isPresent());
+    assertThat(clazz, isPresent());
     MethodSubject method = clazz.method("int", "method", ImmutableList.of());
-    assertTrue(method.isPresent());
-    assertFalse(method.isAbstract());
+    assertThat(method, isPresent());
+    ClassSubject companionClass = clazz.toCompanionClass();
+    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+      assertThat(method, not(isAbstract()));
+      assertThat(companionClass, not(isPresent()));
+    } else {
+      assertThat(method, isAbstract());
+      assertThat(companionClass, isPresent());
+      MethodSubject defaultMethod = method.toMethodOnCompanionClass();
+      assertThat(defaultMethod, isPresent());
+    }
+  }
+
+  private void defaultMethodKeptWithoutCompanionClass(CodeInspector inspector) {
+    ClassSubject clazz = inspector.clazz(InterfaceWithDefaultMethods.class);
+    assertThat(clazz, isPresent());
+    MethodSubject method = clazz.method("int", "method", ImmutableList.of());
+    assertThat(method, isPresent());
+    ClassSubject companionClass = clazz.toCompanionClass();
+    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+      assertThat(method, not(isAbstract()));
+    } else {
+      assertThat(method, isAbstract());
+    }
+    assertThat(companionClass, not(isPresent()));
   }
 
   @Test
-  public void test() throws Exception {
+  public void testInterfaceNotKept() throws Exception {
     runTest(ImmutableList.of(), this::interfaceNotKept);
-    runTest(ImmutableList.of(
-        "-keep interface " + InterfaceWithDefaultMethods.class.getCanonicalName() + "{",
-        "}"
-    ), this::defaultMethodNotKept);
-    runTest(ImmutableList.of(
-        "-keep interface " + InterfaceWithDefaultMethods.class.getCanonicalName() + "{",
-        "  <methods>;",
-        "}"
-    ), this::defaultMethodKept);
-    runTest(ImmutableList.of(
-        "-keep interface " + InterfaceWithDefaultMethods.class.getCanonicalName() + "{",
-        "  public int method();",
-        "}"
-    ), this::defaultMethodKept);
+  }
+
+  @Test
+  public void testDefaultMethodNotKept() throws Exception {
     runTest(
         ImmutableList.of(
-            "-keep class " + ClassImplementingInterface.class.getCanonicalName() + "{",
+            "-keep interface " + InterfaceWithDefaultMethods.class.getTypeName() + "{", "}"),
+        this::defaultMethodNotKept);
+  }
+
+  @Test
+  public void testDefaultMethodKeptWithMethods() throws Exception {
+    runTest(
+        ImmutableList.of(
+            "-keep interface " + InterfaceWithDefaultMethods.class.getTypeName() + "{",
+            "  <methods>;",
+            "}"),
+        this::defaultMethodKept);
+  }
+
+  @Test
+  public void testDefaultMethodsKeptExplicitly() throws Exception {
+    runTest(
+        ImmutableList.of(
+            "-keep interface " + InterfaceWithDefaultMethods.class.getTypeName() + "{",
+            "  public int method();",
+            "}"),
+        this::defaultMethodKept);
+  }
+
+  @Test
+  public void testDefaultMethodNotKeptIndirectly() throws Exception {
+    runTest(
+        ImmutableList.of(
+            "-keep class " + ClassImplementingInterface.class.getTypeName() + "{",
             "  <methods>;",
             "}",
             // Prevent InterfaceWithDefaultMethods from being merged into ClassImplementingInterface
-            "-keep class " + InterfaceWithDefaultMethods.class.getCanonicalName()),
+            "-keep class " + InterfaceWithDefaultMethods.class.getTypeName()),
         this::defaultMethodNotKept);
+  }
+
+  @Test
+  public void testDefaultMethodKeptIndirectly() throws Exception {
     runTest(
         ImmutableList.of(
-            "-keep class " + ClassImplementingInterface.class.getCanonicalName() + "{",
+            "-keep class " + ClassImplementingInterface.class.getTypeName() + "{",
             "  <methods>;",
             "}",
             "-keep class " + TestClass.class.getCanonicalName() + "{",
             "  public void useInterfaceMethod();",
             "}",
             // Prevent InterfaceWithDefaultMethods from being merged into ClassImplementingInterface
-            "-keep class " + InterfaceWithDefaultMethods.class.getCanonicalName()),
-        this::defaultMethodKept);
+            "-keep class " + InterfaceWithDefaultMethods.class.getTypeName()),
+        this::defaultMethodKeptWithoutCompanionClass);
   }
 }

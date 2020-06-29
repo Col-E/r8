@@ -280,9 +280,9 @@ public class CodeInspector {
     }
     DexClass clazz = application.definitionFor(toDexTypeIgnorePrimitives(name));
     if (clazz == null) {
-      return new AbsentClassSubject();
+      return new AbsentClassSubject(this, reference);
     }
-    return new FoundClassSubject(this, clazz, naming);
+    return new FoundClassSubject(this, clazz, naming, reference);
   }
 
   public ClassSubject companionClassFor(Class<?> clazz) {

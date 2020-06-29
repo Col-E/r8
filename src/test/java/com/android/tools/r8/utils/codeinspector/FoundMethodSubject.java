@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.DEFAULT_METHOD_PREFIX;
+
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.code.Instruction;
@@ -31,6 +33,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.LocalVariableTable.LocalVariableTableEntry;
 import com.google.common.base.Predicates;
@@ -39,6 +42,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -371,5 +375,20 @@ public class FoundMethodSubject extends MethodSubject {
                 .map(DexType::toDescriptorString).collect(Collectors.toList()), "")
         + ")"
         + dexMethod.method.proto.returnType.toDescriptorString();
+  }
+
+  @Override
+  public MethodSubject toMethodOnCompanionClass() {
+    ClassSubject companionClass = clazz.toCompanionClass();
+    MethodReference reference = asMethodReference();
+    List<String> p =
+        ImmutableList.<String>builder()
+            .add(clazz.getFinalName())
+            .addAll(reference.getFormalTypes().stream().map(TypeReference::getTypeName).iterator())
+            .build();
+    return companionClass.method(
+        reference.getReturnType().getTypeName(),
+        DEFAULT_METHOD_PREFIX + reference.getMethodName(),
+        p);
   }
 }

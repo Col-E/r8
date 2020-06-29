@@ -102,4 +102,6 @@ public abstract class MethodSubject extends MemberSubject {
   }
 
   public abstract String getJvmMethodSignatureAsString();
+
+  public abstract MethodSubject toMethodOnCompanionClass();
 }

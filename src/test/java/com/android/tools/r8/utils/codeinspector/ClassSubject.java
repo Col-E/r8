@@ -4,10 +4,14 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
+
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.ListUtils;
@@ -22,6 +26,14 @@ import java.util.function.Predicate;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public abstract class ClassSubject extends Subject {
+
+  protected final ClassReference reference;
+  protected final CodeInspector codeInspector;
+
+  public ClassSubject(CodeInspector codeInspector, ClassReference reference) {
+    this.codeInspector = codeInspector;
+    this.reference = reference;
+  }
 
   public abstract void forAllMethods(Consumer<FoundMethodSubject> inspection);
 
@@ -192,4 +204,11 @@ public abstract class ClassSubject extends Subject {
   public abstract KmPackageSubject getKmPackage();
 
   public abstract KotlinClassMetadata getKotlinClassMetadata();
+
+  public ClassSubject toCompanionClass() {
+    String descriptor = reference.getDescriptor();
+    return codeInspector.clazz(
+        Reference.classFromDescriptor(
+            descriptor.substring(0, descriptor.length() - 1) + COMPANION_CLASS_NAME_SUFFIX + ";"));
+  }
 }

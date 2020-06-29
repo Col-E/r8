@@ -129,7 +129,7 @@ public interface FoundKmDeclarationContainerSubject extends KmDeclarationContain
   default ClassSubject getClassSubjectFromKmType(KmType kmType) {
     String descriptor = getDescriptorFromKmType(kmType);
     if (descriptor == null) {
-      return new AbsentClassSubject();
+      return new AbsentClassSubject(codeInspector(), Reference.classFromDescriptor("Lnot_found;"));
     }
     return getClassSubjectFromDescriptor(descriptor);
   }

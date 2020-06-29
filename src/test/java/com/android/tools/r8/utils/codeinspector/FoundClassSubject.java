@@ -24,6 +24,7 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
@@ -32,13 +33,15 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public class FoundClassSubject extends ClassSubject {
 
-  private final CodeInspector codeInspector;
   private final DexClass dexClass;
   final ClassNamingForNameMapper naming;
 
   FoundClassSubject(
-      CodeInspector codeInspector, DexClass dexClass, ClassNamingForNameMapper naming) {
-    this.codeInspector = codeInspector;
+      CodeInspector codeInspector,
+      DexClass dexClass,
+      ClassNamingForNameMapper naming,
+      ClassReference reference) {
+    super(codeInspector, reference);
     this.dexClass = dexClass;
     this.naming = naming;
   }

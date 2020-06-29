@@ -7,11 +7,16 @@ package com.android.tools.r8.utils.codeinspector;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.references.ClassReference;
 import java.util.List;
 import java.util.function.Consumer;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public class AbsentClassSubject extends ClassSubject {
+
+  public AbsentClassSubject(CodeInspector codeInspector, ClassReference reference) {
+    super(codeInspector, reference);
+  }
 
   @Override
   public boolean isPresent() {
@@ -171,5 +176,10 @@ public class AbsentClassSubject extends ClassSubject {
   @Override
   public KotlinClassMetadata getKotlinClassMetadata() {
     return null;
+  }
+
+  @Override
+  public ClassSubject toCompanionClass() {
+    throw new Unreachable("Cannot determine EnclosingMethod attribute of an absent class");
   }
 }
