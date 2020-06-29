@@ -385,6 +385,77 @@ def prepare_google3(args):
   return release_google3
 
 
+def update_desugar_library_in_studio(args):
+  assert os.path.exists(args.studio), ("Could not find STUDIO path %s"
+                                       % args.studio)
+
+  def make_release(args):
+    library_version = args.update_desugar_library_in_studio[0]
+    configuration_version = args.update_desugar_library_in_studio[1]
+    change_name = 'update-desugar-library-dependencies'
+
+    with utils.ChangedWorkingDirectory(args.studio):
+      if not args.use_existing_work_branch:
+        subprocess.call(['repo', 'abandon', change_name])
+      if not args.no_sync:
+        subprocess.check_call(['repo', 'sync', '-cq', '-j', '16'])
+
+      cmd = ['tools/base/bazel/bazel',
+         'run',
+         '//tools/base/bazel:add_dependency',
+         '--',
+         '--repo=https://maven.google.com com.android.tools:desugar_jdk_libs:%s' % library_version]
+      utils.PrintCmd(cmd)
+      subprocess.check_call(" ".join(cmd), shell=True)
+      cmd = ['tools/base/bazel/bazel', 'shutdown']
+      utils.PrintCmd(cmd)
+      subprocess.check_call(cmd)
+
+    prebuilts_tools = os.path.join(args.studio, 'prebuilts', 'tools')
+    with utils.ChangedWorkingDirectory(prebuilts_tools):
+      if not args.use_existing_work_branch:
+        with utils.ChangedWorkingDirectory(prebuilts_tools):
+          subprocess.check_call(['repo', 'start', change_name])
+      m2_dir = os.path.join(
+        'common', 'm2', 'repository', 'com', 'android', 'tools')
+      subprocess.check_call(
+        ['git',
+         'add',
+         os.path.join(m2_dir, DESUGAR_JDK_LIBS, library_version)])
+      subprocess.check_call(
+        ['git',
+         'add',
+         os.path.join(
+           m2_dir, DESUGAR_JDK_LIBS_CONFIGURATION, configuration_version)])
+
+      git_message = ("""Update library desugaring dependencies
+
+  com.android.tools:desugar_jdk_libs:%s
+  com.android.tools:desugar_jdk_libs_configuration:%s
+
+Bug: %s
+Test: L8ToolTest, L8DexDesugarTest"""
+                     % (library_version,
+                        configuration_version,
+                        '\nBug: '.join(args.bug)))
+
+      if not args.use_existing_work_branch:
+        subprocess.check_call(['git', 'commit', '-a', '-m', git_message])
+      else:
+        print ('Not committing when --use-existing-work-branch. '
+            + 'Commit message should be:\n\n'
+            + git_message
+            + '\n')
+      # Don't upload if requested not to, or if changes are not committed due
+      # to --use-existing-work-branch
+      if not args.no_upload and not args.use_existing_work_branch:
+        process = subprocess.Popen(['repo', 'upload', '.', '--verify'],
+                                   stdin=subprocess.PIPE)
+        return process.communicate(input='y\n')[0]
+
+  return make_release
+
+
 def prepare_desugar_library(args):
 
   def make_release(args):
@@ -677,6 +748,10 @@ def parse_options():
                       nargs=2,
                       metavar=('<version>', '<configuration hash>'),
                       help='The new version of com.android.tools:desugar_jdk_libs')
+  group.add_argument('--update-desugar-library-in-studio',
+                      nargs=2,
+                      metavar=('<version>', '<configuration version>'),
+                      help='Update studio mirror of com.android.tools:desugar_jdk_libs')
   group.add_argument('--new-dev-branch',
                       nargs=2,
                       metavar=('<version>', '<master hash>'),
@@ -772,7 +847,7 @@ def main():
 
   if args.google3:
     targets_to_run.append(prepare_google3(args))
-  if args.studio:
+  if args.studio and not args.update_desugar_library_in_studio:
     targets_to_run.append(prepare_studio(args))
   if args.aosp:
     targets_to_run.append(prepare_aosp(args))
@@ -781,6 +856,16 @@ def main():
 
   if args.desugar_library:
     targets_to_run.append(prepare_desugar_library(args))
+
+  if args.update_desugar_library_in_studio:
+    if not args.studio:
+      print ("--studio required")
+      sys.exit(1)
+    if args.bug == []:
+      print ("Update studio mirror of com.android.tools:desugar_jdk_libs "
+             + "requires at least one bug by using '--bug'")
+      sys.exit(1)
+    targets_to_run.append(update_desugar_library_in_studio(args))
 
   final_results = []
   for target_closure in targets_to_run:
