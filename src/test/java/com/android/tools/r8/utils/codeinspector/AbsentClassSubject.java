@@ -177,9 +177,4 @@ public class AbsentClassSubject extends ClassSubject {
   public KotlinClassMetadata getKotlinClassMetadata() {
     return null;
   }
-
-  @Override
-  public ClassSubject toCompanionClass() {
-    throw new Unreachable("Cannot determine EnclosingMethod attribute of an absent class");
-  }
 }
