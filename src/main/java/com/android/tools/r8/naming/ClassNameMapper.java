@@ -16,6 +16,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.ChainableStringConsumer;
+import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
@@ -68,7 +69,7 @@ public class ClassNameMapper implements ProguardMap {
 
   public static ClassNameMapper mapperFromInputStream(InputStream in) throws IOException {
     return mapperFromBufferedReader(
-        new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8)));
+        new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8)), null);
   }
 
   public static ClassNameMapper mapperFromFile(Path path) throws IOException {
@@ -87,12 +88,18 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   public static ClassNameMapper mapperFromString(String contents) throws IOException {
-    return mapperFromBufferedReader(CharSource.wrap(contents).openBufferedStream());
+    return mapperFromBufferedReader(CharSource.wrap(contents).openBufferedStream(), null);
   }
 
-  private static ClassNameMapper mapperFromBufferedReader(BufferedReader reader)
+  public static ClassNameMapper mapperFromString(String contents, Reporter reporter)
       throws IOException {
-    try (ProguardMapReader proguardReader = new ProguardMapReader(reader)) {
+    return mapperFromBufferedReader(CharSource.wrap(contents).openBufferedStream(), reporter);
+  }
+
+  private static ClassNameMapper mapperFromBufferedReader(BufferedReader reader, Reporter reporter)
+      throws IOException {
+    try (ProguardMapReader proguardReader =
+        new ProguardMapReader(reader, reporter != null ? reporter : new Reporter())) {
       ClassNameMapper.Builder builder = ClassNameMapper.builder();
       proguardReader.parse(builder);
       return builder.build();

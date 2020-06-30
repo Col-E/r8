@@ -43,9 +43,9 @@ public class ClassNamingForNameMapper implements ClassNaming {
     @Override
     public ClassNaming.Builder addMemberEntry(MemberNaming entry) {
       if (entry.isMethodNaming()) {
-        methodMembers.put((MethodSignature) entry.getRenamedSignature(), entry);
+        methodMembers.put(entry.getRenamedSignature().asMethodSignature(), entry);
       } else {
-        fieldMembers.put((FieldSignature) entry.getRenamedSignature(), entry);
+        fieldMembers.put(entry.getRenamedSignature().asFieldSignature(), entry);
       }
       mappedNamingsByName
           .computeIfAbsent(entry.getRenamedName(), m -> new ArrayList<>())

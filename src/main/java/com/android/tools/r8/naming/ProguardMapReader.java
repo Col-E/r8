@@ -6,14 +6,21 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.SignatureMappingInformation;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.utils.IdentifierUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.Maps;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -54,6 +61,8 @@ import java.util.Objects;
 public class ProguardMapReader implements AutoCloseable {
 
   private final BufferedReader reader;
+  private final JsonParser jsonParser = new JsonParser();
+  private final Reporter reporter;
 
   @Override
   public void close() throws IOException {
@@ -62,8 +71,11 @@ public class ProguardMapReader implements AutoCloseable {
     }
   }
 
-  ProguardMapReader(BufferedReader reader) {
+  ProguardMapReader(BufferedReader reader, Reporter reporter) {
     this.reader = reader;
+    this.reporter = reporter;
+    assert reader != null;
+    assert reporter != null;
   }
 
   // Internal parser state
@@ -118,12 +130,39 @@ public class ProguardMapReader implements AutoCloseable {
     for (int i = 0; i < line.length(); ++i) {
       char c = line.charAt(i);
       if (c == '#') {
-        return true;
+        return !hasFirstCharJsonBrace(line, i);
       } else if (!StringUtils.isWhitespace(c)) {
         return false;
       }
     }
     return true;
+  }
+
+  private boolean isCommentLineWithJsonBrace() {
+    if (line == null) {
+      return false;
+    }
+    for (int i = 0; i < line.length(); ++i) {
+      char c = line.charAt(i);
+      if (c == '#') {
+        return hasFirstCharJsonBrace(line, i);
+      } else if (!Character.isWhitespace(c)) {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  private static boolean hasFirstCharJsonBrace(String line, int commentCharIndex) {
+    for (int i = commentCharIndex + 1; i < line.length(); i++) {
+      char c = line.charAt(i);
+      if (c == '{') {
+        return true;
+      } else if (!Character.isWhitespace(c)) {
+        return false;
+      }
+    }
+    return false;
   }
 
   private boolean skipLine() throws IOException {
@@ -213,10 +252,22 @@ public class ProguardMapReader implements AutoCloseable {
     MemberNaming lastAddedNaming = null;
     MemberNaming activeMemberNaming = null;
     Range previousMappedRange = null;
+    Map<Signature, SignatureMappingInformation> mappingInformation = Maps.newHashMap();
     do {
       Object originalRange = null;
       Range mappedRange = null;
-
+      // Try to parse any information added in comments above member namings
+      if (isCommentLineWithJsonBrace()) {
+        MappingInformation mappingInfo =
+            MappingInformation.fromJsonObject(parseJsonInComment(), reporter, lineNo);
+        if (mappingInfo != null && mappingInfo.isSignatureMappingInformation()) {
+          SignatureMappingInformation sigMapInfo = mappingInfo.asSignatureMappingInformation();
+          mappingInformation.put(sigMapInfo.getSignature(), sigMapInfo);
+        }
+        // Skip reading the rest of the line.
+        lineOffset = line.length();
+        continue;
+      }
       // Parse the member line '  x:y:name:z:q -> renamedName'.
       if (!StringUtils.isWhitespace(peekCodePoint())) {
         break;
@@ -274,7 +325,16 @@ public class ProguardMapReader implements AutoCloseable {
           }
         }
       }
-      activeMemberNaming = new MemberNaming(signature, renamedName, getPosition());
+      if (mappingInformation.containsKey(signature)) {
+        activeMemberNaming =
+            new MemberNaming(
+                signature,
+                mappingInformation.get(signature).apply(signature, renamedName, reporter),
+                getPosition());
+      } else {
+        activeMemberNaming =
+            new MemberNaming(signature, signature.asRenamed(renamedName), getPosition());
+      }
       previousMappedRange = mappedRange;
     } while (nextLine());
 
@@ -449,6 +509,20 @@ public class ProguardMapReader implements AutoCloseable {
       result += Character.getNumericValue(nextChar());
     } while (isSimpleDigit(peekChar(0)));
     return result;
+  }
+
+  private JsonObject parseJsonInComment() {
+    assert isCommentLineWithJsonBrace();
+    try {
+      int firstIndex = 0;
+      while (line.charAt(firstIndex) != '{') {
+        firstIndex++;
+      }
+      return jsonParser.parse(line.substring(firstIndex)).getAsJsonObject();
+    } catch (com.google.gson.JsonSyntaxException ex) {
+      // An info message is reported in MappingInformation.
+      return null;
+    }
   }
 
   private class ParseException extends RuntimeException {

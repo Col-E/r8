@@ -58,12 +58,12 @@ public class MemberNaming {
   final Position position;
 
   public MemberNaming(Signature signature, String renamedName) {
-    this(signature, renamedName, Position.UNKNOWN);
+    this(signature, signature.asRenamed(renamedName), Position.UNKNOWN);
   }
 
-  public MemberNaming(Signature signature, String renamedName, Position position) {
+  public MemberNaming(Signature signature, Signature renamedSignature, Position position) {
     this.signature = signature;
-    this.renamedSignature = signature.asRenamed(renamedName);
+    this.renamedSignature = renamedSignature;
     this.position = position;
   }
 
