@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.utils.ThrowingConsumer;
 
 /**
@@ -14,7 +15,10 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 public interface ClassNaming {
 
   abstract class Builder {
+
     public abstract Builder addMemberEntry(MemberNaming entry);
+
+    public abstract Builder addMappingInformation(MappingInformation mappingInformation);
 
     public abstract ClassNaming build();
 

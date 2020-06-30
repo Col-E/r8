@@ -10,6 +10,8 @@ import com.google.gson.JsonObject;
 
 public abstract class MappingInformation {
 
+  static final int NO_LINE_NUMBER = -1;
+
   public static final String MAPPING_ID_KEY = "id";
 
   private final int lineNumber;

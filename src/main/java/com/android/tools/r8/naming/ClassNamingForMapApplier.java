@@ -10,6 +10,7 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -35,6 +36,7 @@ import java.util.Map;
 public class ClassNamingForMapApplier implements ClassNaming {
 
   public static class Builder extends ClassNaming.Builder {
+
     private final String originalName;
     private final String renamedName;
     private final Position position;
@@ -71,6 +73,12 @@ public class ClassNamingForMapApplier implements ClassNaming {
                   signature.toString(), this.originalName, entry.position));
         }
       }
+      return this;
+    }
+
+    @Override
+    public ClassNaming.Builder addMappingInformation(MappingInformation mappingInformation) {
+      // Intentionally kept empty until we support additional information with -applymapping.
       return this;
     }
 

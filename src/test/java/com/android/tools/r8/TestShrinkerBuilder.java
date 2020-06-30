@@ -213,6 +213,10 @@ public abstract class TestShrinkerBuilder<
     return addKeepAttributes("LineNumberTable");
   }
 
+  public T addKeepAttributeSourceFile() {
+    return addKeepAttributes("SourceFile");
+  }
+
   public T addKeepRuntimeVisibleAnnotations() {
     return addKeepAttributes("RuntimeVisibleAnnotations");
   }
