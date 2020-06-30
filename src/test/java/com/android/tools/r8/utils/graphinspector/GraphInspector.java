@@ -661,6 +661,10 @@ public class GraphInspector {
     }
   }
 
+  public CodeInspector codeInspector() {
+    return inspector;
+  }
+
   public Set<GraphNode> getRoots() {
     return Collections.unmodifiableSet(roots);
   }
