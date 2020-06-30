@@ -123,19 +123,12 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
       System.out.println(myAtomicInteger.updateAndGet(x -> x + 100));
       System.out.println("145");
 
-      try {
-        MyDateNoOverride.from(myCal.toInstant());
-        System.out.println("b/159441805 fixed");
-      } catch (NoSuchMethodError e) {
-        // TODO(b/159441805): Should not throw.
-      }
-
-      try {
-        MyDateOverride.from(myCal.toInstant());
-        System.out.println("b/159441805 fixed");
-      } catch (NoSuchMethodError e) {
-        // TODO(b/159441805): Should not throw.
-      }
+      Date date1 = MyDateNoOverride.from(myCal.toInstant());
+      System.out.println(date1.toInstant());
+      System.out.println("1990-03-22T00:00:00Z");
+      Date date2 = MyDateOverride.from(myCal.toInstant());
+      System.out.println(date2.toInstant());
+      System.out.println("1990-03-22T00:00:00Z");
 
       System.out.println(MyDateDoubleOverride.from(myCal.toInstant()).toInstant());
       System.out.println("1970-01-02T10:17:36.788Z");

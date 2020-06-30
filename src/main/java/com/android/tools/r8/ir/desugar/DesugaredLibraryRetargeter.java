@@ -50,10 +50,10 @@ public class DesugaredLibraryRetargeter {
 
   private final AppView<?> appView;
   private final Map<DexMethod, DexMethod> retargetLibraryMember = new IdentityHashMap<>();
-  // Map virtualRewrites hold a methodName->method mapping for virtual methods which are
-  // rewritten while the holder is non final but no superclass implement the method. In this case
-  // d8 needs to force resolution of given methods to see if the invoke needs to be rewritten.
-  private final Map<DexString, List<DexMethod>> virtualRewrites = new IdentityHashMap<>();
+  // Map nonFinalRewrite hold a methodName -> method mapping for methods which are rewritten while
+  // the holder is non final. In this case d8 needs to force resolution of given methods to see if
+  // the invoke needs to be rewritten.
+  private final Map<DexString, List<DexMethod>> nonFinalHolderRewrites = new IdentityHashMap<>();
   // Non final virtual library methods requiring generation of emulated dispatch.
   private final Set<DexEncodedMethod> emulatedDispatchMethods = Sets.newIdentityHashSet();
 
@@ -107,7 +107,7 @@ public class DesugaredLibraryRetargeter {
       InvokeMethod invoke = instruction.asInvokeMethod();
       DexMethod retarget = getRetargetLibraryMember(invoke.getInvokedMethod());
       if (retarget == null) {
-        if (!matchesVirtualRewrite(invoke.getInvokedMethod())) {
+        if (!matchesNonFinalHolderRewrite(invoke.getInvokedMethod())) {
           continue;
         }
         // We need to force resolution, even on d8, to know if the invoke has to be rewritten.
@@ -128,7 +128,7 @@ public class DesugaredLibraryRetargeter {
 
       // Due to emulated dispatch, we have to rewrite invoke-super differently or we end up in
       // infinite loops. We do direct resolution. This is a very uncommon case.
-      if (invoke.isInvokeSuper() && matchesVirtualRewrite(invoke.getInvokedMethod())) {
+      if (invoke.isInvokeSuper() && matchesNonFinalHolderRewrite(invoke.getInvokedMethod())) {
         DexEncodedMethod dexEncodedMethod =
             appView
                 .appInfoForDesugaring()
@@ -163,8 +163,8 @@ public class DesugaredLibraryRetargeter {
     return retargetLibraryMember.get(method);
   }
 
-  private boolean matchesVirtualRewrite(DexMethod method) {
-    List<DexMethod> dexMethods = virtualRewrites.get(method.name);
+  private boolean matchesNonFinalHolderRewrite(DexMethod method) {
+    List<DexMethod> dexMethods = nonFinalHolderRewrites.get(method.name);
     if (dexMethods == null) {
       return false;
     }
@@ -188,17 +188,19 @@ public class DesugaredLibraryRetargeter {
             DexType newHolder = retargetCoreLibMember.get(methodName).get(inType);
             List<DexEncodedMethod> found = findDexEncodedMethodsWithName(methodName, typeClass);
             for (DexEncodedMethod encodedMethod : found) {
-              if (!encodedMethod.isStatic()) {
-                virtualRewrites.putIfAbsent(encodedMethod.method.name, new ArrayList<>());
-                virtualRewrites.get(encodedMethod.method.name).add(encodedMethod.method);
-                if (InterfaceMethodRewriter.isEmulatedInterfaceDispatch(appView, encodedMethod)) {
-                  // In this case interface method rewriter takes care of it.
-                  continue;
-                } else if (!encodedMethod.isFinal()) {
-                  // Virtual rewrites require emulated dispatch for inheritance.
-                  // The call is rewritten to the dispatch holder class instead.
-                  handleEmulateDispatch(appView, encodedMethod);
-                  newHolder = dispatchHolderTypeFor(encodedMethod);
+              if (!typeClass.isFinal()) {
+                nonFinalHolderRewrites.putIfAbsent(encodedMethod.method.name, new ArrayList<>());
+                nonFinalHolderRewrites.get(encodedMethod.method.name).add(encodedMethod.method);
+                if (!encodedMethod.isStatic()) {
+                  if (InterfaceMethodRewriter.isEmulatedInterfaceDispatch(appView, encodedMethod)) {
+                    // In this case interface method rewriter takes care of it.
+                    continue;
+                  } else if (!encodedMethod.isFinal()) {
+                    // Virtual rewrites require emulated dispatch for inheritance.
+                    // The call is rewritten to the dispatch holder class instead.
+                    handleEmulateDispatch(appView, encodedMethod);
+                    newHolder = dispatchHolderTypeFor(encodedMethod);
+                  }
                 }
               }
               DexProto proto = encodedMethod.method.proto;
