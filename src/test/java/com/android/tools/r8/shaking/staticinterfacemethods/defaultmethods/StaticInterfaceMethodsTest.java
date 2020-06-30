@@ -83,22 +83,14 @@ public class StaticInterfaceMethodsTest extends TestBase {
               .addRunClasspathFiles(app)
               .run(parameters.getRuntime(), InstrumentedTestClass.class);
     } else {
-      if (parameters.getRuntime().isCf()) {
-        result =
-            testForJvm()
-                .addProgramClasses(InstrumentedTestClass.class)
-                .addRunClasspathFiles(app)
-                .run(parameters.getRuntime(), InstrumentedTestClass.class);
-      } else {
-        result =
-            testForD8()
-                .addProgramClasses(InstrumentedTestClass.class)
-                .addClasspathClasses(InterfaceWithStaticMethods.class)
-                .setMinApi(parameters.getApiLevel())
-                .compile()
-                .addRunClasspathFiles(app)
-                .run(parameters.getRuntime(), InstrumentedTestClass.class);
-      }
+      result =
+          testForRuntime(
+                  parameters.getRuntime(),
+                  d8TestBuilder ->
+                      d8TestBuilder.setMinApi(parameters.getApiLevel()).addClasspathFiles(app))
+              .addProgramClasses(InstrumentedTestClass.class)
+              .addRunClasspathFiles(app)
+              .run(parameters.getRuntime(), InstrumentedTestClass.class);
     }
     if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
       result.assertSuccessWithOutputLines("42");

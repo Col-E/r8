@@ -193,15 +193,20 @@ public class TestBase {
   }
 
   public TestBuilder<? extends TestRunResult<?>, ?> testForRuntime(
-      TestRuntime runtime, AndroidApiLevel apiLevel) {
+      TestRuntime runtime, Consumer<D8TestBuilder> d8TestBuilderConsumer) {
     if (runtime.isCf()) {
       return testForJvm();
     } else {
       assert runtime.isDex();
       D8TestBuilder d8TestBuilder = testForD8();
-      d8TestBuilder.setMinApi(apiLevel);
+      d8TestBuilderConsumer.accept(d8TestBuilder);
       return d8TestBuilder;
     }
+  }
+
+  public TestBuilder<? extends TestRunResult<?>, ?> testForRuntime(
+      TestRuntime runtime, AndroidApiLevel apiLevel) {
+    return testForRuntime(runtime, d8TestBuilder -> d8TestBuilder.setMinApi(apiLevel));
   }
 
   public TestBuilder<? extends TestRunResult<?>, ?> testForRuntime(TestParameters parameters) {
