@@ -6,7 +6,8 @@ package com.android.tools.r8.shaking.attributes;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isMemberClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -123,8 +124,8 @@ public class KeepInnerClassesEnclosingMethodAnnotationsTest extends TestBase {
                 "-keepattributes InnerClasses,EnclosingMethod",
                 "-keep class **Outer*",
                 keepMainProguardConfiguration(Main.class)));
-    assertThat(result.outer, not(isRenamed()));
-    assertThat(result.inner, not(isRenamed()));
+    assertThat(result.outer, isPresentAndNotRenamed());
+    assertThat(result.inner, isPresentAndNotRenamed());
     assertThat(result.inner, isMemberClass());
     fullInnerClassesEnclosingMethodInformation(result);
   }
@@ -134,8 +135,8 @@ public class KeepInnerClassesEnclosingMethodAnnotationsTest extends TestBase {
     TestResult result =
         runShrinker(
             ImmutableList.of("-keep class **Outer*", keepMainProguardConfiguration(Main.class)));
-    assertThat(result.outer, not(isRenamed()));
-    assertThat(result.inner, not(isRenamed()));
+    assertThat(result.outer, isPresentAndNotRenamed());
+    assertThat(result.inner, isPresentAndNotRenamed());
     assertThat(result.inner, not(isMemberClass()));
     noInnerClassesEnclosingMethodInformation(result);
   }
@@ -148,8 +149,8 @@ public class KeepInnerClassesEnclosingMethodAnnotationsTest extends TestBase {
                 "-keepattributes InnerClasses,EnclosingMethod",
                 "-keep class **Outer$Inner",
                 keepMainProguardConfiguration(Main.class)));
-    assertThat(result.outer, not(isRenamed()));
-    assertThat(result.inner, not(isRenamed()));
+    assertThat(result.outer, isPresentAndNotRenamed());
+    assertThat(result.inner, isPresentAndNotRenamed());
     assertThat(result.inner, isMemberClass());
     fullInnerClassesEnclosingMethodInformation(result);
   }
@@ -162,8 +163,8 @@ public class KeepInnerClassesEnclosingMethodAnnotationsTest extends TestBase {
                 "-keepattributes InnerClasses,EnclosingMethod",
                 "-keep class **Outer",
                 keepMainProguardConfiguration(Main.class)));
-    assertThat(result.outer, not(isRenamed()));
-    assertThat(result.inner, isRenamed());
+    assertThat(result.outer, isPresentAndNotRenamed());
+    assertThat(result.inner, isPresentAndRenamed());
     assertThat(result.inner, isMemberClass());
     fullInnerClassesEnclosingMethodInformation(result);
   }

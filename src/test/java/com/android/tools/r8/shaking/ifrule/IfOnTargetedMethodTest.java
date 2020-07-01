@@ -4,8 +4,7 @@
 
 package com.android.tools.r8.shaking.ifrule;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -35,8 +34,7 @@ public class IfOnTargetedMethodTest extends TestBase {
             .inspector();
 
     ClassSubject interfaceSubject = inspector.clazz(Interface.class);
-    assertThat(interfaceSubject, isPresent());
-    assertThat(interfaceSubject, isRenamed());
+    assertThat(interfaceSubject, isPresentAndRenamed());
   }
 
   static class TestClass {

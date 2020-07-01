@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.desugar;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -54,9 +54,9 @@ public class DefaultInterfaceWithIdentifierNameString extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     ClassSubject classSubject = inspector.clazz(A.class);
-    assertThat(classSubject, isRenamed());
+    assertThat(classSubject, isPresentAndRenamed());
     ClassSubject companionClassSubject = inspector.companionClassFor(I.class);
-    assertThat(companionClassSubject, isRenamed());
+    assertThat(companionClassSubject, isPresentAndRenamed());
     companionClassSubject
         .allMethods()
         .forEach(

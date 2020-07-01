@@ -3,8 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -81,26 +80,20 @@ public class AbstractMethodRenamingTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     ClassSubject base = inspector.clazz(Base.class);
-    assertThat(base, isPresent());
-    assertThat(base, isRenamed());
+    assertThat(base, isPresentAndRenamed());
     MethodSubject foo = base.uniqueMethodWithName("foo");
-    assertThat(foo, isPresent());
-    assertThat(foo, isRenamed());
+    assertThat(foo, isPresentAndRenamed());
 
     ClassSubject sub1 = inspector.clazz(Sub1.class);
-    assertThat(sub1, isPresent());
-    assertThat(sub1, isRenamed());
+    assertThat(sub1, isPresentAndRenamed());
     MethodSubject fooInSub1 = sub1.uniqueMethodWithName("foo");
-    assertThat(fooInSub1, isPresent());
-    assertThat(fooInSub1, isRenamed());
+    assertThat(fooInSub1, isPresentAndRenamed());
     assertEquals(foo.getFinalName(), fooInSub1.getFinalName());
 
     ClassSubject sub2 = inspector.clazz(Sub1.class);
-    assertThat(sub2, isPresent());
-    assertThat(sub2, isRenamed());
+    assertThat(sub2, isPresentAndRenamed());
     MethodSubject fooInSub2 = sub2.uniqueMethodWithName("foo");
-    assertThat(fooInSub2, isPresent());
-    assertThat(fooInSub2, isRenamed());
+    assertThat(fooInSub2, isPresentAndRenamed());
     assertEquals(foo.getFinalName(), fooInSub2.getFinalName());
   }
 }

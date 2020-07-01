@@ -4,7 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -75,11 +75,9 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     );
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(B111974287.class);
-    assertThat(classSubject, isPresent());
-    assertThat(classSubject, not(isRenamed()));
+    assertThat(classSubject, isPresentAndNotRenamed());
     FieldSubject fieldSubject = classSubject.field(B111974287.class.getTypeName(), "self");
-    assertThat(fieldSubject, isPresent());
-    assertThat(fieldSubject, not(isRenamed()));
+    assertThat(fieldSubject, isPresentAndNotRenamed());
     fieldSubject = classSubject.field(B111974287.class.getTypeName() + "[]", "clones");
     // TODO(b/111974287): Proguard6 kept and renamed the field with array type.
     if (shrinker == Shrinker.PROGUARD6) {
@@ -97,16 +95,14 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     );
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(B111974287.class);
-    assertThat(classSubject, isPresent());
-    assertThat(classSubject, not(isRenamed()));
+    assertThat(classSubject, isPresentAndNotRenamed());
     DexClass clazz = classSubject.getDexProgramClass();
     assertEquals(3, clazz.getMethodCollection().numberOfVirtualMethods());
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
       assertTrue(encodedMethod.method.name.toString().startsWith("foo"));
       MethodSubject methodSubject =
           classSubject.method(MethodSignature.fromDexMethod(encodedMethod.method));
-      assertThat(methodSubject, isPresent());
-      assertThat(methodSubject, not(isRenamed()));
+      assertThat(methodSubject, isPresentAndNotRenamed());
     }
   }
 
@@ -119,14 +115,11 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     );
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(B111974287.class);
-    assertThat(classSubject, isPresent());
-    assertThat(classSubject, not(isRenamed()));
+    assertThat(classSubject, isPresentAndNotRenamed());
     FieldSubject fieldSubject = classSubject.field(B111974287.class.getTypeName(), "self");
-    assertThat(fieldSubject, isPresent());
-    assertThat(fieldSubject, not(isRenamed()));
+    assertThat(fieldSubject, isPresentAndNotRenamed());
     fieldSubject = classSubject.field(B111974287.class.getTypeName() + "[]", "clones");
-    assertThat(fieldSubject, isPresent());
-    assertThat(fieldSubject, not(isRenamed()));
+    assertThat(fieldSubject, isPresentAndNotRenamed());
   }
 
   @Test
@@ -138,16 +131,14 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     );
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(B111974287.class);
-    assertThat(classSubject, isPresent());
-    assertThat(classSubject, not(isRenamed()));
+    assertThat(classSubject, isPresentAndNotRenamed());
     DexClass clazz = classSubject.getDexProgramClass();
     assertEquals(3, clazz.getMethodCollection().numberOfVirtualMethods());
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
       assertTrue(encodedMethod.method.name.toString().startsWith("foo"));
       MethodSubject methodSubject =
           classSubject.method(MethodSignature.fromDexMethod(encodedMethod.method));
-      assertThat(methodSubject, isPresent());
-      assertThat(methodSubject, not(isRenamed()));
+      assertThat(methodSubject, isPresentAndNotRenamed());
     }
   }
 
@@ -160,16 +151,14 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     );
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     ClassSubject classSubject = codeInspector.clazz(B111974287.class);
-    assertThat(classSubject, isPresent());
-    assertThat(classSubject, not(isRenamed()));
+    assertThat(classSubject, isPresentAndNotRenamed());
     DexClass clazz = classSubject.getDexProgramClass();
     assertEquals(3, clazz.getMethodCollection().numberOfVirtualMethods());
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
       assertTrue(encodedMethod.method.name.toString().startsWith("foo"));
       MethodSubject methodSubject =
           classSubject.method(MethodSignature.fromDexMethod(encodedMethod.method));
-      assertThat(methodSubject, isPresent());
-      assertThat(methodSubject, not(isRenamed()));
+      assertThat(methodSubject, isPresentAndNotRenamed());
     }
   }
 

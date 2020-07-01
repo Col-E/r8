@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -94,13 +94,13 @@ public class CovariantReturnTypeInSubInterfaceTest extends TestBase {
   private void inspect(CodeInspector inspector, boolean overloadAggressively)
       throws NoSuchMethodException {
     ClassSubject superInterface = inspector.clazz(SuperInterface.class);
-    assertThat(superInterface, isRenamed());
+    assertThat(superInterface, isPresentAndRenamed());
     MethodSubject foo1 = superInterface.uniqueMethodWithName("foo");
-    assertThat(foo1, isRenamed());
+    assertThat(foo1, isPresentAndRenamed());
     ClassSubject subInterface = inspector.clazz(SubInterface.class);
-    assertThat(subInterface, isRenamed());
+    assertThat(subInterface, isPresentAndRenamed());
     MethodSubject foo2 = subInterface.method(SubInterface.class.getDeclaredMethod("foo"));
-    assertThat(foo2, isRenamed());
+    assertThat(foo2, isPresentAndRenamed());
     if (overloadAggressively && parameters.isDexRuntime()) {
       assertNotEquals(foo1.getFinalName(), foo2.getFinalName());
     } else {

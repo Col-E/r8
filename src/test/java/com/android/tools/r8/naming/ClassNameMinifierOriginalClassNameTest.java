@@ -5,7 +5,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -62,7 +62,7 @@ public class ClassNameMinifierOriginalClassNameTest extends TestBase {
         .inspect(
             inspector -> {
               assertEquals(1, inspector.allClasses().size());
-              assertThat(inspector.clazz(B.class), isRenamed());
+              assertThat(inspector.clazz(B.class), isPresentAndRenamed());
               assertEquals(A.class.getTypeName(), inspector.clazz(B.class).getFinalName());
             });
   }

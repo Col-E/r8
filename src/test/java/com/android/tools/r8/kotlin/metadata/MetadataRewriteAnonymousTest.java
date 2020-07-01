@@ -5,7 +5,7 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
@@ -108,6 +108,6 @@ public class MetadataRewriteAnonymousTest extends KotlinMetadataTestBase {
     System.out.println(
         KotlinMetadataWriter.kotlinMetadataToString("", clazz.getKotlinClassMetadata()));
     ClassSubject anonymousClass = inspector.clazz(PKG + ".anonymous_lib.Test$internalProp$1");
-    assertThat(anonymousClass, isRenamed());
+    assertThat(anonymousClass, isPresentAndRenamed());
   }
 }

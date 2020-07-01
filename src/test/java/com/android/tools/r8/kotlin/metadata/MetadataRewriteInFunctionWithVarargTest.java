@@ -6,7 +6,7 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -123,20 +123,16 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
     String libClassName = PKG + ".vararg_lib.LibKt";
 
     ClassSubject cls = inspector.clazz(className);
-    assertThat(cls, isPresent());
-    assertThat(cls, not(isRenamed()));
+    assertThat(cls, isPresentAndNotRenamed());
 
     MethodSubject foo = cls.uniqueMethodWithName("foo");
-    assertThat(foo, isPresent());
-    assertThat(foo, not(isRenamed()));
+    assertThat(foo, isPresentAndNotRenamed());
 
     ClassSubject libKt = inspector.clazz(libClassName);
-    assertThat(libKt, isPresent());
-    assertThat(libKt, not(isRenamed()));
+    assertThat(libKt, isPresentAndNotRenamed());
 
     MethodSubject bar = libKt.uniqueMethodWithName("bar");
-    assertThat(bar, isPresent());
-    assertThat(bar, not(isRenamed()));
+    assertThat(bar, isPresentAndNotRenamed());
 
     KmPackageSubject kmPackage = libKt.getKmPackage();
     assertThat(kmPackage, isPresent());

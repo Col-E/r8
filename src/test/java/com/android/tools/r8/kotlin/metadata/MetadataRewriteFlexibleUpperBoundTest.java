@@ -6,8 +6,8 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -120,11 +120,10 @@ public class MetadataRewriteFlexibleUpperBoundTest extends KotlinMetadataTestBas
     // We are checking that A is renamed, and that the flexible upper bound information is
     // reflecting that.
     ClassSubject a = inspector.clazz(PKG_LIB + ".A");
-    assertThat(a, isRenamed());
+    assertThat(a, isPresentAndRenamed());
 
     ClassSubject flexibleUpperBound = inspector.clazz(PKG_LIB + ".FlexibleUpperBound");
-    assertThat(flexibleUpperBound, isPresent());
-    assertThat(flexibleUpperBound, not(isRenamed()));
+    assertThat(flexibleUpperBound, isPresentAndNotRenamed());
 
     List<KmPropertySubject> properties = flexibleUpperBound.getKmClass().getProperties();
     assertEquals(1, properties.size());

@@ -5,7 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -183,7 +183,7 @@ public class NonVirtualOverrideTest extends TestBase {
     if (!enableClassInlining && !enableVerticalClassMerging) {
       CodeInspector inspector = compiled.inspector();
       ClassSubject classSubject = inspector.clazz(B.class.getName());
-      assertThat(classSubject, isRenamed());
+      assertThat(classSubject, isPresentAndRenamed());
       assertThat(classSubject.method("void", "m1", ImmutableList.of()), isPresent());
       assertThat(classSubject.method("void", "m2", ImmutableList.of()), not(isPresent()));
       assertThat(classSubject.method("void", "m3", ImmutableList.of()), isPresent());

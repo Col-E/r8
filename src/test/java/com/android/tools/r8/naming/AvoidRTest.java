@@ -4,7 +4,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.DescriptorUtils.getUnqualifiedClassNameFromDescriptor;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
@@ -60,19 +60,23 @@ public class AvoidRTest extends JasminTestBase {
     }
     builder.addProgramClassFileData(jasminBuilder.buildClasses());
     Set<String> usedDescriptors = new HashSet<>();
-    builder.noTreeShaking()
+    builder
+        .noTreeShaking()
         .addKeepRules("-classobfuscationdictionary " + dictionary)
         .compile()
-        .inspect(codeInspector -> {
-          codeInspector.forAllClasses(classSubject -> {
-            assertThat(classSubject, isRenamed());
-            String renamedDescriptor = classSubject.getFinalDescriptor();
-            assertTrue(usedDescriptors.add(renamedDescriptor));
-            assertNotEquals("R", getUnqualifiedClassNameFromDescriptor(renamedDescriptor));
-            assertTrue(expectedNames.contains(
-                getUnqualifiedClassNameFromDescriptor(renamedDescriptor)));
-          });
-        });
+        .inspect(
+            codeInspector -> {
+              codeInspector.forAllClasses(
+                  classSubject -> {
+                    assertThat(classSubject, isPresentAndRenamed());
+                    String renamedDescriptor = classSubject.getFinalDescriptor();
+                    assertTrue(usedDescriptors.add(renamedDescriptor));
+                    assertNotEquals("R", getUnqualifiedClassNameFromDescriptor(renamedDescriptor));
+                    assertTrue(
+                        expectedNames.contains(
+                            getUnqualifiedClassNameFromDescriptor(renamedDescriptor)));
+                  });
+            });
   }
 
   @Test
@@ -84,15 +88,18 @@ public class AvoidRTest extends JasminTestBase {
     }
     builder.addProgramClassFileData(jasminBuilder.buildClasses());
     Set<String> usedNames = new HashSet<>();
-    builder.noTreeShaking()
+    builder
+        .noTreeShaking()
         .compile()
-        .inspect(codeInspector -> {
-          codeInspector.forAllClasses(classSubject -> {
-            assertThat(classSubject, isRenamed());
-            assertTrue(usedNames.add(classSubject.getFinalName()));
-            assertNotEquals("R", classSubject.getFinalName());
-          });
-        });
+        .inspect(
+            codeInspector -> {
+              codeInspector.forAllClasses(
+                  classSubject -> {
+                    assertThat(classSubject, isPresentAndRenamed());
+                    assertTrue(usedNames.add(classSubject.getFinalName()));
+                    assertNotEquals("R", classSubject.getFinalName());
+                  });
+            });
     assertTrue(usedNames.contains("Q"));
     assertTrue(usedNames.contains("S"));
   }
@@ -114,17 +121,20 @@ public class AvoidRTest extends JasminTestBase {
     }
     builder.addProgramClassFileData(jasminBuilder.buildClasses());
     Set<String> usedDescriptors = new HashSet<>();
-    builder.noTreeShaking()
+    builder
+        .noTreeShaking()
         .addKeepRules(keepRule)
         .compile()
-        .inspect(codeInspector -> {
-          codeInspector.forAllClasses(classSubject -> {
-            assertThat(classSubject, isRenamed());
-            String renamedDescriptor = classSubject.getFinalDescriptor();
-            assertTrue(usedDescriptors.add(renamedDescriptor));
-            assertNotEquals("R", getUnqualifiedClassNameFromDescriptor(renamedDescriptor));
-          });
-        });
+        .inspect(
+            codeInspector -> {
+              codeInspector.forAllClasses(
+                  classSubject -> {
+                    assertThat(classSubject, isPresentAndRenamed());
+                    String renamedDescriptor = classSubject.getFinalDescriptor();
+                    assertTrue(usedDescriptors.add(renamedDescriptor));
+                    assertNotEquals("R", getUnqualifiedClassNameFromDescriptor(renamedDescriptor));
+                  });
+            });
   }
 
   @Test

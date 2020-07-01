@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
@@ -93,7 +93,7 @@ public class ReturnTypeTest extends TestBase {
         .inspect(
             inspector -> {
               ClassSubject returnType = inspector.clazz(B112517039ReturnType.class);
-              assertThat(returnType, isRenamed());
+              assertThat(returnType, isPresentAndRenamed());
             });
   }
 }

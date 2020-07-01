@@ -4,8 +4,8 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeFalse;
@@ -66,7 +66,7 @@ public class ReservedFieldNameInSuperInterfaceTest extends TestBase {
     // Interface fields are visited/renamed before fields on classes. Thus, the interface field I.a
     // will be visited first and assigned the name a. As it ends up receiving the same name as in
     // the input program, it has not technically been renamed.
-    assertThat(aFieldSubject, not(isRenamed()));
+    assertThat(aFieldSubject, isPresentAndNotRenamed());
 
     inspect(inspector);
   }
@@ -95,7 +95,7 @@ public class ReservedFieldNameInSuperInterfaceTest extends TestBase {
 
     FieldSubject f1FieldSubject = jClassSubject.uniqueFieldWithName("f1");
     assertThat(f1FieldSubject, isPresent());
-    assertThat(f1FieldSubject, isRenamed());
+    assertThat(f1FieldSubject, isPresentAndRenamed());
     assertEquals("b", f1FieldSubject.getFinalName());
 
     ClassSubject aClassSubject = inspector.clazz(A.class);
@@ -103,7 +103,7 @@ public class ReservedFieldNameInSuperInterfaceTest extends TestBase {
 
     FieldSubject f2FieldSubject = aClassSubject.uniqueFieldWithName("f2");
     assertThat(f2FieldSubject, isPresent());
-    assertThat(f2FieldSubject, isRenamed());
+    assertThat(f2FieldSubject, isPresentAndRenamed());
     assertEquals("c", f2FieldSubject.getFinalName());
   }
 

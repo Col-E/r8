@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -50,8 +50,8 @@ public class AtomicFieldUpdaterTest extends TestBase {
     // Verify that the field is still there.
     CodeInspector inspector = new CodeInspector(output, proguardMapPath);
     ClassSubject classSubject = inspector.clazz(AtomicFieldUpdaterTestClass.A.class.getName());
-    assertThat(classSubject, isRenamed());
-    assertThat(classSubject.field("int", "field"), isRenamed());
+    assertThat(classSubject, isPresentAndRenamed());
+    assertThat(classSubject.field("int", "field"), isPresentAndRenamed());
     // Check that the code runs.
     assertEquals(
         runOnJava(AtomicFieldUpdaterTestClass.class),

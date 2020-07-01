@@ -4,8 +4,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.DescriptorUtils.getPackageNameFromDescriptor;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -44,15 +43,13 @@ public class KeepPackageNamesTest extends TestBase {
 
     public void inspect(CodeInspector inspector) {
       ClassSubject top = inspector.clazz(Top.class);
-      assertThat(top, isPresent());
-      assertThat(top, isRenamed());
+      assertThat(top, isPresentAndRenamed());
       assertEquals(
           getPackageNameFromDescriptor(top.getOriginalDescriptor()),
           getPackageNameFromDescriptor(top.getFinalDescriptor()));
 
       ClassSubject sub = inspector.clazz(SubClass.class);
-      assertThat(sub, isPresent());
-      assertThat(sub, isRenamed());
+      assertThat(sub, isPresentAndRenamed());
       switch (this) {
         case SINGLE_ASTERISK:
           assertNotEquals(

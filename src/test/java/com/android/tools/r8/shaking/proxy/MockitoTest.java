@@ -4,7 +4,7 @@
 package com.android.tools.r8.shaking.proxy;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -86,7 +86,6 @@ public class MockitoTest extends TestBase {
     ClassSubject itf = inspector.clazz(M_I);
     assertThat(itf, isPresent());
     MethodSubject mtd = itf.uniqueMethodWithName("onEnterForeground");
-    assertThat(mtd, isPresent());
-    assertThat(mtd, not(isRenamed()));
+    assertThat(mtd, isPresentAndNotRenamed());
   }
 }

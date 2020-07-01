@@ -4,7 +4,7 @@
 package com.android.tools.r8.naming.applymapping.sourcelibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -113,18 +113,15 @@ public class MemberResolutionAsmTest extends TestBase {
             .inspector();
 
     ClassSubject base = codeInspector.clazz("HasMapping");
-    assertThat(base, isPresent());
-    assertThat(base, isRenamed());
+    assertThat(base, isPresentAndRenamed());
     assertEquals("X", base.getFinalName());
     MethodSubject x = base.method("void", "foo", ImmutableList.of());
-    assertThat(x, isPresent());
-    assertThat(x, isRenamed());
+    assertThat(x, isPresentAndRenamed());
     assertEquals("a", x.getFinalName());
 
     // To ensure still getting illegal-access error we need to rename consistently.
     ClassSubject sub = codeInspector.clazz("NoMapping");
-    assertThat(sub, isPresent());
-    assertThat(sub, isRenamed());
+    assertThat(sub, isPresentAndRenamed());
     assertEquals("Y", sub.getFinalName());
     MethodSubject y = sub.method("void", "a", ImmutableList.of());
     assertThat(y, isPresent());
@@ -212,17 +209,14 @@ public class MemberResolutionAsmTest extends TestBase {
 
     CodeInspector codeInspector = compileResult.inspector();
     ClassSubject base = codeInspector.clazz("A");
-    assertThat(base, isPresent());
-    assertThat(base, isRenamed());
+    assertThat(base, isPresentAndRenamed());
     assertEquals("X", base.getFinalName());
     MethodSubject x = base.method("void", "x", ImmutableList.of());
-    assertThat(x, isPresent());
-    assertThat(x, isRenamed());
+    assertThat(x, isPresentAndRenamed());
     assertEquals("y", x.getFinalName());
 
     ClassSubject sub = codeInspector.clazz("B");
-    assertThat(sub, isPresent());
-    assertThat(sub, isRenamed());
+    assertThat(sub, isPresentAndRenamed());
     assertEquals("Y", sub.getFinalName());
     MethodSubject subX = sub.method("void", "x", ImmutableList.of());
     assertThat(subX, not(isPresent()));

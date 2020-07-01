@@ -4,8 +4,8 @@
 package com.android.tools.r8.shaking.ifrule;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -160,10 +160,10 @@ public class ConditionalKeepIfKeptTest extends TestBase {
               ClassSubject classSubject = inspector.clazz(StaticallyReferenced.class);
               assertThat(classSubject, isPresent());
               assertEquals(3, classSubject.allMethods().size());
-              classSubject.allMethods().forEach(m -> assertThat(m, not(isRenamed())));
+              classSubject.allMethods().forEach(m -> assertThat(m, isPresentAndNotRenamed()));
               // Keeping methods will cause the fields to be kept too (but allow renaming them).
               assertEquals(2, classSubject.allFields().size());
-              classSubject.allFields().forEach(f -> assertThat(f, isRenamed()));
+              classSubject.allFields().forEach(f -> assertThat(f, isPresentAndRenamed()));
             });
   }
 

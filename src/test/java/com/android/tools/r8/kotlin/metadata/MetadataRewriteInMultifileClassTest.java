@@ -6,7 +6,8 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -121,11 +122,9 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
     String utilClassName = PKG + ".multifileclass_lib.UtilKt";
 
     ClassSubject util = inspector.clazz(utilClassName);
-    assertThat(util, isPresent());
-    assertThat(util, not(isRenamed()));
+    assertThat(util, isPresentAndNotRenamed());
     MethodSubject commaJoinOfInt = util.uniqueMethodWithName("commaSeparatedJoinOfInt");
-    assertThat(commaJoinOfInt, isPresent());
-    assertThat(commaJoinOfInt, not(isRenamed()));
+    assertThat(commaJoinOfInt, isPresentAndNotRenamed());
     MethodSubject joinOfInt = util.uniqueMethodWithName("joinOfInt");
     assertThat(joinOfInt, not(isPresent()));
 
@@ -167,14 +166,11 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
     String utilClassName = PKG + ".multifileclass_lib.UtilKt";
 
     ClassSubject util = inspector.clazz(utilClassName);
-    assertThat(util, isPresent());
-    assertThat(util, not(isRenamed()));
+    assertThat(util, isPresentAndNotRenamed());
     MethodSubject commaJoinOfInt = util.uniqueMethodWithName("commaSeparatedJoinOfInt");
-    assertThat(commaJoinOfInt, isPresent());
-    assertThat(commaJoinOfInt, not(isRenamed()));
+    assertThat(commaJoinOfInt, isPresentAndNotRenamed());
     MethodSubject joinOfInt = util.uniqueMethodWithName("joinOfInt");
-    assertThat(joinOfInt, isPresent());
-    assertThat(joinOfInt, isRenamed());
+    assertThat(joinOfInt, isPresentAndRenamed());
 
     inspectMetadataForFacade(inspector, util);
 
@@ -195,19 +191,18 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
     for (String partClassName : partClassNames) {
       ClassSubject partClass =
           inspector.clazz(DescriptorUtils.getJavaTypeFromBinaryName(partClassName));
-      assertThat(partClass, isRenamed());
+      assertThat(partClass, isPresentAndRenamed());
     }
   }
 
   private void inspectSignedKt(CodeInspector inspector) {
     String signedClassName = PKG + ".multifileclass_lib.UtilKt__SignedKt";
     ClassSubject signed = inspector.clazz(signedClassName);
-    assertThat(signed, isRenamed());
+    assertThat(signed, isPresentAndRenamed());
     MethodSubject commaJoinOfInt = signed.uniqueMethodWithName("commaSeparatedJoinOfInt");
-    assertThat(commaJoinOfInt, isPresent());
-    assertThat(commaJoinOfInt, not(isRenamed()));
+    assertThat(commaJoinOfInt, isPresentAndNotRenamed());
     MethodSubject joinOfInt = signed.uniqueMethodWithName("joinOfInt");
-    assertThat(joinOfInt, isRenamed());
+    assertThat(joinOfInt, isPresentAndRenamed());
 
     // API entry is kept, hence the presence of Metadata.
     KmPackageSubject kmPackage = signed.getKmPackage();

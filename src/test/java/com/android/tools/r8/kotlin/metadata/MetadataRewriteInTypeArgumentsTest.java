@@ -7,7 +7,7 @@ import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isDexClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -171,7 +171,7 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
     assertThat(someClass, isPresent());
     ClassSubject classThatShouldBeObfuscated =
         inspector.clazz(LIB_PKG + "ClassThatWillBeObfuscated");
-    assertThat(classThatShouldBeObfuscated, isRenamed());
+    assertThat(classThatShouldBeObfuscated, isPresentAndRenamed());
 
     // Check that the type-parameters of Invariant is marked as INVARIANT.
     ClassSubject invariant = inspector.clazz(LIB_PKG + "Invariant");

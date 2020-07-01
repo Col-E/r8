@@ -4,7 +4,7 @@
 package com.android.tools.r8.naming.applymapping;
 
 import static com.android.tools.r8.Collectors.toSingle;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotSame;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -58,7 +58,7 @@ public class ApplyMappingDesugarLambdaTest extends TestBase {
             .compile()
             .inspect(
                 inspector -> {
-                  assertThat(inspector.clazz(A.class), isRenamed());
+                  assertThat(inspector.clazz(A.class), isPresentAndRenamed());
                   assertEquals(finalName, inspector.clazz(A.class).getFinalName());
                 });
 

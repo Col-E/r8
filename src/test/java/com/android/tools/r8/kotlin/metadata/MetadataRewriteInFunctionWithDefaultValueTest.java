@@ -6,8 +6,7 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -120,16 +119,13 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
     String libClassName = PKG + ".default_value_lib.LibKt";
 
     ClassSubject libKt = inspector.clazz(libClassName);
-    assertThat(libKt, isPresent());
-    assertThat(libKt, not(isRenamed()));
+    assertThat(libKt, isPresentAndNotRenamed());
 
     MethodSubject methodSubject = libKt.uniqueMethodWithName("applyMap");
-    assertThat(methodSubject, isPresent());
-    assertThat(methodSubject, not(isRenamed()));
+    assertThat(methodSubject, isPresentAndNotRenamed());
 
     methodSubject = libKt.uniqueMethodWithName("applyMap$default");
-    assertThat(methodSubject, isPresent());
-    assertThat(methodSubject, not(isRenamed()));
+    assertThat(methodSubject, isPresentAndNotRenamed());
 
     KmPackageSubject kmPackage = libKt.getKmPackage();
     assertThat(kmPackage, isPresent());

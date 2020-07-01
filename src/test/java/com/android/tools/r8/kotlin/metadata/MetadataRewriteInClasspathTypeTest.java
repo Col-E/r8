@@ -6,8 +6,8 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -129,11 +129,10 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
     String extraClassName = PKG + ".classpath_lib_ext.Extra";
 
     ClassSubject impl = inspector.clazz(implClassName);
-    assertThat(impl, isRenamed());
+    assertThat(impl, isPresentAndRenamed());
 
     ClassSubject implKt = inspector.clazz(implKtClassName);
-    assertThat(implKt, isPresent());
-    assertThat(implKt, not(isRenamed()));
+    assertThat(implKt, isPresentAndNotRenamed());
     // API entry is kept, hence the presence of Metadata.
     KmPackageSubject kmPackage = implKt.getKmPackage();
     assertThat(kmPackage, isPresent());
@@ -142,8 +141,7 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
     assertThat(kmFunction, isExtensionFunction());
 
     ClassSubject extra = inspector.clazz(extraClassName);
-    assertThat(extra, isPresent());
-    assertThat(extra, not(isRenamed()));
+    assertThat(extra, isPresentAndNotRenamed());
     // API entry is kept, hence the presence of Metadata.
     KmClassSubject kmClass = extra.getKmClass();
     assertThat(kmClass, isPresent());

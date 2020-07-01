@@ -4,8 +4,8 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeFalse;
@@ -69,13 +69,13 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
 
     FieldSubject f1FieldSubject = iClassSubject.uniqueFieldWithName("f1");
     assertThat(f1FieldSubject, isPresent());
-    assertThat(f1FieldSubject, isRenamed());
+    assertThat(f1FieldSubject, isPresentAndRenamed());
 
     FieldSubject aFieldSubject = jClassSubject.uniqueFieldWithName("a");
     assertThat(aFieldSubject, isPresent());
 
     if (reserveName) {
-      assertThat(aFieldSubject, not(isRenamed()));
+      assertThat(aFieldSubject, isPresentAndNotRenamed());
 
       // Interface fields are visited/renamed before fields on classes. Thus, the interface field
       // I.f1 will be visited first and assigned the name b (since the name a is reserved).
@@ -88,7 +88,7 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
 
       // The interface field J.a will be visited after I.f1, and will therefore be assigned the name
       // b.
-      assertThat(aFieldSubject, isRenamed());
+      assertThat(aFieldSubject, isPresentAndRenamed());
       assertEquals("b", aFieldSubject.getFinalName());
     }
 
@@ -121,7 +121,7 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
 
     FieldSubject f2FieldSubject = aClassSubject.uniqueFieldWithName("f2");
     assertThat(f2FieldSubject, isPresent());
-    assertThat(f2FieldSubject, isRenamed());
+    assertThat(f2FieldSubject, isPresentAndRenamed());
 
     assertEquals(expectedNameForF2, f2FieldSubject.getFinalName());
   }

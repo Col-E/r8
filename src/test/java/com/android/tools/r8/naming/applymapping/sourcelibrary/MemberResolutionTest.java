@@ -4,7 +4,7 @@
 package com.android.tools.r8.naming.applymapping.sourcelibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -133,23 +133,19 @@ public class MemberResolutionTest extends TestBase {
     ClassSubject base = inspector.clazz(AbstractChecker.class);
     assertThat(base, isPresent());
     FieldSubject p = base.field("java.lang.String", "tag");
-    assertThat(p, isPresent());
-    assertThat(p, isRenamed());
+    assertThat(p, isPresentAndRenamed());
     assertEquals("p", p.getFinalName());
     MethodSubject x = base.method("void", "check", ImmutableList.of());
-    assertThat(x, isPresent());
-    assertThat(x, isRenamed());
+    assertThat(x, isPresentAndRenamed());
     assertEquals("x", x.getFinalName());
 
     ClassSubject sub = inspector.clazz(ConcreteChecker.class);
     assertThat(sub, isPresent());
     FieldSubject q = sub.field("java.lang.String", "tag");
-    assertThat(q, isPresent());
-    assertThat(q, isRenamed());
+    assertThat(q, isPresentAndRenamed());
     assertEquals("q", q.getFinalName());
     MethodSubject y = sub.method("void", "check", ImmutableList.of());
-    assertThat(y, isPresent());
-    assertThat(y, isRenamed());
+    assertThat(y, isPresentAndRenamed());
     assertEquals("y", y.getFinalName());
   }
 }

@@ -3,9 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming.b116840216;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompatProguardCommandBuilder;
@@ -89,25 +88,19 @@ public class ReserveOuterClassNameTest extends TestBase {
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject mainSubject = inspector.clazz(mainClass);
-    assertThat(mainSubject, isPresent());
-    assertThat(mainSubject, not(isRenamed()));
+    assertThat(mainSubject, isPresentAndNotRenamed());
     MethodSubject mainMethod = mainSubject.mainMethod();
-    assertThat(mainMethod, isPresent());
-    assertThat(mainMethod, not(isRenamed()));
+    assertThat(mainMethod, isPresentAndNotRenamed());
 
     ClassSubject outer = inspector.clazz(Outer.class);
-    assertThat(outer, isPresent());
-    assertThat(outer, not(isRenamed()));
+    assertThat(outer, isPresentAndNotRenamed());
     MethodSubject bar = outer.method("void", "bar", ImmutableList.of());
-    assertThat(bar, isPresent());
-    assertThat(bar, isRenamed());
+    assertThat(bar, isPresentAndRenamed());
 
     ClassSubject inner = inspector.clazz(Outer.Inner.class);
-    assertThat(inner, isPresent());
-    assertThat(inner, not(isRenamed()));
+    assertThat(inner, isPresentAndNotRenamed());
     MethodSubject foo = inner.method("void", "foo", ImmutableList.of());
-    assertThat(foo, isPresent());
-    assertThat(foo, isRenamed());
+    assertThat(foo, isPresentAndRenamed());
   }
 
   @Test

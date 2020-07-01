@@ -3,9 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming.b133686361;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -88,26 +87,20 @@ public class AlreadyRenamedAbstractMethodRenamingTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     ClassSubject base = inspector.clazz(Base.class);
-    assertThat(base, isPresent());
-    assertThat(base, isRenamed());
+    assertThat(base, isPresentAndRenamed());
     MethodSubject a = base.uniqueMethodWithName("a");
-    assertThat(a, isPresent());
-    assertThat(a, not(isRenamed()));
+    assertThat(a, isPresentAndNotRenamed());
 
     ClassSubject sub1 = inspector.clazz(Sub1.class);
-    assertThat(sub1, isPresent());
-    assertThat(sub1, isRenamed());
+    assertThat(sub1, isPresentAndRenamed());
     MethodSubject aInSub1 = sub1.uniqueMethodWithName("a");
-    assertThat(aInSub1, isPresent());
-    assertThat(aInSub1, not(isRenamed()));
+    assertThat(aInSub1, isPresentAndNotRenamed());
     assertEquals(a.getFinalName(), aInSub1.getFinalName());
 
     ClassSubject sub2 = inspector.clazz(Sub1.class);
-    assertThat(sub2, isPresent());
-    assertThat(sub2, isRenamed());
+    assertThat(sub2, isPresentAndRenamed());
     MethodSubject aInSub2 = sub2.uniqueMethodWithName("a");
-    assertThat(aInSub2, isPresent());
-    assertThat(aInSub2, not(isRenamed()));
+    assertThat(aInSub2, isPresentAndNotRenamed());
     assertEquals(a.getFinalName(), aInSub2.getFinalName());
   }
 }

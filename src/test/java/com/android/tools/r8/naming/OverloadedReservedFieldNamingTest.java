@@ -5,8 +5,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -59,8 +58,7 @@ public class OverloadedReservedFieldNamingTest extends TestBase {
     assertThat(classSubject, isPresent());
 
     FieldSubject fieldSubject = classSubject.uniqueFieldWithName("a");
-    assertThat(fieldSubject, isPresent());
-    assertThat(fieldSubject, not(isRenamed()));
+    assertThat(fieldSubject, isPresentAndNotRenamed());
 
     FieldSubject helloFieldSubject = classSubject.uniqueFieldWithName("hello");
     assertThat(helloFieldSubject, isPresent());

@@ -4,7 +4,7 @@
 package com.android.tools.r8.naming.b130791310;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeFalse;
@@ -110,13 +110,11 @@ public class B130791310 extends TestBase {
 
   private void inspect(CodeInspector inspector, boolean isR8) {
     ClassSubject holder = inspector.clazz(SomeLogic.class);
-    assertThat(holder, isPresent());
-    assertThat(holder, not(isRenamed()));
+    assertThat(holder, isPresentAndNotRenamed());
     MethodSubject someMethod = holder.uniqueMethodWithName("someMethod");
     if (isR8) {
       if (onlyForceInlining) {
-        assertThat(someMethod, isPresent());
-        assertThat(someMethod, not(isRenamed()));
+        assertThat(someMethod, isPresentAndNotRenamed());
       } else {
         assertThat(someMethod, not(isPresent()));
       }
@@ -126,8 +124,7 @@ public class B130791310 extends TestBase {
         // method signature modification.
         assertThat(someMethod, not(isPresent()));
       } else {
-        assertThat(someMethod, isPresent());
-        assertThat(someMethod, not(isRenamed()));
+        assertThat(someMethod, isPresentAndNotRenamed());
       }
     }
   }

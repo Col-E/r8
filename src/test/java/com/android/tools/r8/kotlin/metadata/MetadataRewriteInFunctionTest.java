@@ -6,7 +6,8 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -122,8 +123,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
     assertThat(inspector.clazz(superClassName), not(isPresent()));
 
     ClassSubject impl = inspector.clazz(bClassName);
-    assertThat(impl, isPresent());
-    assertThat(impl, not(isRenamed()));
+    assertThat(impl, isPresentAndNotRenamed());
 
     // API entry is kept, hence the presence of Metadata.
     KmClassSubject kmClass = impl.getKmClass();
@@ -133,8 +133,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
         supertype -> supertype.getFinalDescriptor().contains("Super")));
 
     ClassSubject bKt = inspector.clazz(bKtClassName);
-    assertThat(bKt, isPresent());
-    assertThat(bKt, not(isRenamed()));
+    assertThat(bKt, isPresentAndNotRenamed());
 
     // API entry is kept, hence the presence of Metadata.
     KmPackageSubject kmPackage = bKt.getKmPackage();
@@ -183,10 +182,10 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
     String bKtClassName = PKG + ".function_lib.BKt";
 
     ClassSubject sup = inspector.clazz(superClassName);
-    assertThat(sup, isRenamed());
+    assertThat(sup, isPresentAndRenamed());
 
     MethodSubject foo = sup.uniqueMethodWithName("foo");
-    assertThat(foo, isRenamed());
+    assertThat(foo, isPresentAndRenamed());
 
     KmClassSubject kmClass = sup.getKmClass();
     assertThat(kmClass, isPresent());
@@ -198,8 +197,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
     assertEquals(foo.getJvmMethodSignatureAsString(), kmFunction.signature().asString());
 
     ClassSubject impl = inspector.clazz(bClassName);
-    assertThat(impl, isPresent());
-    assertThat(impl, not(isRenamed()));
+    assertThat(impl, isPresentAndNotRenamed());
 
     // API entry is kept, hence the presence of Metadata.
     kmClass = impl.getKmClass();
@@ -211,8 +209,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
         supertype -> supertype.getFinalDescriptor().equals(sup.getFinalDescriptor())));
 
     ClassSubject bKt = inspector.clazz(bKtClassName);
-    assertThat(bKt, isPresent());
-    assertThat(bKt, not(isRenamed()));
+    assertThat(bKt, isPresentAndNotRenamed());
     // API entry is kept, hence the presence of Metadata.
     KmPackageSubject kmPackage = bKt.getKmPackage();
     assertThat(kmPackage, isPresent());

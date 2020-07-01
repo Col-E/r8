@@ -5,7 +5,8 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -114,8 +115,7 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
     assertThat(inspector.clazz(itfClassName), not(isPresent()));
 
     ClassSubject impl = inspector.clazz(implClassName);
-    assertThat(impl, isPresent());
-    assertThat(impl, not(isRenamed()));
+    assertThat(impl, isPresentAndNotRenamed());
     // API entry is kept, hence the presence of Metadata.
     KmClassSubject kmClass = impl.getKmClass();
     assertThat(kmClass, isPresent());
@@ -160,11 +160,11 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
     String implClassName = PKG + ".supertype_lib.Impl";
 
     ClassSubject itf = inspector.clazz(itfClassName);
-    assertThat(itf, isRenamed());
+    assertThat(itf, isPresentAndRenamed());
 
     ClassSubject impl = inspector.clazz(implClassName);
     assertThat(impl, isPresent());
-    assertThat(impl, not(isRenamed()));
+    assertThat(impl, isPresentAndNotRenamed());
     // API entry is kept, hence the presence of Metadata.
     KmClassSubject kmClass = impl.getKmClass();
     assertThat(kmClass, isPresent());

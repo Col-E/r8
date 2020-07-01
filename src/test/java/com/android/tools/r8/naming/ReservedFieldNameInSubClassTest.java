@@ -4,8 +4,8 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -102,40 +102,40 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
     assertThat(aFieldSubject, isPresent());
 
     if (reserveName) {
-      assertThat(f1FieldSubject, isRenamed());
+      assertThat(f1FieldSubject, isPresentAndRenamed());
       assertEquals("e", f1FieldSubject.getFinalName());
 
-      assertThat(f2FieldSubject, isRenamed());
+      assertThat(f2FieldSubject, isPresentAndRenamed());
       assertEquals("f", f2FieldSubject.getFinalName());
 
-      assertThat(f3FieldSubject, isRenamed());
+      assertThat(f3FieldSubject, isPresentAndRenamed());
       assertEquals("b", f3FieldSubject.getFinalName());
 
-      assertThat(f4FieldSubject, isRenamed());
+      assertThat(f4FieldSubject, isPresentAndRenamed());
       assertEquals("c", f4FieldSubject.getFinalName());
 
-      assertThat(f5FieldSubject, isRenamed());
+      assertThat(f5FieldSubject, isPresentAndRenamed());
       assertEquals("d", f5FieldSubject.getFinalName());
 
       // B.a should not be renamed because it is not allowed to be minified.
-      assertThat(aFieldSubject, not(isRenamed()));
+      assertThat(aFieldSubject, isPresentAndNotRenamed());
     } else {
-      assertThat(f1FieldSubject, isRenamed());
+      assertThat(f1FieldSubject, isPresentAndRenamed());
       assertEquals("d", f1FieldSubject.getFinalName());
 
-      assertThat(f2FieldSubject, isRenamed());
+      assertThat(f2FieldSubject, isPresentAndRenamed());
       assertEquals("e", f2FieldSubject.getFinalName());
 
-      assertThat(f3FieldSubject, isRenamed());
+      assertThat(f3FieldSubject, isPresentAndRenamed());
       assertEquals("a", f3FieldSubject.getFinalName());
 
-      assertThat(f4FieldSubject, isRenamed());
+      assertThat(f4FieldSubject, isPresentAndRenamed());
       assertEquals("b", f4FieldSubject.getFinalName());
 
-      assertThat(f5FieldSubject, isRenamed());
+      assertThat(f5FieldSubject, isPresentAndRenamed());
       assertEquals("c", f5FieldSubject.getFinalName());
 
-      assertThat(aFieldSubject, isRenamed());
+      assertThat(aFieldSubject, isPresentAndRenamed());
       assertEquals("f", aFieldSubject.getFinalName());
     }
   }

@@ -5,9 +5,9 @@
 package com.android.tools.r8.shaking.staticinterfacemethods.defaultmethods;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
@@ -130,7 +130,7 @@ public class StaticInterfaceMethodsTest extends TestBase {
     ClassSubject companionClass = clazz.toCompanionClass();
     MethodSubject method = clazz.method("int", "method", ImmutableList.of());
     if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
-      assertThat(clazz, allowObfuscation ? isRenamed() : allOf(isPresent(), not(isRenamed())));
+      assertThat(clazz, allowObfuscation ? isPresentAndRenamed() : isPresentAndNotRenamed());
       assertThat(method, isStatic());
       assertThat(companionClass, not(isPresent()));
     } else {

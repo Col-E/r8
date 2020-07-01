@@ -5,7 +5,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -193,8 +193,8 @@ public class MinifierFieldSignatureTest extends TestBase {
                     .build()));
     // All classes are kept, and renamed.
     ClassSubject clazz = inspector.clazz("Fields");
-    assertThat(clazz, isRenamed());
-    assertThat(inspector.clazz("Fields$Inner"), isRenamed());
+    assertThat(clazz, isPresentAndRenamed());
+    assertThat(inspector.clazz("Fields$Inner"), isPresentAndRenamed());
 
     FieldSubject anX = lookupAnX(inspector);
     FieldSubject anArrayOfX = lookupAnArrayOfX(inspector);
@@ -202,10 +202,10 @@ public class MinifierFieldSignatureTest extends TestBase {
     FieldSubject aFieldsOfXInner = clazz.field("Fields$Inner", "aFieldsOfXInner");
 
     // Check that all fields have been renamed
-    assertThat(anX, isRenamed());
-    assertThat(anArrayOfX, isRenamed());
-    assertThat(aFieldsOfX, isRenamed());
-    assertThat(aFieldsOfXInner, isRenamed());
+    assertThat(anX, isPresentAndRenamed());
+    assertThat(anArrayOfX, isPresentAndRenamed());
+    assertThat(aFieldsOfX, isPresentAndRenamed());
+    assertThat(aFieldsOfXInner, isPresentAndRenamed());
 
     //System.out.println(generic.getFinalSignatureAttribute());
     //System.out.println(generic.getOriginalSignatureAttribute());

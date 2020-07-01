@@ -6,9 +6,9 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKotlinClassifier;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -115,8 +115,7 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
   private void inspect(CodeInspector inspector) {
     String pkg = getClass().getPackage().getName();
     ClassSubject kept = inspector.clazz(pkg + ".anno.Kept");
-    assertThat(kept, isPresent());
-    assertThat(kept, not(isRenamed()));
+    assertThat(kept, isPresentAndNotRenamed());
     // API entry is kept, hence @Metadata exists.
     KmClassSubject kmClass = kept.getKmClass();
     assertThat(kmClass, isPresent());
@@ -127,7 +126,7 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
     assertThat(anno, isPresent());
 
     ClassSubject renamed = inspector.clazz(pkg + ".anno.Renamed");
-    assertThat(renamed, isRenamed());
+    assertThat(renamed, isPresentAndRenamed());
     // @Anno is kept.
     anno = renamed.annotation(annoName);
     assertThat(anno, isPresent());

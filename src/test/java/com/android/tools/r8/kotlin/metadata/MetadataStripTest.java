@@ -4,7 +4,8 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -59,14 +60,12 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
             .run(parameters.getRuntime(), mainClassName);
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(mainClassName);
-    assertThat(clazz, isPresent());
-    assertThat(clazz, not(isRenamed()));
+    assertThat(clazz, isPresentAndNotRenamed());
     // Main class is kept, hence the presence of Metadata.
     AnnotationSubject annotationSubject = clazz.annotation(METADATA_TYPE);
     assertThat(annotationSubject, isPresent());
     ClassSubject impl1 = inspector.clazz(implementer1ClassName);
-    assertThat(impl1, isPresent());
-    assertThat(impl1, isRenamed());
+    assertThat(impl1, isPresentAndRenamed());
     // All other classes can be renamed, hence the absence of Metadata;
     assertThat(impl1.annotation(METADATA_TYPE), not(isPresent()));
   }

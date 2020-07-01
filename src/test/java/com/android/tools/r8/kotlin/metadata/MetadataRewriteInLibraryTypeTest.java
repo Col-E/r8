@@ -5,10 +5,9 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -122,8 +121,7 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
   private void inspect(CodeInspector inspector) {
     String extClassName = PKG + ".libtype_lib_ext.ExtKt";
     ClassSubject ext = inspector.clazz(extClassName);
-    assertThat(ext, isPresent());
-    assertThat(ext, not(isRenamed()));
+    assertThat(ext, isPresentAndNotRenamed());
     // API entry is kept, hence the presence of Metadata.
     KmPackageSubject kmPackage = ext.getKmPackage();
     assertThat(kmPackage, isPresent());

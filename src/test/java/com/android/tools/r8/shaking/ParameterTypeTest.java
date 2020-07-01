@@ -4,7 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -136,14 +136,14 @@ public class ParameterTypeTest extends TestBase {
             .inspector();
 
     ClassSubject superInterface1 = inspector.clazz(B112452064SuperInterface1.class);
-    assertThat(superInterface1, isRenamed());
+    assertThat(superInterface1, isPresentAndRenamed());
     MethodSubject foo = superInterface1.uniqueMethodWithName("foo");
     assertThat(foo, not(isPresent()));
     ClassSubject superInterface2 = inspector.clazz(B112452064SuperInterface2.class);
     if (enableVerticalClassMerging) {
       assertThat(superInterface2, not(isPresent()));
     } else {
-      assertThat(superInterface2, isRenamed());
+      assertThat(superInterface2, isPresentAndRenamed());
     }
     MethodSubject bar = superInterface2.uniqueMethodWithName("bar");
     assertThat(bar, not(isPresent()));
@@ -152,7 +152,7 @@ public class ParameterTypeTest extends TestBase {
       assertThat(subInterface, not(isPresent()));
     } else {
       assertThat(subInterface, isPresent());
-      assertThat(subInterface, isRenamed());
+      assertThat(subInterface, isPresentAndRenamed());
     }
   }
 

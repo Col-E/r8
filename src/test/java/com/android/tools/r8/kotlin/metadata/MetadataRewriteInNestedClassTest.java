@@ -6,8 +6,8 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -119,28 +119,30 @@ public class MetadataRewriteInNestedClassTest extends KotlinMetadataTestBase {
     String nestedClassName = outerClassName + "$Nested";
 
     ClassSubject inner = inspector.clazz(innerClassName);
-    assertThat(inner, isPresent());
-    assertThat(inner, not(isRenamed()));
+    assertThat(inner, isPresentAndNotRenamed());
 
     ClassSubject nested = inspector.clazz(nestedClassName);
-    assertThat(nested, isRenamed());
+    assertThat(nested, isPresentAndRenamed());
 
     ClassSubject outer = inspector.clazz(outerClassName);
-    assertThat(outer, isPresent());
-    assertThat(outer, not(isRenamed()));
+    assertThat(outer, isPresentAndNotRenamed());
 
     KmClassSubject kmClass = outer.getKmClass();
     assertThat(kmClass, isPresent());
 
     assertFalse(kmClass.getNestedClassDescriptors().isEmpty());
-    kmClass.getNestedClassDescriptors().forEach(nestedClassDescriptor -> {
-      ClassSubject nestedClass = inspector.clazz(descriptorToJavaType(nestedClassDescriptor));
-      if (nestedClass.getOriginalName().contains("Inner")) {
-        assertThat(nestedClass, not(isRenamed()));
-      } else {
-        assertThat(nestedClass, isRenamed());
-      }
-      assertEquals(nestedClassDescriptor, nestedClass.getFinalDescriptor());
-    });
+    kmClass
+        .getNestedClassDescriptors()
+        .forEach(
+            nestedClassDescriptor -> {
+              ClassSubject nestedClass =
+                  inspector.clazz(descriptorToJavaType(nestedClassDescriptor));
+              if (nestedClass.getOriginalName().contains("Inner")) {
+                assertThat(nestedClass, isPresentAndNotRenamed());
+              } else {
+                assertThat(nestedClass, isPresentAndRenamed());
+              }
+              assertEquals(nestedClassDescriptor, nestedClass.getFinalDescriptor());
+            });
   }
 }

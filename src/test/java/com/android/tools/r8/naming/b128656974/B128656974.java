@@ -4,7 +4,7 @@
 package com.android.tools.r8.naming.b128656974;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
 
@@ -40,8 +40,7 @@ public class B128656974 extends TestBase {
               ClassSubject greetingBase = inspector.clazz(Greeting.getGreetingBase());
               assertThat(greetingBase, isPresent());
               FieldSubject greeting = greetingBase.uniqueFieldWithName("greeting");
-              assertThat(greeting, isPresent());
-              assertThat(greeting, isRenamed());
+              assertThat(greeting, isPresentAndRenamed());
               assertNotEquals("a", greeting.getFinalName());
             });
   }
@@ -88,8 +87,7 @@ public class B128656974 extends TestBase {
               ClassSubject base = inspector.clazz(TestClassBase.class);
               assertThat(base, isPresent());
               MethodSubject foo = base.uniqueMethodWithName("foo");
-              assertThat(foo, isPresent());
-              assertThat(foo, isRenamed());
+              assertThat(foo, isPresentAndRenamed());
               assertNotEquals("a", foo.getFinalName());
             });
   }

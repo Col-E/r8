@@ -5,9 +5,9 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -150,12 +150,11 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
   private void inspect(CodeInspector inspector) {
     // Assert that foo is renamed.
     ClassSubject foo = inspector.clazz(PKG_LIB + ".Foo");
-    assertThat(foo, isRenamed());
+    assertThat(foo, isPresentAndRenamed());
     assertEquals(FOO_FINAL_NAME, foo.getFinalName());
     // Assert that bar exists and is not renamed.
     ClassSubject bar = inspector.clazz(PKG_LIB + ".Bar");
-    assertThat(bar, isPresent());
-    assertThat(bar, isNotRenamed());
+    assertThat(bar, isPresentAndNotRenamed());
     // Check that the annotation type on the type alias has been renamed
     inspectTypeAliasAnnotation(inspector, foo, bar);
   }

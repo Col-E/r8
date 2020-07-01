@@ -6,7 +6,8 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionProperty;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static junit.framework.TestCase.assertNull;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -116,14 +117,12 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
   private void inspectGetterOnly(CodeInspector inspector) {
     String personClassName = PKG + ".fragile_property_lib.Person";
     ClassSubject person = inspector.clazz(personClassName);
-    assertThat(person, isPresent());
-    assertThat(person, not(isRenamed()));
+    assertThat(person, isPresentAndNotRenamed());
 
     FieldSubject backingField = person.uniqueFieldWithName("name");
-    assertThat(backingField, isRenamed());
+    assertThat(backingField, isPresentAndRenamed());
     MethodSubject getterForName = person.uniqueMethodWithName("getName");
-    assertThat(getterForName, isPresent());
-    assertThat(getterForName, not(isRenamed()));
+    assertThat(getterForName, isPresentAndNotRenamed());
     MethodSubject setterForName = person.uniqueMethodWithName("setName");
     assertThat(setterForName, not(isPresent()));
 
@@ -213,8 +212,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
   private void inspectSetterOnly(CodeInspector inspector) {
     String personClassName = PKG + ".fragile_property_lib.Person";
     ClassSubject person = inspector.clazz(personClassName);
-    assertThat(person, isPresent());
-    assertThat(person, not(isRenamed()));
+    assertThat(person, isPresentAndNotRenamed());
 
     // API entry is kept, hence the presence of Metadata.
     KmClassSubject kmClass = person.getKmClass();

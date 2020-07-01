@@ -1,7 +1,7 @@
 package com.android.tools.r8.shaking.annotations;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -59,18 +59,18 @@ public class AnnotationsOnFieldsTest extends TestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(TestClass.class);
               assertThat(clazz, isPresent());
-              assertThat(clazz, isRenamed());
+              assertThat(clazz, isPresentAndRenamed());
 
               FieldSubject field = clazz.uniqueFieldWithName("field");
               assertThat(field, isPresent());
               assertThat(field.annotation(FieldAnnotation.class.getTypeName()), isPresent());
-              assertThat(inspector.clazz(FieldAnnotationUse.class), isRenamed());
+              assertThat(inspector.clazz(FieldAnnotationUse.class), isPresentAndRenamed());
 
               FieldSubject staticField = clazz.uniqueFieldWithName("staticField");
               assertThat(staticField, isPresent());
               assertThat(
                   staticField.annotation(StaticFieldAnnotation.class.getTypeName()), isPresent());
-              assertThat(inspector.clazz(StaticFieldAnnotationUse.class), isRenamed());
+              assertThat(inspector.clazz(StaticFieldAnnotationUse.class), isPresentAndRenamed());
             })
         .run(MainClass.class)
         .assertSuccess();

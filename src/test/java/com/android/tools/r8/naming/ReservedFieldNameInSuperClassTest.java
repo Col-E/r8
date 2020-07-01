@@ -4,8 +4,8 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -63,7 +63,7 @@ public class ReservedFieldNameInSuperClassTest extends TestBase {
     // Fields are visited/renamed according to the class hierarchy order. Thus, the field A.a will
     // be visited first and assigned the name a. As it ends up receiving the same name as in the
     // original program, it has not technically been renamed.
-    assertThat(aFieldSubject, not(isRenamed()));
+    assertThat(aFieldSubject, isPresentAndNotRenamed());
 
     inspect(inspector);
   }
@@ -90,16 +90,14 @@ public class ReservedFieldNameInSuperClassTest extends TestBase {
     assertThat(aSub1ClassSubject, isPresent());
 
     FieldSubject fooFieldSubject = aSub1ClassSubject.uniqueFieldWithName("foo");
-    assertThat(fooFieldSubject, isPresent());
-    assertThat(fooFieldSubject, isRenamed());
+    assertThat(fooFieldSubject, isPresentAndRenamed());
     assertNotEquals("a", fooFieldSubject.getFinalName());
 
     ClassSubject aSub2ClassSubject = inspector.clazz(ASub2.class);
     assertThat(aSub2ClassSubject, isPresent());
 
     FieldSubject barFieldSubject = aSub2ClassSubject.uniqueFieldWithName("bar");
-    assertThat(barFieldSubject, isPresent());
-    assertThat(barFieldSubject, isRenamed());
+    assertThat(barFieldSubject, isPresentAndRenamed());
     assertNotEquals("a", barFieldSubject.getFinalName());
 
     // Verify that ASub1.foo and ASub2.bar has been renamed to the same name.

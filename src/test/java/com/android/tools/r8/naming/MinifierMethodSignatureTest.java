@@ -5,7 +5,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -215,8 +215,8 @@ public class MinifierMethodSignatureTest extends TestBase {
                     .build()));
     // All classes are kept, and renamed.
     ClassSubject clazz = inspector.clazz("Methods");
-    assertThat(clazz, isRenamed());
-    assertThat(inspector.clazz("Methods$Inner"), isRenamed());
+    assertThat(clazz, isPresentAndRenamed());
+    assertThat(inspector.clazz("Methods$Inner"), isPresentAndRenamed());
 
     MethodSubject generic = lookupGeneric(inspector);
     MethodSubject parameterizedReturn = lookupParameterizedReturn(inspector);
@@ -225,10 +225,10 @@ public class MinifierMethodSignatureTest extends TestBase {
         clazz.method("void", "parametrizedThrows", ImmutableList.of());
 
     // Check that all methods have been renamed
-    assertThat(generic, isRenamed());
-    assertThat(parameterizedReturn, isRenamed());
-    assertThat(parameterizedArguments, isRenamed());
-    assertThat(parametrizedThrows, isRenamed());
+    assertThat(generic, isPresentAndRenamed());
+    assertThat(parameterizedReturn, isPresentAndRenamed());
+    assertThat(parameterizedArguments, isPresentAndRenamed());
+    assertThat(parametrizedThrows, isPresentAndRenamed());
 
     // Test that methods have their original signature if the default was provided.
     if (!signatures.containsKey("generic")) {

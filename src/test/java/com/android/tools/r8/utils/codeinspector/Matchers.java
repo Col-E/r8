@@ -123,7 +123,7 @@ public class Matchers {
     };
   }
 
-  public static Matcher<Subject> isRenamed() {
+  public static Matcher<Subject> isPresentAndRenamed() {
     return new TypeSafeMatcher<Subject>() {
       @Override
       protected boolean matchesSafely(Subject subject) {
@@ -143,7 +143,7 @@ public class Matchers {
     };
   }
 
-  public static Matcher<Subject> isNotRenamed() {
+  public static Matcher<Subject> isPresentAndNotRenamed() {
     return new TypeSafeMatcher<Subject>() {
       @Override
       protected boolean matchesSafely(Subject subject) {
@@ -163,8 +163,8 @@ public class Matchers {
     };
   }
 
-  public static Matcher<Subject> isRenamed(boolean isRenamed) {
-    return isRenamed ? isRenamed() : isNotRenamed();
+  public static Matcher<Subject> isPresentAndRenamed(boolean isRenamed) {
+    return isRenamed ? isPresentAndRenamed() : isPresentAndNotRenamed();
   }
 
   public static Matcher<MemberSubject> isStatic() {

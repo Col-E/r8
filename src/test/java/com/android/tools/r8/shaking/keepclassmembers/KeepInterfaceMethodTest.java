@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.shaking.keepclassmembers;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
@@ -96,7 +96,7 @@ public class KeepInterfaceMethodTest extends TestBase {
     ClassSubject clazzSubject = inspector.clazz(clazz);
     assertThat(clazzSubject, isPresent());
     MethodSubject foo = clazzSubject.uniqueMethodWithName("foo");
-    assertThat(foo, isNotRenamed());
+    assertThat(foo, isPresentAndNotRenamed());
   }
 
   public interface I {

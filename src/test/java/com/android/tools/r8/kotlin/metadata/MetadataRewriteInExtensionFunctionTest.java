@@ -6,7 +6,8 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -127,8 +128,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
     assertThat(inspector.clazz(superClassName), not(isPresent()));
 
     ClassSubject impl = inspector.clazz(bClassName);
-    assertThat(impl, isPresent());
-    assertThat(impl, not(isRenamed()));
+    assertThat(impl, isPresentAndNotRenamed());
     // API entry is kept, hence the presence of Metadata.
     KmClassSubject kmClass = impl.getKmClass();
     assertThat(kmClass, isPresent());
@@ -180,12 +180,10 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
     String bClassName = PKG + ".extension_function_lib.B";
 
     ClassSubject sup = inspector.clazz(superClassName);
-    assertThat(sup, isPresent());
-    assertThat(sup, isRenamed());
+    assertThat(sup, isPresentAndRenamed());
 
     ClassSubject impl = inspector.clazz(bClassName);
-    assertThat(impl, isPresent());
-    assertThat(impl, not(isRenamed()));
+    assertThat(impl, isPresentAndNotRenamed());
     // API entry is kept, hence the presence of Metadata.
     KmClassSubject kmClass = impl.getKmClass();
     assertThat(kmClass, isPresent());
@@ -206,8 +204,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
     assertThat(impl, isPresent());
 
     ClassSubject bKt = inspector.clazz(bKtClassName);
-    assertThat(bKt, isPresent());
-    assertThat(bKt, not(isRenamed()));
+    assertThat(bKt, isPresentAndNotRenamed());
     // API entry is kept, hence the presence of Metadata.
     KmPackageSubject kmPackage = bKt.getKmPackage();
     assertThat(kmPackage, isPresent());

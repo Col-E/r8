@@ -5,7 +5,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -83,7 +83,7 @@ public class CovariantReturnTypeTest extends TestBase {
     Set<String> minifiedMethodNames = new HashSet<>();
     for (Set<MethodSubject> methodSubjects : methodSubjectsByName.values()) {
       for (MethodSubject methodSubject : methodSubjects) {
-        assertThat(methodSubject, isRenamed());
+        assertThat(methodSubject, isPresentAndRenamed());
         minifiedMethodNames.add(methodSubject.getFinalName());
       }
     }

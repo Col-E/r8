@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.inliner;
 
 import static com.android.tools.r8.ir.optimize.inliner.testclasses.InliningIntoVisibilityBridgeTestClasses.getClassA;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -74,8 +74,7 @@ public class InliningIntoVisibilityBridgeTest extends TestBase {
       assertThat(classSubject, isPresent());
 
       MethodSubject methodSubject = classSubject.uniqueMethodWithName("method");
-      assertThat(methodSubject, isPresent());
-      assertThat(methodSubject, isRenamed());
+      assertThat(methodSubject, isPresentAndRenamed());
       assertEquals(neverInline, methodSubject.isBridge());
       assertEquals(neverInline, methodSubject.isSynthetic());
     }

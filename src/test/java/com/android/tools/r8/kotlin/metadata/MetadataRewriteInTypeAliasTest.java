@@ -6,11 +6,11 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isDexClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
@@ -168,15 +168,13 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     String libKtClassName = packageName + ".LibKt";
 
     ClassSubject itf = inspector.clazz(itfClassName);
-    assertThat(itf, isRenamed());
+    assertThat(itf, isPresentAndRenamed());
 
     ClassSubject libKt = inspector.clazz(libKtClassName);
-    assertThat(libKt, isPresent());
-    assertThat(libKt, not(isRenamed()));
+    assertThat(libKt, isPresentAndNotRenamed());
 
     MethodSubject seq = libKt.uniqueMethodWithName("seq");
-    assertThat(seq, isPresent());
-    assertThat(seq, not(isRenamed()));
+    assertThat(seq, isPresentAndNotRenamed());
 
     // API entry is kept, hence the presence of Metadata.
     KmPackageSubject kmPackage = libKt.getKmPackage();
@@ -219,7 +217,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
 
     // Check that Arr has been renamed.
     ClassSubject arr = inspector.clazz(packageName + ".Arr");
-    assertThat(arr, isRenamed());
+    assertThat(arr, isPresentAndRenamed());
 
     ClassSubject libKt = inspector.clazz(libKtClassName);
     KmPackageSubject kmPackage = libKt.getKmPackage();

@@ -7,9 +7,9 @@ import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -122,26 +122,27 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
     String libClassName = PKG + ".sealed_lib.LibKt";
 
     ClassSubject num = inspector.clazz(numClassName);
-    assertThat(num, isRenamed());
+    assertThat(num, isPresentAndRenamed());
 
     ClassSubject expr = inspector.clazz(exprClassName);
-    assertThat(expr, isPresent());
-    assertThat(expr, not(isRenamed()));
+    assertThat(expr, isPresentAndNotRenamed());
 
     KmClassSubject kmClass = expr.getKmClass();
     assertThat(kmClass, isPresent());
 
     assertFalse(kmClass.getSealedSubclassDescriptors().isEmpty());
-    kmClass.getSealedSubclassDescriptors().forEach(sealedSubclassDescriptor -> {
-      ClassSubject sealedSubclass =
-          inspector.clazz(descriptorToJavaType(sealedSubclassDescriptor));
-      assertThat(sealedSubclass, isRenamed());
-      assertEquals(sealedSubclassDescriptor, sealedSubclass.getFinalDescriptor());
-    });
+    kmClass
+        .getSealedSubclassDescriptors()
+        .forEach(
+            sealedSubclassDescriptor -> {
+              ClassSubject sealedSubclass =
+                  inspector.clazz(descriptorToJavaType(sealedSubclassDescriptor));
+              assertThat(sealedSubclass, isPresentAndRenamed());
+              assertEquals(sealedSubclassDescriptor, sealedSubclass.getFinalDescriptor());
+            });
 
     ClassSubject libKt = inspector.clazz(libClassName);
-    assertThat(expr, isPresent());
-    assertThat(expr, not(isRenamed()));
+    assertThat(expr, isPresentAndNotRenamed());
 
     KmPackageSubject kmPackage = libKt.getKmPackage();
     assertThat(kmPackage, isPresent());
@@ -184,15 +185,13 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
     String libClassName = PKG + ".sealed_lib.LibKt";
 
     ClassSubject expr = inspector.clazz(exprClassName);
-    assertThat(expr, isPresent());
-    assertThat(expr, not(isRenamed()));
+    assertThat(expr, isPresentAndNotRenamed());
 
     KmClassSubject kmClass = expr.getKmClass();
     assertThat(kmClass, isPresent());
 
     ClassSubject libKt = inspector.clazz(libClassName);
-    assertThat(expr, isPresent());
-    assertThat(expr, not(isRenamed()));
+    assertThat(expr, isPresentAndNotRenamed());
 
     KmPackageSubject kmPackage = libKt.getKmPackage();
     assertThat(kmPackage, isPresent());

@@ -5,8 +5,7 @@
 package com.android.tools.r8.shaking.keepclassmembers;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
@@ -59,8 +58,7 @@ public class KeepClassMembersRuleOnIndirectlyInstantiatedClassTest extends TestB
     assertThat(classSubject, isPresent());
 
     FieldSubject fieldSubject = classSubject.uniqueFieldWithName("greeting");
-    assertThat(fieldSubject, isPresent());
-    assertThat(fieldSubject, not(isRenamed()));
+    assertThat(fieldSubject, isPresentAndNotRenamed());
   }
 
   static class TestClass {

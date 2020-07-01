@@ -5,7 +5,8 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -170,15 +171,13 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
 
     ClassSubject sup = inspector.clazz(superClassName);
     if (keptAll) {
-      assertThat(sup, isPresent());
-      assertThat(sup, not(isRenamed()));
+      assertThat(sup, isPresentAndNotRenamed());
     } else {
-      assertThat(sup, isRenamed());
+      assertThat(sup, isPresentAndRenamed());
     }
 
     ClassSubject impl = inspector.clazz(bClassName);
-    assertThat(impl, isPresent());
-    assertThat(impl, not(isRenamed()));
+    assertThat(impl, isPresentAndNotRenamed());
     // API entry is kept, hence the presence of Metadata.
     KmClassSubject kmClass = impl.getKmClass();
     assertThat(kmClass, isPresent());
@@ -192,21 +191,18 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
 
     // The backing field for the property in the companion, with @JvmField
     FieldSubject elt2 = impl.uniqueFieldWithName("elt2");
-    assertThat(elt2, isPresent());
-    assertThat(elt2, not(isRenamed()));
+    assertThat(elt2, isPresentAndNotRenamed());
 
     FieldSubject companionObject = impl.uniqueFieldWithName("Companion");
-    assertThat(companionObject, isPresent());
-    assertThat(companionObject, not(isRenamed()));
+    assertThat(companionObject, isPresentAndNotRenamed());
     assertEquals(companionObject.getFinalName(), kmClass.getCompanionObject());
 
     // Bridge for the property in the companion that needs a backing field.
     MethodSubject elt1Bridge = impl.uniqueMethodWithName("access$getElt1$cp");
     if (keptAll) {
-      assertThat(elt1Bridge, isPresent());
-      assertThat(elt1Bridge, not(isRenamed()));
+      assertThat(elt1Bridge, isPresentAndNotRenamed());
     } else {
-      assertThat(elt1Bridge, isRenamed());
+      assertThat(elt1Bridge, isPresentAndRenamed());
     }
 
     // With @JvmField, no bridge is added.
@@ -218,8 +214,7 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
     assertThat(fooBridge, not(isPresent()));
 
     ClassSubject companion = inspector.clazz(companionClassName);
-    assertThat(companion, isPresent());
-    assertThat(companion, not(isRenamed()));
+    assertThat(companion, isPresentAndNotRenamed());
 
     List<String> nestedClassDescriptors = kmClass.getNestedClassDescriptors();
     assertEquals(1, nestedClassDescriptors.size());
@@ -236,19 +231,16 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
     assertThat(kmProperty, isPresent());
 
     MethodSubject elt1Getter = companion.uniqueMethodWithName("getElt1");
-    assertThat(elt1Getter, isPresent());
-    assertThat(elt1Getter, not(isRenamed()));
+    assertThat(elt1Getter, isPresentAndNotRenamed());
 
     // Note that there is no getter for property with @JvmField.
     MethodSubject elt2Getter = companion.uniqueMethodWithName("getElt2");
     assertThat(elt2Getter, not(isPresent()));
 
     MethodSubject fooGetter = companion.uniqueMethodWithName("getFoo");
-    assertThat(fooGetter, isPresent());
-    assertThat(fooGetter, not(isRenamed()));
+    assertThat(fooGetter, isPresentAndNotRenamed());
 
     MethodSubject barSetter = companion.uniqueMethodWithName("setBar");
-    assertThat(barSetter, isPresent());
-    assertThat(barSetter, not(isRenamed()));
+    assertThat(barSetter, isPresentAndNotRenamed());
   }
 }

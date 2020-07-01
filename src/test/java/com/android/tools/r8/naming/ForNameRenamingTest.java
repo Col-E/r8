@@ -4,7 +4,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -48,8 +48,7 @@ public class ForNameRenamingTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     ClassSubject boo = inspector.clazz(Boo.class);
-    assertThat(boo, isPresent());
-    assertThat(boo, isRenamed());
+    assertThat(boo, isPresentAndRenamed());
 
     ClassSubject main = inspector.clazz(MAIN);
     assertThat(main, isPresent());

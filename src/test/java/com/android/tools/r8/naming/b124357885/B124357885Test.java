@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.naming.b124357885;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -68,23 +68,25 @@ public class B124357885Test extends TestBase {
 
   @Test
   public void test() throws Exception {
-    R8TestCompileResult compileResult = testForR8(Backend.DEX)
-        .addProgramClasses(Main.class, Service.class, Foo.class, FooImpl.class)
-        .addKeepMainRule(Main.class)
-        .addKeepRules("-keepattributes Signature,InnerClasses,EnclosingMethod")
-        .minification(minification)
-        .compile()
-        .inspect(inspector -> {
-          assertThat(inspector.clazz(Main.class), isNotRenamed());
-          assertThat(inspector.clazz(Service.class), isRenamed(minification));
-          assertThat(inspector.clazz(Foo.class), not(isPresent()));
-          assertThat(inspector.clazz(FooImpl.class), isRenamed(minification));
-          // TODO(124477502): Using uniqueMethodWithName("fooList") does not work.
-          assertEquals(1, inspector.clazz(Service.class).allMethods().size());
-          MethodSubject fooList = inspector.clazz(Service.class).allMethods().get(0);
-          AnnotationSubject signature = fooList.annotation("dalvik.annotation.Signature");
-          checkSignatureAnnotation(inspector, signature);
-        });
+    R8TestCompileResult compileResult =
+        testForR8(Backend.DEX)
+            .addProgramClasses(Main.class, Service.class, Foo.class, FooImpl.class)
+            .addKeepMainRule(Main.class)
+            .addKeepRules("-keepattributes Signature,InnerClasses,EnclosingMethod")
+            .minification(minification)
+            .compile()
+            .inspect(
+                inspector -> {
+                  assertThat(inspector.clazz(Main.class), isPresentAndNotRenamed());
+                  assertThat(inspector.clazz(Service.class), isPresentAndRenamed(minification));
+                  assertThat(inspector.clazz(Foo.class), not(isPresent()));
+                  assertThat(inspector.clazz(FooImpl.class), isPresentAndRenamed(minification));
+                  // TODO(124477502): Using uniqueMethodWithName("fooList") does not work.
+                  assertEquals(1, inspector.clazz(Service.class).allMethods().size());
+                  MethodSubject fooList = inspector.clazz(Service.class).allMethods().get(0);
+                  AnnotationSubject signature = fooList.annotation("dalvik.annotation.Signature");
+                  checkSignatureAnnotation(inspector, signature);
+                });
 
         String fooImplFinalName = compileResult.inspector().clazz(FooImpl.class).getFinalName();
 

@@ -5,7 +5,8 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -65,12 +66,14 @@ public class EnumMinification extends TestBase {
     ClassSubject clazz = inspector.clazz(enumTypeName);
     // The class and fields - including field $VALUES and method valueOf - can be renamed. Only
     // the values() method needs to be
-    assertThat(clazz, isRenamed());
-    assertThat(clazz.uniqueFieldWithName("VALUE1"), isRenamed());
-    assertThat(clazz.uniqueFieldWithName("VALUE2"), isRenamed());
-    assertThat(clazz.uniqueFieldWithName("$VALUES"), isRenamed());
-    assertThat(clazz.uniqueMethodWithName("valueOf"), valueOfKept ? isRenamed() : not(isPresent()));
-    assertThat(clazz.uniqueMethodWithName("values"), not(isRenamed()));
+    assertThat(clazz, isPresentAndRenamed());
+    assertThat(clazz.uniqueFieldWithName("VALUE1"), isPresentAndRenamed());
+    assertThat(clazz.uniqueFieldWithName("VALUE2"), isPresentAndRenamed());
+    assertThat(clazz.uniqueFieldWithName("$VALUES"), isPresentAndRenamed());
+    assertThat(
+        clazz.uniqueMethodWithName("valueOf"),
+        valueOfKept ? isPresentAndRenamed() : not(isPresent()));
+    assertThat(clazz.uniqueMethodWithName("values"), isPresentAndNotRenamed());
   }
 
   @Test

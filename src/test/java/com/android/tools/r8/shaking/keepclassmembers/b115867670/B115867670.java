@@ -5,7 +5,8 @@
 package com.android.tools.r8.shaking.keepclassmembers.b115867670;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -105,7 +106,7 @@ public class B115867670 extends ProguardCompatibilityTestBase {
       assertThat(cls, isPresent());
       assertFalse("Class " + clazz.getSimpleName() + " should not be abstract", cls.isAbstract());
       assertEquals(1, cls.asFoundClassSubject().allFields().size());
-      cls.forAllFields(field -> assertThat(field, not(isRenamed())));
+      cls.forAllFields(field -> assertThat(field, isPresentAndNotRenamed()));
     }
   }
 
@@ -114,10 +115,10 @@ public class B115867670 extends ProguardCompatibilityTestBase {
     for (Class clazz : new Class[] {Foo.class, Foo.Interaction.class, Foo.Request.class}) {
       ClassSubject cls = inspector.clazz(clazz);
       assertThat(cls, isPresent());
-      assertThat(cls, isRenamed());
+      assertThat(cls, isPresentAndRenamed());
       assertFalse("Class " + clazz.getSimpleName() + " should not be abstract", cls.isAbstract());
       assertEquals(1, cls.asFoundClassSubject().allFields().size());
-      cls.forAllFields(field -> assertThat(field, isRenamed()));
+      cls.forAllFields(field -> assertThat(field, isPresentAndRenamed()));
     }
   }
 

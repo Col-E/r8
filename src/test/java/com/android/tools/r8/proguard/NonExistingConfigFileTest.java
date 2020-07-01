@@ -3,8 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.proguard;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
@@ -28,11 +27,11 @@ public class NonExistingConfigFileTest extends TestBase {
         .addKeepRuleFiles(pg)
         .compile()
         .assertNoMessages()
-        .inspect(inspector -> {
-          ClassSubject clazz = inspector.clazz(TestClass.class);
-          assertThat(clazz, isPresent());
-          assertThat(clazz, isRenamed());
-        });
+        .inspect(
+            inspector -> {
+              ClassSubject clazz = inspector.clazz(TestClass.class);
+              assertThat(clazz, isPresentAndRenamed());
+            });
   }
 
   @Test

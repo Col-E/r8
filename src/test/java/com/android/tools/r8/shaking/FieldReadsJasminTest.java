@@ -4,7 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -173,7 +173,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
         .inspect(
             inspector -> {
               FieldSubject fld = inspector.clazz(fieldHolder.name).uniqueFieldWithName(fieldName);
-              assertThat(fld, isRenamed());
+              assertThat(fld, isPresentAndRenamed());
 
               ClassSubject classSubject = inspector.clazz(clazz.name);
               assertThat(classSubject, isPresent());
@@ -370,7 +370,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
       boolean isR8) {
     FieldSubject fld = inspector.clazz(fieldHolder.name).uniqueFieldWithName(fieldName);
     if (isR8) {
-      assertThat(fld, isRenamed());
+      assertThat(fld, isPresentAndRenamed());
     } else {
       assertThat(fld, isPresent());
     }

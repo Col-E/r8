@@ -3,8 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.b113138046;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -63,7 +62,7 @@ public class NativeMethodTest extends TestBase {
           "void", "foo", ImmutableList.of(Handler.class.getCanonicalName()));
       assertEquals(expectedFooPresence, nativeFoo.isPresent());
       if (expectedFooPresence) {
-        assertThat(nativeFoo, not(isRenamed()));
+        assertThat(nativeFoo, isPresentAndNotRenamed());
         DexEncodedMethod method = nativeFoo.getMethod();
         assertTrue(method.accessFlags.isNative());
         assertNull(method.getCode());
