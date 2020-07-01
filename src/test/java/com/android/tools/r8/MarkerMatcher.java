@@ -117,6 +117,20 @@ public abstract class MarkerMatcher extends TypeSafeMatcher<Marker> {
     };
   }
 
+  public static Matcher<Marker> markerHasMinApi() {
+    return new MarkerMatcher() {
+      @Override
+      protected boolean eval(Marker marker) {
+        return marker.hasMinApi();
+      }
+
+      @Override
+      protected void explain(Description description) {
+        description.appendText(Marker.MIN_API + " found");
+      }
+    };
+  }
+
   public static Matcher<Marker> markerHasChecksums(boolean value) {
     return new MarkerMatcher() {
       @Override
@@ -161,6 +175,25 @@ public abstract class MarkerMatcher extends TypeSafeMatcher<Marker> {
         description
             .appendText(Marker.DESUGARED_LIBRARY_IDENTIFIERS + " ")
             .appendText(desugaredLibraryIdentifier);
+      }
+    };
+  }
+
+  public static Matcher<Marker> markerHasDesugaredLibraryIdentifier() {
+    return markerHasDesugaredLibraryIdentifier(true);
+  }
+
+  public static Matcher<Marker> markerHasDesugaredLibraryIdentifier(boolean value) {
+    return new MarkerMatcher() {
+      @Override
+      protected boolean eval(Marker marker) {
+        return marker.hasDesugaredLibraryIdentifiers() == value;
+      }
+
+      @Override
+      protected void explain(Description description) {
+        description.appendText(
+            Marker.DESUGARED_LIBRARY_IDENTIFIERS + (value ? " found" : " not found"));
       }
     };
   }

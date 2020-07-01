@@ -88,6 +88,9 @@ public class Marker {
                 new StringDiagnostic(
                     "Merging program compiled with multiple desugared libraries."));
         }
+        if (identifier.equals(NO_LIBRARY_DESUGARING) && marker.tool == Tool.R8) {
+          continue;
+        }
         desugaredLibraryIdentifiers.add(identifier);
       }
     }
@@ -131,6 +134,10 @@ public class Marker {
     return this;
   }
 
+  public boolean hasMinApi() {
+    return jsonObject.has(MIN_API);
+  }
+
   public Long getMinApi() {
     return jsonObject.get(MIN_API).getAsLong();
   }
@@ -139,6 +146,10 @@ public class Marker {
     assert !jsonObject.has(MIN_API);
     jsonObject.addProperty(MIN_API, minApi);
     return this;
+  }
+
+  public boolean hasDesugaredLibraryIdentifiers() {
+    return jsonObject.has(DESUGARED_LIBRARY_IDENTIFIERS);
   }
 
   public String[] getDesugaredLibraryIdentifiers() {

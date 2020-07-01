@@ -49,6 +49,11 @@ public class ExtractMarker {
     return extractMarker(appBuilder.build());
   }
 
+  public static Collection<Marker> extractMarkerFromJarFile(Path file)
+      throws IOException, ExecutionException {
+    return extractMarker(AndroidApp.builder().addProgramFile(file).build());
+  }
+
   public static int extractDexSize(Path file) throws IOException, ResourceException {
     AndroidApp.Builder appBuilder = AndroidApp.builder();
     addDexResources(appBuilder, file);
