@@ -84,11 +84,9 @@ public class StaticInterfaceMethodsTest extends TestBase {
               .run(parameters.getRuntime(), InstrumentedTestClass.class);
     } else {
       result =
-          testForRuntime(
-                  parameters.getRuntime(),
-                  d8TestBuilder ->
-                      d8TestBuilder.setMinApi(parameters.getApiLevel()).addClasspathFiles(app))
+          testForRuntime(parameters)
               .addProgramClasses(InstrumentedTestClass.class)
+              .addClasspathFiles(app)
               .addRunClasspathFiles(app)
               .run(parameters.getRuntime(), InstrumentedTestClass.class);
     }

@@ -131,6 +131,18 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
     return addLibraryFiles(Arrays.asList(files));
   }
 
+  public T addClasspathClasses(Class<?>... classes) {
+    return addClasspathClasses(Arrays.asList(classes));
+  }
+
+  public abstract T addClasspathClasses(Collection<Class<?>> classes);
+
+  public T addClasspathFiles(Path... files) {
+    return addClasspathFiles(Arrays.asList(files));
+  }
+
+  public abstract T addClasspathFiles(Collection<Path> files);
+
   public final T addTestingAnnotationsAsProgramClasses() {
     return addProgramClasses(getTestingAnnotations());
   }

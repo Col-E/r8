@@ -82,6 +82,16 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
   }
 
   @Override
+  public JvmTestBuilder addClasspathClasses(Collection<Class<?>> classes) {
+    return addClasspath(writeClassesToJar(classes));
+  }
+
+  @Override
+  public JvmTestBuilder addClasspathFiles(Collection<Path> files) {
+    return addClasspath(files);
+  }
+
+  @Override
   public JvmTestBuilder addRunClasspathFiles(Collection<Path> files) {
     return addClasspath(files);
   }

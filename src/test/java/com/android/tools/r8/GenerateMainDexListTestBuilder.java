@@ -56,6 +56,16 @@ public class GenerateMainDexListTestBuilder
     throw new Unimplemented("No support for run class path");
   }
 
+  @Override
+  public GenerateMainDexListTestBuilder addClasspathClasses(Collection<Class<?>> classes) {
+    throw new Unimplemented("No support for class path");
+  }
+
+  @Override
+  public GenerateMainDexListTestBuilder addClasspathFiles(Collection<Path> files) {
+    throw new Unimplemented("No support for class path");
+  }
+
   public GenerateMainDexListRunResult run() throws CompilationFailedException {
     return new GenerateMainDexListRunResult(GenerateMainDexList.run(builder.build()));
   }

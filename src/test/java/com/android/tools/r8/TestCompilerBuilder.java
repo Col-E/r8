@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -338,18 +337,6 @@ public abstract class TestCompilerBuilder<
     useDefaultRuntimeLibrary = false;
     return super.addLibraryProvider(provider);
   }
-
-  public T addClasspathClasses(Class<?>... classes) {
-    return addClasspathClasses(Arrays.asList(classes));
-  }
-
-  public abstract T addClasspathClasses(Collection<Class<?>> classes);
-
-  public T addClasspathFiles(Path... files) {
-    return addClasspathFiles(Arrays.asList(files));
-  }
-
-  public abstract T addClasspathFiles(Collection<Path> files);
 
   public T noDesugaring() {
     builder.setDisableDesugaring(true);
