@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
@@ -10,7 +11,6 @@ import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.SignatureMappingInformation;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.utils.IdentifierUtils;
-import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonObject;
@@ -62,20 +62,18 @@ public class ProguardMapReader implements AutoCloseable {
 
   private final BufferedReader reader;
   private final JsonParser jsonParser = new JsonParser();
-  private final Reporter reporter;
+  private final DiagnosticsHandler diagnosticsHandler;
 
   @Override
   public void close() throws IOException {
-    if (reader != null) {
-      reader.close();
-    }
+    reader.close();
   }
 
-  ProguardMapReader(BufferedReader reader, Reporter reporter) {
+  ProguardMapReader(BufferedReader reader, DiagnosticsHandler diagnosticsHandler) {
     this.reader = reader;
-    this.reporter = reporter;
+    this.diagnosticsHandler = diagnosticsHandler;
     assert reader != null;
-    assert reporter != null;
+    assert diagnosticsHandler != null;
   }
 
   // Internal parser state
@@ -259,10 +257,14 @@ public class ProguardMapReader implements AutoCloseable {
       // Try to parse any information added in comments above member namings
       if (isCommentLineWithJsonBrace()) {
         MappingInformation mappingInfo =
-            MappingInformation.fromJsonObject(parseJsonInComment(), reporter, lineNo);
-        if (mappingInfo != null && mappingInfo.isSignatureMappingInformation()) {
-          SignatureMappingInformation sigMapInfo = mappingInfo.asSignatureMappingInformation();
-          mappingInformation.put(sigMapInfo.getSignature(), sigMapInfo);
+            MappingInformation.fromJsonObject(parseJsonInComment(), diagnosticsHandler, lineNo);
+        if (mappingInfo != null) {
+          if (mappingInfo.isSignatureMappingInformation()) {
+            SignatureMappingInformation sigMapInfo = mappingInfo.asSignatureMappingInformation();
+            mappingInformation.put(sigMapInfo.getSignature(), sigMapInfo);
+          } else {
+            classNamingBuilder.addMappingInformation(mappingInfo, diagnosticsHandler, lineNo);
+          }
         }
         // Skip reading the rest of the line.
         lineOffset = line.length();
@@ -329,7 +331,7 @@ public class ProguardMapReader implements AutoCloseable {
         activeMemberNaming =
             new MemberNaming(
                 signature,
-                mappingInformation.get(signature).apply(signature, renamedName, reporter),
+                mappingInformation.get(signature).apply(signature, renamedName, diagnosticsHandler),
                 getPosition());
       } else {
         activeMemberNaming =

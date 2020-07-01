@@ -7,6 +7,7 @@ package com.android.tools.r8.utils.codeinspector;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.references.ClassReference;
 import java.util.List;
 import java.util.function.Consumer;
@@ -175,6 +176,11 @@ public class AbsentClassSubject extends ClassSubject {
 
   @Override
   public KotlinClassMetadata getKotlinClassMetadata() {
+    return null;
+  }
+
+  @Override
+  public ClassNamingForNameMapper getNaming() {
     return null;
   }
 }

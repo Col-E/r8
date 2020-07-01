@@ -671,20 +671,21 @@ public class RetraceRegularExpression {
             retracedStrings.add(retraceString);
             continue;
           }
-          String newSourceFile =
-              retraceString.getQualifiedContext() != null
-                  ? retraceBase.retraceSourceFile(
-                      retraceString.classContext.getClassReference(),
-                      fileName,
+          RetraceSourceFileResult sourceFileResult =
+              retraceString.getMethodContext() != null
+                  ? retraceString.getMethodContext().retraceSourceFile(fileName)
+                  : RetraceUtils.getSourceFile(
+                      retraceString.getClassContext(),
                       retraceString.getQualifiedContext(),
-                      true)
-                  : retraceString.classContext.retraceSourceFile(fileName, retraceBase);
+                      fileName);
           retracedStrings.add(
               retraceString
                   .transform()
                   .setSource(fileName)
                   .replaceInString(
-                      newSourceFile, matcher.start(captureGroup), matcher.end(captureGroup))
+                      sourceFileResult.getFilename(),
+                      matcher.start(captureGroup),
+                      matcher.end(captureGroup))
                   .build());
         }
         return retracedStrings;

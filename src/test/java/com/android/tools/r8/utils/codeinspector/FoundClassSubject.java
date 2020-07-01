@@ -403,4 +403,9 @@ public class FoundClassSubject extends ClassSubject {
     return KotlinClassMetadataReader.toKotlinClassMetadata(
         codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
   }
+
+  @Override
+  public ClassNamingForNameMapper getNaming() {
+    return naming;
+  }
 }

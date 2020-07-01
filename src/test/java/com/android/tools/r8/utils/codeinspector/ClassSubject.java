@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_
 
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
@@ -211,4 +212,6 @@ public abstract class ClassSubject extends Subject {
         Reference.classFromDescriptor(
             descriptor.substring(0, descriptor.length() - 1) + COMPANION_CLASS_NAME_SUFFIX + ";"));
   }
+
+  public abstract ClassNamingForNameMapper getNaming();
 }

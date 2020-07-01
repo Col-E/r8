@@ -4,9 +4,14 @@
 
 package com.android.tools.r8.naming.mappinginformation;
 
+import static com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics.invalidParameterInformationObject;
+import static com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics.invalidValueForObjectWithId;
+import static com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics.tooManyEntriesForParameterInformation;
+import static com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics.tooManyInformationalParameters;
+
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
-import com.android.tools.r8.utils.Reporter;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -58,12 +63,18 @@ public class MethodSignatureChangedInformation extends SignatureMappingInformati
   }
 
   @Override
+  public boolean allowOther(MappingInformation information) {
+    return !information.isMethodSignatureChangedInformation();
+  }
+
+  @Override
   public Signature getSignature() {
     return signature;
   }
 
   @Override
-  public Signature apply(Signature originalSignature, String renamedName, Reporter reporter) {
+  public Signature apply(
+      Signature originalSignature, String renamedName, DiagnosticsHandler diagnosticsHandler) {
     if (originalSignature == null || !originalSignature.isMethodSignature()) {
       assert false : "Should only call apply for method signature";
       return originalSignature;
@@ -74,7 +85,7 @@ public class MethodSignatureChangedInformation extends SignatureMappingInformati
     int numberOfArgumentsRemoved = getNumberOfArgumentsRemoved();
     if (numberOfArgumentsRemoved > parameters.length) {
       // The mapping information is not up to date with the current signature.
-      reporter.warning(InformationParsingError.tooManyInformationalParameters(getLineNumber()));
+      diagnosticsHandler.warning(tooManyInformationalParameters(getLineNumber()));
       return new MethodSignature(renamedName, type, parameters);
     }
     String[] newParameters = new String[parameters.length - numberOfArgumentsRemoved];
@@ -86,7 +97,7 @@ public class MethodSignatureChangedInformation extends SignatureMappingInformati
       } else {
         if (insertIndex >= newParameters.length) {
           // The mapping information is not up to date with the current signature.
-          reporter.warning(InformationParsingError.tooManyInformationalParameters(getLineNumber()));
+          diagnosticsHandler.warning(tooManyInformationalParameters(getLineNumber()));
           return new MethodSignature(renamedName, type, parameters);
         } else if (argInfo == null) {
           // Unchanged, take current parameter.
@@ -101,7 +112,7 @@ public class MethodSignatureChangedInformation extends SignatureMappingInformati
   }
 
   @Override
-  public boolean hasChangedArguments() {
+  public boolean isMethodSignatureChangedInformation() {
     return true;
   }
 
@@ -134,7 +145,7 @@ public class MethodSignatureChangedInformation extends SignatureMappingInformati
   }
 
   @Override
-  public MethodSignatureChangedInformation asArgumentsChangedInformation() {
+  public MethodSignatureChangedInformation asMethodSignatureChangedInformation() {
     return this;
   }
 
@@ -151,15 +162,16 @@ public class MethodSignatureChangedInformation extends SignatureMappingInformati
     this.receiver = hasReceiver;
   }
 
-  public static MappingInformation build(JsonObject object, Reporter reporter, int lineNumber) {
+  public static MappingInformation build(
+      JsonObject object, DiagnosticsHandler diagnosticsHandler, int lineNumber) {
     try {
       JsonElement returnTypeElement =
-          getJsonElementFromObject(object, reporter, lineNumber, RETURN_TYPE_KEY, ID);
+          getJsonElementFromObject(object, diagnosticsHandler, lineNumber, RETURN_TYPE_KEY, ID);
       JsonElement receiverElement =
-          getJsonElementFromObject(object, reporter, lineNumber, RECEIVER_KEY, ID);
+          getJsonElementFromObject(object, diagnosticsHandler, lineNumber, RECEIVER_KEY, ID);
       JsonElement argsElement =
-          getJsonElementFromObject(object, reporter, lineNumber, PARAMS_KEY, ID);
-      MethodSignature signature = getMethodSignature(object, ID, reporter, lineNumber);
+          getJsonElementFromObject(object, diagnosticsHandler, lineNumber, PARAMS_KEY, ID);
+      MethodSignature signature = getMethodSignature(object, ID, diagnosticsHandler, lineNumber);
       if (signature == null
           || returnTypeElement == null
           || receiverElement == null
@@ -174,7 +186,7 @@ public class MethodSignatureChangedInformation extends SignatureMappingInformati
       for (int i = 0; i < argumentsArray.size(); i++) {
         args[i] =
             ParameterInformation.fromJsonArray(
-                argumentsArray.get(i).getAsJsonArray(), reporter, lineNumber);
+                argumentsArray.get(i).getAsJsonArray(), diagnosticsHandler, lineNumber);
       }
       return new MethodSignatureChangedInformation(
           signature,
@@ -183,8 +195,7 @@ public class MethodSignatureChangedInformation extends SignatureMappingInformati
           args,
           lineNumber);
     } catch (UnsupportedOperationException | IllegalStateException ignored) {
-      reporter.info(
-          InformationParsingError.invalidValueForObjectWithId(lineNumber, MAPPING_ID_KEY, ID));
+      diagnosticsHandler.info(invalidValueForObjectWithId(lineNumber, MAPPING_ID_KEY, ID));
       return null;
     }
   }
@@ -207,11 +218,11 @@ public class MethodSignatureChangedInformation extends SignatureMappingInformati
     }
 
     static ParameterInformation fromJsonArray(
-        JsonArray argumentInfo, Reporter reporter, int lineNumber) {
+        JsonArray argumentInfo, DiagnosticsHandler diagnosticsHandler, int lineNumber) {
       assert argumentInfo != null;
       try {
         if (argumentInfo.size() > 2) {
-          reporter.info(InformationParsingError.tooManyEntriesForParameterInformation(lineNumber));
+          diagnosticsHandler.info(tooManyEntriesForParameterInformation(lineNumber));
           return null;
         }
         int index = argumentInfo.get(0).getAsInt();
@@ -222,7 +233,7 @@ public class MethodSignatureChangedInformation extends SignatureMappingInformati
           return new ParameterInformation(index, argumentInfo.get(1).getAsString());
         }
       } catch (UnsupportedOperationException | IllegalStateException ignored) {
-        reporter.info(InformationParsingError.invalidParameterInformationObject(lineNumber));
+        diagnosticsHandler.info(invalidParameterInformationObject(lineNumber));
         return null;
       }
     }

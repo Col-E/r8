@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.naming.ClassNameMapper.MissingFileAction.MISSING_FILE_IS_ERROR;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -91,15 +92,17 @@ public class ClassNameMapper implements ProguardMap {
     return mapperFromBufferedReader(CharSource.wrap(contents).openBufferedStream(), null);
   }
 
-  public static ClassNameMapper mapperFromString(String contents, Reporter reporter)
-      throws IOException {
-    return mapperFromBufferedReader(CharSource.wrap(contents).openBufferedStream(), reporter);
+  public static ClassNameMapper mapperFromString(
+      String contents, DiagnosticsHandler diagnosticsHandler) throws IOException {
+    return mapperFromBufferedReader(
+        CharSource.wrap(contents).openBufferedStream(), diagnosticsHandler);
   }
 
-  private static ClassNameMapper mapperFromBufferedReader(BufferedReader reader, Reporter reporter)
-      throws IOException {
+  private static ClassNameMapper mapperFromBufferedReader(
+      BufferedReader reader, DiagnosticsHandler diagnosticsHandler) throws IOException {
     try (ProguardMapReader proguardReader =
-        new ProguardMapReader(reader, reporter != null ? reporter : new Reporter())) {
+        new ProguardMapReader(
+            reader, diagnosticsHandler != null ? diagnosticsHandler : new Reporter())) {
       ClassNameMapper.Builder builder = ClassNameMapper.builder();
       proguardReader.parse(builder);
       return builder.build();

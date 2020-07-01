@@ -421,7 +421,8 @@ public final class RetraceStackTrace {
         List<StackTraceLine> lines,
         String classLoaderName) {
       ClassReference classReference = Reference.classFromTypeName(clazz);
-      RetraceMethodResult retraceResult = retraceBase.retrace(classReference).lookupMethod(method);
+      RetraceClassResult classResult = retraceBase.retrace(classReference);
+      RetraceMethodResult retraceResult = classResult.lookupMethod(method);
       if (linePosition != NO_POSITION && linePosition != INVALID_POSITION) {
         retraceResult = retraceResult.narrowByLine(linePosition);
       }
@@ -437,8 +438,7 @@ public final class RetraceStackTrace {
                     methodReference.getHolderClass().getTypeName(),
                     methodReference.getMethodName(),
                     methodDescriptionFromMethodReference(methodReference, verbose),
-                    retraceBase.retraceSourceFile(
-                        classReference, fileName, methodReference.getHolderClass(), true),
+                    methodElement.retraceSourceFile(fileName).getFilename(),
                     hasLinePosition()
                         ? methodElement.getOriginalLineNumber(linePosition)
                         : linePosition,

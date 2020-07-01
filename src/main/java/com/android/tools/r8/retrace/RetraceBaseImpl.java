@@ -10,14 +10,8 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.Box;
-import com.google.common.collect.Sets;
-import com.google.common.io.Files;
-import java.util.Set;
 
 public class RetraceBaseImpl implements RetraceBase {
-
-  private static final Set<String> UNKNOWN_SOURCEFILE_NAMES =
-      Sets.newHashSet("", "SourceFile", "Unknown", "Unknown Source");
 
   private final ClassNameMapper classNameMapper;
 
@@ -46,53 +40,16 @@ public class RetraceBaseImpl implements RetraceBase {
   }
 
   @Override
-  public String retraceSourceFile(ClassReference classReference, String sourceFile) {
-    Box<String> retracedSourceFile = new Box<>();
+  public RetraceSourceFileResult retraceSourceFile(
+      ClassReference classReference, String sourceFile) {
+    Box<RetraceSourceFileResult> retracedSourceFile = new Box<>();
     retrace(classReference)
-        .forEach(element -> retracedSourceFile.set(element.retraceSourceFile(sourceFile, this)));
+        .forEach(element -> retracedSourceFile.set(element.retraceSourceFile(sourceFile)));
     return retracedSourceFile.get();
   }
 
   @Override
   public RetraceTypeResult retrace(TypeReference typeReference) {
     return new RetraceTypeResult(typeReference, this);
-  }
-
-  @Override
-  public String retraceSourceFile(
-      ClassReference obfuscatedClass,
-      String sourceFile,
-      ClassReference retracedClassReference,
-      boolean hasRetraceResult) {
-    boolean fileNameProbablyChanged =
-        hasRetraceResult
-            && !retracedClassReference.getTypeName().startsWith(obfuscatedClass.getTypeName());
-    if (!UNKNOWN_SOURCEFILE_NAMES.contains(sourceFile) && !fileNameProbablyChanged) {
-      // We have no new information, only rewrite filename if it is unknown.
-      // PG-retrace will always rewrite the filename, but that seems a bit to harsh to do.
-      return sourceFile;
-    }
-    if (!hasRetraceResult) {
-      // We have no mapping but but the file name is unknown, so the best we can do is take the
-      // name of the obfuscated clazz.
-      assert obfuscatedClass.getTypeName().equals(retracedClassReference.getTypeName());
-      return getClassSimpleName(obfuscatedClass.getTypeName()) + ".java";
-    }
-    String newFileName = getClassSimpleName(retracedClassReference.getTypeName());
-    String extension = Files.getFileExtension(sourceFile);
-    if (extension.isEmpty()) {
-      extension = "java";
-    }
-    return newFileName + "." + extension;
-  }
-
-  private static String getClassSimpleName(String clazz) {
-    int lastIndexOfPeriod = clazz.lastIndexOf('.');
-    // Check if we can find a subclass separator.
-    int endIndex = clazz.lastIndexOf('$');
-    if (lastIndexOfPeriod > endIndex || endIndex < 0) {
-      endIndex = clazz.length();
-    }
-    return clazz.substring(lastIndexOfPeriod + 1, endIndex);
   }
 }

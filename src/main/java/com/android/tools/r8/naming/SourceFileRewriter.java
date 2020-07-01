@@ -5,12 +5,12 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import java.util.Arrays;
 
@@ -21,10 +21,12 @@ import java.util.Arrays;
  */
 public class SourceFileRewriter {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<?> appView;
+  private final DexApplication application;
 
-  public SourceFileRewriter(AppView<AppInfoWithLiveness> appView) {
+  public SourceFileRewriter(AppView<?> appView, DexApplication application) {
     this.appView = appView;
+    this.application = application;
   }
 
   public void run() {
@@ -37,16 +39,18 @@ public class SourceFileRewriter {
         && appView.options().forceProguardCompatibility) {
       return;
     }
+    boolean isMinifying = appView.options().isMinifying();
+    assert !isMinifying || appView.appInfo().hasLiveness();
     // Now, the user wants either to remove source file attribute or to rename it for non-kept
     // classes.
     DexString defaultRenaming = getSourceFileRenaming(proguardConfiguration);
-    for (DexClass clazz : appView.appInfo().classes()) {
+    for (DexClass clazz : application.classes()) {
       // We only parse sourceFile if -keepattributes SourceFile, but for compat we should add
       // a source file name, otherwise line positions will not be printed on the JVM or old version
       // of ART.
       if (!hasRenameSourceFileAttribute
           && proguardConfiguration.getKeepAttributes().sourceFile
-          && !appView.appInfo().isMinificationAllowed(clazz.type)) {
+          && !(isMinifying && appView.withLiveness().appInfo().isMinificationAllowed(clazz.type))) {
         continue;
       }
       clazz.sourceFile = defaultRenaming;

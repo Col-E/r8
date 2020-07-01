@@ -180,5 +180,9 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
       }
       return mappedRange.getFirstLineNumberOfOriginalRange();
     }
+
+    public RetraceSourceFileResult retraceSourceFile(String sourceFile) {
+      return RetraceUtils.getSourceFile(classElement, methodReference.getHolderClass(), sourceFile);
+    }
   }
 }

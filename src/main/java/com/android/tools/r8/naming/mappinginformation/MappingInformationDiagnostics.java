@@ -11,7 +11,7 @@ import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
 
 @Keep
-public class InformationParsingError implements Diagnostic {
+public class MappingInformationDiagnostics implements Diagnostic {
 
   private final String message;
   private final Position position;
@@ -31,65 +31,83 @@ public class InformationParsingError implements Diagnostic {
     return message;
   }
 
-  private InformationParsingError(String message, Position position) {
+  private MappingInformationDiagnostics(String message, Position position) {
     this.message = message;
     this.position = position;
   }
 
-  static InformationParsingError noHandlerFor(int lineNumber, String value) {
-    return new InformationParsingError(
+  static MappingInformationDiagnostics noHandlerFor(int lineNumber, String value) {
+    return new MappingInformationDiagnostics(
         String.format("Could not find a handler for %s", value),
         new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
 
-  static InformationParsingError noKeyInJson(int lineNumber, String key) {
-    return new InformationParsingError(
+  static MappingInformationDiagnostics noKeyInJson(int lineNumber, String key) {
+    return new MappingInformationDiagnostics(
         String.format("Could not locate '%s' in the JSON object", key),
         new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
 
-  static InformationParsingError notValidJson(int lineNumber) {
-    return new InformationParsingError(
+  static MappingInformationDiagnostics notValidJson(int lineNumber) {
+    return new MappingInformationDiagnostics(
         "Not valid JSON", new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
 
-  static InformationParsingError notValidString(int lineNumber, String key) {
-    return new InformationParsingError(
+  static MappingInformationDiagnostics notValidString(int lineNumber, String key) {
+    return new MappingInformationDiagnostics(
         String.format("The value of '%s' is not a valid string in the JSON object", key),
         new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
 
-  static InformationParsingError tooManyInformationalParameters(int lineNumber) {
-    return new InformationParsingError(
+  static MappingInformationDiagnostics tooManyInformationalParameters(int lineNumber) {
+    return new MappingInformationDiagnostics(
         "More informational parameters than actual parameters for method signature",
         new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
 
-  static InformationParsingError noKeyForObjectWithId(
+  static MappingInformationDiagnostics noKeyForObjectWithId(
       int lineNumber, String key, String mappingKey, String mappingValue) {
-    return new InformationParsingError(
+    return new MappingInformationDiagnostics(
         String.format("Could not find '%s' for object with %s '%s'", key, mappingKey, mappingValue),
         new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
 
-  static InformationParsingError invalidValueForObjectWithId(
+  static MappingInformationDiagnostics invalidValueForObjectWithId(
       int lineNumber, String mappingKey, String mappingValue) {
-    return new InformationParsingError(
+    return new MappingInformationDiagnostics(
         String.format(
             "Could not decode the information for the object with %s '%s'",
             mappingKey, mappingValue),
         new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
 
-  static InformationParsingError tooManyEntriesForParameterInformation(int lineNumber) {
-    return new InformationParsingError(
+  static MappingInformationDiagnostics tooManyEntriesForParameterInformation(int lineNumber) {
+    return new MappingInformationDiagnostics(
         "Parameter information do not have 1 or 2 entries",
         new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
 
-  static InformationParsingError invalidParameterInformationObject(int lineNumber) {
-    return new InformationParsingError(
+  static MappingInformationDiagnostics invalidParameterInformationObject(int lineNumber) {
+    return new MappingInformationDiagnostics(
         "Parameter information is not an index and a string representation of a type",
+        new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
+  }
+
+  public static MappingInformationDiagnostics notAllowedCombination(
+      String className,
+      String renamedClassName,
+      MappingInformation one,
+      MappingInformation other,
+      int lineNumber) {
+    return new MappingInformationDiagnostics(
+        "The mapping '"
+            + one.serialize()
+            + "' is not allowed in combination with '"
+            + other.serialize()
+            + "' in the mapping for "
+            + className
+            + " -> "
+            + renamedClassName,
         new TextPosition(1, lineNumber, TextPosition.UNKNOWN_COLUMN));
   }
 }

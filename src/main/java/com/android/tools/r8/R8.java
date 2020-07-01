@@ -609,11 +609,6 @@ public class R8 {
         }
       }
 
-      // Overwrite SourceFile if specified. This step should be done after IR conversion.
-      timing.begin("Rename SourceFile");
-      new SourceFileRewriter(appViewWithLiveness).run();
-      timing.end();
-
       // Collect the already pruned types before creating a new app info without liveness.
       Set<DexType> prunedTypes = appView.withLiveness().appInfo().getPrunedTypes();
 
@@ -821,6 +816,11 @@ public class R8 {
       // information for the mapping file.
       ClassNameMapper classNameMapper =
           LineNumberOptimizer.run(appView, application, inputApp, namingLens);
+      timing.end();
+
+      // Overwrite SourceFile if specified. This step should be done after IR conversion.
+      timing.begin("Rename SourceFile");
+      new SourceFileRewriter(appView, application).run();
       timing.end();
 
       // If a method filter is present don't produce output since the application is likely partial.

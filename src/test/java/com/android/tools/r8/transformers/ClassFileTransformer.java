@@ -266,6 +266,16 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer setSourceFile(String sourceFile) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public void visitSource(String source, String debug) {
+            super.visitSource(sourceFile, debug);
+          }
+        });
+  }
+
   public ClassFileTransformer setAccessFlags(Consumer<ClassAccessFlags> fn) {
     return addClassTransformer(
         new ClassTransformer() {

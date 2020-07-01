@@ -138,7 +138,8 @@ public class Retrace {
       Timing timing = Timing.create("R8 retrace", command.printMemory());
       timing.begin("Read proguard map");
       ClassNameMapper classNameMapper =
-          ClassNameMapper.mapperFromString(command.proguardMapProducer.get());
+          ClassNameMapper.mapperFromString(
+              command.proguardMapProducer.get(), command.diagnosticsHandler);
       timing.end();
       RetraceBase retraceBase = RetraceBaseImpl.create(classNameMapper);
       RetraceCommandLineResult result;

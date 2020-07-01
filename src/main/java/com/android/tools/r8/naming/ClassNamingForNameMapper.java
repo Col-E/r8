@@ -3,11 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.naming.MemberNaming.NoSignature.NO_SIGNATURE;
+
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.ImmutableMap;
@@ -20,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Stores name information for a class.
@@ -58,13 +63,39 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     @Override
     public ClassNaming.Builder addMappingInformation(MappingInformation mappingInformation) {
+      return addMappingInformation(
+          mappingInformation,
+          other -> {
+            assert false;
+          });
+    }
+
+    @Override
+    public ClassNaming.Builder addMappingInformation(
+        MappingInformation mappingInformation,
+        DiagnosticsHandler diagnosticsHandler,
+        int lineNumber) {
+      return addMappingInformation(
+          mappingInformation,
+          other ->
+              diagnosticsHandler.warning(
+                  MappingInformationDiagnostics.notAllowedCombination(
+                      originalName, renamedName, mappingInformation, other, lineNumber)));
+    }
+
+    private ClassNaming.Builder addMappingInformation(
+        MappingInformation mappingInformation, Consumer<MappingInformation> notAllowedCombination) {
       Signature signature =
           mappingInformation.isSignatureMappingInformation()
               ? mappingInformation.asSignatureMappingInformation().getSignature()
-              : null;
+              : NO_SIGNATURE;
       List<MappingInformation> additionalMappingForSignature =
           additionalMappings.computeIfAbsent(signature, ignored -> new ArrayList<>());
-      assert signature == null || additionalMappingForSignature.isEmpty();
+      for (MappingInformation information : additionalMappingForSignature) {
+        if (!information.allowOther(mappingInformation)) {
+          notAllowedCombination.accept(information);
+        }
+      }
       additionalMappingForSignature.add(mappingInformation);
       return this;
     }
@@ -346,6 +377,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
     for (MappedRange range : mappedRangesSorted) {
       consumer.accept("    ").accept(range.toString()).accept("\n");
     }
+  }
+
+  public Map<Signature, List<MappingInformation>> getAdditionalMappings() {
+    return additionalMappings;
   }
 
   @Override

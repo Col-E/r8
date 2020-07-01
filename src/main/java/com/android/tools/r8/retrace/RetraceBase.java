@@ -19,11 +19,5 @@ public interface RetraceBase {
 
   RetraceTypeResult retrace(TypeReference typeReference);
 
-  String retraceSourceFile(ClassReference classReference, String sourceFile);
-
-  String retraceSourceFile(
-      ClassReference classReference,
-      String sourceFile,
-      ClassReference retracedClassReference,
-      boolean hasRetraceResult);
+  RetraceSourceFileResult retraceSourceFile(ClassReference classReference, String sourceFile);
 }

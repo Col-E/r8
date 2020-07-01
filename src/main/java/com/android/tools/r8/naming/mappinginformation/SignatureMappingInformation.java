@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.naming.mappinginformation;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
-import com.android.tools.r8.utils.Reporter;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -31,16 +31,8 @@ public abstract class SignatureMappingInformation extends MappingInformation {
 
   public abstract Signature getSignature();
 
-  public boolean hasChangedArguments() {
-    return false;
-  }
-
-  public MethodSignatureChangedInformation asArgumentsChangedInformation() {
-    return null;
-  }
-
   public abstract Signature apply(
-      Signature originalSignature, String renamedName, Reporter reporter);
+      Signature originalSignature, String renamedName, DiagnosticsHandler diagnosticsHandler);
 
   JsonObject serializeMethodSignature(JsonObject object, MethodSignature signature) {
     JsonArray signatureArr = new JsonArray();
@@ -54,9 +46,9 @@ public abstract class SignatureMappingInformation extends MappingInformation {
   }
 
   static MethodSignature getMethodSignature(
-      JsonObject object, String id, Reporter reporter, int lineNumber) {
+      JsonObject object, String id, DiagnosticsHandler diagnosticsHandler, int lineNumber) {
     JsonElement signatureElement =
-        getJsonElementFromObject(object, reporter, lineNumber, SIGNATURE_KEY, id);
+        getJsonElementFromObject(object, diagnosticsHandler, lineNumber, SIGNATURE_KEY, id);
     if (signatureElement == null || !signatureElement.isJsonArray()) {
       return null;
     }

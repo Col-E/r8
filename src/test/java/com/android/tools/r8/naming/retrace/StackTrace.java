@@ -280,6 +280,10 @@ public class StackTrace {
   }
 
   public StackTrace retrace(String map) {
+    return retrace(map, null);
+  }
+
+  public StackTrace retrace(String map, String regularExpression) {
     class Box {
       List<String> result;
     }
@@ -291,6 +295,7 @@ public class StackTrace {
                 stackTraceLines.stream()
                     .map(line -> line.originalLine)
                     .collect(Collectors.toList()))
+            .setRegularExpression(regularExpression)
             .setRetracedStackTraceConsumer(retraced -> box.result = retraced)
             .build());
     // Keep the original stderr in the retraced stacktrace.

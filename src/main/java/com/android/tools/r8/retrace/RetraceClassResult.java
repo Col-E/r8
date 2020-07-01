@@ -4,10 +4,14 @@
 
 package com.android.tools.r8.retrace;
 
+import static com.android.tools.r8.naming.MemberNaming.NoSignature.NO_SIGNATURE;
+import static com.android.tools.r8.retrace.RetraceUtils.synthesizeFileName;
+
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.MemberNaming;
+import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.RetraceClassResult.Element;
@@ -122,9 +126,26 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
       return classResult;
     }
 
-    public String retraceSourceFile(String fileName, RetraceBase retraceBase) {
-      return retraceBase.retraceSourceFile(
-          classResult.obfuscatedReference, fileName, classReference, mapper != null);
+    public RetraceSourceFileResult retraceSourceFile(String sourceFile) {
+      if (mapper != null && mapper.getAdditionalMappings().size() > 0) {
+        List<MappingInformation> mappingInformations =
+            mapper.getAdditionalMappings().get(NO_SIGNATURE);
+        if (mappingInformations != null) {
+          for (MappingInformation mappingInformation : mappingInformations) {
+            if (mappingInformation.isFileNameInformation()) {
+              return new RetraceSourceFileResult(
+                  mappingInformation.asFileNameInformation().getFileName(), false);
+            }
+          }
+        }
+      }
+      return new RetraceSourceFileResult(
+          synthesizeFileName(
+              classReference.getTypeName(),
+              classResult.obfuscatedReference.getTypeName(),
+              sourceFile,
+              mapper != null),
+          true);
     }
 
     public RetraceFieldResult lookupField(String fieldName) {

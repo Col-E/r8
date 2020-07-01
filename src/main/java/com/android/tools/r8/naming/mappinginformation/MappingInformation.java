@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.naming.mappinginformation;
 
-import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -34,35 +34,63 @@ public abstract class MappingInformation {
     return null;
   }
 
+  public boolean isFileNameInformation() {
+    return false;
+  }
+
+  public FileNameInformation asFileNameInformation() {
+    return null;
+  }
+
+  public boolean isMethodSignatureChangedInformation() {
+    return false;
+  }
+
+  public MethodSignatureChangedInformation asMethodSignatureChangedInformation() {
+    return null;
+  }
+
+  public abstract boolean allowOther(MappingInformation information);
+
   public static MappingInformation fromJsonObject(
-      JsonObject object, Reporter reporter, int lineNumber) {
+      JsonObject object, DiagnosticsHandler diagnosticsHandler, int lineNumber) {
     if (object == null) {
-      reporter.info(InformationParsingError.notValidJson(lineNumber));
+      diagnosticsHandler.info(MappingInformationDiagnostics.notValidJson(lineNumber));
       return null;
     }
     JsonElement id = object.get(MAPPING_ID_KEY);
     if (id == null) {
-      reporter.info(InformationParsingError.noKeyInJson(lineNumber, MAPPING_ID_KEY));
+      diagnosticsHandler.info(
+          MappingInformationDiagnostics.noKeyInJson(lineNumber, MAPPING_ID_KEY));
       return null;
     }
     String idString = id.getAsString();
     if (idString == null) {
-      reporter.info(InformationParsingError.notValidString(lineNumber, MAPPING_ID_KEY));
+      diagnosticsHandler.info(
+          MappingInformationDiagnostics.notValidString(lineNumber, MAPPING_ID_KEY));
       return null;
     }
-    if (idString.equals(MethodSignatureChangedInformation.ID)) {
-      return MethodSignatureChangedInformation.build(object, reporter, lineNumber);
+    switch (idString) {
+      case MethodSignatureChangedInformation.ID:
+        return MethodSignatureChangedInformation.build(object, diagnosticsHandler, lineNumber);
+      case FileNameInformation.ID:
+        return FileNameInformation.build(object, diagnosticsHandler, lineNumber);
+      default:
+        diagnosticsHandler.info(MappingInformationDiagnostics.noHandlerFor(lineNumber, idString));
+        return null;
     }
-    reporter.info(InformationParsingError.noHandlerFor(lineNumber, idString));
-    return null;
   }
 
   static JsonElement getJsonElementFromObject(
-      JsonObject object, Reporter reporter, int lineNumber, String key, String id) {
+      JsonObject object,
+      DiagnosticsHandler diagnosticsHandler,
+      int lineNumber,
+      String key,
+      String id) {
     JsonElement element = object.get(key);
     if (element == null) {
-      reporter.info(
-          InformationParsingError.noKeyForObjectWithId(lineNumber, key, MAPPING_ID_KEY, id));
+      diagnosticsHandler.info(
+          MappingInformationDiagnostics.noKeyForObjectWithId(lineNumber, key, MAPPING_ID_KEY, id));
     }
     return element;
   }

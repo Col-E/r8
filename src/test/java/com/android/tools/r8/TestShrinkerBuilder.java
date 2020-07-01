@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -210,15 +211,15 @@ public abstract class TestShrinkerBuilder<
   }
 
   public T addKeepAttributeLineNumberTable() {
-    return addKeepAttributes("LineNumberTable");
+    return addKeepAttributes(ProguardKeepAttributes.LINE_NUMBER_TABLE);
   }
 
   public T addKeepAttributeSourceFile() {
-    return addKeepAttributes("SourceFile");
+    return addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE);
   }
 
   public T addKeepRuntimeVisibleAnnotations() {
-    return addKeepAttributes("RuntimeVisibleAnnotations");
+    return addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS);
   }
 
   public T addKeepAllAttributes() {

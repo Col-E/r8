@@ -16,7 +16,7 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.naming.mappinginformation.InformationParsingError;
+import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -67,7 +67,7 @@ public class ProguardMapReaderArgumentsTest {
                 allOf(
                     diagnosticMessage(containsString("Could not find a handler for bar")),
                     diagnosticPosition(positionLine(8)))))
-        .assertAllInfosMatch(diagnosticType(InformationParsingError.class));
+        .assertAllInfosMatch(diagnosticType(MappingInformationDiagnostics.class));
   }
 
   @Test
@@ -111,7 +111,7 @@ public class ProguardMapReaderArgumentsTest {
                 allOf(
                     diagnosticMessage(containsString("Could not decode")),
                     diagnosticPosition(positionLine(8)))))
-        .assertAllInfosMatch(diagnosticType(InformationParsingError.class));
+        .assertAllInfosMatch(diagnosticType(MappingInformationDiagnostics.class));
   }
 
   @Test

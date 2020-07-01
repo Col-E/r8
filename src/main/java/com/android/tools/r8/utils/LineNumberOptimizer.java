@@ -47,6 +47,8 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
+import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
+import com.android.tools.r8.retrace.RetraceUtils;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.google.common.base.Suppliers;
@@ -286,6 +288,15 @@ public class LineNumberOptimizer {
                       DescriptorUtils.descriptorToJavaType(renamedClassName.toString()),
                       originalType.toSourceString(),
                       com.android.tools.r8.position.Position.UNKNOWN));
+
+      // Check if source file should be added to the map
+      if (clazz.sourceFile != null) {
+        String sourceFile = clazz.sourceFile.toString();
+        if (!RetraceUtils.hasPredictableSourceFileName(clazz.toSourceString(), sourceFile)) {
+          Builder builder = onDemandClassNamingBuilder.get();
+          builder.addMappingInformation(FileNameInformation.build(sourceFile));
+        }
+      }
 
       // If the class is renamed add it to the classNamingBuilder.
       addClassToClassNaming(originalType, renamedClassName, onDemandClassNamingBuilder);
