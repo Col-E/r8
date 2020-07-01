@@ -5,7 +5,6 @@ package com.android.tools.r8.dexfilemerger;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
@@ -83,7 +82,7 @@ public class NonAsciiClassNameChecksumTest extends TestBase {
   private void checkIncludesChecksum(CodeInspector inspector, Class<?> clazz) {
     ClassSubject classSubject = inspector.clazz(getTransformedName(clazz));
     assertThat(classSubject, isPresent());
-    assertTrue(classSubject.getDexProgramClass().asProgramClass().getChecksum() > 0);
+    classSubject.getDexProgramClass().getChecksum();
   }
 
   static class TaestClass {
