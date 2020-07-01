@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 /** Immutable command structure for an invocation of the {@link L8} library compiler. */
@@ -86,6 +87,8 @@ public final class L8Command extends BaseCompilerCommand {
       StringConsumer mainDexListConsumer,
       int minApiLevel,
       Reporter diagnosticsHandler,
+      boolean encodeChecksum,
+      BiPredicate<String, Long> dexClassChecksumFilter,
       DesugaredLibraryConfiguration libraryConfiguration,
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
@@ -100,8 +103,8 @@ public final class L8Command extends BaseCompilerCommand {
         diagnosticsHandler,
         DesugarState.ON,
         false,
-        false,
-        (name, checksum) -> true,
+        encodeChecksum,
+        dexClassChecksumFilter,
         assertionsConfiguration,
         outputInspections,
         threadCount);
@@ -296,6 +299,8 @@ public final class L8Command extends BaseCompilerCommand {
                     libraryConfiguration.getSynthesizedLibraryClassesPackagePrefix())
                 .setMinApiLevel(getMinApiLevel())
                 .setMode(getMode())
+                .setIncludeClassesChecksum(getIncludeClassesChecksum())
+                .setDexClassChecksumFilter(getDexClassChecksumFilter())
                 .setProgramConsumer(getProgramConsumer());
         for (ClassFileResourceProvider libraryResourceProvider :
             inputs.getLibraryResourceProviders()) {
@@ -316,6 +321,8 @@ public final class L8Command extends BaseCompilerCommand {
                     libraryConfiguration.getSynthesizedLibraryClassesPackagePrefix())
                 .setMinApiLevel(getMinApiLevel())
                 .setMode(getMode())
+                .setIncludeClassesChecksum(getIncludeClassesChecksum())
+                .setDexClassChecksumFilter(getDexClassChecksumFilter())
                 .setProgramConsumer(getProgramConsumer());
         for (ClassFileResourceProvider libraryResourceProvider :
             inputs.getLibraryResourceProviders()) {
@@ -332,6 +339,8 @@ public final class L8Command extends BaseCompilerCommand {
           getMainDexListConsumer(),
           getMinApiLevel(),
           getReporter(),
+          getIncludeClassesChecksum(),
+          getDexClassChecksumFilter(),
           libraryConfiguration,
           getAssertionsConfiguration(),
           getOutputInspections(),
