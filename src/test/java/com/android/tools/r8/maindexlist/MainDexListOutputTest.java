@@ -4,32 +4,29 @@
 
 package com.android.tools.r8.maindexlist;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
-import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class MainDexListOutputTest extends TestBase {
 
   interface MyConsumer<T> {
@@ -67,50 +64,45 @@ public class MainDexListOutputTest extends TestBase {
     }
   }
 
-  class Reporter implements DiagnosticsHandler {
-    int errorCount = 0;
-
-    @Override
-    public void error(Diagnostic error) {
-      errorCount++;
-      assertTrue(error instanceof StringDiagnostic);
-      assertTrue(error.getDiagnosticMessage().contains("main-dex"));
-    }
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
   }
 
-  @Test
+  public MainDexListOutputTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
+
+  @Test(expected = CompilationFailedException.class)
   public void testNoMainDex() throws Exception {
-    Reporter reporter = new Reporter();
-    try {
-      Path mainDexListOutput = temp.getRoot().toPath().resolve("main-dex-output.txt");
-      R8Command.builder(reporter)
-          .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-          .addClassProgramData(
-              ToolHelper.getClassAsBytes(HelloWorldMain.class), Origin.unknown())
-          .setMainDexListOutputPath(mainDexListOutput)
-          .build();
-      fail("Expect to fail");
-    } catch (CompilationFailedException e) {
-      assertEquals(1, reporter.errorCount);
-      assertThat(
-          e.getCause().getMessage(),
-          containsString("--main-dex-list-output require --main-dex-rules and/or --main-dex-list"));
-    }
+    Path mainDexListOutput = temp.getRoot().toPath().resolve("main-dex-output.txt");
+    testForR8(Backend.DEX)
+        .addProgramClasses(HelloWorldMain.class)
+        .setMainDexListConsumer(new FileConsumer(mainDexListOutput))
+        .setMinApi(AndroidApiLevel.K)
+        .compileWithExpectedDiagnostics(
+            diagnostics ->
+                diagnostics
+                    .assertOnlyErrors()
+                    .assertErrorsMatch(
+                        diagnosticMessage(
+                            containsString(
+                                "--main-dex-list-output require --main-dex-rules and/or"
+                                    + " --main-dex-list"))));
   }
 
   @Test
   public void testWithMainDex() throws Exception {
     Path mainDexRules = writeTextToTempFile(keepMainProguardConfiguration(HelloWorldMain.class));
     Path mainDexListOutput = temp.getRoot().toPath().resolve("main-dex-output.txt");
-    R8Command command =
-        ToolHelper.prepareR8CommandBuilder(readClasses(HelloWorldMain.class))
-            .setDisableTreeShaking(true)
-            .setDisableMinification(true)
-            .addMainDexRulesFiles(mainDexRules)
-            .setMainDexListOutputPath(mainDexListOutput)
-            .setOutput(temp.getRoot().toPath(), OutputMode.DexIndexed)
-            .build();
-    ToolHelper.runR8(command);
+    testForR8(Backend.DEX)
+        .addProgramClasses(HelloWorldMain.class)
+        .noTreeShaking()
+        .noMinification()
+        .setMinApi(AndroidApiLevel.K)
+        .addMainDexRuleFiles(mainDexRules)
+        .setMainDexListConsumer(new FileConsumer(mainDexListOutput))
+        .compile();
     // Main dex list with the single class.
     assertEquals(
         ImmutableList.of(HelloWorldMain.class.getTypeName().replace('.', '/') + ".class"),
@@ -121,7 +113,7 @@ public class MainDexListOutputTest extends TestBase {
   }
 
   @Test
-  public void testD8DesugaredLambdasInMainDexList() throws IOException, CompilationFailedException {
+  public void testD8DesugaredLambdasInMainDexList() throws Exception {
     Path mainDexList = writeTextToTempFile(testClassMainDexName);
     TestMainDexListConsumer consumer = new TestMainDexListConsumer();
     testForD8()
@@ -134,17 +126,16 @@ public class MainDexListOutputTest extends TestBase {
   }
 
   @Test
-  public void testD8DesugaredLambdasInMainDexListMerging()
-      throws IOException, CompilationFailedException {
+  public void testD8DesugaredLambdasInMainDexListMerging() throws Exception {
     Path mainDexList = writeTextToTempFile(testClassMainDexName);
-    Path dexOutput = temp.getRoot().toPath().resolve("classes.zip");
     // Build intermediate dex code first.
-    testForD8()
-        .setMinApi(AndroidApiLevel.K)
-        .addProgramClasses(ImmutableList.of(TestClass.class, MyConsumer.class))
-        .setIntermediate(true)
-        .setProgramConsumer(new ArchiveConsumer(dexOutput))
-        .compile();
+    Path dexOutput =
+        testForD8()
+            .setMinApi(AndroidApiLevel.K)
+            .addProgramClasses(ImmutableList.of(TestClass.class, MyConsumer.class))
+            .setIntermediate(true)
+            .compile()
+            .writeToZip();
     // Now test that when merging with a main dex list it is correctly updated.
     TestMainDexListConsumer consumer = new TestMainDexListConsumer();
     testForD8()
