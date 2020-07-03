@@ -61,12 +61,6 @@ DESUGAR_CONFIGURATION_MAVEN_ZIP = os.path.join(
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
 RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 R8LIB_KEEP_RULES = os.path.join(REPO_ROOT, 'src/main/keep.txt')
-PROGUARD_JAR = os.path.join(
-    THIRD_PARTY,
-    'proguard',
-    'proguard6.0.1',
-    'lib',
-    'proguard.jar')
 CF_SEGMENTS_TOOL = os.path.join(THIRD_PARTY, 'cf_segments')
 PINNED_R8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8.jar')
 PINNED_PGR8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8-pg6.0.1.jar')

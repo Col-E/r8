@@ -120,6 +120,7 @@ def Main(argv):
       track_memory_file = join(temp, utils.MEMORY_USE_TMP_FILE)
     proguard.run(
         args,
+        version='pg_internal',
         track_memory_file = track_memory_file,
         stdout=open(os.devnull, 'w'))
     if options.print_memoryuse:

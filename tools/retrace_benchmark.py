@@ -4,13 +4,14 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import argparse
-import jdk
-import golem
 import os
 import subprocess
 import sys
 import time
-import toolhelper
+
+import golem
+import jdk
+import proguard
 import utils
 
 RETRACERS = ['r8', 'proguard', 'remapper']
@@ -44,13 +45,7 @@ def run_retrace(options, temp):
     retracer_args = [
         '-cp', utils.R8LIB_JAR, 'com.android.tools.r8.retrace.Retrace']
   elif options.retracer == 'proguard':
-    retracer_args = ['-jar',
-                     os.path.join(
-                        utils.THIRD_PARTY,
-                        'proguard',
-                        'proguard6.0.1',
-                        'lib',
-                        'retrace.jar')]
+    retracer_args = ['-jar', proguard.getRetraceJar()]
   elif options.retracer == 'remapper':
     retracer_args = ['-jar',
                      os.path.join(

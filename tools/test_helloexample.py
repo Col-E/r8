@@ -19,6 +19,7 @@ import zipfile
 
 import golem
 import jdk
+import proguard
 import utils
 
 HELLO_JAR = os.path.join(utils.BUILD, 'test', 'examples', 'hello.jar')
@@ -87,7 +88,7 @@ def parse_arguments():
   parser = argparse.ArgumentParser(
       description = 'Compile a hello world example program')
   parser.add_argument('--tool',
-                      choices = ['d8', 'r8', 'pg'],
+                      choices = ['d8', 'r8'] + proguard.getVersions(),
                       required = True,
                       help = 'Compiler tool to use.')
   parser.add_argument('--output-mode',
@@ -163,19 +164,17 @@ def Compile(tool, output_mode, lib, extra, output_dir, noopt, temp_dir):
     if output_mode == 'cf':
       cmd.append('--classfile')
     return [cmd]
-  if tool == 'pg':
+  if proguard.isValidVersion(tool):
     # Build PG invokation with additional rules to silence warnings.
     pg_out = output if output_mode == 'cf' \
       else os.path.join(output_dir, 'pgout.zip')
-    cmds = [[
-      jdk.GetJavaExecutable(),
-      '-jar', utils.PROGUARD_JAR,
+    cmds = [proguard.getCmd([
       '-injars', ':'.join([HELLO_JAR] + extra),
       '-libraryjars', lib,
       '-outjars', pg_out,
       '-dontwarn **',
       '@' + rules_file
-    ]]
+    ], version=tool)]
     if output_mode == 'dex':
       cmds.append(
           GetCompilerPrefix('d8', 'dex', output, pg_out, lib, [], noopt))

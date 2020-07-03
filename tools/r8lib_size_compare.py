@@ -73,13 +73,17 @@ def main(tmpdir=None, inlining=True,
 
   if not is_output_newer(utils.R8_JAR, r8lib_jar):
     r8lib_memory = os.path.join(tmpdir, 'r8lib%s-memory.txt' % inline_suffix)
+    # TODO(b/160420801): The signature of build_r8lib has changed.
     build_r8lib.build_r8lib(
-        output_path=r8lib_jar, output_map=r8lib_map,
-        extra_args=r8lib_args, track_memory_file=r8lib_memory)
+        output_path=r8lib_jar,
+        output_map=r8lib_map,
+        extra_args=r8lib_args,
+        track_memory_file=r8lib_memory)
 
   pg_output = os.path.join(tmpdir, 'r8lib-pg%s.jar' % inline_suffix)
   pg_memory = os.path.join(tmpdir, 'r8lib-pg%s-memory.txt' % inline_suffix)
   pg_map = os.path.join(tmpdir, 'r8lib-pg%s-map.txt' % inline_suffix)
+  # TODO(b/160420801): This must use proguard.* utils once working again.
   pg_args = ['tools/track_memory.sh', pg_memory,
              'third_party/proguard/proguard6.0.2/bin/proguard.sh',
              '@' + pg_config,

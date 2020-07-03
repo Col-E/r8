@@ -10,10 +10,11 @@ import sys
 import time
 
 import jdk
+import proguard
 import toolhelper
 import utils
 
-SHRINKERS = ['r8', 'pg']
+SHRINKERS = ['r8'] + proguard.getVersions()
 
 INPUT_PROGRAM = utils.PINNED_R8_JAR
 
@@ -153,6 +154,9 @@ class BenchmarkResult:
     self.size = size
     self.runs = runs
 
+def isPG(shrinker):
+  return proguard.isValidVersion(shrinker)
+
 def shrinker_args(shrinker, keepfile, output):
   if shrinker == 'r8':
     return [
@@ -165,17 +169,16 @@ def shrinker_args(shrinker, keepfile, output):
       '--min-api', '10000',
       '--pg-conf', keepfile,
       ]
-  elif shrinker == 'pg':
-    return [
-      jdk.GetJavaExecutable(),
-      '-jar', utils.PROGUARD_JAR,
+  elif isPG(shrinker):
+    return proguard.getCmd([
       '-injars', INPUT_PROGRAM,
       '-libraryjars', utils.RT_JAR,
       '-outjars', output,
       '-dontwarn', '**',
       '-optimizationpasses', '2',
       '@' + keepfile,
-    ]
+    ],
+    version=shrinker)
   else:
     assert False, "Unexpected shrinker " + shrinker
 
@@ -219,7 +222,7 @@ def run_shrinker(options, temp):
       subprocess.check_output(cmd)
       t1 = time.time()
       benchmark_runs.append(t1 - t0)
-      if options.shrinker == 'pg':
+      if isPG(options.shrinker):
         dexout = os.path.join(temp, '%s-out%d-dex.jar' % (name, i))
         dex(out, dexout)
         benchmark_size = utils.uncompressed_size(dexout)
