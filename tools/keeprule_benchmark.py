@@ -10,6 +10,7 @@ import sys
 import time
 
 import jdk
+import toolhelper
 import utils
 
 SHRINKERS = ['r8', 'pg']
@@ -161,7 +162,7 @@ def shrinker_args(shrinker, keepfile, output):
       INPUT_PROGRAM,
       '--lib', utils.RT_JAR,
       '--output', output,
-      '--classfile',
+      '--min-api', '10000',
       '--pg-conf', keepfile,
       ]
   elif shrinker == 'pg':
@@ -177,6 +178,18 @@ def shrinker_args(shrinker, keepfile, output):
     ]
   else:
     assert False, "Unexpected shrinker " + shrinker
+
+def dex(input, output):
+  toolhelper.run(
+      'd8',
+      [
+        input,
+        '--lib', utils.RT_JAR,
+        '--min-api', '10000',
+        '--output', output
+      ],
+      build=False,
+      debug=False)
 
 def run_shrinker(options, temp):
   benchmarks = BENCHMARKS
@@ -206,7 +219,12 @@ def run_shrinker(options, temp):
       subprocess.check_output(cmd)
       t1 = time.time()
       benchmark_runs.append(t1 - t0)
-      benchmark_size = utils.uncompressed_size(out)
+      if options.shrinker == 'pg':
+        dexout = os.path.join(temp, '%s-out%d-dex.jar' % (name, i))
+        dex(out, dexout)
+        benchmark_size = utils.uncompressed_size(dexout)
+      else:
+        benchmark_size = utils.uncompressed_size(out)
     benchmark_results.append(
         BenchmarkResult(name, benchmark_size, benchmark_runs))
 
