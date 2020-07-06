@@ -299,9 +299,13 @@ public class DesugaredLibraryConfigurationParsingTest extends TestBase {
     } else if (element instanceof Integer) {
       builder.append(element);
     } else if (element instanceof List) {
-      toJsonList((List<Object>) element, builder);
+      @SuppressWarnings("unchecked")
+      List<Object> elements = (List<Object>) element;
+      toJsonList(elements, builder);
     } else if (element instanceof Map) {
-      toJsonObject((Map<String, Object>) element, builder);
+      @SuppressWarnings("unchecked")
+      Map<String, Object> elements = (Map<String, Object>) element;
+      toJsonObject(elements, builder);
     } else {
       throw new IllegalStateException("Unexpected object type: " + element.getClass());
     }
