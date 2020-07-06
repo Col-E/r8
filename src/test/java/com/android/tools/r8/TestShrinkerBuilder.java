@@ -155,7 +155,7 @@ public abstract class TestShrinkerBuilder<
     return addKeepMainRule(mainClass.getTypeName());
   }
 
-  public T addKeepMainRules(Class<?>[] mainClasses) {
+  public T addKeepMainRules(Class<?>... mainClasses) {
     for (Class<?> mainClass : mainClasses) {
       this.addKeepMainRule(mainClass);
     }

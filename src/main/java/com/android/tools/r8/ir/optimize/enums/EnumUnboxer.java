@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
@@ -162,7 +163,7 @@ public class EnumUnboxer implements PostOptimization {
             analyzeCheckCast(instruction.asCheckCast(), eligibleEnums);
             break;
           case Opcodes.INVOKE_STATIC:
-            analyzeInvokeStatic(instruction.asInvokeStatic(), eligibleEnums);
+            analyzeInvokeStatic(instruction.asInvokeStatic(), eligibleEnums, code.context());
             break;
           case Opcodes.STATIC_GET:
           case Opcodes.INSTANCE_GET:
@@ -210,11 +211,17 @@ public class EnumUnboxer implements PostOptimization {
     }
   }
 
-  private void analyzeInvokeStatic(InvokeStatic invokeStatic, Set<DexType> eligibleEnums) {
+  private void analyzeInvokeStatic(
+      InvokeStatic invokeStatic, Set<DexType> eligibleEnums, ProgramMethod context) {
     DexMethod invokedMethod = invokeStatic.getInvokedMethod();
     DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(invokedMethod.holder);
     if (enumClass != null) {
-      eligibleEnums.add(enumClass.type);
+      DexEncodedMethod method = invokeStatic.lookupSingleTarget(appView, context);
+      if (method != null) {
+        eligibleEnums.add(enumClass.type);
+      } else {
+        markEnumAsUnboxable(Reason.INVALID_INVOKE, enumClass);
+      }
     }
   }
 
