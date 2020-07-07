@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import static com.android.tools.r8.graph.DexEncodedMethod.setOriginalMethodPosition;
+
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.Instruction;
@@ -94,6 +96,12 @@ final class InterfaceProcessor {
         newFlags.promoteToStatic();
         DexEncodedMethod.setDebugInfoWithFakeThisParameter(
             code, companionMethod.getArity(), appView);
+        if (!appView.options().isDesugaredLibraryCompilation()) {
+          setOriginalMethodPosition(
+              code, appView.graphLense().getOriginalMethodSignature(virtual.method));
+        } else {
+          assert appView.graphLense().isIdentityLense();
+        }
         DexEncodedMethod implMethod =
             new DexEncodedMethod(
                 companionMethod,
@@ -128,13 +136,18 @@ final class InterfaceProcessor {
       if (originalFlags.isPrivate()) {
         newFlags.promoteToPublic();
       }
-
       DexMethod oldMethod = direct.method;
       if (isStaticMethod(direct)) {
         assert originalFlags.isPrivate() || originalFlags.isPublic()
             : "Static interface method " + direct.toSourceString() + " is expected to "
             + "either be public or private in " + iface.origin;
         DexMethod companionMethod = rewriter.staticAsMethodOfCompanionClass(oldMethod);
+        if (!appView.options().isDesugaredLibraryCompilation()) {
+          setOriginalMethodPosition(
+              direct.getCode(), appView.graphLense().getOriginalMethodSignature(oldMethod));
+        } else {
+          assert appView.graphLense().isIdentityLense();
+        }
         DexEncodedMethod implMethod =
             new DexEncodedMethod(
                 companionMethod,
@@ -162,6 +175,12 @@ final class InterfaceProcessor {
           }
           DexEncodedMethod.setDebugInfoWithFakeThisParameter(
               code, companionMethod.getArity(), appView);
+          if (!appView.options().isDesugaredLibraryCompilation()) {
+            setOriginalMethodPosition(
+                code, appView.graphLense().getOriginalMethodSignature(oldMethod));
+          } else {
+            assert appView.graphLense().isIdentityLense();
+          }
           DexEncodedMethod implMethod =
               new DexEncodedMethod(
                   companionMethod,

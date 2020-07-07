@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
+import static com.android.tools.r8.ir.conversion.CfSourceUtils.ensureLabel;
+
 import com.android.tools.r8.cf.CfRegisterAllocator;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
@@ -322,7 +324,7 @@ public class CfBuilder {
     } while (block != null);
     // TODO(mkroghj) Move computation of stack-height to CF instructions.
     if (!openLocalVariables.isEmpty()) {
-      CfLabel endLabel = ensureLabel();
+      CfLabel endLabel = ensureLabel(instructions);
       for (LocalVariableInfo info : openLocalVariables.values()) {
         info.setEnd(endLabel);
         localVariablesTable.add(info);
@@ -460,7 +462,7 @@ public class CfBuilder {
         }
       } else {
         if (instruction.isNewInstance()) {
-          newInstanceLabels.put(instruction.asNewInstance(), ensureLabel());
+          newInstanceLabels.put(instruction.asNewInstance(), ensureLabel(instructions));
         }
         updatePositionAndLocals(instruction);
         instruction.buildCf(this);
@@ -481,7 +483,7 @@ public class CfBuilder {
     if (!didLocalsChange && !didPositionChange) {
       return;
     }
-    CfLabel label = ensureLabel();
+    CfLabel label = ensureLabel(instructions);
     if (didLocalsChange) {
       updateLocals(label);
     }
@@ -526,20 +528,6 @@ public class CfBuilder {
     return pendingLocalChanges;
   }
 
-  private CfLabel ensureLabel() {
-    CfInstruction last = getLastInstruction();
-    if (last instanceof CfLabel) {
-      return (CfLabel) last;
-    }
-    CfLabel label = new CfLabel();
-    add(label);
-    return label;
-  }
-
-  private CfInstruction getLastInstruction() {
-    return instructions.isEmpty() ? null : instructions.get(instructions.size() - 1);
-  }
-
   private void addFrame(BasicBlock block) {
     List<TypeInfo> stack = registerAllocator.getTypesAtBlockEntry(block).stack;
     List<FrameType> stackTypes;
@@ -570,7 +558,7 @@ public class CfBuilder {
     // CfCode.
     boolean didLocalsChange = localsChanged();
     if (didLocalsChange) {
-      CfLabel label = ensureLabel();
+      CfLabel label = ensureLabel(instructions);
       updateLocals(label);
     }
 

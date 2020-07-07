@@ -6,6 +6,8 @@ package com.android.tools.r8;
 import static com.android.tools.r8.R8Command.USAGE_MESSAGE;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
@@ -16,10 +18,15 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.AppliedGraphLens;
+import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -694,7 +701,8 @@ public class R8 {
                       executorService,
                       timing)
                   .withEnumValueInfoMaps(enumValueInfoMapCollection));
-
+          // Rerunning the enqueuer should not give rise to any method rewritings.
+          assert enqueuer.buildGraphLense(appView) == appView.graphLense();
           appView.withGeneratedMessageLiteBuilderShrinker(
               shrinker ->
                   shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
@@ -810,6 +818,8 @@ public class R8 {
       new KotlinMetadataRewriter(appView, namingLens).run(executorService);
       timing.end();
 
+      assert verifyMovedMethodsHaveOriginalMethodPosition(appView, application);
+
       timing.begin("Line number remapping");
       // When line number optimization is turned off the identity mapping for line numbers is
       // used. We still run the line number optimizer to collect line numbers and inline frame
@@ -893,6 +903,58 @@ public class R8 {
     }
   }
 
+  private static boolean verifyMovedMethodsHaveOriginalMethodPosition(
+      AppView<?> appView, DirectMappedDexApplication application) {
+    application
+        .classes()
+        .forEach(
+            clazz -> {
+              clazz.forEachProgramMethod(
+                  method -> {
+                    DexMethod originalMethod =
+                        appView.graphLense().getOriginalMethodSignature(method.getReference());
+                    if (originalMethod != method.getReference()) {
+                      DexMethod originalMethod2 =
+                          appView.graphLense().getOriginalMethodSignature(method.getReference());
+                      appView.graphLense().getOriginalMethodSignature(method.getReference());
+                      DexEncodedMethod definition = method.getDefinition();
+                      Code code = definition.getCode();
+                      if (code == null) {
+                        return;
+                      }
+                      if (code.isCfCode()) {
+                        assert verifyOriginalMethodInPosition(code.asCfCode(), originalMethod);
+                      } else {
+                        assert code.isDexCode();
+                        assert verifyOriginalMethodInDebugInfo(code.asDexCode(), originalMethod);
+                      }
+                    }
+                  });
+            });
+    return true;
+  }
+
+  private static boolean verifyOriginalMethodInPosition(CfCode code, DexMethod originalMethod) {
+    for (CfInstruction instruction : code.instructions) {
+      if (!instruction.isPosition()) {
+        continue;
+      }
+      CfPosition position = instruction.asPosition();
+      assert position.getPosition().getOutermostCaller().method == originalMethod;
+    }
+    return true;
+  }
+
+  private static boolean verifyOriginalMethodInDebugInfo(DexCode code, DexMethod originalMethod) {
+    if (code.getDebugInfo() == null) {
+      return true;
+    }
+    for (DexDebugEvent event : code.getDebugInfo().events) {
+      assert !event.isSetInlineFrame() || event.asSetInlineFrame().hasOuterPosition(originalMethod);
+    }
+    return true;
+  }
+
   private AppView<AppInfoWithLiveness> runEnqueuer(
       AnnotationRemover.Builder annotationRemoverBuilder,
       ExecutorService executorService,
@@ -917,6 +979,7 @@ public class R8 {
                 options.getProguardConfiguration().getDontWarnPatterns(),
                 executorService,
                 timing));
+    appView.setGraphLense(enqueuer.buildGraphLense(appView));
     if (InternalOptions.assertionsEnabled()) {
       // Register the dead proto types. These are needed to verify that no new missing types are
       // reported and that no dead proto types are referenced in the generated application.

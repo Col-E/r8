@@ -38,6 +38,14 @@ abstract public class DexDebugEvent extends DexItem {
 
   public abstract void accept(DexDebugEventVisitor visitor);
 
+  public boolean isSetInlineFrame() {
+    return false;
+  }
+
+  public SetInlineFrame asSetInlineFrame() {
+    return null;
+  }
+
   public static class AdvancePC extends DexDebugEvent {
 
     public final int delta;
@@ -420,6 +428,21 @@ abstract public class DexDebugEvent extends DexItem {
       }
       SetInlineFrame o = (SetInlineFrame) other;
       return callee == o.callee && Objects.equals(caller, o.caller);
+    }
+
+    @Override
+    public boolean isSetInlineFrame() {
+      return true;
+    }
+
+    @Override
+    public SetInlineFrame asSetInlineFrame() {
+      return this;
+    }
+
+    public boolean hasOuterPosition(DexMethod method) {
+      return (caller == null && callee == method)
+          || (caller != null && caller.getOutermostCaller().method == method);
     }
   }
 

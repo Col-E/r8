@@ -36,6 +36,7 @@ import com.android.tools.r8.dex.MethodToCodeObjectMapping;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.ValueType;
@@ -855,6 +856,36 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       assert code.isCfCode();
       CfCode cfCode = code.asCfCode();
       cfCode.addFakeThisParameter(appView.dexItemFactory());
+    }
+  }
+
+  public static void setOriginalMethodPosition(Code code, DexMethod originalMethod) {
+    if (code.isDexCode()) {
+      DexCode dexCode = code.asDexCode();
+      DexDebugInfo debugInfo = dexCode.getDebugInfo();
+      if (debugInfo == null) {
+        return;
+      }
+      for (DexDebugEvent event : debugInfo.events) {
+        if (event.isSetInlineFrame() && event.asSetInlineFrame().hasOuterPosition(originalMethod)) {
+          return;
+        }
+      }
+      DexDebugEvent[] newEvents = new DexDebugEvent[debugInfo.events.length + 1];
+      newEvents[0] = new SetInlineFrame(originalMethod, null);
+      System.arraycopy(debugInfo.events, 0, newEvents, 1, debugInfo.events.length);
+      dexCode.setDebugInfo(new DexDebugInfo(debugInfo.startLine, debugInfo.parameters, newEvents));
+    } else {
+      assert code.isCfCode();
+      CfCode cfCode = code.asCfCode();
+      for (CfInstruction instruction : cfCode.instructions) {
+        if (instruction.isPosition()) {
+          assert instruction.asPosition().getPosition().getOutermostCaller().method
+              == originalMethod;
+          return;
+        }
+      }
+      assert false : "The original position should be present in the CF code.";
     }
   }
 

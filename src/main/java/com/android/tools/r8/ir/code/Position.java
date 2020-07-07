@@ -85,9 +85,8 @@ public class Position {
       assert position.isNone();
       position = Position.noneWithMethod(context.getReference(), null);
     }
-    assert position.callerPosition == null
-        || position.getOutermostCaller().method
-            == appView.graphLense().getOriginalMethodSignature(context.getReference());
+    assert position.getOutermostCaller().method
+        == appView.graphLense().getOriginalMethodSignature(context.getReference());
     return position;
   }
 

@@ -378,12 +378,8 @@ public class LineNumberOptimizer {
           signatures.put(originalMethod, originalSignature);
           Function<DexMethod, MethodSignature> getOriginalMethodSignature =
               m -> {
-                DexMethod original = appView.graphLense().getOriginalMethodSignature(m);
                 return signatures.computeIfAbsent(
-                    original,
-                    key ->
-                        MethodSignature.fromDexMethod(
-                            original, original.holder != clazz.getType()));
+                    m, key -> MethodSignature.fromDexMethod(m, m.holder != clazz.getType()));
               };
 
           MemberNaming memberNaming = new MemberNaming(originalSignature, obfuscatedName);

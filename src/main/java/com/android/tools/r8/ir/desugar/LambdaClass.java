@@ -670,8 +670,7 @@ public final class LambdaClass {
                   encodedMethod -> {
                     assert encodedMethod.isDirectMethod();
                     // We need to create a new method with the same code to be able to safely relax
-                    // its
-                    // accessibility and make it virtual.
+                    // its accessibility and make it virtual.
                     MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
                     newAccessFlags.unsetPrivate();
                     newAccessFlags.setPublic();
