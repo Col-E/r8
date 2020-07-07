@@ -29,6 +29,16 @@ public class SummaryStatisticsConversionTest extends DesugaredLibraryTestBase {
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
   private static final String EXPECTED_RESULT =
       StringUtils.lines(
+          "Java 8+ API desugaring (library desugaring) cannot convert"
+              + " from java.util.IntSummaryStatistics",
+          "Java 8+ API desugaring (library desugaring) cannot convert"
+              + " to java.util.LongSummaryStatistics",
+          "Java 8+ API desugaring (library desugaring) cannot convert"
+              + " to java.util.IntSummaryStatistics",
+          "Java 8+ API desugaring (library desugaring) cannot convert"
+              + " to java.util.DoubleSummaryStatistics");
+  private static final String SUCCESS_EXPECTED_RESULT =
+      StringUtils.lines(
           "2", "1", "42", "42", "42", "1", "42", "42", "42", "1", "42.0", "42.0", "42.0");
   private static Path CUSTOM_LIB;
 
@@ -105,41 +115,58 @@ public class SummaryStatisticsConversionTest extends DesugaredLibraryTestBase {
     }
 
     private static void realTest() {
-      System.out.println("foo".subSequence(0, 2).codePoints().summaryStatistics().getCount());
+      try {
+        System.out.println("foo".subSequence(0, 2).codePoints().summaryStatistics().getCount());
+      } catch (Error e) {
+        System.out.println(e.getMessage());
+      }
     }
 
     public static void longTest() {
       long[] longs = new long[1];
       longs[0] = 42L;
-      LongSummaryStatistics mix =
-          CustomLibClass.mix(Arrays.stream(longs).summaryStatistics(), new LongSummaryStatistics());
-      System.out.println(mix.getCount());
-      System.out.println(mix.getMin());
-      System.out.println(mix.getMax());
-      System.out.println(mix.getSum());
+      try {
+        LongSummaryStatistics mix =
+            CustomLibClass.mix(
+                Arrays.stream(longs).summaryStatistics(), new LongSummaryStatistics());
+        System.out.println(mix.getCount());
+        System.out.println(mix.getMin());
+        System.out.println(mix.getMax());
+        System.out.println(mix.getSum());
+      } catch (Error e) {
+        System.out.println(e.getMessage());
+      }
     }
 
     public static void intTest() {
       int[] ints = new int[1];
       ints[0] = 42;
-      IntSummaryStatistics mix =
-          CustomLibClass.mix(Arrays.stream(ints).summaryStatistics(), new IntSummaryStatistics());
-      System.out.println(mix.getCount());
-      System.out.println(mix.getMin());
-      System.out.println(mix.getMax());
-      System.out.println(mix.getSum());
+      try {
+        IntSummaryStatistics mix =
+            CustomLibClass.mix(Arrays.stream(ints).summaryStatistics(), new IntSummaryStatistics());
+        System.out.println(mix.getCount());
+        System.out.println(mix.getMin());
+        System.out.println(mix.getMax());
+        System.out.println(mix.getSum());
+      } catch (Error e) {
+        System.out.println(e.getMessage());
+      }
     }
 
     public static void doubleTest() {
       double[] doubles = new double[1];
       doubles[0] = 42L;
-      DoubleSummaryStatistics mix =
-          CustomLibClass.mix(
-              Arrays.stream(doubles).summaryStatistics(), new DoubleSummaryStatistics());
-      System.out.println(mix.getCount());
-      System.out.println(mix.getMin());
-      System.out.println(mix.getMax());
-      System.out.println(mix.getSum());
+      try {
+        DoubleSummaryStatistics mix =
+            CustomLibClass.mix(
+                Arrays.stream(doubles).summaryStatistics(), new DoubleSummaryStatistics());
+        System.out.println(mix.getCount());
+        System.out.println(mix.getMin());
+        System.out.println(mix.getMax());
+        System.out.println(mix.getSum());
+      } catch (Error e) {
+        System.out.println(e.getMessage());
+      }
     }
   }
 

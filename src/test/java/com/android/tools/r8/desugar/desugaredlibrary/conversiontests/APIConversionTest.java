@@ -30,8 +30,7 @@ public class APIConversionTest extends DesugaredLibraryTestBase {
 
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
   private static final String EXPECTED_RESULT =
-      StringUtils.lines(
-          "[5, 6, 7]", "j$.$r8$wrapper$java$util$stream$IntStream$-V-WRP", "IntSummaryStatistics");
+      StringUtils.lines("[5, 6, 7]", "j$.$r8$wrapper$java$util$stream$IntStream$-V-WRP");
 
   @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
   public static List<Object[]> data() {
@@ -75,7 +74,11 @@ public class APIConversionTest extends DesugaredLibraryTestBase {
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertFailureWithOutput(EXPECTED_RESULT)
+        .assertFailureWithErrorThatMatches(
+            containsString(
+                "Java 8+ API desugaring (library desugaring) cannot convert"
+                    + " from java.util.IntSummaryStatistics"));
   }
 
   @Test
@@ -95,7 +98,11 @@ public class APIConversionTest extends DesugaredLibraryTestBase {
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertFailureWithOutput(EXPECTED_RESULT)
+        .assertFailureWithErrorThatMatches(
+            containsString(
+                "Java 8+ API desugaring (library desugaring) cannot convert"
+                    + " from java.util.IntSummaryStatistics"));
   }
 
   static class Executor {
