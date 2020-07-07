@@ -3,14 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.regress;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticException;
-import static org.junit.Assume.assumeTrue;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -43,22 +44,28 @@ public class Regress160394262Test extends TestBase {
         .assertSuccessWithOutput(EXPECTED);
   }
 
-  // TODO(b/160394262): This should not fail to run.
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
-    // TODO(b/160394262): Only fails on DEX. Remove the assume once fixed so it runs CF and DEX.
-    assumeTrue(parameters.isDexRuntime());
     testForR8(parameters.getBackend())
         .allowAccessModification()
         .addKeepMainRule(TestClass.class)
         .addInnerClasses(Regress160394262Test.class)
-        .allowClassInlinerGracefulExit()
-        .compileWithExpectedDiagnostics(
-            diagnostics ->
-                // TODO(b/160394262): Remove once fixed.
-                diagnostics.assertErrorsMatch(diagnosticException(AssertionError.class)))
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED);
+        .assertSuccessWithOutput(EXPECTED)
+        .inspect(this::checkJoinerIsClassInlined);
+  }
+
+  private void checkJoinerIsClassInlined(CodeInspector inspector) {
+    // TODO(b/160640028): When compiling to DEX a trivial phi remains in the inline code preventing
+    //  class inlining of Joiner and the anonymous Joiner subclass.
+    if (parameters.isDexRuntime()) {
+      assertThat(inspector.clazz(Joiner.class), isPresent());
+      assertThat(inspector.clazz(Joiner.class.getTypeName() + "$1"), isPresent());
+      return;
+    }
+    assertThat(inspector.clazz(Joiner.class), not(isPresent()));
+    assertThat(inspector.clazz(Joiner.class.getTypeName() + "$1"), not(isPresent()));
   }
 
   static class TestClass {

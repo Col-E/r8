@@ -12,8 +12,11 @@ import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
@@ -23,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+// TODO(b/160634549): Rename or refactor this to reflect its non-cost related analysis.
 /** Analysis that estimates the cost of class inlining an object allocation. */
 class ClassInlinerCostAnalysis {
 
@@ -73,6 +77,28 @@ class ClassInlinerCostAnalysis {
         continue;
       }
       IRCode inliningIR = inliningIRProvider.getAndCacheInliningIR(invoke, inlinee);
+
+      // If the instance is part of a phi, then inlining will invalidate the inliner assumptions.
+      // TODO(b/160634549): This is not a budget miss but a hard requirement.
+      InstructionIterator iterator = inliningIR.entryBlock().iterator();
+      while (iterator.hasNext()) {
+        Instruction next = iterator.next();
+        if (!next.isArgument()) {
+          break;
+        }
+        Value argumentValue = next.outValue();
+        TypeElement argumentType = argumentValue.getType();
+        if (argumentType.isClassType()
+            && argumentType.asClassType().getClassType() == eligibleClass.type) {
+          assert argumentValue.uniqueUsers().stream()
+              .noneMatch(
+                  AssumeAndCheckCastAliasedValueConfiguration.getInstance()::isIntroducingAnAlias);
+          if (argumentValue.hasPhiUsers()) {
+            return true;
+          }
+        }
+      }
+
       int increment =
           inlinee.getDefinition().getCode().estimatedSizeForInlining()
               - estimateNumberOfNonMaterializingInstructions(invoke, inliningIR);
