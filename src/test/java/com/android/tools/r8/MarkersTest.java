@@ -17,7 +17,10 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.FileUtils;
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonParser;
 import java.nio.file.Path;
 import java.util.Collection;
 import org.hamcrest.Matcher;
@@ -65,11 +68,18 @@ public class MarkersTest extends TestBase {
     }
     L8.run(builder.build());
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    String version =
+        new JsonParser()
+            .parse(FileUtils.readTextFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING, Charsets.UTF_8))
+            .getAsJsonObject()
+            .get("version")
+            .getAsString();
+
     Matcher<Marker> l8Matcher =
         allOf(
             markerTool(Tool.L8),
             markerCompilationMode(compilationMode),
-            markerDesugaredLibraryIdentifier("com.tools.android:desugar_jdk_libs:1.0.10"),
+            markerDesugaredLibraryIdentifier("com.tools.android:desugar_jdk_libs:" + version),
             markerHasChecksums(false));
     Matcher<Marker> d8Matcher =
         allOf(
