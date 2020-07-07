@@ -23,7 +23,7 @@ public class ComparisonEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
-  private final KeepRule enumKeepRules;
+  private final EnumKeepRules enumKeepRules;
 
   @Parameters(name = "{0} valueOpt: {1} keep: {2}")
   public static List<Object[]> data() {
@@ -31,7 +31,7 @@ public class ComparisonEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   public ComparisonEnumUnboxingTest(
-      TestParameters parameters, boolean enumValueOptimization, KeepRule enumKeepRules) {
+      TestParameters parameters, boolean enumValueOptimization, EnumKeepRules enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
     this.enumKeepRules = enumKeepRules;
@@ -45,7 +45,7 @@ public class ComparisonEnumUnboxingTest extends EnumUnboxingTestBase {
             .addKeepMainRules(INPUTS)
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
-            .addKeepRules(enumKeepRules.getKeepRule())
+            .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())

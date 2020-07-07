@@ -28,7 +28,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class DoubleProcessingEnumUnboxingTest extends EnumUnboxingTestBase {
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
-  private final KeepRule enumKeepRules;
+  private final EnumKeepRules enumKeepRules;
   private final boolean minification;
 
   @Parameters(name = "{0} valueOpt: {1} keep: {2} minif: {3}")
@@ -43,7 +43,7 @@ public class DoubleProcessingEnumUnboxingTest extends EnumUnboxingTestBase {
   public DoubleProcessingEnumUnboxingTest(
       TestParameters parameters,
       boolean enumValueOptimization,
-      KeepRule enumKeepRules,
+      EnumKeepRules enumKeepRules,
       boolean minification) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
@@ -59,7 +59,7 @@ public class DoubleProcessingEnumUnboxingTest extends EnumUnboxingTestBase {
             .addProgramClasses(JavaLibrary1.class, JavaLibrary1.LibEnum1.class)
             .addKeepMethodRules(
                 Reference.methodFromMethod(JavaLibrary1.class.getDeclaredMethod("libCall")))
-            .addKeepRules(enumKeepRules.getKeepRule())
+            .addKeepRules(enumKeepRules.getKeepRules())
             .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations()
             .minification(minification)
@@ -72,7 +72,7 @@ public class DoubleProcessingEnumUnboxingTest extends EnumUnboxingTestBase {
             .addProgramClasses(App.class, App.AppEnum.class)
             .addProgramFiles(javaLibShrunk)
             .addKeepMainRule(App.class)
-            .addKeepRules(enumKeepRules.getKeepRule())
+            .addKeepRules(enumKeepRules.getKeepRules())
             .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations()
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))

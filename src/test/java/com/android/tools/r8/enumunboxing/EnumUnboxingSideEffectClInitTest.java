@@ -17,7 +17,7 @@ public class EnumUnboxingSideEffectClInitTest extends EnumUnboxingTestBase {
   private static final Class<?> ENUM_CLASS = MyEnum.class;
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
-  private final KeepRule enumKeepRules;
+  private final EnumKeepRules enumKeepRules;
 
   @Parameters(name = "{0} valueOpt: {1} keep: {2}")
   public static List<Object[]> data() {
@@ -25,7 +25,7 @@ public class EnumUnboxingSideEffectClInitTest extends EnumUnboxingTestBase {
   }
 
   public EnumUnboxingSideEffectClInitTest(
-      TestParameters parameters, boolean enumValueOptimization, KeepRule enumKeepRules) {
+      TestParameters parameters, boolean enumValueOptimization, EnumKeepRules enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
     this.enumKeepRules = enumKeepRules;
@@ -37,7 +37,7 @@ public class EnumUnboxingSideEffectClInitTest extends EnumUnboxingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(EnumUnboxingSideEffectClInitTest.class)
         .addKeepMainRule(classToTest)
-        .addKeepRules(enumKeepRules.getKeepRule())
+        .addKeepRules(enumKeepRules.getKeepRules())
         .enableNeverClassInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .allowDiagnosticInfoMessages()
@@ -47,7 +47,7 @@ public class EnumUnboxingSideEffectClInitTest extends EnumUnboxingTestBase {
             m -> {
               // The snap keep rule forces to keep the static MainEnum#e field, so the enum
               // cannot be unboxed anymore.
-              if (enumKeepRules.toString().equals("snap")) {
+              if (enumKeepRules.isSnap()) {
                 assertEnumIsBoxed(ENUM_CLASS, classToTest.getSimpleName(), m);
               } else {
                 assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m);

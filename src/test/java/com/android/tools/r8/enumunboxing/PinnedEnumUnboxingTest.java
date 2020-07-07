@@ -20,7 +20,7 @@ public class PinnedEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
-  private final KeepRule enumKeepRules;
+  private final EnumKeepRules enumKeepRules;
 
   @Parameters(name = "{0} valueOpt: {1} keep: {2}")
   public static List<Object[]> data() {
@@ -28,7 +28,7 @@ public class PinnedEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   public PinnedEnumUnboxingTest(
-      TestParameters parameters, boolean enumValueOptimization, KeepRule enumKeepRules) {
+      TestParameters parameters, boolean enumValueOptimization, EnumKeepRules enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
     this.enumKeepRules = enumKeepRules;
@@ -42,7 +42,7 @@ public class PinnedEnumUnboxingTest extends EnumUnboxingTestBase {
             .addKeepMainRules(BOXED)
             .addKeepClassRules(MainWithKeptEnum.MyEnum.class)
             .addKeepMethodRules(MainWithKeptEnumArray.class, "keptMethod()")
-            .addKeepRules(enumKeepRules.getKeepRule())
+            .addKeepRules(enumKeepRules.getKeepRules())
             .enableNeverClassInliningAnnotations()
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()

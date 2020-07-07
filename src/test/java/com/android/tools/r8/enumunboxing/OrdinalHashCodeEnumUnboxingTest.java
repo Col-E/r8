@@ -20,7 +20,7 @@ public class OrdinalHashCodeEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
-  private final KeepRule enumKeepRules;
+  private final EnumKeepRules enumKeepRules;
 
   @Parameters(name = "{0} valueOpt: {1} keep: {2}")
   public static List<Object[]> data() {
@@ -28,7 +28,7 @@ public class OrdinalHashCodeEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   public OrdinalHashCodeEnumUnboxingTest(
-      TestParameters parameters, boolean enumValueOptimization, KeepRule enumKeepRules) {
+      TestParameters parameters, boolean enumValueOptimization, EnumKeepRules enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
     this.enumKeepRules = enumKeepRules;
@@ -41,7 +41,7 @@ public class OrdinalHashCodeEnumUnboxingTest extends EnumUnboxingTestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(classToTest, ENUM_CLASS)
             .addKeepMainRule(classToTest)
-            .addKeepRules(enumKeepRules.getKeepRule())
+            .addKeepRules(enumKeepRules.getKeepRules())
             .enableNeverClassInliningAnnotations()
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()

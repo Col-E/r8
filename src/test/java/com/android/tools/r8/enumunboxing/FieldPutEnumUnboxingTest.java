@@ -25,7 +25,7 @@ public class FieldPutEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
-  private final KeepRule enumKeepRules;
+  private final EnumKeepRules enumKeepRules;
 
   @Parameters(name = "{0} valueOpt: {1} keep: {2}")
   public static List<Object[]> data() {
@@ -33,7 +33,7 @@ public class FieldPutEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   public FieldPutEnumUnboxingTest(
-      TestParameters parameters, boolean enumValueOptimization, KeepRule enumKeepRules) {
+      TestParameters parameters, boolean enumValueOptimization, EnumKeepRules enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
     this.enumKeepRules = enumKeepRules;
@@ -45,7 +45,7 @@ public class FieldPutEnumUnboxingTest extends EnumUnboxingTestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(FieldPutEnumUnboxingTest.class)
             .addKeepMainRules(INPUTS)
-            .addKeepRules(enumKeepRules.getKeepRule())
+            .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .enableInliningAnnotations()

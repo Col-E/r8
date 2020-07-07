@@ -23,7 +23,7 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
-  private final KeepRule enumKeepRules;
+  private final EnumKeepRules enumKeepRules;
 
   @Parameters(name = "{0} valueOpt: {1} keep: {2}")
   public static List<Object[]> data() {
@@ -31,7 +31,7 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   public AnnotationEnumUnboxingTest(
-      TestParameters parameters, boolean enumValueOptimization, KeepRule enumKeepRules) {
+      TestParameters parameters, boolean enumValueOptimization, EnumKeepRules enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
     this.enumKeepRules = enumKeepRules;
@@ -46,7 +46,7 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
         .addInnerClasses(AnnotationEnumUnboxingTest.class)
         .noMinification()
         .addKeepMainRule(Main.class)
-        .addKeepRules(enumKeepRules.getKeepRule())
+        .addKeepRules(enumKeepRules.getKeepRules())
         .addKeepClassRules(ClassAnnotationDefault.class)
         .addKeepRuntimeVisibleAnnotations()
         .enableNeverClassInliningAnnotations()

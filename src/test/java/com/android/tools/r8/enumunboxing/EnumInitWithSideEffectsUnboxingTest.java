@@ -10,7 +10,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class EnumInitWithSideEffectsUnboxingTest extends EnumUnboxingTestBase {
 
-  private final KeepRule enumKeepRule;
+  private final EnumKeepRules enumEnumKeepRules;
   private final TestParameters parameters;
 
   @Parameters(name = "{1}, enum keep rule: {0}")
@@ -19,8 +19,9 @@ public class EnumInitWithSideEffectsUnboxingTest extends EnumUnboxingTestBase {
         getAllEnumKeepRules(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public EnumInitWithSideEffectsUnboxingTest(KeepRule enumKeepRule, TestParameters parameters) {
-    this.enumKeepRule = enumKeepRule;
+  public EnumInitWithSideEffectsUnboxingTest(
+      EnumKeepRules enumEnumKeepRules, TestParameters parameters) {
+    this.enumEnumKeepRules = enumEnumKeepRules;
     this.parameters = parameters;
   }
 
@@ -29,7 +30,7 @@ public class EnumInitWithSideEffectsUnboxingTest extends EnumUnboxingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(EnumInitWithSideEffectsUnboxingTest.class)
         .addKeepMainRule(TestClass.class)
-        .addKeepRules(enumKeepRule.getKeepRule())
+        .addKeepRules(enumEnumKeepRules.getKeepRules())
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)

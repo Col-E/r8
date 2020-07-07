@@ -16,7 +16,7 @@ public class ValueOfEnumUnboxingFailureTest extends EnumUnboxingTestBase {
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
-  private final KeepRule enumKeepRules;
+  private final EnumKeepRules enumKeepRules;
 
   @Parameterized.Parameters(name = "{0} valueOpt: {1} keep: {2}")
   public static List<Object[]> data() {
@@ -24,7 +24,7 @@ public class ValueOfEnumUnboxingFailureTest extends EnumUnboxingTestBase {
   }
 
   public ValueOfEnumUnboxingFailureTest(
-      TestParameters parameters, boolean enumValueOptimization, KeepRule enumKeepRules) {
+      TestParameters parameters, boolean enumValueOptimization, EnumKeepRules enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
     this.enumKeepRules = enumKeepRules;
@@ -37,7 +37,7 @@ public class ValueOfEnumUnboxingFailureTest extends EnumUnboxingTestBase {
         .addInnerClasses(ValueOfEnumUnboxingFailureTest.class)
         .addKeepMainRule(success)
         .enableNeverClassInliningAnnotations()
-        .addKeepRules(enumKeepRules.getKeepRule())
+        .addKeepRules(enumKeepRules.getKeepRules())
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .allowDiagnosticInfoMessages()
         .setMinApi(parameters.getApiLevel())
