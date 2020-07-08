@@ -3,15 +3,15 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+import archive
 import argparse
+import jdk
 import os
+import retrace
 import subprocess
 import sys
 import zipfile
 
-import archive
-import jdk
-import retrace
 import utils
 
 
@@ -65,6 +65,18 @@ def make_parser():
       help='Enable Java debug agent and suspend compilation (default disabled)',
       default=False,
       action='store_true')
+  parser.add_argument(
+      '--xmx',
+      help='Set JVM max heap size (-Xmx)',
+      default=None)
+  parser.add_argument(
+      '--threads',
+      help='Set the number of threads to use',
+      default=None)
+  parser.add_argument(
+      '--min-api',
+      help='Set min-api (default read from dump properties file)',
+      default=None)
   return parser
 
 def error(msg):
@@ -155,6 +167,13 @@ def determine_compiler(args, dump):
 def determine_output(args, temp):
   return os.path.join(temp, 'out.jar')
 
+def determine_min_api(args, build_properties):
+  if args.min_api:
+    return args.min_api
+  if 'min-api' in build_properties:
+    return build_properties.get('min-api')
+  return None
+
 def determine_feature_output(feature_jar, temp):
   return os.path.join(temp, os.path.basename(feature_jar)[:-4] + ".out.jar")
 
@@ -193,6 +212,7 @@ def run(args, otherargs):
     version = determine_version(args, dump)
     compiler = determine_compiler(args, dump)
     out = determine_output(args, temp)
+    min_api = determine_min_api(args, build_properties)
     jar = args.r8_jar if args.r8_jar else download_distribution(args, version, temp)
     wrapper_dir = prepare_wrapper(jar, temp)
     cmd = [jdk.GetJavaExecutable()]
@@ -201,6 +221,8 @@ def run(args, otherargs):
         print "WARNING: Running debugging agent on r8lib is questionable..."
       cmd.append(
           '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005')
+    if args.xmx:
+      cmd.append('-Xmx' + args.xmx)
     if args.ea:
       cmd.append('-ea')
     if args.printtimes:
@@ -225,8 +247,10 @@ def run(args, otherargs):
       cmd.extend(['--pg-conf', dump.config_file()])
     if compiler != 'd8':
       cmd.extend(['--pg-map-output', '%s.map' % out])
-    if 'min-api' in build_properties:
-      cmd.extend(['--min-api', build_properties.get('min-api')])
+    if min_api:
+      cmd.extend(['--min-api', min_api])
+    if args.threads:
+      cmd.extend(['--threads', args.threads])
     cmd.extend(otherargs)
     utils.PrintCmd(cmd)
     try:

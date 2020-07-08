@@ -9,6 +9,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8Command.Builder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,6 +18,8 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Wrapper to make it easy to call R8 in compat mode when compiling a dump file.
@@ -44,7 +47,8 @@ public class CompileDumpCompatR8 {
           "--main-dex-list-output",
           "--pg-conf",
           "--pg-map-output",
-          "--desugared-lib");
+          "--desugared-lib",
+          "--threads");
 
   private static final List<String> VALID_OPTIONS_WITH_TWO_OPERANDS =
       Arrays.asList("--feature-jar");
@@ -69,6 +73,7 @@ public class CompileDumpCompatR8 {
     List<Path> classpath = new ArrayList<>();
     List<Path> config = new ArrayList<>();
     int minApi = 1;
+    int threads = -1;
     for (int i = 0; i < args.length; i++) {
       String option = args[i];
       if (VALID_OPTIONS.contains(option)) {
@@ -129,6 +134,11 @@ public class CompileDumpCompatR8 {
               pgMapOutput = Paths.get(operand);
               break;
             }
+          case "--threads":
+            {
+              threads = Integer.parseInt(operand);
+              break;
+            }
           default:
             throw new IllegalArgumentException("Unimplemented option: " + option);
         }
@@ -174,6 +184,16 @@ public class CompileDumpCompatR8 {
     if (pgMapOutput != null) {
       commandBuilder.setProguardMapOutputPath(pgMapOutput);
     }
-    R8.run(commandBuilder.build());
+    R8Command command = commandBuilder.build();
+    if (threads != -1) {
+      ExecutorService executor = Executors.newWorkStealingPool(threads);
+      try {
+        R8.run(command, executor);
+      } finally {
+        executor.shutdown();
+      }
+    } else {
+      R8.run(command);
+    }
   }
 }

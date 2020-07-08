@@ -472,7 +472,13 @@ public class AndroidApp {
   }
 
   private String getBuildPropertiesContents(InternalOptions options) {
-    return "min-api=" + options.minApiLevel;
+    return String.join(
+        "\n",
+        ImmutableList.of(
+            "mode=" + (options.debug ? "debug" : "release"),
+            "min-api=" + options.minApiLevel,
+            "tree-shaking=" + options.isTreeShakingEnabled(),
+            "minification=" + options.isMinificationEnabled()));
   }
 
   private int dumpLibraryResources(int nextDexIndex, ZipOutputStream out)
