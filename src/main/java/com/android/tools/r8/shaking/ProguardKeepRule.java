@@ -149,7 +149,10 @@ public class ProguardKeepRule extends ProguardKeepRuleBase {
     builder.matchAllSpecification();
     builder.setType(ProguardKeepRuleType.KEEP);
     modifiers.accept(builder.getModifiersBuilder());
-    return builder.build();
+    ProguardKeepRule rule = builder.build();
+    // Consider the default keep all rule as always matched.
+    rule.markAsUsed();
+    return rule;
   }
 
   @Override
