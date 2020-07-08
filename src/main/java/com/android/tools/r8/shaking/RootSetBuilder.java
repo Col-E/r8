@@ -326,6 +326,7 @@ public class RootSetBuilder {
     assert Sets.intersection(neverInline, alwaysInline).isEmpty()
             && Sets.intersection(neverInline, forceInline).isEmpty()
         : "A method cannot be marked as both -neverinline and -forceinline/-alwaysinline.";
+    assert appView.options().isMinificationEnabled() || noObfuscation.isEmpty();
     return new RootSet(
         noShrinking,
         noObfuscation,
@@ -1035,7 +1036,9 @@ public class RootSetBuilder {
         .computeIfAbsent(item.toReference(), x -> new MutableItemsWithRules())
         .addClassWithRule(type, context);
     // Unconditionally add to no-obfuscation, as that is only checked for surviving items.
-    noObfuscation.add(type);
+    if (appView.options().isMinificationEnabled()) {
+      noObfuscation.add(type);
+    }
   }
 
   private void includeDescriptorClasses(DexDefinition item, ProguardKeepRuleBase context) {
@@ -1133,7 +1136,7 @@ public class RootSetBuilder {
         context.markAsUsed();
       }
 
-      if (!modifiers.allowsObfuscation) {
+      if (appView.options().isMinificationEnabled() && !modifiers.allowsObfuscation) {
         noObfuscation.add(item.toReference());
         context.markAsUsed();
       }

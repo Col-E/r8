@@ -1884,21 +1884,27 @@ public class Enqueuer {
     }
   }
 
+  private void shouldNotBeMinified(DexReference reference) {
+    if (options.isMinificationEnabled()) {
+      rootSet.shouldNotBeMinified(reference);
+    }
+  }
+
   private void keepClassAndAllMembers(DexProgramClass clazz, KeepReason keepReason) {
     KeepReasonWitness keepReasonWitness = graphReporter.registerClass(clazz, keepReason);
     markClassAsInstantiatedWithCompatRule(clazz.asProgramClass(), keepReasonWitness);
     keepInfo.keepClass(clazz);
-    rootSet.shouldNotBeMinified(clazz.toReference());
+    shouldNotBeMinified(clazz.toReference());
     clazz.forEachProgramField(
         field -> {
           keepInfo.keepField(field);
-          rootSet.shouldNotBeMinified(field.getReference());
+          shouldNotBeMinified(field.getReference());
           markFieldAsKept(field, keepReasonWitness);
         });
     clazz.forEachProgramMethod(
         method -> {
           keepInfo.keepMethod(method);
-          rootSet.shouldNotBeMinified(method.getReference());
+          shouldNotBeMinified(method.getReference());
           markMethodAsKept(method, keepReasonWitness);
         });
   }
@@ -2594,7 +2600,7 @@ public class Enqueuer {
       // marking for not renaming it is in the root set.
       workList.enqueueMarkMethodKeptAction(new ProgramMethod(clazz, valuesMethod), reason);
       keepInfo.keepMethod(clazz, valuesMethod);
-      rootSet.shouldNotBeMinified(valuesMethod.toReference());
+      shouldNotBeMinified(valuesMethod.toReference());
     }
   }
 
@@ -2673,6 +2679,7 @@ public class Enqueuer {
       // This is simulating the effect of the "root set" applied rules.
       // This is done only in the initial pass, in subsequent passes the "rules" are reapplied
       // by iterating the instances.
+      assert appView.options().isMinificationEnabled() || rootSet.noObfuscation.isEmpty();
       for (DexReference reference : rootSet.noObfuscation) {
         keepInfo.evaluateRule(reference, appInfo, Joiner::disallowMinification);
       }
