@@ -57,15 +57,13 @@ public class Regress160394262Test extends TestBase {
   }
 
   private void checkJoinerIsClassInlined(CodeInspector inspector) {
-    // TODO(b/160640028): When compiling to DEX a trivial phi remains in the inline code preventing
-    //  class inlining of Joiner and the anonymous Joiner subclass.
+    assertThat(inspector.clazz(Joiner.class.getTypeName() + "$1"), not(isPresent()));
+    // TODO(b/160640028): When compiling to DEX the outer Joiner class is not inlined.
     if (parameters.isDexRuntime()) {
       assertThat(inspector.clazz(Joiner.class), isPresent());
-      assertThat(inspector.clazz(Joiner.class.getTypeName() + "$1"), isPresent());
-      return;
+    } else {
+      assertThat(inspector.clazz(Joiner.class), not(isPresent()));
     }
-    assertThat(inspector.clazz(Joiner.class), not(isPresent()));
-    assertThat(inspector.clazz(Joiner.class.getTypeName() + "$1"), not(isPresent()));
   }
 
   static class TestClass {

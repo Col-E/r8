@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
@@ -76,6 +77,10 @@ public class WorkList<T> {
   public T next() {
     assert hasNext();
     return workingList.removeFirst();
+  }
+
+  public Set<T> getSeenSet() {
+    return Collections.unmodifiableSet(seen);
   }
 
   public enum EqualityTest {
