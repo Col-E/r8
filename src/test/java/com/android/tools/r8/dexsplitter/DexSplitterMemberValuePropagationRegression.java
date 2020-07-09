@@ -37,7 +37,7 @@ public class DexSplitterMemberValuePropagationRegression extends SplitterTestBas
 
   @Parameters(name = "{0}")
   public static TestParametersCollection params() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;

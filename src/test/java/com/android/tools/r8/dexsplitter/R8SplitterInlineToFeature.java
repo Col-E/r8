@@ -37,7 +37,7 @@ public class R8SplitterInlineToFeature extends SplitterTestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection params() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   private final TestParameters parameters;
