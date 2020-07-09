@@ -72,6 +72,7 @@ public class R8SplitterInlineToFeature extends SplitterTestBase {
 
   @NeverMerge
   public abstract static class BaseSuperClass implements RunInterface {
+    @Override
     public void run() {
       System.out.println(getFromFeature());
     }

@@ -326,7 +326,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
     assertNotNull(zip.getEntry("META-INF/services/" + service.getFinalName()));
   }
 
-  private static long getServiceLoaderLoads(CodeInspector inspector, Class<?> clazz) {
+  public static long getServiceLoaderLoads(CodeInspector inspector, Class<?> clazz) {
     ClassSubject classSubject = inspector.clazz(clazz);
     assertTrue(classSubject.isPresent());
     return classSubject.allMethods().stream()

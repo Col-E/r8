@@ -38,7 +38,7 @@ public class DexSplitterInlineRegression extends SplitterTestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection params() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -91,6 +91,7 @@ public class DexSplitterInlineRegression extends SplitterTestBase {
 
   @NeverMerge
   public abstract static class BaseSuperClass implements RunInterface {
+    @Override
     public void run() {
       System.out.println(getFromFeature());
     }

@@ -18,6 +18,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -40,7 +41,7 @@ public class R8FeatureSplitTest extends SplitterTestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection params() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -122,11 +123,12 @@ public class R8FeatureSplitTest extends SplitterTestBase {
     Path basePath = temp.newFile("base.zip").toPath();
     Path feature1Path = temp.newFile("feature1.zip").toPath();
     Path feature2Path = temp.newFile("feature2.zip").toPath();
-    Collection<String> nonJavaFiles = ImmutableList.of("foobar", "barfoo");
+    Collection<Pair<String, String>> nonJavaFiles =
+        ImmutableList.of(new Pair<>("foobar", "foobar"), new Pair<>("barfoo", "barfoo"));
 
     testForR8(parameters.getBackend())
         .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .addFeatureSplit(
             builder ->
                 splitWithNonJavaFile(
@@ -140,16 +142,16 @@ public class R8FeatureSplitTest extends SplitterTestBase {
         .writeToZip(basePath);
     for (Path feature : ImmutableList.of(feature1Path, feature2Path)) {
       ZipFile zipFile = new ZipFile(feature.toFile());
-      for (String nonJavaFile : nonJavaFiles) {
-        ZipEntry entry = zipFile.getEntry(nonJavaFile);
+      for (Pair<String, String> nonJavaFile : nonJavaFiles) {
+        ZipEntry entry = zipFile.getEntry(nonJavaFile.getFirst());
         assertNotNull(entry);
         String content = new String(ByteStreams.toByteArray(zipFile.getInputStream(entry)));
-        assertEquals(content, nonJavaFile);
+        assertEquals(content, nonJavaFile.getSecond());
       }
     }
     ZipFile zipFile = new ZipFile(basePath.toFile());
-    for (String nonJavaFile : nonJavaFiles) {
-      ZipEntry entry = zipFile.getEntry(nonJavaFile);
+    for (Pair<String, String> nonJavaFile : nonJavaFiles) {
+      ZipEntry entry = zipFile.getEntry(nonJavaFile.getFirst());
       assertNull(entry);
     }
   }
@@ -160,12 +162,14 @@ public class R8FeatureSplitTest extends SplitterTestBase {
     Path feature1Path = temp.newFile("feature1.zip").toPath();
     Path feature2Path = temp.newFile("feature2.zip").toPath();
     // Make the content of the data resource be class names
-    Collection<String> nonJavaFiles =
-        ImmutableList.of(FeatureClass.class.getName(), FeatureClass2.class.getName());
+    Collection<Pair<String, String>> nonJavaFiles =
+        ImmutableList.of(
+            new Pair<>(FeatureClass.class.getName(), FeatureClass.class.getName()),
+            new Pair<>(FeatureClass2.class.getName(), FeatureClass2.class.getName()));
 
     testForR8(parameters.getBackend())
         .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .addFeatureSplit(
             builder ->
                 splitWithNonJavaFile(
@@ -181,16 +185,16 @@ public class R8FeatureSplitTest extends SplitterTestBase {
         .writeToZip(basePath);
     for (Path feature : ImmutableList.of(feature1Path, feature2Path)) {
       ZipFile zipFile = new ZipFile(feature.toFile());
-      for (String nonJavaFile : nonJavaFiles) {
-        ZipEntry entry = zipFile.getEntry(nonJavaFile);
+      for (Pair<String, String> nonJavaFile : nonJavaFiles) {
+        ZipEntry entry = zipFile.getEntry(nonJavaFile.getFirst());
         assertNotNull(entry);
         String content = new String(ByteStreams.toByteArray(zipFile.getInputStream(entry)));
-        assertNotEquals(content, nonJavaFile);
+        assertNotEquals(content, nonJavaFile.getSecond());
       }
     }
     ZipFile zipFile = new ZipFile(basePath.toFile());
-    for (String nonJavaFile : nonJavaFiles) {
-      ZipEntry entry = zipFile.getEntry(nonJavaFile);
+    for (Pair<String, String> nonJavaFile : nonJavaFiles) {
+      ZipEntry entry = zipFile.getEntry(nonJavaFile.getFirst());
       assertNull(entry);
     }
   }
@@ -261,7 +265,7 @@ public class R8FeatureSplitTest extends SplitterTestBase {
 
       testForR8(parameters.getBackend())
           .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
-          .setMinApi(parameters.getRuntime())
+          .setMinApi(parameters.getApiLevel())
           .addFeatureSplit(
               builder -> simpleSplitProvider(builder, feature1Path, temp, FeatureClass.class))
           .addFeatureSplit(

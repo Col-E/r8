@@ -1,6 +1,7 @@
 package com.android.tools.r8.dexsplitter;
 
 import static junit.framework.TestCase.assertTrue;
+import static junit.framework.TestCase.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ByteDataView;
@@ -19,6 +20,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dexsplitter.DexSplitter.Options;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
@@ -42,11 +44,11 @@ import org.junit.rules.TemporaryFolder;
 public class SplitterTestBase extends TestBase {
 
   public static FeatureSplit simpleSplitProvider(
-      FeatureSplit.Builder builder, Path outputPath, TemporaryFolder temp, Class... classes) {
+      FeatureSplit.Builder builder, Path outputPath, TemporaryFolder temp, Class<?>... classes) {
     return simpleSplitProvider(builder, outputPath, temp, Arrays.asList(classes));
   }
 
-  public static FeatureSplit simpleSplitProvider(
+  private static FeatureSplit simpleSplitProvider(
       FeatureSplit.Builder builder,
       Path outputPath,
       TemporaryFolder temp,
@@ -59,7 +61,7 @@ public class SplitterTestBase extends TestBase {
       FeatureSplit.Builder builder,
       Path outputPath,
       TemporaryFolder temp,
-      Collection<String> nonJavaResources,
+      Collection<Pair<String, String>> nonJavaResources,
       boolean ensureClassesInOutput,
       Collection<Class<?>> classes) {
     List<String> classNames = classes.stream().map(Class::getName).collect(Collectors.toList());
@@ -82,15 +84,18 @@ public class SplitterTestBase extends TestBase {
           next = inputStream.getNextEntry();
         }
 
-        for (String nonJavaResource : nonJavaResources) {
+        for (Pair<String, String> nonJavaResource : nonJavaResources) {
           ZipUtils.writeToZipStream(
-              outputStream, nonJavaResource, nonJavaResource.getBytes(), ZipEntry.STORED);
+              outputStream,
+              nonJavaResource.getFirst(),
+              nonJavaResource.getSecond().getBytes(),
+              ZipEntry.STORED);
         }
         outputStream.close();
         featureJar = newFeatureJar;
       }
     } catch (IOException e) {
-      assertTrue(false);
+      fail();
       return;
     }
 
@@ -115,18 +120,19 @@ public class SplitterTestBase extends TestBase {
             });
   }
 
-  protected static FeatureSplit splitWithNonJavaFile(
+  static FeatureSplit splitWithNonJavaFile(
       FeatureSplit.Builder builder,
       Path outputPath,
       TemporaryFolder temp,
-      Collection<String> nonJavaFiles,
+      Collection<Pair<String, String>> nonJavaFiles,
       boolean ensureClassesInOutput,
       Class<?>... classes) {
-    addConsumers(builder, outputPath, temp, nonJavaFiles, true, Arrays.asList(classes));
+    addConsumers(
+        builder, outputPath, temp, nonJavaFiles, ensureClassesInOutput, Arrays.asList(classes));
     return builder.build();
   }
 
-  protected <E extends Throwable> ProcessResult testR8Splitter(
+  <E extends Throwable> ProcessResult testR8Splitter(
       TestParameters parameters,
       Set<Class<?>> baseClasses,
       Set<Class<?>> featureClasses,
@@ -150,7 +156,7 @@ public class SplitterTestBase extends TestBase {
         .addProgramClasses(baseClasses)
         .addFeatureSplit(
             builder -> simpleSplitProvider(builder, featureOutput, temp, featureClasses))
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(SplitRunner.class)
         .addKeepClassRules(toRun);
 
@@ -165,7 +171,7 @@ public class SplitterTestBase extends TestBase {
 
   // Compile the passed in classes plus RunInterface and SplitRunner using R8, then split
   // based on the base/feature sets. toRun must implement the BaseRunInterface
-  protected <E extends Throwable> ProcessResult testDexSplitter(
+  <E extends Throwable> ProcessResult testDexSplitter(
       TestParameters parameters,
       Set<Class<?>> baseClasses,
       Set<Class<?>> featureClasses,
@@ -189,7 +195,7 @@ public class SplitterTestBase extends TestBase {
             .addClasspathClasses(baseClasses)
             .addClasspathClasses(RunInterface.class)
             .addKeepAllClassesRule()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile()
             .writeToZip();
     if (parameters.isDexRuntime()) {
@@ -199,7 +205,7 @@ public class SplitterTestBase extends TestBase {
       testForD8()
           .addProgramClasses(SplitRunner.class, RunInterface.class)
           .addProgramClasses(baseClasses)
-          .setMinApi(parameters.getRuntime())
+          .setMinApi(parameters.getApiLevel())
           .compile()
           .run(
               parameters.getRuntime(),
@@ -220,7 +226,7 @@ public class SplitterTestBase extends TestBase {
 
     R8FullTestBuilder r8FullTestBuilder =
         builder
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .addProgramClasses(SplitRunner.class, RunInterface.class)
             .addProgramClasses(baseClasses)
             .addProgramClasses(featureClasses)
@@ -252,7 +258,7 @@ public class SplitterTestBase extends TestBase {
         toRun, splitterBaseDexFile, splitterFeatureDexFile, parameters.getRuntime());
   }
 
-  protected ProcessResult runFeatureOnArt(
+  ProcessResult runFeatureOnArt(
       Class toRun, Path splitterBaseDexFile, Path splitterFeatureDexFile, TestRuntime runtime)
       throws IOException {
     assumeTrue(runtime.isDex());
@@ -261,8 +267,7 @@ public class SplitterTestBase extends TestBase {
     commandBuilder.appendProgramArgument(toRun.getName());
     commandBuilder.appendProgramArgument(splitterFeatureDexFile.toString());
     commandBuilder.setMainClass(SplitRunner.class.getName());
-    ProcessResult processResult = ToolHelper.runArtRaw(commandBuilder);
-    return processResult;
+    return ToolHelper.runArtRaw(commandBuilder);
   }
 
   public interface RunInterface {

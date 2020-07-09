@@ -99,6 +99,7 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
   @NeverMerge
   public static class BaseClass implements RunInterface {
 
+    @Override
     @NeverInline
     public void run() {
       System.out.println(BaseWithStatic.getBase42());
@@ -119,6 +120,7 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
 
   public static class FeatureClass extends BaseClass {
 
+    @Override
     public void run() {
       super.run();
       System.out.println(AFeatureWithStatic.getFoobar());
