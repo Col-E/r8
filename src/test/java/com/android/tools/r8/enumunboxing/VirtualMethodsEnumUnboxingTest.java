@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.enumunboxing;
 
+import static org.hamcrest.CoreMatchers.containsString;
+
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
@@ -36,10 +39,11 @@ public class VirtualMethodsEnumUnboxingTest extends EnumUnboxingTestBase {
   @Test
   public void testEnumUnboxing() throws Exception {
     Class<?> classToTest = VirtualMethods.class;
-    R8TestRunResult run =
+    R8TestCompileResult compile =
         testForR8(parameters.getBackend())
             .addInnerClasses(VirtualMethodsEnumUnboxingTest.class)
             .addKeepMainRule(classToTest)
+            .addKeepMainRule(VirtualMethodsFail.class)
             .addKeepRules(enumKeepRules.getKeepRules())
             .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations()
@@ -51,10 +55,16 @@ public class VirtualMethodsEnumUnboxingTest extends EnumUnboxingTestBase {
                 m -> {
                   assertEnumIsUnboxed(MyEnum.class, classToTest.getSimpleName(), m);
                   assertEnumIsUnboxed(MyEnum2.class, classToTest.getSimpleName(), m);
-                })
-            .run(parameters.getRuntime(), classToTest)
-            .assertSuccess();
+                  assertEnumIsUnboxed(MyEnumWithCollisions.class, classToTest.getSimpleName(), m);
+                  assertEnumIsUnboxed(
+                      MyEnumWithPackagePrivateCall.class, classToTest.getSimpleName(), m);
+                });
+    R8TestRunResult run = compile.run(parameters.getRuntime(), classToTest).assertSuccess();
     assertLines2By2Correct(run.getStdOut());
+    // TODO(b/160854837): This test should actually be successful.
+    compile
+        .run(parameters.getRuntime(), VirtualMethodsFail.class)
+        .assertFailureWithErrorThatMatches(containsString("IllegalAccessError"));
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -102,6 +112,7 @@ public class VirtualMethodsEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   // Use two enums to test collision.
+  @NeverClassInline
   enum MyEnum2 {
     A,
     B,
@@ -120,6 +131,76 @@ public class VirtualMethodsEnumUnboxingTest extends EnumUnboxingTestBase {
     @NeverInline
     public MyEnum returnEnum(boolean bool) {
       return bool ? MyEnum.B : MyEnum.C;
+    }
+  }
+
+  @NeverClassInline
+  enum MyEnumWithCollisions {
+    A,
+    B,
+    C;
+
+    @NeverInline
+    public int get() {
+      return get(this);
+    }
+
+    @NeverInline
+    public static int get(MyEnumWithCollisions e) {
+      switch (e) {
+        case A:
+          return 5;
+        case B:
+          return 2;
+        case C:
+          return 1;
+      }
+      return -1;
+    }
+  }
+
+  @NeverClassInline
+  static class PackagePrivateClass {
+    @NeverInline
+    static void print() {
+      System.out.println("print");
+    }
+  }
+
+  @NeverClassInline
+  enum MyEnumWithPackagePrivateCall {
+    A,
+    B,
+    C;
+
+    @NeverInline
+    public static void callPackagePrivate() {
+      PackagePrivateClass.print();
+    }
+  }
+
+  static class VirtualMethodsFail {
+    public static void main(String[] args) {
+      testCollisions();
+      testPackagePrivate();
+    }
+
+    @NeverInline
+    private static void testPackagePrivate() {
+      System.out.println(MyEnumWithPackagePrivateCall.A.ordinal());
+      System.out.println(0);
+      MyEnumWithPackagePrivateCall.callPackagePrivate();
+      System.out.println("print");
+    }
+
+    @NeverInline
+    private static void testCollisions() {
+      System.out.println(MyEnumWithCollisions.A.get());
+      System.out.println(5);
+      System.out.println(MyEnumWithCollisions.B.get());
+      System.out.println(2);
+      System.out.println(MyEnumWithCollisions.C.get());
+      System.out.println(1);
     }
   }
 

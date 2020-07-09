@@ -771,7 +771,7 @@ public class EnumUnboxer implements PostOptimization {
           factory.createString(
               enumUnboxerRewriter.compatibleName(method.holder)
                   + "$"
-                  + (encodedMethod.isDirectMethod() ? "d" : "v")
+                  + (encodedMethod.isStatic() ? "s" : "v")
                   + "$"
                   + method.name.toString());
       DexProto proto =
