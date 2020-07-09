@@ -143,6 +143,8 @@ def ParseOptions():
       help='Test parameter runtimes to use, separated by : (eg, none:jdk9).'
           ' Special values include: all (for all runtimes)'
           ' and empty (for no runtimes).')
+  result.add_option('--print-hanging-stacks', '--print_hanging_stacks',
+      default=-1, type="int", help='Print hanging stacks after timeout in seconds')
   return result.parse_args()
 
 def archive_failures():
@@ -269,13 +271,16 @@ def Main():
                                     '%s.tar.gz' % sha1)
       utils.unpack_archive('%s.tar.gz' % sha1)
 
-  if utils.is_bot() and not utils.IsWindows():
+  print_stacks_timeout = options.print_hanging_stacks
+  if (utils.is_bot() and not utils.IsWindows()) or print_stacks_timeout > -1:
     timestamp_file = os.path.join(utils.BUILD, 'last_test_time')
     if os.path.exists(timestamp_file):
       os.remove(timestamp_file)
     gradle_args.append('-Pupdate_test_timestamp=' + timestamp_file)
-    thread.start_new_thread(timeout_handler, (timestamp_file,))
-
+    print_stacks_timeout = (print_stacks_timeout
+                            if print_stacks_timeout != -1
+                            else TIMEOUT_HANDLER_PERIOD)
+    thread.start_new_thread(timeout_handler, (timestamp_file, print_stacks_timeout,))
   rotate_test_reports()
 
   if options.only_jctf:
@@ -367,10 +372,10 @@ def get_time_from_file(timestamp_file):
     sys.stdout.flush()
     return None
 
-def timeout_handler(timestamp_file):
+def timeout_handler(timestamp_file, timeout_handler_period):
   last_timestamp = None
   while True:
-    time.sleep(TIMEOUT_HANDLER_PERIOD)
+    time.sleep(timeout_handler_period)
     new_timestamp = get_time_from_file(timestamp_file)
     if last_timestamp and new_timestamp == last_timestamp:
       print_jstacks()
