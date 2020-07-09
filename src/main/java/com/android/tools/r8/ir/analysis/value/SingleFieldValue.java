@@ -109,13 +109,14 @@ public abstract class SingleFieldValue extends SingleValue {
   @Override
   public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
     AbstractValueFactory factory = appView.abstractValueFactory();
-    EnumValueInfoMap unboxedEnumInfo = appView.unboxedEnums().getEnumValueInfoMap(field.holder);
-    if (unboxedEnumInfo != null) {
-      // Return the ordinal of the unboxed enum.
-      assert field.holder == field.type;
-      assert unboxedEnumInfo.hasEnumValueInfo(field);
-      return factory.createSingleNumberValue(
-          unboxedEnumInfo.getEnumValueInfo(field).convertToInt());
+    if (field.holder == field.type) {
+      EnumValueInfoMap unboxedEnumInfo = appView.unboxedEnums().getEnumValueInfoMap(field.type);
+      if (unboxedEnumInfo != null) {
+        // Return the ordinal of the unboxed enum.
+        assert unboxedEnumInfo.hasEnumValueInfo(field);
+        return factory.createSingleNumberValue(
+            unboxedEnumInfo.getEnumValueInfo(field).convertToInt());
+      }
     }
     return factory.createSingleFieldValue(
         lens.lookupField(field), getState().rewrittenWithLens(appView, lens));
