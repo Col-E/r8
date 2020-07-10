@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -369,16 +370,27 @@ public class R8InliningTest extends TestBase {
       InstructionSubject instruction = iterator.next();
       if (instruction.isInstanceGet()) {
         ++instanceGetCount;
-      } else if (instruction.isInvoke()
-          && !instruction
-              .getMethod()
-              .name
-              .toString()
-              .startsWith(EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_METHOD_PREFIX)) {
+      } else if (instruction.isInvoke() && !isEnumInvoke(instruction)) {
         ++invokeCount;
       }
     }
     assertEquals(1, instanceGetCount);
-    assertEquals(BooleanUtils.intValue(parameters.isCfRuntime()), invokeCount);
+    assertEquals(0, invokeCount);
+  }
+
+  private boolean isEnumInvoke(InstructionSubject instruction) {
+    InternalOptions defaults = new InternalOptions();
+    if (parameters.isDexRuntime() && defaults.enableEnumUnboxing) {
+      return instruction
+          .getMethod()
+          .name
+          .toString()
+          .startsWith(EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_METHOD_PREFIX);
+    } else {
+      return ((InvokeInstructionSubject) instruction)
+          .holder()
+          .toString()
+          .contains("java.lang.Enum");
+    }
   }
 }
