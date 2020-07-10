@@ -8,8 +8,6 @@ import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.DataResourceProvider.Visitor;
-import com.android.tools.r8.FeatureSplit;
-import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
@@ -23,7 +21,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,9 +36,9 @@ public class AppServices {
   private final AppView<?> appView;
 
   // Mapping from service types to service implementation types.
-  private final Map<DexType, Map<FeatureSplit, List<DexType>>> services;
+  private final Map<DexType, List<DexType>> services;
 
-  private AppServices(AppView<?> appView, Map<DexType, Map<FeatureSplit, List<DexType>>> services) {
+  private AppServices(AppView<?> appView, Map<DexType, List<DexType>> services) {
     this.appView = appView;
     this.services = services;
   }
@@ -56,124 +54,66 @@ public class AppServices {
 
   public List<DexType> serviceImplementationsFor(DexType serviceType) {
     assert verifyRewrittenWithLens();
-    Map<FeatureSplit, List<DexType>> featureSplitListMap = services.get(serviceType);
-    if (featureSplitListMap == null) {
+    assert services.containsKey(serviceType);
+    List<DexType> serviceImplementationTypes = services.get(serviceType);
+    if (serviceImplementationTypes == null) {
       assert false
           : "Unexpected attempt to get service implementations for non-service type `"
               + serviceType.toSourceString()
               + "`";
       return ImmutableList.of();
     }
-    ImmutableList.Builder<DexType> builder = ImmutableList.builder();
-    for (List<DexType> implementations : featureSplitListMap.values()) {
-      builder.addAll(implementations);
-    }
-    return builder.build();
-  }
-
-  public boolean hasServiceImplementationsInFeature(DexType serviceType) {
-    if (appView.options().featureSplitConfiguration == null) {
-      return false;
-    }
-    Map<FeatureSplit, List<DexType>> featureImplementations = services.get(serviceType);
-    if (featureImplementations == null || featureImplementations.isEmpty()) {
-      assert false
-          : "Unexpected attempt to get service implementations for non-service type `"
-              + serviceType.toSourceString()
-              + "`";
-      return true;
-    }
-    if (featureImplementations.size() > 1
-        || !featureImplementations.containsKey(FeatureSplit.BASE)) {
-      return true;
-    }
-    // Check if service is defined feature
-    DexProgramClass serviceClass = appView.definitionForProgramType(serviceType);
-    if (appView.options().featureSplitConfiguration.isInFeature(serviceClass)) {
-      return true;
-    }
-    for (DexType dexType : featureImplementations.get(FeatureSplit.BASE)) {
-      DexProgramClass implementationClass = appView.definitionForProgramType(dexType);
-      if (appView.options().featureSplitConfiguration.isInFeature(implementationClass)) {
-        return true;
-      }
-    }
-    return false;
+    return serviceImplementationTypes;
   }
 
   public AppServices rewrittenWithLens(GraphLense graphLens) {
-    ImmutableMap.Builder<DexType, Map<FeatureSplit, List<DexType>>> rewrittenFeatureMappings =
-        ImmutableMap.builder();
-    for (Entry<DexType, Map<FeatureSplit, List<DexType>>> entry : services.entrySet()) {
+    ImmutableMap.Builder<DexType, List<DexType>> rewrittenServices = ImmutableMap.builder();
+    for (Entry<DexType, List<DexType>> entry : services.entrySet()) {
       DexType rewrittenServiceType = graphLens.lookupType(entry.getKey());
-      ImmutableMap.Builder<FeatureSplit, List<DexType>> rewrittenFeatureImplementations =
-          ImmutableMap.builder();
-      for (Entry<FeatureSplit, List<DexType>> featureSplitImpls : entry.getValue().entrySet()) {
-        ImmutableList.Builder<DexType> rewrittenServiceImplementationTypes =
-            ImmutableList.builder();
-        for (DexType serviceImplementationType : featureSplitImpls.getValue()) {
-          rewrittenServiceImplementationTypes.add(graphLens.lookupType(serviceImplementationType));
-        }
-        rewrittenFeatureImplementations.put(
-            featureSplitImpls.getKey(), rewrittenServiceImplementationTypes.build());
+      ImmutableList.Builder<DexType> rewrittenServiceImplementationTypes = ImmutableList.builder();
+      for (DexType serviceImplementationType : entry.getValue()) {
+        rewrittenServiceImplementationTypes.add(graphLens.lookupType(serviceImplementationType));
       }
-      rewrittenFeatureMappings.put(rewrittenServiceType, rewrittenFeatureImplementations.build());
+      rewrittenServices.put(rewrittenServiceType, rewrittenServiceImplementationTypes.build());
     }
-    return new AppServices(appView, rewrittenFeatureMappings.build());
+    return new AppServices(appView, rewrittenServices.build());
   }
 
   public AppServices prunedCopy(Collection<DexType> removedClasses) {
-    ImmutableMap.Builder<DexType, Map<FeatureSplit, List<DexType>>> rewrittenServicesBuilder =
-        ImmutableMap.builder();
-    for (Entry<DexType, Map<FeatureSplit, List<DexType>>> entry : services.entrySet()) {
-      if (removedClasses.contains(entry.getKey())) {
-        continue;
-      }
-      ImmutableMap.Builder<FeatureSplit, List<DexType>> prunedFeatureSplitImpls =
-          ImmutableMap.builder();
-      for (Entry<FeatureSplit, List<DexType>> featureSplitEntry : entry.getValue().entrySet()) {
+    ImmutableMap.Builder<DexType, List<DexType>> rewrittenServicesBuilder = ImmutableMap.builder();
+    for (Entry<DexType, List<DexType>> entry : services.entrySet()) {
+      if (!removedClasses.contains(entry.getKey())) {
+        DexType serviceType = entry.getKey();
         ImmutableList.Builder<DexType> rewrittenServiceImplementationTypesBuilder =
             ImmutableList.builder();
-        for (DexType serviceImplementationType : featureSplitEntry.getValue()) {
+        for (DexType serviceImplementationType : entry.getValue()) {
           if (!removedClasses.contains(serviceImplementationType)) {
             rewrittenServiceImplementationTypesBuilder.add(serviceImplementationType);
           }
         }
-        List<DexType> prunedFeatureSplitImplementations =
+        List<DexType> rewrittenServiceImplementationTypes =
             rewrittenServiceImplementationTypesBuilder.build();
-        if (prunedFeatureSplitImplementations.size() > 0) {
-          prunedFeatureSplitImpls.put(
-              featureSplitEntry.getKey(), rewrittenServiceImplementationTypesBuilder.build());
+        if (rewrittenServiceImplementationTypes.size() > 0) {
+          rewrittenServicesBuilder.put(
+              serviceType, rewrittenServiceImplementationTypesBuilder.build());
         }
-      }
-      ImmutableMap<FeatureSplit, List<DexType>> prunedServiceImplementations =
-          prunedFeatureSplitImpls.build();
-      if (prunedServiceImplementations.size() > 0) {
-        rewrittenServicesBuilder.put(entry.getKey(), prunedServiceImplementations);
       }
     }
     return new AppServices(appView, rewrittenServicesBuilder.build());
   }
 
   private boolean verifyRewrittenWithLens() {
-    for (Entry<DexType, Map<FeatureSplit, List<DexType>>> entry : services.entrySet()) {
+    for (Entry<DexType, List<DexType>> entry : services.entrySet()) {
       assert entry.getKey() == appView.graphLense().lookupType(entry.getKey());
-      for (Entry<FeatureSplit, List<DexType>> featureEntry : entry.getValue().entrySet()) {
-        for (DexType type : featureEntry.getValue()) {
-          assert type == appView.graphLense().lookupType(type);
-        }
+      for (DexType type : entry.getValue()) {
+        assert type == appView.graphLense().lookupType(type);
       }
     }
     return true;
   }
 
   public void visit(BiConsumer<DexType, List<DexType>> consumer) {
-    services.forEach(
-        (type, featureImpls) -> {
-          ImmutableList.Builder<DexType> builder = ImmutableList.builder();
-          featureImpls.values().forEach(builder::addAll);
-          consumer.accept(type, builder.build());
-        });
+    services.forEach(consumer);
   }
 
   public static Builder builder(AppView<?> appView) {
@@ -183,7 +123,7 @@ public class AppServices {
   public static class Builder {
 
     private final AppView<?> appView;
-    private final Map<DexType, Map<FeatureSplit, List<DexType>>> services = new LinkedHashMap<>();
+    private final Map<DexType, List<DexType>> services = new IdentityHashMap<>();
 
     private Builder(AppView<?> appView) {
       this.appView = appView;
@@ -191,34 +131,20 @@ public class AppServices {
 
     public AppServices build() {
       for (DataResourceProvider provider : appView.appInfo().app().dataResourceProviders) {
-        readServices(provider, FeatureSplit.BASE);
-      }
-      List<FeatureSplit> featureSplits =
-          appView.options().featureSplitConfiguration.getFeatureSplits();
-      for (FeatureSplit featureSplit : featureSplits) {
-        for (ProgramResourceProvider provider : featureSplit.getProgramResourceProviders()) {
-          readServices(provider.getDataResourceProvider(), featureSplit);
-        }
+        readServices(provider);
       }
       return new AppServices(appView, services);
     }
 
-    private void readServices(
-        DataResourceProvider dataResourceProvider, FeatureSplit featureSplit) {
+    private void readServices(DataResourceProvider dataResourceProvider) {
       try {
-        dataResourceProvider.accept(new DataResourceProviderVisitor(featureSplit));
+        dataResourceProvider.accept(new DataResourceProviderVisitor());
       } catch (ResourceException e) {
         throw new CompilationError(e.getMessage(), e);
       }
     }
 
     private class DataResourceProviderVisitor implements Visitor {
-
-      private final FeatureSplit featureSplit;
-
-      public DataResourceProviderVisitor(FeatureSplit featureSplit) {
-        this.featureSplit = featureSplit;
-      }
 
       @Override
       public void visit(DataDirectoryResource directory) {
@@ -236,10 +162,8 @@ public class AppServices {
               DexType serviceType = appView.dexItemFactory().createType(serviceDescriptor);
               byte[] bytes = ByteStreams.toByteArray(file.getByteStream());
               String contents = new String(bytes, Charset.defaultCharset());
-              Map<FeatureSplit, List<DexType>> featureSplitImplementations =
-                  services.computeIfAbsent(serviceType, k -> new LinkedHashMap<>());
               List<DexType> serviceImplementations =
-                  featureSplitImplementations.computeIfAbsent(featureSplit, f -> new ArrayList<>());
+                  services.computeIfAbsent(serviceType, (key) -> new ArrayList<>());
               readServiceImplementationsForService(
                   contents, file.getOrigin(), serviceImplementations);
             }

@@ -29,9 +29,6 @@ import java.util.List;
  */
 @Keep
 public final class FeatureSplit {
-
-  public static final FeatureSplit BASE = new FeatureSplit(null, null);
-
   private final ProgramConsumer programConsumer;
   private final List<ProgramResourceProvider> programResourceProviders;
 

@@ -5,14 +5,11 @@
 package com.android.tools.r8.dexsplitter;
 
 import static com.android.tools.r8.rewrite.ServiceLoaderRewritingTest.getServiceLoaderLoads;
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.DataEntryResource;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
@@ -39,15 +36,18 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
   }
 
   @Test
-  public void testR8AllServiceConfigurationInBaseAndNoTypesInFeatures() throws Exception {
+  public void testR8AllServiceConfigurationInBase() throws Exception {
     Path base = temp.newFile("base.zip").toPath();
     Path feature1Path = temp.newFile("feature1.zip").toPath();
+    Path feature2Path = temp.newFile("feature2.zip").toPath();
     testForR8(parameters.getBackend())
-        .addProgramClasses(Base.class, I.class, Feature1I.class, Feature2I.class)
+        .addProgramClasses(Base.class, I.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Base.class)
         .addFeatureSplit(
-            builder -> simpleSplitProvider(builder, feature1Path, temp, Feature3Dummy.class))
+            builder -> simpleSplitProvider(builder, feature1Path, temp, Feature1I.class))
+        .addFeatureSplit(
+            builder -> simpleSplitProvider(builder, feature2Path, temp, Feature2I.class))
         .addDataEntryResources(
             DataEntryResource.fromBytes(
                 StringUtils.lines(Feature1I.class.getTypeName(), Feature2I.class.getTypeName())
@@ -57,48 +57,13 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
         .compile()
         .inspect(
             inspector -> {
+              // TODO(b/157426812): This should be 1.
               assertEquals(0, getServiceLoaderLoads(inspector, Base.class));
             })
         .writeToZip(base)
+        .addRunClasspathFiles(feature1Path, feature2Path)
         .run(parameters.getRuntime(), Base.class)
         .assertSuccessWithOutputLines("Feature1I.foo()", "Feature2I.foo()");
-  }
-
-  @Test
-  public void testR8AllServiceConfigurationInBase() throws Exception {
-    Path base = temp.newFile("base.zip").toPath();
-    Path feature1Path = temp.newFile("feature1.zip").toPath();
-    Path feature2Path = temp.newFile("feature2.zip").toPath();
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(Base.class, I.class)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(Base.class)
-            .addFeatureSplit(
-                builder -> simpleSplitProvider(builder, feature1Path, temp, Feature1I.class))
-            .addFeatureSplit(
-                builder -> simpleSplitProvider(builder, feature2Path, temp, Feature2I.class))
-            .addDataEntryResources(
-                DataEntryResource.fromBytes(
-                    StringUtils.lines(Feature1I.class.getTypeName(), Feature2I.class.getTypeName())
-                        .getBytes(),
-                    "META-INF/services/" + I.class.getTypeName(),
-                    Origin.unknown()))
-            .compile()
-            .inspect(
-                inspector -> {
-                  assertEquals(1, getServiceLoaderLoads(inspector, Base.class));
-                })
-            .writeToZip(base)
-            .addRunClasspathFiles(feature1Path, feature2Path)
-            .run(parameters.getRuntime(), Base.class);
-    // TODO(b/160888348): This is failing on 7.0
-    if (parameters.getRuntime().isDex()
-        && parameters.getRuntime().asDex().getVm().getVersion() == Version.V7_0_0) {
-      runResult.assertFailureWithErrorThatMatches(containsString("ServiceConfigurationError"));
-    } else {
-      runResult.assertSuccessWithOutputLines("Feature1I.foo()", "Feature2I.foo()");
-    }
   }
 
   @Test
@@ -106,50 +71,45 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
     Path base = temp.newFile("base.zip").toPath();
     Path feature1Path = temp.newFile("feature1.zip").toPath();
     Path feature2Path = temp.newFile("feature2.zip").toPath();
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(Base.class, I.class)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(Base.class)
-            .addFeatureSplit(
-                builder ->
-                    splitWithNonJavaFile(
-                        builder,
-                        feature1Path,
-                        temp,
-                        ImmutableList.of(
-                            new Pair<>(
-                                "META-INF/services/" + I.class.getTypeName(),
-                                StringUtils.lines(Feature1I.class.getTypeName()))),
-                        true,
-                        Feature1I.class))
-            .addFeatureSplit(
-                builder ->
-                    splitWithNonJavaFile(
-                        builder,
-                        feature2Path,
-                        temp,
-                        ImmutableList.of(
-                            new Pair<>(
-                                "META-INF/services/" + I.class.getTypeName(),
-                                StringUtils.lines(Feature2I.class.getTypeName()))),
-                        true,
-                        Feature2I.class))
-            .compile()
-            .inspect(
-                inspector -> {
-                  assertEquals(1, getServiceLoaderLoads(inspector, Base.class));
-                })
-            .writeToZip(base)
-            .addRunClasspathFiles(feature1Path, feature2Path)
-            .run(parameters.getRuntime(), Base.class);
-    // TODO(b/160888348): This is failing on 7.0
-    if (parameters.getRuntime().isDex()
-        && parameters.getRuntime().asDex().getVm().getVersion() == Version.V7_0_0) {
-      runResult.assertFailureWithErrorThatMatches(containsString("ServiceConfigurationError"));
-    } else {
-      runResult.assertSuccessWithOutputLines("Feature1I.foo()", "Feature2I.foo()");
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Base.class, I.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Base.class)
+        .addFeatureSplit(
+            builder ->
+                splitWithNonJavaFile(
+                    builder,
+                    feature1Path,
+                    temp,
+                    ImmutableList.of(
+                        new Pair<>(
+                            "META-INF/services/" + I.class.getTypeName(),
+                            StringUtils.lines(Feature1I.class.getTypeName()))),
+                    true,
+                    Feature1I.class))
+        .addFeatureSplit(
+            builder ->
+                splitWithNonJavaFile(
+                    builder,
+                    feature2Path,
+                    temp,
+                    ImmutableList.of(
+                        new Pair<>(
+                            "META-INF/services/" + I.class.getTypeName(),
+                            StringUtils.lines(Feature2I.class.getTypeName()))),
+                    true,
+                    Feature2I.class))
+        .compile()
+        .inspect(
+            inspector -> {
+              assertEquals(1, getServiceLoaderLoads(inspector, Base.class));
+            })
+        .writeToZip(base)
+        .addRunClasspathFiles(feature1Path, feature2Path)
+        .run(parameters.getRuntime(), Base.class)
+        // TODO(b/157426812): Should output
+        // .assertSuccessWithOutputLines("Feature1I.foo()", "Feature2I.foo()");
+        .assertSuccessWithOutput("");
   }
 
   @Test
@@ -158,47 +118,42 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
     Path feature1Path = temp.newFile("feature1.zip").toPath();
     Path feature2Path = temp.newFile("feature2.zip").toPath();
     Path feature3Path = temp.newFile("feature3.zip").toPath();
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(Base.class, I.class)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(Base.class)
-            .addFeatureSplit(
-                builder -> simpleSplitProvider(builder, feature1Path, temp, Feature1I.class))
-            .addFeatureSplit(
-                builder -> simpleSplitProvider(builder, feature2Path, temp, Feature2I.class))
-            .addFeatureSplit(
-                builder ->
-                    splitWithNonJavaFile(
-                        builder,
-                        feature3Path,
-                        temp,
-                        ImmutableList.of(
-                            new Pair<>(
-                                "META-INF/services/" + I.class.getTypeName(),
-                                StringUtils.lines(
-                                    Feature1I.class.getTypeName(), Feature2I.class.getTypeName()))),
-                        true,
-                        Feature3Dummy.class))
-            .compile()
-            .inspect(
-                inspector -> {
-                  assertEquals(1, getServiceLoaderLoads(inspector, Base.class));
-                })
-            .writeToZip(base)
-            .addRunClasspathFiles(feature1Path, feature2Path, feature3Path)
-            .run(parameters.getRuntime(), Base.class);
-    // TODO(b/160888348): This is failing on 7.0
-    if (parameters.getRuntime().isDex()
-        && parameters.getRuntime().asDex().getVm().getVersion() == Version.V7_0_0) {
-      runResult.assertFailureWithErrorThatMatches(containsString("ServiceConfigurationError"));
-    } else {
-      runResult.assertSuccessWithOutputLines("Feature1I.foo()", "Feature2I.foo()");
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Base.class, I.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Base.class)
+        .addFeatureSplit(
+            builder -> simpleSplitProvider(builder, feature1Path, temp, Feature1I.class))
+        .addFeatureSplit(
+            builder -> simpleSplitProvider(builder, feature2Path, temp, Feature2I.class))
+        .addFeatureSplit(
+            builder ->
+                splitWithNonJavaFile(
+                    builder,
+                    feature3Path,
+                    temp,
+                    ImmutableList.of(
+                        new Pair<>(
+                            "META-INF/services/" + I.class.getTypeName(),
+                            StringUtils.lines(
+                                Feature1I.class.getTypeName(), Feature2I.class.getTypeName()))),
+                    true,
+                    Feature3Dummy.class))
+        .compile()
+        .inspect(
+            inspector -> {
+              assertEquals(1, getServiceLoaderLoads(inspector, Base.class));
+            })
+        .writeToZip(base)
+        .addRunClasspathFiles(feature1Path, feature2Path, feature3Path)
+        .run(parameters.getRuntime(), Base.class)
+        // TODO(b/157426812): Should output
+        // .assertSuccessWithOutputLines("Feature1I.foo()", "Feature2I.foo()");
+        .assertSuccessWithOutput("");
   }
 
   @Test
-  public void testR8OnlyFeature2() throws Exception {
+  public void testR8NotFound() throws Exception {
     Path base = temp.newFile("base.zip").toPath();
     Path feature1Path = temp.newFile("feature1.zip").toPath();
     Path feature2Path = temp.newFile("feature2.zip").toPath();
@@ -238,8 +193,9 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
         .writeToZip(base)
         .addRunClasspathFiles(feature2Path)
         .run(parameters.getRuntime(), Base.class)
-        // TODO(b/160889305): This should work.
-        .assertFailureWithErrorThatMatches(containsString("java.lang.ClassNotFoundException"));
+        // TODO(b/157426812): Should output
+        // .assertSuccessWithOutputLines("Feature2I.foo()");
+        .assertSuccessWithOutput("");
   }
 
   public interface I {
