@@ -11,11 +11,13 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,6 +79,19 @@ public class KotlinMetadataRewriter {
           }
         },
         executorService);
+    assert verifyMetadataOnlyPresentOnKeptClasses();
+  }
+
+  private boolean verifyMetadataOnlyPresentOnKeptClasses() {
+    if (!appView.appInfo().hasLiveness()) {
+      return true;
+    }
+    AppInfoWithLiveness appInfoWithLiveness = appView.withLiveness().appInfo();
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      DexAnnotation meta = clazz.annotations().getFirstMatching(factory.kotlinMetadataType);
+      assert meta == null || appInfoWithLiveness.isPinned(clazz.type);
+    }
+    return true;
   }
 
   private DexAnnotation createKotlinMetadataAnnotation(
