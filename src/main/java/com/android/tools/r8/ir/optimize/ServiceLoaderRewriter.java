@@ -132,6 +132,11 @@ public class ServiceLoaderRewriter {
         continue;
       }
 
+      // Check that we are not service loading anything from a feature into base.
+      if (appView.appServices().hasServiceImplementationsInFeature(constClass.getValue())) {
+        continue;
+      }
+
       // Check that ClassLoader used is the ClassLoader defined for the the service configuration
       // that we are instantiating or NULL.
       InvokeVirtual classLoaderInvoke =
