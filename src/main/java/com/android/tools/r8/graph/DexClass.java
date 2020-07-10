@@ -542,8 +542,10 @@ public abstract class DexClass extends DexDefinition {
     return false;
   }
 
-  public synchronized DexEncodedMethod getClassInitializer() {
-    return methodCollection.getClassInitializer();
+  public DexEncodedMethod getClassInitializer() {
+    DexEncodedMethod classInitializer = methodCollection.getClassInitializer();
+    assert classInitializer != DexEncodedMethod.SENTINEL;
+    return classInitializer;
   }
 
   public Origin getOrigin() {

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
@@ -50,7 +51,11 @@ class CallGraphTestBase extends TestBase {
         new ProgramMethod(
             clazz,
             new DexEncodedMethod(
-                signature, null, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), null));
+                signature,
+                MethodAccessFlags.fromDexAccessFlags(0),
+                DexAnnotationSet.empty(),
+                ParameterAnnotationsList.empty(),
+                null));
     return new Node(method);
   }
 

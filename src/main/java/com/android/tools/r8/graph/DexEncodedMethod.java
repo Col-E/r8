@@ -120,7 +120,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public static final DexEncodedMethod[] EMPTY_ARRAY = {};
   public static final DexEncodedMethod SENTINEL =
       new DexEncodedMethod(
-          null, null, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), null);
+          null,
+          MethodAccessFlags.fromDexAccessFlags(0),
+          DexAnnotationSet.empty(),
+          ParameterAnnotationsList.empty(),
+          null);
   public static final Int2ReferenceMap<DebugLocalInfo> NO_PARAMETER_INFO =
       new Int2ReferenceArrayMap<>(0);
 
@@ -247,6 +251,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this.code = code;
     this.classFileVersion = classFileVersion;
     this.d8R8Synthesized = d8R8Synthesized;
+    assert accessFlags != null;
     assert code == null || !shouldNotHaveCode();
     assert parameterAnnotationsList != null;
   }

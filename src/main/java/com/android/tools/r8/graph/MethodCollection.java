@@ -178,7 +178,7 @@ public class MethodCollection {
     cachedClassInitializer = DexEncodedMethod.SENTINEL;
   }
 
-  public DexEncodedMethod getClassInitializer() {
+  public synchronized DexEncodedMethod getClassInitializer() {
     if (cachedClassInitializer == DexEncodedMethod.SENTINEL) {
       cachedClassInitializer = null;
       for (DexEncodedMethod directMethod : directMethods()) {
