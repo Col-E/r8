@@ -192,6 +192,7 @@ public class MethodOptimizationInfoCollector {
     List<Pair<Invoke.Type, DexMethod>> callsReceiver = new ArrayList<>();
     boolean seenSuperInitCall = false;
     boolean seenMonitor = false;
+    boolean modifiesInstanceFields = false;
 
     AliasedValueConfiguration configuration =
         AssumeAndCheckCastAliasedValueConfiguration.getInstance();
@@ -220,6 +221,7 @@ public class MethodOptimizationInfoCollector {
               if (isReceiverAlias.test(instancePutInstruction.value())) {
                 return;
               }
+              modifiesInstanceFields = true;
             }
             DexField field = insn.asFieldInstruction().getField();
             if (appView.appInfo().resolveField(field).isFailedOrUnknownResolution()) {
@@ -293,7 +295,8 @@ public class MethodOptimizationInfoCollector {
         new ClassInlinerEligibilityInfo(
             callsReceiver,
             new ClassInlinerReceiverAnalysis(appView, definition, code).computeReturnsReceiver(),
-            seenMonitor || synchronizedVirtualMethod));
+            seenMonitor || synchronizedVirtualMethod,
+            modifiesInstanceFields));
   }
 
   private void identifyParameterUsages(
