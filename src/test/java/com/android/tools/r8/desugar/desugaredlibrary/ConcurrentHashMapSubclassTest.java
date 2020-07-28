@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,9 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class ConcurrentHashMapSubclassTest extends DesugaredLibraryTestBase {
+
+  private static final String EXPECTED_RESULT =
+      StringUtils.lines("1.0", "2.0", "10.0", "1.0", "2.0", "10.0", "1.0", "2.0", "10.0");
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
@@ -46,7 +50,7 @@ public class ConcurrentHashMapSubclassTest extends DesugaredLibraryTestBase {
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutputLines("1.0", "10.0", "1.0", "10.0", "1.0", "10.0");
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   @Test
@@ -64,7 +68,7 @@ public class ConcurrentHashMapSubclassTest extends DesugaredLibraryTestBase {
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutputLines("1.0", "10.0", "1.0", "10.0", "1.0", "10.0");
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   @SuppressWarnings("unchecked")
@@ -78,24 +82,33 @@ public class ConcurrentHashMapSubclassTest extends DesugaredLibraryTestBase {
     static void itfType() {
       Map map = new NullableConcurrentHashMap<Integer, Double>();
       map.put(1, 1.0);
+      map.putIfAbsent(2, 2.0);
+      map.putIfAbsent(2, 3.0);
       map.putAll(example());
       System.out.println(map.get(1));
+      System.out.println(map.get(2));
       System.out.println(map.get(10));
     }
 
     static void classType() {
       ConcurrentHashMap map = new NullableConcurrentHashMap<Integer, Double>();
       map.put(1, 1.0);
+      map.putIfAbsent(2, 2.0);
+      map.putIfAbsent(2, 3.0);
       map.putAll(example());
       System.out.println(map.get(1));
+      System.out.println(map.get(2));
       System.out.println(map.get(10));
     }
 
     static void directType() {
       NullableConcurrentHashMap map = new NullableConcurrentHashMap<Integer, Double>();
       map.put(1, 1.0);
+      map.putIfAbsent(2, 2.0);
+      map.putIfAbsent(2, 3.0);
       map.putAll(example());
       System.out.println(map.get(1));
+      System.out.println(map.get(2));
       System.out.println(map.get(10));
     }
 
