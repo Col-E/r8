@@ -920,7 +920,7 @@ public final class InterfaceMethodRewriter {
   private void duplicateEmulatedInterfaces() {
     // All classes implementing an emulated interface now implements the interface and the
     // emulated one, as well as hidden overrides, for correct emulated dispatch.
-    for (DexClass clazz : appView.appInfo().classes()) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (clazz.type == appView.dexItemFactory().objectType) {
         continue;
       }
@@ -940,17 +940,11 @@ public final class InterfaceMethodRewriter {
           }
         }
         // Remove duplicates.
-        extraInterfaces = new ArrayList<>(new LinkedHashSet<>(extraInterfaces));
-      }
-      if (!extraInterfaces.isEmpty()) {
-        DexType[] newInterfaces =
-            Arrays.copyOf(
-                clazz.interfaces.values, clazz.interfaces.size() + extraInterfaces.size());
-        for (int i = clazz.interfaces.size(); i < newInterfaces.length; i++) {
-          newInterfaces[i] = extraInterfaces.get(i - clazz.interfaces.size());
+        if (extraInterfaces.size() > 1) {
+          extraInterfaces = new ArrayList<>(new LinkedHashSet<>(extraInterfaces));
         }
-        clazz.interfaces = new DexTypeList(newInterfaces);
       }
+      clazz.addExtraInterfaces(extraInterfaces, appView.dexItemFactory());
     }
   }
 

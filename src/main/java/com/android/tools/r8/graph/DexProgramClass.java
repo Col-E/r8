@@ -230,8 +230,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
+  public void collectIndexedItems(
+      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
     if (indexedItems.addClass(this)) {
       type.collectIndexedItems(indexedItems, method, instructionOffset);
       if (superType != null) {
@@ -260,8 +260,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     }
   }
 
-  private static <T extends DexItem> void synchronizedCollectAll(IndexedItemCollection collection,
-      T[] items) {
+  private static <T extends DexItem> void synchronizedCollectAll(
+      IndexedItemCollection collection, T[] items) {
     synchronized (items) {
       collectAll(collection, items);
     }
@@ -445,6 +445,50 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
   public void addDirectMethod(DexEncodedMethod directMethod) {
     methodCollection.addDirectMethod(directMethod);
+  }
+
+  public void addExtraInterfaces(List<DexType> extraInterfaces, DexItemFactory factory) {
+    if (extraInterfaces.isEmpty()) {
+      return;
+    }
+    addExtraInterfacesToInterfacesArray(extraInterfaces);
+    addExtraInterfacesToSignatureAnnotationIfPresent(extraInterfaces, factory);
+  }
+
+  private void addExtraInterfacesToInterfacesArray(List<DexType> extraInterfaces) {
+    DexType[] newInterfaces =
+        Arrays.copyOf(interfaces.values, interfaces.size() + extraInterfaces.size());
+    for (int i = interfaces.size(); i < newInterfaces.length; i++) {
+      newInterfaces[i] = extraInterfaces.get(i - interfaces.size());
+    }
+    interfaces = new DexTypeList(newInterfaces);
+  }
+
+  private void addExtraInterfacesToSignatureAnnotationIfPresent(
+      List<DexType> extraInterfaces, DexItemFactory factory) {
+    // We need to introduce in the dalvik.annotation.Signature annotation the extra interfaces.
+    // At this point we cheat and pretend the extraInterfaces simply don't use any generic types.
+    DexAnnotation[] annotations = annotations().annotations;
+    for (int i = 0; i < annotations.length; i++) {
+      DexAnnotation annotation = annotations[i];
+      if (DexAnnotation.isSignatureAnnotation(annotation, factory)) {
+        DexAnnotation[] rewrittenAnnotations = annotations.clone();
+        rewrittenAnnotations[i] = rewriteSignatureAnnotation(annotation, extraInterfaces, factory);
+        setAnnotations(new DexAnnotationSet(rewrittenAnnotations));
+        // There is at most one signature annotation, so we can return here.
+        return;
+      }
+    }
+  }
+
+  private DexAnnotation rewriteSignatureAnnotation(
+      DexAnnotation annotation, List<DexType> extraInterfaces, DexItemFactory factory) {
+    String signature = DexAnnotation.getSignature(annotation);
+    StringBuilder newSignatureBuilder = new StringBuilder(signature);
+    for (DexType extraInterface : extraInterfaces) {
+      newSignatureBuilder.append(extraInterface.descriptor.toString());
+    }
+    return DexAnnotation.createSignatureAnnotation(newSignatureBuilder.toString(), factory);
   }
 
   @Override
