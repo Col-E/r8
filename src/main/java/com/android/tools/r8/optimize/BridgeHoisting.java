@@ -305,55 +305,66 @@ public class BridgeHoisting {
 
   private CfCode createCfCodeForVirtualBridge(CfCode code, DexMethod methodToInvoke) {
     List<CfInstruction> newInstructions = new ArrayList<>();
+    boolean modified = false;
     for (CfInstruction instruction : code.getInstructions()) {
-      if (instruction.isInvoke()) {
+      if (instruction.isInvoke() && instruction.asInvoke().getMethod() != methodToInvoke) {
         CfInvoke invoke = instruction.asInvoke();
         assert invoke.isInvokeVirtual();
         assert !invoke.isInterface();
         assert invoke.getMethod().match(methodToInvoke);
         newInstructions.add(new CfInvoke(invoke.getOpcode(), methodToInvoke, false));
+        modified = true;
       } else {
         newInstructions.add(instruction);
       }
     }
-    return new CfCode(
-        methodToInvoke.holder,
-        code.getMaxStack(),
-        code.getMaxLocals(),
-        newInstructions,
-        code.getTryCatchRanges(),
-        code.getLocalVariables());
+    return modified
+        ? new CfCode(
+            methodToInvoke.holder,
+            code.getMaxStack(),
+            code.getMaxLocals(),
+            newInstructions,
+            code.getTryCatchRanges(),
+            code.getLocalVariables())
+        : code;
   }
 
   private DexCode createDexCodeForVirtualBridge(DexCode code, DexMethod methodToInvoke) {
     Instruction[] newInstructions = new Instruction[code.instructions.length];
+    boolean modified = false;
     for (int i = 0; i < code.instructions.length; i++) {
       Instruction instruction = code.instructions[i];
-      if (instruction.isInvokeVirtual()) {
+      if (instruction.isInvokeVirtual()
+          && instruction.asInvokeVirtual().getMethod() != methodToInvoke) {
         InvokeVirtual invoke = instruction.asInvokeVirtual();
         InvokeVirtual newInvoke =
             new InvokeVirtual(
                 invoke.A, methodToInvoke, invoke.C, invoke.D, invoke.E, invoke.F, invoke.G);
         newInvoke.setOffset(invoke.getOffset());
         newInstructions[i] = newInvoke;
-      } else if (instruction.isInvokeVirtualRange()) {
+        modified = true;
+      } else if (instruction.isInvokeVirtualRange()
+          && instruction.asInvokeVirtualRange().getMethod() != methodToInvoke) {
         InvokeVirtualRange invoke = instruction.asInvokeVirtualRange();
         InvokeVirtualRange newInvoke =
             new InvokeVirtualRange(invoke.CCCC, invoke.AA, methodToInvoke);
         newInvoke.setOffset(invoke.getOffset());
+        modified = true;
         newInstructions[i] = newInvoke;
       } else {
         newInstructions[i] = instruction;
       }
     }
-    return new DexCode(
-        code.registerSize,
-        code.incomingRegisterSize,
-        code.outgoingRegisterSize,
-        newInstructions,
-        code.tries,
-        code.handlers,
-        code.getDebugInfo());
+    return modified
+        ? new DexCode(
+            code.registerSize,
+            code.incomingRegisterSize,
+            code.outgoingRegisterSize,
+            newInstructions,
+            code.tries,
+            code.handlers,
+            code.getDebugInfo())
+        : code;
   }
 
   static class BridgeHoistingLens extends NestedGraphLense {
