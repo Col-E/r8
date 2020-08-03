@@ -208,6 +208,10 @@ def run(args, otherargs):
       if not os.path.exists(temp):
         os.makedirs(temp)
     dump = read_dump(args, temp)
+    if not dump.program_jar():
+      error("Cannot compile dump with no program classes")
+    if not dump.library_jar():
+      print "WARNING: Unexpected lack of library classes in dump"
     build_properties = determine_build_properties(args, dump)
     version = determine_version(args, dump)
     compiler = determine_compiler(args, dump)
