@@ -9,6 +9,7 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeVirtual;
+import com.android.tools.r8.code.InvokeVirtualRange;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.BottomUpClassHierarchyTraversal;
@@ -333,6 +334,12 @@ public class BridgeHoisting {
         InvokeVirtual newInvoke =
             new InvokeVirtual(
                 invoke.A, methodToInvoke, invoke.C, invoke.D, invoke.E, invoke.F, invoke.G);
+        newInvoke.setOffset(invoke.getOffset());
+        newInstructions[i] = newInvoke;
+      } else if (instruction.isInvokeVirtualRange()) {
+        InvokeVirtualRange invoke = instruction.asInvokeVirtualRange();
+        InvokeVirtualRange newInvoke =
+            new InvokeVirtualRange(invoke.CCCC, invoke.AA, methodToInvoke);
         newInvoke.setOffset(invoke.getOffset());
         newInstructions[i] = newInvoke;
       } else {

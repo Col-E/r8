@@ -39,6 +39,16 @@ public class InvokeVirtualRange extends Format3rc {
   }
 
   @Override
+  public boolean isInvokeVirtualRange() {
+    return true;
+  }
+
+  @Override
+  public InvokeVirtualRange asInvokeVirtualRange() {
+    return this;
+  }
+
+  @Override
   public void registerUse(UseRegistry registry) {
     registry.registerInvokeVirtual(getMethod());
   }

@@ -183,6 +183,14 @@ public abstract class Instruction {
     return null;
   }
 
+  public boolean isInvokeVirtualRange() {
+    return false;
+  }
+
+  public InvokeVirtualRange asInvokeVirtualRange() {
+    return null;
+  }
+
   public boolean isSimpleNop() {
     return !isPayload() && this instanceof Nop;
   }

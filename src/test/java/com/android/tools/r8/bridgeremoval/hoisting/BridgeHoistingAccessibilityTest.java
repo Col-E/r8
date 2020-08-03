@@ -13,7 +13,9 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.bridgeremoval.hoisting.testclasses.BridgeHoistingAccessibilityTestClasses;
+import com.android.tools.r8.bridgeremoval.hoisting.testclasses.BridgeHoistingAccessibilityTestClasses.AWithRangedInvoke;
 import com.android.tools.r8.bridgeremoval.hoisting.testclasses.BridgeHoistingAccessibilityTestClasses.User;
+import com.android.tools.r8.bridgeremoval.hoisting.testclasses.BridgeHoistingAccessibilityTestClasses.UserWithRangedInvoke;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
@@ -45,6 +47,28 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
                 .transform(),
             transformer(C.class)
                 .setBridge(C.class.getDeclaredMethod("bridgeC", Object.class))
+                .transform(),
+            transformer(BWithRangedInvoke.class)
+                .setBridge(
+                    BWithRangedInvoke.class.getDeclaredMethod(
+                        "bridgeB",
+                        Object.class,
+                        int.class,
+                        int.class,
+                        int.class,
+                        int.class,
+                        int.class))
+                .transform(),
+            transformer(CWithRangedInvoke.class)
+                .setBridge(
+                    CWithRangedInvoke.class.getDeclaredMethod(
+                        "bridgeC",
+                        Object.class,
+                        int.class,
+                        int.class,
+                        int.class,
+                        int.class,
+                        int.class))
                 .transform())
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
@@ -54,7 +78,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello world!");
+        .assertSuccessWithOutputLines("Hello world!", "Hello 12345 world! 12345");
   }
 
   private void inspect(CodeInspector inspector) {
@@ -69,6 +93,11 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
 
     ClassSubject cClassSubject = inspector.clazz(C.class);
     assertThat(cClassSubject, isPresent());
+
+    ClassSubject axClassSubject = inspector.clazz(AWithRangedInvoke.class);
+    assertThat(axClassSubject, isPresent());
+    assertThat(axClassSubject.uniqueMethodWithName("m"), isPresent());
+    assertThat(axClassSubject.uniqueMethodWithName("bridgeC"), isPresent());
   }
 
   static class TestClass {
@@ -77,6 +106,10 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
       C instance = new C();
       System.out.print(instance.bridgeB("Hello"));
       System.out.println(User.invokeBridgeC(instance));
+
+      CWithRangedInvoke instanceWithRangedInvoke = new CWithRangedInvoke();
+      System.out.print(instanceWithRangedInvoke.bridgeB("Hello ", 1, 2, 3, 4, 5));
+      System.out.println(UserWithRangedInvoke.invokeBridgeC(instanceWithRangedInvoke));
     }
   }
 
@@ -100,6 +133,29 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
     @NeverInline
     public /*bridge*/ String bridgeC(Object o) {
       return (String) m((String) o);
+    }
+  }
+
+  @NeverMerge
+  static class BWithRangedInvoke extends AWithRangedInvoke {
+
+    // This bridge cannot be hoisted to A, since it would then become inaccessible to the call site
+    // in TestClass.main().
+    @NeverInline
+    /*bridge*/ String bridgeB(Object o, int a, int b, int c, int d, int e) {
+      return (String) m((String) o, a, b, c, d, e);
+    }
+  }
+
+  @NeverClassInline
+  public static class CWithRangedInvoke extends BWithRangedInvoke {
+
+    // This bridge is invoked from another package. However, this does not prevent us from hoisting
+    // the bridge to B, although B is not public, since users from outside this package can still
+    // access bridgeC() via class C. From B, the bridge can be hoisted again to A.
+    @NeverInline
+    public /*bridge*/ String bridgeC(Object o, int a, int b, int c, int d, int e) {
+      return (String) m((String) o, a, b, c, d, e);
     }
   }
 }
