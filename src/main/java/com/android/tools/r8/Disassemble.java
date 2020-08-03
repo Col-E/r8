@@ -34,6 +34,7 @@ public class Disassemble {
       private Path proguardMapFile = null;
       private boolean useSmali = false;
       private boolean allInfo = false;
+      private boolean noCode = false;
       private boolean useIr;
 
       @Override
@@ -70,6 +71,11 @@ public class Disassemble {
         return this;
       }
 
+      public Builder setNoCode(boolean noCode) {
+        this.noCode = noCode;
+        return this;
+      }
+
       @Override
       protected DisassembleCommand makeCommand() {
         // If printing versions ignore everything else.
@@ -82,7 +88,8 @@ public class Disassemble {
             proguardMapFile == null ? null : StringResource.fromFile(proguardMapFile),
             allInfo,
             useSmali,
-            useIr);
+            useIr,
+            noCode);
       }
     }
 
@@ -93,6 +100,7 @@ public class Disassemble {
             + "  --all                       # Include all information in disassembly.\n"
             + "  --smali                     # Disassemble using smali syntax.\n"
             + "  --ir                        # Print IR before and after optimization.\n"
+            + "  --nocode                    # No printing of code objects.\n"
             + "  --pg-map <file>             # Proguard map <file> for mapping names.\n"
             + "  --pg-map-charset <charset>  # Charset for Proguard map file.\n"
             + "  --output                    # Specify a file or directory to write to.\n"
@@ -102,6 +110,7 @@ public class Disassemble {
     private final boolean allInfo;
     private final boolean useSmali;
     private final boolean useIr;
+    private final boolean noCode;
 
     public static Builder builder() {
       return new Builder();
@@ -128,6 +137,8 @@ public class Disassemble {
           builder.setUseSmali(true);
         } else if (arg.equals("--ir")) {
           builder.setUseIr(true);
+        } else if (arg.equals("--nocode")) {
+          builder.setNoCode(true);
         } else if (arg.equals("--pg-map")) {
           builder.setProguardMapFile(Paths.get(args[++i]));
         } else if (arg.equals("--pg-map-charset")) {
@@ -161,13 +172,15 @@ public class Disassemble {
         StringResource proguardMap,
         boolean allInfo,
         boolean useSmali,
-        boolean useIr) {
+        boolean useIr,
+        boolean noCode) {
       super(inputApp);
       this.outputPath = outputPath;
       this.proguardMap = proguardMap;
       this.allInfo = allInfo;
       this.useSmali = useSmali;
       this.useIr = useIr;
+      this.noCode = noCode;
     }
 
     private DisassembleCommand(boolean printHelp, boolean printVersion) {
@@ -177,6 +190,7 @@ public class Disassemble {
       allInfo = false;
       useSmali = false;
       useIr = false;
+      noCode = false;
     }
 
     public Path getOutputPath() {
@@ -189,6 +203,10 @@ public class Disassemble {
 
     public boolean useIr() {
       return useIr;
+    }
+
+    public boolean noCode() {
+      return noCode;
     }
 
     @Override
@@ -226,7 +244,8 @@ public class Disassemble {
       DexByteCodeWriter writer =
           command.useSmali()
               ? new SmaliWriter(application, options)
-              : new AssemblyWriter(application, options, command.allInfo, command.useIr());
+              : new AssemblyWriter(
+                  application, options, command.allInfo, command.useIr(), !command.noCode());
       if (command.getOutputPath() != null) {
         writer.write(command.getOutputPath());
       } else {

@@ -2129,7 +2129,7 @@ public class ToolHelper {
       throws IOException, ExecutionException {
     DexApplication application =
         new ApplicationReader(app, new InternalOptions(), Timing.empty()).read().toDirect();
-    new AssemblyWriter(application, new InternalOptions(), true, false).write(ps);
+    new AssemblyWriter(application, new InternalOptions(), true, false, true).write(ps);
   }
 
   public static Path getTestFolderForClass(Class<?> clazz) {

@@ -30,17 +30,23 @@ public class AssemblyWriter extends DexByteCodeWriter {
   private final boolean writeFields;
   private final boolean writeAnnotations;
   private final boolean writeIR;
+  private final boolean writeCode;
   private final AppInfoWithClassHierarchy appInfo;
   private final Kotlin kotlin;
   private final Timing timing = new Timing("AssemblyWriter");
 
   public AssemblyWriter(
-      DexApplication application, InternalOptions options, boolean allInfo, boolean writeIR) {
+      DexApplication application,
+      InternalOptions options,
+      boolean allInfo,
+      boolean writeIR,
+      boolean writeCode) {
     super(application, options);
     this.writeAllClassInfo = allInfo;
     this.writeFields = allInfo;
     this.writeAnnotations = allInfo;
     this.writeIR = writeIR;
+    this.writeCode = writeCode;
     if (writeIR) {
       this.appInfo = new AppInfoWithClassHierarchy(application.toDirect());
       if (options.programConsumer == null) {
@@ -128,6 +134,9 @@ public class AssemblyWriter extends DexByteCodeWriter {
     ps.println("# " + definition.accessFlags);
     ps.println("#");
     ps.println();
+    if (!writeCode) {
+      return;
+    }
     Code code = definition.getCode();
     if (code != null) {
       if (writeIR) {
