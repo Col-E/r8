@@ -467,6 +467,8 @@ public class FileWriter {
   }
 
   private void writeClassDefItem(DexProgramClass clazz) {
+    desugaredLibraryCodeToKeep.recordHierarchyOf(clazz);
+
     dest.putInt(mapping.getOffsetFor(clazz.type));
     dest.putInt(clazz.accessFlags.getAsDexAccessFlags());
     dest.putInt(
@@ -659,10 +661,6 @@ public class FileWriter {
 
   private void writeClassData(DexProgramClass clazz) {
     assert clazz.hasMethodsOrFields();
-    desugaredLibraryCodeToKeep.recordClassAllAccesses(clazz.superType);
-    for (DexType itf : clazz.interfaces.values) {
-      desugaredLibraryCodeToKeep.recordClassAllAccesses(itf);
-    }
     mixedSectionOffsets.setOffsetFor(clazz, dest.position());
     dest.putUleb128(clazz.staticFields().size());
     dest.putUleb128(clazz.instanceFields().size());
