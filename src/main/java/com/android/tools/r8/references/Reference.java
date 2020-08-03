@@ -60,7 +60,11 @@ public final class Reference {
 
   private static Reference getInstance() {
     if (instance == null) {
-      instance = new Reference();
+      synchronized (Reference.class) {
+        if (instance == null) {
+          instance = new Reference();
+        }
+      }
     }
     return instance;
   }
