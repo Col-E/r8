@@ -135,6 +135,20 @@ public class ServiceLoaderRewritingTest extends TestBase {
     }
   }
 
+  public static class LoadWhereClassLoaderIsPhi {
+
+    public static void main(String[] args) {
+      ServiceLoader.load(
+              Service.class,
+              System.currentTimeMillis() > 0
+                  ? Thread.currentThread().getContextClassLoader()
+                  : null)
+          .iterator()
+          .next()
+          .print();
+    }
+  }
+
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
@@ -207,7 +221,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ServiceLoaderRewritingTest.class)
         .addKeepMainRule(MainWithTryCatchRunner.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .addDataEntryResources(
             DataEntryResource.fromBytes(
                 StringUtils.lines(ServiceImpl.class.getTypeName(), ServiceImpl2.class.getTypeName())
@@ -267,7 +281,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
             .addInnerClasses(ServiceLoaderRewritingTest.class)
             .addKeepMainRule(EscapingRunner.class)
             .enableInliningAnnotations()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .noMinification()
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
@@ -282,6 +296,37 @@ public class ServiceLoaderRewritingTest extends TestBase {
 
     // Check that we have not rewritten the calls to ServiceLoader.load.
     assertEquals(3, getServiceLoaderLoads(inspector, EscapingRunner.class));
+
+    // Check that we have not removed the service configuration from META-INF/services.
+    ZipFile zip = new ZipFile(path.toFile());
+    ClassSubject serviceImpl = inspector.clazz(ServiceImpl.class);
+    assertTrue(serviceImpl.isPresent());
+    assertNotNull(zip.getEntry("META-INF/services/" + serviceImpl.getFinalName()));
+  }
+
+  @Test
+  public void testDoNoRewriteWhenClassLoaderIsPhi()
+      throws IOException, CompilationFailedException, ExecutionException {
+    Path path = temp.newFile("out.zip").toPath();
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addInnerClasses(ServiceLoaderRewritingTest.class)
+            .addKeepMainRule(LoadWhereClassLoaderIsPhi.class)
+            .enableInliningAnnotations()
+            .setMinApi(parameters.getApiLevel())
+            .addDataEntryResources(
+                DataEntryResource.fromBytes(
+                    StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
+                    "META-INF/services/" + Service.class.getTypeName(),
+                    Origin.unknown()))
+            .compile()
+            .writeToZip(path)
+            .run(parameters.getRuntime(), LoadWhereClassLoaderIsPhi.class)
+            .assertSuccessWithOutputLines("Hello World!")
+            .inspector();
+
+    // Check that we have not rewritten the calls to ServiceLoader.load.
+    assertEquals(1, getServiceLoaderLoads(inspector, LoadWhereClassLoaderIsPhi.class));
 
     // Check that we have not removed the service configuration from META-INF/services.
     ZipFile zip = new ZipFile(path.toFile());
