@@ -4,9 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
-import static org.junit.Assert.fail;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -31,17 +29,14 @@ public class StatefulSingletonClassInliningWithStaticEscapeTest extends TestBase
 
   @Test
   public void test() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addInnerClasses(StatefulSingletonClassInliningWithStaticEscapeTest.class)
-          .addKeepMainRule(TestClass.class)
-          .enableInliningAnnotations()
-          .setMinApi(parameters.getApiLevel())
-          .compile();
-      fail();
-    } catch (CompilationFailedException e) {
-      // TODO(b/160942326): Fix class inliner.
-    }
+    testForR8(parameters.getBackend())
+        .addInnerClasses(StatefulSingletonClassInliningWithStaticEscapeTest.class)
+        .addKeepMainRule(TestClass.class)
+        .enableInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutputLines("true");
   }
 
   static class TestClass {

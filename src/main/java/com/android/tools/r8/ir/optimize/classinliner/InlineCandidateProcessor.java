@@ -1222,8 +1222,9 @@ final class InlineCandidateProcessor {
 
     if (root.isStaticGet()) {
       // If we are class inlining a singleton instance from a static-get, then we don't know
-      // the value of the fields.
-      if (parameterUsage.hasFieldRead) {
+      // the value of the fields, and we also can't optimize away instance-field assignments, as
+      // they have global side effects.
+      if (parameterUsage.hasFieldAssignment || parameterUsage.hasFieldRead) {
         return false;
       }
     }
