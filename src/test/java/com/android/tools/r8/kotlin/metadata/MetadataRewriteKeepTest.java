@@ -6,12 +6,10 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.kotlin.KotlinClassMetadataReader.MetadataError;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -57,11 +55,7 @@ public class MetadataRewriteKeepTest extends KotlinMetadataTestBase {
         .addKeepRules("-if class *", "-keep class kotlin.Metadata { *; }")
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .compile()
-        .inspect(
-            codeInspector -> {
-              // TODO(b/162900580): This should be kept or the test refined.
-              assertThrows(MetadataError.class, () -> inspect(codeInspector));
-            });
+        .inspect(this::inspect);
   }
 
   private void inspect(CodeInspector inspector) {

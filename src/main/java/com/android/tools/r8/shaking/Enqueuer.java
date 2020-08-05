@@ -2007,6 +2007,12 @@ public class Enqueuer {
         clazz, context, instantiationReason, keepReason, appInfo);
   }
 
+  void markAnnotationAsInstantiated(DexProgramClass clazz, KeepReasonWitness witness) {
+    assert clazz.isAnnotation();
+    markTypeAsLive(clazz, witness);
+    transitionDependentItemsForInstantiatedInterface(clazz);
+  }
+
   void markInterfaceAsInstantiated(DexProgramClass clazz, KeepReasonWitness witness) {
     assert !clazz.isAnnotation();
     assert clazz.isInterface();

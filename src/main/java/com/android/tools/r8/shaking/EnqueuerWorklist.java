@@ -101,7 +101,7 @@ public class EnqueuerWorklist {
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.markTypeAsLive(target, reason);
+      enqueuer.markAnnotationAsInstantiated(target, reason);
     }
   }
 

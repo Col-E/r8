@@ -5,7 +5,6 @@
 package com.android.tools.r8.shaking.ifrule;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -57,16 +56,14 @@ public class IfRuleWithKeepAllTest extends TestBase {
               assertThat(codeInspector.clazz(DirectlyKept.class), isPresent());
               final ClassSubject keptByIf = codeInspector.clazz(KeptByIf.class);
               assertThat(keptByIf, isPresent());
-              // TODO(b/162900580): key() should have been kept.
-              assertEquals(0, keptByIf.allMethods().size());
+              assertEquals(1, keptByIf.allMethods().size());
             })
         .addRunClasspathFiles(buildOnDexRuntime(parameters, Main.class))
-        .run(parameters.getRuntime(), Main.class, KeptByIf.class.getTypeName())
-        // TODO(b/162900580): Should succeed with "Hello World!"
-        .assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello World!");
   }
 
-  @KeptByIf
+  @KeptByIf()
   public static class DirectlyKept {
     final int foo = 42;
   }
