@@ -9,8 +9,10 @@ import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
@@ -24,6 +26,36 @@ import java.util.concurrent.ExecutorService;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 
 public class KotlinMetadataRewriter {
+
+  private static final class WriteMetadataFieldInfo {
+    final boolean writeKind;
+    final boolean writeMetadataVersion;
+    final boolean writeByteCodeVersion;
+    final boolean writeData1;
+    final boolean writeData2;
+    final boolean writeExtraString;
+    final boolean writePackageName;
+    final boolean writeExtraInt;
+
+    public WriteMetadataFieldInfo(
+        boolean writeKind,
+        boolean writeMetadataVersion,
+        boolean writeByteCodeVersion,
+        boolean writeData1,
+        boolean writeData2,
+        boolean writeExtraString,
+        boolean writePackageName,
+        boolean writeExtraInt) {
+      this.writeKind = writeKind;
+      this.writeMetadataVersion = writeMetadataVersion;
+      this.writeByteCodeVersion = writeByteCodeVersion;
+      this.writeData1 = writeData1;
+      this.writeData2 = writeData2;
+      this.writeExtraString = writeExtraString;
+      this.writePackageName = writePackageName;
+      this.writeExtraInt = writeExtraInt;
+    }
+  }
 
   private final AppView<?> appView;
   private final NamingLens lens;
@@ -42,6 +74,18 @@ public class KotlinMetadataRewriter {
   }
 
   public void run(ExecutorService executorService) throws ExecutionException {
+    final DexClass kotlinMetadata =
+        appView.definitionFor(appView.dexItemFactory().kotlinMetadataType);
+    final WriteMetadataFieldInfo writeMetadataFieldInfo =
+        new WriteMetadataFieldInfo(
+            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.kind),
+            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.metadataVersion),
+            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.bytecodeVersion),
+            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.data1),
+            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.data2),
+            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.extraString),
+            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.packageName),
+            kotlinMetadataFieldExists(kotlinMetadata, appView, kotlin.metadata.extraInt));
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> {
@@ -66,7 +110,8 @@ public class KotlinMetadataRewriter {
           try {
             KotlinClassHeader kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
             DexAnnotation newMeta =
-                createKotlinMetadataAnnotation(kotlinClassHeader, kotlinInfo.getPackageName());
+                createKotlinMetadataAnnotation(
+                    kotlinClassHeader, kotlinInfo.getPackageName(), writeMetadataFieldInfo);
             clazz.setAnnotations(
                 clazz.annotations().rewrite(anno -> anno == oldMeta ? newMeta : anno));
           } catch (Throwable t) {
@@ -79,33 +124,54 @@ public class KotlinMetadataRewriter {
         executorService);
   }
 
+  private boolean kotlinMetadataFieldExists(
+      DexClass kotlinMetadata, AppView<?> appView, DexString fieldName) {
+    if (!appView.appInfo().hasLiveness()) {
+      return true;
+    }
+    if (kotlinMetadata == null || kotlinMetadata.isNotProgramClass()) {
+      return true;
+    }
+    return kotlinMetadata.methods(method -> method.method.name == fieldName).iterator().hasNext();
+  }
+
   private DexAnnotation createKotlinMetadataAnnotation(
-      KotlinClassHeader header, String packageName) {
+      KotlinClassHeader header, String packageName, WriteMetadataFieldInfo writeMetadataFieldInfo) {
     List<DexAnnotationElement> elements = new ArrayList<>();
-    elements.add(
-        new DexAnnotationElement(
-            kotlin.metadata.metadataVersion, createIntArray(header.getMetadataVersion())));
-    elements.add(
-        new DexAnnotationElement(
-            kotlin.metadata.bytecodeVersion, createIntArray(header.getBytecodeVersion())));
-    elements.add(
-        new DexAnnotationElement(kotlin.metadata.kind, DexValueInt.create(header.getKind())));
-    elements.add(
-        new DexAnnotationElement(kotlin.metadata.data1, createStringArray(header.getData1())));
-    elements.add(
-        new DexAnnotationElement(kotlin.metadata.data2, createStringArray(header.getData2())));
-    if (packageName != null && !packageName.isEmpty()) {
+    if (writeMetadataFieldInfo.writeMetadataVersion) {
+      elements.add(
+          new DexAnnotationElement(
+              kotlin.metadata.metadataVersion, createIntArray(header.getMetadataVersion())));
+    }
+    if (writeMetadataFieldInfo.writeByteCodeVersion) {
+      elements.add(
+          new DexAnnotationElement(
+              kotlin.metadata.bytecodeVersion, createIntArray(header.getBytecodeVersion())));
+    }
+    if (writeMetadataFieldInfo.writeKind) {
+      elements.add(
+          new DexAnnotationElement(kotlin.metadata.kind, DexValueInt.create(header.getKind())));
+    }
+    if (writeMetadataFieldInfo.writeData1) {
+      elements.add(
+          new DexAnnotationElement(kotlin.metadata.data1, createStringArray(header.getData1())));
+    }
+    if (writeMetadataFieldInfo.writeData2) {
+      elements.add(
+          new DexAnnotationElement(kotlin.metadata.data2, createStringArray(header.getData2())));
+    }
+    if (writeMetadataFieldInfo.writePackageName && packageName != null && !packageName.isEmpty()) {
       elements.add(
           new DexAnnotationElement(
               kotlin.metadata.packageName, new DexValueString(factory.createString(packageName))));
     }
-    if (!header.getExtraString().isEmpty()) {
+    if (writeMetadataFieldInfo.writeExtraString && !header.getExtraString().isEmpty()) {
       elements.add(
           new DexAnnotationElement(
               kotlin.metadata.extraString,
               new DexValueString(factory.createString(header.getExtraString()))));
     }
-    if (header.getExtraInt() != 0) {
+    if (writeMetadataFieldInfo.writeExtraInt && header.getExtraInt() != 0) {
       elements.add(
           new DexAnnotationElement(
               kotlin.metadata.extraInt, DexValueInt.create(header.getExtraInt())));

@@ -4,17 +4,15 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.kotlin.KotlinClassMetadataReader.MetadataError;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.util.Collection;
@@ -51,55 +49,19 @@ public class MetadataRewriteKeepTest extends KotlinMetadataTestBase {
   }
 
   @Test
-  public void testR8KeepPartial() throws Exception {
-    // This test is a bit weird, since it shows that we can remove params from the kotlin.Metadata
-    // class, but still be able to fully read the kotlin.Metadata.
-    testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .setMinApi(parameters.getApiLevel())
-        .addKeepRules("-keep class kotlin.Metadata { *** d1(); }")
-        .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-        .compile()
-        .inspect(
-            inspector -> {
-              inspect(inspector);
-              ClassSubject kotlinMetadataClass = inspector.clazz("kotlin.Metadata");
-              assertThat(kotlinMetadataClass, isPresent());
-              assertEquals(1, kotlinMetadataClass.allMethods().size());
-              assertNotNull(kotlinMetadataClass.getKmClass().getName());
-            });
-  }
-
-  @Test
-  public void testR8KeepPartialCooking() throws Exception {
-    // This test is a bit weird, since it shows that we can remove params from the kotlin.Metadata
-    // class, but still be able to fully read the kotlin.Metadata externally.
-    testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .setMinApi(parameters.getApiLevel())
-        .addKeepRules("-keep class kotlin.Metadata { *** d1(); }")
-        .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-        .compile()
-        .inspect(
-            inspector -> {
-              inspect(inspector);
-              ClassSubject kotlinMetadataClass = inspector.clazz("kotlin.Metadata");
-              assertThat(kotlinMetadataClass, isPresent());
-              assertEquals(1, kotlinMetadataClass.allMethods().size());
-              assertNotNull(kotlinMetadataClass.getKmClass().getName());
-            });
-  }
-
-  @Test
   public void testR8KeepIf() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(ToolHelper.getKotlinStdlibJar())
         .setMinApi(parameters.getApiLevel())
         .addKeepRules("-keep class kotlin.io.** { *; }")
-        .addKeepRules("-if class * { *** $VALUES; }", "-keep class kotlin.Metadata { *; }")
+        .addKeepRules("-if class *", "-keep class kotlin.Metadata { *; }")
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .compile()
-        .inspect(this::inspect);
+        .inspect(
+            codeInspector -> {
+              // TODO(b/162900580): This should be kept or the test refined.
+              assertThrows(MetadataError.class, () -> inspect(codeInspector));
+            });
   }
 
   private void inspect(CodeInspector inspector) {

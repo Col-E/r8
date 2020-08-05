@@ -6,15 +6,12 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.metadata.metadata_pruned_fields.Main;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -61,43 +58,28 @@ public class MetadataPrunedFieldsTest extends KotlinMetadataTestBase {
 
   @Test
   public void testR8() throws Exception {
-    final R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(libJars.get(targetVersion))
-            .addProgramClassFileData(Main.dump())
-            .addKeepRules("-keep class " + PKG + ".metadata_pruned_fields.MethodsKt { *; }")
-            .addKeepRules("-keep class kotlin.Metadata { *** pn(); }")
-            .addKeepMainRule(Main.class)
-            .allowDiagnosticWarningMessages()
-            .setMinApi(parameters.getApiLevel())
-            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .compile()
-            .inspect(
-                codeInspector -> {
-                  final ClassSubject clazz = codeInspector.clazz("kotlin.Metadata");
-                  assertThat(clazz, isPresent());
-                  assertThat(clazz.uniqueMethodWithName("pn"), isPresent());
-                  assertThat(clazz.uniqueMethodWithName("d1"), not(isPresent()));
-                  assertThat(clazz.uniqueMethodWithName("d2"), not(isPresent()));
-                  assertThat(clazz.uniqueMethodWithName("bv"), not(isPresent()));
-                })
-            .assertAllWarningMessagesMatch(
-                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
-            .run(parameters.getRuntime(), Main.class);
-    if (parameters.getRuntime().isCf()) {
-      runResult.assertSuccessWithOutputLines("", "Hello World!");
-      return;
-    }
-    final DexVm vm = parameters.getRuntime().asDex().getVm();
-    if (vm.isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
-      runResult.assertFailureWithErrorThatMatches(
-          containsString("java.lang.RuntimeException: failure in processEncodedAnnotation"));
-    } else if (vm.isOlderThanOrEqual(DexVm.ART_6_0_1_HOST)) {
-      runResult.assertFailureWithErrorThatMatches(
-          containsString("java.lang.IncompatibleClassChangeError: Couldn't find kotlin.Metadata."));
-    } else {
-      runResult.assertFailureWithErrorThatMatches(containsString("java.lang.NullPointerException"));
-    }
+    testForR8(parameters.getBackend())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(libJars.get(targetVersion))
+        .addProgramClassFileData(Main.dump())
+        .addKeepRules("-keep class " + PKG + ".metadata_pruned_fields.MethodsKt { *; }")
+        .addKeepRules("-keep class kotlin.Metadata { *** pn(); }")
+        .addKeepMainRule(Main.class)
+        .allowDiagnosticWarningMessages()
+        .setMinApi(parameters.getApiLevel())
+        .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .compile()
+        .inspect(
+            codeInspector -> {
+              final ClassSubject clazz = codeInspector.clazz("kotlin.Metadata");
+              assertThat(clazz, isPresent());
+              assertThat(clazz.uniqueMethodWithName("pn"), isPresent());
+              assertThat(clazz.uniqueMethodWithName("d1"), not(isPresent()));
+              assertThat(clazz.uniqueMethodWithName("d2"), not(isPresent()));
+              assertThat(clazz.uniqueMethodWithName("bv"), not(isPresent()));
+            })
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("", "Hello World!");
   }
 }

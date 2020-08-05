@@ -188,8 +188,8 @@ public final class KotlinClassMetadataReader {
     return v.asDexValueString().getValue().toString();
   }
 
-  private static class MetadataError extends RuntimeException {
-    MetadataError(String cause) {
+  public static class MetadataError extends RuntimeException {
+    private MetadataError(String cause) {
       super(cause);
     }
   }
