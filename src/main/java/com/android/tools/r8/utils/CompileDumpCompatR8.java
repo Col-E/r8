@@ -171,8 +171,10 @@ public class CompileDumpCompatR8 {
             .addClasspathFiles(classpath)
             .addProguardConfigurationFiles(config)
             .setOutput(outputPath, outputMode)
-            .setMode(compilationMode)
-            .setMinApiLevel(minApi);
+            .setMode(compilationMode);
+    if (outputMode != OutputMode.ClassFile) {
+      commandBuilder.setMinApiLevel(minApi);
+    }
     features.forEach(
         (in, out) ->
             commandBuilder.addFeatureSplit(
