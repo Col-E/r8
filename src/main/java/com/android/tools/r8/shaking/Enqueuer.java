@@ -2379,6 +2379,10 @@ public class Enqueuer {
     return liveFields.contains(field);
   }
 
+  public boolean isFieldLive(DexEncodedField field) {
+    return liveFields.contains(field);
+  }
+
   public boolean isFieldRead(ProgramField field) {
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.getReference());
     return info != null && info.isRead();

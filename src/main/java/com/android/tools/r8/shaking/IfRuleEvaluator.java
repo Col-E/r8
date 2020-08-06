@@ -228,7 +228,11 @@ public class IfRuleEvaluator {
         filteredMembers,
         targetClass.fields(
             f ->
-                (enqueuer.isFieldReferenced(f) || f.getOptimizationInfo().valueHasBeenPropagated())
+                // Fields referenced only by -keep may not be referenced, we therefore have to
+                // filter on both live and referenced.
+                (enqueuer.isFieldLive(f)
+                        || enqueuer.isFieldReferenced(f)
+                        || f.getOptimizationInfo().valueHasBeenPropagated())
                     && appView.graphLense().getOriginalFieldSignature(f.field).holder
                         == sourceClass.type));
     Iterables.addAll(
