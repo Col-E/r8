@@ -255,7 +255,7 @@ class ClassNameMinifier {
         InnerClassAttribute attribute = clazz.getInnerClassAttributeForThisClass();
         assert attribute != null;
         // Note that, to be consistent with the way inner-class attribute is written via minifier
-        // lense, we are using attribute's outer-class, not the live context.
+        // lens, we are using attribute's outer-class, not the live context.
         String separator =
             computeInnerClassSeparator(attribute.getOuter(), type, attribute.getInnerName());
         if (separator == null) {

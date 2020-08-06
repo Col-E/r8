@@ -23,8 +23,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.FieldResolutionResult;
-import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
@@ -337,10 +337,10 @@ public class EnumUnboxer implements PostOptimization {
     // Update keep info on any of the enum methods of the removed classes.
     updatePinnedItems(enumsToUnbox);
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox);
-    NestedGraphLense enumUnboxingLens = new TreeFixer(enumsToUnbox).fixupTypeReferences();
+    NestedGraphLens enumUnboxingLens = new TreeFixer(enumsToUnbox).fixupTypeReferences();
     appView.setUnboxedEnums(enumUnboxerRewriter.getEnumsToUnbox());
-    GraphLense previousLens = appView.graphLense();
-    appView.setGraphLense(enumUnboxingLens);
+    GraphLens previousLens = appView.graphLens();
+    appView.setGraphLens(enumUnboxingLens);
     appView.setAppInfo(
         appView.appInfo().rewrittenWithLens(appView.appInfo().app().asDirect(), enumUnboxingLens));
     // Update optimization info.
@@ -354,8 +354,8 @@ public class EnumUnboxer implements PostOptimization {
             if (optimizationInfo.isMutableFieldOptimizationInfo()) {
               optimizationInfo
                   .asMutableFieldOptimizationInfo()
-                  .fixupClassTypeReferences(appView.graphLense()::lookupType, appView)
-                  .fixupAbstractValue(appView, appView.graphLense());
+                  .fixupClassTypeReferences(appView.graphLens()::lookupType, appView)
+                  .fixupAbstractValue(appView, appView.graphLens());
             } else {
               assert optimizationInfo.isDefaultFieldOptimizationInfo();
             }
@@ -367,9 +367,9 @@ public class EnumUnboxer implements PostOptimization {
             if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
               optimizationInfo
                   .asUpdatableMethodOptimizationInfo()
-                  .fixupClassTypeReferences(appView.graphLense()::lookupType, appView)
-                  .fixupAbstractReturnValue(appView, appView.graphLense())
-                  .fixupInstanceInitializerInfo(appView, appView.graphLense());
+                  .fixupClassTypeReferences(appView.graphLens()::lookupType, appView)
+                  .fixupAbstractReturnValue(appView, appView.graphLens())
+                  .fixupInstanceInitializerInfo(appView, appView.graphLens());
             } else {
               assert optimizationInfo.isDefaultMethodOptimizationInfo();
             }
@@ -718,7 +718,7 @@ public class EnumUnboxer implements PostOptimization {
       this.enumsToUnbox = enumsToUnbox;
     }
 
-    private NestedGraphLense fixupTypeReferences() {
+    private NestedGraphLens fixupTypeReferences() {
       assert enumUnboxerRewriter != null;
       // Fix all methods and fields using enums to unbox.
       for (DexProgramClass clazz : appView.appInfo().classes()) {
@@ -752,7 +752,7 @@ public class EnumUnboxer implements PostOptimization {
           appView.definitionForProgramType(factory.enumUnboxingUtilityType);
       assert utilityClass != null : "Should have been synthesized upfront";
       utilityClass.addDirectMethods(unboxedEnumsMethods);
-      return lensBuilder.build(factory, appView.graphLense(), enumsToUnbox);
+      return lensBuilder.build(factory, appView.graphLens(), enumsToUnbox);
     }
 
     private void clearEnumToUnboxMethod(DexEncodedMethod enumMethod) {
@@ -857,7 +857,7 @@ public class EnumUnboxer implements PostOptimization {
     }
   }
 
-  private static class EnumUnboxingLens extends NestedGraphLense {
+  private static class EnumUnboxingLens extends NestedGraphLens {
 
     private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges;
     private final Set<DexType> unboxedEnums;
@@ -868,7 +868,7 @@ public class EnumUnboxer implements PostOptimization {
         Map<DexField, DexField> fieldMap,
         BiMap<DexField, DexField> originalFieldSignatures,
         BiMap<DexMethod, DexMethod> originalMethodSignatures,
-        GraphLense previousLense,
+        GraphLens previousLens,
         DexItemFactory dexItemFactory,
         Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges,
         Set<DexType> unboxedEnums) {
@@ -878,7 +878,7 @@ public class EnumUnboxer implements PostOptimization {
           fieldMap,
           originalFieldSignatures,
           originalMethodSignatures,
-          previousLense,
+          previousLens,
           dexItemFactory);
       this.prototypeChanges = prototypeChanges;
       this.unboxedEnums = unboxedEnums;
@@ -889,7 +889,7 @@ public class EnumUnboxer implements PostOptimization {
       // During the second IR processing enum unboxing is the only optimization rewriting
       // prototype description, if this does not hold, remove the assertion and merge
       // the two prototype changes.
-      assert previousLense.lookupPrototypeChanges(method).isEmpty();
+      assert previousLens.lookupPrototypeChanges(method).isEmpty();
       return prototypeChanges.getOrDefault(method, RewrittenPrototypeDescription.none());
     }
 
@@ -908,7 +908,7 @@ public class EnumUnboxer implements PostOptimization {
       return new Builder();
     }
 
-    private static class Builder extends NestedGraphLense.Builder {
+    private static class Builder extends NestedGraphLens.Builder {
 
       private Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges =
           new IdentityHashMap<>();
@@ -941,7 +941,7 @@ public class EnumUnboxer implements PostOptimization {
       }
 
       public EnumUnboxingLens build(
-          DexItemFactory dexItemFactory, GraphLense previousLense, Set<DexType> unboxedEnums) {
+          DexItemFactory dexItemFactory, GraphLens previousLens, Set<DexType> unboxedEnums) {
         if (typeMap.isEmpty() && methodMap.isEmpty() && fieldMap.isEmpty()) {
           return null;
         }
@@ -951,7 +951,7 @@ public class EnumUnboxer implements PostOptimization {
             fieldMap,
             originalFieldSignatures,
             originalMethodSignatures,
-            previousLense,
+            previousLens,
             dexItemFactory,
             ImmutableMap.copyOf(prototypeChanges),
             ImmutableSet.copyOf(unboxedEnums));

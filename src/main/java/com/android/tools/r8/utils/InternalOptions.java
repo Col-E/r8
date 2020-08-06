@@ -819,7 +819,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     List<String> classPathClasses = new ArrayList<>();
     List<String> libraryClasses = new ArrayList<>();
     for (DexType type : nest) {
-      DexClass clazz = appView.definitionFor(appView.graphLense().lookupType(type));
+      DexClass clazz = appView.definitionFor(appView.graphLens().lookupType(type));
       if (clazz == null) {
         unavailableClasses.add(type.getName());
       } else if (clazz.isLibraryClass()) {

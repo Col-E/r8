@@ -23,7 +23,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -155,7 +155,7 @@ public class SharedClassWritingTest {
             null,
             options,
             null,
-            GraphLense.getIdentityLense(),
+            GraphLens.getIdentityLens(),
             InitClassLens.getDefault(),
             NamingLens.getIdentityLens(),
             null);

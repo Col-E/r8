@@ -219,7 +219,7 @@ public class DexCode extends Code {
         new DexSourceCode(
             this,
             method,
-            appView.graphLense().getOriginalMethodSignature(method.getReference()),
+            appView.graphLens().getOriginalMethodSignature(method.getReference()),
             null);
     return IRBuilder.create(method, appView, source, origin).build(method);
   }
@@ -237,7 +237,7 @@ public class DexCode extends Code {
         new DexSourceCode(
             this,
             method,
-            appView.graphLense().getOriginalMethodSignature(method.getReference()),
+            appView.graphLens().getOriginalMethodSignature(method.getReference()),
             callerPosition);
     return IRBuilder.createForInlining(
             method, appView, source, origin, methodProcessor, valueNumberGenerator)

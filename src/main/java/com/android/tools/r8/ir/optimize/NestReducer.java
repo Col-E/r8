@@ -35,8 +35,8 @@ public class NestReducer {
   }
 
   private DexClass definitionFor(DexType type) {
-    assert appView.graphLense().lookupType(type) == type;
-    return appView.definitionFor(appView.graphLense().lookupType(type));
+    assert appView.graphLens().lookupType(type) == type;
+    return appView.definitionFor(appView.graphLens().lookupType(type));
   }
 
   public void run(ExecutorService executorService) throws ExecutionException {
@@ -113,8 +113,7 @@ public class NestReducer {
   private void clearNestAttributes(DexClass nestHost) {
     nestHost.getNestMembersClassAttributes().clear();
     for (NestMemberClassAttribute attr : nestHost.getNestMembersClassAttributes()) {
-      DexClass member =
-          appView.definitionFor(appView.graphLense().lookupType(attr.getNestMember()));
+      DexClass member = appView.definitionFor(appView.graphLens().lookupType(attr.getNestMember()));
       member.clearNestHost();
     }
   }

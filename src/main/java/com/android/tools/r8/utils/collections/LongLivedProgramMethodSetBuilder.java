@@ -7,7 +7,7 @@ package com.android.tools.r8.utils.collections;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
@@ -39,10 +39,10 @@ public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
     methods.forEach(this::add);
   }
 
-  public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense applied) {
+  public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens applied) {
     Set<DexMethod> newMethods = Sets.newIdentityHashSet();
     for (DexMethod method : methods) {
-      newMethods.add(appView.graphLense().getRenamedMethodSignature(method, applied));
+      newMethods.add(appView.graphLens().getRenamedMethodSignature(method, applied));
     }
     methods.clear();
     methods.addAll(newMethods);
@@ -52,10 +52,10 @@ public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
     return build(appView, null);
   }
 
-  public T build(AppView<AppInfoWithLiveness> appView, GraphLense applied) {
+  public T build(AppView<AppInfoWithLiveness> appView, GraphLens applied) {
     T result = factory.apply(methods.size());
     for (DexMethod oldMethod : methods) {
-      DexMethod method = appView.graphLense().getRenamedMethodSignature(oldMethod, applied);
+      DexMethod method = appView.graphLens().getRenamedMethodSignature(oldMethod, applied);
       DexProgramClass holder = appView.definitionForHolder(method).asProgramClass();
       result.createAndAdd(holder, holder.lookupMethod(method));
     }

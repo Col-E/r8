@@ -170,7 +170,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public boolean isObsolete() {
     // Do not be cheating. This util can be used only if you're going to do appropriate action,
-    // e.g., using GraphLense#mapDexEncodedMethod to look up the correct, up-to-date instance.
+    // e.g., using GraphLens#mapDexEncodedMethod to look up the correct, up-to-date instance.
     return obsolete;
   }
 

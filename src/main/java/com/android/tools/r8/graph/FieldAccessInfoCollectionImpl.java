@@ -54,7 +54,7 @@ public class FieldAccessInfoCollectionImpl
   }
 
   public FieldAccessInfoCollectionImpl rewrittenWithLens(
-      DexDefinitionSupplier definitions, GraphLense lens) {
+      DexDefinitionSupplier definitions, GraphLens lens) {
     FieldAccessInfoCollectionImpl collection = new FieldAccessInfoCollectionImpl();
     infos.forEach(
         (field, info) ->

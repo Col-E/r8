@@ -313,7 +313,7 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     writesWithContexts = null;
   }
 
-  public FieldAccessInfoImpl rewrittenWithLens(DexDefinitionSupplier definitions, GraphLense lens) {
+  public FieldAccessInfoImpl rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
     FieldAccessInfoImpl rewritten = new FieldAccessInfoImpl(lens.lookupField(field));
     rewritten.flags = flags;
     if (readsWithContexts != null) {

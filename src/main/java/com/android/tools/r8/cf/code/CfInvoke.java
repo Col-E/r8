@@ -15,8 +15,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
@@ -202,7 +202,7 @@ public class CfInvoke extends CfInstruction {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexProgramClass context) {
-    GraphLense graphLense = inliningConstraints.getGraphLense();
+    GraphLens graphLens = inliningConstraints.getGraphLens();
     AppView<?> appView = inliningConstraints.getAppView();
     DexMethod target = method;
     // Find the DEX invocation type.
@@ -211,17 +211,17 @@ public class CfInvoke extends CfInstruction {
       case Opcodes.INVOKEINTERFACE:
         // Could have changed to an invoke-virtual instruction due to vertical class merging
         // (if an interface is merged into a class).
-        type = graphLense.lookupMethod(target, null, Type.INTERFACE).getType();
+        type = graphLens.lookupMethod(target, null, Type.INTERFACE).getType();
         assert type == Type.INTERFACE || type == Type.VIRTUAL;
         break;
 
       case Opcodes.INVOKESPECIAL:
         if (appView.dexItemFactory().isConstructor(target)) {
           type = Type.DIRECT;
-          assert noNeedToUseGraphLense(target, type, graphLense);
+          assert noNeedToUseGraphLens(target, type, graphLens);
         } else if (target.holder == context.type) {
           // The method could have been publicized.
-          type = graphLense.lookupMethod(target, null, Type.DIRECT).getType();
+          type = graphLens.lookupMethod(target, null, Type.DIRECT).getType();
           assert type == Type.DIRECT || type == Type.VIRTUAL;
         } else {
           // This is a super call. Note that the vertical class merger translates some invoke-super
@@ -229,17 +229,17 @@ public class CfInvoke extends CfInstruction {
           // the target method end up being in the same class, and therefore, we will allow inlining
           // it. The result of using type=SUPER below will be the same, since it leads to the
           // inlining constraint SAMECLASS.
-          // TODO(christofferqa): Consider using graphLense.lookupMethod (to do this, we need the
-          // context for the graph lense, though).
+          // TODO(christofferqa): Consider using graphLens.lookupMethod (to do this, we need the
+          // context for the graph lens, though).
           type = Type.SUPER;
-          assert noNeedToUseGraphLense(target, type, graphLense);
+          assert noNeedToUseGraphLens(target, type, graphLens);
         }
         break;
 
       case Opcodes.INVOKESTATIC:
         {
           // Static invokes may have changed as a result of horizontal class merging.
-          GraphLenseLookupResult lookup = graphLense.lookupMethod(target, null, Type.STATIC);
+          GraphLensLookupResult lookup = graphLens.lookupMethod(target, null, Type.STATIC);
           target = lookup.getMethod();
           type = lookup.getType();
         }
@@ -258,7 +258,7 @@ public class CfInvoke extends CfInstruction {
           }
 
           // Virtual invokes may have changed to interface invokes as a result of member rebinding.
-          GraphLenseLookupResult lookup = graphLense.lookupMethod(target, null, type);
+          GraphLensLookupResult lookup = graphLens.lookupMethod(target, null, type);
           target = lookup.getMethod();
           type = lookup.getType();
         }
@@ -271,9 +271,9 @@ public class CfInvoke extends CfInstruction {
     return inliningConstraints.forInvoke(target, type, context);
   }
 
-  private static boolean noNeedToUseGraphLense(
-      DexMethod method, Invoke.Type type, GraphLense graphLense) {
-    assert graphLense.lookupMethod(method, null, type).getType() == type;
+  private static boolean noNeedToUseGraphLens(
+      DexMethod method, Invoke.Type type, GraphLens graphLens) {
+    assert graphLens.lookupMethod(method, null, type).getType() == type;
     return true;
   }
 
@@ -304,8 +304,8 @@ public class CfInvoke extends CfInstruction {
   }
 
   private DexEncodedMethod lookupMethod(AppView<?> appView, DexMethod method) {
-    GraphLenseLookupResult lookupResult =
-        appView.graphLense().lookupMethod(method, method, Type.DIRECT);
+    GraphLensLookupResult lookupResult =
+        appView.graphLens().lookupMethod(method, method, Type.DIRECT);
     DexMethod rewrittenMethod = lookupResult.getMethod();
     DexProgramClass clazz = appView.definitionForProgramType(rewrittenMethod.holder);
     assert clazz != null;

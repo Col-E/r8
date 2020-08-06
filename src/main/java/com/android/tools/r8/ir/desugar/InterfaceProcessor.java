@@ -28,8 +28,8 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -68,7 +68,7 @@ final class InterfaceProcessor {
     this.rewriter = rewriter;
   }
 
-  void process(DexProgramClass iface, NestedGraphLense.Builder graphLensBuilder) {
+  void process(DexProgramClass iface, NestedGraphLens.Builder graphLensBuilder) {
     assert iface.isInterface();
     // The list of methods to be created in companion class.
     List<DexEncodedMethod> companionMethods = new ArrayList<>();
@@ -98,9 +98,9 @@ final class InterfaceProcessor {
             code, companionMethod.getArity(), appView);
         if (!appView.options().isDesugaredLibraryCompilation()) {
           setOriginalMethodPosition(
-              code, appView.graphLense().getOriginalMethodSignature(virtual.method));
+              code, appView.graphLens().getOriginalMethodSignature(virtual.method));
         } else {
-          assert appView.graphLense().isIdentityLense();
+          assert appView.graphLens().isIdentityLens();
         }
         DexEncodedMethod implMethod =
             new DexEncodedMethod(
@@ -144,9 +144,9 @@ final class InterfaceProcessor {
         DexMethod companionMethod = rewriter.staticAsMethodOfCompanionClass(oldMethod);
         if (!appView.options().isDesugaredLibraryCompilation()) {
           setOriginalMethodPosition(
-              direct.getCode(), appView.graphLense().getOriginalMethodSignature(oldMethod));
+              direct.getCode(), appView.graphLens().getOriginalMethodSignature(oldMethod));
         } else {
-          assert appView.graphLense().isIdentityLense();
+          assert appView.graphLens().isIdentityLens();
         }
         DexEncodedMethod implMethod =
             new DexEncodedMethod(
@@ -177,9 +177,9 @@ final class InterfaceProcessor {
               code, companionMethod.getArity(), appView);
           if (!appView.options().isDesugaredLibraryCompilation()) {
             setOriginalMethodPosition(
-                code, appView.graphLense().getOriginalMethodSignature(oldMethod));
+                code, appView.graphLens().getOriginalMethodSignature(oldMethod));
           } else {
-            assert appView.graphLense().isIdentityLense();
+            assert appView.graphLens().isIdentityLens();
           }
           DexEncodedMethod implMethod =
               new DexEncodedMethod(
@@ -400,15 +400,15 @@ final class InterfaceProcessor {
 
   // Specific lens which remaps invocation types to static since all rewrites performed here
   // are to static companion methods.
-  public static class InterfaceProcessorNestedGraphLense extends NestedGraphLense {
+  public static class InterfaceProcessorNestedGraphLens extends NestedGraphLens {
 
-    public InterfaceProcessorNestedGraphLense(
+    public InterfaceProcessorNestedGraphLens(
         Map<DexType, DexType> typeMap,
         Map<DexMethod, DexMethod> methodMap,
         Map<DexField, DexField> fieldMap,
         BiMap<DexField, DexField> originalFieldSignatures,
         BiMap<DexMethod, DexMethod> originalMethodSignatures,
-        GraphLense previousLense,
+        GraphLens previousLens,
         DexItemFactory dexItemFactory) {
       super(
           typeMap,
@@ -416,7 +416,7 @@ final class InterfaceProcessor {
           fieldMap,
           originalFieldSignatures,
           originalMethodSignatures,
-          previousLense,
+          previousLens,
           dexItemFactory);
     }
 
@@ -425,23 +425,23 @@ final class InterfaceProcessor {
       return Type.STATIC;
     }
 
-    public static GraphLense.Builder builder() {
+    public static GraphLens.Builder builder() {
       return new Builder();
     }
 
-    public static class Builder extends NestedGraphLense.Builder {
+    public static class Builder extends NestedGraphLens.Builder {
       @Override
-      public GraphLense build(DexItemFactory dexItemFactory, GraphLense previousLense) {
+      public GraphLens build(DexItemFactory dexItemFactory, GraphLens previousLens) {
         if (originalFieldSignatures.isEmpty() && originalMethodSignatures.isEmpty()) {
-          return previousLense;
+          return previousLens;
         }
-        return new InterfaceProcessorNestedGraphLense(
+        return new InterfaceProcessorNestedGraphLens(
             typeMap,
             methodMap,
             fieldMap,
             originalFieldSignatures,
             originalMethodSignatures,
-            previousLense,
+            previousLens,
             dexItemFactory);
       }
     }

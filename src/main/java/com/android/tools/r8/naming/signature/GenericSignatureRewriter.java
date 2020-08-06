@@ -200,7 +200,7 @@ public class GenericSignatureRewriter {
       }
       String originalDescriptor = getDescriptorFromClassBinaryName(name);
       DexType type =
-          appView.graphLense().lookupType(appView.dexItemFactory().createType(originalDescriptor));
+          appView.graphLens().lookupType(appView.dexItemFactory().createType(originalDescriptor));
       if (appView.appInfo().hasLiveness() && appView.withLiveness().appInfo().wasPruned(type)) {
         type = appView.dexItemFactory().objectType;
       }
@@ -251,7 +251,7 @@ public class GenericSignatureRewriter {
                       getClassBinaryNameFromDescriptor(enclosingDescriptor)
                           + DescriptorUtils.INNER_CLASS_SEPARATOR
                           + name));
-      type = appView.graphLense().lookupType(type);
+      type = appView.graphLens().lookupType(type);
       String renamedDescriptor = namingLens.lookupDescriptor(type).toString();
       if (!renamedDescriptor.equals(type.toDescriptorString())) {
         // TODO(b/147504070): If this is a merged class equal to the class context, do not add.

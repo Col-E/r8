@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class UnknownValue extends AbstractValue {
@@ -29,7 +29,7 @@ public class UnknownValue extends AbstractValue {
   }
 
   @Override
-  public AbstractValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+  public AbstractValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     return this;
   }
 

@@ -773,7 +773,7 @@ final class StaticizingProcessor {
     }
 
     if (!methodMapping.isEmpty() || !fieldMapping.isEmpty()) {
-      appView.setGraphLense(new ClassStaticizerGraphLense(appView, fieldMapping, methodMapping));
+      appView.setGraphLens(new ClassStaticizerGraphLens(appView, fieldMapping, methodMapping));
     }
     return staticizedMethods;
   }

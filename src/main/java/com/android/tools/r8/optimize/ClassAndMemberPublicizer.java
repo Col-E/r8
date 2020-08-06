@@ -14,12 +14,12 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
-import com.android.tools.r8.optimize.PublicizerLense.PublicizedLenseBuilder;
+import com.android.tools.r8.optimize.PublicizerLens.PublicizedLensBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
@@ -35,7 +35,7 @@ public final class ClassAndMemberPublicizer {
   private final SubtypingInfo subtypingInfo;
   private final MethodPoolCollection methodPoolCollection;
 
-  private final PublicizedLenseBuilder lenseBuilder = PublicizerLense.createBuilder();
+  private final PublicizedLensBuilder lensBuilder = PublicizerLens.createBuilder();
 
   private ClassAndMemberPublicizer(
       DexApplication application,
@@ -56,7 +56,7 @@ public final class ClassAndMemberPublicizer {
    *
    * <p>This will destructively update the DexApplication passed in as argument.
    */
-  public static GraphLense run(
+  public static GraphLens run(
       ExecutorService executorService,
       Timing timing,
       DexApplication application,
@@ -67,8 +67,7 @@ public final class ClassAndMemberPublicizer {
         .run(executorService, timing);
   }
 
-  private GraphLense run(ExecutorService executorService, Timing timing)
-      throws ExecutionException {
+  private GraphLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
     // Phase 1: Collect methods to check if private instance methods don't have conflicts.
     methodPoolCollection.buildAll(executorService, timing);
 
@@ -80,7 +79,7 @@ public final class ClassAndMemberPublicizer {
     publicizeType(appView.dexItemFactory().objectType);
     timing.end();
 
-    return lenseBuilder.build(appView);
+    return lensBuilder.build(appView);
   }
 
   private void publicizeType(DexType type) {
@@ -171,7 +170,7 @@ public final class ClassAndMemberPublicizer {
         // TODO(b/111118390): Renaming will enable more private instance methods to be publicized.
         return false;
       }
-      lenseBuilder.add(method.method);
+      lensBuilder.add(method.method);
       accessFlags.promoteToFinal();
       accessFlags.promoteToPublic();
       // The method just became public and is therefore not a library override.

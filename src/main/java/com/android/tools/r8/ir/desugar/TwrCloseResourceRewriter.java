@@ -104,7 +104,7 @@ public final class TwrCloseResourceRewriter {
   }
 
   public static boolean isSynthesizedCloseResourceMethod(DexMethod method, AppView<?> appView) {
-    DexMethod original = appView.graphLense().getOriginalMethodSignature(method);
+    DexMethod original = appView.graphLens().getOriginalMethodSignature(method);
     assert original != null;
     // We consider all methods of *any* class with expected name and signature
     // to be synthesized by java 9 compiler for try-with-resources, reasoning:

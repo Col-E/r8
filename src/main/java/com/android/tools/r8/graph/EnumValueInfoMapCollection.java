@@ -38,7 +38,7 @@ public class EnumValueInfoMapCollection {
     return maps.keySet();
   }
 
-  public EnumValueInfoMapCollection rewrittenWithLens(GraphLense lens) {
+  public EnumValueInfoMapCollection rewrittenWithLens(GraphLens lens) {
     Builder builder = builder();
     maps.forEach(
         (type, map) -> {
@@ -100,7 +100,7 @@ public class EnumValueInfoMapCollection {
       map.forEach(consumer);
     }
 
-    EnumValueInfoMap rewrittenWithLens(GraphLense lens) {
+    EnumValueInfoMap rewrittenWithLens(GraphLens lens) {
       LinkedHashMap<DexField, EnumValueInfo> rewritten = new LinkedHashMap<>();
       map.forEach(
           (field, valueInfo) ->
@@ -124,7 +124,7 @@ public class EnumValueInfoMapCollection {
       return ordinal + 1;
     }
 
-    EnumValueInfo rewrittenWithLens(GraphLense lens) {
+    EnumValueInfo rewrittenWithLens(GraphLens lens) {
       DexType newType = lens.lookupType(type);
       if (type == newType) {
         return this;

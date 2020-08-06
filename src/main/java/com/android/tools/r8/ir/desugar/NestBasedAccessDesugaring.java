@@ -81,18 +81,18 @@ public abstract class NestBasedAccessDesugaring {
   abstract void reportIncompleteNest(List<DexType> nest);
 
   DexClass definitionFor(DexType type) {
-    return appView.definitionFor(appView.graphLense().lookupType(type));
+    return appView.definitionFor(appView.graphLens().lookupType(type));
   }
 
   private DexEncodedMethod lookupOnHolder(
       DexMethod method, DexClassAndMethod context, Invoke.Type invokeType) {
     DexMethod rewritten =
-        appView.graphLense().lookupMethod(method, context.getReference(), invokeType).getMethod();
+        appView.graphLens().lookupMethod(method, context.getReference(), invokeType).getMethod();
     return rewritten.lookupOnClass(appView.definitionForHolder(rewritten));
   }
 
   private DexEncodedField lookupOnHolder(DexField field) {
-    DexField rewritten = appView.graphLense().lookupField(field);
+    DexField rewritten = appView.graphLens().lookupField(field);
     return rewritten.lookupOnClass(appView.definitionForHolder(rewritten));
   }
 

@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -107,7 +107,7 @@ public abstract class SingleFieldValue extends SingleValue {
   }
 
   @Override
-  public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+  public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     AbstractValueFactory factory = appView.abstractValueFactory();
     if (field.holder == field.type) {
       EnumValueInfoMap unboxedEnumInfo = appView.unboxedEnums().getEnumValueInfoMap(field.type);

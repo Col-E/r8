@@ -27,8 +27,8 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
@@ -89,7 +89,7 @@ import java.util.stream.Stream;
  * <p>A common use-case for this is to merge an interface into its single implementation.
  *
  * <p>The class merger only fixes the structure of the graph but leaves the actual instructions
- * untouched. Fixup of instructions is deferred via a {@link GraphLense} to the IR building phase.
+ * untouched. Fixup of instructions is deferred via a {@link GraphLens} to the IR building phase.
  */
 public class VerticalClassMerger {
 
@@ -210,8 +210,8 @@ public class VerticalClassMerger {
   // Set of types that must not be merged into their subtype.
   private final Set<DexType> pinnedTypes = Sets.newIdentityHashSet();
 
-  // The resulting graph lense that should be used after class merging.
-  private final VerticalClassMergerGraphLense.Builder renamedMembersLense;
+  // The resulting graph lens that should be used after class merging.
+  private final VerticalClassMergerGraphLens.Builder renamedMembersLens;
 
   // All the bridge methods that have been synthesized during vertical class merging.
   private final List<SynthesizedBridgeCode> synthesizedBridges = new ArrayList<>();
@@ -230,7 +230,7 @@ public class VerticalClassMerger {
     this.subtypingInfo = appInfo.computeSubtypingInfo();
     this.executorService = executorService;
     this.methodPoolCollection = new MethodPoolCollection(appView, subtypingInfo);
-    this.renamedMembersLense = new VerticalClassMergerGraphLense.Builder(appView.dexItemFactory());
+    this.renamedMembersLens = new VerticalClassMergerGraphLens.Builder(appView.dexItemFactory());
     this.timing = timing;
     this.mainDexClasses = mainDexClasses;
 
@@ -629,7 +629,7 @@ public class VerticalClassMerger {
     }
   }
 
-  public VerticalClassMergerGraphLense run() {
+  public VerticalClassMergerGraphLens run() {
     timing.begin("merge");
     // Visit the program classes in a top-down order according to the class hierarchy.
     TopDownClassHierarchyTraversal.forProgramClasses(appView)
@@ -639,13 +639,13 @@ public class VerticalClassMerger {
     }
     timing.end();
     timing.begin("fixup");
-    VerticalClassMergerGraphLense lens = new TreeFixer().fixupTypeReferences();
+    VerticalClassMergerGraphLens lens = new TreeFixer().fixupTypeReferences();
     timing.end();
     assert lens == null || verifyGraphLens(lens);
     return lens;
   }
 
-  private boolean verifyGraphLens(VerticalClassMergerGraphLense graphLense) {
+  private boolean verifyGraphLens(VerticalClassMergerGraphLens graphLens) {
     // Note that the method assertReferencesNotModified() relies on getRenamedFieldSignature() and
     // getRenamedMethodSignature() instead of lookupField() and lookupMethod(). This is important
     // for this check to succeed, since it is not guaranteed that calling lookupMethod() with a
@@ -672,13 +672,13 @@ public class VerticalClassMerger {
     // that `invoke-super A.method` instructions, which are in one of the methods from C, needs to
     // be rewritten to `invoke-direct C.method$B`. This is valid even though A.method() is actually
     // pinned, because this rewriting does not affect A.method() in any way.
-    assert graphLense.assertPinnedNotModified(appInfo.getKeepInfo());
+    assert graphLens.assertPinnedNotModified(appInfo.getKeepInfo());
 
     for (DexProgramClass clazz : appInfo.classes()) {
       for (DexEncodedMethod encodedMethod : clazz.methods()) {
         DexMethod method = encodedMethod.method;
-        DexMethod originalMethod = graphLense.getOriginalMethodSignature(method);
-        DexMethod renamedMethod = graphLense.getRenamedMethodSignature(originalMethod);
+        DexMethod originalMethod = graphLens.getOriginalMethodSignature(method);
+        DexMethod renamedMethod = graphLens.getRenamedMethodSignature(originalMethod);
 
         // Must be able to map back and forth.
         if (encodedMethod.hasCode() && encodedMethod.getCode() instanceof SynthesizedBridgeCode) {
@@ -690,7 +690,7 @@ public class VerticalClassMerger {
           DexMethod implementationMethod =
               ((SynthesizedBridgeCode) encodedMethod.getCode()).invocationTarget;
           DexMethod originalImplementationMethod =
-              graphLense.getOriginalMethodSignature(implementationMethod);
+              graphLens.getOriginalMethodSignature(implementationMethod);
           assert originalMethod == originalImplementationMethod;
           assert implementationMethod == renamedMethod;
         } else {
@@ -832,8 +832,8 @@ public class VerticalClassMerger {
       throw new RuntimeException(e);
     }
     if (merged) {
-      // Commit the changes to the graph lense.
-      renamedMembersLense.merge(merger.getRenamings());
+      // Commit the changes to the graph lens.
+      renamedMembersLens.merge(merger.getRenamings());
       synthesizedBridges.addAll(merger.getSynthesizedBridges());
     }
     if (Log.ENABLED) {
@@ -888,8 +888,8 @@ public class VerticalClassMerger {
 
     private final DexProgramClass source;
     private final DexProgramClass target;
-    private final VerticalClassMergerGraphLense.Builder deferredRenamings =
-        new VerticalClassMergerGraphLense.Builder(appView.dexItemFactory());
+    private final VerticalClassMergerGraphLens.Builder deferredRenamings =
+        new VerticalClassMergerGraphLens.Builder(appView.dexItemFactory());
     private final List<SynthesizedBridgeCode> synthesizedBridges = new ArrayList<>();
 
     private boolean abortMerge = false;
@@ -1120,7 +1120,7 @@ public class VerticalClassMerger {
       return true;
     }
 
-    public VerticalClassMergerGraphLense.Builder getRenamings() {
+    public VerticalClassMergerGraphLens.Builder getRenamings() {
       return deferredRenamings;
     }
 
@@ -1138,7 +1138,7 @@ public class VerticalClassMerger {
         // if I has a supertype J. This is due to the fact that invoke-super instructions that
         // resolve to a method on an interface never hit an implementation below that interface.
         deferredRenamings.mapVirtualMethodToDirectInType(
-            oldTarget, new GraphLenseLookupResult(newTarget, STATIC), target.type);
+            oldTarget, new GraphLensLookupResult(newTarget, STATIC), target.type);
       } else {
         // If we merge class B into class C, and class C contains an invocation super.m(), then it
         // is insufficient to rewrite "invoke-super B.m()" to "invoke-direct C.m$B()" (the method
@@ -1157,7 +1157,7 @@ public class VerticalClassMerger {
                   || appInfo.lookupSuperTarget(signatureInHolder, holder) != null;
           if (resolutionSucceeds) {
             deferredRenamings.mapVirtualMethodToDirectInType(
-                signatureInHolder, new GraphLenseLookupResult(newTarget, DIRECT), target.type);
+                signatureInHolder, new GraphLensLookupResult(newTarget, DIRECT), target.type);
           } else {
             break;
           }
@@ -1175,11 +1175,11 @@ public class VerticalClassMerger {
               // Resolution would have succeeded if the method used to be in [type], or if one of
               // its super classes declared the method.
               boolean resolutionSucceededBeforeMerge =
-                  renamedMembersLense.hasMappingForSignatureInContext(holder, signatureInType)
+                  renamedMembersLens.hasMappingForSignatureInContext(holder, signatureInType)
                       || appInfo.lookupSuperTarget(signatureInHolder, holder) != null;
               if (resolutionSucceededBeforeMerge) {
                 deferredRenamings.mapVirtualMethodToDirectInType(
-                    signatureInType, new GraphLenseLookupResult(newTarget, DIRECT), target.type);
+                    signatureInType, new GraphLensLookupResult(newTarget, DIRECT), target.type);
               }
             }
           }
@@ -1226,7 +1226,7 @@ public class VerticalClassMerger {
       SynthesizedBridgeCode code =
           new SynthesizedBridgeCode(
               newMethod,
-              appView.graphLense().getOriginalMethodSignature(method.method),
+              appView.graphLens().getOriginalMethodSignature(method.method),
               invocationTarget.method,
               invocationTarget.isPrivateMethod() ? DIRECT : STATIC,
               target.isInterface());
@@ -1444,12 +1444,12 @@ public class VerticalClassMerger {
 
   private class TreeFixer {
 
-    private final VerticalClassMergerGraphLense.Builder lensBuilder =
-        VerticalClassMergerGraphLense.Builder.createBuilderForFixup(
-            renamedMembersLense, mergedClasses);
+    private final VerticalClassMergerGraphLens.Builder lensBuilder =
+        VerticalClassMergerGraphLens.Builder.createBuilderForFixup(
+            renamedMembersLens, mergedClasses);
     private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
-    private VerticalClassMergerGraphLense fixupTypeReferences() {
+    private VerticalClassMergerGraphLens fixupTypeReferences() {
       // Globally substitute merged class types in protos and holders.
       for (DexProgramClass clazz : appInfo.classes()) {
         clazz.getMethodCollection().replaceMethods(this::fixupMethod);
@@ -1459,7 +1459,7 @@ public class VerticalClassMerger {
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
         synthesizedBridge.updateMethodSignatures(this::fixupMethod);
       }
-      VerticalClassMergerGraphLense lens = lensBuilder.build(appView, mergedClasses);
+      VerticalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
       if (lens != null) {
         new AnnotationFixer(lens).run(appView.appInfo().classes());
       }
@@ -1667,7 +1667,7 @@ public class VerticalClassMerger {
             cfCode.computeInliningConstraint(
                 method,
                 appView,
-                new SingleTypeMapperGraphLense(method.getHolderType(), context),
+                new SingleTypeMapperGraphLens(method.getHolderType(), context),
                 context);
         if (constraint == ConstraintWithTarget.NEVER) {
           return AbortReason.UNSAFE_INLINING;
@@ -1686,12 +1686,12 @@ public class VerticalClassMerger {
     return AbortReason.UNSAFE_INLINING;
   }
 
-  private class SingleTypeMapperGraphLense extends GraphLense {
+  private class SingleTypeMapperGraphLens extends GraphLens {
 
     private final DexType source;
     private final DexProgramClass target;
 
-    public SingleTypeMapperGraphLense(DexType source, DexProgramClass target) {
+    public SingleTypeMapperGraphLens(DexType source, DexProgramClass target) {
       this.source = source;
       this.target = target;
     }
@@ -1717,7 +1717,7 @@ public class VerticalClassMerger {
     }
 
     @Override
-    public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLense applied) {
+    public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
       throw new Unreachable();
     }
 
@@ -1727,14 +1727,14 @@ public class VerticalClassMerger {
     }
 
     @Override
-    public GraphLenseLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-      // First look up the method using the existing graph lense (for example, the type will have
+    public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+      // First look up the method using the existing graph lens (for example, the type will have
       // changed if the method was publicized by ClassAndMemberPublicizer).
-      GraphLenseLookupResult lookup = appView.graphLense().lookupMethod(method, context, type);
+      GraphLensLookupResult lookup = appView.graphLens().lookupMethod(method, context, type);
       DexMethod previousMethod = lookup.getMethod();
       Type previousType = lookup.getType();
       // Then check if there is a renaming due to the vertical class merger.
-      DexMethod newMethod = renamedMembersLense.methodMap.get(previousMethod);
+      DexMethod newMethod = renamedMembersLens.methodMap.get(previousMethod);
       if (newMethod != null) {
         if (previousType == Type.INTERFACE) {
           // If an interface has been merged into a class, invoke-interface needs to be translated
@@ -1742,12 +1742,12 @@ public class VerticalClassMerger {
           DexClass clazz = appInfo.definitionFor(newMethod.holder);
           if (clazz != null && !clazz.accessFlags.isInterface()) {
             assert appInfo.definitionFor(method.holder).accessFlags.isInterface();
-            return new GraphLenseLookupResult(newMethod, Type.VIRTUAL);
+            return new GraphLensLookupResult(newMethod, Type.VIRTUAL);
           }
         }
-        return new GraphLenseLookupResult(newMethod, previousType);
+        return new GraphLensLookupResult(newMethod, previousType);
       }
-      return new GraphLenseLookupResult(previousMethod, previousType);
+      return new GraphLensLookupResult(previousMethod, previousType);
     }
 
     @Override
@@ -1757,7 +1757,7 @@ public class VerticalClassMerger {
 
     @Override
     public DexField lookupField(DexField field) {
-      return renamedMembersLense.fieldMap.getOrDefault(field, field);
+      return renamedMembersLens.fieldMap.getOrDefault(field, field);
     }
 
     @Override
@@ -1793,7 +1793,7 @@ public class VerticalClassMerger {
     private boolean checkFieldReference(DexField field) {
       if (!foundIllegalAccess) {
         DexType baseType =
-            appView.graphLense().lookupType(field.holder.toBaseType(appView.dexItemFactory()));
+            appView.graphLens().lookupType(field.holder.toBaseType(appView.dexItemFactory()));
         if (baseType.isClassType() && baseType.isSamePackage(source.type)) {
           checkTypeReference(field.holder);
           checkTypeReference(field.type);
@@ -1810,7 +1810,7 @@ public class VerticalClassMerger {
     private boolean checkMethodReference(DexMethod method, OptionalBool isInterface) {
       if (!foundIllegalAccess) {
         DexType baseType =
-            appView.graphLense().lookupType(method.holder.toBaseType(appView.dexItemFactory()));
+            appView.graphLens().lookupType(method.holder.toBaseType(appView.dexItemFactory()));
         if (baseType.isClassType() && baseType.isSamePackage(source.type)) {
           checkTypeReference(method.holder);
           checkTypeReference(method.proto.returnType);
@@ -1833,7 +1833,7 @@ public class VerticalClassMerger {
     private boolean checkTypeReference(DexType type) {
       if (!foundIllegalAccess) {
         DexType baseType =
-            appView.graphLense().lookupType(type.toBaseType(appView.dexItemFactory()));
+            appView.graphLens().lookupType(type.toBaseType(appView.dexItemFactory()));
         if (baseType.isClassType() && baseType.isSamePackage(source.type)) {
           DexClass clazz = appView.definitionFor(baseType);
           if (clazz == null || !clazz.accessFlags.isPublic()) {
@@ -1852,51 +1852,51 @@ public class VerticalClassMerger {
     @Override
     public boolean registerInvokeVirtual(DexMethod method) {
       assert context != null;
-      GraphLenseLookupResult lookup =
-          appView.graphLense().lookupMethod(method, context.getReference(), Type.VIRTUAL);
+      GraphLensLookupResult lookup =
+          appView.graphLens().lookupMethod(method, context.getReference(), Type.VIRTUAL);
       return checkMethodReference(lookup.getMethod(), OptionalBool.FALSE);
     }
 
     @Override
     public boolean registerInvokeDirect(DexMethod method) {
       assert context != null;
-      GraphLenseLookupResult lookup =
-          appView.graphLense().lookupMethod(method, context.getReference(), Type.DIRECT);
+      GraphLensLookupResult lookup =
+          appView.graphLens().lookupMethod(method, context.getReference(), Type.DIRECT);
       return checkMethodReference(lookup.getMethod(), OptionalBool.UNKNOWN);
     }
 
     @Override
     public boolean registerInvokeStatic(DexMethod method) {
       assert context != null;
-      GraphLenseLookupResult lookup =
-          appView.graphLense().lookupMethod(method, context.getReference(), Type.STATIC);
+      GraphLensLookupResult lookup =
+          appView.graphLens().lookupMethod(method, context.getReference(), Type.STATIC);
       return checkMethodReference(lookup.getMethod(), OptionalBool.UNKNOWN);
     }
 
     @Override
     public boolean registerInvokeInterface(DexMethod method) {
       assert context != null;
-      GraphLenseLookupResult lookup =
-          appView.graphLense().lookupMethod(method, context.getReference(), Type.INTERFACE);
+      GraphLensLookupResult lookup =
+          appView.graphLens().lookupMethod(method, context.getReference(), Type.INTERFACE);
       return checkMethodReference(lookup.getMethod(), OptionalBool.TRUE);
     }
 
     @Override
     public boolean registerInvokeSuper(DexMethod method) {
       assert context != null;
-      GraphLenseLookupResult lookup =
-          appView.graphLense().lookupMethod(method, context.getReference(), Type.SUPER);
+      GraphLensLookupResult lookup =
+          appView.graphLens().lookupMethod(method, context.getReference(), Type.SUPER);
       return checkMethodReference(lookup.getMethod(), OptionalBool.UNKNOWN);
     }
 
     @Override
     public boolean registerInstanceFieldWrite(DexField field) {
-      return checkFieldReference(appView.graphLense().lookupField(field));
+      return checkFieldReference(appView.graphLens().lookupField(field));
     }
 
     @Override
     public boolean registerInstanceFieldRead(DexField field) {
-      return checkFieldReference(appView.graphLense().lookupField(field));
+      return checkFieldReference(appView.graphLens().lookupField(field));
     }
 
     @Override
@@ -1906,12 +1906,12 @@ public class VerticalClassMerger {
 
     @Override
     public boolean registerStaticFieldRead(DexField field) {
-      return checkFieldReference(appView.graphLense().lookupField(field));
+      return checkFieldReference(appView.graphLens().lookupField(field));
     }
 
     @Override
     public boolean registerStaticFieldWrite(DexField field) {
-      return checkFieldReference(appView.graphLense().lookupField(field));
+      return checkFieldReference(appView.graphLens().lookupField(field));
     }
 
     @Override

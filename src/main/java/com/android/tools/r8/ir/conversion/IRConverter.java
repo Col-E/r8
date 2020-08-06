@@ -22,7 +22,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
@@ -191,7 +191,7 @@ public class IRConverter {
    */
   public IRConverter(
       AppView<?> appView, Timing timing, CfgPrinter printer, MainDexClasses mainDexClasses) {
-    assert appView.appInfo().hasLiveness() || appView.graphLense().isIdentityLense();
+    assert appView.appInfo().hasLiveness() || appView.graphLens().isIdentityLens();
     assert appView.options() != null;
     assert appView.options().programConsumer != null;
     assert timing != null;
@@ -690,7 +690,7 @@ public class IRConverter {
     }
 
     // Process the application identifying outlining candidates.
-    GraphLense graphLenseForIR = appView.graphLense();
+    GraphLens graphLensForIR = appView.graphLens();
     OptimizationFeedbackDelayed feedback = delayedOptimizationFeedback;
     PostMethodProcessor.Builder postMethodProcessorBuilder =
         new PostMethodProcessor.Builder(getOptimizationsForPostIRProcessing());
@@ -712,7 +712,7 @@ public class IRConverter {
           timing,
           executorService);
       timing.end();
-      assert graphLenseForIR == appView.graphLense();
+      assert graphLensForIR == appView.graphLens();
     }
 
     // Assure that no more optimization feedback left after primary processing.
@@ -747,14 +747,14 @@ public class IRConverter {
     }
 
     timing.begin("IR conversion phase 2");
-    graphLenseForIR = appView.graphLense();
+    graphLensForIR = appView.graphLens();
     PostMethodProcessor postMethodProcessor =
         postMethodProcessorBuilder.build(appView.withLiveness(), executorService, timing);
     if (postMethodProcessor != null) {
       assert !options.debug;
       postMethodProcessor.forEachWave(feedback, executorService);
       feedback.updateVisibleOptimizationInfo();
-      assert graphLenseForIR == appView.graphLense();
+      assert graphLensForIR == appView.graphLens();
     }
     timing.end();
 
@@ -1188,7 +1188,7 @@ public class IRConverter {
       codeRewriter.simplifyDebugLocals(code);
     }
 
-    if (appView.graphLense().hasCodeRewritings()) {
+    if (appView.graphLens().hasCodeRewritings()) {
       assert lensCodeRewriter != null;
       timing.begin("Lens rewrite");
       lensCodeRewriter.rewrite(code, context);

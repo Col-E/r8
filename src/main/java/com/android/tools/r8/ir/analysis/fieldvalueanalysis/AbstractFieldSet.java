@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 
 /**
  * Implements a lifted subset lattice for fields.
@@ -70,5 +70,5 @@ public abstract class AbstractFieldSet {
     return lessThanOrEqual(other) && !equals(other);
   }
 
-  public abstract AbstractFieldSet rewrittenWithLens(AppView<?> appView, GraphLense lens);
+  public abstract AbstractFieldSet rewrittenWithLens(AppView<?> appView, GraphLens lens);
 }

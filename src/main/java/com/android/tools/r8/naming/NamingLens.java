@@ -130,7 +130,7 @@ public abstract class NamingLens {
       Class<T> clazz, Predicate<T> predicate, Function<T, String> namer);
 
   /**
-   * Checks whether the target will be translated properly by this lense.
+   * Checks whether the target will be translated properly by this lens.
    *
    * <p>Normally, this means that the target corresponds to an actual definition that has been
    * renamed. For identity renamings, we are more relaxed, as no targets will be translated anyway.

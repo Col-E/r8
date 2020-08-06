@@ -94,7 +94,7 @@ public class CfCode extends Code {
   // The original holder is a reference to the holder type that the method was in from input and
   // for which the invokes still refer to. The holder is needed to determine if an invoke-special
   // maps to an invoke-direct or invoke-super.
-  // TODO(b/135969130): Make IR building lense aware and avoid caching the holder type.
+  // TODO(b/135969130): Make IR building lens aware and avoid caching the holder type.
   private final DexType originalHolder;
 
   private final int maxStack;
@@ -381,7 +381,7 @@ public class CfCode extends Code {
             this,
             localVariables,
             method,
-            appView.graphLense().getOriginalMethodSignature(method.getReference()),
+            appView.graphLens().getOriginalMethodSignature(method.getReference()),
             callerPosition,
             origin,
             appView);
@@ -507,9 +507,9 @@ public class CfCode extends Code {
   public ConstraintWithTarget computeInliningConstraint(
       ProgramMethod method,
       AppView<AppInfoWithLiveness> appView,
-      GraphLense graphLense,
+      GraphLens graphLens,
       DexProgramClass context) {
-    InliningConstraints inliningConstraints = new InliningConstraints(appView, graphLense);
+    InliningConstraints inliningConstraints = new InliningConstraints(appView, graphLens);
     if (appView.options().isInterfaceMethodDesugaringEnabled()) {
       // TODO(b/120130831): Conservatively need to say "no" at this point if there are invocations
       // to static interface methods. This should be fixed by making sure that the desugared

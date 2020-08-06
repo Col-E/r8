@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.ProguardPathFilter;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -31,20 +31,20 @@ public class ResourceAdapter {
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
-  private final GraphLense graphLense;
-  private final NamingLens namingLense;
+  private final GraphLens graphLens;
+  private final NamingLens namingLens;
   private final InternalOptions options;
 
   public ResourceAdapter(
       AppView<?> appView,
       DexItemFactory dexItemFactory,
-      GraphLense graphLense,
-      NamingLens namingLense,
+      GraphLens graphLens,
+      NamingLens namingLens,
       InternalOptions options) {
     this.appView = appView;
     this.dexItemFactory = dexItemFactory;
-    this.graphLense = graphLense;
-    this.namingLense = namingLense;
+    this.graphLens = graphLens;
+    this.namingLens = namingLens;
     this.options = options;
   }
 
@@ -268,7 +268,7 @@ public class ResourceAdapter {
               DescriptorUtils.javaTypeToDescriptorIgnorePrimitives(javaType));
       DexType dexType = descriptor != null ? dexItemFactory.lookupType(descriptor) : null;
       if (dexType != null) {
-        DexString renamedDescriptor = namingLense.lookupDescriptor(graphLense.lookupType(dexType));
+        DexString renamedDescriptor = namingLens.lookupDescriptor(graphLens.lookupType(dexType));
         if (!descriptor.equals(renamedDescriptor)) {
           String renamedJavaType =
               DescriptorUtils.descriptorToJavaType(renamedDescriptor.toSourceString());
@@ -293,7 +293,7 @@ public class ResourceAdapter {
       if (getClassNameSeparator() != '/') {
         javaPackage = javaPackage.replace(getClassNameSeparator(), '/');
       }
-      String minifiedJavaPackage = namingLense.lookupPackageName(javaPackage);
+      String minifiedJavaPackage = namingLens.lookupPackageName(javaPackage);
       if (!javaPackage.equals(minifiedJavaPackage)) {
         outputRangeFromInput(outputFrom, from);
         outputJavaType(

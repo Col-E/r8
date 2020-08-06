@@ -133,7 +133,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
 
   @Override
   public ObjectAllocationInfoCollectionImpl rewrittenWithLens(
-      DexDefinitionSupplier definitions, GraphLense lens) {
+      DexDefinitionSupplier definitions, GraphLens lens) {
     return builder(true, null).rewrittenWithLens(this, definitions, lens).build(definitions);
   }
 
@@ -368,7 +368,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
     Builder rewrittenWithLens(
         ObjectAllocationInfoCollectionImpl objectAllocationInfos,
         DexDefinitionSupplier definitions,
-        GraphLense lens) {
+        GraphLens lens) {
       instantiatedHierarchy = null;
       objectAllocationInfos.classesWithAllocationSiteTracking.forEach(
           (clazz, allocationSitesForClass) -> {

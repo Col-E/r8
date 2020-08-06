@@ -25,7 +25,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -1268,7 +1268,7 @@ public class Outliner {
 
   public Outliner(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.inliningConstraints = new InliningConstraints(appView, GraphLense.getIdentityLense());
+    this.inliningConstraints = new InliningConstraints(appView, GraphLens.getIdentityLens());
   }
 
   public void createOutlineMethodIdentifierGenerator() {

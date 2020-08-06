@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.VerticalClassMerger.IllegalAccessDetector;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
@@ -226,7 +226,7 @@ public class StaticClassMerger {
     this.mainDexClasses = mainDexClasses;
   }
 
-  public NestedGraphLense run() {
+  public NestedGraphLens run() {
     for (DexProgramClass clazz : appView.appInfo().app().classesWithDeterministicOrder()) {
       MergeGroup group = satisfiesMergeCriteria(clazz);
       if (group != MergeGroup.DONT_MERGE) {
@@ -240,20 +240,20 @@ public class StaticClassMerger {
           numberOfMergedClasses,
           fieldMapping.size() + methodMapping.size());
     }
-    return buildGraphLense();
+    return buildGraphLens();
   }
 
-  private NestedGraphLense buildGraphLense() {
+  private NestedGraphLens buildGraphLens() {
     if (!fieldMapping.isEmpty() || !methodMapping.isEmpty()) {
       BiMap<DexField, DexField> originalFieldSignatures = fieldMapping.inverse();
       BiMap<DexMethod, DexMethod> originalMethodSignatures = methodMapping.inverse();
-      return new NestedGraphLense(
+      return new NestedGraphLens(
           ImmutableMap.of(),
           methodMapping,
           fieldMapping,
           originalFieldSignatures,
           originalMethodSignatures,
-          appView.graphLense(),
+          appView.graphLens(),
           appView.dexItemFactory());
     }
     return null;
@@ -293,7 +293,7 @@ public class StaticClassMerger {
             method ->
                 method.accessFlags.isNative()
                     || appView.appInfo().isPinned(method.method)
-                    // TODO(christofferqa): Remove the invariant that the graph lense should not
+                    // TODO(christofferqa): Remove the invariant that the graph lens should not
                     // modify any methods from the sets alwaysInline and noSideEffects.
                     || appView.appInfo().alwaysInline.contains(method.method)
                     || appView.appInfo().noSideEffects.keySet().contains(method.method))) {
@@ -343,7 +343,7 @@ public class StaticClassMerger {
         return false;
       }
       if (appView.appInfo().constClassReferences.contains(clazz.type)) {
-        // Since the type is const-class referenced (and the static merger does not create a lense
+        // Since the type is const-class referenced (and the static merger does not create a lens
         // to map the merged type) the class will likely remain and there is no gain from merging.
         return false;
       }

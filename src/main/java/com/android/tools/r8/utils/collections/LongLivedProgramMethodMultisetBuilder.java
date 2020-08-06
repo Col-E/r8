@@ -34,7 +34,7 @@ public class LongLivedProgramMethodMultisetBuilder {
     ProgramMethodMultiset result = ProgramMethodMultiset.createHash();
     backing.forEachEntry(
         (oldMethod, occurrences) -> {
-          DexMethod method = appView.graphLense().getRenamedMethodSignature(oldMethod);
+          DexMethod method = appView.graphLens().getRenamedMethodSignature(oldMethod);
           DexProgramClass holder = appView.definitionForHolder(method).asProgramClass();
           result.createAndAdd(holder, holder.lookupMethod(method), occurrences);
         });

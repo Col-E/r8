@@ -372,11 +372,11 @@ public final class LambdaMerger {
       // Eventually, we need to process synthesized methods in the lambda group.
       // Otherwise, abstract SynthesizedCode will be flown to Enqueuer.
       // But that process should not see the holder. Otherwise, lambda calls in the main dispatch
-      // method became recursive calls via the lense rewriter. They should remain, then inliner
+      // method became recursive calls via the lens rewriter. They should remain, then inliner
       // will inline methods from mergee lambdas to the main dispatch method.
       // Then, there is a dilemma: other sub optimizations trigger subtype lookup that will throw
       // NPE if it cannot find the holder for this synthesized lambda group.
-      // One hack here is to mark those methods `processed` so that the lense rewriter is skipped.
+      // One hack here is to mark those methods `processed` so that the lens rewriter is skipped.
       synthesizedClass.forEachMethod(
           encodedMethod -> encodedMethod.markProcessed(ConstraintWithTarget.NEVER));
     }

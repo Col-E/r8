@@ -14,8 +14,8 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
@@ -51,17 +51,17 @@ public class UnusedArgumentsCollector {
   private final BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
   private final Map<DexMethod, ArgumentInfoCollection> removedArguments = new IdentityHashMap<>();
 
-  public static class UnusedArgumentsGraphLense extends NestedGraphLense {
+  public static class UnusedArgumentsGraphLens extends NestedGraphLens {
 
     private final Map<DexMethod, ArgumentInfoCollection> removedArguments;
 
-    UnusedArgumentsGraphLense(
+    UnusedArgumentsGraphLens(
         Map<DexType, DexType> typeMap,
         Map<DexMethod, DexMethod> methodMap,
         Map<DexField, DexField> fieldMap,
         BiMap<DexField, DexField> originalFieldSignatures,
         BiMap<DexMethod, DexMethod> originalMethodSignatures,
-        GraphLense previousLense,
+        GraphLens previousLens,
         DexItemFactory dexItemFactory,
         Map<DexMethod, ArgumentInfoCollection> removedArguments) {
       super(
@@ -70,7 +70,7 @@ public class UnusedArgumentsCollector {
           fieldMap,
           originalFieldSignatures,
           originalMethodSignatures,
-          previousLense,
+          previousLens,
           dexItemFactory);
       this.removedArguments = removedArguments;
     }
@@ -81,7 +81,7 @@ public class UnusedArgumentsCollector {
           originalMethodSignatures != null
               ? originalMethodSignatures.getOrDefault(method, method)
               : method;
-      RewrittenPrototypeDescription result = previousLense.lookupPrototypeChanges(originalMethod);
+      RewrittenPrototypeDescription result = previousLens.lookupPrototypeChanges(originalMethod);
       ArgumentInfoCollection removedArguments = this.removedArguments.get(method);
       return removedArguments != null ? result.withRemovedArguments(removedArguments) : result;
     }
@@ -93,7 +93,7 @@ public class UnusedArgumentsCollector {
     this.methodPoolCollection = methodPoolCollection;
   }
 
-  public UnusedArgumentsGraphLense run(ExecutorService executorService, Timing timing)
+  public UnusedArgumentsGraphLens run(ExecutorService executorService, Timing timing)
       throws ExecutionException {
     ThreadUtils.awaitFutures(
         Streams.stream(appView.appInfo().classes())
@@ -110,13 +110,13 @@ public class UnusedArgumentsCollector {
     appView.appInfo().classesWithDeterministicOrder().forEach(this::processVirtualMethods);
 
     if (!methodMapping.isEmpty()) {
-      return new UnusedArgumentsGraphLense(
+      return new UnusedArgumentsGraphLens(
           ImmutableMap.of(),
           methodMapping,
           ImmutableMap.of(),
           ImmutableBiMap.of(),
           methodMapping.inverse(),
-          appView.graphLense(),
+          appView.graphLens(),
           appView.dexItemFactory(),
           removedArguments);
     }

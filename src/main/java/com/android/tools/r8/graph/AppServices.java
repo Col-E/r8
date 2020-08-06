@@ -101,7 +101,7 @@ public class AppServices {
     return false;
   }
 
-  public AppServices rewrittenWithLens(GraphLense graphLens) {
+  public AppServices rewrittenWithLens(GraphLens graphLens) {
     ImmutableMap.Builder<DexType, Map<FeatureSplit, List<DexType>>> rewrittenFeatureMappings =
         ImmutableMap.builder();
     for (Entry<DexType, Map<FeatureSplit, List<DexType>>> entry : services.entrySet()) {
@@ -157,10 +157,10 @@ public class AppServices {
 
   private boolean verifyRewrittenWithLens() {
     for (Entry<DexType, Map<FeatureSplit, List<DexType>>> entry : services.entrySet()) {
-      assert entry.getKey() == appView.graphLense().lookupType(entry.getKey());
+      assert entry.getKey() == appView.graphLens().lookupType(entry.getKey());
       for (Entry<FeatureSplit, List<DexType>> featureEntry : entry.getValue().entrySet()) {
         for (DexType type : featureEntry.getValue()) {
-          assert type == appView.graphLense().lookupType(type);
+          assert type == appView.graphLens().lookupType(type);
         }
       }
     }

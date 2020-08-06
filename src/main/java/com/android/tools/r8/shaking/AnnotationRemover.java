@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -225,15 +225,15 @@ public class AnnotationRemover {
   }
 
   private DexEncodedAnnotation rewriteEncodedAnnotation(DexEncodedAnnotation original) {
-    GraphLense graphLense = appView.graphLense();
+    GraphLens graphLens = appView.graphLens();
     DexType annotationType = original.type.toBaseType(appView.dexItemFactory());
     if (removedClasses.contains(annotationType)) {
       return null;
     }
-    DexType rewrittenType = graphLense.lookupType(annotationType);
+    DexType rewrittenType = graphLens.lookupType(annotationType);
     DexEncodedAnnotation rewrite =
         original.rewrite(
-            graphLense::lookupType, element -> rewriteAnnotationElement(rewrittenType, element));
+            graphLens::lookupType, element -> rewriteAnnotationElement(rewrittenType, element));
     assert rewrite != null;
     DexClass annotationClass = appView.appInfo().definitionFor(rewrittenType);
     assert annotationClass == null

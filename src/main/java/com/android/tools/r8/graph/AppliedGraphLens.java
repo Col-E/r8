@@ -17,7 +17,7 @@ import java.util.Map;
  *
  * <p>The mappings from the original program to the generated program are kept, though.
  */
-public class AppliedGraphLens extends GraphLense {
+public class AppliedGraphLens extends GraphLens {
 
   private final AppView<?> appView;
 
@@ -37,7 +37,7 @@ public class AppliedGraphLens extends GraphLense {
         DexType type = clazz.type;
         if (appView.verticallyMergedClasses() != null
             && !appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(type)) {
-          DexType original = appView.graphLense().getOriginalType(type);
+          DexType original = appView.graphLens().getOriginalType(type);
           if (original != type) {
             DexType existing = originalTypeNames.forcePut(type, original);
             assert existing == null;
@@ -48,7 +48,7 @@ public class AppliedGraphLens extends GraphLense {
       // Record original field signatures.
       for (DexEncodedField encodedField : clazz.fields()) {
         DexField field = encodedField.field;
-        DexField original = appView.graphLense().getOriginalFieldSignature(field);
+        DexField original = appView.graphLens().getOriginalFieldSignature(field);
         if (original != field) {
           DexField existing = originalFieldSignatures.forcePut(field, original);
           assert existing == null;
@@ -58,7 +58,7 @@ public class AppliedGraphLens extends GraphLense {
       // Record original method signatures.
       for (DexEncodedMethod encodedMethod : clazz.methods()) {
         DexMethod method = encodedMethod.method;
-        DexMethod original = appView.graphLense().getOriginalMethodSignature(method);
+        DexMethod original = appView.graphLens().getOriginalMethodSignature(method);
         if (original != method) {
           DexMethod existing = originalMethodSignatures.inverse().get(original);
           if (existing == null) {
@@ -101,7 +101,7 @@ public class AppliedGraphLens extends GraphLense {
   }
 
   @Override
-  public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLense applied) {
+  public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
     return this != applied
         ? originalMethodSignatures.inverse().getOrDefault(originalMethod, originalMethod)
         : originalMethod;
@@ -117,9 +117,8 @@ public class AppliedGraphLens extends GraphLense {
   }
 
   @Override
-  public GraphLenseLookupResult lookupMethod(
-      DexMethod method, DexMethod context, Invoke.Type type) {
-    return new GraphLenseLookupResult(method, type);
+  public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Invoke.Type type) {
+    return new GraphLensLookupResult(method, type);
   }
 
   @Override

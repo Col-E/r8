@@ -233,7 +233,7 @@ public class IfRuleEvaluator {
                 (enqueuer.isFieldLive(f)
                         || enqueuer.isFieldReferenced(f)
                         || f.getOptimizationInfo().valueHasBeenPropagated())
-                    && appView.graphLense().getOriginalFieldSignature(f.field).holder
+                    && appView.graphLens().getOriginalFieldSignature(f.field).holder
                         == sourceClass.type));
     Iterables.addAll(
         filteredMembers,
@@ -242,7 +242,7 @@ public class IfRuleEvaluator {
                 (enqueuer.isMethodLive(m)
                         || enqueuer.isMethodTargeted(m)
                         || m.getOptimizationInfo().returnValueHasBeenPropagated())
-                    && appView.graphLense().getOriginalMethodSignature(m.method).holder
+                    && appView.graphLens().getOriginalMethodSignature(m.method).holder
                         == sourceClass.type));
 
     // If the number of member rules to hold is more than live members, we can't make it.

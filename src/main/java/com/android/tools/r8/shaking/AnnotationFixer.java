@@ -14,15 +14,15 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueType;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.utils.ArrayUtils;
 
 public class AnnotationFixer {
 
-  private final GraphLense lense;
+  private final GraphLens lens;
 
-  public AnnotationFixer(GraphLense lense) {
-    this.lense = lense;
+  public AnnotationFixer(GraphLens lens) {
+    this.lens = lens;
   }
 
   public void run(Iterable<DexProgramClass> classes) {
@@ -50,7 +50,7 @@ public class AnnotationFixer {
 
   private DexEncodedAnnotation rewriteEncodedAnnotation(DexEncodedAnnotation original) {
     DexEncodedAnnotation rewritten =
-        original.rewrite(lense::lookupType, this::rewriteAnnotationElement);
+        original.rewrite(lens::lookupType, this::rewriteAnnotationElement);
     assert rewritten != null;
     return rewritten;
   }
@@ -66,7 +66,7 @@ public class AnnotationFixer {
   private DexValue rewriteValue(DexValue value) {
     if (value.isDexValueType()) {
       DexType originalType = value.asDexValueType().value;
-      DexType rewrittenType = lense.lookupType(originalType);
+      DexType rewrittenType = lens.lookupType(originalType);
       if (rewrittenType != originalType) {
         return new DexValueType(rewrittenType);
       }

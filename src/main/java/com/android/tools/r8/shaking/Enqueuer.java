@@ -57,7 +57,7 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.FieldResolutionResult;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.LookupLambdaTarget;
 import com.android.tools.r8.graph.LookupTarget;
@@ -2733,10 +2733,8 @@ public class Enqueuer {
     return appInfoWithLiveness;
   }
 
-  public GraphLense buildGraphLense(AppView<?> appView) {
-    return lambdaRewriter != null
-        ? lambdaRewriter.buildMappingLense(appView)
-        : appView.graphLense();
+  public GraphLens buildGraphLens(AppView<?> appView) {
+    return lambdaRewriter != null ? lambdaRewriter.buildMappingLens(appView) : appView.graphLens();
   }
 
   private void keepClassWithRules(DexProgramClass clazz, Set<ProguardKeepRuleBase> rules) {

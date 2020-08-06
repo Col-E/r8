@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.info.field;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -48,7 +48,7 @@ public class InstanceFieldTypeInitializationInfo implements InstanceFieldInitial
 
   @Override
   public InstanceFieldInitializationInfo rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     EnumValueInfoMapCollection unboxedEnums = appView.unboxedEnums();
     if (dynamicLowerBoundType != null
         && unboxedEnums.containsEnum(dynamicLowerBoundType.getClassType())) {

@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -29,17 +29,17 @@ import java.util.function.Function;
 public class MemberRebindingAnalysis {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final GraphLense lense;
+  private final GraphLens lens;
   private final InternalOptions options;
 
-  private final MemberRebindingLense.Builder builder;
+  private final MemberRebindingLens.Builder builder;
 
   public MemberRebindingAnalysis(AppView<AppInfoWithLiveness> appView) {
-    assert appView.graphLense().isContextFreeForMethods();
+    assert appView.graphLens().isContextFreeForMethods();
     this.appView = appView;
-    this.lense = appView.graphLense();
+    this.lens = appView.graphLens();
     this.options = appView.options();
-    this.builder = MemberRebindingLense.builder(appView);
+    this.builder = MemberRebindingLens.builder(appView);
   }
 
   private DexMethod validTargetFor(DexMethod target, DexMethod original) {
@@ -168,7 +168,7 @@ public class MemberRebindingAnalysis {
                     method, target, originalClass, targetClass, lookupTarget);
           }
         }
-        builder.map(method, lense.lookupMethod(validTargetFor(target.method, method)), invokeType);
+        builder.map(method, lens.lookupMethod(validTargetFor(target.method, method)), invokeType);
       }
     }
   }
@@ -331,11 +331,11 @@ public class MemberRebindingAnalysis {
     if (accessibleInAllContexts) {
       builder.map(
           field,
-          lense.lookupField(validTargetFor(resolvedField.field, field, DexClass::lookupField)));
+          lens.lookupField(validTargetFor(resolvedField.field, field, DexClass::lookupField)));
     }
   }
 
-  public GraphLense run() {
+  public GraphLens run() {
     AppInfoWithLiveness appInfo = appView.appInfo();
     // Virtual invokes are on classes, so use class resolution.
     computeMethodRebinding(appInfo.virtualInvokes, this::classLookup, Type.VIRTUAL);
@@ -348,7 +348,7 @@ public class MemberRebindingAnalysis {
     // Likewise static invokes.
     computeMethodRebinding(appInfo.staticInvokes, this::anyLookup, Type.STATIC);
     computeFieldRebinding();
-    GraphLense lens = builder.build(lense);
+    GraphLens lens = builder.build(this.lens);
     appInfo.getFieldAccessInfoCollection().flattenAccessContexts();
     return lens;
   }

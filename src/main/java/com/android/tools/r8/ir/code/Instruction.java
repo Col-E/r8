@@ -1397,10 +1397,10 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
                 .asArrayType()
                 .toDexType(appView.dexItemFactory())
                 .toBaseType(appView.dexItemFactory());
-        assert appView.graphLense().lookupType(outBaseType) == outBaseType;
+        assert appView.graphLens().lookupType(outBaseType) == outBaseType;
       } else if (outTypeElement.isClassType()) {
         DexType outType = outTypeElement.asClassType().getClassType();
-        assert appView.graphLense().lookupType(outType) == outType;
+        assert appView.graphLens().lookupType(outType) == outType;
       }
     }
     return true;

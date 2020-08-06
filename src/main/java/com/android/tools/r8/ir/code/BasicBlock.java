@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
@@ -998,17 +998,17 @@ public class BasicBlock {
 
   /**
    * Due to class merging, it is possible that two exception classes have been merged into one. This
-   * function renames the guards according to the given graph lense.
+   * function renames the guards according to the given graph lens.
    *
    * @return true if any guards were renamed.
    */
-  public boolean renameGuardsInCatchHandlers(GraphLense graphLense) {
+  public boolean renameGuardsInCatchHandlers(GraphLens graphLens) {
     assert hasCatchHandlers();
     boolean anyGuardsRenamed = false;
     List<DexType> newGuards = new ArrayList<>(catchHandlers.getGuards().size());
     for (DexType guard : catchHandlers.getGuards()) {
       // The type may have changed due to class merging.
-      DexType renamed = graphLense.lookupType(guard);
+      DexType renamed = graphLens.lookupType(guard);
       newGuards.add(renamed);
       anyGuardsRenamed |= renamed != guard;
     }

@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class EmptyObjectState extends ObjectState {
@@ -30,7 +30,7 @@ public class EmptyObjectState extends ObjectState {
   }
 
   @Override
-  public ObjectState rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+  public ObjectState rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     return this;
   }
 

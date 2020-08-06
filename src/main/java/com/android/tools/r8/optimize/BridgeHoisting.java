@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -87,7 +87,7 @@ public class BridgeHoisting {
         .visit(appView.appInfo().classes(), clazz -> processClass(clazz, subtypingInfo));
     if (!lensBuilder.isEmpty()) {
       BridgeHoistingLens lens = lensBuilder.build(appView);
-      boolean changed = appView.setGraphLense(lens);
+      boolean changed = appView.setGraphLens(lens);
       assert changed;
       appView.setAppInfo(
           appView.appInfo().rewrittenWithLens(appView.appInfo().app().asDirect(), lens));
@@ -367,7 +367,7 @@ public class BridgeHoisting {
         : code;
   }
 
-  static class BridgeHoistingLens extends NestedGraphLense {
+  static class BridgeHoistingLens extends NestedGraphLens {
 
     public BridgeHoistingLens(
         AppView<?> appView, BiMap<DexMethod, DexMethod> originalMethodSignatures) {
@@ -377,7 +377,7 @@ public class BridgeHoisting {
           ImmutableMap.of(),
           null,
           originalMethodSignatures,
-          appView.graphLense(),
+          appView.graphLens(),
           appView.dexItemFactory());
     }
 

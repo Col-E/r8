@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 
 public class UnknownFieldSet extends AbstractFieldSet {
 
@@ -34,7 +34,7 @@ public class UnknownFieldSet extends AbstractFieldSet {
   }
 
   @Override
-  public AbstractFieldSet rewrittenWithLens(AppView<?> appView, GraphLense lens) {
+  public AbstractFieldSet rewrittenWithLens(AppView<?> appView, GraphLens lens) {
     return this;
   }
 }

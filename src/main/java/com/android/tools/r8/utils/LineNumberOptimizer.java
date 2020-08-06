@@ -35,7 +35,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Result;
@@ -274,12 +274,12 @@ public class LineNumberOptimizer {
     // Collect which files contain which classes that need to have their line numbers optimized.
     for (DexProgramClass clazz : application.classes()) {
       IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByRenamedName =
-          groupMethodsByRenamedName(appView.graphLense(), namingLens, clazz);
+          groupMethodsByRenamedName(appView.graphLens(), namingLens, clazz);
 
       // At this point we don't know if we really need to add this class to the builder.
       // It depends on whether any methods/fields are renamed or some methods contain positions.
       // Create a supplier which creates a new, cached ClassNaming.Builder on-demand.
-      DexType originalType = appView.graphLense().getOriginalType(clazz.type);
+      DexType originalType = appView.graphLens().getOriginalType(clazz.type);
       DexString renamedClassName = namingLens.lookupDescriptor(clazz.getType());
       Supplier<ClassNaming.Builder> onDemandClassNamingBuilder =
           Suppliers.memoize(
@@ -302,7 +302,7 @@ public class LineNumberOptimizer {
       addClassToClassNaming(originalType, renamedClassName, onDemandClassNamingBuilder);
 
       // First transfer renamed fields to classNamingBuilder.
-      addFieldsToClassNaming(appView.graphLense(), namingLens, clazz, onDemandClassNamingBuilder);
+      addFieldsToClassNaming(appView.graphLens(), namingLens, clazz, onDemandClassNamingBuilder);
 
       // Then process the methods, ordered by renamed name.
       List<DexString> renamedMethodNames = new ArrayList<>(methodsByRenamedName.keySet());
@@ -355,7 +355,7 @@ public class LineNumberOptimizer {
             }
           }
 
-          DexMethod originalMethod = appView.graphLense().getOriginalMethodSignature(method.method);
+          DexMethod originalMethod = appView.graphLens().getOriginalMethodSignature(method.method);
           MethodSignature originalSignature =
               MethodSignature.fromDexMethod(originalMethod, originalMethod.holder != clazz.type);
 
@@ -536,14 +536,14 @@ public class LineNumberOptimizer {
   }
 
   private static void addFieldsToClassNaming(
-      GraphLense graphLense,
+      GraphLens graphLens,
       NamingLens namingLens,
       DexProgramClass clazz,
       Supplier<Builder> onDemandClassNamingBuilder) {
     clazz.forEachField(
         dexEncodedField -> {
           DexField dexField = dexEncodedField.field;
-          DexField originalField = graphLense.getOriginalFieldSignature(dexField);
+          DexField originalField = graphLens.getOriginalFieldSignature(dexField);
           DexString renamedName = namingLens.lookupName(dexField);
           if (renamedName != originalField.name || originalField.holder != clazz.type) {
             FieldSignature originalSignature =
@@ -555,7 +555,7 @@ public class LineNumberOptimizer {
   }
 
   private static IdentityHashMap<DexString, List<DexEncodedMethod>> groupMethodsByRenamedName(
-      GraphLense graphLens, NamingLens namingLens, DexProgramClass clazz) {
+      GraphLens graphLens, NamingLens namingLens, DexProgramClass clazz) {
     IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByRenamedName =
         new IdentityHashMap<>(clazz.getMethodCollection().size());
     for (DexEncodedMethod encodedMethod : clazz.methods()) {

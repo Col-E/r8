@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize.info;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -69,7 +69,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
     this.abstractValue = abstractValue;
   }
 
-  public void fixupAbstractValue(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+  public void fixupAbstractValue(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     abstractValue = abstractValue.rewrittenWithLens(appView, lens);
   }
 

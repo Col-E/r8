@@ -11,7 +11,7 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
@@ -145,7 +145,7 @@ public class L8 {
               appView,
               options,
               options.getMarker(Tool.L8),
-              GraphLense.getIdentityLense(),
+              GraphLens.getIdentityLens(),
               namingLens,
               null)
           .write(options.getClassFileConsumer());

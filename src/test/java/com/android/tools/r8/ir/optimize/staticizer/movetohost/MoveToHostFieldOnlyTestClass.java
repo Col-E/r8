@@ -23,7 +23,7 @@ public class MoveToHostFieldOnlyTestClass {
     // Any other uses other than invoke-virtual or invoke-direct (to either <init> or private) are
     // not allowed, e.g., System.out.println(INSTANCE), null check, or static-put to somewhere else.
     // Therefore, it's merely dead code, and thus it has not been harmful to forget to create a
-    // staticizer lense when there is no method mapping (for instance methods to staticized ones)
+    // staticizer lens when there is no method mapping (for instance methods to staticized ones)
     // while there are field mappings as shown in this example.
     Object x = HostOkFieldOnly.INSTANCE;
   }

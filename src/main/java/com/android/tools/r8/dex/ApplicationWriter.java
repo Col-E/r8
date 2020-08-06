@@ -33,7 +33,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
@@ -69,7 +69,7 @@ public class ApplicationWriter {
 
   public final DexApplication application;
   public final AppView<?> appView;
-  public final GraphLense graphLense;
+  public final GraphLens graphLens;
   public final InitClassLens initClassLens;
   public final NamingLens namingLens;
   public final InternalOptions options;
@@ -148,7 +148,7 @@ public class ApplicationWriter {
       AppView<?> appView,
       InternalOptions options,
       List<Marker> markers,
-      GraphLense graphLense,
+      GraphLens graphLens,
       InitClassLens initClassLens,
       NamingLens namingLens,
       ProguardMapSupplier proguardMapSupplier) {
@@ -157,7 +157,7 @@ public class ApplicationWriter {
         appView,
         options,
         markers,
-        graphLense,
+        graphLens,
         initClassLens,
         namingLens,
         proguardMapSupplier,
@@ -169,7 +169,7 @@ public class ApplicationWriter {
       AppView<?> appView,
       InternalOptions options,
       List<Marker> markers,
-      GraphLense graphLense,
+      GraphLens graphLens,
       InitClassLens initClassLens,
       NamingLens namingLens,
       ProguardMapSupplier proguardMapSupplier,
@@ -181,7 +181,7 @@ public class ApplicationWriter {
     this.options = options;
     this.desugaredLibraryCodeToKeep = CodeToKeep.createCodeToKeep(options, namingLens);
     this.markers = markers;
-    this.graphLense = graphLense;
+    this.graphLens = graphLens;
     this.initClassLens = initClassLens;
     this.namingLens = namingLens;
     this.proguardMapSupplier = proguardMapSupplier;
@@ -338,7 +338,7 @@ public class ApplicationWriter {
       // Fail if there are pending errors, e.g., the program consumers may have reported errors.
       options.reporter.failIfPendingErrors();
       // Supply info to all additional resource consumers.
-      supplyAdditionalConsumers(application, appView, graphLense, namingLens, options);
+      supplyAdditionalConsumers(application, appView, graphLens, namingLens, options);
     } finally {
       application.timing.end();
     }
@@ -347,7 +347,7 @@ public class ApplicationWriter {
   public static void supplyAdditionalConsumers(
       DexApplication application,
       AppView<?> appView,
-      GraphLense graphLense,
+      GraphLens graphLens,
       NamingLens namingLens,
       InternalOptions options) {
     if (options.configurationConsumer != null) {
@@ -366,7 +366,7 @@ public class ApplicationWriter {
     if (dataResourceConsumer != null) {
       ImmutableList<DataResourceProvider> dataResourceProviders = application.dataResourceProviders;
       ResourceAdapter resourceAdapter =
-          new ResourceAdapter(appView, application.dexItemFactory, graphLense, namingLens, options);
+          new ResourceAdapter(appView, application.dexItemFactory, graphLens, namingLens, options);
 
       adaptAndPassDataResources(
           options, dataResourceConsumer, dataResourceProviders, resourceAdapter);
@@ -402,7 +402,7 @@ public class ApplicationWriter {
           options.featureSplitConfiguration.getDataResourceProvidersAndConsumers()) {
         ResourceAdapter resourceAdapter =
             new ResourceAdapter(
-                appView, application.dexItemFactory, graphLense, namingLens, options);
+                appView, application.dexItemFactory, graphLens, namingLens, options);
         adaptAndPassDataResources(
             options, entry.getConsumer(), entry.getProviders(), resourceAdapter);
       }

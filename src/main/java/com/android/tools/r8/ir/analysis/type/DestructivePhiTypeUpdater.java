@@ -24,7 +24,7 @@ public class DestructivePhiTypeUpdater {
   private final Function<DexType, DexType> mapping;
 
   public DestructivePhiTypeUpdater(AppView<? extends AppInfoWithClassHierarchy> appView) {
-    this(appView, appView.graphLense()::lookupType);
+    this(appView, appView.graphLens()::lookupType);
   }
 
   public DestructivePhiTypeUpdater(

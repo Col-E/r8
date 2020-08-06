@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
@@ -136,7 +136,7 @@ public class Inliner implements PostOptimization {
       return true;
     }
 
-    if (blacklist.contains(appView.graphLense().getOriginalMethodSignature(singleTargetReference))
+    if (blacklist.contains(appView.graphLens().getOriginalMethodSignature(singleTargetReference))
         || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(
             singleTargetReference, appView)) {
       whyAreYouNotInliningReporter.reportBlacklisted();
@@ -183,7 +183,7 @@ public class Inliner implements PostOptimization {
 
     ConstraintWithTarget result = ConstraintWithTarget.ALWAYS;
     InliningConstraints inliningConstraints =
-        new InliningConstraints(appView, GraphLense.getIdentityLense());
+        new InliningConstraints(appView, GraphLens.getIdentityLens());
     for (Instruction instruction : code.instructions()) {
       ConstraintWithTarget state =
           instructionAllowedForInlining(instruction, inliningConstraints, context);

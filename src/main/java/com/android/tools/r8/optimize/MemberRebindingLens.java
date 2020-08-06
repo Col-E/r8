@@ -7,8 +7,8 @@ package com.android.tools.r8.optimize;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.ImmutableMap;
@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-public class MemberRebindingLense extends NestedGraphLense {
+public class MemberRebindingLens extends NestedGraphLens {
 
   public static class Builder {
 
@@ -48,29 +48,29 @@ public class MemberRebindingLense extends NestedGraphLense {
       methodMap.put(from, to);
     }
 
-    public GraphLense build(GraphLense previousLense) {
+    public GraphLens build(GraphLens previousLens) {
       if (fieldMap.isEmpty() && methodMaps.isEmpty()) {
-        return previousLense;
+        return previousLens;
       }
-      return new MemberRebindingLense(appView, methodMaps, fieldMap, previousLense);
+      return new MemberRebindingLens(appView, methodMaps, fieldMap, previousLens);
     }
   }
 
   private final AppView<?> appView;
   private final Map<Invoke.Type, Map<DexMethod, DexMethod>> methodMaps;
 
-  public MemberRebindingLense(
+  public MemberRebindingLens(
       AppView<?> appView,
       Map<Invoke.Type, Map<DexMethod, DexMethod>> methodMaps,
       Map<DexField, DexField> fieldMap,
-      GraphLense previousLense) {
+      GraphLens previousLens) {
     super(
         ImmutableMap.of(),
         ImmutableMap.of(),
         fieldMap,
         null,
         null,
-        previousLense,
+        previousLens,
         appView.dexItemFactory());
     this.appView = appView;
     this.methodMaps = methodMaps;
@@ -86,12 +86,12 @@ public class MemberRebindingLense extends NestedGraphLense {
   }
 
   @Override
-  public GraphLenseLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-    GraphLenseLookupResult previous = previousLense.lookupMethod(method, context, type);
+  public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+    GraphLensLookupResult previous = previousLens.lookupMethod(method, context, type);
     Map<DexMethod, DexMethod> methodMap = methodMaps.getOrDefault(type, Collections.emptyMap());
     DexMethod newMethod = methodMap.get(previous.getMethod());
     if (newMethod != null) {
-      return new GraphLenseLookupResult(
+      return new GraphLensLookupResult(
           newMethod, mapInvocationType(newMethod, method, previous.getType()));
     }
     return previous;

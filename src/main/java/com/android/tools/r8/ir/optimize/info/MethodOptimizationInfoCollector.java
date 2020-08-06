@@ -913,7 +913,7 @@ public class MethodOptimizationInfoCollector {
     Wrapper<DexMethod> throwParamIsNullException =
         wrapper.wrap(appView.dexItemFactory().kotlin.intrinsics.throwParameterIsNullException);
     DexMethod invokedMethod =
-        appView.graphLense().getOriginalMethodSignature(instr.asInvokeStatic().getInvokedMethod());
+        appView.graphLens().getOriginalMethodSignature(instr.asInvokeStatic().getInvokedMethod());
     Wrapper<DexMethod> methodWrap = wrapper.wrap(invokedMethod);
     if (methodWrap.equals(throwParamIsNullException)
         || (methodWrap.equals(checkParameterIsNotNull) && instr.inValues().get(0).equals(value))) {

@@ -33,20 +33,20 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     super(appView);
   }
 
-  public NestedPrivateMethodLense run(
+  public NestedPrivateMethodLens run(
       ExecutorService executorService, DexApplication.Builder<?> appBuilder)
       throws ExecutionException {
     assert !appView.options().canUseNestBasedAccess()
         || appView.options().testing.enableForceNestBasedAccessDesugaringForTest;
     computeAndProcessNestsConcurrently(executorService);
-    NestedPrivateMethodLense.Builder lensBuilder = NestedPrivateMethodLense.builder();
+    NestedPrivateMethodLens.Builder lensBuilder = NestedPrivateMethodLens.builder();
     addDeferredBridgesAndMapMethods(lensBuilder);
     clearNestAttributes();
     synthesizeNestConstructor(appBuilder);
     return lensBuilder.build(appView, getNestConstructorType());
   }
 
-  private void addDeferredBridgesAndMapMethods(NestedPrivateMethodLense.Builder lensBuilder) {
+  private void addDeferredBridgesAndMapMethods(NestedPrivateMethodLens.Builder lensBuilder) {
     // Here we add the bridges and we fill the lens map.
     addDeferredBridgesAndMapMethods(bridges, lensBuilder::map);
     addDeferredBridgesAndMapMethods(getFieldBridges, lensBuilder::mapGetField);

@@ -9,7 +9,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodProcessingId.Factory.ReservedMethodProcessingIds;
@@ -105,14 +105,14 @@ public class PostMethodProcessor implements MethodProcessor {
     // Some optimizations may change methods, creating new instances of the encoded methods with a
     // new signature. The compiler needs to update the set of methods that must be reprocessed
     // according to the graph lens.
-    public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense applied) {
+    public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens applied) {
       methodsToReprocess.rewrittenWithLens(appView, applied);
       Map<DexEncodedMethod, Collection<CodeOptimization>> newOptimizationsMap =
           new IdentityHashMap<>();
       optimizationsMap.forEach(
           (method, optimizations) ->
               newOptimizationsMap.put(
-                  appView.graphLense().mapDexEncodedMethod(method, appView, applied),
+                  appView.graphLens().mapDexEncodedMethod(method, appView, applied),
                   optimizations));
       optimizationsMap.clear();
       optimizationsMap.putAll(newOptimizationsMap);
@@ -143,7 +143,7 @@ public class PostMethodProcessor implements MethodProcessor {
       }
       CallGraph callGraph =
           new PartialCallGraphBuilder(
-                  appView, methodsToReprocess.build(appView, appView.graphLense()))
+                  appView, methodsToReprocess.build(appView, appView.graphLens()))
               .build(executorService, timing);
       return new PostMethodProcessor(appView, optimizationsMap, callGraph);
     }

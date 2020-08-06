@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -38,23 +38,23 @@ public class InliningConstraints {
   // being inlined into B.<init>() only because it is not declared in the same class as B (which
   // it would be after merging A and B).
   //
-  // To circumvent this problem, the vertical class merger creates a graph lense that maps the
+  // To circumvent this problem, the vertical class merger creates a graph lens that maps the
   // type A to B, to create a temporary view of what the world would look like after class merging.
-  private GraphLense graphLense;
+  private GraphLens graphLens;
 
-  public InliningConstraints(AppView<AppInfoWithLiveness> appView, GraphLense graphLense) {
-    assert graphLense.isContextFreeForMethods();
-    assert appView.graphLense() != graphLense || graphLense.isIdentityLense();
+  public InliningConstraints(AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
+    assert graphLens.isContextFreeForMethods();
+    assert appView.graphLens() != graphLens || graphLens.isIdentityLens();
     this.appView = appView;
-    this.graphLense = graphLense; // Note: Intentionally *not* appView.graphLense().
+    this.graphLens = graphLens; // Note: Intentionally *not* appView.graphLens().
   }
 
   public AppView<AppInfoWithLiveness> getAppView() {
     return appView;
   }
 
-  public GraphLense getGraphLense() {
-    return graphLense;
+  public GraphLens getGraphLens() {
+    return graphLens;
   }
 
   public void disallowStaticInterfaceMethodCalls() {
@@ -62,7 +62,7 @@ public class InliningConstraints {
   }
 
   private boolean isVerticalClassMerging() {
-    return !graphLense.isIdentityLense();
+    return !graphLens.isIdentityLens();
   }
 
   public ConstraintWithTarget forAlwaysMaterializingUser() {
@@ -131,7 +131,7 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forInstanceGet(DexField field, DexProgramClass context) {
-    DexField lookup = graphLense.lookupField(field);
+    DexField lookup = graphLens.lookupField(field);
     return forFieldInstruction(lookup, appView.appInfo().lookupInstanceTarget(lookup), context);
   }
 
@@ -140,7 +140,7 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forInstancePut(DexField field, DexProgramClass context) {
-    DexField lookup = graphLense.lookupField(field);
+    DexField lookup = graphLens.lookupField(field);
     return forFieldInstruction(lookup, appView.appInfo().lookupInstanceTarget(lookup), context);
   }
 
@@ -183,7 +183,7 @@ public class InliningConstraints {
     if (dexEncodedMethod != null) {
       return dexEncodedMethod;
     }
-    assert graphLense.lookupType(context.superType) == context.type;
+    assert graphLens.lookupType(context.superType) == context.type;
     DexProgramClass superContext = appView.definitionForProgramType(context.superType);
     if (superContext == null) {
       return null;
@@ -198,7 +198,7 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forInvokeDirect(DexMethod method, DexProgramClass context) {
-    DexMethod lookup = graphLense.lookupMethod(method);
+    DexMethod lookup = graphLens.lookupMethod(method);
     DexEncodedMethod target =
         isVerticalClassMerging()
             ? lookupWhileVerticalClassMerging(
@@ -210,7 +210,7 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forInvokeInterface(DexMethod method, DexProgramClass context) {
-    DexMethod lookup = graphLense.lookupMethod(method);
+    DexMethod lookup = graphLens.lookupMethod(method);
     return forVirtualInvoke(lookup, context, true);
   }
 
@@ -227,7 +227,7 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forInvokeStatic(DexMethod method, DexProgramClass context) {
-    DexMethod lookup = graphLense.lookupMethod(method);
+    DexMethod lookup = graphLens.lookupMethod(method);
     DexEncodedMethod target =
         isVerticalClassMerging()
             ? lookupWhileVerticalClassMerging(
@@ -244,7 +244,7 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forInvokeVirtual(DexMethod method, DexProgramClass context) {
-    DexMethod lookup = graphLense.lookupMethod(method);
+    DexMethod lookup = graphLens.lookupMethod(method);
     return forVirtualInvoke(lookup, context, false);
   }
 
@@ -293,12 +293,12 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forStaticGet(DexField field, DexProgramClass context) {
-    DexField lookup = graphLense.lookupField(field);
+    DexField lookup = graphLens.lookupField(field);
     return forFieldInstruction(lookup, appView.appInfo().lookupStaticTarget(lookup), context);
   }
 
   public ConstraintWithTarget forStaticPut(DexField field, DexProgramClass context) {
-    DexField lookup = graphLense.lookupField(field);
+    DexField lookup = graphLens.lookupField(field);
     return forFieldInstruction(lookup, appView.appInfo().lookupStaticTarget(lookup), context);
   }
 
@@ -329,7 +329,7 @@ public class InliningConstraints {
   private ConstraintWithTarget forFieldInstruction(
       DexField field, DexEncodedField target, DexProgramClass context) {
     // Resolve the field if possible and decide whether the instruction can inlined.
-    DexType fieldHolder = graphLense.lookupType(field.holder);
+    DexType fieldHolder = graphLens.lookupType(field.holder);
     DexClass fieldClass = appView.definitionFor(fieldHolder);
     if (target != null && fieldClass != null) {
       ConstraintWithTarget fieldConstraintWithTarget =
@@ -340,7 +340,7 @@ public class InliningConstraints {
       //
       // See, for example, InlineNonReboundFieldTest (b/128604123).
       if (field.holder != target.holder()) {
-        DexType actualFieldHolder = graphLense.lookupType(target.holder());
+        DexType actualFieldHolder = graphLens.lookupType(target.holder());
         fieldConstraintWithTarget =
             ConstraintWithTarget.meet(
                 fieldConstraintWithTarget,
@@ -364,7 +364,7 @@ public class InliningConstraints {
       return ConstraintWithTarget.ALWAYS;
     }
     if (target != null) {
-      DexType methodHolder = graphLense.lookupType(target.holder());
+      DexType methodHolder = graphLens.lookupType(target.holder());
       DexClass methodClass = appView.definitionFor(methodHolder);
       if (methodClass != null) {
         if (!allowStaticInterfaceMethodCalls && methodClass.isInterface() && target.hasCode()) {
@@ -405,7 +405,7 @@ public class InliningConstraints {
       return ConstraintWithTarget.NEVER;
     }
 
-    DexType methodHolder = graphLense.lookupType(resolutionTarget.holder());
+    DexType methodHolder = graphLens.lookupType(resolutionTarget.holder());
     DexClass methodClass = appView.definitionFor(methodHolder);
     assert methodClass != null;
     ConstraintWithTarget methodConstraintWithTarget =

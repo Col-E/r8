@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -47,5 +47,5 @@ public abstract class SingleValue extends AbstractValue implements InstanceField
 
   @Override
   public abstract SingleValue rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLense lens);
+      AppView<AppInfoWithLiveness> appView, GraphLens lens);
 }

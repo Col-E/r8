@@ -47,8 +47,8 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueType;
-import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
@@ -115,7 +115,7 @@ public class LensCodeRewriter {
     if (insn.outValue() != null) {
       TypeElement oldType = insn.getOutType();
       TypeElement newType =
-          oldType.fixupClassTypeReferences(appView.graphLense()::lookupType, appView);
+          oldType.fixupClassTypeReferences(appView.graphLens()::lookupType, appView);
       return code.createValue(newType, insn.getLocalInfo());
     }
     return null;
@@ -125,7 +125,7 @@ public class LensCodeRewriter {
   public void rewrite(IRCode code, ProgramMethod method) {
     Set<Phi> affectedPhis =
         enumUnboxer != null ? enumUnboxer.rewriteCode(code) : Sets.newIdentityHashSet();
-    GraphLense graphLense = appView.graphLense();
+    GraphLens graphLens = appView.graphLens();
     DexItemFactory factory = appView.dexItemFactory();
     // Rewriting types that affects phi can cause us to compute TOP for cyclic phi's. To solve this
     // we track all phi's that needs to be re-computed.
@@ -134,7 +134,7 @@ public class LensCodeRewriter {
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
       if (block.hasCatchHandlers() && appView.options().enableVerticalClassMerging) {
-        boolean anyGuardsRenamed = block.renameGuardsInCatchHandlers(graphLense);
+        boolean anyGuardsRenamed = block.renameGuardsInCatchHandlers(graphLens);
         if (anyGuardsRenamed) {
           mayHaveUnreachableBlocks |= unlinkDeadCatchHandlers(block);
         }
@@ -217,13 +217,13 @@ public class LensCodeRewriter {
               if (invoke.isInvokeDirect()) {
                 checkInvokeDirect(method.getReference(), invoke.asInvokeDirect());
               }
-              GraphLenseLookupResult lenseLookup =
-                  graphLense.lookupMethod(invokedMethod, method.getReference(), invoke.getType());
-              DexMethod actualTarget = lenseLookup.getMethod();
-              Invoke.Type actualInvokeType = lenseLookup.getType();
+              GraphLensLookupResult lensLookup =
+                  graphLens.lookupMethod(invokedMethod, method.getReference(), invoke.getType());
+              DexMethod actualTarget = lensLookup.getMethod();
+              Invoke.Type actualInvokeType = lensLookup.getType();
               if (actualTarget != invokedMethod || invoke.getType() != actualInvokeType) {
                 RewrittenPrototypeDescription prototypeChanges =
-                    graphLense.lookupPrototypeChanges(actualTarget);
+                    graphLens.lookupPrototypeChanges(actualTarget);
 
                 List<Value> newInValues;
                 ArgumentInfoCollection argumentInfoCollection =
@@ -272,7 +272,7 @@ public class LensCodeRewriter {
                         .setLocalInfo(invoke.outValue().getLocalInfo());
                   }
                   invoke.outValue().replaceUsers(constantReturnMaterializingInstruction.outValue());
-                  if (graphLense.lookupType(invoke.getReturnType()) != invoke.getReturnType()) {
+                  if (graphLens.lookupType(invoke.getReturnType()) != invoke.getReturnType()) {
                     affectedPhis.addAll(
                         constantReturnMaterializingInstruction.outValue().uniquePhiUsers());
                   }
@@ -324,7 +324,7 @@ public class LensCodeRewriter {
                 }
 
                 DexType actualReturnType = actualTarget.proto.returnType;
-                DexType expectedReturnType = graphLense.lookupType(invokedMethod.proto.returnType);
+                DexType expectedReturnType = graphLens.lookupType(invokedMethod.proto.returnType);
                 if (newInvoke.outValue() != null && actualReturnType != expectedReturnType) {
                   throw new Unreachable(
                       "Unexpected need to insert a cast. Possibly related to resolving"
@@ -343,9 +343,9 @@ public class LensCodeRewriter {
             {
               InstanceGet instanceGet = current.asInstanceGet();
               DexField field = instanceGet.getField();
-              DexField actualField = graphLense.lookupField(field);
+              DexField actualField = graphLens.lookupField(field);
               DexMethod replacementMethod =
-                  graphLense.lookupGetFieldForMethod(actualField, method.getReference());
+                  graphLens.lookupGetFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
                 Value newOutValue = makeOutValue(current, code);
                 iterator.replaceCurrentInstruction(
@@ -368,9 +368,9 @@ public class LensCodeRewriter {
             {
               InstancePut instancePut = current.asInstancePut();
               DexField field = instancePut.getField();
-              DexField actualField = graphLense.lookupField(field);
+              DexField actualField = graphLens.lookupField(field);
               DexMethod replacementMethod =
-                  graphLense.lookupPutFieldForMethod(actualField, method.getReference());
+                  graphLens.lookupPutFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
                 iterator.replaceCurrentInstruction(
                     new InvokeStatic(replacementMethod, null, current.inValues()));
@@ -390,9 +390,9 @@ public class LensCodeRewriter {
             {
               StaticGet staticGet = current.asStaticGet();
               DexField field = staticGet.getField();
-              DexField actualField = graphLense.lookupField(field);
+              DexField actualField = graphLens.lookupField(field);
               DexMethod replacementMethod =
-                  graphLense.lookupGetFieldForMethod(actualField, method.getReference());
+                  graphLens.lookupGetFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
                 Value newOutValue = makeOutValue(current, code);
                 iterator.replaceCurrentInstruction(
@@ -414,9 +414,9 @@ public class LensCodeRewriter {
             {
               StaticPut staticPut = current.asStaticPut();
               DexField field = staticPut.getField();
-              DexField actualField = graphLense.lookupField(field);
+              DexField actualField = graphLens.lookupField(field);
               DexMethod replacementMethod =
-                  graphLense.lookupPutFieldForMethod(actualField, method.getReference());
+                  graphLens.lookupPutFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
                 iterator.replaceCurrentInstruction(
                     new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
@@ -530,7 +530,7 @@ public class LensCodeRewriter {
               // For all other instructions, substitute any changed type.
               TypeElement type = current.getOutType();
               TypeElement substituted =
-                  type.fixupClassTypeReferences(graphLense::lookupType, appView);
+                  type.fixupClassTypeReferences(graphLens::lookupType, appView);
               if (substituted != type) {
                 current.outValue().setType(substituted);
                 affectedPhis.addAll(current.outValue().uniquePhiUsers());
@@ -597,7 +597,7 @@ public class LensCodeRewriter {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto newMethodProto =
         dexItemFactory.applyClassMappingToProto(
-            callSite.methodProto, appView.graphLense()::lookupType, protoFixupCache);
+            callSite.methodProto, appView.graphLens()::lookupType, protoFixupCache);
     DexMethodHandle newBootstrapMethod =
         rewriteDexMethodHandle(
             callSite.bootstrapMethod, context, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
@@ -678,7 +678,7 @@ public class LensCodeRewriter {
     List<BasicBlock> deadCatchHandlers = new ArrayList<>();
     for (int i = 0; i < guards.size(); i++) {
       // The type may have changed due to class merging.
-      DexType guard = appView.graphLense().lookupType(guards.get(i));
+      DexType guard = appView.graphLens().lookupType(guards.get(i));
       boolean guardSeenBefore = !previouslySeenGuards.add(guard);
       if (guardSeenBefore) {
         deadCatchHandlers.add(targets.get(i));
@@ -708,7 +708,7 @@ public class LensCodeRewriter {
           break;
         case TYPE:
           DexType oldType = argument.asDexValueType().value;
-          DexType newType = appView.graphLense().lookupType(oldType);
+          DexType newType = appView.graphLens().lookupType(oldType);
           if (newType != oldType) {
             newArgument = new DexValueType(newType);
           }
@@ -741,18 +741,18 @@ public class LensCodeRewriter {
     if (methodHandle.isMethodHandle()) {
       DexMethod invokedMethod = methodHandle.asMethod();
       MethodHandleType oldType = methodHandle.type;
-      GraphLenseLookupResult lenseLookup =
+      GraphLensLookupResult lensLookup =
           appView
-              .graphLense()
+              .graphLens()
               .lookupMethod(invokedMethod, context.getReference(), oldType.toInvokeType());
-      DexMethod rewrittenTarget = lenseLookup.getMethod();
+      DexMethod rewrittenTarget = lensLookup.getMethod();
       DexMethod actualTarget;
       MethodHandleType newType;
       if (use == ARGUMENT_TO_LAMBDA_METAFACTORY) {
         // Lambda metafactory arguments will be lambda desugared away and therefore cannot flow
         // to a MethodHandle.invokeExact call. We can therefore member-rebind with no issues.
         actualTarget = rewrittenTarget;
-        newType = lenseLookup.getType().toMethodHandle(actualTarget);
+        newType = lensLookup.getType().toMethodHandle(actualTarget);
       } else {
         assert use == NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
         // MethodHandles that are not arguments to a lambda metafactory will not be desugared
@@ -769,7 +769,7 @@ public class LensCodeRewriter {
           // If the method has changed from private to public we need to use virtual instead of
           // direct.
           assert rewrittenTarget.holder == actualTarget.holder;
-          newType = lenseLookup.getType().toMethodHandle(actualTarget);
+          newType = lensLookup.getType().toMethodHandle(actualTarget);
           assert newType == MethodHandleType.INVOKE_DIRECT
               || newType == MethodHandleType.INVOKE_INSTANCE;
         }
@@ -785,7 +785,7 @@ public class LensCodeRewriter {
       }
     } else {
       DexField field = methodHandle.asField();
-      DexField actualField = appView.graphLense().lookupField(field);
+      DexField actualField = appView.graphLens().lookupField(field);
       if (actualField != field) {
         return new DexMethodHandle(methodHandle.type, actualField, methodHandle.isInterface);
       }
@@ -798,7 +798,7 @@ public class LensCodeRewriter {
     DexProto newProto =
         appView
             .dexItemFactory()
-            .applyClassMappingToProto(oldProto, appView.graphLense()::lookupType, protoFixupCache);
+            .applyClassMappingToProto(oldProto, appView.graphLens()::lookupType, protoFixupCache);
     return newProto != oldProto ? new DexValueMethodType(newProto) : type;
   }
 
@@ -819,7 +819,7 @@ public class LensCodeRewriter {
 
     void replaceInstructionIfTypeChanged(
         DexType type, BiFunction<DexType, Value, Instruction> constructor) {
-      DexType newType = appView.graphLense().lookupType(type);
+      DexType newType = appView.graphLens().lookupType(type);
       if (newType != type) {
         Value newOutValue = makeOutValue(current, code);
         Instruction newInstruction = constructor.apply(newType, newOutValue);

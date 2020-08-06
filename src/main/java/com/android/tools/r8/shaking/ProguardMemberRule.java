@@ -184,7 +184,7 @@ public class ProguardMemberRule {
       AppView<?> appView,
       Consumer<AnnotationMatchResult> matchedAnnotationsConsumer,
       DexStringCache stringCache) {
-    DexField originalSignature = appView.graphLense().getOriginalFieldSignature(field.field);
+    DexField originalSignature = appView.graphLens().getOriginalFieldSignature(field.field);
     switch (getRuleType()) {
       case ALL:
       case ALL_FIELDS:
@@ -235,7 +235,7 @@ public class ProguardMemberRule {
       AppView<?> appView,
       Consumer<AnnotationMatchResult> matchedAnnotationsConsumer,
       DexStringCache stringCache) {
-    DexMethod originalSignature = appView.graphLense().getOriginalMethodSignature(method.method);
+    DexMethod originalSignature = appView.graphLens().getOriginalMethodSignature(method.method);
     switch (getRuleType()) {
       case ALL_METHODS:
         if (method.isClassInitializer()) {

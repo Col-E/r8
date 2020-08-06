@@ -120,7 +120,7 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
     return "DexApplication (direct)";
   }
 
-  public DirectMappedDexApplication rewrittenWithLens(GraphLense lens) {
+  public DirectMappedDexApplication rewrittenWithLens(GraphLens lens) {
     // As a side effect, this will rebuild the program classes and library classes maps.
     DirectMappedDexApplication rewrittenApplication = builder().build().asDirect();
     assert rewrittenApplication.mappingIsValid(lens, allClasses.keySet());
@@ -128,7 +128,7 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
     return rewrittenApplication;
   }
 
-  public boolean verifyNothingToRewrite(AppView<?> appView, GraphLense lens) {
+  public boolean verifyNothingToRewrite(AppView<?> appView, GraphLens lens) {
     assert allClasses.keySet().stream()
         .allMatch(
             type ->
@@ -138,12 +138,12 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
     return true;
   }
 
-  private boolean mappingIsValid(GraphLense graphLense, Iterable<DexType> types) {
+  private boolean mappingIsValid(GraphLens graphLens, Iterable<DexType> types) {
     // The lens might either map to a different type that is already present in the application
     // (e.g. relinking a type) or it might encode a type that was renamed, in which case the
     // original type will point to a definition that was renamed.
     for (DexType type : types) {
-      DexType renamed = graphLense.lookupType(type);
+      DexType renamed = graphLens.lookupType(type);
       if (renamed != type) {
         if (definitionFor(type) == null && definitionFor(renamed) != null) {
           continue;

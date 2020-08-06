@@ -12,8 +12,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -347,19 +347,19 @@ public class LambdaRewriter {
     return knownLambdaClasses;
   }
 
-  public GraphLense buildMappingLense(AppView<?> appView) {
+  public GraphLens buildMappingLens(AppView<?> appView) {
     if (originalMethodSignatures.isEmpty()) {
-      return appView.graphLense();
+      return appView.graphLens();
     }
-    return new LambdaRewriterLense(
-        originalMethodSignatures, appView.graphLense(), appView.dexItemFactory());
+    return new LambdaRewriterLens(
+        originalMethodSignatures, appView.graphLens(), appView.dexItemFactory());
   }
 
-  static class LambdaRewriterLense extends NestedGraphLense {
+  static class LambdaRewriterLens extends NestedGraphLens {
 
-    public LambdaRewriterLense(
+    public LambdaRewriterLens(
         BiMap<DexMethod, DexMethod> originalMethodSignatures,
-        GraphLense graphLense,
+        GraphLens graphLens,
         DexItemFactory factory) {
       super(
           ImmutableMap.of(),
@@ -367,7 +367,7 @@ public class LambdaRewriter {
           ImmutableMap.of(),
           null,
           originalMethodSignatures,
-          graphLense,
+          graphLens,
           factory);
     }
 

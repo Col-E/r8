@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.info.field;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 /**
@@ -30,7 +30,7 @@ public class UnknownInstanceFieldInitializationInfo implements InstanceFieldInit
 
   @Override
   public InstanceFieldInitializationInfo rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     return this;
   }
 }

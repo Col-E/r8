@@ -336,7 +336,7 @@ public class RedundantFieldLoadElimination {
     assert verticallyMergedClasses.isTarget(method.getHolderType());
     assert appView
         .dexItemFactory()
-        .isConstructor(appView.graphLense().getOriginalMethodSignature(method.getReference()));
+        .isConstructor(appView.graphLens().getOriginalMethodSignature(method.getReference()));
     assert method.getDefinition().getOptimizationInfo().forceInline();
     return true;
   }

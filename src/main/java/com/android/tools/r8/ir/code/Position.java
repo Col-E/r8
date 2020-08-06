@@ -86,7 +86,7 @@ public class Position {
       position = Position.noneWithMethod(context.getReference(), null);
     }
     assert position.getOutermostCaller().method
-        == appView.graphLense().getOriginalMethodSignature(context.getReference());
+        == appView.graphLens().getOriginalMethodSignature(context.getReference());
     return position;
   }
 

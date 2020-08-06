@@ -282,9 +282,9 @@ public final class BackportedMethodRewriter {
     }
     return c -> method.method.hashCode();
   }
-  
+
   private MethodProvider getMethodProviderOrNull(DexMethod method) {
-    DexMethod original = appView.graphLense().getOriginalMethodSignature(method);
+    DexMethod original = appView.graphLens().getOriginalMethodSignature(method);
     assert original != null;
     return rewritableMethods.getProvider(original);
   }

@@ -8,35 +8,35 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.Invoke;
 import com.google.common.collect.ImmutableMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-public class NestedPrivateMethodLense extends NestedGraphLense {
+public class NestedPrivateMethodLens extends NestedGraphLens {
 
   // Map from nestHost to nest members including nest hosts
   private final DexType nestConstructorType;
   private final Map<DexField, DexMethod> getFieldMap;
   private final Map<DexField, DexMethod> putFieldMap;
 
-  NestedPrivateMethodLense(
+  NestedPrivateMethodLens(
       AppView<?> appView,
       DexType nestConstructorType,
       Map<DexMethod, DexMethod> methodMap,
       Map<DexField, DexMethod> getFieldMap,
       Map<DexField, DexMethod> putFieldMap,
-      GraphLense previousLense) {
+      GraphLens previousLens) {
     super(
         ImmutableMap.of(),
         methodMap,
         ImmutableMap.of(),
         null,
         null,
-        previousLense,
+        previousLens,
         appView.dexItemFactory());
     // No concurrent maps here, we do not want synchronization overhead.
     assert methodMap instanceof IdentityHashMap;
@@ -59,13 +59,13 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
 
   @Override
   public DexMethod lookupGetFieldForMethod(DexField field, DexMethod context) {
-    assert previousLense.lookupGetFieldForMethod(field, context) == null;
+    assert previousLens.lookupGetFieldForMethod(field, context) == null;
     return lookupFieldForMethod(field, context, getFieldMap);
   }
 
   @Override
   public DexMethod lookupPutFieldForMethod(DexField field, DexMethod context) {
-    assert previousLense.lookupPutFieldForMethod(field, context) == null;
+    assert previousLens.lookupPutFieldForMethod(field, context) == null;
     return lookupFieldForMethod(field, context, putFieldMap);
   }
 
@@ -76,7 +76,7 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
 
   @Override
   public boolean verifyIsContextFreeForMethod(DexMethod method) {
-    assert !methodMap.containsKey(previousLense.lookupMethod(method));
+    assert !methodMap.containsKey(previousLens.lookupMethod(method));
     return true;
   }
 
@@ -99,18 +99,17 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
   public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
     if (isConstructorBridge(method)) {
       // TODO (b/132767654): Try to write a test which breaks that assertion.
-      assert previousLense.lookupPrototypeChanges(method).isEmpty();
+      assert previousLens.lookupPrototypeChanges(method).isEmpty();
       return RewrittenPrototypeDescription.none().withExtraNullParameter();
     } else {
-      return previousLense.lookupPrototypeChanges(method);
+      return previousLens.lookupPrototypeChanges(method);
     }
   }
 
   @Override
-  public GraphLenseLookupResult lookupMethod(
-      DexMethod method, DexMethod context, Invoke.Type type) {
+  public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Invoke.Type type) {
     assert originalMethodSignatures == null;
-    GraphLenseLookupResult previous = previousLense.lookupMethod(method, context, type);
+    GraphLensLookupResult previous = previousLens.lookupMethod(method, context, type);
     DexMethod bridge = methodMap.get(previous.getMethod());
     if (bridge == null) {
       return previous;
@@ -120,16 +119,16 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
       return previous;
     }
     if (isConstructorBridge(bridge)) {
-      return new GraphLenseLookupResult(bridge, Invoke.Type.DIRECT);
+      return new GraphLensLookupResult(bridge, Invoke.Type.DIRECT);
     }
-    return new GraphLenseLookupResult(bridge, Invoke.Type.STATIC);
+    return new GraphLensLookupResult(bridge, Invoke.Type.STATIC);
   }
 
   public static Builder builder() {
     return new Builder();
   }
 
-  public static class Builder extends NestedGraphLense.Builder {
+  public static class Builder extends NestedGraphLens.Builder {
 
     private Map<DexField, DexMethod> getFieldMap = new IdentityHashMap<>();
     private Map<DexField, DexMethod> putFieldMap = new IdentityHashMap<>();
@@ -142,14 +141,14 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
       putFieldMap.put(from, to);
     }
 
-    public NestedPrivateMethodLense build(AppView<?> appView, DexType nestConstructorType) {
+    public NestedPrivateMethodLens build(AppView<?> appView, DexType nestConstructorType) {
       assert typeMap.isEmpty();
       assert fieldMap.isEmpty();
       if (getFieldMap.isEmpty() && methodMap.isEmpty() && putFieldMap.isEmpty()) {
         return null;
       }
-      return new NestedPrivateMethodLense(
-          appView, nestConstructorType, methodMap, getFieldMap, putFieldMap, appView.graphLense());
+      return new NestedPrivateMethodLens(
+          appView, nestConstructorType, methodMap, getFieldMap, putFieldMap, appView.graphLens());
     }
   }
 }

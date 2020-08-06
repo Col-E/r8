@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize.info;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -164,13 +164,13 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   public UpdatableMethodOptimizationInfo fixupAbstractReturnValue(
-      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     abstractReturnValue = abstractReturnValue.rewrittenWithLens(appView, lens);
     return this;
   }
 
   public UpdatableMethodOptimizationInfo fixupInstanceInitializerInfo(
-      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     if (instanceInitializerInfo != null) {
       instanceInitializerInfo = instanceInitializerInfo.rewrittenWithLens(appView, lens);
     }

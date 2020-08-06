@@ -64,12 +64,13 @@ public class InvokeTypeConversionTest extends SmaliTestBase {
       String expectedException,
       Consumer<CodeInspector> inspectorConsumer) throws Exception {
     AndroidApp app = buildApplication(builder);
-    List<String> pgConfigs = ImmutableList.of(
-        keepMainProguardConfiguration(CLASS_NAME),
-        // We're testing lense-based invocation type conversions.
-        "-dontoptimize",
-        "-dontobfuscate",
-        "-allowaccessmodification");
+    List<String> pgConfigs =
+        ImmutableList.of(
+            keepMainProguardConfiguration(CLASS_NAME),
+            // We're testing lens-based invocation type conversions.
+            "-dontoptimize",
+            "-dontobfuscate",
+            "-allowaccessmodification");
     R8Command.Builder command = ToolHelper.prepareR8CommandBuilder(app);
     command.addProguardConfiguration(pgConfigs, Origin.unknown());
     AndroidApp processedApp = ToolHelper.runR8(command.build(), o -> {
@@ -88,7 +89,7 @@ public class InvokeTypeConversionTest extends SmaliTestBase {
   }
 
   // The following test checks invoke-direct, which refers to the private static method, is *not*
-  // rewritten by publicizer lense, resulting in IncompatibleClassChangeError, which is expected.
+  // rewritten by publicizer lens, resulting in IncompatibleClassChangeError, which is expected.
   //
   // class Example {
   //   private int foo() { return 0; }
@@ -118,7 +119,7 @@ public class InvokeTypeConversionTest extends SmaliTestBase {
   }
 
   // The following test checks invoke-direct, which refers to the private instance method, *is*
-  // rewritten by publicizer lense, as the target method will be publicized.
+  // rewritten by publicizer lens, as the target method will be publicized.
   //
   // class Example {
   //   private int foo() { return 0; }

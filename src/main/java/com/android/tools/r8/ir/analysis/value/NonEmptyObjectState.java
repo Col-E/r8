@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.analysis.value;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -34,7 +34,7 @@ public class NonEmptyObjectState extends ObjectState {
   }
 
   @Override
-  public ObjectState rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+  public ObjectState rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     Map<DexField, AbstractValue> rewrittenState = new IdentityHashMap<>();
     state.forEach(
         (field, value) ->

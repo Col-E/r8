@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
@@ -244,7 +244,7 @@ public final class D8 {
                 appView,
                 options,
                 marker,
-                GraphLense.getIdentityLense(),
+                GraphLens.getIdentityLens(),
                 NamingLens.getIdentityLens(),
                 null)
             .write(options.getClassFileConsumer());
@@ -272,7 +272,7 @@ public final class D8 {
                 appView,
                 options,
                 marker == null ? null : ImmutableList.copyOf(markers),
-                GraphLense.getIdentityLense(),
+                GraphLens.getIdentityLens(),
                 InitClassLens.getDefault(),
                 namingLens,
                 null)
@@ -327,7 +327,7 @@ public final class D8 {
             null,
             options,
             null,
-            GraphLense.getIdentityLense(),
+            GraphLens.getIdentityLens(),
             InitClassLens.getDefault(),
             prefixRewritingNamingLens,
             null,

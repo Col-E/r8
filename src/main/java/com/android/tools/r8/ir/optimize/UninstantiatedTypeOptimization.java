@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
-import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
@@ -48,12 +48,12 @@ public class UninstantiatedTypeOptimization {
     DISALLOW_ARGUMENT_REMOVAL
   }
 
-  public static class UninstantiatedTypeOptimizationGraphLense extends NestedGraphLense {
+  public static class UninstantiatedTypeOptimizationGraphLens extends NestedGraphLens {
 
     private final AppView<?> appView;
     private final Map<DexMethod, ArgumentInfoCollection> removedArgumentsInfoPerMethod;
 
-    UninstantiatedTypeOptimizationGraphLense(
+    UninstantiatedTypeOptimizationGraphLens(
         BiMap<DexMethod, DexMethod> methodMap,
         Map<DexMethod, ArgumentInfoCollection> removedArgumentsInfoPerMethod,
         AppView<?> appView) {
@@ -63,7 +63,7 @@ public class UninstantiatedTypeOptimization {
           ImmutableMap.of(),
           null,
           methodMap.inverse(),
-          appView.graphLense(),
+          appView.graphLens(),
           appView.dexItemFactory());
       this.appView = appView;
       this.removedArgumentsInfoPerMethod = removedArgumentsInfoPerMethod;
@@ -72,7 +72,7 @@ public class UninstantiatedTypeOptimization {
     @Override
     public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
       DexMethod originalMethod = originalMethodSignatures.getOrDefault(method, method);
-      RewrittenPrototypeDescription result = previousLense.lookupPrototypeChanges(originalMethod);
+      RewrittenPrototypeDescription result = previousLens.lookupPrototypeChanges(originalMethod);
       if (originalMethod != method) {
         if (method.proto.returnType.isVoidType() && !originalMethod.proto.returnType.isVoidType()) {
           result = result.withConstantReturn(originalMethod.proto.returnType, appView);
@@ -123,7 +123,7 @@ public class UninstantiatedTypeOptimization {
     return this;
   }
 
-  public UninstantiatedTypeOptimizationGraphLense run(
+  public UninstantiatedTypeOptimizationGraphLens run(
       MethodPoolCollection methodPoolCollection, ExecutorService executorService, Timing timing) {
     try {
       methodPoolCollection.buildAll(executorService, timing);
@@ -147,7 +147,7 @@ public class UninstantiatedTypeOptimization {
                     removedArgumentsInfoPerMethod));
 
     if (!methodMapping.isEmpty()) {
-      return new UninstantiatedTypeOptimizationGraphLense(
+      return new UninstantiatedTypeOptimizationGraphLens(
           methodMapping, removedArgumentsInfoPerMethod, appView);
     }
     return null;

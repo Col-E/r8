@@ -32,7 +32,7 @@ public class RewritePinnedMethodTest {
     public void m() {
       System.out.println("In C.m");
       // This invocation is changed from invoke-super to invoke-direct. It would be valid for this
-      // instruction to be on the form "invoke-super A.m". Therefore, the graph lense contains a
+      // instruction to be on the form "invoke-super A.m". Therefore, the graph lens contains a
       // mapping for "A.m" from (context: "C.m", type: SUPER) to C.m$B, where the method C.m$B is
       // the direct method that gets created for B.m during vertical class merging.
       super.m();

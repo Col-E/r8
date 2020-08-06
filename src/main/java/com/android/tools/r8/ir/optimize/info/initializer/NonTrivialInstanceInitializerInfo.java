@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize.info.initializer;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
@@ -84,7 +84,7 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
 
   @Override
   public NonTrivialInstanceInitializerInfo rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     return new NonTrivialInstanceInitializerInfo(
         data,
         fieldInitializationInfos.rewrittenWithLens(appView, lens),

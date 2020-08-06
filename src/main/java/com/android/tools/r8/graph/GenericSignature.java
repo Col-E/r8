@@ -750,7 +750,7 @@ public class GenericSignature {
       }
       String originalDescriptor = getDescriptorFromClassBinaryName(name);
       DexType type =
-          appView.graphLense().lookupType(appView.dexItemFactory().createType(originalDescriptor));
+          appView.graphLens().lookupType(appView.dexItemFactory().createType(originalDescriptor));
       if (appView.appInfo().wasPruned(type)) {
         type = appView.dexItemFactory().objectType;
       }
@@ -783,7 +783,7 @@ public class GenericSignature {
                       getClassBinaryNameFromDescriptor(enclosingDescriptor)
                           + DescriptorUtils.INNER_CLASS_SEPARATOR
                           + name));
-      return appView.graphLense().lookupType(type);
+      return appView.graphLens().lookupType(type);
     }
 
     //

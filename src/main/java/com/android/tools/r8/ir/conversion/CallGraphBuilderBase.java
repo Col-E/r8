@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
-import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
+import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -166,8 +166,8 @@ abstract class CallGraphBuilderBase {
 
     private void processInvoke(Invoke.Type originalType, DexMethod originalMethod) {
       ProgramMethod context = currentMethod.getProgramMethod();
-      GraphLenseLookupResult result =
-          appView.graphLense().lookupMethod(originalMethod, context.getReference(), originalType);
+      GraphLensLookupResult result =
+          appView.graphLens().lookupMethod(originalMethod, context.getReference(), originalType);
       DexMethod method = result.getMethod();
       Invoke.Type type = result.getType();
       if (type == Invoke.Type.INTERFACE || type == Invoke.Type.VIRTUAL) {

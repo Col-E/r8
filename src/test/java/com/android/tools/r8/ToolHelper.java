@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.AssemblyWriter;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
@@ -2092,7 +2092,7 @@ public class ToolHelper {
         Executors.newSingleThreadExecutor(),
         application,
         null,
-        GraphLense.getIdentityLense(),
+        GraphLens.getIdentityLens(),
         InitClassLens.getDefault(),
         NamingLens.getIdentityLens(),
         options,

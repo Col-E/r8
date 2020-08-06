@@ -45,7 +45,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private AppInfoWithClassHierarchy appInfoForDesugaring;
   private AppServices appServices;
   private final WholeProgramOptimizations wholeProgramOptimizations;
-  private GraphLense graphLense;
+  private GraphLens graphLens;
   private InitClassLens initClassLens;
   private RootSet rootSet;
   // This should perferably always be obtained via AppInfoWithLiveness.
@@ -82,7 +82,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     assert appInfo != null;
     this.appInfo = appInfo;
     this.wholeProgramOptimizations = wholeProgramOptimizations;
-    this.graphLense = GraphLense.getIdentityLense();
+    this.graphLens = GraphLens.getIdentityLens();
     this.initClassLens = InitClassLens.getDefault();
     this.methodProcessingIdFactory =
         new MethodProcessingId.Factory(options().testing.methodProcessingIdConsumer);
@@ -196,8 +196,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     allCodeProcessed = true;
   }
 
-  public GraphLense clearCodeRewritings() {
-    return graphLense = graphLense.withCodeRewritingsApplied();
+  public GraphLens clearCodeRewritings() {
+    return graphLens = graphLens.withCodeRewritingsApplied();
   }
 
   public AppServices appServices() {
@@ -329,14 +329,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return defaultValue;
   }
 
-  public GraphLense graphLense() {
-    return graphLense;
+  public GraphLens graphLens() {
+    return graphLens;
   }
 
   /** @return true if the graph lens changed, otherwise false. */
-  public boolean setGraphLense(GraphLense graphLense) {
-    if (graphLense != this.graphLense) {
-      this.graphLense = graphLense;
+  public boolean setGraphLens(GraphLens graphLens) {
+    if (graphLens != this.graphLens) {
+      this.graphLens = graphLens;
       return true;
     }
     return false;

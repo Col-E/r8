@@ -32,8 +32,8 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection;
-import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
@@ -43,16 +43,16 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
-import com.android.tools.r8.ir.desugar.NestedPrivateMethodLense;
+import com.android.tools.r8.ir.desugar.NestedPrivateMethodLens;
 import com.android.tools.r8.ir.desugar.R8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.NestReducer;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
 import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
-import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.UninstantiatedTypeOptimizationGraphLense;
+import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.UninstantiatedTypeOptimizationGraphLens;
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
-import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector.UnusedArgumentsGraphLense;
+import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector.UnusedArgumentsGraphLens;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingCfMethods;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumValueInfoMapCollector;
@@ -94,7 +94,7 @@ import com.android.tools.r8.shaking.StaticClassMerger;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.TreePrunerConfiguration;
 import com.android.tools.r8.shaking.VerticalClassMerger;
-import com.android.tools.r8.shaking.VerticalClassMergerGraphLense;
+import com.android.tools.r8.shaking.VerticalClassMergerGraphLens;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -206,7 +206,7 @@ public class R8 {
       ExecutorService executorService,
       DexApplication application,
       AppView<?> appView,
-      GraphLense graphLense,
+      GraphLens graphLens,
       InitClassLens initClassLens,
       NamingLens namingLens,
       InternalOptions options,
@@ -222,7 +222,7 @@ public class R8 {
       markers.remove(marker);
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(
-                application, appView, options, marker, graphLense, namingLens, proguardMapSupplier)
+                application, appView, options, marker, graphLens, namingLens, proguardMapSupplier)
             .write(options.getClassFileConsumer());
       } else {
         new ApplicationWriter(
@@ -231,7 +231,7 @@ public class R8 {
                 options,
                 // Ensure that the marker for this compilation is the first in the list.
                 ImmutableList.<Marker>builder().add(marker).addAll(markers).build(),
-                graphLense,
+                graphLens,
                 initClassLens,
                 namingLens,
                 proguardMapSupplier)
@@ -438,7 +438,7 @@ public class R8 {
       RootSet mainDexRootSet = null;
       MainDexClasses mainDexClasses = MainDexClasses.NONE;
       if (!options.mainDexKeepRules.isEmpty()) {
-        assert appView.graphLense().isIdentityLense();
+        assert appView.graphLens().isIdentityLens();
         // Find classes which may have code executed before secondary dex files installation.
         SubtypingInfo subtypingInfo =
             new SubtypingInfo(appView.appInfo().app().asDirect().allClasses(), appView);
@@ -462,10 +462,10 @@ public class R8 {
       if (options.getProguardConfiguration().isAccessModificationAllowed()) {
         AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
         SubtypingInfo subtypingInfo = appViewWithLiveness.appInfo().computeSubtypingInfo();
-        GraphLense publicizedLense =
+        GraphLens publicizedLens =
             ClassAndMemberPublicizer.run(
                 executorService, timing, application, appViewWithLiveness, subtypingInfo);
-        boolean changed = appView.setGraphLense(publicizedLense);
+        boolean changed = appView.setGraphLens(publicizedLens);
         if (changed) {
           // We can now remove visibility bridges. Note that we do not need to update the
           // invoke-targets here, as the existing invokes will simply dispatch to the now
@@ -475,15 +475,15 @@ public class R8 {
       }
 
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
+      appView.setGraphLens(new MemberRebindingAnalysis(appViewWithLiveness).run());
       appView.appInfo().withLiveness().getFieldAccessInfoCollection().restrictToProgram(appView);
 
       if (options.shouldDesugarNests()) {
         timing.begin("NestBasedAccessDesugaring");
         R8NestBasedAccessDesugaring analyzer = new R8NestBasedAccessDesugaring(appViewWithLiveness);
-        NestedPrivateMethodLense lens = analyzer.run(executorService, application.builder());
+        NestedPrivateMethodLens lens = analyzer.run(executorService, application.builder());
         if (lens != null) {
-          boolean changed = appView.setGraphLense(lens);
+          boolean changed = appView.setGraphLens(lens);
           assert changed;
           appViewWithLiveness.setAppInfo(
               appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
@@ -508,9 +508,9 @@ public class R8 {
           timing.begin("HorizontalStaticClassMerger");
           StaticClassMerger staticClassMerger =
               new StaticClassMerger(appViewWithLiveness, options, mainDexClasses);
-          NestedGraphLense lens = staticClassMerger.run();
+          NestedGraphLens lens = staticClassMerger.run();
           if (lens != null) {
-            boolean changed = appView.setGraphLense(lens);
+            boolean changed = appView.setGraphLens(lens);
             assert changed;
             appViewWithLiveness.setAppInfo(
                 appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
@@ -522,9 +522,9 @@ public class R8 {
           VerticalClassMerger verticalClassMerger =
               new VerticalClassMerger(
                   application, appViewWithLiveness, executorService, timing, mainDexClasses);
-          VerticalClassMergerGraphLense lens = verticalClassMerger.run();
+          VerticalClassMergerGraphLens lens = verticalClassMerger.run();
           if (lens != null) {
-            boolean changed = appView.setGraphLense(lens);
+            boolean changed = appView.setGraphLens(lens);
             assert changed;
             appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
             application = application.asDirect().rewrittenWithLens(lens);
@@ -537,13 +537,13 @@ public class R8 {
           SubtypingInfo subtypingInfo = appViewWithLiveness.appInfo().computeSubtypingInfo();
           {
             timing.begin("UnusedArgumentRemoval");
-            UnusedArgumentsGraphLense lens =
+            UnusedArgumentsGraphLens lens =
                 new UnusedArgumentsCollector(
                         appViewWithLiveness,
                         new MethodPoolCollection(appViewWithLiveness, subtypingInfo))
                     .run(executorService, timing);
             if (lens != null) {
-              boolean changed = appView.setGraphLense(lens);
+              boolean changed = appView.setGraphLens(lens);
               assert changed;
               assert application.asDirect().verifyNothingToRewrite(appView, lens);
               appViewWithLiveness.setAppInfo(
@@ -553,7 +553,7 @@ public class R8 {
           }
           if (options.enableUninstantiatedTypeOptimization) {
             timing.begin("UninstantiatedTypeOptimization");
-            UninstantiatedTypeOptimizationGraphLense lens =
+            UninstantiatedTypeOptimizationGraphLens lens =
                 new UninstantiatedTypeOptimization(appViewWithLiveness)
                     .strenghtenOptimizationInfo()
                     .run(
@@ -561,7 +561,7 @@ public class R8 {
                         executorService,
                         timing);
             if (lens != null) {
-              boolean changed = appView.setGraphLense(lens);
+              boolean changed = appView.setGraphLens(lens);
               assert changed;
               assert application.asDirect().verifyNothingToRewrite(appView, lens);
               appViewWithLiveness.setAppInfo(
@@ -583,7 +583,7 @@ public class R8 {
         appViewWithLiveness.setAppInfo(new EnumValueInfoMapCollector(appViewWithLiveness).run());
       }
 
-      appView.setAppServices(appView.appServices().rewrittenWithLens(appView.graphLense()));
+      appView.setAppServices(appView.appServices().rewrittenWithLens(appView.graphLens()));
 
       timing.begin("Create IR");
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
@@ -601,7 +601,7 @@ public class R8 {
       // graph lens entirely, though, since it is needed for mapping all field and method signatures
       // back to the original program.
       timing.begin("AppliedGraphLens construction");
-      appView.setGraphLense(new AppliedGraphLens(appView, application.classes()));
+      appView.setGraphLens(new AppliedGraphLens(appView, application.classes()));
       timing.end();
 
       if (options.printCfg) {
@@ -702,7 +702,7 @@ public class R8 {
                       timing)
                   .withEnumValueInfoMaps(enumValueInfoMapCollection));
           // Rerunning the enqueuer should not give rise to any method rewritings.
-          assert enqueuer.buildGraphLense(appView) == appView.graphLense();
+          assert enqueuer.buildGraphLens(appView) == appView.graphLens();
           appView.withGeneratedMessageLiteBuilderShrinker(
               shrinker ->
                   shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
@@ -861,7 +861,7 @@ public class R8 {
         assert appView.rootSet().verifyKeptItemsAreKept(application, appView.appInfo());
       }
       assert appView
-          .graphLense()
+          .graphLens()
           .verifyMappingToOriginalProgram(
               application.classesWithDeterministicOrder(),
               new ApplicationReader(inputApp.withoutMainDexList(), options, timing)
@@ -885,7 +885,7 @@ public class R8 {
           executorService,
           application,
           appView,
-          appView.graphLense(),
+          appView.graphLens(),
           appView.initClassLens(),
           prefixRewritingNamingLens,
           options,
@@ -912,11 +912,11 @@ public class R8 {
               clazz.forEachProgramMethod(
                   method -> {
                     DexMethod originalMethod =
-                        appView.graphLense().getOriginalMethodSignature(method.getReference());
+                        appView.graphLens().getOriginalMethodSignature(method.getReference());
                     if (originalMethod != method.getReference()) {
                       DexMethod originalMethod2 =
-                          appView.graphLense().getOriginalMethodSignature(method.getReference());
-                      appView.graphLense().getOriginalMethodSignature(method.getReference());
+                          appView.graphLens().getOriginalMethodSignature(method.getReference());
+                      appView.graphLens().getOriginalMethodSignature(method.getReference());
                       DexEncodedMethod definition = method.getDefinition();
                       Code code = definition.getCode();
                       if (code == null) {
@@ -979,7 +979,7 @@ public class R8 {
                 options.getProguardConfiguration().getDontWarnPatterns(),
                 executorService,
                 timing));
-    appView.setGraphLense(enqueuer.buildGraphLense(appView));
+    appView.setGraphLens(enqueuer.buildGraphLens(appView));
     if (InternalOptions.assertionsEnabled()) {
       // Register the dead proto types. These are needed to verify that no new missing types are
       // reported and that no dead proto types are referenced in the generated application.

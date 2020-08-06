@@ -24,7 +24,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
@@ -319,7 +319,7 @@ public class GenerateLintFiles {
             appView,
             options,
             options.getMarker(Tool.L8),
-            GraphLense.getIdentityLense(),
+            GraphLens.getIdentityLens(),
             NamingLens.getIdentityLens(),
             null);
     ClassFileConsumer consumer =

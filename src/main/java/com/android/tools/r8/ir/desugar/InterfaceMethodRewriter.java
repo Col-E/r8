@@ -26,7 +26,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -38,7 +38,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.Collection;
-import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLense;
+import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.position.MethodPosition;
@@ -1028,7 +1028,7 @@ public final class InterfaceMethodRewriter {
   }
 
   private Map<DexType, DexProgramClass> processInterfaces(Builder<?> builder, Flavor flavour) {
-    NestedGraphLense.Builder graphLensBuilder = InterfaceProcessorNestedGraphLense.builder();
+    NestedGraphLens.Builder graphLensBuilder = InterfaceProcessorNestedGraphLens.builder();
     InterfaceProcessor processor = new InterfaceProcessor(appView, this);
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, true)) {
@@ -1040,7 +1040,7 @@ public final class InterfaceMethodRewriter {
       dispatchClass.forEachProgramMethod(synthesizedMethods::add);
     }
     if (appView.enableWholeProgramOptimizations()) {
-      appView.setGraphLense(graphLensBuilder.build(appView.dexItemFactory(), appView.graphLense()));
+      appView.setGraphLens(graphLensBuilder.build(appView.dexItemFactory(), appView.graphLens()));
     }
     return processor.syntheticClasses;
   }
@@ -1132,7 +1132,7 @@ public final class InterfaceMethodRewriter {
     if (shouldIgnoreFromReports(missing)) {
       return;
     }
-    DexMethod method = appView.graphLense().getOriginalMethodSignature(referencedFrom);
+    DexMethod method = appView.graphLens().getOriginalMethodSignature(referencedFrom);
     Origin origin = getMethodOrigin(method);
     MethodPosition position = new MethodPosition(method.asMethodReference());
     options.warningMissingTypeForDesugar(origin, position, missing, method);

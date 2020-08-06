@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize.info.field;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.function.BiConsumer;
 
@@ -46,7 +46,7 @@ public class EmptyInstanceFieldInitializationInfoCollection
 
   @Override
   public InstanceFieldInitializationInfoCollection rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     return this;
   }
 }

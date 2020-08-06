@@ -27,5 +27,5 @@ public interface ObjectAllocationInfoCollection {
   boolean isImmediateInterfaceOfInstantiatedLambda(DexProgramClass clazz);
 
   ObjectAllocationInfoCollection rewrittenWithLens(
-      DexDefinitionSupplier definitions, GraphLense lens);
+      DexDefinitionSupplier definitions, GraphLens lens);
 }
