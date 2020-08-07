@@ -62,18 +62,20 @@ public class TrivialGotoEliminationTest extends TestBase {
     //   throw v0
     // block2:
     //   return
+    final ValueNumberGenerator basicBlockNumberGenerator = new ValueNumberGenerator();
     Position position = Position.testingPosition();
     BasicBlock block2 = new BasicBlock();
-    block2.setNumber(2);
-    BasicBlock block0 = BasicBlock.createGotoBlock(0, position, metadata, block2);
+    BasicBlock block0 =
+        BasicBlock.createGotoBlock(basicBlockNumberGenerator.next(), position, metadata, block2);
+    BasicBlock block1 = new BasicBlock();
+    block1.setNumber(basicBlockNumberGenerator.next());
+    block2.setNumber(basicBlockNumberGenerator.next());
     block0.setFilledForTesting();
     block2.getMutablePredecessors().add(block0);
     Instruction ret = new Return();
     ret.setPosition(position);
     block2.add(ret, metadata);
     block2.setFilledForTesting();
-    BasicBlock block1 = new BasicBlock();
-    block1.setNumber(1);
     Value value = new Value(0, TypeElement.getInt(), null);
     Instruction number = new ConstNumber(value, 0);
     number.setPosition(position);
@@ -97,6 +99,7 @@ public class TrivialGotoEliminationTest extends TestBase {
             null,
             blocks,
             new ValueNumberGenerator(),
+            basicBlockNumberGenerator,
             IRMetadata.unknown(),
             Origin.unknown());
     CodeRewriter.collapseTrivialGotos(code);
@@ -123,28 +126,30 @@ public class TrivialGotoEliminationTest extends TestBase {
     //
     // block3:
     //   goto block3
+    final ValueNumberGenerator basicBlockNumberGenerator = new ValueNumberGenerator();
     Position position = Position.testingPosition();
+    BasicBlock block0 = new BasicBlock();
+    block0.setNumber(basicBlockNumberGenerator.next());
     BasicBlock block2 = new BasicBlock();
-    block2.setNumber(2);
+    BasicBlock block1 =
+        BasicBlock.createGotoBlock(basicBlockNumberGenerator.next(), position, metadata);
+    block2.setNumber(basicBlockNumberGenerator.next());
     Instruction ret = new Return();
     ret.setPosition(position);
     block2.add(ret, metadata);
     block2.setFilledForTesting();
 
     BasicBlock block3 = new BasicBlock();
-    block3.setNumber(3);
+    block3.setNumber(basicBlockNumberGenerator.next());
     Instruction instruction = new Goto();
     instruction.setPosition(position);
     block3.add(instruction, metadata);
     block3.setFilledForTesting();
     block3.getMutableSuccessors().add(block3);
 
-    BasicBlock block1 = BasicBlock.createGotoBlock(1, position, metadata);
     block1.getMutableSuccessors().add(block3);
     block1.setFilledForTesting();
 
-    BasicBlock block0 = new BasicBlock();
-    block0.setNumber(0);
     Value value =
         new Value(
             0,
@@ -181,6 +186,7 @@ public class TrivialGotoEliminationTest extends TestBase {
             null,
             blocks,
             new ValueNumberGenerator(),
+            basicBlockNumberGenerator,
             IRMetadata.unknown(),
             Origin.unknown());
     CodeRewriter.collapseTrivialGotos(code);

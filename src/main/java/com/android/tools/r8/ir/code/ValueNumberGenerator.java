@@ -9,4 +9,8 @@ public class ValueNumberGenerator {
   public int next() {
     return nextValueNumber++;
   }
+
+  public int peek() {
+    return nextValueNumber;
+  }
 }

@@ -242,7 +242,6 @@ public class PeepholeOptimizer {
       blocks.add(normalExit);
     }
     do {
-      int startNumberOfNewBlock = code.getHighestBlockNumber() + 1;
       Map<BasicBlock, BasicBlock> newBlocks = new IdentityHashMap<>();
       for (BasicBlock block : blocks) {
         InstructionEquivalence equivalence = new InstructionEquivalence(allocator);
@@ -294,10 +293,9 @@ public class PeepholeOptimizer {
           if (commonSuffixSize <= 1 || sizeDelta >= 0) {
             continue;
           }
-          int blockNumber = startNumberOfNewBlock + newBlocks.size();
           BasicBlock newBlock =
               createAndInsertBlockForSuffix(
-                  blockNumber,
+                  code.getNextBlockNumber(),
                   commonSuffixSize,
                   predsWithSameLastInstruction,
                   block == normalExit ? null : block,

@@ -635,11 +635,9 @@ public class Inliner implements PostOptimization {
 
         code.prepareBlocksForCatchHandlers();
 
-        int nextBlockNumber = code.getHighestBlockNumber() + 1;
-
         // Create a block for holding the monitor-exit instruction.
         BasicBlock monitorExitBlock = new BasicBlock();
-        monitorExitBlock.setNumber(nextBlockNumber++);
+        monitorExitBlock.setNumber(code.getNextBlockNumber());
 
         // For each block in the code that may throw, add a catch-all handler targeting the
         // monitor-exit block.
@@ -654,7 +652,7 @@ public class Inliner implements PostOptimization {
           }
           BasicBlock moveExceptionBlock =
               BasicBlock.createGotoBlock(
-                  nextBlockNumber++, Position.none(), code.metadata(), monitorExitBlock);
+                  code.getNextBlockNumber(), Position.none(), code.metadata(), monitorExitBlock);
           InstructionListIterator moveExceptionBlockIterator =
               moveExceptionBlock.listIterator(code);
           moveExceptionBlockIterator.setInsertionPosition(Position.syntheticNone());

@@ -38,16 +38,16 @@ public class SparseConditionalConstantPropagation {
   private final Map<Value, LatticeElement> mapping = new HashMap<>();
   private final Deque<Value> ssaEdges = new LinkedList<>();
   private final Deque<BasicBlock> flowEdges = new LinkedList<>();
-  private final int nextBlockNumber;
+  private final int maxBlockNumber;
   private final BitSet[] executableFlowEdges;
   private final BitSet visitedBlocks;
 
   public SparseConditionalConstantPropagation(AppView<?> appView, IRCode code) {
     this.appView = appView;
     this.code = code;
-    nextBlockNumber = code.getHighestBlockNumber() + 1;
-    executableFlowEdges = new BitSet[nextBlockNumber];
-    visitedBlocks = new BitSet(nextBlockNumber);
+    maxBlockNumber = code.getCurrentBlockNumber() + 1;
+    executableFlowEdges = new BitSet[maxBlockNumber];
+    visitedBlocks = new BitSet(maxBlockNumber);
   }
 
   public void run() {
@@ -252,7 +252,7 @@ public class SparseConditionalConstantPropagation {
   private void setExecutableEdge(int from, int to) {
     BitSet previousExecutable = executableFlowEdges[to];
     if (previousExecutable == null) {
-      previousExecutable = new BitSet(nextBlockNumber);
+      previousExecutable = new BitSet(maxBlockNumber);
       executableFlowEdges[to] = previousExecutable;
     }
     previousExecutable.set(from);

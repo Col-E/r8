@@ -204,7 +204,6 @@ public class StringSwitchRemover {
 
     @Override
     void removeStringSwitch() {
-      int nextBlockNumber = code.getHighestBlockNumber() + 1;
       // Remove outgoing control flow edges from the block containing the string switch.
       for (BasicBlock successor : block.getNormalSuccessors()) {
         successor.removePredecessor(block, null);
@@ -237,7 +236,8 @@ public class StringSwitchRemover {
         if (blocksTargetedByMultipleSwitchCases.contains(targetBlock)) {
           // Need an intermediate block to avoid critical edges.
           BasicBlock intermediateBlock =
-              BasicBlock.createGotoBlock(nextBlockNumber++, Position.none(), code.metadata());
+              BasicBlock.createGotoBlock(
+                  code.getNextBlockNumber(), Position.none(), code.metadata());
           intermediateBlock.link(targetBlock);
           blockIterator.add(intermediateBlock);
           newBlocksWithStrings.add(intermediateBlock);
@@ -245,7 +245,7 @@ public class StringSwitchRemover {
         }
         BasicBlock newBlock =
             BasicBlock.createIfBlock(
-                nextBlockNumber++,
+                code.getNextBlockNumber(),
                 ifInstruction,
                 code.metadata(),
                 constStringInstruction,
@@ -278,7 +278,6 @@ public class StringSwitchRemover {
 
     Int2ReferenceMap<Map<DexString, BasicBlock>> structure;
 
-    private int nextBlockNumber;
     private int nextStringId;
 
     private SingleHashBasedStringSwitchRemover(
@@ -294,11 +293,10 @@ public class StringSwitchRemover {
       this.idSwitchBlock = theSwitch.fallthroughBlock().getUniqueNormalSuccessor();
       this.idSwitchFallthroughBlock = idSwitchBlock.getUniqueNormalSuccessor();
       this.structure = createStructure(theSwitch);
-      this.nextBlockNumber = code.getHighestBlockNumber() + 1;
     }
 
     private int getAndIncrementNextBlockNumber() {
-      return nextBlockNumber++;
+      return code.getNextBlockNumber();
     }
 
     private Int2ReferenceMap<Map<DexString, BasicBlock>> createStructure(StringSwitch theSwitch)

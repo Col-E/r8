@@ -392,6 +392,7 @@ public class IRBuilder {
   private int currentInstructionOffset = -1;
 
   final private ValueNumberGenerator valueNumberGenerator;
+  private final ValueNumberGenerator basicBlockNumberGenerator;
   private final ProgramMethod method;
   private ProgramMethod context;
   public final AppView<?> appView;
@@ -483,6 +484,7 @@ public class IRBuilder {
     this.origin = origin;
     this.prototypeChanges = prototypeChanges;
     this.valueNumberGenerator = valueNumberGenerator;
+    this.basicBlockNumberGenerator = new ValueNumberGenerator();
   }
 
   public DexEncodedMethod getMethod() {
@@ -679,7 +681,14 @@ public class IRBuilder {
 
     // Package up the IR code.
     IRCode ir =
-        new IRCode(appView.options(), method, blocks, valueNumberGenerator, metadata, origin);
+        new IRCode(
+            appView.options(),
+            method,
+            blocks,
+            valueNumberGenerator,
+            basicBlockNumberGenerator,
+            metadata,
+            origin);
 
     // Verify critical edges are split so we have a place to insert phi moves if necessary.
     assert ir.verifySplitCriticalEdges();
@@ -834,7 +843,7 @@ public class IRBuilder {
       assert debugLocalEnds.isEmpty();
       setCurrentBlock(item.block);
       blocks.add(currentBlock);
-      currentBlock.setNumber(nextBlockNumber++);
+      currentBlock.setNumber(basicBlockNumberGenerator.next());
       // Process synthesized move-exception block specially.
       if (item instanceof MoveExceptionWorklistItem) {
         processMoveExceptionItem((MoveExceptionWorklistItem) item);
@@ -2286,7 +2295,7 @@ public class IRBuilder {
 
     BlockInfo info = new BlockInfo();
     BasicBlock block = info.block;
-    block.setNumber(nextBlockNumber++);
+    block.setNumber(basicBlockNumberGenerator.next());
     blocks.add(block);
 
     // Compute some unused offset for the new block and link it in the CFG.
@@ -2631,7 +2640,7 @@ public class IRBuilder {
             if (joinBlock == null) {
               joinBlock =
                   BasicBlock.createGotoBlock(
-                      blocks.size() + blocksToAdd.size(), block.getPosition(), metadata, block);
+                      basicBlockNumberGenerator.next(), block.getPosition(), metadata, block);
               joinBlocks.put(otherPredecessorIndex, joinBlock);
               blocksToAdd.add(joinBlock);
               BasicBlock otherPredecessor = block.getPredecessors().get(otherPredecessorIndex);

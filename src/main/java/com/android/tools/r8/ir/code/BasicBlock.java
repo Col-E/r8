@@ -1483,7 +1483,7 @@ public class BasicBlock {
     block.add(moveException, code);
     block.add(throwInstruction, code);
     block.close(null);
-    block.setNumber(code.getHighestBlockNumber() + 1);
+    block.setNumber(code.getNextBlockNumber());
     return block;
   }
 
@@ -1762,9 +1762,8 @@ public class BasicBlock {
    * method does not affect incoming edges in any way, and just adds new blocks with MoveException
    * and Goto.
    */
-  public int splitCriticalExceptionEdges(
+  public void splitCriticalExceptionEdges(
       IRCode code, Consumer<BasicBlock> onNewBlock, InternalOptions options) {
-    int nextBlockNumber = code.getHighestBlockNumber() + 1;
     List<BasicBlock> predecessors = getMutablePredecessors();
     boolean hasMoveException = entry().isMoveException();
     TypeElement exceptionTypeLattice = null;
@@ -1788,7 +1787,7 @@ public class BasicBlock {
             "Invalid block structure: catch block reachable via non-exceptional flow.");
       }
       BasicBlock newBlock = new BasicBlock();
-      newBlock.setNumber(nextBlockNumber++);
+      newBlock.setNumber(code.getNextBlockNumber());
       newPredecessors.add(newBlock);
       if (hasMoveException) {
         Value value =
@@ -1823,7 +1822,6 @@ public class BasicBlock {
       phi.addOperands(values);
       move.outValue().replaceUsers(phi);
     }
-    return nextBlockNumber;
   }
 
   /**

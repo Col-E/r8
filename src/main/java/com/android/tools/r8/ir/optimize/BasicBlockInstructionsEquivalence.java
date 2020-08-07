@@ -21,7 +21,7 @@ class BasicBlockInstructionsEquivalence extends Equivalence<BasicBlock> {
 
   BasicBlockInstructionsEquivalence(IRCode code, RegisterAllocator allocator) {
     this.allocator = allocator;
-    hashes = new int[code.getHighestBlockNumber() + 1];
+    hashes = new int[code.getCurrentBlockNumber() + 1];
     Arrays.fill(hashes, UNKNOW_HASH);
   }
 

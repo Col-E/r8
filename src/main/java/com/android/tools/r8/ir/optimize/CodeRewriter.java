@@ -710,7 +710,6 @@ public class CodeRewriter {
     assert block == originalBlock;
 
     // Collect the new blocks for adding to the block list.
-    int nextBlockNumber = code.getHighestBlockNumber() + 1;
     LinkedList<BasicBlock> newBlocks = new LinkedList<>();
 
     // Build the switch-blocks backwards, to always have the fallthrough block in hand.
@@ -722,9 +721,7 @@ public class CodeRewriter {
         int key = keys.getInt(j);
         switchBuilder.addKeyAndTarget(key, keyToTarget.get(key));
       }
-      switchBuilder
-          .setFallthrough(fallthroughBlock)
-          .setBlockNumber(nextBlockNumber++);
+      switchBuilder.setFallthrough(fallthroughBlock).setBlockNumber(code.getNextBlockNumber());
       BasicBlock newSwitchBlock = switchBuilder.build(code.metadata());
       newBlocks.addFirst(newSwitchBlock);
       fallthroughBlock = newSwitchBlock;
@@ -740,7 +737,7 @@ public class CodeRewriter {
           .setRight(key)
           .setTarget(peeledOffTarget)
           .setFallthrough(fallthroughBlock)
-          .setBlockNumber(nextBlockNumber++);
+          .setBlockNumber(code.getNextBlockNumber());
       BasicBlock ifBlock = ifBuilder.build();
       newBlocks.addFirst(ifBlock);
       fallthroughBlock = ifBlock;
@@ -3478,7 +3475,8 @@ public class CodeRewriter {
       iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, indent)));
 
       // Add a block for end-of-line printing.
-      BasicBlock eol = BasicBlock.createGotoBlock(code.blocks.size(), position, code.metadata());
+      BasicBlock eol =
+          BasicBlock.createGotoBlock(code.getNextBlockNumber(), position, code.metadata());
       code.blocks.add(eol);
 
       BasicBlock successor = block.unlinkSingleSuccessor();
@@ -3493,14 +3491,15 @@ public class CodeRewriter {
         successor = block.unlinkSingleSuccessor();
         If theIf = new If(Type.NE, argument);
         theIf.setPosition(position);
-        BasicBlock ifBlock = BasicBlock.createIfBlock(code.blocks.size(), theIf, code.metadata());
+        BasicBlock ifBlock =
+            BasicBlock.createIfBlock(code.getNextBlockNumber(), theIf, code.metadata());
         code.blocks.add(ifBlock);
         // Fallthrough block must be added right after the if.
         BasicBlock isNullBlock =
-            BasicBlock.createGotoBlock(code.blocks.size(), position, code.metadata());
+            BasicBlock.createGotoBlock(code.getNextBlockNumber(), position, code.metadata());
         code.blocks.add(isNullBlock);
         BasicBlock isNotNullBlock =
-            BasicBlock.createGotoBlock(code.blocks.size(), position, code.metadata());
+            BasicBlock.createGotoBlock(code.getNextBlockNumber(), position, code.metadata());
         code.blocks.add(isNotNullBlock);
 
         // Link the added blocks together.

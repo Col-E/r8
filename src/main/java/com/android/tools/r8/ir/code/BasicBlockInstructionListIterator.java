@@ -383,9 +383,6 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     List<BasicBlock> blocks = code.blocks;
     assert blocksIterator == null || IteratorUtils.peekPrevious(blocksIterator) == block;
 
-    int blockNumber = code.getHighestBlockNumber() + 1;
-    BasicBlock newBlock;
-
     // Don't allow splitting after the last instruction.
     assert hasNext();
 
@@ -394,7 +391,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
     // Prepare the new block, placing the exception handlers on the block with the throwing
     // instruction.
-    newBlock = block.createSplitBlock(blockNumber, keepCatchHandlers);
+    BasicBlock newBlock = block.createSplitBlock(code.getNextBlockNumber(), keepCatchHandlers);
 
     // Add a goto instruction.
     Goto newGoto = new Goto(block);
@@ -699,9 +696,8 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     assert IteratorUtils.peekNext(blocksIterator) == invokeBlock;
 
     // Insert inlinee blocks into the IR code of the callee, before the invoke block.
-    int blockNumber = code.getHighestBlockNumber() + 1;
     for (BasicBlock bb : inlinee.blocks) {
-      bb.setNumber(blockNumber++);
+      bb.setNumber(code.getNextBlockNumber());
       blocksIterator.add(bb);
     }
 
@@ -745,7 +741,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       return it;
     }
     BasicBlock newExitBlock = new BasicBlock();
-    newExitBlock.setNumber(code.getHighestBlockNumber() + 1);
+    newExitBlock.setNumber(code.getNextBlockNumber());
     Return newReturn;
     if (normalExits.get(0).exit().asReturn().isReturnVoid()) {
       newReturn = new Return();

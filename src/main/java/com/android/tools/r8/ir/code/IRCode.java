@@ -38,7 +38,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -109,6 +108,7 @@ public class IRCode {
 
   public LinkedList<BasicBlock> blocks;
   public final ValueNumberGenerator valueNumberGenerator;
+  public final ValueNumberGenerator basicBlockNumberGenerator;
   private int usedMarkingColors = 0;
 
   private boolean numbered = false;
@@ -128,14 +128,17 @@ public class IRCode {
       ProgramMethod method,
       LinkedList<BasicBlock> blocks,
       ValueNumberGenerator valueNumberGenerator,
+      ValueNumberGenerator basicBlockNumberGenerator,
       IRMetadata metadata,
       Origin origin) {
     assert metadata != null;
     assert options != null;
+    assert blocks.size() == basicBlockNumberGenerator.peek();
     this.options = options;
     this.method = method;
     this.blocks = blocks;
     this.valueNumberGenerator = valueNumberGenerator;
+    this.basicBlockNumberGenerator = basicBlockNumberGenerator;
     this.metadata = metadata;
     this.origin = origin;
     // TODO(zerny): Remove or update this property now that all instructions have positions.
@@ -348,7 +351,7 @@ public class IRCode {
       if (hasSeenThrowingInstruction) {
         List<BasicBlock> successors = block.getSuccessors();
         if (successors.size() == 1 && ListUtils.first(successors).getPredecessors().size() > 1) {
-          BasicBlock splitBlock = block.createSplitBlock(getHighestBlockNumber() + 1, true);
+          BasicBlock splitBlock = block.createSplitBlock(getNextBlockNumber(), true);
           Goto newGoto = new Goto(block);
           newGoto.setPosition(Position.none());
           splitBlock.listIterator(this).add(newGoto);
@@ -361,7 +364,6 @@ public class IRCode {
 
   public void splitCriticalEdges() {
     List<BasicBlock> newBlocks = new ArrayList<>();
-    int nextBlockNumber = getHighestBlockNumber() + 1;
     for (BasicBlock block : blocks) {
       // We are using a spilling register allocator that might need to insert moves at
       // all critical edges, so we always split them all.
@@ -383,7 +385,7 @@ public class IRCode {
           // structure.
           BasicBlock newBlock =
               BasicBlock.createGotoBlock(
-                  nextBlockNumber++, pred.exit().getPosition(), metadata, block);
+                  getNextBlockNumber(), pred.exit().getPosition(), metadata, block);
           newBlocks.add(newBlock);
           pred.replaceSuccessor(block, newBlock);
           newBlock.getMutablePredecessors().add(pred);
@@ -424,7 +426,6 @@ public class IRCode {
     // Get the blocks first, as calling topologicallySortedBlocks also sets marks.
     ImmutableList<BasicBlock> sorted = topologicallySortedBlocks();
     int color = reserveMarkingColor();
-    int nextBlockNumber = blocks.size();
     LinkedList<BasicBlock> tracedBlocks = new LinkedList<>();
     for (BasicBlock block : sorted) {
       if (!block.isMarked(color)) {
@@ -441,7 +442,7 @@ public class IRCode {
         if (fallthrough != null) {
           BasicBlock newFallthrough =
               BasicBlock.createGotoBlock(
-                  nextBlockNumber++, current.exit().getPosition(), metadata, fallthrough);
+                  getNextBlockNumber(), current.exit().getPosition(), metadata, fallthrough);
           current.exit().setFallthroughBlock(newFallthrough);
           newFallthrough.getMutablePredecessors().add(current);
           fallthrough.replacePredecessor(current, newFallthrough);
@@ -786,12 +787,12 @@ public class IRCode {
   }
 
   public boolean consistentBlockNumbering() {
-    blocks
-        .stream()
+    blocks.stream()
         .collect(Collectors.groupingBy(BasicBlock::getNumber, Collectors.counting()))
         .forEach(
             (key, value) -> {
               assert value == 1;
+              assert value <= basicBlockNumberGenerator.peek();
             });
     return true;
   }
@@ -1144,8 +1145,12 @@ public class IRCode {
     return new Phi(valueNumberGenerator.next(), block, type, null, RegisterReadType.NORMAL);
   }
 
-  public final int getHighestBlockNumber() {
-    return blocks.stream().max(Comparator.comparingInt(BasicBlock::getNumber)).get().getNumber();
+  public final int getNextBlockNumber() {
+    return basicBlockNumberGenerator.next();
+  }
+
+  public final int getCurrentBlockNumber() {
+    return basicBlockNumberGenerator.peek();
   }
 
   public ConstClass createConstClass(AppView<?> appView, DexType type) {
