@@ -131,7 +131,7 @@ public class KotlinMetadataWriter {
 
   private static String kotlinSyntheticClassToString(
       KotlinClassMetadata.SyntheticClass kMetadata, String indent) {
-    StringBuilder sb = new StringBuilder();
+    StringBuilder sb = new StringBuilder(indent);
     KotlinMetadataWriter.appendKmSection(
         indent,
         "Metadata.SyntheticClass",
