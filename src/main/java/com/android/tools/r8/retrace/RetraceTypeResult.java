@@ -13,11 +13,11 @@ import java.util.stream.Stream;
 public class RetraceTypeResult extends Result<Element, RetraceTypeResult> {
 
   private final TypeReference obfuscatedType;
-  private final RetraceBase retraceBase;
+  private final RetraceApi retracer;
 
-  RetraceTypeResult(TypeReference obfuscatedType, RetraceBase retraceBase) {
+  RetraceTypeResult(TypeReference obfuscatedType, RetraceApi retracer) {
     this.obfuscatedType = obfuscatedType;
-    this.retraceBase = retraceBase;
+    this.retracer = retracer;
   }
 
   @Override
@@ -28,10 +28,10 @@ public class RetraceTypeResult extends Result<Element, RetraceTypeResult> {
     }
     if (obfuscatedType.isArray()) {
       int dimensions = obfuscatedType.asArray().getDimensions();
-      return retraceBase.retrace(obfuscatedType.asArray().getBaseType()).stream()
+      return retracer.retrace(obfuscatedType.asArray().getBaseType()).stream()
           .map(base -> new Element(Reference.array(base.getTypeReference(), dimensions)));
     }
-    return retraceBase.retrace(obfuscatedType.asClass()).stream()
+    return retracer.retrace(obfuscatedType.asClass()).stream()
         .map(clazz -> new Element(clazz.getClassReference()));
   }
 

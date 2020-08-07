@@ -4,23 +4,25 @@
 
 package com.android.tools.r8.retrace;
 
+import com.android.tools.r8.Keep;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.utils.Box;
 
-public class RetraceBaseImpl implements RetraceBase {
+/** A default implementation for the retrace api using the ClassNameMapper defined in R8. */
+@Keep
+public class Retracer implements RetraceApi {
 
   private final ClassNameMapper classNameMapper;
 
-  private RetraceBaseImpl(ClassNameMapper classNameMapper) {
+  private Retracer(ClassNameMapper classNameMapper) {
     this.classNameMapper = classNameMapper;
   }
 
-  public static RetraceBase create(ClassNameMapper classNameMapper) {
-    return new RetraceBaseImpl(classNameMapper);
+  public static RetraceApi create(ClassNameMapper classNameMapper) {
+    return new Retracer(classNameMapper);
   }
 
   @Override
@@ -37,15 +39,6 @@ public class RetraceBaseImpl implements RetraceBase {
   public RetraceClassResult retrace(ClassReference classReference) {
     return RetraceClassResult.create(
         classReference, classNameMapper.getClassNaming(classReference.getTypeName()));
-  }
-
-  @Override
-  public RetraceSourceFileResult retraceSourceFile(
-      ClassReference classReference, String sourceFile) {
-    Box<RetraceSourceFileResult> retracedSourceFile = new Box<>();
-    retrace(classReference)
-        .forEach(element -> retracedSourceFile.set(element.retraceSourceFile(sourceFile)));
-    return retracedSourceFile.get();
   }
 
   @Override

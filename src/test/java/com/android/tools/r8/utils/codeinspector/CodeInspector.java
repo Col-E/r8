@@ -38,8 +38,8 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.retrace.RetraceBase;
-import com.android.tools.r8.retrace.RetraceBaseImpl;
+import com.android.tools.r8.retrace.RetraceApi;
+import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -481,7 +481,7 @@ public class CodeInspector {
     }
   }
 
-  public RetraceBase retrace() {
-    return RetraceBaseImpl.create(mapping);
+  public RetraceApi retrace() {
+    return Retracer.create(mapping);
   }
 }

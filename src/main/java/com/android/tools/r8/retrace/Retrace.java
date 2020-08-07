@@ -141,13 +141,13 @@ public class Retrace {
           ClassNameMapper.mapperFromString(
               command.proguardMapProducer.get(), command.diagnosticsHandler);
       timing.end();
-      RetraceBase retraceBase = RetraceBaseImpl.create(classNameMapper);
+      RetraceApi retracer = Retracer.create(classNameMapper);
       RetraceCommandLineResult result;
       timing.begin("Parse and Retrace");
       if (command.regularExpression != null) {
         result =
             new RetraceRegularExpression(
-                    retraceBase,
+                    retracer,
                     command.stackTrace,
                     command.diagnosticsHandler,
                     command.regularExpression)
@@ -155,7 +155,7 @@ public class Retrace {
       } else {
         result =
             new RetraceStackTrace(
-                    retraceBase, command.stackTrace, command.diagnosticsHandler, command.isVerbose)
+                    retracer, command.stackTrace, command.diagnosticsHandler, command.isVerbose)
                 .retrace();
       }
       timing.end();

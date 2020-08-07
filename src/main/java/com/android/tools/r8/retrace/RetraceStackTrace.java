@@ -86,17 +86,17 @@ public final class RetraceStackTrace {
     }
   }
 
-  private final RetraceBase retraceBase;
+  private final RetraceApi retracer;
   private final List<String> stackTrace;
   private final DiagnosticsHandler diagnosticsHandler;
   private final boolean verbose;
 
   RetraceStackTrace(
-      RetraceBase retraceBase,
+      RetraceApi retracer,
       List<String> stackTrace,
       DiagnosticsHandler diagnosticsHandler,
       boolean verbose) {
-    this.retraceBase = retraceBase;
+    this.retracer = retracer;
     this.stackTrace = stackTrace;
     this.diagnosticsHandler = diagnosticsHandler;
     this.verbose = verbose;
@@ -117,7 +117,7 @@ public final class RetraceStackTrace {
       return;
     }
     StackTraceLine stackTraceLine = parseLine(index + 1, stackTrace.get(index));
-    List<StackTraceLine> retraced = stackTraceLine.retrace(retraceBase, verbose);
+    List<StackTraceLine> retraced = stackTraceLine.retrace(retracer, verbose);
     StackTraceNode node = new StackTraceNode(retraced);
     result.add(node);
     retraceLine(stackTrace, index + 1, result);
@@ -125,7 +125,7 @@ public final class RetraceStackTrace {
 
   abstract static class StackTraceLine {
 
-    abstract List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose);
+    abstract List<StackTraceLine> retrace(RetraceApi retracer, boolean verbose);
 
     static int firstNonWhiteSpaceCharacterFromIndex(String line, int index) {
       return firstFromIndex(line, index, not(Character::isWhitespace));
@@ -225,9 +225,9 @@ public final class RetraceStackTrace {
     }
 
     @Override
-    List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose) {
+    List<StackTraceLine> retrace(RetraceApi retracer, boolean verbose) {
       List<StackTraceLine> exceptionLines = new ArrayList<>();
-      retraceBase
+      retracer
           .retrace(Reference.classFromTypeName(exceptionClass))
           .forEach(
               element ->
@@ -397,31 +397,28 @@ public final class RetraceStackTrace {
     }
 
     @Override
-    List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose) {
+    List<StackTraceLine> retrace(RetraceApi retracer, boolean verbose) {
       List<StackTraceLine> lines = new ArrayList<>();
       String retraceClassLoaderName = classLoaderName;
       if (retraceClassLoaderName != null) {
         ClassReference classLoaderReference = Reference.classFromTypeName(retraceClassLoaderName);
-        retraceBase
+        retracer
             .retrace(classLoaderReference)
             .forEach(
                 classElement -> {
                   retraceClassAndMethods(
-                      retraceBase, verbose, lines, classElement.getClassReference().getTypeName());
+                      retracer, verbose, lines, classElement.getClassReference().getTypeName());
                 });
       } else {
-        retraceClassAndMethods(retraceBase, verbose, lines, retraceClassLoaderName);
+        retraceClassAndMethods(retracer, verbose, lines, retraceClassLoaderName);
       }
       return lines;
     }
 
     private void retraceClassAndMethods(
-        RetraceBase retraceBase,
-        boolean verbose,
-        List<StackTraceLine> lines,
-        String classLoaderName) {
+        RetraceApi retracer, boolean verbose, List<StackTraceLine> lines, String classLoaderName) {
       ClassReference classReference = Reference.classFromTypeName(clazz);
-      RetraceClassResult classResult = retraceBase.retrace(classReference);
+      RetraceClassResult classResult = retracer.retrace(classReference);
       RetraceMethodResult retraceResult = classResult.lookupMethod(method);
       if (linePosition != NO_POSITION && linePosition != INVALID_POSITION) {
         retraceResult = retraceResult.narrowByLine(linePosition);
@@ -509,7 +506,7 @@ public final class RetraceStackTrace {
     }
 
     @Override
-    List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose) {
+    List<StackTraceLine> retrace(RetraceApi retracer, boolean verbose) {
       return ImmutableList.of(new MoreLine(line));
     }
 
@@ -562,9 +559,9 @@ public final class RetraceStackTrace {
     }
 
     @Override
-    List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose) {
+    List<StackTraceLine> retrace(RetraceApi retracer, boolean verbose) {
       List<StackTraceLine> exceptionLines = new ArrayList<>();
-      retraceBase
+      retracer
           .retrace(Reference.classFromTypeName(exceptionClass))
           .forEach(
               element ->
@@ -590,7 +587,7 @@ public final class RetraceStackTrace {
     }
 
     @Override
-    List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose) {
+    List<StackTraceLine> retrace(RetraceApi retracer, boolean verbose) {
       return ImmutableList.of(new UnknownLine(line));
     }
 

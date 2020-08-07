@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 public class RetraceRegularExpression {
 
-  private final RetraceBase retraceBase;
+  private final RetraceApi retracer;
   private final List<String> stackTrace;
   private final DiagnosticsHandler diagnosticsHandler;
   private final String regularExpression;
@@ -52,11 +52,11 @@ public class RetraceRegularExpression {
   private static final String CAPTURE_GROUP_PREFIX = "captureGroup";
 
   RetraceRegularExpression(
-      RetraceBase retraceBase,
+      RetraceApi retracer,
       List<String> stackTrace,
       DiagnosticsHandler diagnosticsHandler,
       String regularExpression) {
-    this.retraceBase = retraceBase;
+    this.retracer = retracer;
     this.stackTrace = stackTrace;
     this.diagnosticsHandler = diagnosticsHandler;
     this.regularExpression = regularExpression;
@@ -73,7 +73,7 @@ public class RetraceRegularExpression {
           Lists.newArrayList(RetraceStringBuilder.create(string).build());
       if (matcher.matches()) {
         for (RegularExpressionGroupHandler handler : handlers) {
-          retracedStrings = handler.handleMatch(retracedStrings, matcher, retraceBase);
+          retracedStrings = handler.handleMatch(retracedStrings, matcher, retracer);
         }
       }
       if (retracedStrings.isEmpty()) {
@@ -422,7 +422,7 @@ public class RetraceRegularExpression {
   private interface RegularExpressionGroupHandler {
 
     List<RetraceString> handleMatch(
-        List<RetraceString> strings, Matcher matcher, RetraceBase retraceBase);
+        List<RetraceString> strings, Matcher matcher, RetraceApi retracer);
   }
 
   private abstract static class RegularExpressionGroup {
@@ -450,12 +450,12 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retraceBase) -> {
+      return (strings, matcher, retracer) -> {
         if (matcher.start(captureGroup) == NO_MATCH) {
           return strings;
         }
         String typeName = matcher.group(captureGroup);
-        RetraceClassResult retraceResult = retraceBase.retrace(classFromMatch(typeName));
+        RetraceClassResult retraceResult = retracer.retrace(classFromMatch(typeName));
         List<RetraceString> retracedStrings = new ArrayList<>();
         for (RetraceString retraceString : strings) {
           retraceResult.forEach(
@@ -537,7 +537,7 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retraceBase) -> {
+      return (strings, matcher, retracer) -> {
         if (matcher.start(captureGroup) == NO_MATCH) {
           return strings;
         }
@@ -606,7 +606,7 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retraceBase) -> {
+      return (strings, matcher, retracer) -> {
         if (matcher.start(captureGroup) == NO_MATCH) {
           return strings;
         }
@@ -660,7 +660,7 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retraceBase) -> {
+      return (strings, matcher, retracer) -> {
         if (matcher.start(captureGroup) == NO_MATCH) {
           return strings;
         }
@@ -707,7 +707,7 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retraceBase) -> {
+      return (strings, matcher, retracer) -> {
         if (matcher.start(captureGroup) == NO_MATCH) {
           return strings;
         }
@@ -808,7 +808,7 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retraceBase) -> {
+      return (strings, matcher, retracer) -> {
         if (matcher.start(captureGroup) == NO_MATCH) {
           return strings;
         }
@@ -819,7 +819,7 @@ public class RetraceRegularExpression {
         }
         TypeReference typeReference = Reference.returnTypeFromDescriptor(descriptor);
         List<RetraceString> retracedStrings = new ArrayList<>();
-        RetraceTypeResult retracedType = retraceBase.retrace(typeReference);
+        RetraceTypeResult retracedType = retracer.retrace(typeReference);
         for (RetraceString retraceString : strings) {
           retracedType.forEach(
               element -> {
@@ -854,7 +854,7 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retraceBase) -> {
+      return (strings, matcher, retracer) -> {
         if (matcher.start(captureGroup) == NO_MATCH) {
           return strings;
         }
@@ -872,7 +872,7 @@ public class RetraceRegularExpression {
                       }
                       TypeReference typeReference = Reference.returnTypeFromDescriptor(descriptor);
                       Set<List<TypeReference>> retracedTypes = new LinkedHashSet<>();
-                      retraceBase
+                      retracer
                           .retrace(typeReference)
                           .forEach(
                               element -> {
