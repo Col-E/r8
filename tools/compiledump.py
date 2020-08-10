@@ -77,6 +77,11 @@ def make_parser():
       '--min-api',
       help='Set min-api (default read from dump properties file)',
       default=None)
+  parser.add_argument(
+    '--loop',
+    help='Run the compilation in a loop',
+    default=False,
+    action='store_true')
   return parser
 
 def error(msg):
@@ -201,10 +206,10 @@ def prepare_wrapper(dist, temp):
 def is_hash(version):
   return len(version) == 40
 
-def run(args, otherargs):
+def run1(out, args, otherargs):
   with utils.TempDir() as temp:
-    if args.temp:
-      temp = args.temp
+    if out:
+      temp = out
       if not os.path.exists(temp):
         os.makedirs(temp)
     dump = read_dump(args, temp)
@@ -272,6 +277,19 @@ def run(args, otherargs):
         print "=" * 80
         retrace.run(local_map, hash_or_version, stacktrace, is_hash(version))
       return 1
+
+def run(args, otherargs):
+  if (args.loop):
+    count = 1
+    while True:
+      print('Iteration {:03d}'.format(count))
+      out = args.temp
+      if out:
+        out = os.path.join(out, '{:03d}'.format(count))
+      run1(out, args, otherargs)
+      count += 1
+  else:
+    run1(args.temp, args, otherargs)
 
 if __name__ == '__main__':
   (args, otherargs) = make_parser().parse_known_args(sys.argv[1:])
