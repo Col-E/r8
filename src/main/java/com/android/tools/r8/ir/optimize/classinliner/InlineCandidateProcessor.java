@@ -392,7 +392,10 @@ final class InlineCandidateProcessor {
   //
   // Returns `true` if at least one method was inlined.
   boolean processInlining(
-      IRCode code, Supplier<InliningOracle> defaultOracle, InliningIRProvider inliningIRProvider)
+      IRCode code,
+      Set<Value> affectedValues,
+      Supplier<InliningOracle> defaultOracle,
+      InliningIRProvider inliningIRProvider)
       throws IllegalClassInlinerStateException {
     // Verify that `eligibleInstance` is not aliased.
     assert eligibleInstance == eligibleInstance.getAliasedValue();
@@ -417,7 +420,7 @@ final class InlineCandidateProcessor {
     anyInlinedMethods |= forceInlineDirectMethodInvocations(code, inliningIRProvider);
     anyInlinedMethods |= forceInlineIndirectMethodInvocations(code, inliningIRProvider);
     removeAliasIntroducingInstructionsLinkedToEligibleInstance();
-    removeMiscUsages(code);
+    removeMiscUsages(code, affectedValues);
     removeFieldReads(code);
     removeFieldWrites();
     removeInstruction(root);
@@ -625,7 +628,7 @@ final class InlineCandidateProcessor {
   }
 
   // Remove miscellaneous users before handling field reads.
-  private void removeMiscUsages(IRCode code) {
+  private void removeMiscUsages(IRCode code, Set<Value> affectedValues) {
     boolean needToRemoveUnreachableBlocks = false;
     for (Instruction user : eligibleInstance.uniqueUsers()) {
       if (user.isInvokeMethod()) {
@@ -702,7 +705,7 @@ final class InlineCandidateProcessor {
     }
 
     if (needToRemoveUnreachableBlocks) {
-      code.removeUnreachableBlocks();
+      affectedValues.addAll(code.removeUnreachableBlocks());
     }
   }
 

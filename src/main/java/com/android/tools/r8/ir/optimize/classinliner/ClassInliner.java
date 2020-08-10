@@ -253,8 +253,10 @@ public final class ClassInliner {
         }
 
         // Inline the class instance.
+        Set<Value> affectedValues = Sets.newIdentityHashSet();
         try {
-          anyInlinedMethods |= processor.processInlining(code, defaultOracle, inliningIRProvider);
+          anyInlinedMethods |=
+              processor.processInlining(code, affectedValues, defaultOracle, inliningIRProvider);
         } catch (IllegalClassInlinerStateException e) {
           // We introduced a user that we cannot handle in the class inliner as a result of force
           // inlining. Abort gracefully from class inlining without removing the instance.
@@ -270,7 +272,6 @@ public final class ClassInliner {
         assert inliningIRProvider.verifyIRCacheIsEmpty();
 
         // Restore normality.
-        Set<Value> affectedValues = Sets.newIdentityHashSet();
         code.removeAllDeadAndTrivialPhis(affectedValues);
         if (!affectedValues.isEmpty()) {
           new TypeAnalysis(appView).narrowing(affectedValues);
