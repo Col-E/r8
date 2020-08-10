@@ -347,9 +347,9 @@ public class LambdaRewriter {
     return knownLambdaClasses;
   }
 
-  public GraphLens buildMappingLens(AppView<?> appView) {
+  public NestedGraphLens buildMappingLens(AppView<?> appView) {
     if (originalMethodSignatures.isEmpty()) {
-      return appView.graphLens();
+      return null;
     }
     return new LambdaRewriterLens(
         originalMethodSignatures, appView.graphLens(), appView.dexItemFactory());

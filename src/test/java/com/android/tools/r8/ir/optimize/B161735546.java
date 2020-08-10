@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import static org.junit.Assert.assertTrue;
-
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -31,21 +27,11 @@ public class B161735546 extends TestBase {
 
   @Test
   public void test() throws Exception {
-    R8TestCompileResult compileResult = null;
-    try {
-      compileResult =
-          testForR8(parameters.getBackend())
-              .addInnerClasses(B161735546.class)
-              .addKeepMainRule(TestClass.class)
-              .setMinApi(parameters.getApiLevel())
-              .compile();
-    } catch (CompilationFailedException e) {
-      // TODO(b/161735546): Fix NPE.
-      assertTrue(parameters.isDexRuntime());
-      return;
-    }
-
-    compileResult
+    testForR8(parameters.getBackend())
+        .addInnerClasses(B161735546.class)
+        .addKeepMainRule(TestClass.class)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("1", "2", "3");
   }
