@@ -589,6 +589,12 @@ public class Enqueuer {
     return clazz != null && clazz.isProgramClass() ? clazz.asProgramClass() : null;
   }
 
+  private DexProgramClass getProgramClassOrNullFromReflectiveAccess(DexType type) {
+    // This is using appInfo.definitionForWithoutExistenceAssert() to avoid that we report
+    // reflectively accessed types as missing.
+    return asProgramClassOrNull(appInfo().definitionForWithoutExistenceAssert(type));
+  }
+
   private void warnIfLibraryTypeInheritsFromProgramType(DexLibraryClass clazz) {
     if (clazz.superType != null) {
       ensureFromLibraryOrThrow(clazz.superType, clazz);
@@ -3672,11 +3678,7 @@ public class Enqueuer {
       return;
     }
     if (identifierItem.isDexType()) {
-      // This is using appView.definitionFor() to avoid that we report reflectively accessed types
-      // as missing.
-      DexProgramClass clazz =
-          asProgramClassOrNull(
-              appInfo().definitionForWithoutExistenceAssert(identifierItem.asDexType()));
+      DexProgramClass clazz = getProgramClassOrNullFromReflectiveAccess(identifierItem.asDexType());
       if (clazz == null) {
         return;
       }
@@ -3756,7 +3758,7 @@ public class Enqueuer {
       return;
     }
 
-    DexProgramClass clazz = getProgramClassOrNull(instantiatedType);
+    DexProgramClass clazz = getProgramClassOrNullFromReflectiveAccess(instantiatedType);
     if (clazz == null) {
       return;
     }
