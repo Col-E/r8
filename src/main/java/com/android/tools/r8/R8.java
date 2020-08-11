@@ -504,7 +504,7 @@ public class R8 {
 
       if (!isKotlinLibraryCompilationWithInlinePassThrough
           && options.getProguardConfiguration().isOptimizing()) {
-        if (options.enableHorizontalClassMerging) {
+        if (options.enableStaticClassMerging) {
           timing.begin("HorizontalStaticClassMerger");
           StaticClassMerger staticClassMerger =
               new StaticClassMerger(appViewWithLiveness, options, mainDexClasses);

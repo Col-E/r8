@@ -842,7 +842,7 @@ public final class R8Command extends BaseCompilerCommand {
             ? LineNumberOptimization.ON
             : LineNumberOptimization.OFF;
 
-    assert internal.enableHorizontalClassMerging || !proguardConfiguration.isOptimizing();
+    assert internal.enableStaticClassMerging || !proguardConfiguration.isOptimizing();
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
     assert internal.enableVerticalClassMerging || !proguardConfiguration.isOptimizing();
     if (internal.debug) {
@@ -851,7 +851,7 @@ public final class R8Command extends BaseCompilerCommand {
       internal.getProguardConfiguration().getKeepAttributes().localVariableTypeTable = true;
       internal.enableInlining = false;
       internal.enableClassInlining = false;
-      internal.enableHorizontalClassMerging = false;
+      internal.enableStaticClassMerging = false;
       internal.enableVerticalClassMerging = false;
       internal.enableClassStaticizer = false;
       internal.outline.enabled = false;

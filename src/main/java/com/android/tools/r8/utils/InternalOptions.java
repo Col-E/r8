@@ -184,7 +184,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     enableClassStaticizer = false;
     enableDevirtualization = false;
     enableLambdaMerging = false;
-    enableHorizontalClassMerging = false;
+    enableStaticClassMerging = false;
     enableVerticalClassMerging = false;
     enableEnumUnboxing = false;
     enableUninstantiatedTypeOptimization = false;
@@ -217,7 +217,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableFieldAssignmentTracker = true;
   public boolean enableFieldBitAccessAnalysis =
       System.getProperty("com.android.tools.r8.fieldBitAccessAnalysis") != null;
-  public boolean enableHorizontalClassMerging = true;
+  public boolean enableStaticClassMerging = true;
   public boolean enableVerticalClassMerging = true;
   public boolean enableArgumentRemoval = true;
   public boolean enableUnusedInterfaceRemoval = true;
