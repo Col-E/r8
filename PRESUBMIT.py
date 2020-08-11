@@ -57,10 +57,10 @@ def CheckDeterministicDebuggingChanged(input_api, output_api, branch):
 def CheckForAddedDisassemble(input_api, output_api):
   results = []
   for (file, line_nr, line) in input_api.RightHandSideLines():
-    if 'disassemble()' in line:
+    if file.LocalPath().endswith('.java') and '.disassemble()' in line:
       results.append(
           output_api.PresubmitError(
-              '%s:%s %s' % (file.LocalPath(), line_nr, line)))
+              'Test call to disassemble\n%s:%s %s' % (file.LocalPath(), line_nr, line)))
   return results
 
 def CheckForCopyRight(input_api, output_api, branch):
