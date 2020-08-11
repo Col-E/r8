@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.ExceptionUtils.STATUS_ERROR;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.Version;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
 import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
@@ -60,6 +61,10 @@ public class Retrace {
     while (context.head() != null) {
       Boolean help = OptionsParsing.tryParseBoolean(context, "--help");
       if (help != null) {
+        return null;
+      }
+      Boolean version = OptionsParsing.tryParseBoolean(context, "--version");
+      if (version != null) {
         return null;
       }
       Boolean info = OptionsParsing.tryParseBoolean(context, "--info");
@@ -195,7 +200,11 @@ public class Retrace {
         new RetraceDiagnosticsHandler(new DiagnosticsHandler() {}, printInfo);
     Builder builder = parseArguments(mappedArgs, retraceDiagnosticsHandler);
     if (builder == null) {
-      // --help was an argument to list
+      // --help or --version was an argument to list
+      if (Arrays.asList(mappedArgs).contains("--version")) {
+        System.out.println("Retrace " + Version.getVersionString());
+        return;
+      }
       assert Arrays.asList(mappedArgs).contains("--help");
       System.out.print(USAGE_MESSAGE);
       return;

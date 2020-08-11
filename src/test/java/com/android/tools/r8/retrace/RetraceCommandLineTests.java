@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.Version;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTraceWithInfo;
 import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
@@ -127,6 +128,13 @@ public class RetraceCommandLineTests {
     ProcessResult processResult = runRetraceCommandLine(null, Arrays.asList("--help"));
     assertEquals(0, processResult.exitCode);
     assertEquals(Retrace.USAGE_MESSAGE, processResult.stdout);
+  }
+
+  @Test
+  public void testVersion() throws Exception {
+    ProcessResult processResult = runRetraceCommandLine(null, Arrays.asList("--version"));
+    assertEquals(0, processResult.exitCode);
+    assertEquals(StringUtils.lines("Retrace " + Version.getVersionString()), processResult.stdout);
   }
 
   @Test
