@@ -210,7 +210,7 @@ def prepare_aosp(args):
 
     git_message = ("""Update D8 and R8 to %s
 
-Version: master %s
+Version: %s
 This build IS NOT suitable for preview or public release.
 
 Built here: go/r8-releases/raw/%s
@@ -249,7 +249,7 @@ def prepare_maven(args):
   return release_maven
 
 def git_message_dev(version):
-  return """Update D8 R8 master to %s
+  return """Update D8 R8 to %s
 
 This is a development snapshot, it's fine to use for studio canary build, but
 not for BETA or release, for those we would need a release version of R8
