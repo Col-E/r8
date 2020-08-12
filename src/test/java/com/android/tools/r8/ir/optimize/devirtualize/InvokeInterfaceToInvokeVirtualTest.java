@@ -14,7 +14,6 @@ import com.android.tools.r8.ir.optimize.devirtualize.invokeinterface.A0;
 import com.android.tools.r8.ir.optimize.devirtualize.invokeinterface.A1;
 import com.android.tools.r8.ir.optimize.devirtualize.invokeinterface.I;
 import com.android.tools.r8.ir.optimize.devirtualize.invokeinterface.Main;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -27,10 +26,11 @@ import org.junit.runners.Parameterized;
 public class InvokeInterfaceToInvokeVirtualTest extends TestBase {
 
   private final TestParameters parameters;
+  private final String EXPECTED_OUTPUT = "0";
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public InvokeInterfaceToInvokeVirtualTest(TestParameters parameters) {
@@ -38,25 +38,24 @@ public class InvokeInterfaceToInvokeVirtualTest extends TestBase {
   }
 
   @Test
+  public void testRuntime() throws Exception {
+    testForRuntime(parameters)
+        .addProgramClasses(I.class, A.class, A0.class, A1.class, Main.class)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+  }
+
+  @Test
   public void listOfInterface() throws Exception {
-    String expectedOutput = StringUtils.lines("0");
-
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addTestClasspath()
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutput(expectedOutput);
-    }
-
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .addProgramClasses(I.class, A.class, A0.class, A1.class, Main.class)
             .addKeepMainRule(Main.class)
             .addOptionsModification(
                 options -> options.enableInliningOfInvokesWithNullableReceivers = false)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), Main.class)
-            .assertSuccessWithOutput(expectedOutput)
+            .assertSuccessWithOutputLines(EXPECTED_OUTPUT)
             .inspector();
 
     ClassSubject clazz = inspector.clazz(Main.class);

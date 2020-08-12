@@ -7,7 +7,8 @@ package com.android.tools.r8.ir.optimize.devirtualize;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -16,15 +17,24 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class DevirtualizerNonNullRewritingTest extends TestBase {
 
-  private final Backend backend;
+  private final TestParameters parameters;
+  private static final String EXPECTED_OUTPUT = "Hello!";
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public DevirtualizerNonNullRewritingTest(Backend backend) {
-    this.backend = backend;
+  public DevirtualizerNonNullRewritingTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
+  @Test
+  public void testRuntime() throws Exception {
+    testForRuntime(parameters)
+        .addInnerClasses(DevirtualizerNonNullRewritingTest.class)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   /**
@@ -32,17 +42,14 @@ public class DevirtualizerNonNullRewritingTest extends TestBase {
    */
   @Test
   public void test() throws Exception {
-    String expectedOutput = "Hello!";
-
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
-
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addInnerClasses(DevirtualizerNonNullRewritingTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .enableMergeAnnotations()
-        .run(TestClass.class)
-        .assertSuccessWithOutput(expectedOutput);
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   static class TestClass {
