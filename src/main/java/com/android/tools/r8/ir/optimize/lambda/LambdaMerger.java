@@ -196,7 +196,7 @@ public final class LambdaMerger {
   // from it. In this case we will reprocess method that does not need patching, but it
   // should not be happening very frequently and we ignore possible overhead.
   private final LongLivedProgramMethodSetBuilder<SortedProgramMethodSet> methodsToReprocess =
-      LongLivedProgramMethodSetBuilder.createSorted();
+      LongLivedProgramMethodSetBuilder.createForSortedSet();
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Kotlin kotlin;

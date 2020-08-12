@@ -17,18 +17,26 @@ import java.util.function.IntFunction;
 public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
 
   private final IntFunction<T> factory;
-  private final Set<DexMethod> methods = Sets.newIdentityHashSet();
+  private final Set<DexMethod> methods;
 
-  private LongLivedProgramMethodSetBuilder(IntFunction<T> factory) {
+  private LongLivedProgramMethodSetBuilder(IntFunction<T> factory, Set<DexMethod> methods) {
     this.factory = factory;
+    this.methods = methods;
   }
 
-  public static LongLivedProgramMethodSetBuilder<?> create() {
-    return new LongLivedProgramMethodSetBuilder<>(ProgramMethodSet::create);
+  public static LongLivedProgramMethodSetBuilder<?> createForIdentitySet() {
+    return new LongLivedProgramMethodSetBuilder<>(
+        ProgramMethodSet::create, Sets.newIdentityHashSet());
   }
 
-  public static LongLivedProgramMethodSetBuilder<SortedProgramMethodSet> createSorted() {
-    return new LongLivedProgramMethodSetBuilder<>(ignore -> SortedProgramMethodSet.create());
+  public static LongLivedProgramMethodSetBuilder<SortedProgramMethodSet> createForSortedSet() {
+    return new LongLivedProgramMethodSetBuilder<>(
+        ignore -> SortedProgramMethodSet.create(), Sets.newIdentityHashSet());
+  }
+
+  public static LongLivedProgramMethodSetBuilder<?> createConcurrentForIdentitySet() {
+    return new LongLivedProgramMethodSetBuilder<>(
+        ignore -> ProgramMethodSet.create(), Sets.newConcurrentHashSet());
   }
 
   public void add(ProgramMethod method) {

@@ -22,7 +22,6 @@ public class ProgramMethodSet implements Iterable<ProgramMethod> {
 
   private static final ProgramMethodSet EMPTY = new ProgramMethodSet(ImmutableMap.of());
 
-  private boolean deterministicOrdering = false;
   private Map<DexMethod, ProgramMethod> backing;
 
   ProgramMethodSet(Map<DexMethod, ProgramMethod> backing) {

@@ -363,11 +363,10 @@ public final class ClassStaticizer {
   }
 
   private void addReferencedFrom(CandidateInfo info, ProgramMethod context) {
-    LongLivedProgramMethodSetBuilder builder =
-        referencedFrom.computeIfAbsent(info, ignore -> LongLivedProgramMethodSetBuilder.create());
-    synchronized (builder) {
-      builder.add(context);
-    }
+    LongLivedProgramMethodSetBuilder<?> builder =
+        referencedFrom.computeIfAbsent(
+            info, ignore -> LongLivedProgramMethodSetBuilder.createConcurrentForIdentitySet());
+    builder.add(context);
   }
 
   private boolean isAllowedInHostClassInitializer(

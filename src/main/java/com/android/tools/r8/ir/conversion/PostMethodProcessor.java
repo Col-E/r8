@@ -64,7 +64,7 @@ public class PostMethodProcessor implements MethodProcessor {
 
     private final Collection<CodeOptimization> defaultCodeOptimizations;
     private final LongLivedProgramMethodSetBuilder<?> methodsToReprocess =
-        LongLivedProgramMethodSetBuilder.create();
+        LongLivedProgramMethodSetBuilder.createForIdentitySet();
     private final Map<DexEncodedMethod, Collection<CodeOptimization>> optimizationsMap =
         new IdentityHashMap<>();
 
