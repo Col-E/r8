@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer.BuilderState;
 import java.util.HashSet;
@@ -367,11 +368,13 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
       boolean expectToSeeMethodToString) {
     boolean seenMethodToString = false;
     for (Map.Entry<Instruction, BuilderState> entry : perBuilderState.entrySet()) {
-      if (entry.getKey().isInvokeMethod()
-        && optimizer.optimizationConfiguration.isToStringMethod(
-            entry.getKey().asInvokeMethod().getInvokedMethod())) {
+      InvokeMethod invoke = entry.getKey().asInvokeMethod();
+      if (invoke != null
+          && optimizer.optimizationConfiguration.isToStringMethod(invoke.getInvokedMethod())) {
         seenMethodToString = true;
-        assertEquals(expectedConstString, optimizer.analysis.toCompileTimeString(entry.getValue()));
+        Value builder = invoke.getArgument(0).getAliasedValue();
+        assertEquals(
+            expectedConstString, optimizer.analysis.toCompileTimeString(builder, entry.getValue()));
       }
     }
     assertEquals(expectToSeeMethodToString, seenMethodToString);
@@ -384,11 +387,12 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
       boolean expectToSeeMethodToString) {
     boolean seenMethodToString = false;
     for (Map.Entry<Instruction, BuilderState> entry : perBuilderState.entrySet()) {
-      if (entry.getKey().isInvokeMethod()
-          && optimizer.optimizationConfiguration.isToStringMethod(
-              entry.getKey().asInvokeMethod().getInvokedMethod())) {
+      InvokeMethod invoke = entry.getKey().asInvokeMethod();
+      if (invoke != null
+          && optimizer.optimizationConfiguration.isToStringMethod(invoke.getInvokedMethod())) {
         seenMethodToString = true;
-        String computedString = optimizer.analysis.toCompileTimeString(entry.getValue());
+        Value builder = invoke.getArgument(0).getAliasedValue();
+        String computedString = optimizer.analysis.toCompileTimeString(builder, entry.getValue());
         assertNotNull(computedString);
         assertTrue(expectedConstStrings.contains(computedString));
         expectedConstStrings.remove(computedString);

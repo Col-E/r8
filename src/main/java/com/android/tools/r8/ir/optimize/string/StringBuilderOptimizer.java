@@ -608,7 +608,7 @@ public class StringBuilderOptimizer {
         assert perInstrState != null;
         BuilderState builderState = perInstrState.get(instr);
         assert builderState != null;
-        String element = toCompileTimeString(builderState);
+        String element = toCompileTimeString(builder, builderState);
         assert element != null;
         Value stringValue =
             code.createValue(
@@ -653,7 +653,7 @@ public class StringBuilderOptimizer {
       if (builderState == null) {
         return false;
       }
-      String element = toCompileTimeString(builderState);
+      String element = toCompileTimeString(builder, builderState);
       if (element == null) {
         return false;
       }
@@ -663,7 +663,7 @@ public class StringBuilderOptimizer {
     // Find the trivial chain of builder-append*-toString.
     // Note that we can't determine a compile-time constant string if there are any ambiguity.
     @VisibleForTesting
-    String toCompileTimeString(BuilderState state) {
+    String toCompileTimeString(Value builder, BuilderState state) {
       boolean continuedForLogging = false;
       LinkedList<String> contents = new LinkedList<>();
       while (state != null) {
@@ -708,6 +708,10 @@ public class StringBuilderOptimizer {
         logHistogramOfChains(contents, false);
       }
       if (contents.isEmpty()) {
+        return null;
+      }
+      if (StringBuilderAppendFlowAnalysis.hasAppendInstructionInLoop(
+          builder, optimizationConfiguration)) {
         return null;
       }
       String result = StringUtils.join(contents, "");

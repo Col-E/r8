@@ -3,15 +3,21 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.string;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class StringBuilderInDoWhileLoopTest extends TestBase {
+public class StringBuilderFullyInDoWhileLoopTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -20,30 +26,42 @@ public class StringBuilderInDoWhileLoopTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public StringBuilderInDoWhileLoopTest(TestParameters parameters) {
+  public StringBuilderFullyInDoWhileLoopTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(StringBuilderInDoWhileLoopTest.class)
+        .addInnerClasses(StringBuilderFullyInDoWhileLoopTest.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/163230758): Should succeed with "000".
-        .assertSuccessWithOutputLines(parameters.isCfRuntime() ? "000" : "0");
+        .assertSuccessWithOutputLines("000");
+  }
+
+  private void inspect(CodeInspector inspector) {
+    MethodSubject mainMethodSubject = inspector.clazz(TestClass.class).mainMethod();
+    assertThat(mainMethodSubject, isPresent());
+    assertEquals(
+        parameters.isCfRuntime(),
+        mainMethodSubject
+            .streamInstructions()
+            .anyMatch(instruction -> instruction.isNewInstance("java.lang.StringBuilder")));
   }
 
   static class TestClass {
     public static void main(String[] args) {
-      StringBuilder builder = new StringBuilder();
       int i = 0;
       do {
+        StringBuilder builder = new StringBuilder();
         builder.append("0");
+        System.out.print(builder.toString());
         i++;
       } while (i < 3);
-      System.out.println(builder.toString());
+      System.out.println();
     }
   }
 }

@@ -30,6 +30,12 @@ public class WorkList<T> {
     return new WorkList<T>(EqualityTest.IDENTITY);
   }
 
+  public static <T> WorkList<T> newIdentityWorkList(T item) {
+    WorkList<T> workList = new WorkList<>(EqualityTest.IDENTITY);
+    workList.addIfNotSeen(item);
+    return workList;
+  }
+
   public static <T> WorkList<T> newIdentityWorkList(Iterable<T> items) {
     WorkList<T> workList = new WorkList<>(EqualityTest.IDENTITY);
     workList.addIfNotSeen(items);
@@ -42,6 +48,10 @@ public class WorkList<T> {
     } else {
       seen = Sets.newIdentityHashSet();
     }
+  }
+
+  public void addAll(Iterable<T> items) {
+    items.forEach(workingList::addLast);
   }
 
   public void addIfNotSeen(Iterable<T> items) {
