@@ -923,9 +923,6 @@ public class Enqueuer {
     return traceConstClassOrCheckCast(type, currentMethod);
   }
 
-  // TODO(b/163311975): traceInstanceOf (impl. by b/163471800) should call
-  // analysis.traceInstanceOf(...)
-
   boolean traceConstClass(DexType type, ProgramMethod currentMethod) {
     // We conservatively group T.class and T[].class to ensure that we do not merge T with S if
     // potential locks on T[].class and S[].class exists.
@@ -1046,6 +1043,7 @@ public class Enqueuer {
   }
 
   boolean traceInstanceOf(DexType type, ProgramMethod currentMethod) {
+    instanceOfAnalyses.forEach(analysis -> analysis.traceInstanceOf(type, currentMethod));
     return traceTypeReference(type, currentMethod);
   }
 
