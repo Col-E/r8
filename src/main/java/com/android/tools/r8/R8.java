@@ -118,6 +118,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -268,6 +269,10 @@ public class R8 {
     new R8(options).run(app, executor);
   }
 
+  private static DirectMappedDexApplication getDirectApp(AppView<?> appView) {
+    return appView.appInfo().app().asDirect();
+  }
+
   private void run(AndroidApp inputApp, ExecutorService executorService) throws IOException {
     assert options.programConsumer != null;
     if (options.quiet) {
@@ -279,14 +284,17 @@ public class R8 {
               "Running R8 version " + Version.LABEL + " with assertions enabled."));
     }
     try {
-      DirectMappedDexApplication application =
-          new ApplicationReader(inputApp, options, timing).read(executorService).toDirect();
+      AppView<AppInfoWithClassHierarchy> appView;
+      {
+        DirectMappedDexApplication application =
+            new ApplicationReader(inputApp, options, timing).read(executorService).toDirect();
 
-      // Now that the dex-application is fully loaded, close any internal archive providers.
-      inputApp.closeInternalArchiveProviders();
+        // Now that the dex-application is fully loaded, close any internal archive providers.
+        inputApp.closeInternalArchiveProviders();
 
-      AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(application);
-      appView.setAppServices(AppServices.builder(appView).build());
+        appView = AppView.createForR8(application);
+        appView.setAppServices(AppServices.builder(appView).build());
+      }
 
       // Check for potentially having pass-through of Cf-code for kotlin libraries.
       options.enableCfByteCodePassThrough =
@@ -302,7 +310,7 @@ public class R8 {
       InterfaceMethodRewriter.checkForAssumedLibraryTypes(appView.appInfo(), options);
       BackportedMethodRewriter.registerAssumedLibraryTypes(options);
       if (options.enableEnumUnboxing) {
-        if (application.definitionFor(options.itemFactory.enumUnboxingUtilityType) != null) {
+        if (appView.definitionFor(options.itemFactory.enumUnboxingUtilityType) != null) {
           // The enum unboxing utility class can be created only during cf to dex compilation.
           // If this is true, we are recompiling the dex application with R8 (compilation-steps).
           options.enableEnumUnboxing = false;
@@ -317,7 +325,8 @@ public class R8 {
       Set<DexType> missingClasses = null;
       try {
         // TODO(b/154849103): Find a better way to determine missing classes.
-        missingClasses = new SubtypingInfo(application.allClasses(), appView).getMissingClasses();
+        missingClasses =
+            new SubtypingInfo(getDirectApp(appView).allClasses(), appView).getMissingClasses();
         missingClasses = filterMissingClasses(
             missingClasses, options.getProguardConfiguration().getDontWarnPatterns());
         if (!missingClasses.isEmpty()) {
@@ -350,7 +359,8 @@ public class R8 {
                     options.itemFactory, AndroidApiLevel.getAndroidApiLevel(options.minApiLevel)));
           }
         }
-        SubtypingInfo subtypingInfo = new SubtypingInfo(application.allClasses(), application);
+        SubtypingInfo subtypingInfo =
+            new SubtypingInfo(getDirectApp(appView).allClasses(), appView);
         appView.setRootSet(
             new RootSetBuilder(
                     appView,
@@ -363,7 +373,6 @@ public class R8 {
             options.isShrinking() ? AnnotationRemover.builder() : null;
         AppView<AppInfoWithLiveness> appViewWithLiveness =
             runEnqueuer(annotationRemoverBuilder, executorService, appView, subtypingInfo);
-        application = appViewWithLiveness.appInfo().app().asDirect();
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
@@ -391,15 +400,12 @@ public class R8 {
               shrinker -> shrinker.run(Mode.INITIAL_TREE_SHAKING));
 
           TreePruner pruner = new TreePruner(appViewWithLiveness);
-          application = pruner.run(application);
+          DirectMappedDexApplication prunedApp = pruner.run();
 
           if (options.enableEnumUnboxing) {
             DexProgramClass utilityClass =
                 EnumUnboxingRewriter.synthesizeEmptyEnumUnboxingUtilityClass(appView);
-            // We cannot know at this point if the class will be on the main dex list,
-            // updated later. Since this is inserted in the app at this point, we do not need
-            // to use any synthesized class hack and add the class as a program class.
-            application = application.builder().addProgramClass(utilityClass).build();
+            prunedApp = prunedApp.builder().addProgramClass(utilityClass).build();
           }
 
           // Recompute the subtyping information.
@@ -409,7 +415,7 @@ public class R8 {
                   .appInfo()
                   .withLiveness()
                   .prunedCopyFrom(
-                      application,
+                      prunedApp,
                       removedClasses,
                       pruner.getMethodsToKeepForConfigurationDebugging()));
           appView.setAppServices(appView.appServices().prunedCopy(removedClasses));
@@ -430,7 +436,7 @@ public class R8 {
       }
 
       assert appView.appInfo().hasLiveness();
-      assert verifyNoJarApplicationReaders(application.classes());
+      assert verifyNoJarApplicationReaders(appView.appInfo().classes());
       // Build conservative main dex content after first round of tree shaking. This is used
       // by certain optimizations to avoid introducing additional class references into main dex
       // classes, as that can cause the final number of main dex methods to grow.
@@ -440,7 +446,7 @@ public class R8 {
         assert appView.graphLens().isIdentityLens();
         // Find classes which may have code executed before secondary dex files installation.
         SubtypingInfo subtypingInfo =
-            new SubtypingInfo(appView.appInfo().app().asDirect().allClasses(), appView);
+            new SubtypingInfo(getDirectApp(appView).allClasses(), appView);
         mainDexRootSet =
             new RootSetBuilder(appView, subtypingInfo, options.mainDexKeepRules)
                 .run(executorService);
@@ -449,7 +455,7 @@ public class R8 {
             EnqueuerFactory.createForMainDexTracing(appView, subtypingInfo)
                 .traceMainDex(mainDexRootSet, executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
-        mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
+        mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, getDirectApp(appView)).run();
         appView.appInfo().unsetObsolete();
       }
 
@@ -463,7 +469,11 @@ public class R8 {
         SubtypingInfo subtypingInfo = appViewWithLiveness.appInfo().computeSubtypingInfo();
         GraphLens publicizedLens =
             ClassAndMemberPublicizer.run(
-                executorService, timing, application, appViewWithLiveness, subtypingInfo);
+                executorService,
+                timing,
+                appViewWithLiveness.appInfo().app(),
+                appViewWithLiveness,
+                subtypingInfo);
         boolean changed = appView.setGraphLens(publicizedLens);
         if (changed) {
           // We can now remove visibility bridges. Note that we do not need to update the
@@ -480,12 +490,13 @@ public class R8 {
       if (options.shouldDesugarNests()) {
         timing.begin("NestBasedAccessDesugaring");
         R8NestBasedAccessDesugaring analyzer = new R8NestBasedAccessDesugaring(appViewWithLiveness);
-        NestedPrivateMethodLens lens = analyzer.run(executorService, application.builder());
+        NestedPrivateMethodLens lens =
+            analyzer.run(executorService, getDirectApp(appView).builder());
         if (lens != null) {
           boolean changed = appView.setGraphLens(lens);
           assert changed;
           appViewWithLiveness.setAppInfo(
-              appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
+              appViewWithLiveness.appInfo().rewrittenWithLens(getDirectApp(appView), lens));
         }
         timing.end();
       } else {
@@ -512,7 +523,7 @@ public class R8 {
             boolean changed = appView.setGraphLens(lens);
             assert changed;
             appViewWithLiveness.setAppInfo(
-                appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
+                appViewWithLiveness.appInfo().rewrittenWithLens(getDirectApp(appView), lens));
           }
           timing.end();
         }
@@ -520,15 +531,19 @@ public class R8 {
           timing.begin("VerticalClassMerger");
           VerticalClassMerger verticalClassMerger =
               new VerticalClassMerger(
-                  application, appViewWithLiveness, executorService, timing, mainDexClasses);
+                  getDirectApp(appViewWithLiveness),
+                  appViewWithLiveness,
+                  executorService,
+                  timing,
+                  mainDexClasses);
           VerticalClassMergerGraphLens lens = verticalClassMerger.run();
           if (lens != null) {
             boolean changed = appView.setGraphLens(lens);
             assert changed;
             appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
-            application = application.asDirect().rewrittenWithLens(lens);
+            DirectMappedDexApplication application = getDirectApp(appView).rewrittenWithLens(lens);
             appViewWithLiveness.setAppInfo(
-                appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
+                appViewWithLiveness.appInfo().rewrittenWithLens(application, lens));
           }
           timing.end();
         }
@@ -544,9 +559,9 @@ public class R8 {
             if (lens != null) {
               boolean changed = appView.setGraphLens(lens);
               assert changed;
-              assert application.asDirect().verifyNothingToRewrite(appView, lens);
+              assert getDirectApp(appView).verifyNothingToRewrite(appView, lens);
               appViewWithLiveness.setAppInfo(
-                  appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
+                  appViewWithLiveness.appInfo().rewrittenWithLens(getDirectApp(appView), lens));
             }
             timing.end();
           }
@@ -562,9 +577,9 @@ public class R8 {
             if (lens != null) {
               boolean changed = appView.setGraphLens(lens);
               assert changed;
-              assert application.asDirect().verifyNothingToRewrite(appView, lens);
+              assert getDirectApp(appView).verifyNothingToRewrite(appView, lens);
               appViewWithLiveness.setAppInfo(
-                  appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
+                  appViewWithLiveness.appInfo().rewrittenWithLens(getDirectApp(appView), lens));
             }
             timing.end();
           }
@@ -584,11 +599,20 @@ public class R8 {
 
       appView.setAppServices(appView.appServices().rewrittenWithLens(appView.graphLens()));
 
+      // Collect the already pruned types before creating a new app info without liveness.
+      // TODO: we should avoid removing liveness.
+      Set<DexType> prunedTypes = appView.withLiveness().appInfo().getPrunedTypes();
+
+      // TODO: move to appview.
+      EnumValueInfoMapCollection enumValueInfoMapCollection =
+          appViewWithLiveness.appInfo().getEnumValueInfoMapCollection();
+
       timing.begin("Create IR");
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
         IRConverter converter = new IRConverter(appView, timing, printer, mainDexClasses);
-        application = converter.optimize(executorService).asDirect();
+        DexApplication application = converter.optimize(executorService).asDirect();
+        appView.setAppInfo(appView.appInfo().rebuild(previous -> application));
       } finally {
         timing.end();
       }
@@ -600,7 +624,7 @@ public class R8 {
       // graph lens entirely, though, since it is needed for mapping all field and method signatures
       // back to the original program.
       timing.begin("AppliedGraphLens construction");
-      appView.setGraphLens(new AppliedGraphLens(appView, application.classes()));
+      appView.setGraphLens(new AppliedGraphLens(appView, appView.appInfo().app().classes()));
       timing.end();
 
       if (options.printCfg) {
@@ -615,15 +639,7 @@ public class R8 {
         }
       }
 
-      // Collect the already pruned types before creating a new app info without liveness.
-      Set<DexType> prunedTypes = appView.withLiveness().appInfo().getPrunedTypes();
-
-      // TODO: move to appview.
-      EnumValueInfoMapCollection enumValueInfoMapCollection =
-          appViewWithLiveness.appInfo().getEnumValueInfoMapCollection();
-
       if (!options.mainDexKeepRules.isEmpty()) {
-        appView.setAppInfo(new AppInfoWithClassHierarchy(application));
         // No need to build a new main dex root set
         assert mainDexRootSet != null;
         GraphConsumer mainDexKeptGraphConsumer = options.mainDexKeptGraphConsumer;
@@ -636,14 +652,14 @@ public class R8 {
         Enqueuer enqueuer =
             EnqueuerFactory.createForMainDexTracing(
                 appView,
-                new SubtypingInfo(application.allClasses(), application),
+                new SubtypingInfo(getDirectApp(appView).allClasses(), appView),
                 mainDexKeptGraphConsumer);
         // Find classes which may have code executed before secondary dex files installation.
         // Live types is the tracing result.
         Set<DexProgramClass> mainDexBaseClasses =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
-        mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
+        mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, getDirectApp(appView)).run();
         final MainDexClasses finalMainDexClasses = mainDexClasses;
 
         processWhyAreYouKeepingAndCheckDiscarded(
@@ -670,8 +686,6 @@ public class R8 {
             executorService);
       }
 
-      appView.setAppInfo(new AppInfoWithClassHierarchy(application));
-
       if (options.shouldRerunEnqueuer()) {
         timing.begin("Post optimization code stripping");
         try {
@@ -688,7 +702,7 @@ public class R8 {
           Enqueuer enqueuer =
               EnqueuerFactory.createForFinalTreeShaking(
                   appView,
-                  new SubtypingInfo(application.allClasses(), application),
+                  new SubtypingInfo(getDirectApp(appView).allClasses(), appView),
                   keptGraphConsumer,
                   missingClasses,
                   prunedTypes);
@@ -716,7 +730,7 @@ public class R8 {
                     DefaultTreePrunerConfiguration.getInstance());
 
             TreePruner pruner = new TreePruner(appViewWithLiveness, treePrunerConfiguration);
-            application = pruner.run(application);
+            DirectMappedDexApplication application = pruner.run();
             Set<DexType> removedClasses = pruner.getRemovedClasses();
 
             if (options.usageInformationConsumer != null) {
@@ -788,12 +802,6 @@ public class R8 {
         }
       }
 
-      // Add automatic main dex classes to an eventual manual list of classes.
-      if (!options.mainDexKeepRules.isEmpty()) {
-        application =
-            application.builder().addToMainDexList(mainDexClasses.getClasses()).build().asDirect();
-      }
-
       // Perform minification.
       NamingLens namingLens;
       if (options.getProguardConfiguration().hasApplyMappingFile()) {
@@ -817,19 +825,19 @@ public class R8 {
       new KotlinMetadataRewriter(appView, namingLens).run(executorService);
       timing.end();
 
-      assert verifyMovedMethodsHaveOriginalMethodPosition(appView, application);
+      assert verifyMovedMethodsHaveOriginalMethodPosition(appView, getDirectApp(appView));
 
       timing.begin("Line number remapping");
       // When line number optimization is turned off the identity mapping for line numbers is
       // used. We still run the line number optimizer to collect line numbers and inline frame
       // information for the mapping file.
       ClassNameMapper classNameMapper =
-          LineNumberOptimizer.run(appView, application, inputApp, namingLens);
+          LineNumberOptimizer.run(appView, getDirectApp(appView), inputApp, namingLens);
       timing.end();
 
       // Overwrite SourceFile if specified. This step should be done after IR conversion.
       timing.begin("Rename SourceFile");
-      new SourceFileRewriter(appView, application).run();
+      new SourceFileRewriter(appView, appView.appInfo().app()).run();
       timing.end();
 
       // If a method filter is present don't produce output since the application is likely partial.
@@ -851,18 +859,33 @@ public class R8 {
         assert !options.isShrinking();
       }
 
+      // Add automatic main dex classes to an eventual manual list of classes.
+      if (!options.mainDexKeepRules.isEmpty()) {
+        MainDexClasses finalMainDexClasses = mainDexClasses;
+        appView.setAppInfo(
+            appView
+                .appInfo()
+                .rebuild(
+                    application ->
+                        application
+                            .builder()
+                            .addToMainDexList(finalMainDexClasses.getClasses())
+                            .build()
+                            .asDirect()));
+      }
+
       // Validity checks.
-      assert application.asDirect().verifyCodeObjectsOwners();
-      assert application.classes().stream().allMatch(clazz -> clazz.isValid(options));
+      assert getDirectApp(appView).verifyCodeObjectsOwners();
+      assert appView.appInfo().classes().stream().allMatch(clazz -> clazz.isValid(options));
       if (options.isShrinking()
           || options.isMinifying()
           || options.getProguardConfiguration().hasApplyMappingFile()) {
-        assert appView.rootSet().verifyKeptItemsAreKept(application, appView.appInfo());
+        assert appView.rootSet().verifyKeptItemsAreKept(appView.appInfo().app(), appView.appInfo());
       }
       assert appView
           .graphLens()
           .verifyMappingToOriginalProgram(
-              application.classesWithDeterministicOrder(),
+              appView.appInfo().classesWithDeterministicOrder(),
               new ApplicationReader(inputApp.withoutMainDexList(), options, timing)
                   .read(executorService),
               appView.dexItemFactory());
@@ -882,7 +905,7 @@ public class R8 {
       // Generate the resulting application resources.
       writeApplication(
           executorService,
-          application,
+          appView.appInfo().app(),
           appView,
           appView.graphLens(),
           appView.initClassLens(),
@@ -1058,7 +1081,7 @@ public class R8 {
     throw new CompilationError("Discard checks failed.");
   }
 
-  private static boolean verifyNoJarApplicationReaders(List<DexProgramClass> classes) {
+  private static boolean verifyNoJarApplicationReaders(Collection<DexProgramClass> classes) {
     for (DexProgramClass clazz : classes) {
       for (DexEncodedMethod method : clazz.methods()) {
         if (method.getCode() != null) {

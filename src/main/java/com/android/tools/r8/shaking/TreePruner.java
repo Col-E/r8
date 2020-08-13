@@ -57,7 +57,8 @@ public class TreePruner {
             : UsagePrinter.DONT_PRINT;
   }
 
-  public DirectMappedDexApplication run(DirectMappedDexApplication application) {
+  public DirectMappedDexApplication run() {
+    DirectMappedDexApplication application = appView.appInfo().app().asDirect();
     Timing timing = application.timing;
     timing.begin("Pruning application...");
     DirectMappedDexApplication result;
