@@ -613,8 +613,7 @@ public class TestBase {
     DexItemFactory dexItemFactory = new DexItemFactory();
     InternalOptions options = new InternalOptions(keepConfig.apply(dexItemFactory), new Reporter());
     DexApplication dexApplication = readApplicationForDexOutput(app, options);
-    AppView<AppInfoWithClassHierarchy> appView =
-        AppView.createForR8(new AppInfoWithClassHierarchy(dexApplication.toDirect()));
+    AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(dexApplication.toDirect());
     appView.setAppServices(AppServices.builder(appView).build());
     return appView;
   }

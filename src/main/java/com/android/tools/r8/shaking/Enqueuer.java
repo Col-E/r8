@@ -2881,12 +2881,16 @@ public class Enqueuer {
     }
 
     // Now all additions are computed, the application is atomically extended with those additions.
-    Builder appBuilder = appInfo.app().asDirect().builder();
-    additions.amendApplication(appBuilder);
-    DirectMappedDexApplication app = appBuilder.build();
-    appInfo = new AppInfoWithClassHierarchy(app);
+    appInfo =
+        appInfo.rebuild(
+            app -> {
+              Builder appBuilder = app.asDirect().builder();
+              additions.amendApplication(appBuilder);
+              return appBuilder.build();
+            });
     appView.setAppInfo(appInfo);
-    subtypingInfo = new SubtypingInfo(app.allClasses(), app);
+    subtypingInfo =
+        new SubtypingInfo(appInfo.app().asDirect().allClasses(), appInfo.app().asDirect());
 
     // Finally once all synthesized items "exist" it is now safe to continue tracing. The new work
     // items are enqueued and the fixed point will continue once this subroutine returns.

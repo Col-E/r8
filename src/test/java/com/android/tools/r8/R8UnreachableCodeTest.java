@@ -7,7 +7,6 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -43,8 +42,7 @@ public class R8UnreachableCodeTest {
     options.programConsumer = DexIndexedConsumer.emptyConsumer();
     DirectMappedDexApplication application =
         new ApplicationReader(input, options, timing).read(executorService).toDirect();
-    IRConverter converter =
-        new IRConverter(AppView.createForR8(new AppInfoWithClassHierarchy(application)), null);
+    IRConverter converter = new IRConverter(AppView.createForR8(application), null);
     converter.optimize();
     DexProgramClass clazz = application.classes().iterator().next();
     assertEquals(4, clazz.getMethodCollection().numberOfDirectMethods());

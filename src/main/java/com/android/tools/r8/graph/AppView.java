@@ -124,7 +124,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return new AppView<>(appInfo, WholeProgramOptimizations.OFF, mapper);
   }
 
-  public static <T extends AppInfo> AppView<T> createForR8(T appInfo) {
+  public static AppView<AppInfoWithClassHierarchy> createForR8(DexApplication application) {
+    AppInfoWithClassHierarchy appInfo = new AppInfoWithClassHierarchy(application);
     return new AppView<>(
         appInfo, WholeProgramOptimizations.ON, defaultPrefixRewritingMapper(appInfo));
   }

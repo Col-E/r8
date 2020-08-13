@@ -31,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /* Specific subclass of AppInfo designed to support desugaring in D8. Desugaring requires a
  * minimal amount of knowledge in the overall program, provided through classpath. Basic
@@ -55,6 +56,10 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public static AppInfoWithClassHierarchy createForDesugaring(AppInfo appInfo) {
     assert !appInfo.hasClassHierarchy();
     return new AppInfoWithClassHierarchy(appInfo);
+  }
+
+  public AppInfoWithClassHierarchy rebuild(Function<DexApplication, DexApplication> fn) {
+    return new AppInfoWithClassHierarchy(fn.apply(app()));
   }
 
   @Override

@@ -285,8 +285,7 @@ public class R8 {
       // Now that the dex-application is fully loaded, close any internal archive providers.
       inputApp.closeInternalArchiveProviders();
 
-      AppView<AppInfoWithClassHierarchy> appView =
-          AppView.createForR8(new AppInfoWithClassHierarchy(application));
+      AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(application);
       appView.setAppServices(AppServices.builder(appView).build());
 
       // Check for potentially having pass-through of Cf-code for kotlin libraries.

@@ -60,7 +60,7 @@ public class TypeLatticeTest extends TestBase {
             .read()
             .toDirect();
     factory = options.itemFactory;
-    appView = AppView.createForR8(new AppInfoWithClassHierarchy(application));
+    appView = AppView.createForR8(application);
   }
 
   private TopTypeElement top() {

@@ -11,6 +11,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -19,8 +20,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 public class ArrayTargetLookupTest extends TestBase {
@@ -28,7 +27,7 @@ public class ArrayTargetLookupTest extends TestBase {
   public static class Foo {}
 
   @Test
-  public void testArrays() throws IOException, ExecutionException {
+  public void testArrays() throws Exception {
     Timing timing = Timing.empty();
     InternalOptions options = new InternalOptions();
     AndroidApp app =
@@ -38,7 +37,7 @@ public class ArrayTargetLookupTest extends TestBase {
             .build();
     DirectMappedDexApplication application =
         new ApplicationReader(app, options, timing).read().toDirect();
-    AppInfoWithClassHierarchy appInfo = new AppInfoWithClassHierarchy(application);
+    AppInfoWithClassHierarchy appInfo = AppView.createForR8(application).appInfo();
     DexItemFactory factory = options.itemFactory;
     DexType fooType =
         factory.createType(DescriptorUtils.javaTypeToDescriptor(Foo.class.getTypeName()));

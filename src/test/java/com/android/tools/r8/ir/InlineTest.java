@@ -66,8 +66,7 @@ public class InlineTest extends IrInjectionTestBase {
       List<IRCode> additionalCode)
       throws ExecutionException {
     DirectMappedDexApplication directApp = application.asDirect();
-    AppView<AppInfoWithClassHierarchy> appView =
-        AppView.createForR8(new AppInfoWithClassHierarchy(directApp));
+    AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(directApp);
     appView.setAppServices(AppServices.builder(appView).build());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     SubtypingInfo subtypingInfo = new SubtypingInfo(directApp.allClasses(), directApp);

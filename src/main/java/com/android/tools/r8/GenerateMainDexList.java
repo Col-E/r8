@@ -49,8 +49,7 @@ public class GenerateMainDexList {
     try {
       DirectMappedDexApplication application =
           new ApplicationReader(app, options, timing).read(executor).toDirect();
-      AppView<? extends AppInfoWithClassHierarchy> appView =
-          AppView.createForR8(new AppInfoWithClassHierarchy(application));
+      AppView<? extends AppInfoWithClassHierarchy> appView = AppView.createForR8(application);
       appView.setAppServices(AppServices.builder(appView).build());
 
       MainDexListBuilder.checkForAssumedLibraryTypes(appView.appInfo());

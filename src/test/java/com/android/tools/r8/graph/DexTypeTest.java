@@ -35,7 +35,7 @@ public class DexTypeTest {
             .read()
             .toDirect();
     factory = options.itemFactory;
-    appInfo = new AppInfoWithClassHierarchy(application);
+    appInfo = AppView.createForR8(application).appInfo();
   }
 
   @Test

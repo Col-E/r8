@@ -30,7 +30,6 @@ import com.android.tools.r8.dexsplitter.DexSplitter.Options;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
@@ -808,8 +807,7 @@ public class MainDexListTests extends TestBase {
     options.minApiLevel = minApi;
     options.intermediate = intermediate;
     DexItemFactory factory = options.itemFactory;
-    AppInfo appInfo = new AppInfo(DexApplication.builder(options, timing).build());
-    AppView<?> appView = AppView.createForR8(appInfo);
+    AppView<?> appView = AppView.createForR8(DexApplication.builder(options, timing).build());
     DexApplication.Builder<?> builder = DexApplication.builder(options, timing);
     for (String clazz : classes) {
       DexString desc = factory.createString(DescriptorUtils.javaTypeToDescriptor(clazz));
