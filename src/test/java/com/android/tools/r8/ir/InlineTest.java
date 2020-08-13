@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -65,11 +64,10 @@ public class InlineTest extends IrInjectionTestBase {
       MethodSubject method,
       List<IRCode> additionalCode)
       throws ExecutionException {
-    DirectMappedDexApplication directApp = application.asDirect();
-    AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(directApp);
+    AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(application.asDirect());
     appView.setAppServices(AppServices.builder(appView).build());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    SubtypingInfo subtypingInfo = new SubtypingInfo(directApp.allClasses(), directApp);
+    SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
     appView.setRootSet(
         new RootSetBuilder(
                 appView,

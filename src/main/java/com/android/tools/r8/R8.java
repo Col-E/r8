@@ -325,8 +325,7 @@ public class R8 {
       Set<DexType> missingClasses = null;
       try {
         // TODO(b/154849103): Find a better way to determine missing classes.
-        missingClasses =
-            new SubtypingInfo(getDirectApp(appView).allClasses(), appView).getMissingClasses();
+        missingClasses = new SubtypingInfo(appView).getMissingClasses();
         missingClasses = filterMissingClasses(
             missingClasses, options.getProguardConfiguration().getDontWarnPatterns());
         if (!missingClasses.isEmpty()) {
@@ -359,8 +358,7 @@ public class R8 {
                     options.itemFactory, AndroidApiLevel.getAndroidApiLevel(options.minApiLevel)));
           }
         }
-        SubtypingInfo subtypingInfo =
-            new SubtypingInfo(getDirectApp(appView).allClasses(), appView);
+        SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
         appView.setRootSet(
             new RootSetBuilder(
                     appView,
@@ -445,8 +443,7 @@ public class R8 {
       if (!options.mainDexKeepRules.isEmpty()) {
         assert appView.graphLens().isIdentityLens();
         // Find classes which may have code executed before secondary dex files installation.
-        SubtypingInfo subtypingInfo =
-            new SubtypingInfo(getDirectApp(appView).allClasses(), appView);
+        SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
         mainDexRootSet =
             new RootSetBuilder(appView, subtypingInfo, options.mainDexKeepRules)
                 .run(executorService);
@@ -624,7 +621,7 @@ public class R8 {
       // graph lens entirely, though, since it is needed for mapping all field and method signatures
       // back to the original program.
       timing.begin("AppliedGraphLens construction");
-      appView.setGraphLens(new AppliedGraphLens(appView, appView.appInfo().app().classes()));
+      appView.setGraphLens(new AppliedGraphLens(appView));
       timing.end();
 
       if (options.printCfg) {
@@ -651,9 +648,7 @@ public class R8 {
 
         Enqueuer enqueuer =
             EnqueuerFactory.createForMainDexTracing(
-                appView,
-                new SubtypingInfo(getDirectApp(appView).allClasses(), appView),
-                mainDexKeptGraphConsumer);
+                appView, new SubtypingInfo(appView), mainDexKeptGraphConsumer);
         // Find classes which may have code executed before secondary dex files installation.
         // Live types is the tracing result.
         Set<DexProgramClass> mainDexBaseClasses =
@@ -702,7 +697,7 @@ public class R8 {
           Enqueuer enqueuer =
               EnqueuerFactory.createForFinalTreeShaking(
                   appView,
-                  new SubtypingInfo(getDirectApp(appView).allClasses(), appView),
+                  new SubtypingInfo(appView),
                   keptGraphConsumer,
                   missingClasses,
                   prunedTypes);
@@ -1051,8 +1046,7 @@ public class R8 {
     // If there is no kept-graph info, re-run the enqueueing to compute it.
     if (whyAreYouKeepingConsumer == null) {
       whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(null);
-      SubtypingInfo subtypingInfo =
-          new SubtypingInfo(appView.appInfo().app().asDirect().allClasses(), appView);
+      SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
       if (forMainDex) {
         enqueuer =
             EnqueuerFactory.createForMainDexTracing(

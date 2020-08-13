@@ -27,11 +27,10 @@ public class AppliedGraphLens extends GraphLens {
   private final Map<DexMethod, DexMethod> originalMethodSignaturesForBridges =
       new IdentityHashMap<>();
 
-  public AppliedGraphLens(
-      AppView<? extends AppInfoWithClassHierarchy> appView, Iterable<DexProgramClass> classes) {
+  public AppliedGraphLens(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
 
-    for (DexProgramClass clazz : classes) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
       // Record original type names.
       {
         DexType type = clazz.type;

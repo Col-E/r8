@@ -41,7 +41,15 @@ public class SubtypingInfo {
   // Set of missing classes, discovered during subtypeMap computation.
   private final Set<DexType> missingClasses = Sets.newIdentityHashSet();
 
-  public SubtypingInfo(Collection<DexClass> classes, DexDefinitionSupplier definitions) {
+  public SubtypingInfo(AppView<? extends AppInfoWithClassHierarchy> appView) {
+    this(appView.appInfo());
+  }
+
+  public SubtypingInfo(AppInfoWithClassHierarchy appInfo) {
+    this(appInfo.app().asDirect().allClasses(), appInfo);
+  }
+
+  private SubtypingInfo(Collection<DexClass> classes, DexDefinitionSupplier definitions) {
     factory = definitions.dexItemFactory();
     // Recompute subtype map if we have modified the graph.
     populateSubtypeMap(classes, definitions::definitionFor, factory);

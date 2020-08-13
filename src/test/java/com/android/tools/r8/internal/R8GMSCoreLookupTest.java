@@ -61,7 +61,7 @@ public class R8GMSCoreLookupTest extends TestBase {
             .toDirect();
     appView = AppView.createForR8(program);
     appView.setAppServices(AppServices.builder(appView).build());
-    subtypingInfo = new SubtypingInfo(program.allClasses(), program);
+    subtypingInfo = new SubtypingInfo(appView);
   }
 
   private AppInfoWithClassHierarchy appInfo() {

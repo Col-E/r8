@@ -32,7 +32,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -640,16 +639,15 @@ public class TestBase {
     AppView<AppInfoWithClassHierarchy> appView = computeAppViewWithSubtyping(app, keepConfig);
     // Run the tree shaker to compute an instance of AppInfoWithLiveness.
     ExecutorService executor = Executors.newSingleThreadExecutor();
-    DirectMappedDexApplication application = appView.appInfo().app().asDirect();
-    SubtypingInfo subtypingInfo = new SubtypingInfo(application.allClasses(), application);
+    SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
     RootSet rootSet =
         new RootSetBuilder(
-                appView, subtypingInfo, application.options.getProguardConfiguration().getRules())
+                appView, subtypingInfo, appView.options().getProguardConfiguration().getRules())
             .run(executor);
     appView.setRootSet(rootSet);
     AppInfoWithLiveness appInfoWithLiveness =
         EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo)
-            .traceApplication(rootSet, ProguardClassFilter.empty(), executor, application.timing);
+            .traceApplication(rootSet, ProguardClassFilter.empty(), executor, Timing.empty());
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.
     return appView.setAppInfo(appInfoWithLiveness);

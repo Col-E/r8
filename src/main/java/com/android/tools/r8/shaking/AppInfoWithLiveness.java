@@ -1363,7 +1363,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   public SubtypingInfo computeSubtypingInfo() {
-    return new SubtypingInfo(app().asDirect().allClasses(), this);
+    return new SubtypingInfo(this);
   }
 
   public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(ClassTypeElement type) {

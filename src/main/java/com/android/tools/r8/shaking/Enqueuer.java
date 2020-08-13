@@ -2907,8 +2907,7 @@ public class Enqueuer {
               return appBuilder.build();
             });
     appView.setAppInfo(appInfo);
-    subtypingInfo =
-        new SubtypingInfo(appInfo.app().asDirect().allClasses(), appInfo.app().asDirect());
+    subtypingInfo = new SubtypingInfo(appView);
 
     // Finally once all synthesized items "exist" it is now safe to continue tracing. The new work
     // items are enqueued and the fixed point will continue once this subroutine returns.

@@ -32,8 +32,9 @@ public class R8Shaking2LookupTest {
   public void readApp() throws IOException, ExecutionException {
     program = ToolHelper.buildApplication(ImmutableList.of(APP_FILE_NAME));
     dexItemFactory = program.dexItemFactory;
-    appInfo = AppView.createForR8(program).appInfo();
-    subtypingInfo = new SubtypingInfo(program.allClasses(), program);
+    AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(program);
+    appInfo = appView.appInfo();
+    subtypingInfo = new SubtypingInfo(appView);
   }
 
   private void validateSubtype(DexType super_type, DexType sub_type) {
