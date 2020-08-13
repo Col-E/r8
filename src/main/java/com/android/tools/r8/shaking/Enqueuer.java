@@ -72,8 +72,6 @@ import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.analysis.DesugaredLibraryConversionWrapperAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
-import com.android.tools.r8.graph.analysis.EnqueuerCheckCastAnalysis;
-import com.android.tools.r8.graph.analysis.EnqueuerInstanceOfAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerInvokeAnalysis;
 import com.android.tools.r8.ir.analysis.proto.ProtoEnqueuerUseRegistry;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
@@ -186,8 +184,6 @@ public class Enqueuer {
 
   private Set<EnqueuerAnalysis> analyses = Sets.newIdentityHashSet();
   private Set<EnqueuerInvokeAnalysis> invokeAnalyses = Sets.newIdentityHashSet();
-  private Set<EnqueuerInstanceOfAnalysis> instanceOfAnalyses = Sets.newIdentityHashSet();
-  private Set<EnqueuerCheckCastAnalysis> checkCastAnalyses = Sets.newIdentityHashSet();
 
   // Don't hold a direct pointer to app info (use appView).
   private AppInfoWithClassHierarchy appInfo;
@@ -437,16 +433,6 @@ public class Enqueuer {
 
   private Enqueuer registerInvokeAnalysis(EnqueuerInvokeAnalysis analysis) {
     invokeAnalyses.add(analysis);
-    return this;
-  }
-
-  public Enqueuer registerInstanceOfAnalysis(EnqueuerInstanceOfAnalysis analysis) {
-    instanceOfAnalysis.add(analysis);
-    return this;
-  }
-
-  public Enqueuer registerCheckCastAnalysis(EnqueuerCheckCastAnalysis analysis) {
-    checkCastAnalysis.add(analysis);
     return this;
   }
 
@@ -919,12 +905,8 @@ public class Enqueuer {
   }
 
   boolean traceCheckCast(DexType type, ProgramMethod currentMethod) {
-    checkCastAnalysis.forEach(analysis -> analysis.traceCheckCast(type, currentMethod));
     return traceConstClassOrCheckCast(type, currentMethod);
   }
-
-  // TODO(b/163311975): traceInstanceOf (impl. by b/163471800) should call
-  // analysis.traceInstanceOf(...)
 
   boolean traceConstClass(DexType type, ProgramMethod currentMethod) {
     // We conservatively group T.class and T[].class to ensure that we do not merge T with S if
