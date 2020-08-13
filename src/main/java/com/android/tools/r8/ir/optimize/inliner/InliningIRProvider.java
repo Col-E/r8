@@ -8,8 +8,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.origin.Origin;
 import java.util.IdentityHashMap;
@@ -19,7 +19,7 @@ public class InliningIRProvider {
 
   private final AppView<?> appView;
   private final ProgramMethod context;
-  private final ValueNumberGenerator valueNumberGenerator;
+  private final NumberGenerator valueNumberGenerator;
   private final MethodProcessor methodProcessor;
 
   private final Map<InvokeMethod, IRCode> cache = new IdentityHashMap<>();

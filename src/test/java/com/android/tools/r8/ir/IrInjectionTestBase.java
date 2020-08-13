@@ -12,7 +12,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.smali.SmaliBuilder;
@@ -68,7 +68,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
     public final List<IRCode> additionalCode;
     public final AndroidAppConsumers consumers;
 
-    public final ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
+    public final NumberGenerator valueNumberGenerator = new NumberGenerator();
 
     public TestApplication(AppView<?> appView, MethodSubject method) {
       this(appView, method, null);

@@ -107,8 +107,8 @@ public class IRCode {
   private final ProgramMethod method;
 
   public LinkedList<BasicBlock> blocks;
-  public final ValueNumberGenerator valueNumberGenerator;
-  public final ValueNumberGenerator basicBlockNumberGenerator;
+  public final NumberGenerator valueNumberGenerator;
+  public final NumberGenerator basicBlockNumberGenerator;
   private int usedMarkingColors = 0;
 
   private boolean numbered = false;
@@ -127,8 +127,8 @@ public class IRCode {
       InternalOptions options,
       ProgramMethod method,
       LinkedList<BasicBlock> blocks,
-      ValueNumberGenerator valueNumberGenerator,
-      ValueNumberGenerator basicBlockNumberGenerator,
+      NumberGenerator valueNumberGenerator,
+      NumberGenerator basicBlockNumberGenerator,
       IRMetadata metadata,
       Origin origin) {
     assert metadata != null;

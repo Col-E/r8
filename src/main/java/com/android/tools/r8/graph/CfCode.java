@@ -20,8 +20,8 @@ import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
@@ -298,7 +298,7 @@ public class CfCode extends Code {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
-      ValueNumberGenerator valueNumberGenerator,
+      NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
       MethodProcessor methodProcessor) {
@@ -313,7 +313,7 @@ public class CfCode extends Code {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
-      ValueNumberGenerator generator,
+      NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
       MethodProcessor methodProcessor) {
@@ -323,13 +323,13 @@ public class CfCode extends Code {
           context,
           method,
           appView,
-          generator,
+          valueNumberGenerator,
           callerPosition,
           origin,
           methodProcessor);
     } else {
       return internalBuildWithLocals(
-          context, method, appView, generator, callerPosition, origin, methodProcessor);
+          context, method, appView, valueNumberGenerator, callerPosition, origin, methodProcessor);
     }
   }
 
@@ -338,7 +338,7 @@ public class CfCode extends Code {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
-      ValueNumberGenerator generator,
+      NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
       MethodProcessor methodProcessor) {
@@ -348,7 +348,7 @@ public class CfCode extends Code {
           context,
           method,
           appView,
-          generator,
+          valueNumberGenerator,
           callerPosition,
           origin,
           methodProcessor);
@@ -359,7 +359,7 @@ public class CfCode extends Code {
           context,
           method,
           appView,
-          generator,
+          valueNumberGenerator,
           callerPosition,
           origin,
           methodProcessor);
@@ -372,7 +372,7 @@ public class CfCode extends Code {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
-      ValueNumberGenerator generator,
+      NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
       MethodProcessor methodProcessor) {
@@ -389,7 +389,7 @@ public class CfCode extends Code {
         methodProcessor == null
             ? IRBuilder.create(method, appView, source, origin)
             : IRBuilder.createForInlining(
-                method, appView, source, origin, methodProcessor, generator);
+                method, appView, source, origin, methodProcessor, valueNumberGenerator);
     return builder.build(context);
   }
 

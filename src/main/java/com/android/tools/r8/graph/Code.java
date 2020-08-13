@@ -7,8 +7,8 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Outliner.OutlineCode;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -23,7 +23,7 @@ public abstract class Code extends CachedHashValueDexItem {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
-      ValueNumberGenerator valueNumberGenerator,
+      NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
       MethodProcessor methodProcessor) {

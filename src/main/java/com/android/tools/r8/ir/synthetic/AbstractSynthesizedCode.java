@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.SourceCode;
@@ -48,7 +48,7 @@ public abstract class AbstractSynthesizedCode extends Code {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
-      ValueNumberGenerator valueNumberGenerator,
+      NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
       MethodProcessor methodProcessor) {

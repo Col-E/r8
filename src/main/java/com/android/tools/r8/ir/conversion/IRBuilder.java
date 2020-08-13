@@ -92,6 +92,7 @@ import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Not;
 import com.android.tools.r8.ir.code.NumberConversion;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Or;
 import com.android.tools.r8.ir.code.Phi;
@@ -107,7 +108,6 @@ import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.code.Xor;
@@ -391,8 +391,8 @@ public class IRBuilder {
   private BasicBlock currentBlock = null;
   private int currentInstructionOffset = -1;
 
-  final private ValueNumberGenerator valueNumberGenerator;
-  private final ValueNumberGenerator basicBlockNumberGenerator;
+  private final NumberGenerator valueNumberGenerator;
+  private final NumberGenerator basicBlockNumberGenerator;
   private final ProgramMethod method;
   private ProgramMethod context;
   public final AppView<?> appView;
@@ -437,7 +437,7 @@ public class IRBuilder {
         source,
         origin,
         lookupPrototypeChanges(appView, method),
-        new ValueNumberGenerator());
+        new NumberGenerator());
   }
 
   public static IRBuilder createForInlining(
@@ -446,7 +446,7 @@ public class IRBuilder {
       SourceCode source,
       Origin origin,
       MethodProcessor processor,
-      ValueNumberGenerator valueNumberGenerator) {
+      NumberGenerator valueNumberGenerator) {
     RewrittenPrototypeDescription protoChanges =
         processor.shouldApplyCodeRewritings(method)
             ? lookupPrototypeChanges(appView, method)
@@ -475,7 +475,7 @@ public class IRBuilder {
       SourceCode source,
       Origin origin,
       RewrittenPrototypeDescription prototypeChanges,
-      ValueNumberGenerator valueNumberGenerator) {
+      NumberGenerator valueNumberGenerator) {
     assert source != null;
     assert valueNumberGenerator != null;
     this.method = method;
@@ -484,7 +484,7 @@ public class IRBuilder {
     this.origin = origin;
     this.prototypeChanges = prototypeChanges;
     this.valueNumberGenerator = valueNumberGenerator;
-    this.basicBlockNumberGenerator = new ValueNumberGenerator();
+    this.basicBlockNumberGenerator = new NumberGenerator();
   }
 
   public DexEncodedMethod getMethod() {
@@ -2673,7 +2673,7 @@ public class IRBuilder {
     return type != NumericType.FLOAT && type != NumericType.DOUBLE && type != NumericType.LONG;
   }
 
-  public ValueNumberGenerator getValueNumberGenerator() {
+  public NumberGenerator getValueNumberGenerator() {
     return valueNumberGenerator;
   }
 

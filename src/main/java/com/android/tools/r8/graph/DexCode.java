@@ -12,8 +12,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
@@ -229,7 +229,7 @@ public class DexCode extends Code {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
-      ValueNumberGenerator valueNumberGenerator,
+      NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
       MethodProcessor methodProcessor) {

@@ -22,11 +22,11 @@ import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -62,7 +62,7 @@ public class TrivialGotoEliminationTest extends TestBase {
     //   throw v0
     // block2:
     //   return
-    final ValueNumberGenerator basicBlockNumberGenerator = new ValueNumberGenerator();
+    final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
     Position position = Position.testingPosition();
     BasicBlock block2 = new BasicBlock();
     BasicBlock block0 =
@@ -98,7 +98,7 @@ public class TrivialGotoEliminationTest extends TestBase {
             options,
             null,
             blocks,
-            new ValueNumberGenerator(),
+            new NumberGenerator(),
             basicBlockNumberGenerator,
             IRMetadata.unknown(),
             Origin.unknown());
@@ -126,7 +126,7 @@ public class TrivialGotoEliminationTest extends TestBase {
     //
     // block3:
     //   goto block3
-    final ValueNumberGenerator basicBlockNumberGenerator = new ValueNumberGenerator();
+    final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
     Position position = Position.testingPosition();
     BasicBlock block0 = new BasicBlock();
     block0.setNumber(basicBlockNumberGenerator.next());
@@ -185,7 +185,7 @@ public class TrivialGotoEliminationTest extends TestBase {
             options,
             null,
             blocks,
-            new ValueNumberGenerator(),
+            new NumberGenerator(),
             basicBlockNumberGenerator,
             IRMetadata.unknown(),
             Origin.unknown());

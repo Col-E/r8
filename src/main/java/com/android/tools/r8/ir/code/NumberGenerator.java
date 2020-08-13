@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-public class ValueNumberGenerator {
+public class NumberGenerator {
   private int nextValueNumber = 0;
 
   public int next() {

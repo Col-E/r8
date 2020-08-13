@@ -16,11 +16,11 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Move;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
@@ -70,7 +70,7 @@ public class ConstantRemovalTest {
     //
     // Then test that peephole optimization realizes that the last const number
     // is needed and the value 10 is *not* still in register 0 at that point.
-    final ValueNumberGenerator basicBlockNumberGenerator = new ValueNumberGenerator();
+    final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
     BasicBlock block = new BasicBlock();
     block.setNumber(basicBlockNumberGenerator.next());
 
@@ -141,7 +141,7 @@ public class ConstantRemovalTest {
             options,
             null,
             blocks,
-            new ValueNumberGenerator(),
+            new NumberGenerator(),
             basicBlockNumberGenerator,
             IRMetadata.unknown(),
             Origin.unknown());
