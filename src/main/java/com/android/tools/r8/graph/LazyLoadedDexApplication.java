@@ -88,7 +88,7 @@ public class LazyLoadedDexApplication extends DexApplication {
     return programClasses.get(type);
   }
 
-  public DexLibraryClass libraryDefintionFor(DexType type) {
+  public DexLibraryClass libraryDefinitionFor(DexType type) {
     assert type.isClassType() : "Cannot lookup library definition for type: " + type;
     return libraryClasses.get(type);
   }

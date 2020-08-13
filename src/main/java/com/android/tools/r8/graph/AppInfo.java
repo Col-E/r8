@@ -150,8 +150,7 @@ public class AppInfo implements DexDefinitionSupplier {
     return definition;
   }
 
-  @Override
-  public DexProgramClass definitionForProgramType(DexType type) {
+  public DexProgramClass unsafeDirectProgramTypeLookup(DexType type) {
     return app.programDefinitionFor(type);
   }
 

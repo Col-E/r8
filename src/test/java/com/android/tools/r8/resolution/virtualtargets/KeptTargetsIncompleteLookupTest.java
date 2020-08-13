@@ -88,7 +88,11 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     DexMethod method = buildNullaryVoidMethod(initial, "foo", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexProgramClass context =
-        appView.definitionForProgramType(buildType(Unrelated.class, appInfo.dexItemFactory()));
+        DexProgramClass.asProgramClassOrNull(
+            appView
+                .appInfo()
+                .definitionForWithoutExistenceAssert(
+                    buildType(Unrelated.class, appInfo.dexItemFactory())));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
     assertTrue(lookupResult.isLookupResultSuccess());
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();

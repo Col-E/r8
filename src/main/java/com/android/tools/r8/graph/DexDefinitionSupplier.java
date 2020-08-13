@@ -8,7 +8,9 @@ public interface DexDefinitionSupplier {
 
   DexClass definitionFor(DexType type);
 
-  DexProgramClass definitionForProgramType(DexType type);
+  default DexProgramClass definitionForProgramType(DexType type) {
+    return DexProgramClass.asProgramClassOrNull(definitionFor(type));
+  }
 
   default <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
       DexClass definitionForHolder(DexEncodedMember<D, R> member) {

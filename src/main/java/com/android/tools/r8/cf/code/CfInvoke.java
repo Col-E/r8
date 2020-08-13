@@ -280,7 +280,7 @@ public class CfInvoke extends CfInstruction {
   private Type invokeTypeForInvokeSpecialToNonInitMethodOnHolder(
       AppView<?> appView, CfSourceCode code) {
     boolean desugaringEnabled = appView.options().isInterfaceMethodDesugaringEnabled();
-    DexEncodedMethod encodedMethod = lookupMethod(appView, method);
+    DexEncodedMethod encodedMethod = lookupMethodOnHolder(appView, method);
     if (encodedMethod == null) {
       // The method is not defined on the class, we can use super to target. When desugaring
       // default interface methods, it is expected they are targeted with invoke-direct.
@@ -303,11 +303,13 @@ public class CfInvoke extends CfInstruction {
         "Failed to compile unsupported use of invokespecial", code.getOrigin());
   }
 
-  private DexEncodedMethod lookupMethod(AppView<?> appView, DexMethod method) {
+  private DexEncodedMethod lookupMethodOnHolder(AppView<?> appView, DexMethod method) {
     GraphLensLookupResult lookupResult =
         appView.graphLens().lookupMethod(method, method, Type.DIRECT);
     DexMethod rewrittenMethod = lookupResult.getMethod();
-    DexProgramClass clazz = appView.definitionForProgramType(rewrittenMethod.holder);
+    // Directly lookup the program type for holder. This bypasses lookup order as well as looks
+    // directly on the application data, which bypasses and indirection or validation.
+    DexProgramClass clazz = appView.appInfo().unsafeDirectProgramTypeLookup(rewrittenMethod.holder);
     assert clazz != null;
     return clazz.lookupMethod(rewrittenMethod);
   }

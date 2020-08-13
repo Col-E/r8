@@ -230,11 +230,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return appInfo().definitionFor(type);
   }
 
-  @Override
-  public final DexProgramClass definitionForProgramType(DexType type) {
-    return appInfo.app().programDefinitionFor(type);
-  }
-
   public OptionalBool isInterface(DexType type) {
     assert type.isClassType();
     // Without whole program information we should not assume anything about any other class than
@@ -430,7 +425,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public boolean validateUnboxedEnumsHaveBeenPruned() {
     for (DexType unboxedEnum : unboxedEnums.enumSet()) {
-      assert definitionForProgramType(unboxedEnum) == null
+      assert appInfo.definitionForWithoutExistenceAssert(unboxedEnum) == null
           : "Enum " + unboxedEnum + " has been unboxed but is still in the program.";
       assert appInfo().withLiveness().wasPruned(unboxedEnum)
           : "Enum " + unboxedEnum + " has been unboxed but was not pruned.";

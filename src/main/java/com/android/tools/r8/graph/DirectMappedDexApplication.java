@@ -80,19 +80,14 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
   }
 
   @Override
-  public DexProgramClass definitionForProgramType(DexType type) {
-    return programDefinitionFor(type);
-  }
-
-  @Override
   public DexItemFactory dexItemFactory() {
     return dexItemFactory;
   }
 
   @Override
   public DexProgramClass programDefinitionFor(DexType type) {
-    DexClass clazz = definitionFor(type);
-    return clazz instanceof DexProgramClass ? clazz.asProgramClass() : null;
+    // The direct mapped application has no duplicates so this coincides with definitionFor.
+    return DexProgramClass.asProgramClassOrNull(definitionFor(type));
   }
 
   @Override

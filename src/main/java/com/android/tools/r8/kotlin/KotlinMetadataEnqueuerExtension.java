@@ -8,7 +8,6 @@ import static com.android.tools.r8.kotlin.KotlinClassMetadataReader.hasKotlinCla
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
@@ -129,11 +128,6 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
         return null;
       }
       return baseSupplier.definitionFor(type);
-    }
-
-    @Override
-    public DexProgramClass definitionForProgramType(DexType type) {
-      throw new Unreachable("Should not be called");
     }
 
     @Override

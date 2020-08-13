@@ -4226,11 +4226,6 @@ public class Enqueuer {
     }
 
     @Override
-    public DexProgramClass definitionForProgramType(DexType type) {
-      return enqueuer.getProgramClassOrNull(type);
-    }
-
-    @Override
     public DexItemFactory dexItemFactory() {
       return appView.dexItemFactory();
     }
