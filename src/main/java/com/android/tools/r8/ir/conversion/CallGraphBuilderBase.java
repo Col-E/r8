@@ -373,6 +373,11 @@ abstract class CallGraphBuilderBase {
     }
 
     @Override
+    public boolean registerInstanceOf(DexType type) {
+      return false;
+    }
+
+    @Override
     public void registerCallSite(DexCallSite callSite) {
       registerMethodHandle(
           callSite.bootstrapMethod, MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);

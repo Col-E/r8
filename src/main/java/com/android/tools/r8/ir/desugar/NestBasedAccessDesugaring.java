@@ -455,6 +455,12 @@ public abstract class NestBasedAccessDesugaring {
       // Unrelated to access based control.
       return false;
     }
+
+    @Override
+    public boolean registerInstanceOf(DexType type) {
+      // Unrelated to access based control.
+      return false;
+    }
   }
 
   public static final class DexFieldWithAccess {

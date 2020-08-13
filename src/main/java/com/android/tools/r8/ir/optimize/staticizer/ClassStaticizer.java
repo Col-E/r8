@@ -762,5 +762,10 @@ public final class ClassStaticizer {
       }
       return true;
     }
+
+    @Override
+    public boolean registerInstanceOf(DexType type) {
+      return registerTypeReference(type);
+    }
   }
 }

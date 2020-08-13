@@ -175,6 +175,11 @@ public class MainDexDirectReferenceTracer {
       consumer.accept(type);
       return true;
     }
+
+    @Override
+    public boolean registerInstanceOf(DexType type) {
+      return registerTypeReference(type);
+    }
   }
 
   private class AnnotationDirectReferenceCollector implements IndexedItemCollection {

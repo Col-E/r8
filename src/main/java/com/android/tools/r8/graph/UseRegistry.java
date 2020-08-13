@@ -57,6 +57,8 @@ public abstract class UseRegistry {
 
   public abstract boolean registerTypeReference(DexType type);
 
+  public abstract boolean registerInstanceOf(DexType type);
+
   public boolean registerConstClass(DexType type) {
     return registerTypeReference(type);
   }

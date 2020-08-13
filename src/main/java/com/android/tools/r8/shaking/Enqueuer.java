@@ -1027,6 +1027,10 @@ public class Enqueuer {
     return true;
   }
 
+  boolean traceInstanceOf(DexType type, ProgramMethod currentMethod) {
+    return traceTypeReference(type, currentMethod);
+  }
+
   boolean traceInvokeDirect(DexMethod invokedMethod, ProgramMethod context) {
     boolean skipTracing =
         registerDeferredActionForDeadProtoBuilder(

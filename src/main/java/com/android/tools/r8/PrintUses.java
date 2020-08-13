@@ -182,6 +182,12 @@ public class PrintUses {
       return false;
     }
 
+    @Override
+    public boolean registerInstanceOf(DexType type) {
+      addType(type);
+      return false;
+    }
+
     private void addType(DexType type) {
       if (isTargetType(type) && types.add(type)) {
         DexClass clazz = appInfo.definitionFor(type);

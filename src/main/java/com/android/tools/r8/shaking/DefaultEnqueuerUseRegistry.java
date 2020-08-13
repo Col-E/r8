@@ -129,6 +129,11 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
   }
 
   @Override
+  public boolean registerInstanceOf(DexType type) {
+    return enqueuer.traceInstanceOf(type, context);
+  }
+
+  @Override
   public void registerMethodHandle(DexMethodHandle methodHandle, MethodHandleUse use) {
     super.registerMethodHandle(methodHandle, use);
     enqueuer.traceMethodHandle(methodHandle, use, context);

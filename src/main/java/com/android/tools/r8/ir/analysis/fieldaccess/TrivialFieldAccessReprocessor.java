@@ -241,5 +241,10 @@ public class TrivialFieldAccessReprocessor {
     public boolean registerTypeReference(DexType type) {
       return false;
     }
+
+    @Override
+    public boolean registerInstanceOf(DexType type) {
+      return false;
+    }
   }
 }

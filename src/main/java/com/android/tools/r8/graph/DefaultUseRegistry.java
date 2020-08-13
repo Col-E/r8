@@ -69,4 +69,9 @@ public class DefaultUseRegistry extends UseRegistry {
   public boolean registerTypeReference(DexType type) {
     return true;
   }
+
+  @Override
+  public boolean registerInstanceOf(DexType type) {
+    return true;
+  }
 }

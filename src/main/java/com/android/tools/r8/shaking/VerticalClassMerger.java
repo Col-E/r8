@@ -1918,6 +1918,11 @@ public class VerticalClassMerger {
     public boolean registerTypeReference(DexType type) {
       return checkTypeReference(type);
     }
+
+    @Override
+    public boolean registerInstanceOf(DexType type) {
+      return checkTypeReference(type);
+    }
   }
 
   protected static class SynthesizedBridgeCode extends AbstractSynthesizedCode {

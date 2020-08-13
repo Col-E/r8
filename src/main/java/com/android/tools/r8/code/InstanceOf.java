@@ -49,7 +49,7 @@ public class InstanceOf extends Format22c {
 
   @Override
   public void registerUse(UseRegistry registry) {
-    registry.registerTypeReference(getType());
+    registry.registerInstanceOf(getType());
   }
 
   public DexType getType() {

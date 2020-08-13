@@ -102,6 +102,11 @@ public class InvokeSingleTargetExtractor extends UseRegistry {
     return invalid();
   }
 
+  @Override
+  public boolean registerInstanceOf(DexType type) {
+    return invalid();
+  }
+
   public enum InvokeKind {
     VIRTUAL,
     STATIC,
