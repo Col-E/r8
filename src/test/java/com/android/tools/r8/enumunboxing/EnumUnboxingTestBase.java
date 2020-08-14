@@ -42,6 +42,10 @@ public class EnumUnboxingTestBase extends TestBase {
       return keepRules;
     }
 
+    public boolean isStudio() {
+      return this == STUDIO;
+    }
+
     public boolean isSnap() {
       return this == SNAP;
     }

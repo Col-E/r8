@@ -65,6 +65,7 @@ public class EnumToStringLibTest extends EnumUnboxingTestBase {
             .addKeepMainRule(AlwaysCorrectProgram.class)
             .addKeepMainRule(AlwaysCorrectProgram2.class)
             .addKeepRules(enumKeepRules.getKeepRules())
+            .addKeepAttributeLineNumberTable()
             .addOptionsModification(
                 options -> {
                   options.enableEnumUnboxing = enumUnboxing;
@@ -75,19 +76,26 @@ public class EnumToStringLibTest extends EnumUnboxingTestBase {
             .allowDiagnosticInfoMessages(enumUnboxing)
             .setMinApi(parameters.getApiLevel())
             .compile();
-    compile
-        .run(parameters.getRuntime(), AlwaysCorrectProgram.class)
-        .assertSuccessWithOutputLines("0", "1", "2", "0", "1", "2", "0", "1", "2");
+    if (enumKeepRules.isStudio() && enumValueOptimization && enumUnboxing) {
+      // TODO(b/160939354): Enum unboxing synthesizes a toString() method based on field names.
+      compile
+          .run(parameters.getRuntime(), AlwaysCorrectProgram.class)
+          .assertFailureWithErrorThatMatches(containsString("IllegalArgumentException"));
+    } else {
+      compile
+          .run(parameters.getRuntime(), AlwaysCorrectProgram.class)
+          .assertSuccessWithOutputLines("0", "1", "2", "0", "1", "2", "0", "1", "2");
+    }
     if (!enumKeepRules.isSnap() && enumUnboxing) {
-      // TODO(b/160667929): Fix toString and enum unboxing.
+      // TODO(b/160939354): Enum unboxing synthesizes a toString() method based on field names.
       compile
           .run(parameters.getRuntime(), AlwaysCorrectProgram2.class)
           .assertFailureWithErrorThatMatches(containsString("IllegalArgumentException"));
-      return;
+    } else {
+      compile
+          .run(parameters.getRuntime(), AlwaysCorrectProgram2.class)
+          .assertSuccessWithOutputLines("0", "1", "2", "0", "1", "2");
     }
-    compile
-        .run(parameters.getRuntime(), AlwaysCorrectProgram2.class)
-        .assertSuccessWithOutputLines("0", "1", "2", "0", "1", "2");
   }
 
   private void assertEnumFieldsMinified(CodeInspector codeInspector) throws Exception {

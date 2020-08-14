@@ -68,6 +68,8 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
             instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));
             instructions.add(new CfConstNumber(enumValueInfo.convertToInt(), ValueType.INT));
             instructions.add(new CfIfCmp(If.Type.NE, ValueType.INT, dest));
+            // TODO(b/160939354): Should use the value passed to the enum constructor, since this
+            //  value may be different from the enum field name.
             instructions.add(new CfConstString(field.name));
             instructions.add(new CfReturn(ValueType.OBJECT));
             instructions.add(dest);
@@ -123,6 +125,8 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
           (field, enumValueInfo) -> {
             CfLabel dest = new CfLabel();
             instructions.add(new CfLoad(ValueType.fromDexType(factory.stringType), 0));
+            // TODO(b/160939354): Should use the value passed to the enum constructor, since this
+            //  value may be different from the enum field name.
             instructions.add(new CfConstString(field.name));
             instructions.add(
                 new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.stringMembers.equals, false));
