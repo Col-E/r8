@@ -266,7 +266,7 @@ public class EnumUnboxer implements PostOptimization {
     }
     for (Instruction user : constClass.outValue().uniqueUsers()) {
       if (!(user.isInvokeStatic()
-          && user.asInvokeStatic().getInvokedMethod() == factory.enumMethods.valueOf)) {
+          && user.asInvokeStatic().getInvokedMethod() == factory.enumMembers.valueOf)) {
         markEnumAsUnboxable(
             Reason.CONST_CLASS, appView.definitionForProgramType(constClass.getValue()));
         return;
@@ -401,7 +401,7 @@ public class EnumUnboxer implements PostOptimization {
 
       // Enum candidates have necessarily only one constructor matching enumMethods.constructor
       // signature.
-      DexEncodedMethod initializer = enumClass.lookupDirectMethod(factory.enumMethods.constructor);
+      DexEncodedMethod initializer = enumClass.lookupDirectMethod(factory.enumMembers.constructor);
       if (initializer == null) {
         // This case typically happens when a programmer uses EnumSet/EnumMap without using the
         // enum keep rules. The code is incorrect in this case (EnumSet/EnumMap won't work).
@@ -482,19 +482,19 @@ public class EnumUnboxer implements PostOptimization {
         return Reason.UNSUPPORTED_LIBRARY_CALL;
       }
       // TODO(b/147860220): EnumSet and EnumMap may be interesting to model.
-      if (singleTarget == factory.enumMethods.compareTo) {
+      if (singleTarget == factory.enumMembers.compareTo) {
         return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMethods.equals) {
+      } else if (singleTarget == factory.enumMembers.equals) {
         return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMethods.name) {
+      } else if (singleTarget == factory.enumMembers.nameMethod) {
         return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMethods.toString) {
+      } else if (singleTarget == factory.enumMembers.toString) {
         return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMethods.ordinal) {
+      } else if (singleTarget == factory.enumMembers.ordinalMethod) {
         return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMethods.hashCode) {
+      } else if (singleTarget == factory.enumMembers.hashCode) {
         return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMethods.constructor) {
+      } else if (singleTarget == factory.enumMembers.constructor) {
         // Enum constructor call is allowed only if first call of an enum initializer.
         if (code.method().isInstanceInitializer()
             && code.method().holder() == enumClass.type

@@ -563,7 +563,7 @@ public class MethodOptimizationInfoCollector {
                   return null;
                 }
                 // java.lang.Enum.<init>() and java.lang.Object.<init>() are considered trivial.
-                if (invokedMethod == dexItemFactory.enumMethods.constructor
+                if (invokedMethod == dexItemFactory.enumMembers.constructor
                     || invokedMethod == dexItemFactory.objectMembers.constructor) {
                   builder.setParent(invokedMethod);
                   break;
@@ -1098,7 +1098,7 @@ public class MethodOptimizationInfoCollector {
             .resolveMethodOnClass(appView.dexItemFactory().objectMembers.finalize, clazz);
     DexEncodedMethod target = resolutionResult.getSingleTarget();
     return target != null
-        && target.method != dexItemFactory.enumMethods.finalize
+        && target.method != dexItemFactory.enumMembers.finalize
         && target.method != dexItemFactory.objectMembers.finalize;
   }
 

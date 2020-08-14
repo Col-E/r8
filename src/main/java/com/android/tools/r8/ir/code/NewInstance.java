@@ -189,7 +189,7 @@ public class NewInstance extends Instruction {
             .resolveMethodOnClass(dexItemFactory.objectMembers.finalize, clazz);
     if (finalizeResolutionResult.isSingleResolution()) {
       DexMethod finalizeMethod = finalizeResolutionResult.getSingleTarget().method;
-      if (finalizeMethod != dexItemFactory.enumMethods.finalize
+      if (finalizeMethod != dexItemFactory.enumMembers.finalize
           && finalizeMethod != dexItemFactory.objectMembers.finalize) {
         return true;
       }

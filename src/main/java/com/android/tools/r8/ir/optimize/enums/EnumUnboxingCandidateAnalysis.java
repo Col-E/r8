@@ -83,7 +83,7 @@ class EnumUnboxingCandidateAnalysis {
 
   private boolean isStandardEnumInitializer(DexEncodedMethod method) {
     return method.isInstanceInitializer()
-        && method.method.proto == factory.enumMethods.constructor.proto;
+        && method.method.proto == factory.enumMembers.constructor.proto;
   }
 
   // The enum should have the $VALUES static field and only fields directly referencing the enum

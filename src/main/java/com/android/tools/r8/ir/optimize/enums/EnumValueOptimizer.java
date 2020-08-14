@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -18,6 +19,10 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.ObjectState;
+import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
+import com.android.tools.r8.ir.analysis.value.SingleStringValue;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
@@ -72,15 +77,9 @@ public class EnumValueOptimizer {
       if (current.isInvokeMethodWithReceiver()) {
         InvokeMethodWithReceiver methodWithReceiver = current.asInvokeMethodWithReceiver();
         DexMethod invokedMethod = methodWithReceiver.getInvokedMethod();
-        boolean isOrdinalInvoke = invokedMethod == factory.enumMethods.ordinal;
-        boolean isNameInvoke = invokedMethod == factory.enumMethods.name;
-        boolean isToStringInvoke = invokedMethod == factory.enumMethods.toString;
-
-        // TODO(b/160667929): Re-enable name()/toString() optimizations.
-        if (!isOrdinalInvoke) {
-          continue;
-        }
-
+        boolean isOrdinalInvoke = invokedMethod == factory.enumMembers.ordinalMethod;
+        boolean isNameInvoke = invokedMethod == factory.enumMembers.nameMethod;
+        boolean isToStringInvoke = invokedMethod == factory.enumMembers.toString;
         if (!isOrdinalInvoke && !isNameInvoke && !isToStringInvoke) {
           continue;
         }
@@ -89,57 +88,98 @@ public class EnumValueOptimizer {
         if (receiver.isPhi()) {
           continue;
         }
-        Instruction definition = receiver.getDefinition();
-        if (!definition.isStaticGet()) {
-          continue;
-        }
-        DexField enumField = definition.asStaticGet().getField();
-        EnumValueInfoMap valueInfoMap =
-            appView.appInfo().withLiveness().getEnumValueInfoMap(enumField.type);
-        if (valueInfoMap == null) {
+
+        StaticGet staticGet = receiver.getDefinition().asStaticGet();
+        if (staticGet == null) {
           continue;
         }
 
-        // The receiver value is identified as being from a constant enum field lookup by the fact
-        // that it is a static-get to a field whose type is the same as the enclosing class (which
-        // is known to be an enum type). An enum may still define a static field using the enum type
-        // so ensure the field is present in the ordinal map for final validation.
-        EnumValueInfo valueInfo = valueInfoMap.getEnumValueInfo(enumField);
-        if (valueInfo == null) {
+        DexField field = staticGet.getField();
+        DexEncodedField definition = field.lookupOnClass(appView.definitionForHolder(field));
+        if (definition == null) {
+          continue;
+        }
+
+        AbstractValue abstractValue = definition.getOptimizationInfo().getAbstractValue();
+        if (!abstractValue.isSingleFieldValue()) {
+          continue;
+        }
+
+        ObjectState objectState = abstractValue.asSingleFieldValue().getState();
+        if (objectState.isEmpty()) {
           continue;
         }
 
         Value outValue = methodWithReceiver.outValue();
         if (isOrdinalInvoke) {
-          iterator.replaceCurrentInstruction(new ConstNumber(outValue, valueInfo.ordinal));
-        } else if (isNameInvoke) {
-          Value newValue =
-              code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
-          iterator.replaceCurrentInstruction(
-              new ConstString(
-                  newValue, enumField.name, ThrowingInfo.defaultForConstString(appView.options())));
-          newValue.addAffectedValuesTo(affectedValues);
-        } else {
-          assert isToStringInvoke;
-          DexClass enumClazz = appView.appInfo().definitionFor(enumField.type);
-          if (!enumClazz.accessFlags.isFinal()) {
-            continue;
+          DexField ordinalField = appView.dexItemFactory().enumMembers.ordinalField;
+          DexEncodedField ordinalDefinition =
+              ordinalField.lookupOnClass(appView.definitionForHolder(ordinalField));
+          if (ordinalDefinition != null) {
+            SingleNumberValue ordinalValue =
+                objectState.getAbstractFieldValue(ordinalDefinition).asSingleNumberValue();
+            if (ordinalValue != null) {
+              iterator.replaceCurrentInstruction(
+                  new ConstNumber(outValue, ordinalValue.getValue()));
+            }
           }
-          DexEncodedMethod singleTarget =
-              appView
-                  .appInfo()
-                  .resolveMethodOnClass(factory.objectMembers.toString, valueInfo.type)
-                  .getSingleTarget();
-          if (singleTarget != null && singleTarget.method != factory.enumMethods.toString) {
-            continue;
-          }
-          Value newValue =
-              code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
-          iterator.replaceCurrentInstruction(
-              new ConstString(
-                  newValue, enumField.name, ThrowingInfo.defaultForConstString(appView.options())));
-          newValue.addAffectedValuesTo(affectedValues);
+          continue;
         }
+
+        DexField nameField = appView.dexItemFactory().enumMembers.nameField;
+        DexEncodedField nameDefinition =
+            nameField.lookupOnClass(appView.definitionForHolder(nameField));
+        if (nameField == null) {
+          continue;
+        }
+
+        SingleStringValue nameValue =
+            objectState.getAbstractFieldValue(nameDefinition).asSingleStringValue();
+        if (nameValue == null) {
+          continue;
+        }
+
+        if (isNameInvoke) {
+          Value newValue =
+              code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
+          iterator.replaceCurrentInstruction(
+              new ConstString(
+                  newValue,
+                  nameValue.getDexString(),
+                  ThrowingInfo.defaultForConstString(appView.options())));
+          newValue.addAffectedValuesTo(affectedValues);
+          continue;
+        }
+
+        assert isToStringInvoke;
+
+        DexClass enumClazz = appView.appInfo().definitionFor(field.type);
+        if (!enumClazz.isFinal()) {
+          continue;
+        }
+
+        EnumValueInfo valueInfo = appView.appInfo().withLiveness().getEnumValueInfo(field);
+        if (valueInfo == null) {
+          continue;
+        }
+
+        DexEncodedMethod singleTarget =
+            appView
+                .appInfo()
+                .resolveMethodOnClass(factory.objectMembers.toString, valueInfo.type)
+                .getSingleTarget();
+        if (singleTarget != null && singleTarget.method != factory.enumMembers.toString) {
+          continue;
+        }
+
+        Value newValue =
+            code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
+        iterator.replaceCurrentInstruction(
+            new ConstString(
+                newValue,
+                nameValue.getDexString(),
+                ThrowingInfo.defaultForConstString(appView.options())));
+        newValue.addAffectedValuesTo(affectedValues);
       } else if (current.isArrayLength()) {
         // Rewrites MyEnum.values().length to a constant int.
         Instruction arrayDefinition = current.asArrayLength().array().getAliasedValue().definition;
@@ -148,7 +188,7 @@ public class EnumValueOptimizer {
           DexProgramClass enumClass = appView.definitionForProgramType(invokedMethod.holder);
           if (enumClass != null
               && enumClass.isEnum()
-              && factory.enumMethods.isValuesMethod(invokedMethod, enumClass)) {
+              && factory.enumMembers.isValuesMethod(invokedMethod, enumClass)) {
             EnumValueInfoMap enumValueInfoMap =
                 appView.appInfo().withLiveness().getEnumValueInfoMap(invokedMethod.holder);
             if (enumValueInfoMap != null) {

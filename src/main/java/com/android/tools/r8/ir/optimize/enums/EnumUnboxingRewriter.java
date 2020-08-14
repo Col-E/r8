@@ -129,21 +129,21 @@ public class EnumUnboxingRewriter {
         DexMethod invokedMethod = invokeMethod.getInvokedMethod();
         DexType enumType = getEnumTypeOrNull(invokeMethod.getReceiver(), convertedEnums);
         if (enumType != null) {
-          if (invokedMethod == factory.enumMethods.ordinal
-              || invokedMethod == factory.enumMethods.hashCode) {
+          if (invokedMethod == factory.enumMembers.ordinalMethod
+              || invokedMethod == factory.enumMembers.hashCode) {
             replaceEnumInvoke(
                 iterator, invokeMethod, ordinalUtilityMethod, m -> synthesizeOrdinalMethod());
             continue;
-          } else if (invokedMethod == factory.enumMethods.equals) {
+          } else if (invokedMethod == factory.enumMembers.equals) {
             replaceEnumInvoke(
                 iterator, invokeMethod, equalsUtilityMethod, m -> synthesizeEqualsMethod());
             continue;
-          } else if (invokedMethod == factory.enumMethods.compareTo) {
+          } else if (invokedMethod == factory.enumMembers.compareTo) {
             replaceEnumInvoke(
                 iterator, invokeMethod, compareToUtilityMethod, m -> synthesizeCompareToMethod());
             continue;
-          } else if (invokedMethod == factory.enumMethods.name
-              || invokedMethod == factory.enumMethods.toString) {
+          } else if (invokedMethod == factory.enumMembers.nameMethod
+              || invokedMethod == factory.enumMembers.toString) {
             DexMethod toStringMethod = computeDefaultToStringUtilityMethod(enumType);
             iterator.replaceCurrentInstruction(
                 new InvokeStatic(
@@ -155,7 +155,7 @@ public class EnumUnboxingRewriter {
       } else if (instruction.isInvokeStatic()) {
         InvokeStatic invokeStatic = instruction.asInvokeStatic();
         DexMethod invokedMethod = invokeStatic.getInvokedMethod();
-        if (invokedMethod == factory.enumMethods.valueOf
+        if (invokedMethod == factory.enumMembers.valueOf
             && invokeStatic.inValues().get(0).isConstClass()) {
           DexType enumType =
               invokeStatic.inValues().get(0).getConstInstruction().asConstClass().getValue();

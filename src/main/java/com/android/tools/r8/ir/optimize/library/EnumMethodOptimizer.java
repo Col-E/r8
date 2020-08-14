@@ -38,7 +38,7 @@ public class EnumMethodOptimizer implements LibraryMethodModelCollection {
       InvokeMethod invoke,
       DexEncodedMethod singleTarget,
       Set<Value> affectedValues) {
-    if (singleTarget.method == appView.dexItemFactory().enumMethods.valueOf
+    if (singleTarget.method == appView.dexItemFactory().enumMembers.valueOf
         && invoke.inValues().get(0).isConstClass()) {
       insertAssumeDynamicType(code, instructionIterator, invoke);
     }

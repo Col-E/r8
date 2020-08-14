@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection;
+import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
@@ -745,6 +746,12 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public EnumValueInfoMap getEnumValueInfoMap(DexType enumType) {
     assert checkIfObsolete();
     return enumValueInfoMaps.getEnumValueInfoMap(enumType);
+  }
+
+  public EnumValueInfo getEnumValueInfo(DexField field) {
+    assert checkIfObsolete();
+    EnumValueInfoMap map = enumValueInfoMaps.getEnumValueInfoMap(field.type);
+    return map != null ? map.getEnumValueInfo(field) : null;
   }
 
   public Int2ReferenceMap<DexField> getSwitchMap(DexField field) {

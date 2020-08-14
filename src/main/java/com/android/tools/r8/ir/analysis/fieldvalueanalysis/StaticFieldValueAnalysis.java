@@ -229,7 +229,14 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     initializationInfos.forEach(
         appView,
         (field, initializationInfo) -> {
-          if (!appView.appInfo().isInstanceFieldWrittenOnlyInInstanceInitializers(field)) {
+          // If the instance field is not written only in the instance initializer, then we can't
+          // conclude that this field will have a constant value.
+          //
+          // We have special handling for library fields that satisfy the property that they are
+          // only written in their corresponding instance initializers. This is needed since we
+          // don't analyze these instance initializers in the Enqueuer, as they are in the library.
+          if (!appView.appInfo().isInstanceFieldWrittenOnlyInInstanceInitializers(field)
+              && !appView.dexItemFactory().enumMembers.isNameOrOrdinalField(field.toReference())) {
             return;
           }
           if (initializationInfo.isArgumentInitializationInfo()) {

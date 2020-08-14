@@ -20,7 +20,6 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.List;
 import java.util.Objects;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -75,14 +74,13 @@ public class EnumOptimizationTest extends TestBase {
     if (enableOptimization) {
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("simple"), 1);
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("local"), 1);
-      // TODO(b/160667929): Re-enable name()/toString() optimizations.
       // String concatenation optimization is enabled for DEX output.
       // Even replaced ordinal is concatenated (and gone).
-      //      if (parameters.isDexRuntime()) {
-      //        assertOrdinalReplacedAndGone(clazz.uniqueMethodWithName("multipleUsages"));
-      //      } else {
-      assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), 1);
-      //      }
+      if (parameters.isDexRuntime()) {
+        assertOrdinalReplacedAndGone(clazz.uniqueMethodWithName("multipleUsages"));
+      } else {
+        assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), 1);
+      }
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("inlined"), 1);
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("inSwitch"), 11);
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("differentTypeStaticField"), 1);
@@ -123,7 +121,6 @@ public class EnumOptimizationTest extends TestBase {
     assertTrue(clazz.isPresent());
 
     if (enableOptimization) {
-      Assume.assumeTrue("TODO(b/160667929): Re-enable name()/toString() optimizations.", false);
       assertNameReplacedWithConst(clazz.uniqueMethodWithName("simple"), "TWO");
       assertNameReplacedWithConst(clazz.uniqueMethodWithName("local"), "TWO");
       // String concatenation optimization is enabled for DEX output.
@@ -174,7 +171,6 @@ public class EnumOptimizationTest extends TestBase {
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("valueWithoutToString"));
 
     if (enableOptimization) {
-      Assume.assumeTrue("TODO(b/160667929): Re-enable name()/toString() optimizations.", false);
       assertToStringReplacedWithConst(clazz.uniqueMethodWithName("noToString"), "TWO");
       assertToStringReplacedWithConst(clazz.uniqueMethodWithName("local"), "TWO");
       assertToStringReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), "TWO");

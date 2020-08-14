@@ -11,12 +11,16 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexItemFactory.EnumMembers;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.optimize.info.LibraryOptimizationInfoInitializerFeedback;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
+import com.android.tools.r8.ir.optimize.info.initializer.NonTrivialInstanceInitializerInfo;
 import com.google.common.collect.Sets;
 import java.util.BitSet;
 import java.util.Set;
@@ -38,6 +42,7 @@ public class LibraryOptimizationInfoInitializer {
   }
 
   void run(Set<DexEncodedField> finalLibraryFields) {
+    modelInstanceInitializers();
     modelStaticFinalLibraryFields(finalLibraryFields);
     modelLibraryMethodsReturningNonNull();
     modelLibraryMethodsReturningReceiver();
@@ -46,6 +51,28 @@ public class LibraryOptimizationInfoInitializer {
 
   Set<DexType> getModeledLibraryTypes() {
     return modeledLibraryTypes;
+  }
+
+  private void modelInstanceInitializers() {
+    EnumMembers enumMembers = dexItemFactory.enumMembers;
+    DexEncodedMethod enumConstructor = lookupMethod(enumMembers.constructor);
+    if (enumConstructor != null) {
+      LibraryFieldSynthesis.synthesizeEnumFields(appView);
+      InstanceFieldInitializationInfoFactory factory =
+          appView.instanceFieldInitializationInfoFactory();
+      InstanceFieldInitializationInfoCollection fieldInitializationInfos =
+          InstanceFieldInitializationInfoCollection.builder()
+              .recordInitializationInfo(
+                  enumMembers.nameField, factory.createArgumentInitializationInfo(1))
+              .recordInitializationInfo(
+                  enumMembers.ordinalField, factory.createArgumentInitializationInfo(2))
+              .build();
+      feedback.setInstanceInitializerInfo(
+          enumConstructor,
+          NonTrivialInstanceInitializerInfo.builder(fieldInitializationInfos)
+              .setParent(dexItemFactory.objectMembers.constructor)
+              .build());
+    }
   }
 
   private void modelStaticFinalLibraryFields(Set<DexEncodedField> finalLibraryFields) {

@@ -63,6 +63,10 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
     assert kind == Kind.CF : "Invalid kind " + kind + " for library-path class " + type;
   }
 
+  public static DexLibraryClass asLibraryClassOrNull(DexClass clazz) {
+    return clazz != null ? clazz.asLibraryClass() : null;
+  }
+
   private static boolean verifyLibraryMethod(DexEncodedMethod method) {
     assert !method.isClassInitializer();
     assert !method.isPrivateMethod();

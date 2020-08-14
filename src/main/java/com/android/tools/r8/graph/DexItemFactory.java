@@ -462,7 +462,7 @@ public class DexItemFactory {
   public final AssertionErrorMethods assertionErrorMethods = new AssertionErrorMethods();
   public final ClassMethods classMethods = new ClassMethods();
   public final ConstructorMethods constructorMethods = new ConstructorMethods();
-  public final EnumMethods enumMethods = new EnumMethods();
+  public final EnumMembers enumMembers = new EnumMembers();
   public final NullPointerExceptionMethods npeMethods = new NullPointerExceptionMethods();
   public final IllegalArgumentExceptionMethods illegalArgumentExceptionMethods =
       new IllegalArgumentExceptionMethods();
@@ -688,7 +688,7 @@ public class DexItemFactory {
   // If not, that library method should not be added here because it literally has side effects.
   public Map<DexMethod, Predicate<InvokeMethod>> libraryMethodsWithoutSideEffects =
       Streams.<Pair<DexMethod, Predicate<InvokeMethod>>>concat(
-              Stream.of(new Pair<>(enumMethods.constructor, alwaysTrue())),
+              Stream.of(new Pair<>(enumMembers.constructor, alwaysTrue())),
               Stream.of(new Pair<>(npeMethods.init, alwaysTrue())),
               Stream.of(new Pair<>(npeMethods.initWithMessage, alwaysTrue())),
               Stream.of(new Pair<>(objectMembers.constructor, alwaysTrue())),
@@ -1268,11 +1268,14 @@ public class DexItemFactory {
     }
   }
 
-  public class EnumMethods {
+  public class EnumMembers {
+
+    public final DexField nameField = createField(enumType, stringType, "name");
+    public final DexField ordinalField = createField(enumType, intType, "ordinal");
 
     public final DexMethod valueOf;
-    public final DexMethod ordinal;
-    public final DexMethod name;
+    public final DexMethod ordinalMethod;
+    public final DexMethod nameMethod;
     public final DexMethod toString;
     public final DexMethod compareTo;
     public final DexMethod equals;
@@ -1283,25 +1286,17 @@ public class DexItemFactory {
     public final DexMethod finalize =
         createMethod(enumType, createProto(voidType), finalizeMethodName);
 
-    private EnumMethods() {
+    private EnumMembers() {
       valueOf =
           createMethod(
               enumDescriptor,
               valueOfMethodName,
               enumDescriptor,
               new DexString[] {classDescriptor, stringDescriptor});
-      ordinal =
-          createMethod(
-              enumDescriptor,
-              ordinalMethodName,
-              intDescriptor,
-              DexString.EMPTY_ARRAY);
-      name =
-          createMethod(
-              enumDescriptor,
-              nameMethodName,
-              stringDescriptor,
-              DexString.EMPTY_ARRAY);
+      ordinalMethod =
+          createMethod(enumDescriptor, ordinalMethodName, intDescriptor, DexString.EMPTY_ARRAY);
+      nameMethod =
+          createMethod(enumDescriptor, nameMethodName, stringDescriptor, DexString.EMPTY_ARRAY);
       toString =
           createMethod(
               enumDescriptor,
@@ -1319,6 +1314,15 @@ public class DexItemFactory {
               new DexString[] {objectDescriptor});
       hashCode =
           createMethod(enumDescriptor, hashCodeMethodName, intDescriptor, DexString.EMPTY_ARRAY);
+    }
+
+    public void forEachField(Consumer<DexField> fn) {
+      fn.accept(nameField);
+      fn.accept(ordinalField);
+    }
+
+    public boolean isNameOrOrdinalField(DexField field) {
+      return field == nameField || field == ordinalField;
     }
 
     public boolean isValuesMethod(DexMethod method, DexClass enumClass) {

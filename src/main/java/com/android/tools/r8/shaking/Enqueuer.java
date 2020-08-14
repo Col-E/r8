@@ -1119,7 +1119,7 @@ public class Enqueuer {
       pendingReflectiveUses.add(context);
     }
     // See comment in handleJavaLangEnumValueOf.
-    if (invokedMethod == dexItemFactory.enumMethods.valueOf) {
+    if (invokedMethod == dexItemFactory.enumMembers.valueOf) {
       pendingReflectiveUses.add(context);
     }
     // Handling of application services.
@@ -3666,7 +3666,7 @@ public class Enqueuer {
       handleJavaLangReflectConstructorNewInstance(method, invoke);
       return;
     }
-    if (invokedMethod == dexItemFactory.enumMethods.valueOf) {
+    if (invokedMethod == dexItemFactory.enumMembers.valueOf) {
       handleJavaLangEnumValueOf(method, invoke);
       return;
     }

@@ -47,9 +47,10 @@ public abstract class InstanceFieldInitializationInfoCollection {
       recordInitializationInfo(field.field, info);
     }
 
-    public void recordInitializationInfo(DexField field, InstanceFieldInitializationInfo info) {
+    public Builder recordInitializationInfo(DexField field, InstanceFieldInitializationInfo info) {
       assert !infos.containsKey(field);
       infos.put(field, info);
+      return this;
     }
 
     public InstanceFieldInitializationInfoCollection build() {

@@ -162,7 +162,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void setInstanceInitializerInfo(
       DexEncodedMethod method, InstanceInitializerInfo instanceInitializerInfo) {
-    // Ignored.
+    method.getMutableOptimizationInfo().setInstanceInitializerInfo(instanceInitializerInfo);
   }
 
   @Override
