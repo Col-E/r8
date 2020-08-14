@@ -487,8 +487,7 @@ public class R8 {
       if (options.shouldDesugarNests()) {
         timing.begin("NestBasedAccessDesugaring");
         R8NestBasedAccessDesugaring analyzer = new R8NestBasedAccessDesugaring(appViewWithLiveness);
-        NestedPrivateMethodLens lens =
-            analyzer.run(executorService, getDirectApp(appView).builder());
+        NestedPrivateMethodLens lens = analyzer.run(executorService);
         if (lens != null) {
           boolean changed = appView.setGraphLens(lens);
           assert changed;
