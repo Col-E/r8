@@ -70,7 +70,7 @@ public class GenerateMainDexList {
           EnqueuerFactory.createForMainDexTracing(appView, subtypingInfo, graphConsumer);
       Set<DexProgramClass> liveTypes = enqueuer.traceMainDex(mainDexRootSet, executor, timing);
       // LiveTypes is the result.
-      MainDexClasses mainDexClasses = new MainDexListBuilder(liveTypes, application).run();
+      MainDexClasses mainDexClasses = new MainDexListBuilder(liveTypes, appView).run();
 
       List<String> result =
           mainDexClasses.getClasses().stream()

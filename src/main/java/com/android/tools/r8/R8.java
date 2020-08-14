@@ -452,7 +452,7 @@ public class R8 {
             EnqueuerFactory.createForMainDexTracing(appView, subtypingInfo)
                 .traceMainDex(mainDexRootSet, executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
-        mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, getDirectApp(appView)).run();
+        mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, appView).run();
         appView.appInfo().unsetObsolete();
       }
 
@@ -654,7 +654,7 @@ public class R8 {
         Set<DexProgramClass> mainDexBaseClasses =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
-        mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, getDirectApp(appView)).run();
+        mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, appView).run();
         final MainDexClasses finalMainDexClasses = mainDexClasses;
 
         processWhyAreYouKeepingAndCheckDiscarded(
@@ -1000,9 +1000,7 @@ public class R8 {
     if (lens != null) {
       appView.setGraphLens(lens);
       appViewWithLiveness.setAppInfo(
-          appViewWithLiveness
-              .appInfo()
-              .rewrittenWithLens(appView.appInfo().app().asDirect(), lens));
+          appViewWithLiveness.appInfo().rewrittenWithLens(getDirectApp(appView), lens));
     }
     if (InternalOptions.assertionsEnabled()) {
       // Register the dead proto types. These are needed to verify that no new missing types are

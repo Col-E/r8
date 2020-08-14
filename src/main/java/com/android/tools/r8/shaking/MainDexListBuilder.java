@@ -6,13 +6,13 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.utils.SetUtils;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -28,9 +28,8 @@ import java.util.Set;
 public class MainDexListBuilder {
 
   private final Set<DexType> roots;
-  private final AppInfoWithClassHierarchy appInfo;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Map<DexType, Boolean> annotationTypeContainEnum;
-  private final DirectMappedDexApplication dexApplication;
   private final MainDexClasses.Builder mainDexClassesBuilder;
 
   public static void checkForAssumedLibraryTypes(AppInfo appInfo) {
@@ -48,15 +47,19 @@ public class MainDexListBuilder {
 
   /**
    * @param roots Classes which code may be executed before secondary dex files loading.
-   * @param application the dex appplication.
+   * @param appView the dex appplication.
    */
-  public MainDexListBuilder(Set<DexProgramClass> roots, DirectMappedDexApplication application) {
-    this.dexApplication = application;
-    this.appInfo = new AppInfoWithClassHierarchy(dexApplication);
+  public MainDexListBuilder(
+      Set<DexProgramClass> roots, AppView<? extends AppInfoWithClassHierarchy> appView) {
+    this.appView = appView;
     // Only consider program classes for the root set.
     this.roots = SetUtils.mapIdentityHashSet(roots, DexProgramClass::getType);
-    mainDexClassesBuilder = MainDexClasses.builder(appInfo).addRoots(this.roots);
+    mainDexClassesBuilder = MainDexClasses.builder(appView.appInfo()).addRoots(this.roots);
     annotationTypeContainEnum = new IdentityHashMap<>();
+  }
+
+  private AppInfoWithClassHierarchy appInfo() {
+    return appView.appInfo();
   }
 
   public MainDexClasses run() {
@@ -66,7 +69,7 @@ public class MainDexListBuilder {
   }
 
   private void traceRuntimeAnnotationsWithEnumForMainDex() {
-    for (DexProgramClass clazz : dexApplication.classes()) {
+    for (DexProgramClass clazz : appInfo().classes()) {
       DexType dexType = clazz.type;
       if (mainDexClassesBuilder.contains(dexType)) {
         continue;
@@ -91,7 +94,7 @@ public class MainDexListBuilder {
   private boolean isAnnotationWithEnum(DexType dexType) {
     Boolean value = annotationTypeContainEnum.get(dexType);
     if (value == null) {
-      DexClass clazz = appInfo.definitionFor(dexType);
+      DexClass clazz = appView.definitionFor(dexType);
       if (clazz == null) {
         // Information is missing lets be conservative.
         value = true;
@@ -102,7 +105,7 @@ public class MainDexListBuilder {
         for (DexEncodedMethod method : clazz.virtualMethods()) {
           DexProto proto = method.method.proto;
           if (proto.parameters.isEmpty()) {
-            DexType valueType = proto.returnType.toBaseType(appInfo.dexItemFactory());
+            DexType valueType = proto.returnType.toBaseType(appView.dexItemFactory());
             if (valueType.isClassType()) {
               if (isEnum(valueType)) {
                 value = true;
@@ -122,16 +125,15 @@ public class MainDexListBuilder {
 
   private boolean isEnum(DexType valueType) {
     return valueType.isClassType()
-        && appInfo.isSubtype(valueType, appInfo.dexItemFactory().enumType);
+        && appInfo().isSubtype(valueType, appView.dexItemFactory().enumType);
   }
 
   private boolean isAnnotation(DexType valueType) {
-    return appInfo.isSubtype(valueType, appInfo.dexItemFactory().annotationType);
+    return appInfo().isSubtype(valueType, appView.dexItemFactory().annotationType);
   }
 
   private void traceMainDexDirectDependencies() {
-    new MainDexDirectReferenceTracer(appInfo, this::addDirectDependency)
-        .run(roots);
+    new MainDexDirectReferenceTracer(appInfo(), this::addDirectDependency).run(roots);
   }
 
   private void addAnnotationsWithEnum(DexProgramClass clazz) {
@@ -141,7 +143,7 @@ public class MainDexListBuilder {
     for (DexEncodedMethod method : clazz.virtualMethods()) {
       DexProto proto = method.method.proto;
       if (proto.parameters.isEmpty()) {
-        DexType valueType = proto.returnType.toBaseType(appInfo.dexItemFactory());
+        DexType valueType = proto.returnType.toBaseType(appView.dexItemFactory());
         if (isEnum(valueType)) {
           addDirectDependency(valueType);
         }
@@ -156,13 +158,13 @@ public class MainDexListBuilder {
 
   private void addDirectDependency(DexType type) {
     // Consider only component type of arrays
-    type = type.toBaseType(appInfo.dexItemFactory());
+    type = type.toBaseType(appView.dexItemFactory());
 
     if (!type.isClassType() || mainDexClassesBuilder.contains(type)) {
       return;
     }
 
-    DexClass clazz = appInfo.definitionFor(type);
+    DexClass clazz = appView.definitionFor(type);
     // No library classes in main-dex.
     if (clazz == null || clazz.isNotProgramClass()) {
       return;
