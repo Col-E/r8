@@ -202,8 +202,8 @@ public class FieldAssignmentTracker {
   }
 
   private void recordAllFieldPutsProcessed(
-      DexEncodedField field, OptimizationFeedbackDelayed feedback) {
-    DexProgramClass clazz = asProgramClassOrNull(appView.definitionForHolder(field));
+      DexEncodedField field, ProgramMethod context, OptimizationFeedbackDelayed feedback) {
+    DexProgramClass clazz = asProgramClassOrNull(appView.definitionForHolder(field, context));
     if (clazz == null) {
       assert false;
       return;
@@ -282,7 +282,8 @@ public class FieldAssignmentTracker {
     // therefore important that the optimization info has been flushed in advance.
     assert feedback.noUpdatesLeft();
     for (ProgramMethod method : wave) {
-      fieldAccessGraph.markProcessed(method, field -> recordAllFieldPutsProcessed(field, feedback));
+      fieldAccessGraph.markProcessed(
+          method, field -> recordAllFieldPutsProcessed(field, method, feedback));
       objectAllocationGraph.markProcessed(
           method, clazz -> recordAllAllocationsSitesProcessed(clazz, feedback));
     }

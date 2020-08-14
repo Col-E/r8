@@ -121,7 +121,7 @@ public class Devirtualizer {
             InvokeSuper invoke = current.asInvokeSuper();
             DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
             if (singleTarget != null) {
-              DexClass holder = appView.definitionForHolder(singleTarget);
+              DexClass holder = appView.definitionForHolder(singleTarget, context);
               assert holder != null;
               DexMethod invokedMethod = invoke.getInvokedMethod();
               DexEncodedMethod newSingleTarget =
