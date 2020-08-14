@@ -12,6 +12,7 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.List;
@@ -70,7 +71,11 @@ public class EnumUnboxingClassStaticizerTest extends EnumUnboxingTestBase {
       assertThat(codeInspector.clazz(Companion.class).uniqueMethodWithName("method"), isPresent());
       return;
     }
-    MethodSubject method = codeInspector.clazz(CompanionHost.class).uniqueMethodWithName("method");
+    MethodSubject method =
+        codeInspector
+            .clazz(CompanionHost.class)
+            .uniqueMethodWithName(
+                EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "1$method");
     assertThat(method, isPresent());
     assertEquals("int", method.getMethod().method.proto.parameters.toString());
   }
