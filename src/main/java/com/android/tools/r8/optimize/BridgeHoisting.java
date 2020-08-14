@@ -87,10 +87,7 @@ public class BridgeHoisting {
         .visit(appView.appInfo().classes(), clazz -> processClass(clazz, subtypingInfo));
     if (!lensBuilder.isEmpty()) {
       BridgeHoistingLens lens = lensBuilder.build(appView);
-      boolean changed = appView.setGraphLens(lens);
-      assert changed;
-      appView.setAppInfo(
-          appView.appInfo().rewrittenWithLens(appView.appInfo().app().asDirect(), lens));
+      appView.rewriteWithLens(lens);
     }
   }
 

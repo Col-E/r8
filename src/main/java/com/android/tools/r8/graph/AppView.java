@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
@@ -466,5 +467,20 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public boolean hasCfByteCodePassThroughMethods() {
     return !cfByteCodePassThrough.isEmpty();
+  }
+
+  public void rewriteWithLens(NestedGraphLens lens) {
+    rewriteWithLens(lens, withLiveness());
+  }
+
+  private static void rewriteWithLens(NestedGraphLens lens, AppView<AppInfoWithLiveness> appView) {
+    if (lens == null) {
+      return;
+    }
+    boolean changed = appView.setGraphLens(lens);
+    assert changed;
+    DirectMappedDexApplication application = appView.appInfo().app().asDirect();
+    assert application.verifyWithLens(lens);
+    appView.setAppInfo(appView.appInfo().rewrittenWithLens(application, lens));
   }
 }

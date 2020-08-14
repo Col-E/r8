@@ -340,9 +340,7 @@ public class EnumUnboxer implements PostOptimization {
     NestedGraphLens enumUnboxingLens = new TreeFixer(enumsToUnbox).fixupTypeReferences();
     appView.setUnboxedEnums(enumUnboxerRewriter.getEnumsToUnbox());
     GraphLens previousLens = appView.graphLens();
-    appView.setGraphLens(enumUnboxingLens);
-    appView.setAppInfo(
-        appView.appInfo().rewrittenWithLens(appView.appInfo().app().asDirect(), enumUnboxingLens));
+    appView.rewriteWithLens(enumUnboxingLens);
     // Update optimization info.
     feedback.fixupOptimizationInfos(
         appView,

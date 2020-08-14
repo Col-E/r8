@@ -488,12 +488,7 @@ public class R8 {
         timing.begin("NestBasedAccessDesugaring");
         R8NestBasedAccessDesugaring analyzer = new R8NestBasedAccessDesugaring(appViewWithLiveness);
         NestedPrivateMethodLens lens = analyzer.run(executorService);
-        if (lens != null) {
-          boolean changed = appView.setGraphLens(lens);
-          assert changed;
-          appViewWithLiveness.setAppInfo(
-              appViewWithLiveness.appInfo().rewrittenWithLens(getDirectApp(appView), lens));
-        }
+        appView.rewriteWithLens(lens);
         timing.end();
       } else {
         timing.begin("NestReduction");
@@ -515,12 +510,7 @@ public class R8 {
           StaticClassMerger staticClassMerger =
               new StaticClassMerger(appViewWithLiveness, options, mainDexClasses);
           NestedGraphLens lens = staticClassMerger.run();
-          if (lens != null) {
-            boolean changed = appView.setGraphLens(lens);
-            assert changed;
-            appViewWithLiveness.setAppInfo(
-                appViewWithLiveness.appInfo().rewrittenWithLens(getDirectApp(appView), lens));
-          }
+          appView.rewriteWithLens(lens);
           timing.end();
         }
         if (options.enableVerticalClassMerging) {
@@ -534,12 +524,8 @@ public class R8 {
                   mainDexClasses);
           VerticalClassMergerGraphLens lens = verticalClassMerger.run();
           if (lens != null) {
-            boolean changed = appView.setGraphLens(lens);
-            assert changed;
             appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
-            DirectMappedDexApplication application = getDirectApp(appView).rewrittenWithLens(lens);
-            appViewWithLiveness.setAppInfo(
-                appViewWithLiveness.appInfo().rewrittenWithLens(application, lens));
+            appView.rewriteWithLens(lens);
           }
           timing.end();
         }
@@ -552,13 +538,8 @@ public class R8 {
                         appViewWithLiveness,
                         new MethodPoolCollection(appViewWithLiveness, subtypingInfo))
                     .run(executorService, timing);
-            if (lens != null) {
-              boolean changed = appView.setGraphLens(lens);
-              assert changed;
-              assert getDirectApp(appView).verifyNothingToRewrite(appView, lens);
-              appViewWithLiveness.setAppInfo(
-                  appViewWithLiveness.appInfo().rewrittenWithLens(getDirectApp(appView), lens));
-            }
+            assert lens == null || getDirectApp(appView).verifyNothingToRewrite(appView, lens);
+            appView.rewriteWithLens(lens);
             timing.end();
           }
           if (options.enableUninstantiatedTypeOptimization) {
@@ -570,13 +551,8 @@ public class R8 {
                         new MethodPoolCollection(appViewWithLiveness, subtypingInfo),
                         executorService,
                         timing);
-            if (lens != null) {
-              boolean changed = appView.setGraphLens(lens);
-              assert changed;
-              assert getDirectApp(appView).verifyNothingToRewrite(appView, lens);
-              appViewWithLiveness.setAppInfo(
-                  appViewWithLiveness.appInfo().rewrittenWithLens(getDirectApp(appView), lens));
-            }
+            assert lens == null || getDirectApp(appView).verifyNothingToRewrite(appView, lens);
+            appView.rewriteWithLens(lens);
             timing.end();
           }
         }
@@ -996,11 +972,7 @@ public class R8 {
                 executorService,
                 timing));
     NestedGraphLens lens = enqueuer.buildGraphLens(appView);
-    if (lens != null) {
-      appView.setGraphLens(lens);
-      appViewWithLiveness.setAppInfo(
-          appViewWithLiveness.appInfo().rewrittenWithLens(getDirectApp(appView), lens));
-    }
+    appView.rewriteWithLens(lens);
     if (InternalOptions.assertionsEnabled()) {
       // Register the dead proto types. These are needed to verify that no new missing types are
       // reported and that no dead proto types are referenced in the generated application.
