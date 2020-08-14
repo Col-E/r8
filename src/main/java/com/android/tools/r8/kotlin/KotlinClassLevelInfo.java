@@ -59,4 +59,6 @@ public interface KotlinClassLevelInfo extends EnqueuerMetadataTraceable {
   KotlinClassHeader rewrite(DexClass clazz, AppView<?> appView, NamingLens namingLens);
 
   String getPackageName();
+
+  int[] getMetadataVersion();
 }

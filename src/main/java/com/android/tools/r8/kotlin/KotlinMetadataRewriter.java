@@ -27,6 +27,11 @@ import kotlinx.metadata.jvm.KotlinClassHeader;
 
 public class KotlinMetadataRewriter {
 
+  // Due to a bug with nested classes and the lookup of RequirementVersion, we bump all metadata
+  // versions to 1.4 if compiled with kotlin 1.3 (1.1.16). For more information, see b/161885097 for
+  // more information.
+  private static final int[] METADATA_VERSION_1_4 = new int[] {1, 4, 0};
+
   private static final class WriteMetadataFieldInfo {
     final boolean writeKind;
     final boolean writeMetadataVersion;
@@ -111,7 +116,10 @@ public class KotlinMetadataRewriter {
             KotlinClassHeader kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
             DexAnnotation newMeta =
                 createKotlinMetadataAnnotation(
-                    kotlinClassHeader, kotlinInfo.getPackageName(), writeMetadataFieldInfo);
+                    kotlinClassHeader,
+                    kotlinInfo.getPackageName(),
+                    getMaxVersion(METADATA_VERSION_1_4, kotlinInfo.getMetadataVersion()),
+                    writeMetadataFieldInfo);
             clazz.setAnnotations(
                 clazz.annotations().rewrite(anno -> anno == oldMeta ? newMeta : anno));
           } catch (Throwable t) {
@@ -136,12 +144,15 @@ public class KotlinMetadataRewriter {
   }
 
   private DexAnnotation createKotlinMetadataAnnotation(
-      KotlinClassHeader header, String packageName, WriteMetadataFieldInfo writeMetadataFieldInfo) {
+      KotlinClassHeader header,
+      String packageName,
+      int[] metadataVersion,
+      WriteMetadataFieldInfo writeMetadataFieldInfo) {
     List<DexAnnotationElement> elements = new ArrayList<>();
     if (writeMetadataFieldInfo.writeMetadataVersion) {
       elements.add(
           new DexAnnotationElement(
-              kotlin.metadata.metadataVersion, createIntArray(header.getMetadataVersion())));
+              kotlin.metadata.metadataVersion, createIntArray(metadataVersion)));
     }
     if (writeMetadataFieldInfo.writeByteCodeVersion) {
       elements.add(
@@ -196,5 +207,24 @@ public class KotlinMetadataRewriter {
       values[i] = new DexValueString(factory.createString(data[i]));
     }
     return new DexValueArray(values);
+  }
+
+  // We are not sure that the format is <Major>-<Minor>-<Patch>, the format can be: <Major>-<Minor>.
+  private int[] getMaxVersion(int[] one, int[] other) {
+    assert one.length == 2 || one.length == 3;
+    assert other.length == 2 || other.length == 3;
+    if (one[0] != other[0]) {
+      return one[0] > other[0] ? one : other;
+    }
+    if (one[1] != other[1]) {
+      return one[1] > other[1] ? one : other;
+    }
+    int patchOne = one.length >= 3 ? one[2] : 0;
+    int patchOther = other.length >= 3 ? other[2] : 0;
+    if (patchOne != patchOther) {
+      return patchOne > patchOther ? one : other;
+    }
+    // They are equal up to patch, just return one.
+    return one;
   }
 }

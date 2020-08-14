@@ -23,20 +23,25 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
 
   private final List<KotlinTypeReference> partClassNames;
   private final String packageName;
+  private final int[] metadataVersion;
 
   private KotlinMultiFileClassFacadeInfo(
-      List<KotlinTypeReference> partClassNames, String packageName) {
+      List<KotlinTypeReference> partClassNames, String packageName, int[] metadataVersion) {
     this.partClassNames = partClassNames;
     this.packageName = packageName;
+    this.metadataVersion = metadataVersion;
   }
 
   static KotlinMultiFileClassFacadeInfo create(
-      MultiFileClassFacade kmMultiFileClassFacade, String packageName, DexItemFactory factory) {
+      MultiFileClassFacade kmMultiFileClassFacade,
+      String packageName,
+      int[] metadataVersion,
+      DexItemFactory factory) {
     ImmutableList.Builder<KotlinTypeReference> builder = ImmutableList.builder();
     for (String partClassName : kmMultiFileClassFacade.getPartClassNames()) {
       builder.add(KotlinTypeReference.fromBinaryName(partClassName, factory));
     }
-    return new KotlinMultiFileClassFacadeInfo(builder.build(), packageName);
+    return new KotlinMultiFileClassFacadeInfo(builder.build(), packageName, metadataVersion);
   }
 
   @Override
@@ -66,6 +71,11 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
   @Override
   public String getPackageName() {
     return packageName;
+  }
+
+  @Override
+  public int[] getMetadataVersion() {
+    return metadataVersion;
   }
 
   @Override

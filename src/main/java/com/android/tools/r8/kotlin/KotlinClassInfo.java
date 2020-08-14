@@ -48,6 +48,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   private final KotlinTypeReference anonymousObjectOrigin;
   private final String packageName;
   private final KotlinLocalDelegatedPropertyInfo localDelegatedProperties;
+  private final int[] metadataVersion;
 
   private KotlinClassInfo(
       int flags,
@@ -63,7 +64,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       KotlinVersionRequirementInfo versionRequirements,
       KotlinTypeReference anonymousObjectOrigin,
       String packageName,
-      KotlinLocalDelegatedPropertyInfo localDelegatedProperties) {
+      KotlinLocalDelegatedPropertyInfo localDelegatedProperties,
+      int[] metadataVersion) {
     this.flags = flags;
     this.name = name;
     this.moduleName = moduleName;
@@ -78,11 +80,13 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     this.anonymousObjectOrigin = anonymousObjectOrigin;
     this.packageName = packageName;
     this.localDelegatedProperties = localDelegatedProperties;
+    this.metadataVersion = metadataVersion;
   }
 
   public static KotlinClassInfo create(
       KmClass kmClass,
       String packageName,
+      int[] metadataVersion,
       DexClass hostClass,
       DexItemFactory factory,
       Reporter reporter,
@@ -129,7 +133,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         getAnonymousObjectOrigin(kmClass, factory),
         packageName,
         KotlinLocalDelegatedPropertyInfo.create(
-            JvmExtensionsKt.getLocalDelegatedProperties(kmClass), factory, reporter));
+            JvmExtensionsKt.getLocalDelegatedProperties(kmClass), factory, reporter),
+        metadataVersion);
   }
 
   private static KotlinTypeReference getAnonymousObjectOrigin(
@@ -290,6 +295,11 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   @Override
   public String getPackageName() {
     return packageName;
+  }
+
+  @Override
+  public int[] getMetadataVersion() {
+    return metadataVersion;
   }
 
   @Override

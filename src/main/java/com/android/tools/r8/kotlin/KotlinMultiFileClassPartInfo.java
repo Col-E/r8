@@ -24,17 +24,23 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
   private final String facadeClassName;
   private final KotlinPackageInfo packageInfo;
   private final String packageName;
+  private final int[] metadataVersion;
 
   private KotlinMultiFileClassPartInfo(
-      String facadeClassName, KotlinPackageInfo packageInfo, String packageName) {
+      String facadeClassName,
+      KotlinPackageInfo packageInfo,
+      String packageName,
+      int[] metadataVersion) {
     this.facadeClassName = facadeClassName;
     this.packageInfo = packageInfo;
     this.packageName = packageName;
+    this.metadataVersion = metadataVersion;
   }
 
   static KotlinMultiFileClassPartInfo create(
       MultiFileClassPart classPart,
       String packageName,
+      int[] metadataVersion,
       DexClass clazz,
       DexItemFactory factory,
       Reporter reporter,
@@ -42,7 +48,8 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
     return new KotlinMultiFileClassPartInfo(
         classPart.getFacadeClassName(),
         KotlinPackageInfo.create(classPart.toKmPackage(), clazz, factory, reporter, keepByteCode),
-        packageName);
+        packageName,
+        metadataVersion);
   }
 
   @Override
@@ -68,6 +75,11 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
   @Override
   public String getPackageName() {
     return packageName;
+  }
+
+  @Override
+  public int[] getMetadataVersion() {
+    return metadataVersion;
   }
 
   @Override

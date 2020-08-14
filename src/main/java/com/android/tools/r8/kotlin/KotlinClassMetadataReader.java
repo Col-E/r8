@@ -112,10 +112,12 @@ public final class KotlinClassMetadataReader {
       Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode) {
     String packageName = kMetadata.getHeader().getPackageName();
+    int[] metadataVersion = kMetadata.getHeader().getMetadataVersion();
     if (kMetadata instanceof KotlinClassMetadata.Class) {
       return KotlinClassInfo.create(
           ((KotlinClassMetadata.Class) kMetadata).toKmClass(),
           packageName,
+          metadataVersion,
           clazz,
           factory,
           reporter,
@@ -125,6 +127,7 @@ public final class KotlinClassMetadataReader {
       return KotlinFileFacadeInfo.create(
           (KotlinClassMetadata.FileFacade) kMetadata,
           packageName,
+          metadataVersion,
           clazz,
           factory,
           reporter,
@@ -132,12 +135,16 @@ public final class KotlinClassMetadataReader {
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassFacade) {
       // multi-file class with the same @JvmName.
       return KotlinMultiFileClassFacadeInfo.create(
-          (KotlinClassMetadata.MultiFileClassFacade) kMetadata, packageName, factory);
+          (KotlinClassMetadata.MultiFileClassFacade) kMetadata,
+          packageName,
+          metadataVersion,
+          factory);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassPart) {
       // A single file, which is part of multi-file class.
       return KotlinMultiFileClassPartInfo.create(
           (KotlinClassMetadata.MultiFileClassPart) kMetadata,
           packageName,
+          metadataVersion,
           clazz,
           factory,
           reporter,
@@ -146,6 +153,7 @@ public final class KotlinClassMetadataReader {
       return KotlinSyntheticClassInfo.create(
           (KotlinClassMetadata.SyntheticClass) kMetadata,
           packageName,
+          metadataVersion,
           clazz,
           kotlin,
           factory,

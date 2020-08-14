@@ -21,6 +21,7 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
 
   private final KotlinLambdaInfo lambda;
   private final String packageName;
+  private final int[] metadataVersion;
 
   public enum Flavour {
     KotlinStyleLambda,
@@ -30,15 +31,18 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
 
   private final Flavour flavour;
 
-  private KotlinSyntheticClassInfo(KotlinLambdaInfo lambda, Flavour flavour, String packageName) {
+  private KotlinSyntheticClassInfo(
+      KotlinLambdaInfo lambda, Flavour flavour, String packageName, int[] metadataVersion) {
     this.lambda = lambda;
     this.flavour = flavour;
     this.packageName = packageName;
+    this.metadataVersion = metadataVersion;
   }
 
   static KotlinSyntheticClassInfo create(
       SyntheticClass syntheticClass,
       String packageName,
+      int[] metadataVersion,
       DexClass clazz,
       Kotlin kotlin,
       DexItemFactory factory,
@@ -51,7 +55,8 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
     return new KotlinSyntheticClassInfo(
         lambda != null ? KotlinLambdaInfo.create(clazz, lambda, factory, reporter) : null,
         getFlavour(syntheticClass, clazz, kotlin),
-        packageName);
+        packageName,
+        metadataVersion);
   }
 
   public boolean isLambda() {
@@ -98,6 +103,11 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
   @Override
   public String getPackageName() {
     return packageName;
+  }
+
+  @Override
+  public int[] getMetadataVersion() {
+    return metadataVersion;
   }
 
   private static Flavour getFlavour(

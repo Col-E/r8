@@ -5,7 +5,6 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.objectweb.asm.Opcodes.ASM7;
 
@@ -20,13 +19,13 @@ import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.transformers.ClassTransformer;
 import com.android.tools.r8.utils.StreamUtils;
 import com.android.tools.r8.utils.ZipUtils;
+import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.junit.ComparisonFailure;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -52,48 +51,36 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
   public void testLessThan1_4() throws Exception {
     final R8FullTestBuilder testBuilder = testForR8(parameters.getBackend());
     rewriteMetadataVersion(testBuilder::addProgramClassFileData, new int[] {1, 1, 16});
-    assertThrows(
-        ComparisonFailure.class,
-        () -> {
-          testBuilder
-              .setMinApi(parameters.getApiLevel())
-              .addKeepAllClassesRule()
-              .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-              .compile()
-              .inspect(inspector -> inspectMetadataVersion(inspector, "1.4"));
-        });
+    testBuilder
+        .setMinApi(parameters.getApiLevel())
+        .addKeepAllClassesRule()
+        .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .compile()
+        .inspect(inspector -> inspectMetadataVersion(inspector, "1.4.0"));
   }
 
   @Test
   public void testEqualTo1_4() throws Exception {
     final R8FullTestBuilder testBuilder = testForR8(parameters.getBackend());
     rewriteMetadataVersion(testBuilder::addProgramClassFileData, new int[] {1, 4, 0});
-    assertThrows(
-        ComparisonFailure.class,
-        () -> {
-          testBuilder
-              .setMinApi(parameters.getApiLevel())
-              .addKeepAllClassesRule()
-              .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-              .compile()
-              .inspect(inspector -> inspectMetadataVersion(inspector, "1.4.0"));
-        });
+    testBuilder
+        .setMinApi(parameters.getApiLevel())
+        .addKeepAllClassesRule()
+        .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .compile()
+        .inspect(inspector -> inspectMetadataVersion(inspector, "1.4.0"));
   }
 
   @Test
   public void testGreaterThan1_4() throws Exception {
     final R8FullTestBuilder testBuilder = testForR8(parameters.getBackend());
     rewriteMetadataVersion(testBuilder::addProgramClassFileData, new int[] {1, 4, 2});
-    assertThrows(
-        ComparisonFailure.class,
-        () -> {
-          testBuilder
-              .setMinApi(parameters.getApiLevel())
-              .addKeepAllClassesRule()
-              .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-              .compile()
-              .inspect(inspector -> inspectMetadataVersion(inspector, "1.4.2"));
-        });
+    testBuilder
+        .setMinApi(parameters.getApiLevel())
+        .addKeepAllClassesRule()
+        .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .compile()
+        .inspect(inspector -> inspectMetadataVersion(inspector, "1.4.2"));
   }
 
   private void rewriteMetadataVersion(Consumer<byte[]> rewrittenBytesConsumer, int[] newVersion)
@@ -144,8 +131,12 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
   }
 
   private void verifyExpectedVersionForClass(FoundClassSubject clazz, String expectedVersion) {
-    final DexAnnotationElement[] elements =
-        clazz.annotation("kotlin.Metadata").getAnnotation().elements;
+    final AnnotationSubject annotationSubject = clazz.annotation("kotlin.Metadata");
+    // TODO(b/164418977): All classes should have an annotation?
+    if (!annotationSubject.isPresent()) {
+      return;
+    }
+    final DexAnnotationElement[] elements = annotationSubject.getAnnotation().elements;
     for (DexAnnotationElement element : elements) {
       if (!element.name.toString().equals("mv")) {
         continue;

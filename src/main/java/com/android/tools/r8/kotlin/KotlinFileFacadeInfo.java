@@ -22,15 +22,19 @@ public class KotlinFileFacadeInfo implements KotlinClassLevelInfo {
 
   private final KotlinPackageInfo packageInfo;
   private final String packageName;
+  private final int[] metadataVersion;
 
-  private KotlinFileFacadeInfo(KotlinPackageInfo packageInfo, String packageName) {
+  private KotlinFileFacadeInfo(
+      KotlinPackageInfo packageInfo, String packageName, int[] metadataVersion) {
     this.packageInfo = packageInfo;
     this.packageName = packageName;
+    this.metadataVersion = metadataVersion;
   }
 
   public static KotlinFileFacadeInfo create(
       FileFacade kmFileFacade,
       String packageName,
+      int[] metadataVersion,
       DexClass clazz,
       DexItemFactory factory,
       Reporter reporter,
@@ -38,7 +42,8 @@ public class KotlinFileFacadeInfo implements KotlinClassLevelInfo {
     return new KotlinFileFacadeInfo(
         KotlinPackageInfo.create(
             kmFileFacade.toKmPackage(), clazz, factory, reporter, keepByteCode),
-        packageName);
+        packageName,
+        metadataVersion);
   }
 
   @Override
@@ -63,6 +68,11 @@ public class KotlinFileFacadeInfo implements KotlinClassLevelInfo {
   @Override
   public String getPackageName() {
     return packageName;
+  }
+
+  @Override
+  public int[] getMetadataVersion() {
+    return metadataVersion;
   }
 
   @Override

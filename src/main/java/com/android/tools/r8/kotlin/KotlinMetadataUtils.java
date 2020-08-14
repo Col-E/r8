@@ -58,6 +58,11 @@ public class KotlinMetadataUtils {
     }
 
     @Override
+    public int[] getMetadataVersion() {
+      throw new Unreachable("Should never be called");
+    }
+
+    @Override
     public boolean isNoKotlinInformation() {
       return true;
     }
