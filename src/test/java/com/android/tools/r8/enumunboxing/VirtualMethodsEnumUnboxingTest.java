@@ -1,10 +1,7 @@
 // Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
 package com.android.tools.r8.enumunboxing;
-
-import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -19,7 +16,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class VirtualMethodsEnumUnboxingTest extends EnumUnboxingTestBase {
-
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
   private final EnumKeepRules enumKeepRules;
@@ -43,7 +39,6 @@ public class VirtualMethodsEnumUnboxingTest extends EnumUnboxingTestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(VirtualMethodsEnumUnboxingTest.class)
             .addKeepMainRule(classToTest)
-            .addKeepMainRule(VirtualMethodsFail.class)
             .addKeepRules(enumKeepRules.getKeepRules())
             .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations()
@@ -58,13 +53,15 @@ public class VirtualMethodsEnumUnboxingTest extends EnumUnboxingTestBase {
                   assertEnumIsUnboxed(MyEnumWithCollisions.class, classToTest.getSimpleName(), m);
                   assertEnumIsUnboxed(
                       MyEnumWithPackagePrivateCall.class, classToTest.getSimpleName(), m);
+                  assertEnumIsUnboxed(
+                      MyEnumWithProtectedCall.class, classToTest.getSimpleName(), m);
+                  assertEnumIsUnboxed(
+                      MyEnumWithPackagePrivateFieldAccess.class, classToTest.getSimpleName(), m);
+                  assertEnumIsUnboxed(
+                      MyEnumWithPackagePrivateAndPrivateCall.class, classToTest.getSimpleName(), m);
                 });
     R8TestRunResult run = compile.run(parameters.getRuntime(), classToTest).assertSuccess();
     assertLines2By2Correct(run.getStdOut());
-    // TODO(b/160854837): This test should actually be successful.
-    compile
-        .run(parameters.getRuntime(), VirtualMethodsFail.class)
-        .assertFailureWithErrorThatMatches(containsString("IllegalAccessError"));
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -110,7 +107,6 @@ public class VirtualMethodsEnumUnboxingTest extends EnumUnboxingTestBase {
       printPrivate();
     }
   }
-
   // Use two enums to test collision.
   @NeverClassInline
   enum MyEnum2 {
@@ -160,10 +156,30 @@ public class VirtualMethodsEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   @NeverClassInline
-  static class PackagePrivateClass {
+  static class PackagePrivateClassWithPublicMembers {
+    @NeverInline
+    public static void print() {
+      System.out.println("print1");
+    }
+
+    public static int item = System.currentTimeMillis() > 0 ? 42 : 41;
+  }
+
+  @NeverClassInline
+  public static class PublicClassWithPackagePrivateMembers {
     @NeverInline
     static void print() {
-      System.out.println("print");
+      System.out.println("print2");
+    }
+
+    static int item = System.currentTimeMillis() > 0 ? 4 : 1;
+  }
+
+  @NeverClassInline
+  public static class PublicClassWithProtectedMembers {
+    @NeverInline
+    protected static void print() {
+      System.out.println("print3");
     }
   }
 
@@ -175,41 +191,75 @@ public class VirtualMethodsEnumUnboxingTest extends EnumUnboxingTestBase {
 
     @NeverInline
     public static void callPackagePrivate() {
-      PackagePrivateClass.print();
+      PackagePrivateClassWithPublicMembers.print();
+      System.out.println("print1");
+      PublicClassWithPackagePrivateMembers.print();
+      System.out.println("print2");
     }
   }
 
-  static class VirtualMethodsFail {
-    public static void main(String[] args) {
-      testCollisions();
-      testPackagePrivate();
+  @NeverClassInline
+  enum MyEnumWithPackagePrivateAndPrivateCall {
+    A,
+    B,
+    C;
+
+    @NeverInline
+    public static void privateMethod() {
+      System.out.println("private");
     }
 
     @NeverInline
-    private static void testPackagePrivate() {
-      System.out.println(MyEnumWithPackagePrivateCall.A.ordinal());
-      System.out.println(0);
-      MyEnumWithPackagePrivateCall.callPackagePrivate();
-      System.out.println("print");
+    public static void callPackagePrivateAndPrivate() {
+      // This method has "SAME_CLASS" as compilation state, yet,
+      // it also has a package-private call.
+      privateMethod();
+      System.out.println("private");
+      PackagePrivateClassWithPublicMembers.print();
+      System.out.println("print1");
+      PublicClassWithPackagePrivateMembers.print();
+      System.out.println("print2");
     }
+  }
+
+  @NeverClassInline
+  enum MyEnumWithProtectedCall {
+    A,
+    B,
+    C;
 
     @NeverInline
-    private static void testCollisions() {
-      System.out.println(MyEnumWithCollisions.A.get());
-      System.out.println(5);
-      System.out.println(MyEnumWithCollisions.B.get());
-      System.out.println(2);
-      System.out.println(MyEnumWithCollisions.C.get());
-      System.out.println(1);
+    public static void callProtected() {
+      PublicClassWithProtectedMembers.print();
+      System.out.println("print3");
+    }
+  }
+
+  @NeverClassInline
+  enum MyEnumWithPackagePrivateFieldAccess {
+    A,
+    B,
+    C;
+
+    @NeverInline
+    public static void accessPackagePrivate() {
+      System.out.println(PackagePrivateClassWithPublicMembers.item);
+      System.out.println("42");
+      System.out.println(PublicClassWithPackagePrivateMembers.item);
+      System.out.println("4");
     }
   }
 
   static class VirtualMethods {
-
     public static void main(String[] args) {
       testCustomMethods();
       testCustomMethods2();
       testNonPublicMethods();
+      testCollisions();
+      testPackagePrivateMethod();
+      testProtectedAccess();
+      testPackagePrivateAndPrivateMethod();
+      testPackagePrivateAccess();
     }
 
     @NeverInline
@@ -241,6 +291,44 @@ public class VirtualMethodsEnumUnboxingTest extends EnumUnboxingTestBase {
       MyEnum2.A.printEnum(MyEnum.A);
       System.out.println(20);
       System.out.println((MyEnum2.A.returnEnum(true).ordinal()));
+      System.out.println(1);
+    }
+
+    @NeverInline
+    private static void testPackagePrivateMethod() {
+      System.out.println(MyEnumWithPackagePrivateCall.A.ordinal());
+      System.out.println(0);
+      MyEnumWithPackagePrivateCall.callPackagePrivate();
+    }
+
+    @NeverInline
+    private static void testPackagePrivateAndPrivateMethod() {
+      System.out.println(MyEnumWithPackagePrivateAndPrivateCall.A.ordinal());
+      System.out.println(0);
+      MyEnumWithPackagePrivateAndPrivateCall.callPackagePrivateAndPrivate();
+    }
+
+    @NeverInline
+    private static void testPackagePrivateAccess() {
+      System.out.println(MyEnumWithPackagePrivateFieldAccess.A.ordinal());
+      System.out.println(0);
+      MyEnumWithPackagePrivateFieldAccess.accessPackagePrivate();
+    }
+
+    @NeverInline
+    private static void testProtectedAccess() {
+      System.out.println(MyEnumWithProtectedCall.A.ordinal());
+      System.out.println(0);
+      MyEnumWithProtectedCall.callProtected();
+    }
+
+    @NeverInline
+    private static void testCollisions() {
+      System.out.println(MyEnumWithCollisions.A.get());
+      System.out.println(5);
+      System.out.println(MyEnumWithCollisions.B.get());
+      System.out.println(2);
+      System.out.println(MyEnumWithCollisions.C.get());
       System.out.println(1);
     }
   }

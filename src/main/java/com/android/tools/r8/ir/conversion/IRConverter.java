@@ -739,7 +739,11 @@ public class IRConverter {
     }
     if (enumUnboxer != null) {
       enumUnboxer.finishAnalysis();
-      enumUnboxer.unboxEnums(postMethodProcessorBuilder, executorService, feedback);
+      enumUnboxer.unboxEnums(
+          postMethodProcessorBuilder,
+          executorService,
+          feedback,
+          classStaticizer == null ? Collections.emptySet() : classStaticizer.getCandidates());
     }
     if (!options.debug) {
       new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
@@ -1762,6 +1766,11 @@ public class IRConverter {
     if (definition.isClassInitializer()
         || definition.getOptimizationInfo().isReachabilitySensitive()) {
       return false;
+    }
+    if (appView.options().enableEnumUnboxing && method.getHolder().isEnum()) {
+      // Although the method is pinned, we compute the inlining constraint for enum unboxing,
+      // but the inliner won't be able to inline the method (marked as pinned).
+      return true;
     }
     if (appView.appInfo().hasLiveness()
         && appView.appInfo().withLiveness().isPinned(method.getReference())) {

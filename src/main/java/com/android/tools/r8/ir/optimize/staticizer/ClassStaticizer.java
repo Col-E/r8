@@ -113,6 +113,11 @@ public final class ClassStaticizer {
     this.converter = converter;
   }
 
+  // This set is an approximation and can be used only for heuristics.
+  public final Set<DexType> getCandidates() {
+    return candidates.keySet();
+  }
+
   // Before doing any usage-based analysis we collect a set of classes that can be
   // candidates for staticizing. This analysis is very simple, but minimizes the
   // set of eligible classes staticizer tracks and thus time and memory it needs.

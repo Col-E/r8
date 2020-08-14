@@ -51,6 +51,7 @@ import com.android.tools.r8.ir.conversion.CodeOptimization;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.conversion.PostOptimization;
+import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
@@ -68,6 +69,9 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +87,7 @@ public class EnumUnboxer implements PostOptimization {
   // Map the enum candidates with their dependencies, i.e., the methods to reprocess for the given
   // enum if the optimization eventually decides to unbox it.
   private final Map<DexType, ProgramMethodSet> enumsUnboxingCandidates;
+  private final Set<DexType> enumsToUnboxWithPackageRequirement = Sets.newIdentityHashSet();
 
   private EnumUnboxingRewriter enumUnboxerRewriter;
 
@@ -328,7 +333,8 @@ public class EnumUnboxer implements PostOptimization {
   public void unboxEnums(
       PostMethodProcessor.Builder postBuilder,
       ExecutorService executorService,
-      OptimizationFeedbackDelayed feedback)
+      OptimizationFeedbackDelayed feedback,
+      Set<DexType> hostsToAvoidIfPossible)
       throws ExecutionException {
     // At this point the enumsToUnbox are no longer candidates, they will all be unboxed.
     if (enumsUnboxingCandidates.isEmpty()) {
@@ -338,7 +344,10 @@ public class EnumUnboxer implements PostOptimization {
     // Update keep info on any of the enum methods of the removed classes.
     updatePinnedItems(enumsToUnbox);
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox);
-    NestedGraphLens enumUnboxingLens = new TreeFixer(enumsToUnbox).fixupTypeReferences();
+    Map<DexType, DexType> newMethodLocation =
+        findNewMethodLocationOfUnboxableEnums(enumsToUnbox, hostsToAvoidIfPossible);
+    NestedGraphLens enumUnboxingLens =
+        new TreeFixer(enumsToUnbox).fixupTypeReferences(newMethodLocation);
     appView.setUnboxedEnums(enumUnboxerRewriter.getEnumsToUnbox());
     GraphLens previousLens = appView.graphLens();
     appView.rewriteWithLens(enumUnboxingLens);
@@ -378,6 +387,84 @@ public class EnumUnboxer implements PostOptimization {
     postBuilder.rewrittenWithLens(appView, previousLens);
   }
 
+  // Some enums may have methods which require to stay in the current package for accessibility,
+  // in this case we find another class than the enum unboxing utility class to host these methods.
+  private Map<DexType, DexType> findNewMethodLocationOfUnboxableEnums(
+      Set<DexType> enumsToUnbox, Set<DexType> hostsToAvoidIfPossible) {
+    if (enumsToUnboxWithPackageRequirement.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    Map<DexType, DexType> newMethodLocationMap = new IdentityHashMap<>();
+    Map<String, DexProgramClass> packageToClassMap =
+        getPackageToClassMapExcluding(enumsToUnbox, hostsToAvoidIfPossible);
+    for (DexType toUnbox : enumsToUnboxWithPackageRequirement) {
+      DexProgramClass packageClass = packageToClassMap.get(toUnbox.getPackageDescriptor());
+      if (packageClass != null) {
+        newMethodLocationMap.put(toUnbox, packageClass.type);
+      }
+    }
+    enumsToUnboxWithPackageRequirement.clear();
+    return newMethodLocationMap;
+  }
+
+  // We are looking for another class in the same package as the unboxed enum to host the unboxed
+  // enum methods. We go through all classes, and for each package where a host is needed, we
+  // select a class.
+  private Map<String, DexProgramClass> getPackageToClassMapExcluding(
+      Set<DexType> enumsToUnbox, Set<DexType> hostsToAvoidIfPossible) {
+    HashSet<String> relevantPackages = new HashSet<>();
+    for (DexType toUnbox : enumsToUnbox) {
+      relevantPackages.add(toUnbox.getPackageDescriptor());
+    }
+
+    Map<String, DexProgramClass> packageToClassMap = new HashMap<>();
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      String packageDescriptor = clazz.type.getPackageDescriptor();
+      if (relevantPackages.contains(packageDescriptor) && !enumsToUnbox.contains(clazz.type)) {
+        DexProgramClass previousClass = packageToClassMap.get(packageDescriptor);
+        if (previousClass == null) {
+          packageToClassMap.put(packageDescriptor, clazz);
+        } else {
+          packageToClassMap.put(
+              packageDescriptor, selectHost(clazz, previousClass, hostsToAvoidIfPossible));
+        }
+      }
+    }
+
+    return packageToClassMap;
+  }
+
+  // We are trying to select a host for the enum unboxing methods, but multiple candidates are
+  // available. We need to pick one of the two classes and the result has to be deterministic.
+  // We follow the heuristics, in order:
+  //  1. don't pick a class from hostToAvoidIfPossible if possible
+  //  2. pick the class with the least number of methods
+  //  3. pick the first class name in alphabetical order for determinism.
+  private DexProgramClass selectHost(
+      DexProgramClass class1, DexProgramClass class2, Set<DexType> hostsToAvoidIfPossible) {
+    boolean avoid1 = hostsToAvoidIfPossible.contains(class1.type);
+    boolean avoid2 = hostsToAvoidIfPossible.contains(class2.type);
+    if (avoid1 && !avoid2) {
+      return class2;
+    }
+    if (avoid2 && !avoid1) {
+      return class1;
+    }
+    int size1 = class1.getMethodCollection().size();
+    int size2 = class2.getMethodCollection().size();
+    if (size1 < size2) {
+      return class1;
+    }
+    if (size2 < size1) {
+      return class2;
+    }
+    assert class1.type != class2.type;
+    if (class1.type.slowCompareTo(class2.type) < 0) {
+      return class1;
+    }
+    return class2;
+  }
+
   private void updatePinnedItems(Set<DexType> enumsToUnbox) {
     appView
         .appInfo()
@@ -394,6 +481,85 @@ public class EnumUnboxer implements PostOptimization {
   }
 
   public void finishAnalysis() {
+    analyzeInitializers();
+    analyzeAccessibility();
+    if (debugLogEnabled) {
+      reportEnumsAnalysis();
+    }
+  }
+
+  private void analyzeAccessibility() {
+    // Unboxing an enum will require to move its methods to a different class, which may impact
+    // accessibility. For a quick analysis we simply reuse the inliner analysis.
+    for (DexType toUnbox : enumsUnboxingCandidates.keySet()) {
+      DexProgramClass enumClass = appView.definitionFor(toUnbox).asProgramClass();
+      Constraint classConstraint = analyzeAccessibilityInClass(enumClass);
+      if (classConstraint == Constraint.NEVER) {
+        markEnumAsUnboxable(Reason.ACCESSIBILITY, enumClass);
+      } else if (classConstraint == Constraint.PACKAGE) {
+        enumsToUnboxWithPackageRequirement.add(toUnbox);
+      }
+    }
+  }
+
+  private Constraint analyzeAccessibilityInClass(DexProgramClass enumClass) {
+    Constraint classConstraint = Constraint.ALWAYS;
+    for (DexEncodedMethod method : enumClass.methods()) {
+      // Enum initializer are analyzed in analyzeInitializers instead.
+      if (!method.isInitializer()) {
+        Constraint methodConstraint = constraintForEnumUnboxing(method);
+        classConstraint = meet(classConstraint, methodConstraint);
+        if (classConstraint == Constraint.NEVER) {
+          return classConstraint;
+        }
+      }
+    }
+    return classConstraint;
+  }
+
+  private Constraint meet(Constraint constraint1, Constraint constraint2) {
+    if (constraint1 == Constraint.NEVER || constraint2 == Constraint.NEVER) {
+      return Constraint.NEVER;
+    }
+    if (constraint1 == Constraint.ALWAYS) {
+      return constraint2;
+    }
+    if (constraint2 == Constraint.ALWAYS) {
+      return constraint1;
+    }
+    assert constraint1 == Constraint.PACKAGE && constraint2 == Constraint.PACKAGE;
+    return Constraint.PACKAGE;
+  }
+
+  public Constraint constraintForEnumUnboxing(DexEncodedMethod method) {
+    // TODO(b/160939354): Use a UseRegistry instead of inlining constraints.
+    assert appView.definitionForProgramType(method.holder()) != null;
+    assert appView.definitionForProgramType(method.holder()).isEnum();
+    assert appView.definitionForProgramType(method.holder()).isEffectivelyFinal(appView);
+    assert appView.definitionForProgramType(method.holder()).superType
+        == appView.dexItemFactory().enumType;
+    assert !appView.definitionForProgramType(method.holder()).isInANest()
+        : "Unboxable enum is in a nest, this should not happen in cf to dex compilation, R8 needs"
+            + " to take care of nest access control when relocating unboxable enums methods";
+    switch (method.getCompilationState()) {
+      case PROCESSED_INLINING_CANDIDATE_ANY:
+        return Constraint.ALWAYS;
+      case PROCESSED_INLINING_CANDIDATE_SAME_NEST:
+        assert false;
+        // fall through
+      case PROCESSED_INLINING_CANDIDATE_SUBCLASS:
+        // There is no such thing as subclass access in this context, enums analyzed here have no
+        // subclasses, inherit directly from java.lang.Enum and are not analyzed if they call
+        // the protected methods in java.lang.Enum and java.lang.Object.
+      case PROCESSED_INLINING_CANDIDATE_SAME_CLASS:
+      case PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE:
+        return Constraint.PACKAGE;
+      default:
+        return Constraint.NEVER;
+    }
+  }
+
+  private void analyzeInitializers() {
     for (DexType toUnbox : enumsUnboxingCandidates.keySet()) {
       DexProgramClass enumClass = appView.definitionForProgramType(toUnbox);
       assert enumClass != null;
@@ -416,9 +582,6 @@ public class EnumUnboxer implements PostOptimization {
       if (enumClass.classInitializationMayHaveSideEffects(appView)) {
         markEnumAsUnboxable(Reason.INVALID_CLINIT, enumClass);
       }
-    }
-    if (debugLogEnabled) {
-      reportEnumsAnalysis();
     }
   }
 
@@ -674,6 +837,7 @@ public class EnumUnboxer implements PostOptimization {
 
   public enum Reason {
     ELIGIBLE,
+    ACCESSIBILITY,
     ANNOTATION,
     PINNED,
     DOWN_CAST,
@@ -709,7 +873,8 @@ public class EnumUnboxer implements PostOptimization {
 
   private class TreeFixer {
 
-    private final List<DexEncodedMethod> unboxedEnumsMethods = new ArrayList<>();
+    private final Map<DexType, List<DexEncodedMethod>> unboxedEnumsMethods =
+        new IdentityHashMap<>();
     private final EnumUnboxingLens.Builder lensBuilder = EnumUnboxingLens.builder();
     private final Set<DexType> enumsToUnbox;
 
@@ -717,13 +882,13 @@ public class EnumUnboxer implements PostOptimization {
       this.enumsToUnbox = enumsToUnbox;
     }
 
-    private NestedGraphLens fixupTypeReferences() {
+    private NestedGraphLens fixupTypeReferences(Map<DexType, DexType> newMethodLocation) {
       assert enumUnboxerRewriter != null;
       // Fix all methods and fields using enums to unbox.
       for (DexProgramClass clazz : appView.appInfo().classes()) {
         if (enumsToUnbox.contains(clazz.type)) {
           assert clazz.instanceFields().size() == 0;
-          // Clear the initializers and move the static methods to the utility class.
+          // Clear the initializers and move the static methods to the new location.
           Set<DexEncodedMethod> methodsToRemove = Sets.newIdentityHashSet();
           clazz
               .methods()
@@ -732,8 +897,12 @@ public class EnumUnboxer implements PostOptimization {
                     if (m.isInitializer()) {
                       clearEnumToUnboxMethod(m);
                     } else {
-                      unboxedEnumsMethods.add(
-                          fixupEncodedMethodToUtility(m, factory.enumUnboxingUtilityType));
+                      DexType newHolder =
+                          newMethodLocation.getOrDefault(
+                              clazz.type, factory.enumUnboxingUtilityType);
+                      List<DexEncodedMethod> movedMethods =
+                          unboxedEnumsMethods.computeIfAbsent(newHolder, k -> new ArrayList<>());
+                      movedMethods.add(fixupEncodedMethodToUtility(m, newHolder));
                       methodsToRemove.add(m);
                     }
                   });
@@ -754,7 +923,11 @@ public class EnumUnboxer implements PostOptimization {
       DexProgramClass utilityClass =
           appView.definitionForProgramType(factory.enumUnboxingUtilityType);
       assert utilityClass != null : "Should have been synthesized upfront";
-      utilityClass.addDirectMethods(unboxedEnumsMethods);
+      unboxedEnumsMethods.forEach(
+          (newHolderType, movedMethods) -> {
+            DexProgramClass newHolderClass = appView.definitionFor(newHolderType).asProgramClass();
+            newHolderClass.addDirectMethods(movedMethods);
+          });
       return lensBuilder.build(factory, appView.graphLens(), enumsToUnbox);
     }
 
