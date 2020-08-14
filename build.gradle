@@ -284,7 +284,6 @@ dependencies {
 
 def r8LibPath = "$buildDir/libs/r8lib.jar"
 def r8LibExludeDepsPath = "$buildDir/libs/r8lib-exclude-deps.jar"
-def r8DesugaredPath = "$buildDir/libs/r8desugared.jar"
 def r8LibGeneratedKeepRulesPath = "$buildDir/generated/keep.txt"
 def r8LibTestPath = "$buildDir/classes/r8libtest"
 def java11ClassFiles = "build/classes/java/mainJava11"
@@ -749,7 +748,7 @@ def r8RelocateTask(r8Task, output) {
         outputs.file output
         workingDir = projectDir
         inputs.files r8Task.outputs.files + r8WithDeps.outputs.files
-        commandLine baseCompilerCommandLine([
+        commandLine baseR8CommandLine([
                 "relocator",
                 "--input",
                 r8Task.outputs.files[0],
@@ -891,21 +890,11 @@ task D8(type: ShadowJar) {
     }
 }
 
-def baseCompilerCommandLine(compiler, args = []) {
-    // Execute r8 commands against a stable r8 with dependencies.
-    // TODO(b/139725780): See if we can remove or lower the heap size (-Xmx8g).
-    return [org.gradle.internal.jvm.Jvm.current().getJavaExecutable(),
-            "-Xmx8g", "-ea", "-jar", r8WithDeps.outputs.files[0]] + compiler + args
-}
-
 def baseR8CommandLine(args = []) {
     // Execute r8 commands against a stable r8 with dependencies.
-    return baseCompilerCommandLine("r8", args)
-}
-
-def baseD8CommandLine(args = []) {
-    // Execute r8 commands against a stable r8 with dependencies.
-    return baseCompilerCommandLine("d8", args)
+    // TODO(b/139725780): See if we can remove or lower the heap size (-Xmx6g).
+    return [org.gradle.internal.jvm.Jvm.current().getJavaExecutable(),
+            "-Xmx8g", "-ea", "-jar", r8WithDeps.outputs.files[0]] + args
 }
 
 def r8CfCommandLine(input, output, pgConfs = [], args = ["--release"], libs = []) {
@@ -917,16 +906,6 @@ def r8CfCommandLine(input, output, pgConfs = [], args = ["--release"], libs = []
             "--lib", "third_party/openjdk/openjdk-rt-1.8/rt.jar"
     ] + args + libs.collectMany { ["--lib", it] } + pgConfs.collectMany { ["--pg-conf", it] }
     return baseR8CommandLine(allArgs)
-}
-
-def d8CfCommandLine(input, output, args = ["--release"], libs = []) {
-    def allArgs = [
-            "--classfile",
-            input,
-            "--output", output,
-            "--lib", "third_party/openjdk/openjdk-rt-1.8/rt.jar"
-    ] + args + libs.collectMany { ["--lib", it] }
-    return baseD8CommandLine(allArgs)
 }
 
 def r8LibCreateTask(name, pgConfs = [], r8Task, output, args = ["--release"], libs = []) {
@@ -1027,18 +1006,6 @@ task R8LibNoDeps {
     ).dependsOn(repackageDepsNew)
     inputs.files ([r8NoManifestWithoutDeps.outputs, repackageDepsNew.outputs])
     outputs.file r8LibExludeDepsPath
-}
-
-task R8Desugared(type: Exec) {
-    dependsOn downloadOpenJDKrt
-    dependsOn r8NoManifestWithRelocatedDeps
-    inputs.files r8NoManifestWithRelocatedDeps.outputs.files
-    commandLine d8CfCommandLine(
-            r8NoManifestWithRelocatedDeps.outputs.files[0],
-            r8DesugaredPath,
-            ["--release"])
-    workingDir = projectDir
-    outputs.file r8DesugaredPath
 }
 
 task sourceJar(type: Jar, dependsOn: classes) {
