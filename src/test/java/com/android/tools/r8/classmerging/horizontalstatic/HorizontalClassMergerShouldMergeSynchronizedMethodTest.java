@@ -1,12 +1,11 @@
-// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.classmerging;
+package com.android.tools.r8.classmerging.horizontalstatic;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -20,7 +19,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class VerticalClassMergerShouldMergeSynchronizedMethodTest extends TestBase {
+public class HorizontalClassMergerShouldMergeSynchronizedMethodTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -29,7 +28,7 @@ public class VerticalClassMergerShouldMergeSynchronizedMethodTest extends TestBa
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public VerticalClassMergerShouldMergeSynchronizedMethodTest(TestParameters parameters) {
+  public HorizontalClassMergerShouldMergeSynchronizedMethodTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -37,49 +36,47 @@ public class VerticalClassMergerShouldMergeSynchronizedMethodTest extends TestBa
   public void testNoMergingOfClassUsedInMonitor()
       throws IOException, CompilationFailedException, ExecutionException {
     testForR8(parameters.getBackend())
-        .addInnerClasses(VerticalClassMergerShouldMergeSynchronizedMethodTest.class)
+        .addInnerClasses(HorizontalClassMergerShouldMergeSynchronizedMethodTest.class)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("1", "2", "3", "4")
+        .assertSuccessWithOutputLines("1", "2", "3")
         .inspect(
             inspector -> {
-              assertThat(inspector.clazz(LockOne.class), not(isPresent()));
-              assertThat(inspector.clazz(LockTwo.class), isPresent());
+              assertFalse(
+                  inspector.clazz(LockOne.class).isPresent()
+                      && inspector.clazz(LockTwo.class).isPresent());
+              assertTrue(
+                  inspector.clazz(LockOne.class).isPresent()
+                      || inspector.clazz(LockTwo.class).isPresent());
             });
   }
 
   // Will be merged with LockTwo.
   static class LockOne {
 
-    synchronized void print1() {
+    static synchronized void print1() {
       System.out.println("1");
-      print2();
     }
 
-    private synchronized void print2() {
+    static synchronized void print2() {
       System.out.println("2");
     }
   }
 
-  public static class LockTwo extends LockOne {
+  public static class LockTwo {
 
-    synchronized void print3() {
+    static void print3() {
       System.out.println("3");
-    }
-
-    static void print4() {
-      System.out.println("4");
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      LockTwo lockTwo = new LockTwo();
-      lockTwo.print1();
-      lockTwo.print3();
-      LockTwo.print4();
+      LockOne.print1();
+      LockOne.print2();
+      LockTwo.print3();
     }
   }
 }

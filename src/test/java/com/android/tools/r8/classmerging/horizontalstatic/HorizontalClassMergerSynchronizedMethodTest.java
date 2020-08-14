@@ -1,13 +1,14 @@
-// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.classmerging;
+package com.android.tools.r8.classmerging.horizontalstatic;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -21,7 +22,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class VerticalClassMergerSynchronizedBlockWithArraysTest extends TestBase {
+public class HorizontalClassMergerSynchronizedMethodTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -34,15 +35,15 @@ public class VerticalClassMergerSynchronizedBlockWithArraysTest extends TestBase
         .build();
   }
 
-  public VerticalClassMergerSynchronizedBlockWithArraysTest(TestParameters parameters) {
+  public HorizontalClassMergerSynchronizedMethodTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testOnRuntime() throws IOException, CompilationFailedException, ExecutionException {
     testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-        .addInnerClasses(VerticalClassMergerSynchronizedBlockWithArraysTest.class)
-        .run(parameters.getRuntime(), Main.class)
+        .addInnerClasses(HorizontalClassMergerSynchronizedMethodTest.class)
+        .run(parameters.getRuntime(), HorizontalClassMergerSynchronizedMethodTest.Main.class)
         .assertSuccessWithOutput("Hello World!");
   }
 
@@ -50,61 +51,89 @@ public class VerticalClassMergerSynchronizedBlockWithArraysTest extends TestBase
   public void testNoMergingOfClassUsedInMonitor()
       throws IOException, CompilationFailedException, ExecutionException {
     testForR8(parameters.getBackend())
-        .addInnerClasses(VerticalClassMergerSynchronizedBlockWithArraysTest.class)
+        .addInnerClasses(HorizontalClassMergerSynchronizedMethodTest.class)
         .addKeepMainRule(Main.class)
+        .enableMergeAnnotations()
         .setMinApi(parameters.getApiLevel())
+        .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput("Hello World!")
         .inspect(inspector -> assertThat(inspector.clazz(LockOne.class), isPresent()));
   }
 
-  abstract static class LockOne {}
+  private interface I {
 
-  static class LockTwo extends LockOne {}
+    void action();
+  }
 
-  static class LockThree {}
+  // Will be merged with LockTwo.
+  static class LockOne {
+
+    static synchronized void acquire(I c) {
+      c.action();
+    }
+  }
+
+  public static class LockTwo {
+
+    static synchronized void acquire(I c) {
+      Main.inTwoCritical = true;
+      while (!Main.inThreeCritical) {}
+      c.action();
+    }
+  }
+
+  @NeverMerge
+  public static class LockThree {
+
+    static synchronized void acquire(I c) {
+      Main.inThreeCritical = true;
+      while (!Main.inTwoCritical) {}
+      c.action();
+    }
+  }
+
+  public static class AcquireOne implements I {
+
+    @Override
+    public void action() {
+      LockOne.acquire(() -> System.out.print("Hello "));
+    }
+  }
+
+  public static class AcquireThree implements I {
+
+    @Override
+    public void action() {
+      LockThree.acquire(() -> System.out.print("World!"));
+    }
+  }
 
   public static class Main {
 
-    private static volatile boolean inLockThreeCritical = false;
-    private static volatile boolean inLockTwoCritical = false;
-    private static volatile boolean arnoldWillNotBeBack = false;
+    static volatile boolean inTwoCritical = false;
+    static volatile boolean inThreeCritical = false;
+    static volatile boolean arnoldWillNotBeBack = false;
 
     private static volatile Thread t1 = new Thread(Main::lockThreeThenOne);
     private static volatile Thread t2 = new Thread(Main::lockTwoThenThree);
-    private static volatile Thread t3 = new Thread(Main::arnold);
-
-    static void synchronizedAccessThroughLocks(String arg) {
-      System.out.print(arg);
-    }
+    private static volatile Thread terminator = new Thread(Main::arnold);
 
     public static void main(String[] args) {
       t1.start();
       t2.start();
       // This thread is started to ensure termination in case we are rewriting incorrectly.
-      t3.start();
+      terminator.start();
 
       while (!arnoldWillNotBeBack) {}
     }
 
     static void lockThreeThenOne() {
-      synchronized (LockThree[].class) {
-        inLockThreeCritical = true;
-        while (!inLockTwoCritical) {}
-        synchronized (LockOne[].class) {
-          synchronizedAccessThroughLocks("Hello ");
-        }
-      }
+      LockThree.acquire(new AcquireOne());
     }
 
     static void lockTwoThenThree() {
-      synchronized (LockTwo[].class) {
-        inLockTwoCritical = true;
-        while (!inLockThreeCritical) {}
-        synchronized (LockThree[].class) {
-          synchronizedAccessThroughLocks("World!");
-        }
-      }
+      LockTwo.acquire(new AcquireThree());
     }
 
     static void arnold() {

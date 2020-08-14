@@ -1,8 +1,8 @@
-// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.classmerging;
+package com.android.tools.r8.classmerging.horizontalstatic;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -57,7 +57,6 @@ public class StaticClassMergerInterfaceTest extends TestBase {
     } else {
       assertThat(inspector.clazz(A.class.getTypeName() + "$-CC"), isPresent());
     }
-
 
     // By the time B is processed, there is no merge representative, so it should be present.
     assertThat(inspector.clazz(B.class), isPresent());
