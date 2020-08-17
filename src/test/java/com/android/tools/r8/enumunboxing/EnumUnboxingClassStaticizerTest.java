@@ -75,7 +75,7 @@ public class EnumUnboxingClassStaticizerTest extends EnumUnboxingTestBase {
         codeInspector
             .clazz(CompanionHost.class)
             .uniqueMethodWithName(
-                EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "1$method");
+                EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "0$method");
     assertThat(method, isPresent());
     assertEquals("int", method.getMethod().method.proto.parameters.toString());
   }

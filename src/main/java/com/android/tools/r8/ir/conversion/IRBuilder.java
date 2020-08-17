@@ -538,13 +538,14 @@ public class IRBuilder {
       register++;
     }
 
-    int numberOfArguments =
+    int originalNumberOfArguments =
         method.method.proto.parameters.values.length
             + argumentsInfo.numberOfRemovedArguments()
-            + (method.isStatic() ? 0 : 1);
+            + (method.isStatic() ? 0 : 1)
+            - prototypeChanges.numberOfExtraUnusedNullParameters();
 
     int usedArgumentIndex = 0;
-    while (argumentIndex < numberOfArguments) {
+    while (argumentIndex < originalNumberOfArguments) {
       TypeElement type;
       ArgumentInfo argumentInfo = argumentsInfo.getArgumentInfo(argumentIndex);
       if (argumentInfo.isRemovedArgumentInfo()) {
@@ -558,14 +559,14 @@ public class IRBuilder {
         DexType argType;
         if (argumentInfo.isRewrittenTypeInfo()) {
           RewrittenTypeInfo argumentRewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
-          assert method.method.proto.parameters.values[usedArgumentIndex]
+          assert method.method.proto.getParameter(usedArgumentIndex)
               == argumentRewrittenTypeInfo.getNewType();
           // The old type is used to prevent that a changed value from reference to primitive
           // type breaks IR building. Rewriting from the old to the new type will be done in the
           // IRConverter (typically through the lensCodeRewriter).
           argType = argumentRewrittenTypeInfo.getOldType();
         } else {
-          argType = method.method.proto.parameters.values[usedArgumentIndex];
+          argType = method.method.proto.getParameter(usedArgumentIndex);
         }
         usedArgumentIndex++;
         writeCallback.accept(register, argType);
@@ -579,6 +580,16 @@ public class IRBuilder {
       register += type.requiredRegisters();
       argumentIndex++;
     }
+
+    for (int i = 0; i < prototypeChanges.numberOfExtraUnusedNullParameters(); i++) {
+      DexType argType = method.method.proto.getParameter(usedArgumentIndex);
+      assert argType.isClassType();
+      TypeElement type = TypeElement.fromDexType(argType, Nullability.maybeNull(), appView);
+      register += type.requiredRegisters();
+      usedArgumentIndex++;
+      addExtraUnusedNullArgument(register);
+    }
+
     flushArgumentInstructions();
   }
 
@@ -952,6 +963,14 @@ public class IRBuilder {
     addInstruction(new Argument(value, currentBlock.size(), false));
     receiverValue = value;
     value.markAsThis();
+  }
+
+  private void addExtraUnusedNullArgument(int register) {
+    // Extra unused null arguments should bypass the register check, they may use registers
+    // beyond the limit of what the method can use. They don't have debug information and are
+    // always null.
+    Value value = new Value(valueNumberGenerator.next(), TypeElement.getNull(), null);
+    addNonThisArgument(new Argument(value, currentBlock.size(), false));
   }
 
   public void addNonThisArgument(int register, TypeElement typeLattice) {

@@ -72,11 +72,37 @@ public class OverloadingEnumUnboxingTest extends EnumUnboxingTestBase {
     C;
   }
 
+  @NeverClassInline
+  enum MyEnum3 {
+    A,
+    B,
+    C;
+  }
+
   static class TestClass {
 
     public static void main(String[] args) {
       virtualTest();
       staticTest();
+      constructorTest();
+    }
+
+    @NeverInline
+    private static void constructorTest() {
+      new TestClass(42);
+      System.out.println("42");
+      new TestClass(MyEnum1.A);
+      System.out.println("0");
+      new TestClass(MyEnum1.B);
+      System.out.println("1");
+      new TestClass(MyEnum2.A);
+      System.out.println("0");
+      new TestClass(MyEnum2.B);
+      System.out.println("1");
+      new TestClass(MyEnum3.A);
+      System.out.println("0");
+      new TestClass(MyEnum3.B);
+      System.out.println("1");
     }
 
     @NeverInline
@@ -90,6 +116,10 @@ public class OverloadingEnumUnboxingTest extends EnumUnboxingTestBase {
       staticMethod(MyEnum2.A);
       System.out.println("0");
       staticMethod(MyEnum2.B);
+      System.out.println("1");
+      staticMethod(MyEnum3.A);
+      System.out.println("0");
+      staticMethod(MyEnum3.B);
       System.out.println("1");
     }
 
@@ -106,6 +136,32 @@ public class OverloadingEnumUnboxingTest extends EnumUnboxingTestBase {
       System.out.println("0");
       testClass.virtualMethod(MyEnum2.B);
       System.out.println("1");
+      testClass.virtualMethod(MyEnum3.A);
+      System.out.println("0");
+      testClass.virtualMethod(MyEnum3.B);
+      System.out.println("1");
+    }
+
+    public TestClass() {}
+
+    @NeverInline
+    public TestClass(MyEnum1 e1) {
+      System.out.println(e1.ordinal());
+    }
+
+    @NeverInline
+    public TestClass(MyEnum2 e2) {
+      System.out.println(e2.ordinal());
+    }
+
+    @NeverInline
+    public TestClass(MyEnum3 e3) {
+      System.out.println(e3.ordinal());
+    }
+
+    @NeverInline
+    public TestClass(int i) {
+      System.out.println(i);
     }
 
     @NeverInline
@@ -114,8 +170,13 @@ public class OverloadingEnumUnboxingTest extends EnumUnboxingTestBase {
     }
 
     @NeverInline
-    public void virtualMethod(MyEnum2 e1) {
-      System.out.println(e1.ordinal());
+    public void virtualMethod(MyEnum2 e2) {
+      System.out.println(e2.ordinal());
+    }
+
+    @NeverInline
+    public void virtualMethod(MyEnum3 e3) {
+      System.out.println(e3.ordinal());
     }
 
     @NeverInline
@@ -129,8 +190,13 @@ public class OverloadingEnumUnboxingTest extends EnumUnboxingTestBase {
     }
 
     @NeverInline
-    public static void staticMethod(MyEnum2 e1) {
-      System.out.println(e1.ordinal());
+    public static void staticMethod(MyEnum2 e2) {
+      System.out.println(e2.ordinal());
+    }
+
+    @NeverInline
+    public static void staticMethod(MyEnum3 e3) {
+      System.out.println(e3.ordinal());
     }
 
     @NeverInline

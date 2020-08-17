@@ -100,7 +100,8 @@ public class NestedPrivateMethodLens extends NestedGraphLens {
     if (isConstructorBridge(method)) {
       // TODO (b/132767654): Try to write a test which breaks that assertion.
       assert previousLens.lookupPrototypeChanges(method).isEmpty();
-      return RewrittenPrototypeDescription.none().withExtraNullParameter();
+      // TODO(b/164901008): Fix when the number of arguments overflows.
+      return RewrittenPrototypeDescription.none().withExtraUnusedNullParameter();
     } else {
       return previousLens.lookupPrototypeChanges(method);
     }

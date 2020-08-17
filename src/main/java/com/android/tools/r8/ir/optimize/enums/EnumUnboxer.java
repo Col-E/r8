@@ -58,7 +58,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationIn
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -908,11 +907,9 @@ public class EnumUnboxer implements PostOptimization {
                   });
           clazz.getMethodCollection().removeMethods(methodsToRemove);
         } else {
-          IntBox index = new IntBox(0);
           clazz
               .getMethodCollection()
-              .replaceMethods(
-                  encodedMethod -> fixupEncodedMethod(encodedMethod, index.getAndIncrement()));
+              .replaceMethods(encodedMethod -> fixupEncodedMethod(encodedMethod));
           fixupFields(clazz.staticFields(), clazz::setStaticField);
           fixupFields(clazz.instanceFields(), clazz::setInstanceField);
         }
@@ -962,22 +959,44 @@ public class EnumUnboxer implements PostOptimization {
       return encodedMethod.toTypeSubstitutedMethod(newMethod);
     }
 
-    private DexEncodedMethod fixupEncodedMethod(DexEncodedMethod encodedMethod, int index) {
+    private DexEncodedMethod fixupEncodedMethod(DexEncodedMethod encodedMethod) {
       DexProto newProto = fixupProto(encodedMethod.proto());
-      if (newProto != encodedMethod.proto()) {
-        DexString newMethodName =
-            factory.createString(
-                EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_METHOD_PREFIX
-                    + index
-                    + "$"
-                    + encodedMethod.getName().toString());
-        DexMethod newMethod = factory.createMethod(encodedMethod.holder(), newProto, newMethodName);
-        assert appView.definitionFor(encodedMethod.holder()).lookupMethod(newMethod) == null;
-        boolean isStatic = encodedMethod.isStatic();
-        lensBuilder.move(encodedMethod.method, isStatic, newMethod, isStatic);
-        return encodedMethod.toTypeSubstitutedMethod(newMethod);
+      if (newProto == encodedMethod.proto()) {
+        return encodedMethod;
       }
-      return encodedMethod;
+      assert !encodedMethod.isClassInitializer();
+      DexMethod newMethod =
+          factory.createMethod(encodedMethod.holder(), newProto, encodedMethod.getName());
+      newMethod = ensureUniqueMethod(encodedMethod, newMethod);
+      int numberOfExtraNullParameters = newMethod.getArity() - encodedMethod.method.getArity();
+      boolean isStatic = encodedMethod.isStatic();
+      lensBuilder.move(
+          encodedMethod.method, isStatic, newMethod, isStatic, numberOfExtraNullParameters);
+      return encodedMethod.toTypeSubstitutedMethod(newMethod);
+    }
+
+    private DexMethod ensureUniqueMethod(DexEncodedMethod encodedMethod, DexMethod newMethod) {
+      DexClass holder = appView.definitionFor(encodedMethod.holder());
+      assert holder != null;
+      if (encodedMethod.isInstanceInitializer()) {
+        while (holder.lookupMethod(newMethod) != null) {
+          newMethod =
+              factory.createMethod(
+                  newMethod.holder,
+                  factory.appendTypeToProto(newMethod.proto, factory.enumUnboxingUtilityType),
+                  newMethod.name);
+        }
+      } else {
+        int index = 0;
+        while (holder.lookupMethod(newMethod) != null) {
+          newMethod =
+              factory.createMethod(
+                  newMethod.holder,
+                  newMethod.proto,
+                  encodedMethod.getName().toString() + "$enumunboxing$" + index++);
+        }
+      }
+      return newMethod;
     }
 
     private void fixupFields(List<DexEncodedField> fields, FieldSetter setter) {
@@ -1091,6 +1110,15 @@ public class EnumUnboxer implements PostOptimization {
           new IdentityHashMap<>();
 
       public void move(DexMethod from, boolean fromStatic, DexMethod to, boolean toStatic) {
+        move(from, fromStatic, to, toStatic, 0);
+      }
+
+      public void move(
+          DexMethod from,
+          boolean fromStatic,
+          DexMethod to,
+          boolean toStatic,
+          int numberOfExtraNullParameters) {
         super.move(from, to);
         int offsetDiff = 0;
         int toOffset = BooleanUtils.intValue(!toStatic);
@@ -1114,7 +1142,9 @@ public class EnumUnboxer implements PostOptimization {
                 ? null
                 : new RewrittenTypeInfo(from.proto.returnType, to.proto.returnType);
         prototypeChanges.put(
-            to, RewrittenPrototypeDescription.createForRewrittenTypes(returnInfo, builder.build()));
+            to,
+            RewrittenPrototypeDescription.createForRewrittenTypes(returnInfo, builder.build())
+                .withExtraUnusedNullParameters(numberOfExtraNullParameters));
       }
 
       public EnumUnboxingLens build(

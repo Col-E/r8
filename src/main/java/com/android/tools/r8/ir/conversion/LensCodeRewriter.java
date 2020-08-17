@@ -31,6 +31,7 @@ import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
 import static com.android.tools.r8.utils.ObjectUtils.getBooleanOrElse;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -283,12 +284,21 @@ public class LensCodeRewriter {
                         ? null
                         : makeOutValue(invoke, code);
 
-                if (prototypeChanges.hasExtraNullParameter()) {
+                if (prototypeChanges.numberOfExtraUnusedNullParameters() > 0) {
                   iterator.previous();
-                  Value extraNullValue =
+                  Value nullInstruction =
                       iterator.insertConstNullInstruction(code, appView.options());
                   iterator.next();
-                  newInValues.add(extraNullValue);
+                  for (int i = 0; i < prototypeChanges.numberOfExtraUnusedNullParameters(); i++) {
+                    newInValues.add(nullInstruction);
+                  }
+                  // TODO(b/164901008): Fix when the number of arguments overflows.
+                  if (newInValues.size() > 255) {
+                    throw new CompilationError(
+                        "The addition of extra unused null parameters in R8 led to the overflow of"
+                            + " the number of arguments of the method "
+                            + actualTarget);
+                  }
                 }
 
                 assert newInValues.size()
