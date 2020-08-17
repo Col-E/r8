@@ -274,27 +274,30 @@ public class SplitterTestBase extends TestBase {
     void run();
   }
 
-  static class SplitRunner {
+  public static class SplitRunner {
     /* We support two different modes:
      *   - One argument to main:
      *     Pass in the class to be loaded, must implement RunInterface, run will be called
-     *   - Two arguments to main:
+     *   - Two or more arguments to main:
      *     Pass in the class to be loaded, must implement RunInterface, run will be called
-     *     Pass in the feature split that we class load
-     *
+     *     Pass in the feature split that we class load, and an optional list of other feature
+     *     splits that must be loaded before the given feature split.
      */
     public static void main(String[] args) {
-      if (args.length < 1 || args.length > 2) {
+      if (args.length < 1) {
         throw new RuntimeException("Unsupported number of arguments");
       }
       String classToRun = args[0];
       ClassLoader loader = SplitRunner.class.getClassLoader();
-      // In the case where we simulate splits, we pass in the feature as the second argument
-      if (args.length == 2) {
-        try {
-          loader = new PathClassLoader(args[1], SplitRunner.class.getClassLoader());
-        } catch (MalformedURLException e) {
-          throw new RuntimeException("Failed reading input URL");
+      // In the case where we simulate splits, the second argument is the feature to load, followed
+      // by all the other features that it depends on.
+      if (args.length >= 2) {
+        for (int i = args.length - 1; i >= 1; i--) {
+          try {
+            loader = new PathClassLoader(args[i], loader);
+          } catch (MalformedURLException e) {
+            throw new RuntimeException("Failed reading input URL");
+          }
         }
       }
 

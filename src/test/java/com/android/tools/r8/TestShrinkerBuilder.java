@@ -5,6 +5,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -169,6 +170,31 @@ public abstract class TestShrinkerBuilder<
 
   public T addKeepMainRules(List<String> mainClasses) {
     mainClasses.forEach(this::addKeepMainRule);
+    return self();
+  }
+
+  public T addKeepFeatureMainRule(Class<?> mainClass) {
+    return addKeepFeatureMainRule(mainClass.getTypeName());
+  }
+
+  public T addKeepFeatureMainRules(Class<?>... mainClasses) {
+    for (Class<?> mainClass : mainClasses) {
+      this.addKeepFeatureMainRule(mainClass);
+    }
+    return self();
+  }
+
+  public T addKeepFeatureMainRule(String mainClass) {
+    return addKeepRules(
+        "-keep public class " + mainClass,
+        "    implements " + RunInterface.class.getTypeName() + " {",
+        "  public void <init>();",
+        "  public void run();",
+        "}");
+  }
+
+  public T addKeepFeatureMainRules(List<String> mainClasses) {
+    mainClasses.forEach(this::addKeepFeatureMainRule);
     return self();
   }
 

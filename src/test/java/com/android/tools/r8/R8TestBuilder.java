@@ -3,11 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.dexsplitter.SplitterTestBase.simpleSplitProvider;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
+import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
+import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
@@ -64,6 +67,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   private List<String> keepRules = new ArrayList<>();
   private List<Path> mainDexRulesFiles = new ArrayList<>();
   private List<String> applyMappingMaps = new ArrayList<>();
+  private final List<Path> features = new ArrayList<>();
 
   @Override
   R8TestCompileResult internalCompile(
@@ -137,7 +141,8 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
             box.syntheticProguardRules,
             proguardMapBuilder.toString(),
             graphConsumer,
-            builder.getMinApiLevel());
+            builder.getMinApiLevel(),
+            features);
     switch (allowedDiagnosticMessages) {
       case ALL:
         compileResult.assertDiagnosticThatMatches(new IsAnything<>());
@@ -569,8 +574,22 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  public T addFeatureSplitRuntime() {
+    addProgramClasses(SplitRunner.class, RunInterface.class);
+    addKeepClassAndMembersRules(SplitRunner.class, RunInterface.class);
+    return self();
+  }
+
   public T addFeatureSplit(Function<FeatureSplit.Builder, FeatureSplit> featureSplitBuilder) {
     builder.addFeatureSplit(featureSplitBuilder);
+    return self();
+  }
+
+  public T addFeatureSplit(Class<?>... classes) throws IOException {
+    Path path = getState().getNewTempFile("feature.zip");
+    builder.addFeatureSplit(
+        builder -> simpleSplitProvider(builder, path, getState().getTempFolder(), classes));
+    features.add(path);
     return self();
   }
 }

@@ -419,7 +419,7 @@ public abstract class TestCompileResult<
     return createRunResult(runtime, result);
   }
 
-  private RR runArt(
+  RR runArt(
       TestRuntime runtime, List<Path> additionalClassPath, String mainClass, String... arguments)
       throws IOException {
     DexVm vm = runtime.asDex().getVm();

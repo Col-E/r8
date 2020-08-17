@@ -19,8 +19,16 @@ public class TestState {
     this.temp = temp;
   }
 
+  public TemporaryFolder getTempFolder() {
+    return temp;
+  }
+
   public Path getNewTempFolder() throws IOException {
     return temp.newFolder().toPath();
+  }
+
+  public Path getNewTempFile(String name) throws IOException {
+    return getNewTempFolder().resolve(name);
   }
 
   DiagnosticsHandler getDiagnosticsHandler() {

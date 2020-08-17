@@ -3,12 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
@@ -23,6 +30,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   private final String proguardMap;
   private final CollectingGraphConsumer graphConsumer;
   private final int minApiLevel;
+  private final List<Path> features;
 
   R8TestCompileResult(
       TestState state,
@@ -32,13 +40,15 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
       List<ProguardConfigurationRule> syntheticProguardRules,
       String proguardMap,
       CollectingGraphConsumer graphConsumer,
-      int minApiLevel) {
+      int minApiLevel,
+      List<Path> features) {
     super(state, app, outputMode);
     this.proguardConfiguration = proguardConfiguration;
     this.syntheticProguardRules = syntheticProguardRules;
     this.proguardMap = proguardMap;
     this.graphConsumer = graphConsumer;
     this.minApiLevel = minApiLevel;
+    this.features = features;
   }
 
   @Override
@@ -56,6 +66,10 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
     return self();
   }
 
+  public Path getFeature(int index) {
+    return features.get(index);
+  }
+
   @Override
   public String getStdout() {
     return state.getStdout();
@@ -69,6 +83,21 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   @Override
   public CodeInspector inspector() throws IOException {
     return new CodeInspector(app, proguardMap);
+  }
+
+  private CodeInspector featureInspector(Path feature) throws IOException {
+    return new CodeInspector(
+        AndroidApp.builder().addProgramFile(feature).setProguardMapOutputData(proguardMap).build());
+  }
+
+  public <E extends Throwable> R8TestCompileResult inspect(
+      ThrowingConsumer<CodeInspector, E>... consumers) throws IOException, E {
+    assertEquals(1 + features.size(), consumers.length);
+    consumers[0].accept(inspector());
+    for (int i = 0; i < features.size(); i++) {
+      consumers[i + 1].accept(featureInspector(features.get(i)));
+    }
+    return self();
   }
 
   public GraphInspector graphInspector() throws IOException {
@@ -99,6 +128,32 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   @Override
   public R8TestRunResult createRunResult(TestRuntime runtime, ProcessResult result) {
     return new R8TestRunResult(app, runtime, result, proguardMap, this::graphInspector);
+  }
+
+  public R8TestRunResult runFeature(
+      TestRuntime runtime, Class<?> mainFeatureClass, Path feature, Path... featureDependencies)
+      throws IOException {
+    assert getBackend() == runtime.getBackend();
+    ClassSubject mainClassSubject = inspector().clazz(SplitRunner.class);
+    assertThat("Did you forget a keep rule for the main method?", mainClassSubject, isPresent());
+    assertThat(
+        "Did you forget a keep rule for the main method?",
+        mainClassSubject.mainMethod(),
+        isPresent());
+    ClassSubject mainFeatureClassSubject = featureInspector(feature).clazz(mainFeatureClass);
+    assertThat(
+        "Did you forget a keep rule for the run method?", mainFeatureClassSubject, isPresent());
+    assertThat(
+        "Did you forget a keep rule for the run method?",
+        mainFeatureClassSubject.uniqueMethodWithName("run"),
+        isPresent());
+    String[] args = new String[2 + featureDependencies.length];
+    args[0] = mainFeatureClassSubject.getFinalName();
+    args[1] = feature.toString();
+    for (int i = 2; i < args.length; i++) {
+      args[i] = featureDependencies[i - 2].toString();
+    }
+    return runArt(runtime, additionalRunClassPath, mainClassSubject.getFinalName(), args);
   }
 
   public String getProguardMap() {
