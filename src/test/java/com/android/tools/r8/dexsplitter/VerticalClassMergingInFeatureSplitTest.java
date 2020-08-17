@@ -65,14 +65,12 @@ public class VerticalClassMergingInFeatureSplitTest extends SplitterTestBase {
 
   private void inspectFeature1(CodeInspector inspector) {
     assertThat(inspector.clazz(Feature1Class.class), isPresent());
-    // TODO(b/141452765): Should be absent.
-    assertThat(inspector.clazz(Feature1ClassWithSameFeatureSubclass.class), isPresent());
+    assertThat(inspector.clazz(Feature1ClassWithSameFeatureSubclass.class), not(isPresent()));
   }
 
   private void inspectFeature2(CodeInspector inspector) {
     assertThat(inspector.clazz(Feature2Class.class), isPresent());
-    // TODO(b/141452765): Should be absent.
-    assertThat(inspector.clazz(Feature2ClassWithSameFeatureSubclass.class), isPresent());
+    assertThat(inspector.clazz(Feature2ClassWithSameFeatureSubclass.class), not(isPresent()));
   }
 
   // Base.

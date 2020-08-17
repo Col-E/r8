@@ -62,15 +62,13 @@ public class StaticClassMergingInFeatureSplitTest extends SplitterTestBase {
   }
 
   private void inspectFeature1(CodeInspector inspector) {
-    // TODO(b/141452765): Should be merged.
     assertThat(inspector.clazz(Feature1ClassA.class), isPresent());
-    assertThat(inspector.clazz(Feature1ClassB.class), isPresent());
+    assertThat(inspector.clazz(Feature1ClassB.class), not(isPresent()));
   }
 
   private void inspectFeature2(CodeInspector inspector) {
-    // TODO(b/141452765): Should be merged.
     assertThat(inspector.clazz(Feature2ClassA.class), isPresent());
-    assertThat(inspector.clazz(Feature2ClassB.class), isPresent());
+    assertThat(inspector.clazz(Feature2ClassB.class), not(isPresent()));
   }
 
   // Base.

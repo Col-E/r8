@@ -360,12 +360,9 @@ public class VerticalClassMerger {
 
     FeatureSplitConfiguration featureSplitConfiguration =
         appView.options().featureSplitConfiguration;
-    if (featureSplitConfiguration != null) {
-      // TODO(b/141452765): Allow class merging between classes in features.
-      if (featureSplitConfiguration.isInFeature(sourceClass)
-          || featureSplitConfiguration.isInFeature(targetClass)) {
-        return false;
-      }
+    if (featureSplitConfiguration != null
+        && !featureSplitConfiguration.inSameFeatureOrBothInBase(sourceClass, targetClass)) {
+      return false;
     }
     if (appView.appServices().allServiceTypes().contains(sourceClass.type)
         && appInfo.isPinned(targetClass.type)) {

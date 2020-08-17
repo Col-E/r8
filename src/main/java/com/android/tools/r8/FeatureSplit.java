@@ -28,9 +28,15 @@ import java.util.List;
  * </pre>
  */
 @Keep
-public final class FeatureSplit {
+public class FeatureSplit {
 
-  public static final FeatureSplit BASE = new FeatureSplit(null, null);
+  public static final FeatureSplit BASE =
+      new FeatureSplit(null, null) {
+        @Override
+        public boolean isBase() {
+          return true;
+        }
+      };
 
   private final ProgramConsumer programConsumer;
   private final List<ProgramResourceProvider> programResourceProviders;
@@ -39,6 +45,10 @@ public final class FeatureSplit {
       ProgramConsumer programConsumer, List<ProgramResourceProvider> programResourceProviders) {
     this.programConsumer = programConsumer;
     this.programResourceProviders = programResourceProviders;
+  }
+
+  public boolean isBase() {
+    return false;
   }
 
   public List<ProgramResourceProvider> getProgramResourceProviders() {

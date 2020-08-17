@@ -153,8 +153,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
     InternalOptions options = appView.options();
     if (options.featureSplitConfiguration != null
-        && !options.featureSplitConfiguration.inSameFeatureOrBase(
-            singleTarget.getReference(), method.getReference())) {
+        && !options.featureSplitConfiguration.inSameFeatureOrBothInBase(singleTarget, method)) {
       // Still allow inlining if we inline from the base into a feature.
       if (!options.featureSplitConfiguration.isInBase(singleTarget.getHolder())) {
         whyAreYouNotInliningReporter.reportInliningAcrossFeatureSplit();

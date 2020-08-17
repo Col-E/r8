@@ -9,9 +9,8 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -26,8 +25,10 @@ import java.util.Map;
 import java.util.Set;
 
 public class FeatureSplitConfiguration {
+
   private final List<FeatureSplit> featureSplits;
 
+  // TODO(141451259): Consider doing the mapping from DexType to Feature (with support in mapper).
   private final Map<String, FeatureSplit> javaTypeToFeatureSplitMapping = new HashMap<>();
 
   public FeatureSplitConfiguration(List<FeatureSplit> featureSplits, Reporter reporter) {
@@ -108,28 +109,23 @@ public class FeatureSplitConfiguration {
   }
 
   public boolean inBaseOrSameFeatureAs(DexProgramClass clazz, DexProgramClass context) {
-    FeatureSplit split = getFeatureSplit(clazz.type);
-    return split == null || split == getFeatureSplit(context.type);
+    FeatureSplit split = getFeatureSplit(clazz);
+    return split.isBase() || split == getFeatureSplit(context);
   }
 
   public boolean isInFeature(DexProgramClass clazz) {
-    return getFeatureSplit(clazz.type) != null;
+    return !isInBase(clazz);
   }
 
   public boolean isInBase(DexProgramClass clazz) {
-    return !isInFeature(clazz);
+    return getFeatureSplit(clazz).isBase();
   }
 
-  public boolean inSameFeatureOrBase(DexMethod a, DexMethod b) {
-    return inSameFeatureOrBase(a.holder, b.holder);
+  public boolean inSameFeatureOrBothInBase(ProgramMethod a, ProgramMethod b) {
+    return inSameFeatureOrBothInBase(a.getHolder(), b.getHolder());
   }
 
-  public boolean inSameFeatureOrBase(DexType a, DexType b) {
-    assert a.isClassType() && b.isClassType();
-    if (javaTypeToFeatureSplitMapping.isEmpty()) {
-      return true;
-    }
-    // TODO(141451259): Consider doing the mapping from DexType to Feature (with support in mapper)
+  public boolean inSameFeatureOrBothInBase(DexProgramClass a, DexProgramClass b) {
     return getFeatureSplit(a) == getFeatureSplit(b);
   }
 
@@ -141,8 +137,8 @@ public class FeatureSplitConfiguration {
     return javaTypeToFeatureSplitMapping.get(DescriptorUtils.descriptorToJavaType(classDescriptor));
   }
 
-  private FeatureSplit getFeatureSplit(DexType type) {
-    assert type.isClassType();
-    return javaTypeToFeatureSplitMapping.get(type.toSourceString());
+  public FeatureSplit getFeatureSplit(DexProgramClass clazz) {
+    return javaTypeToFeatureSplitMapping.getOrDefault(
+        clazz.type.toSourceString(), FeatureSplit.BASE);
   }
 }
