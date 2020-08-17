@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -357,10 +358,14 @@ public class VerticalClassMerger {
         .map(DexEncodedMember::toReference)
         .noneMatch(appInfo::isPinned);
 
-    if (appView.options().featureSplitConfiguration != null
-        && appView.options().featureSplitConfiguration.isInFeature(sourceClass)) {
+    FeatureSplitConfiguration featureSplitConfiguration =
+        appView.options().featureSplitConfiguration;
+    if (featureSplitConfiguration != null) {
       // TODO(b/141452765): Allow class merging between classes in features.
-      return false;
+      if (featureSplitConfiguration.isInFeature(sourceClass)
+          || featureSplitConfiguration.isInFeature(targetClass)) {
+        return false;
+      }
     }
     if (appView.appServices().allServiceTypes().contains(sourceClass.type)
         && appInfo.isPinned(targetClass.type)) {

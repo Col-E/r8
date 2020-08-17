@@ -120,7 +120,7 @@ public class FeatureSplitConfiguration {
     return !isInFeature(clazz);
   }
 
-  public boolean inSameFeatureOrBase(DexMethod a, DexMethod b){
+  public boolean inSameFeatureOrBase(DexMethod a, DexMethod b) {
     return inSameFeatureOrBase(a.holder, b.holder);
   }
 

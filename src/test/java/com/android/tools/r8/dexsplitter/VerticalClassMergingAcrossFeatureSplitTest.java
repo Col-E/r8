@@ -5,7 +5,6 @@
 package com.android.tools.r8.dexsplitter;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -61,8 +60,7 @@ public class VerticalClassMergingAcrossFeatureSplitTest extends SplitterTestBase
   }
 
   private void inspectBase(CodeInspector inspector) {
-    // TODO(b/164937965): BaseClass should stay in base.
-    assertThat(inspector.clazz(BaseClass.class), not(isPresent()));
+    assertThat(inspector.clazz(BaseClass.class), isPresent());
   }
 
   private void inspectFeature1(CodeInspector inspector) {
