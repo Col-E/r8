@@ -470,16 +470,24 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public void rewriteWithLens(NestedGraphLens lens) {
-    rewriteWithLens(lens, withLiveness());
+    if (lens != null) {
+      rewriteWithLens(lens, appInfo().app().asDirect(), withLiveness());
+    }
   }
 
-  private static void rewriteWithLens(NestedGraphLens lens, AppView<AppInfoWithLiveness> appView) {
-    if (lens == null) {
-      return;
-    }
+  public void rewriteWithLensAndApplication(
+      NestedGraphLens lens, DirectMappedDexApplication application) {
+    assert lens != null;
+    assert application != null;
+    rewriteWithLens(lens, application, withLiveness());
+  }
+
+  private static void rewriteWithLens(
+      NestedGraphLens lens,
+      DirectMappedDexApplication application,
+      AppView<AppInfoWithLiveness> appView) {
     boolean changed = appView.setGraphLens(lens);
     assert changed;
-    DirectMappedDexApplication application = appView.appInfo().app().asDirect();
     assert application.verifyWithLens(lens);
     appView.setAppInfo(appView.appInfo().rewrittenWithLens(application, lens));
   }

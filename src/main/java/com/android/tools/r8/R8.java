@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.DirectMappedDexApplication.Builder;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
@@ -487,8 +488,11 @@ public class R8 {
       if (options.shouldDesugarNests()) {
         timing.begin("NestBasedAccessDesugaring");
         R8NestBasedAccessDesugaring analyzer = new R8NestBasedAccessDesugaring(appViewWithLiveness);
-        NestedPrivateMethodLens lens = analyzer.run(executorService);
-        appView.rewriteWithLens(lens);
+        Builder appBuilder = getDirectApp(appView).builder();
+        NestedPrivateMethodLens lens = analyzer.run(executorService, appBuilder);
+        if (lens != null) {
+          appView.rewriteWithLensAndApplication(lens, appBuilder.build());
+        }
         timing.end();
       } else {
         timing.begin("NestReduction");

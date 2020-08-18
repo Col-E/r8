@@ -194,16 +194,10 @@ public abstract class NestBasedAccessDesugaring {
         DexProgramClass::checksumFromType);
   }
 
-  void synthesizeNestConstructor() {
-    synthesizeNestConstructor(null);
-  }
-
   void synthesizeNestConstructor(DexApplication.Builder<?> builder) {
     if (nestConstructorUsed) {
       appView.appInfo().addSynthesizedClass(nestConstructor);
-      if (builder != null) {
-        builder.addSynthesizedClass(nestConstructor, true);
-      }
+      builder.addSynthesizedClass(nestConstructor, true);
     }
   }
 

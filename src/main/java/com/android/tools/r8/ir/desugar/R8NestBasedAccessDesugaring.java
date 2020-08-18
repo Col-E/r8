@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -32,14 +33,16 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     super(appView);
   }
 
-  public NestedPrivateMethodLens run(ExecutorService executorService) throws ExecutionException {
+  public NestedPrivateMethodLens run(
+      ExecutorService executorService, DexApplication.Builder<?> appBuilder)
+      throws ExecutionException {
     assert !appView.options().canUseNestBasedAccess()
         || appView.options().testing.enableForceNestBasedAccessDesugaringForTest;
     computeAndProcessNestsConcurrently(executorService);
     NestedPrivateMethodLens.Builder lensBuilder = NestedPrivateMethodLens.builder();
     addDeferredBridgesAndMapMethods(lensBuilder);
     clearNestAttributes();
-    synthesizeNestConstructor();
+    synthesizeNestConstructor(appBuilder);
     return lensBuilder.build(appView, getNestConstructorType());
   }
 
