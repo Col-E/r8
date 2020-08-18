@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
+import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
@@ -264,6 +265,7 @@ public final class D8 {
                   : PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
           new GenericSignatureRewriter(appView, namingLens)
               .run(appView.appInfo().classes(), executor);
+          new KotlinMetadataRewriter(appView, namingLens).runForD8(executor);
         } else {
           // There are both cf and dex inputs in the program, and rewriting is required for
           // desugared library only on cf inputs. We cannot easily rewrite part of the program
@@ -327,6 +329,7 @@ public final class D8 {
         PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
     new GenericSignatureRewriter(appView, prefixRewritingNamingLens)
         .run(appView.appInfo().classes(), executor);
+    new KotlinMetadataRewriter(appView, prefixRewritingNamingLens).runForD8(executor);
     new ApplicationWriter(
             cfApp,
             null,

@@ -795,10 +795,6 @@ public class R8 {
         namingLens = NamingLens.getIdentityLens();
       }
 
-      timing.begin("MinifyKotlinMetadata");
-      new KotlinMetadataRewriter(appView, namingLens).run(executorService);
-      timing.end();
-
       assert verifyMovedMethodsHaveOriginalMethodPosition(appView, getDirectApp(appView));
 
       timing.begin("Line number remapping");
@@ -872,6 +868,10 @@ public class R8 {
 
       NamingLens prefixRewritingNamingLens =
           PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
+
+      timing.begin("MinifyKotlinMetadata");
+      new KotlinMetadataRewriter(appView, prefixRewritingNamingLens).runForR8(executorService);
+      timing.end();
 
       new GenericSignatureRewriter(appView, prefixRewritingNamingLens)
           .run(appView.appInfo().classes(), executorService);

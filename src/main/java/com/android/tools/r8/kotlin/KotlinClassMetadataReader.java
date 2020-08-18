@@ -38,31 +38,42 @@ public final class KotlinClassMetadataReader {
       Consumer<DexEncodedMethod> keepByteCode) {
     DexAnnotation meta = clazz.annotations().getFirstMatching(factory.kotlinMetadataType);
     if (meta != null) {
-      try {
-        KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, meta.annotation);
-        if (onlyProcessLambda && kMetadata.getHeader().getKind() != KOTLIN_METADATA_KIND_LAMBDA) {
-          return NO_KOTLIN_INFO;
-        }
-        return createKotlinInfo(kotlin, clazz, kMetadata, factory, reporter, keepByteCode);
-      } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
-        reporter.info(
-            new StringDiagnostic(
-                "Class "
-                    + clazz.type.toSourceString()
-                    + " has malformed kotlin.Metadata: "
-                    + e.getMessage()));
-        return INVALID_KOTLIN_INFO;
-      } catch (Throwable e) {
-        reporter.info(
-            new StringDiagnostic(
-                "Unexpected error while reading "
-                    + clazz.type.toSourceString()
-                    + "'s kotlin.Metadata: "
-                    + e.getMessage()));
-        return INVALID_KOTLIN_INFO;
-      }
+      return getKotlinInfo(kotlin, clazz, factory, reporter, onlyProcessLambda, keepByteCode, meta);
     }
     return NO_KOTLIN_INFO;
+  }
+
+  public static KotlinClassLevelInfo getKotlinInfo(
+      Kotlin kotlin,
+      DexClass clazz,
+      DexItemFactory factory,
+      Reporter reporter,
+      boolean onlyProcessLambda,
+      Consumer<DexEncodedMethod> keepByteCode,
+      DexAnnotation annotation) {
+    try {
+      KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, annotation.annotation);
+      if (onlyProcessLambda && kMetadata.getHeader().getKind() != KOTLIN_METADATA_KIND_LAMBDA) {
+        return NO_KOTLIN_INFO;
+      }
+      return createKotlinInfo(kotlin, clazz, kMetadata, factory, reporter, keepByteCode);
+    } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
+      reporter.info(
+          new StringDiagnostic(
+              "Class "
+                  + clazz.type.toSourceString()
+                  + " has malformed kotlin.Metadata: "
+                  + e.getMessage()));
+      return INVALID_KOTLIN_INFO;
+    } catch (Throwable e) {
+      reporter.info(
+          new StringDiagnostic(
+              "Unexpected error while reading "
+                  + clazz.type.toSourceString()
+                  + "'s kotlin.Metadata: "
+                  + e.getMessage()));
+      return INVALID_KOTLIN_INFO;
+    }
   }
 
   public static boolean hasKotlinClassMetadataAnnotation(

@@ -18,6 +18,8 @@ import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +44,7 @@ public class KotlinMetadataRewriter {
     final boolean writePackageName;
     final boolean writeExtraInt;
 
-    public WriteMetadataFieldInfo(
+    private WriteMetadataFieldInfo(
         boolean writeKind,
         boolean writeMetadataVersion,
         boolean writeByteCodeVersion,
@@ -59,6 +61,10 @@ public class KotlinMetadataRewriter {
       this.writeExtraString = writeExtraString;
       this.writePackageName = writePackageName;
       this.writeExtraInt = writeExtraInt;
+    }
+
+    private static WriteMetadataFieldInfo rewriteAll() {
+      return new WriteMetadataFieldInfo(true, true, true, true, true, true, true, true);
     }
   }
 
@@ -78,7 +84,7 @@ public class KotlinMetadataRewriter {
     return annotation.annotation.type != appView.dexItemFactory().kotlinMetadataType;
   }
 
-  public void run(ExecutorService executorService) throws ExecutionException {
+  public void runForR8(ExecutorService executorService) throws ExecutionException {
     final DexClass kotlinMetadata =
         appView.definitionFor(appView.dexItemFactory().kotlinMetadataType);
     final WriteMetadataFieldInfo writeMetadataFieldInfo =
@@ -112,24 +118,56 @@ public class KotlinMetadataRewriter {
             }
             return;
           }
-          try {
-            KotlinClassHeader kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
-            DexAnnotation newMeta =
-                createKotlinMetadataAnnotation(
-                    kotlinClassHeader,
-                    kotlinInfo.getPackageName(),
-                    getMaxVersion(METADATA_VERSION_1_4, kotlinInfo.getMetadataVersion()),
-                    writeMetadataFieldInfo);
-            clazz.setAnnotations(
-                clazz.annotations().rewrite(anno -> anno == oldMeta ? newMeta : anno));
-          } catch (Throwable t) {
-            appView
-                .options()
-                .reporter
-                .warning(KotlinMetadataDiagnostic.unexpectedErrorWhenRewriting(clazz.type, t));
-          }
+          writeKotlinInfoToAnnotation(clazz, kotlinInfo, oldMeta, writeMetadataFieldInfo);
         },
         executorService);
+  }
+
+  public void runForD8(ExecutorService executorService) throws ExecutionException {
+    if (lens.isIdentityLens()) {
+      return;
+    }
+    final Kotlin kotlin = factory.kotlin;
+    final Reporter reporter = appView.options().reporter;
+    final WriteMetadataFieldInfo writeMetadataFieldInfo = WriteMetadataFieldInfo.rewriteAll();
+    ThreadUtils.processItems(
+        appView.appInfo().classes(),
+        clazz -> {
+          DexAnnotation metadata = clazz.annotations().getFirstMatching(factory.kotlinMetadataType);
+          if (metadata == null) {
+            return;
+          }
+          final KotlinClassLevelInfo kotlinInfo =
+              KotlinClassMetadataReader.getKotlinInfo(
+                  kotlin, clazz, factory, reporter, false, ConsumerUtils.emptyConsumer(), metadata);
+          if (kotlinInfo == NO_KOTLIN_INFO) {
+            return;
+          }
+          writeKotlinInfoToAnnotation(clazz, kotlinInfo, metadata, writeMetadataFieldInfo);
+        },
+        executorService);
+  }
+
+  private void writeKotlinInfoToAnnotation(
+      DexClass clazz,
+      KotlinClassLevelInfo kotlinInfo,
+      DexAnnotation oldMeta,
+      WriteMetadataFieldInfo writeMetadataFieldInfo) {
+    try {
+      KotlinClassHeader kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
+      DexAnnotation newMeta =
+          createKotlinMetadataAnnotation(
+              kotlinClassHeader,
+              kotlinInfo.getPackageName(),
+              getMaxVersion(METADATA_VERSION_1_4, kotlinInfo.getMetadataVersion()),
+              writeMetadataFieldInfo);
+      clazz.setAnnotations(clazz.annotations().rewrite(anno -> anno == oldMeta ? newMeta : anno));
+    } catch (Throwable t) {
+      appView
+          .options()
+          .reporter
+          .warning(KotlinMetadataDiagnostic.unexpectedErrorWhenRewriting(clazz.type, t));
+    }
   }
 
   private boolean kotlinMetadataFieldExists(

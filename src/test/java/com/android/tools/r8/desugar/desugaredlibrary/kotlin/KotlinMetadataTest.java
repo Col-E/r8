@@ -5,25 +5,37 @@
 package com.android.tools.r8.desugar.desugaredlibrary.kotlin;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
+import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import kotlinx.metadata.jvm.KotlinClassMetadata;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -90,47 +102,81 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
     assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     final File output = temp.newFile("output.zip");
-    testForD8()
-        .addProgramFiles(compiledJars.get(targetVersion))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(ToolHelper.getKotlinReflectJar())
-        .setProgramConsumer(new ArchiveConsumer(output.toPath(), true))
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .addOptionsModification(
-            options -> {
-              options.testing.enableD8ResourcesPassThrough = true;
-              options.dataResourceConsumer = options.programConsumer.getDataResourceConsumer();
-            })
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary, parameters.getApiLevel(), keepRuleConsumer.get(), false)
-        .run(parameters.getRuntime(), PKG + ".MainKt")
-        .assertFailureWithErrorThatMatches(containsString("java.lang.ClassNotFoundException"));
+    final D8TestRunResult d8TestRunResult =
+        testForD8()
+            .addProgramFiles(compiledJars.get(targetVersion))
+            .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+            .addProgramFiles(ToolHelper.getKotlinReflectJar())
+            .setProgramConsumer(new ArchiveConsumer(output.toPath(), true))
+            .setMinApi(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .addOptionsModification(
+                options -> {
+                  options.testing.enableD8ResourcesPassThrough = true;
+                  options.dataResourceConsumer = options.programConsumer.getDataResourceConsumer();
+                })
+            .compile()
+            .addDesugaredCoreLibraryRunClassPath(
+                this::buildDesugaredLibrary,
+                parameters.getApiLevel(),
+                keepRuleConsumer.get(),
+                false)
+            .run(parameters.getRuntime(), PKG + ".MainKt")
+            .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+    if (requiresAnyCoreLibDesugaring(parameters)) {
+      d8TestRunResult.inspect(this::inspectRewrittenMetadata);
+    }
   }
 
   @Test
   public void testTimeR8() throws Exception {
-    assumeTrue(parameters.getRuntime().isDex());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addProgramFiles(compiledJars.get(targetVersion))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(ToolHelper.getKotlinReflectJar())
-        .addKeepMainRule(PKG + ".MainKt")
-        .addKeepAllClassesRule()
-        .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .allowDiagnosticWarningMessages()
-        .compile()
-        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .run(parameters.getRuntime(), PKG + ".MainKt")
-        .assertFailureWithErrorThatMatches(containsString("java.lang.ClassNotFoundException"));
+    boolean desugarLibrary = parameters.isDexRuntime() && requiresAnyCoreLibDesugaring(parameters);
+    final R8FullTestBuilder testBuilder =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(compiledJars.get(targetVersion))
+            .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+            .addProgramFiles(ToolHelper.getKotlinReflectJar())
+            .addKeepMainRule(PKG + ".MainKt")
+            .addKeepAllClassesRule()
+            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .setMinApi(parameters.getApiLevel())
+            .allowDiagnosticWarningMessages();
+    KeepRuleConsumer keepRuleConsumer = null;
+    if (desugarLibrary) {
+      keepRuleConsumer = createKeepRuleConsumer(parameters);
+      testBuilder.enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer);
+    }
+    final R8TestCompileResult compileResult =
+        testBuilder
+            .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));
+    if (desugarLibrary) {
+      assertNotNull(keepRuleConsumer);
+      compileResult.addDesugaredCoreLibraryRunClassPath(
+          this::buildDesugaredLibrary,
+          parameters.getApiLevel(),
+          keepRuleConsumer.get(),
+          shrinkDesugaredLibrary);
+    }
+    final R8TestRunResult r8TestRunResult =
+        compileResult
+            .run(parameters.getRuntime(), PKG + ".MainKt")
+            .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+    if (desugarLibrary) {
+      r8TestRunResult.inspect(this::inspectRewrittenMetadata);
+    }
+  }
+
+  private void inspectRewrittenMetadata(CodeInspector inspector) {
+    final ClassSubject clazz =
+        inspector.clazz("com.android.tools.r8.desugar.desugaredlibrary.kotlin.Skynet");
+    assertThat(clazz, isPresent());
+    final KotlinClassMetadata kotlinClassMetadata = clazz.getKotlinClassMetadata();
+    assertNotNull(kotlinClassMetadata);
+    String metadata = KotlinMetadataWriter.kotlinMetadataToString("", kotlinClassMetadata);
+    assertThat(metadata, containsString("specialDay:Lj$/time/LocalDateTime;"));
+    assertThat(metadata, containsString("Class(name=j$/time/LocalDateTime)"));
+    assertThat(metadata, not(containsString("java.time.LocalDateTime")));
   }
 }

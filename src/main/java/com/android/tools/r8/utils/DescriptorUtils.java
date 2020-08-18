@@ -182,8 +182,14 @@ public class DescriptorUtils {
    * @return className "org/foo/bar/Baz.Nested"
    */
   public static String descriptorToKotlinClassifier(String descriptor) {
-    return getBinaryNameFromDescriptor(descriptor)
-        .replace(INNER_CLASS_SEPARATOR, JAVA_PACKAGE_SEPARATOR);
+    final String classifier =
+        getBinaryNameFromDescriptor(descriptor)
+            .replace(INNER_CLASS_SEPARATOR, JAVA_PACKAGE_SEPARATOR);
+    if (descriptor.startsWith("Lj$/")) {
+      assert classifier.startsWith("j./");
+      return "j$/" + classifier.substring(3);
+    }
+    return classifier;
   }
 
   /**
