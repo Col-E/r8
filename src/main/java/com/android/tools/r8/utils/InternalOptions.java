@@ -505,6 +505,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return isMinifying();
   }
 
+  /**
+   * If any non-static class merging is enabled, information about types referred to by instanceOf
+   * and check cast instructions needs to be collected.
+   */
+  public boolean isClassMergingExtensionRequired() {
+    return enableHorizontalClassMerging || enableVerticalClassMerging;
+  }
+
   @Override
   public boolean isAccessModificationEnabled() {
     return getProguardConfiguration() != null

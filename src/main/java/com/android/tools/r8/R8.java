@@ -79,6 +79,7 @@ import com.android.tools.r8.shaking.AbstractMethodRemover;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ClassInitFieldSynthesizer;
+import com.android.tools.r8.shaking.ClassMergingEnqueuerExtension;
 import com.android.tools.r8.shaking.DefaultTreePrunerConfiguration;
 import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
@@ -324,6 +325,8 @@ public class R8 {
       timing.begin("Strip unused code");
       Set<DexType> classesToRetainInnerClassAttributeFor = null;
       Set<DexType> missingClasses = null;
+      ClassMergingEnqueuerExtension classMergingEnqueuerExtension =
+          new ClassMergingEnqueuerExtension(appView.dexItemFactory());
       try {
         // TODO(b/154849103): Find a better way to determine missing classes.
         missingClasses = new SubtypingInfo(appView).getMissingClasses();
@@ -371,7 +374,12 @@ public class R8 {
         AnnotationRemover.Builder annotationRemoverBuilder =
             options.isShrinking() ? AnnotationRemover.builder() : null;
         AppView<AppInfoWithLiveness> appViewWithLiveness =
-            runEnqueuer(annotationRemoverBuilder, executorService, appView, subtypingInfo);
+            runEnqueuer(
+                annotationRemoverBuilder,
+                executorService,
+                appView,
+                subtypingInfo,
+                classMergingEnqueuerExtension);
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
@@ -533,6 +541,10 @@ public class R8 {
           }
           timing.end();
         }
+
+        // Only required for class merging, clear instance to save memory.
+        classMergingEnqueuerExtension = null;
+
         if (options.enableArgumentRemoval) {
           SubtypingInfo subtypingInfo = appViewWithLiveness.appInfo().computeSubtypingInfo();
           {
@@ -955,7 +967,8 @@ public class R8 {
       AnnotationRemover.Builder annotationRemoverBuilder,
       ExecutorService executorService,
       AppView<AppInfoWithClassHierarchy> appView,
-      SubtypingInfo subtypingInfo)
+      SubtypingInfo subtypingInfo,
+      ClassMergingEnqueuerExtension classMergingEnqueuerExtension)
       throws ExecutionException {
     Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo);
     enqueuer.setAnnotationRemoverBuilder(annotationRemoverBuilder);
@@ -966,6 +979,10 @@ public class R8 {
       enqueuer.registerAnalysis(
           new ClassInitializerAssertionEnablingAnalysis(
               appView.dexItemFactory(), OptimizationFeedbackSimple.getInstance()));
+    }
+
+    if (options.isClassMergingExtensionRequired()) {
+      classMergingEnqueuerExtension.attach(enqueuer);
     }
 
     AppView<AppInfoWithLiveness> appViewWithLiveness =
