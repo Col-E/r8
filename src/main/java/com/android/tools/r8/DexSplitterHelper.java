@@ -86,7 +86,7 @@ public final class DexSplitterHelper {
         assert !options.hasMethodsFilter();
 
         // Run d8 optimize to ensure jumbo strings are handled.
-        AppInfo appInfo = new AppInfo(featureApp);
+        AppInfo appInfo = AppInfo.createInitialAppInfo(featureApp);
         featureApp = D8.optimize(featureApp, appInfo, options, timing, executor);
         // We create a specific consumer for each split.
         Path outputDir = Paths.get(output).resolve(entry.getKey());

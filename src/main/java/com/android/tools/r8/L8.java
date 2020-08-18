@@ -126,7 +126,7 @@ public class L8 {
           options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
 
       DexApplication app = new L8TreePruner(options).prune(lazyApp, rewritePrefix);
-      AppInfo appInfo = new AppInfo(app);
+      AppInfo appInfo = AppInfo.createInitialAppInfo(app);
 
       AppView<?> appView = AppView.createForL8(appInfo, rewritePrefix);
       IRConverter converter = new IRConverter(appView, timing);

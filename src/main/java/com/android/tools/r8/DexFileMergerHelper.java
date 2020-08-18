@@ -90,7 +90,7 @@ public class DexFileMergerHelper {
                     null,
                     executor,
                     new DexFileMergerHelper(inputOrdering)::keepFirstProgramClassConflictResolver);
-        AppInfo appInfo = new AppInfo(app);
+        AppInfo appInfo = AppInfo.createInitialAppInfo(app);
         app = D8.optimize(app, appInfo, options, timing, executor);
 
         List<Marker> markers = app.dexItemFactory.extractMarkers();

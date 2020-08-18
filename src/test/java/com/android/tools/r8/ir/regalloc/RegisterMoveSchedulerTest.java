@@ -367,7 +367,8 @@ public class RegisterMoveSchedulerTest {
   public void multipleLiveTempRegisters() {
     InternalOptions options = new InternalOptions();
     AppView<AppInfo> appInfo =
-        AppView.createForD8(new AppInfo(DexApplication.builder(options, null).build()));
+        AppView.createForD8(
+            AppInfo.createInitialAppInfo(DexApplication.builder(options, null).build()));
     TypeElement objectType =
         TypeElement.fromDexType(options.itemFactory.objectType, Nullability.maybeNull(), appInfo);
     CollectMovesIterator moves = new CollectMovesIterator();

@@ -311,7 +311,7 @@ public class GenerateLintFiles {
         lintFile(compilationApiLevel, minApiLevel, ".txt"), desugaredApisSignatures);
 
     // Write a header jar with the desugared APIs.
-    AppInfo appInfo = new AppInfo(app);
+    AppInfo appInfo = AppInfo.createInitialAppInfo(app);
     AppView<?> appView = AppView.createForD8(appInfo);
     CfApplicationWriter writer =
         new CfApplicationWriter(

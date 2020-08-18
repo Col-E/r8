@@ -79,7 +79,7 @@ public class CatchSuccessorFallthroughTest extends SmaliTestBase {
 
     ProgramMethod method = getProgramMethod(originalApplication, methodSig);
     // Get the IR pre-optimization.
-    IRCode code = method.buildIR(AppView.createForD8(new AppInfo(application)));
+    IRCode code = method.buildIR(AppView.createForD8(AppInfo.createInitialAppInfo(application)));
 
     // Find the exit block and assert that the value is a phi merging the exceptional edge
     // with the normal edge.

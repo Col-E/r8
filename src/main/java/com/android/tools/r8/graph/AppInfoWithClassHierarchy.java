@@ -39,13 +39,19 @@ import java.util.function.Function;
  */
 public class AppInfoWithClassHierarchy extends AppInfo {
 
-  public AppInfoWithClassHierarchy(DexApplication application) {
-    super(application);
+  private static final CreateDesugaringViewOnAppInfo WITNESS = new CreateDesugaringViewOnAppInfo();
+
+  static class CreateDesugaringViewOnAppInfo {
+    private CreateDesugaringViewOnAppInfo() {}
+  }
+
+  public AppInfoWithClassHierarchy(DexApplication application, SyntheticItems syntheticItems) {
+    super(application, syntheticItems);
   }
 
   // For desugaring.
-  private AppInfoWithClassHierarchy(AppInfo appInfo) {
-    super(appInfo);
+  private AppInfoWithClassHierarchy(CreateDesugaringViewOnAppInfo witness, AppInfo appInfo) {
+    super(witness, appInfo);
   }
 
   // For AppInfoWithLiveness.
@@ -55,11 +61,11 @@ public class AppInfoWithClassHierarchy extends AppInfo {
 
   public static AppInfoWithClassHierarchy createForDesugaring(AppInfo appInfo) {
     assert !appInfo.hasClassHierarchy();
-    return new AppInfoWithClassHierarchy(appInfo);
+    return new AppInfoWithClassHierarchy(WITNESS, appInfo);
   }
 
   public AppInfoWithClassHierarchy rebuild(Function<DexApplication, DexApplication> fn) {
-    return new AppInfoWithClassHierarchy(fn.apply(app()));
+    return new AppInfoWithClassHierarchy(fn.apply(app()), getSyntheticItems());
   }
 
   @Override

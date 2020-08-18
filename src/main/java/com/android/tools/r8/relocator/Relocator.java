@@ -79,8 +79,7 @@ public class Relocator {
     Timing timing = Timing.create("Relocator", options);
     try {
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
-
-      AppInfo appInfo = new AppInfo(app);
+      AppInfo appInfo = AppInfo.createInitialAppInfo(app);
       AppView<?> appView = AppView.createForRelocator(appInfo);
       appView.setAppServices(AppServices.builder(appView).build());
 

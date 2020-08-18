@@ -48,7 +48,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
     this.writeIR = writeIR;
     this.writeCode = writeCode;
     if (writeIR) {
-      this.appInfo = new AppInfo(application.toDirect());
+      this.appInfo = AppInfo.createInitialAppInfo(application.toDirect());
       if (options.programConsumer == null) {
         // Use class-file backend, since the CF frontend for testing does not support desugaring of
         // synchronized methods for the DEX backend (b/109789541).

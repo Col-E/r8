@@ -40,6 +40,7 @@ import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
+import com.android.tools.r8.graph.SyntheticItems;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
@@ -195,6 +196,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   // TODO(zerny): Clean up the constructors so we have just one.
   AppInfoWithLiveness(
       DirectMappedDexApplication application,
+      SyntheticItems syntheticItems,
       Set<DexType> deadProtoTypes,
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,
@@ -235,7 +237,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       EnumValueInfoMapCollection enumValueInfoMaps,
       Set<DexType> constClassReferences,
       Map<DexType, Visibility> initClassReferences) {
-    super(application);
+    super(application, syntheticItems);
     this.deadProtoTypes = deadProtoTypes;
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
@@ -406,7 +408,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.enumValueInfoMaps,
         previous.constClassReferences,
         previous.initClassReferences);
-    copyMetadataFromPrevious(previous);
   }
 
   private AppInfoWithLiveness(
@@ -416,6 +417,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Collection<DexReference> additionalPinnedItems) {
     this(
         application,
+        previous.getSyntheticItems(),
         previous.deadProtoTypes,
         previous.missingTypes,
         previous.liveTypes,
@@ -458,7 +460,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.enumValueInfoMaps,
         previous.constClassReferences,
         previous.initClassReferences);
-    copyMetadataFromPrevious(previous);
     assert keepInfo.verifyNoneArePinned(removedClasses, previous);
   }
 
@@ -1000,6 +1001,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
     return new AppInfoWithLiveness(
         application,
+        getSyntheticItems(),
         deadProtoTypes,
         missingTypes,
         lens.rewriteTypes(liveTypes),

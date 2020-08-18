@@ -105,7 +105,7 @@ public final class BackportedMethodRewriter {
     if (androidApp != null) {
       DexApplication app =
           new ApplicationReader(androidApp, options, Timing.empty()).read(executor);
-      appInfo = new AppInfo(app);
+      appInfo = AppInfo.createInitialAppInfo(app);
     }
     AppView<?> appView = AppView.createForD8(appInfo, rewritePrefix);
     BackportedMethodRewriter.RewritableMethods rewritableMethods =
