@@ -370,21 +370,6 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
         DexDefinitionSupplier definitions,
         GraphLens lens) {
       instantiatedHierarchy = null;
-      objectAllocationInfos.classesWithAllocationSiteTracking.forEach(
-          (clazz, allocationSitesForClass) -> {
-            DexType type = lens.lookupType(clazz.type);
-            if (type.isPrimitiveType()) {
-              assert !objectAllocationInfos.hasInstantiatedStrictSubtype(clazz);
-              return;
-            }
-            DexProgramClass rewrittenClass = asProgramClassOrNull(definitions.definitionFor(type));
-            assert rewrittenClass != null;
-            assert !classesWithAllocationSiteTracking.containsKey(rewrittenClass);
-            classesWithAllocationSiteTracking.put(
-                rewrittenClass,
-                LensUtils.rewrittenWithRenamedSignature(
-                    allocationSitesForClass, definitions, lens));
-          });
       objectAllocationInfos.classesWithoutAllocationSiteTracking.forEach(
           clazz -> {
             DexType type = lens.lookupType(clazz.type);
@@ -394,9 +379,27 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
             }
             DexProgramClass rewrittenClass = asProgramClassOrNull(definitions.definitionFor(type));
             assert rewrittenClass != null;
-            assert !classesWithAllocationSiteTracking.containsKey(rewrittenClass);
-            assert !classesWithoutAllocationSiteTracking.contains(rewrittenClass);
             classesWithoutAllocationSiteTracking.add(rewrittenClass);
+          });
+      objectAllocationInfos.classesWithAllocationSiteTracking.forEach(
+          (clazz, allocationSitesForClass) -> {
+            DexType type = lens.lookupType(clazz.type);
+            if (type.isPrimitiveType()) {
+              assert !objectAllocationInfos.hasInstantiatedStrictSubtype(clazz);
+              return;
+            }
+            DexProgramClass rewrittenClass = asProgramClassOrNull(definitions.definitionFor(type));
+            assert rewrittenClass != null;
+            if (classesWithoutAllocationSiteTracking.contains(rewrittenClass)) {
+              // Either this class was merged into another class without allocation site tracking,
+              // or a class without allocation site tracking was merged into this class.
+              return;
+            }
+            classesWithAllocationSiteTracking
+                .computeIfAbsent(rewrittenClass, ignore -> Sets.newIdentityHashSet())
+                .addAll(
+                    LensUtils.rewrittenWithRenamedSignature(
+                        allocationSitesForClass, definitions, lens));
           });
       for (DexProgramClass abstractType :
           objectAllocationInfos.interfacesWithUnknownSubtypeHierarchy) {
