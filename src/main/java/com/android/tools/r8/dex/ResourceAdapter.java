@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardPathFilter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -26,6 +27,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntStack;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.function.Function;
 
 public class ResourceAdapter {
 
@@ -50,22 +52,14 @@ public class ResourceAdapter {
 
   public DataEntryResource adaptIfNeeded(DataEntryResource file) {
     // Adapt name, if needed.
-    ProguardPathFilter adaptResourceFileNamesFilter =
-        options.getProguardConfiguration().getAdaptResourceFilenames();
     String name =
-        adaptResourceFileNamesFilter.isEnabled()
-                && !file.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION)
-                && adaptResourceFileNamesFilter.matches(file.getName())
+        shouldAdapt(file, options, ProguardConfiguration::getAdaptResourceFilenames)
             ? adaptFileName(file)
             : file.getName();
     assert name != null;
     // Adapt contents, if needed.
-    ProguardPathFilter adaptResourceFileContentsFilter =
-        options.getProguardConfiguration().getAdaptResourceFileContents();
     byte[] contents =
-        adaptResourceFileContentsFilter.isEnabled()
-                && !file.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION)
-                && adaptResourceFileContentsFilter.matches(file.getName())
+        shouldAdapt(file, options, ProguardConfiguration::getAdaptResourceFileContents)
             ? adaptFileContents(file)
             : null;
     // Return a new resource if the name or contents changed. Otherwise return the original
@@ -85,12 +79,29 @@ public class ResourceAdapter {
 
   public DataDirectoryResource adaptIfNeeded(DataDirectoryResource directory) {
     // First check if this directory should even be in the output.
-    ProguardPathFilter keepDirectoriesFilter =
-        options.getProguardConfiguration().getKeepDirectories();
-    if (!keepDirectoriesFilter.matches(directory.getName())) {
+    if (options.getProguardConfiguration() == null) {
+      assert options.testing.enableD8ResourcesPassThrough;
+      return null;
+    }
+    if (!options.getProguardConfiguration().getKeepDirectories().matches(directory.getName())) {
       return null;
     }
     return DataDirectoryResource.fromName(adaptDirectoryName(directory), directory.getOrigin());
+  }
+
+  private boolean shouldAdapt(
+      DataEntryResource file,
+      InternalOptions options,
+      Function<ProguardConfiguration, ProguardPathFilter> getFilter) {
+    final ProguardConfiguration proguardConfiguration = options.getProguardConfiguration();
+    if (proguardConfiguration == null) {
+      assert options.testing.enableD8ResourcesPassThrough;
+      return false;
+    }
+    ProguardPathFilter filter = getFilter.apply(proguardConfiguration);
+    return filter.isEnabled()
+        && !file.getName().toLowerCase().endsWith(FileUtils.CLASS_EXTENSION)
+        && filter.matches(file.getName());
   }
 
   public boolean isService(DataEntryResource file) {

@@ -129,18 +129,19 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
       this(archive, null, false);
     }
 
-    public ArchiveConsumer(Path archive, boolean consumeDataResouces) {
-      this(archive, null, consumeDataResouces);
+    public ArchiveConsumer(Path archive, boolean consumeDataResources) {
+      this(archive, null, consumeDataResources);
     }
 
     public ArchiveConsumer(Path archive, DexIndexedConsumer consumer) {
       this(archive, consumer, false);
     }
 
-    public ArchiveConsumer(Path archive, DexIndexedConsumer consumer, boolean consumeDataResouces) {
+    public ArchiveConsumer(
+        Path archive, DexIndexedConsumer consumer, boolean consumeDataResources) {
       super(consumer);
       this.outputBuilder = new ArchiveBuilder(archive);
-      this.consumeDataResources = consumeDataResouces;
+      this.consumeDataResources = consumeDataResources;
       this.outputBuilder.open();
       if (getDataResourceConsumer() != null) {
         this.outputBuilder.open();

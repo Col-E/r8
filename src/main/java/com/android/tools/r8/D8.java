@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -188,6 +189,10 @@ public final class D8 {
       }
 
       AppView<?> appView = AppView.createForD8(appInfo, rewritePrefix);
+
+      if (options.testing.enableD8ResourcesPassThrough) {
+        appView.setAppServices(AppServices.builder(appView).build());
+      }
 
       IRConverter converter = new IRConverter(appView, timing, printer);
       app = converter.convert(app, executor);

@@ -1208,6 +1208,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enumUnboxingRewriteJavaCGeneratedMethod = false;
     public boolean assertConsistentRenamingOfSignature = false;
 
+    // Flag to allow processing of resources in D8. A data resource consumer still needs to be
+    // specified.
+    public boolean enableD8ResourcesPassThrough = false;
+
     // TODO(b/144781417): This is disabled by default as some test apps appear to have such classes.
     public boolean allowNonAbstractClassesWithAbstractMethods = true;
 
