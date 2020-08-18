@@ -336,8 +336,8 @@ def unpack_archive(filename):
   with tarfile.open(filename, 'r:gz') as tar:
     tar.extractall(path=dirname)
 
-def check_prodacces():
-  subprocess.check_call(['prodaccess'])
+def check_gcert():
+  subprocess.check_call(['gcert'])
 
 # Note that gcs is eventually consistent with regards to list operations.
 # This is not a problem in our case, but don't ever use this method
