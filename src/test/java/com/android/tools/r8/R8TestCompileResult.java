@@ -61,6 +61,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
     return state.getDiagnosticsMessages();
   }
 
+  @Override
   public R8TestCompileResult inspectDiagnosticMessages(Consumer<TestDiagnosticMessages> consumer) {
     consumer.accept(state.getDiagnosticsMessages());
     return self();
@@ -90,7 +91,8 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
         AndroidApp.builder().addProgramFile(feature).setProguardMapOutputData(proguardMap).build());
   }
 
-  public <E extends Throwable> R8TestCompileResult inspect(
+  @SafeVarargs
+  public final <E extends Throwable> R8TestCompileResult inspect(
       ThrowingConsumer<CodeInspector, E>... consumers) throws IOException, E {
     assertEquals(1 + features.size(), consumers.length);
     consumers[0].accept(inspector());
