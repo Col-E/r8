@@ -397,6 +397,15 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return collection;
   }
 
+  public boolean hasBeenMerged(DexProgramClass clazz) {
+    // TODO(b/165227525): Add support for the horizontal class merger here.
+    if (horizontallyMergedLambdaClasses != null
+        && horizontallyMergedLambdaClasses.hasBeenMerged(clazz)) {
+      return true;
+    }
+    return verticallyMergedClasses != null && verticallyMergedClasses.hasBeenMerged(clazz);
+  }
+
   // Get the result of horizontal lambda class merging. Returns null if horizontal lambda class
   // merging has not been run.
   public HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses() {

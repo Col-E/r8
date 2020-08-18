@@ -106,6 +106,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -743,7 +744,7 @@ public class IRConverter {
           postMethodProcessorBuilder,
           executorService,
           feedback,
-          classStaticizer == null ? Collections.emptySet() : classStaticizer.getCandidates());
+          classStaticizer == null ? Sets.newIdentityHashSet() : classStaticizer.getCandidates());
     }
     if (!options.debug) {
       new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)

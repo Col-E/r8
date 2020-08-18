@@ -436,13 +436,13 @@ public class EnumUnboxer implements PostOptimization {
   // We are trying to select a host for the enum unboxing methods, but multiple candidates are
   // available. We need to pick one of the two classes and the result has to be deterministic.
   // We follow the heuristics, in order:
-  //  1. don't pick a class from hostToAvoidIfPossible if possible
+  //  1. don't pick a class from hostToAvoidIfPossible, or merged, if possible
   //  2. pick the class with the least number of methods
   //  3. pick the first class name in alphabetical order for determinism.
   private DexProgramClass selectHost(
       DexProgramClass class1, DexProgramClass class2, Set<DexType> hostsToAvoidIfPossible) {
-    boolean avoid1 = hostsToAvoidIfPossible.contains(class1.type);
-    boolean avoid2 = hostsToAvoidIfPossible.contains(class2.type);
+    boolean avoid1 = appView.hasBeenMerged(class1) || hostsToAvoidIfPossible.contains(class1.type);
+    boolean avoid2 = appView.hasBeenMerged(class2) || hostsToAvoidIfPossible.contains(class2.type);
     if (avoid1 && !avoid2) {
       return class2;
     }
