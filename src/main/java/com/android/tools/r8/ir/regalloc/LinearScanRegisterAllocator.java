@@ -473,8 +473,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             ? block.getPredecessors().get(0).exceptionalExit().getNumber()
             : block.getPredecessors().get(0).exit().getNumber();
     for (LocalRange open : openRanges) {
+      Value predecessorValue =
+          open.value.isPhi() && open.value.getBlock() == block
+              ? open.value.asPhi().getOperand(0)
+              : open.value;
       int predecessorRegister =
-          allocator.getArgumentOrAllocateRegisterForValue(open.value, predecessorExitIndex);
+          allocator.getArgumentOrAllocateRegisterForValue(predecessorValue, predecessorExitIndex);
       initialLocals.put(predecessorRegister, open.local);
     }
     block.setLocalsAtEntry(initialLocals);
