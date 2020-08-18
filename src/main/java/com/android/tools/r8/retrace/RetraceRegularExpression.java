@@ -34,22 +34,19 @@ public class RetraceRegularExpression {
 
   private static final int NO_MATCH = -1;
 
-  private final RegularExpressionGroup[] syntheticGroups =
-      new RegularExpressionGroup[] {new SourceFileLineNumberGroup()};
-
-  private final RegularExpressionGroup[] groups =
-      new RegularExpressionGroup[] {
-        new TypeNameGroup(),
-        new BinaryNameGroup(),
-        new MethodNameGroup(),
-        new FieldNameGroup(),
-        new SourceFileGroup(),
-        new LineNumberGroup(),
-        new FieldOrReturnTypeGroup(),
-        new MethodArgumentsGroup()
-      };
+  private final SourceFileLineNumberGroup sourceFileLineNumberGroup =
+      new SourceFileLineNumberGroup();
+  private final TypeNameGroup typeNameGroup = new TypeNameGroup();
+  private final BinaryNameGroup binaryNameGroup = new BinaryNameGroup();
+  private final MethodNameGroup methodNameGroup = new MethodNameGroup();
+  private final FieldNameGroup fieldNameGroup = new FieldNameGroup();
+  private final SourceFileGroup sourceFileGroup = new SourceFileGroup();
+  private final LineNumberGroup lineNumberGroup = new LineNumberGroup();
+  private final FieldOrReturnTypeGroup fieldOrReturnTypeGroup = new FieldOrReturnTypeGroup();
+  private final MethodArgumentsGroup methodArgumentsGroup = new MethodArgumentsGroup();
 
   private static final String CAPTURE_GROUP_PREFIX = "captureGroup";
+  private static final int FIRST_CAPTURE_GROUP_INDEX = 0;
 
   RetraceRegularExpression(
       RetraceApi retracer,
@@ -64,8 +61,14 @@ public class RetraceRegularExpression {
 
   public RetraceCommandLineResult retrace() {
     List<RegularExpressionGroupHandler> handlers = new ArrayList<>();
-    String regularExpression = registerGroups(this.regularExpression, handlers);
-    Pattern compiledPattern = Pattern.compile(regularExpression);
+    StringBuilder refinedRegularExpressionBuilder = new StringBuilder();
+    registerGroups(
+        this.regularExpression,
+        refinedRegularExpressionBuilder,
+        handlers,
+        FIRST_CAPTURE_GROUP_INDEX);
+    String refinedRegularExpression = refinedRegularExpressionBuilder.toString();
+    Pattern compiledPattern = Pattern.compile(refinedRegularExpression);
     List<String> result = new ArrayList<>();
     for (String string : stackTrace) {
       Matcher matcher = compiledPattern.matcher(string);
@@ -130,80 +133,68 @@ public class RetraceRegularExpression {
     }
   }
 
-  private String registerGroups(
-      String regularExpression, List<RegularExpressionGroupHandler> handlers) {
-    int currentIndex = 0;
-    int captureGroupIndex = 0;
-    regularExpression = registerSyntheticGroups(regularExpression);
-    while (currentIndex < regularExpression.length()) {
-      RegularExpressionGroup firstGroup = null;
-      int firstIndexFromCurrent = regularExpression.length();
-      for (RegularExpressionGroup group : groups) {
-        int firstIndex =
-            firstIndexOfGroup(
-                currentIndex, firstIndexFromCurrent, regularExpression, group.shortName());
-        if (firstIndex > NO_MATCH) {
-          firstGroup = group;
-          firstIndexFromCurrent = firstIndex;
-        }
-      }
-      if (firstGroup != null) {
-        String captureGroupName = CAPTURE_GROUP_PREFIX + (captureGroupIndex++);
-        String patternToInsert = "(?<" + captureGroupName + ">" + firstGroup.subExpression() + ")";
-        regularExpression =
-            regularExpression.substring(0, firstIndexFromCurrent)
-                + patternToInsert
-                + regularExpression.substring(
-                    firstIndexFromCurrent + firstGroup.shortName().length());
-        handlers.add(firstGroup.createHandler(captureGroupName));
-        firstIndexFromCurrent += patternToInsert.length();
-      }
-      currentIndex = firstIndexFromCurrent;
-    }
-    return regularExpression;
-  }
-
-  private int firstIndexOfGroup(int startIndex, int endIndex, String expression, String shortName) {
-    int nextIndexOf = startIndex;
-    while (nextIndexOf != NO_MATCH) {
-      nextIndexOf = expression.indexOf(shortName, nextIndexOf);
-      if (nextIndexOf > NO_MATCH) {
-        if (nextIndexOf < endIndex && !isEscaped(expression, nextIndexOf)) {
-          return nextIndexOf;
-        }
-        nextIndexOf++;
-      }
-    }
-    return NO_MATCH;
-  }
-
-  private boolean isEscaped(String expression, int index) {
+  private int registerGroups(
+      String regularExpression,
+      StringBuilder refinedRegularExpression,
+      List<RegularExpressionGroupHandler> handlers,
+      int captureGroupIndex) {
+    int lastCommittedIndex = 0;
+    boolean seenPercentage = false;
     boolean escaped = false;
-    while (index > 0 && expression.charAt(--index) == '\\') {
-      escaped = !escaped;
+    for (int i = 0; i < regularExpression.length(); i++) {
+      if (seenPercentage) {
+        assert !escaped;
+        final RegularExpressionGroup group = getGroupFromVariable(regularExpression.charAt(i));
+        refinedRegularExpression.append(regularExpression, lastCommittedIndex, i - 1);
+        lastCommittedIndex = i + 1;
+        if (group.isSynthetic()) {
+          captureGroupIndex =
+              registerGroups(
+                  group.subExpression(), refinedRegularExpression, handlers, captureGroupIndex);
+        } else {
+          String captureGroupName = CAPTURE_GROUP_PREFIX + (captureGroupIndex++);
+          refinedRegularExpression
+              .append("(?<")
+              .append(captureGroupName)
+              .append(">")
+              .append(group.subExpression())
+              .append(")");
+          handlers.add(group.createHandler(captureGroupName));
+        }
+        seenPercentage = false;
+      } else {
+        seenPercentage = !escaped && regularExpression.charAt(i) == '%';
+        escaped = !escaped && regularExpression.charAt(i) == '\\';
+      }
     }
-    return escaped;
+    refinedRegularExpression.append(
+        regularExpression, lastCommittedIndex, regularExpression.length());
+    return captureGroupIndex;
   }
 
-  private String registerSyntheticGroups(String regularExpression) {
-    boolean modifiedExpression;
-    do {
-      modifiedExpression = false;
-      for (RegularExpressionGroup syntheticGroup : syntheticGroups) {
-        int firstIndex =
-            firstIndexOfGroup(
-                0, regularExpression.length(), regularExpression, syntheticGroup.shortName());
-        if (firstIndex > NO_MATCH) {
-          regularExpression =
-              regularExpression.substring(0, firstIndex)
-                  + syntheticGroup.subExpression()
-                  + regularExpression.substring(firstIndex + syntheticGroup.shortName().length());
-          // Loop as long as we can replace.
-          modifiedExpression = true;
-        }
-      }
-    } while (modifiedExpression);
-    return regularExpression;
+  private RegularExpressionGroup getGroupFromVariable(char variable) {
+    switch (variable) {
+      case 'c':
+        return typeNameGroup;
+      case 'C':
+        return binaryNameGroup;
+      case 'm':
+        return methodNameGroup;
+      case 'f':
+        return fieldNameGroup;
+      case 's':
+        return sourceFileGroup;
+      case 'l':
+        return lineNumberGroup;
+      case 'S':
+        return sourceFileLineNumberGroup;
+      case 't':
+        return fieldOrReturnTypeGroup;
+      case 'a':
+        return methodArgumentsGroup;
+      default:
+        throw new Unreachable("Unexpected variable: " + variable);
+    }
   }
 
   static class RetraceString {
@@ -427,8 +418,6 @@ public class RetraceRegularExpression {
 
   private abstract static class RegularExpressionGroup {
 
-    abstract String shortName();
-
     abstract String subExpression();
 
     abstract RegularExpressionGroupHandler createHandler(String captureGroup);
@@ -480,11 +469,6 @@ public class RetraceRegularExpression {
   private static class TypeNameGroup extends ClassNameGroup {
 
     @Override
-    String shortName() {
-      return "%c";
-    }
-
-    @Override
     String subExpression() {
       return "(" + javaIdentifierSegment + "\\.)*" + javaIdentifierSegment;
     }
@@ -503,11 +487,6 @@ public class RetraceRegularExpression {
   private static class BinaryNameGroup extends ClassNameGroup {
 
     @Override
-    String shortName() {
-      return "%C";
-    }
-
-    @Override
     String subExpression() {
       return "(?:" + javaIdentifierSegment + "\\/)*" + javaIdentifierSegment;
     }
@@ -524,11 +503,6 @@ public class RetraceRegularExpression {
   }
 
   private static class MethodNameGroup extends RegularExpressionGroup {
-
-    @Override
-    String shortName() {
-      return "%m";
-    }
 
     @Override
     String subExpression() {
@@ -595,11 +569,6 @@ public class RetraceRegularExpression {
   private static class FieldNameGroup extends RegularExpressionGroup {
 
     @Override
-    String shortName() {
-      return "%f";
-    }
-
-    @Override
     String subExpression() {
       return javaIdentifierSegment;
     }
@@ -649,11 +618,6 @@ public class RetraceRegularExpression {
   private static class SourceFileGroup extends RegularExpressionGroup {
 
     @Override
-    String shortName() {
-      return "%s";
-    }
-
-    @Override
     String subExpression() {
       return "(?:(\\w*[\\. ])?(\\w*)?)";
     }
@@ -694,11 +658,6 @@ public class RetraceRegularExpression {
   }
 
   private class LineNumberGroup extends RegularExpressionGroup {
-
-    @Override
-    String shortName() {
-      return "%l";
-    }
 
     @Override
     String subExpression() {
@@ -771,11 +730,6 @@ public class RetraceRegularExpression {
   private static class SourceFileLineNumberGroup extends RegularExpressionGroup {
 
     @Override
-    String shortName() {
-      return "%S";
-    }
-
-    @Override
     String subExpression() {
       return "%s(?::%l)?";
     }
@@ -795,11 +749,6 @@ public class RetraceRegularExpression {
       "(" + javaIdentifierSegment + "\\.)*" + javaIdentifierSegment + "[\\[\\]]*";
 
   private static class FieldOrReturnTypeGroup extends RegularExpressionGroup {
-
-    @Override
-    String shortName() {
-      return "%t";
-    }
 
     @Override
     String subExpression() {
@@ -841,11 +790,6 @@ public class RetraceRegularExpression {
   }
 
   private class MethodArgumentsGroup extends RegularExpressionGroup {
-
-    @Override
-    String shortName() {
-      return "%a";
-    }
 
     @Override
     String subExpression() {
