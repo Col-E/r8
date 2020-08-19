@@ -6,7 +6,8 @@ package com.android.tools.r8;
 
 import java.util.List;
 
-public class GenerateMainDexListRunResult extends TestRunResult<GenerateMainDexListRunResult> {
+public class GenerateMainDexListRunResult
+    extends SingleTestRunResult<GenerateMainDexListRunResult> {
 
   List<String> mainDexList;
 

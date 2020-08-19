@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.debug.DebugTestConfig;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -58,8 +59,10 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
   }
 
   @Deprecated
-  public abstract RR run(String mainClass)
-      throws CompilationFailedException, ExecutionException, IOException;
+  public RR run(String mainClass)
+      throws CompilationFailedException, ExecutionException, IOException {
+    throw new Unimplemented("Deprecated");
+  }
 
   public abstract RR run(TestRuntime runtime, String mainClass, String... args)
       throws CompilationFailedException, ExecutionException, IOException;

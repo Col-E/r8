@@ -11,10 +11,10 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ir.optimize.canonicalization.ConstClassMain.Outer;
 import com.android.tools.r8.ir.optimize.canonicalization.ConstClassMain.Outer.Inner;
 import com.android.tools.r8.utils.InternalOptions;
@@ -144,8 +144,8 @@ public class ConstClassCanonicalizationTest extends TestBase {
         });
   }
 
-  private void test(
-      TestRunResult result, int mainCount, int outerCount, int innerCount) throws Exception {
+  private void test(SingleTestRunResult result, int mainCount, int outerCount, int innerCount)
+      throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();

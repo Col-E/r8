@@ -14,10 +14,10 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -184,7 +184,7 @@ public class AlwaysThrowNullTest extends TestBase {
         .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
-  private void test(TestRunResult result, boolean hasLiveness) throws Exception {
+  private void test(SingleTestRunResult<?> result, boolean hasLiveness) throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
 

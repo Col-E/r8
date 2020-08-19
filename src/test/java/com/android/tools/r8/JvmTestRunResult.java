@@ -7,7 +7,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
 
-public class JvmTestRunResult extends TestRunResult<JvmTestRunResult> {
+public class JvmTestRunResult extends SingleTestRunResult<JvmTestRunResult> {
 
   public JvmTestRunResult(AndroidApp app, TestRuntime runtime, ProcessResult result) {
     super(app, runtime, result);

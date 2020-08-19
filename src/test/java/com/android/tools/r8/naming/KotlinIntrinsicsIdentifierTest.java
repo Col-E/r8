@@ -9,8 +9,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestCompileResult;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -121,7 +121,7 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
       String targetFieldName,
       String targetMethodName) throws Exception {
     String mainClassName = testMain.getClassName();
-    TestRunResult result =
+    SingleTestRunResult result =
         testForR8(Backend.DEX)
             .addProgramFiles(getKotlinJarFile(FOLDER))
             .addProgramFiles(getJavaJarFile(FOLDER))

@@ -66,6 +66,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
@@ -192,7 +193,7 @@ public class TestBase {
     return testForJvm(temp);
   }
 
-  public TestBuilder<? extends TestRunResult<?>, ?> testForRuntime(
+  public TestBuilder<? extends SingleTestRunResult<?>, ?> testForRuntime(
       TestRuntime runtime, Consumer<D8TestBuilder> d8TestBuilderConsumer) {
     if (runtime.isCf()) {
       return testForJvm();
@@ -204,13 +205,38 @@ public class TestBase {
     }
   }
 
-  public TestBuilder<? extends TestRunResult<?>, ?> testForRuntime(
+  public TestBuilder<? extends SingleTestRunResult<?>, ?> testForRuntime(
       TestRuntime runtime, AndroidApiLevel apiLevel) {
     return testForRuntime(runtime, d8TestBuilder -> d8TestBuilder.setMinApi(apiLevel));
   }
 
-  public TestBuilder<? extends TestRunResult<?>, ?> testForRuntime(TestParameters parameters) {
+  public TestBuilder<? extends SingleTestRunResult<?>, ?> testForRuntime(
+      TestParameters parameters) {
     return testForRuntime(parameters.getRuntime(), parameters.getApiLevel());
+  }
+
+  public TestBuilder<? extends TestRunResult<?>, ?> testForDesugaring(TestParameters parameters) {
+    return testForDesugaring(parameters.getRuntime().getBackend(), parameters.getApiLevel());
+  }
+
+  private TestBuilder<? extends TestRunResult<?>, ?> testForDesugaring(
+      Backend backend, AndroidApiLevel apiLevel) {
+    assert apiLevel != null : "No API level. Add .withAllApiLevelsAlsoForCf() to test parameters?";
+    TestState state = new TestState(temp);
+    List<Pair<String, TestBuilder<? extends TestRunResult<?>, ?>>> builders;
+    if (backend == Backend.CF) {
+      builders =
+          ImmutableList.of(
+              new Pair<>("JAVAC", JvmTestBuilder.create(state)),
+              new Pair<>("D8/CF", D8TestBuilder.create(state, Backend.CF).setMinApi(apiLevel)));
+    } else {
+      assert backend == Backend.DEX;
+      builders =
+          ImmutableList.of(
+              new Pair<>("D8/DEX", D8TestBuilder.create(state, Backend.DEX).setMinApi(apiLevel)),
+              new Pair<>("D8/DEX o D8/CF", IntermediateCfD8TestBuilder.create(state, apiLevel)));
+    }
+    return TestBuilderCollection.create(state, builders);
   }
 
   public ProguardTestBuilder testForProguard() {

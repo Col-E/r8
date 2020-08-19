@@ -14,10 +14,10 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeStatic;
@@ -124,7 +124,7 @@ public class ClassStaticizerTest extends TestBase {
 
   @Test
   public void testTrivial() throws Exception {
-    TestRunResult result =
+    SingleTestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()
@@ -243,7 +243,7 @@ public class ClassStaticizerTest extends TestBase {
         HostOkFieldOnly.class,
         CandidateOkFieldOnly.class
     };
-    TestRunResult result =
+    SingleTestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()
@@ -281,7 +281,7 @@ public class ClassStaticizerTest extends TestBase {
         CandidateConflictField.class
     };
     String javaOutput = runOnJava(main);
-    TestRunResult result =
+    SingleTestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()
@@ -408,7 +408,7 @@ public class ClassStaticizerTest extends TestBase {
         Candidate.class
     };
     String javaOutput = runOnJava(main);
-    TestRunResult result =
+    SingleTestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()

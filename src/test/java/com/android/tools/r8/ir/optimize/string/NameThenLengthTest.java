@@ -11,10 +11,10 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -107,7 +107,7 @@ public class NameThenLengthTest extends TestBase {
   }
 
   private void test(
-      TestRunResult result,
+      SingleTestRunResult<?> result,
       int expectedStringLengthCountInClinit,
       int expectedConstNumberCountInClinit,
       int expectedStringLengthCountInInstanceMethod,

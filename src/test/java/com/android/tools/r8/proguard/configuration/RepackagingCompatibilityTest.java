@@ -13,7 +13,6 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -75,26 +74,27 @@ public class RepackagingCompatibilityTest extends TestBase {
             repackageToRoot, quote, shrinker),
         repackageToRoot && quote != Quote.NONE);
 
-    TestRunResult<?> result =
-        builder
-            .addProgramClasses(mainClass)
-            .addKeepRules(getKeepRules())
-            .run(mainClass)
-            .assertSuccessWithOutput(expectedOutput);
-
-    ClassSubject testClassSubject = result.inspector().clazz(mainClass);
-    assertThat(testClassSubject, isPresent());
-    if (repackageToRoot) {
-      if (directive.equals("-flattenpackagehierarchy")) {
-        assertThat(testClassSubject.getFinalName(), startsWith("a."));
-      } else if (directive.equals("-repackageclasses")) {
-        assertThat(testClassSubject.getFinalName(), not(containsString(".")));
-      } else {
-        fail();
-      }
-    } else {
-      assertThat(testClassSubject.getFinalName(), startsWith("greeter."));
-    }
+    builder
+        .addProgramClasses(mainClass)
+        .addKeepRules(getKeepRules())
+        .run(mainClass)
+        .assertSuccessWithOutput(expectedOutput)
+        .inspect(
+            inspector -> {
+              ClassSubject testClassSubject = inspector.clazz(mainClass);
+              assertThat(testClassSubject, isPresent());
+              if (repackageToRoot) {
+                if (directive.equals("-flattenpackagehierarchy")) {
+                  assertThat(testClassSubject.getFinalName(), startsWith("a."));
+                } else if (directive.equals("-repackageclasses")) {
+                  assertThat(testClassSubject.getFinalName(), not(containsString(".")));
+                } else {
+                  fail();
+                }
+              } else {
+                assertThat(testClassSubject.getFinalName(), startsWith("greeter."));
+              }
+            });
   }
 
   private List<String> getKeepRules() {

@@ -10,8 +10,8 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ir.optimize.reflection.GetNameTestBase;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -69,8 +69,8 @@ public class DexItemBasedConstStringCanonicalizationTest extends GetNameTestBase
         .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
-  private void test(
-      TestRunResult result, int expectedGetNameCount, int expectedConstString) throws Exception {
+  private void test(SingleTestRunResult result, int expectedGetNameCount, int expectedConstString)
+      throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();

@@ -14,7 +14,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
-public class ProguardTestRunResult extends TestRunResult<ProguardTestRunResult> {
+public class ProguardTestRunResult extends SingleTestRunResult<ProguardTestRunResult> {
 
   private final String proguardMap;
 

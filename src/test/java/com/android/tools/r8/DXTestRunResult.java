@@ -7,7 +7,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
 
-public class DXTestRunResult extends TestRunResult<DXTestRunResult> {
+public class DXTestRunResult extends SingleTestRunResult<DXTestRunResult> {
 
   public DXTestRunResult(AndroidApp app, TestRuntime runtime, ProcessResult result) {
     super(app, runtime, result);

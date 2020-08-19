@@ -11,7 +11,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 
-public class Dex2OatTestRunResult extends TestRunResult<Dex2OatTestRunResult> {
+public class Dex2OatTestRunResult extends SingleTestRunResult<Dex2OatTestRunResult> {
 
   public Dex2OatTestRunResult(AndroidApp app, TestRuntime runtime, ProcessResult result) {
     super(app, runtime, result);

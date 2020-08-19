@@ -10,9 +10,9 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -99,7 +99,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
   }
 
   private void test(
-      TestRunResult result, int expectedForNameCount, int expectedConstClassCount)
+      SingleTestRunResult<?> result, int expectedForNameCount, int expectedConstClassCount)
       throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);

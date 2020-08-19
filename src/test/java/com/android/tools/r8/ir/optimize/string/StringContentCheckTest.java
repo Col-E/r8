@@ -9,10 +9,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -138,7 +138,8 @@ public class StringContentCheckTest extends TestBase {
     }).count();
   }
 
-  private void test(TestRunResult result, int expectedStringContentCheckerCount) throws Exception {
+  private void test(SingleTestRunResult<?> result, int expectedStringContentCheckerCount)
+      throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
@@ -156,7 +157,7 @@ public class StringContentCheckTest extends TestBase {
   public void testD8() throws Exception {
     assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
 
-    TestRunResult result =
+    SingleTestRunResult<?> result =
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
@@ -177,7 +178,7 @@ public class StringContentCheckTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    TestRunResult result =
+    SingleTestRunResult<?> result =
         testForR8(parameters.getBackend())
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()

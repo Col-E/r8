@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
-public class R8TestRunResult extends TestRunResult<R8TestRunResult> {
+public class R8TestRunResult extends SingleTestRunResult<R8TestRunResult> {
 
   public interface GraphInspectorSupplier {
     GraphInspector get() throws IOException, ExecutionException;

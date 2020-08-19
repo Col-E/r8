@@ -12,8 +12,8 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.shaking.attributes.testclasses.Outer;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -69,7 +69,7 @@ public class KeepInnerClassesEnclosingMethodAnnotationsTest extends TestBase {
     final ClassSubject outer;
     final ClassSubject inner;
 
-    TestResult(TestRunResult result) throws Throwable {
+    TestResult(SingleTestRunResult<?> result) throws Throwable {
       this.stdout = result.getStdOut();
       this.inspector = result.inspector();
       this.outer = inspector.clazz(Outer.class);

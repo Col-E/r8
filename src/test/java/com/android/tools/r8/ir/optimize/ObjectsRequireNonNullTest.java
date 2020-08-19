@@ -12,10 +12,10 @@ import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -81,9 +81,8 @@ public class ObjectsRequireNonNullTest extends TestBase {
   }
 
   private void test(
-      TestRunResult result,
-      int expectedCountInMain,
-      int expectedCountInConsumer) throws Exception {
+      SingleTestRunResult<?> result, int expectedCountInMain, int expectedCountInConsumer)
+      throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();

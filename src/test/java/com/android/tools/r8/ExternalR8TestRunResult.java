@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 
-public class ExternalR8TestRunResult extends TestRunResult<ExternalR8TestRunResult> {
+public class ExternalR8TestRunResult extends SingleTestRunResult<ExternalR8TestRunResult> {
 
   private final Path outputJar;
   private final String proguardMap;

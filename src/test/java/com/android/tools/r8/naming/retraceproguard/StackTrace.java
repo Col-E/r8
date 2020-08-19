@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.FileUtils;
@@ -198,7 +198,7 @@ class StackTrace {
     return new StackTrace(internalExtractFromJvm(stderr), stderr);
   }
 
-  public static StackTrace extractFromJvm(TestRunResult result) {
+  public static StackTrace extractFromJvm(SingleTestRunResult result) {
     assertNotEquals(0, result.getExitCode());
     return extractFromJvm(result.getStdErr());
   }

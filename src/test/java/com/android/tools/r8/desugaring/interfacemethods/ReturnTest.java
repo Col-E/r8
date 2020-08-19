@@ -20,7 +20,7 @@ public class ReturnTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   public ReturnTest(TestParameters parameters) {
@@ -29,7 +29,7 @@ public class ReturnTest extends TestBase {
 
   @Test
   public void testReturn() throws Exception {
-    testForRuntime(parameters)
+    testForDesugaring(parameters)
         .addInnerClasses(ReturnTest.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(
