@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexDefinition;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -1003,6 +1004,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             .filter(AssertionUtils::assertNotNull)
             .collect(Collectors.toList()));
 
+    DexDefinitionSupplier definitionSupplier =
+        application.getDefinitionsSupplier(getSyntheticItems());
     return new AppInfoWithLiveness(
         application,
         getSyntheticItems(),
@@ -1016,8 +1019,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteMethods(methodsTargetedByInvokeDynamic),
         lens.rewriteMethods(virtualMethodsTargetedByInvokeDirect),
         lens.rewriteMethods(liveMethods),
-        fieldAccessInfoCollection.rewrittenWithLens(application, lens),
-        objectAllocationInfoCollection.rewrittenWithLens(application, lens),
+        fieldAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
+        objectAllocationInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         rewriteInvokesWithContexts(virtualInvokes, lens),
         rewriteInvokesWithContexts(interfaceInvokes, lens),
         rewriteInvokesWithContexts(superInvokes, lens),

@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 public class SyntheticItems {
 
@@ -27,6 +28,16 @@ public class SyntheticItems {
 
   public Collection<DexProgramClass> getPendingSyntheticClasses() {
     return Collections.unmodifiableCollection(pendingClasses.values());
+  }
+
+  public DexClass definitionFor(DexType type, Function<DexType, DexClass> baseDefinitionFor) {
+    DexProgramClass pending = pendingClasses.get(type);
+    if (pending != null) {
+      assert baseDefinitionFor.apply(type) == null
+          : "Pending synthetic definition also present in the active program: " + type;
+      return pending;
+    }
+    return baseDefinitionFor.apply(type);
   }
 
   // TODO(b/158159959): Remove the usage of this direct class addition (and name-based id).

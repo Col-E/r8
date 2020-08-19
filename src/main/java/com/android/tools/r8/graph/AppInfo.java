@@ -112,12 +112,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   public final DexClass definitionForWithoutExistenceAssert(DexType type) {
     assert checkIfObsolete();
-    DexProgramClass pending = syntheticItems.getPendingSyntheticClass(type);
-    if (pending != null) {
-      assert app.definitionFor(type) == null : "Program type also in pending synthetics: " + type;
-      return pending;
-    }
-    return app.definitionFor(type);
+    return syntheticItems.definitionFor(type, app::definitionFor);
   }
 
   public DexClass definitionForDesugarDependency(DexClass dependent, DexType type) {
