@@ -71,8 +71,7 @@ public class SyntheticItems {
     ImmutableSet<DexType> merged = syntheticTypes;
     if (!pendingClasses.isEmpty()) {
       merged =
-          ImmutableSet.<DexType>builderWithExpectedSize(
-                  syntheticTypes.size() + pendingClasses.size())
+          ImmutableSet.<DexType>builder()
               .addAll(syntheticTypes)
               .addAll(pendingClasses.keySet())
               .build();
