@@ -45,18 +45,21 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     private CreateDesugaringViewOnAppInfo() {}
   }
 
-  public AppInfoWithClassHierarchy(DexApplication application, SyntheticItems syntheticItems) {
-    super(application, syntheticItems);
+  public static AppInfoWithClassHierarchy createInitialAppInfoWithClassHierarchy(
+      DexApplication application) {
+    return new AppInfoWithClassHierarchy(
+        application, SyntheticItems.createInitialSyntheticItems().commit(application));
+  }
+
+  // For AppInfoWithLiveness.
+  protected AppInfoWithClassHierarchy(
+      DexApplication application, SyntheticItems.CommittedItems committedItems) {
+    super(application, committedItems);
   }
 
   // For desugaring.
   private AppInfoWithClassHierarchy(CreateDesugaringViewOnAppInfo witness, AppInfo appInfo) {
     super(witness, appInfo);
-  }
-
-  // For AppInfoWithLiveness.
-  protected AppInfoWithClassHierarchy(AppInfoWithClassHierarchy previous) {
-    super(previous);
   }
 
   public static AppInfoWithClassHierarchy createForDesugaring(AppInfo appInfo) {
@@ -65,7 +68,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   public AppInfoWithClassHierarchy rebuild(Function<DexApplication, DexApplication> fn) {
-    return new AppInfoWithClassHierarchy(fn.apply(app()), getSyntheticItems());
+    DexApplication application = fn.apply(app());
+    return new AppInfoWithClassHierarchy(application, getSyntheticItems().commit(application));
   }
 
   @Override

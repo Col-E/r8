@@ -26,13 +26,8 @@ public class AppInfo implements DexDefinitionSupplier {
     return new AppInfo(application, SyntheticItems.createInitialSyntheticItems(), new BooleanBox());
   }
 
-  public AppInfo(DexApplication application, SyntheticItems syntheticItems) {
-    this(application, syntheticItems.commit(application), new BooleanBox());
-  }
-
-  // For AppInfoWithLiveness.
-  protected AppInfo(AppInfoWithClassHierarchy previous) {
-    this(previous.app(), previous.getSyntheticItems().commit(previous.app()), new BooleanBox());
+  public AppInfo(DexApplication application, SyntheticItems.CommittedItems committedItems) {
+    this(application, committedItems.toSyntheticItems(), new BooleanBox());
   }
 
   // For desugaring.

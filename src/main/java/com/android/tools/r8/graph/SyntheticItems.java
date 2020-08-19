@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -11,6 +12,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 public class SyntheticItems {
+
+  public static class CommittedItems {
+    // Set of all types that represent synthesized items.
+    private final ImmutableSet<DexType> syntheticTypes;
+
+    private CommittedItems(ImmutableSet<DexType> syntheticTypes) {
+      this.syntheticTypes = syntheticTypes;
+    }
+
+    SyntheticItems toSyntheticItems() {
+      return new SyntheticItems(syntheticTypes);
+    }
+  }
 
   // Thread safe collection of synthesized classes that are not yet committed to the application.
   private final Map<DexType, DexProgramClass> pendingClasses = new ConcurrentHashMap<>();
@@ -48,11 +62,6 @@ public class SyntheticItems {
     assert previous == null || previous == clazz;
   }
 
-  // For use in AppInfo to support definitionFor lookup.
-  DexProgramClass getPendingSyntheticClass(DexType type) {
-    return pendingClasses.get(type);
-  }
-
   public boolean isSyntheticClass(DexType type) {
     return syntheticTypes.contains(type)
         || pendingClasses.containsKey(type)
@@ -64,8 +73,8 @@ public class SyntheticItems {
     return isSyntheticClass(clazz.type);
   }
 
-  public SyntheticItems commit(DexApplication application) {
-    assert verifyAllSyntheticsAreInApp(application, this);
+  public CommittedItems commit(DexApplication application) {
+    assert verifyAllPendingSyntheticsAreInApp(application, this);
     // All synthetics are in the app proper and no further meta-data is present so the empty
     // collection is currently returned here.
     ImmutableSet<DexType> merged = syntheticTypes;
@@ -76,10 +85,14 @@ public class SyntheticItems {
               .addAll(pendingClasses.keySet())
               .build();
     }
-    return new SyntheticItems(merged);
+    return new CommittedItems(merged);
   }
 
-  private static boolean verifyAllSyntheticsAreInApp(
+  public CommittedItems commit(DexApplication application, NestedGraphLens lens) {
+    return new CommittedItems(lens.rewriteTypes(commit(application).syntheticTypes));
+  }
+
+  private static boolean verifyAllPendingSyntheticsAreInApp(
       DexApplication app, SyntheticItems synthetics) {
     for (DexProgramClass clazz : synthetics.getPendingSyntheticClasses()) {
       assert app.programDefinitionFor(clazz.type) != null;

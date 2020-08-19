@@ -197,7 +197,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   // TODO(zerny): Clean up the constructors so we have just one.
   AppInfoWithLiveness(
       DirectMappedDexApplication application,
-      SyntheticItems syntheticItems,
+      SyntheticItems.CommittedItems syntheticItems,
       Set<DexType> deadProtoTypes,
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,
@@ -323,7 +323,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       EnumValueInfoMapCollection enumValueInfoMaps,
       Set<DexType> constClassReferences,
       Map<DexType, Visibility> initClassReferences) {
-    super(appInfoWithClassHierarchy);
+    super(
+        appInfoWithClassHierarchy.app(),
+        appInfoWithClassHierarchy.getSyntheticItems().commit(appInfoWithClassHierarchy.app()));
     this.deadProtoTypes = deadProtoTypes;
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
@@ -418,7 +420,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Collection<DexReference> additionalPinnedItems) {
     this(
         application,
-        previous.getSyntheticItems(),
+        previous.getSyntheticItems().commit(application),
         previous.deadProtoTypes,
         previous.missingTypes,
         previous.liveTypes,
@@ -505,7 +507,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       AppInfoWithLiveness previous,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       EnumValueInfoMapCollection enumValueInfoMaps) {
-    super(previous);
+    super(previous.app(), previous.getSyntheticItems().commit(previous.app()));
     this.deadProtoTypes = previous.deadProtoTypes;
     this.missingTypes = previous.missingTypes;
     this.liveTypes = previous.liveTypes;
@@ -1008,7 +1010,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         application.getDefinitionsSupplier(getSyntheticItems());
     return new AppInfoWithLiveness(
         application,
-        getSyntheticItems(),
+        getSyntheticItems().commit(application, lens),
         deadProtoTypes,
         missingTypes,
         lens.rewriteTypes(liveTypes),

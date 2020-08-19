@@ -127,7 +127,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public static AppView<AppInfoWithClassHierarchy> createForR8(DexApplication application) {
     AppInfoWithClassHierarchy appInfo =
-        new AppInfoWithClassHierarchy(application, SyntheticItems.createInitialSyntheticItems());
+        AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(application);
     return new AppView<>(
         appInfo, WholeProgramOptimizations.ON, defaultPrefixRewritingMapper(appInfo));
   }

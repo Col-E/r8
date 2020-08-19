@@ -3032,7 +3032,7 @@ public class Enqueuer {
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             app,
-            appInfo.getSyntheticItems(),
+            appInfo.getSyntheticItems().commit(app),
             deadProtoTypes,
             mode.isFinalTreeShaking()
                 ? Sets.union(initialMissingTypes, missingTypes)

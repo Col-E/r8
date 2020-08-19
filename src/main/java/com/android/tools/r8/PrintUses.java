@@ -23,7 +23,6 @@ import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.SyntheticItems;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.utils.AndroidApp;
@@ -362,8 +361,7 @@ public class PrintUses {
     InternalOptions options = new InternalOptions();
     application =
         new ApplicationReader(inputApp, options, new Timing("PrintUses")).read().toDirect();
-    appInfo =
-        new AppInfoWithClassHierarchy(application, SyntheticItems.createInitialSyntheticItems());
+    appInfo = AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(application);
   }
 
   private void analyze() {

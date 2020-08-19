@@ -35,7 +35,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.graph.SubtypingInfo;
-import com.android.tools.r8.graph.SyntheticItems;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
@@ -622,9 +621,8 @@ public class TestBase {
 
   protected static AppInfoWithClassHierarchy computeAppInfoWithClassHierarchy(AndroidApp app)
       throws Exception {
-    return new AppInfoWithClassHierarchy(
-        readApplicationForDexOutput(app, new InternalOptions()),
-        SyntheticItems.createInitialSyntheticItems());
+    return AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
+        readApplicationForDexOutput(app, new InternalOptions()));
   }
 
   protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithSubtyping(AndroidApp app)
