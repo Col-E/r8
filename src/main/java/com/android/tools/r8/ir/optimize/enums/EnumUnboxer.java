@@ -7,11 +7,14 @@ package com.android.tools.r8.ir.optimize.enums;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
+import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication.Builder;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClass.FieldSetter;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -26,9 +29,11 @@ import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -78,6 +83,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Predicate;
 
 public class EnumUnboxer implements PostOptimization {
 
@@ -503,11 +509,15 @@ public class EnumUnboxer implements PostOptimization {
 
   private Constraint analyzeAccessibilityInClass(DexProgramClass enumClass) {
     Constraint classConstraint = Constraint.ALWAYS;
+    EnumAccessibilityUseRegistry useRegistry = null;
     for (DexEncodedMethod method : enumClass.methods()) {
       // Enum initializer are analyzed in analyzeInitializers instead.
       if (!method.isInitializer()) {
-        Constraint methodConstraint = constraintForEnumUnboxing(method);
-        classConstraint = meet(classConstraint, methodConstraint);
+        if (useRegistry == null) {
+          useRegistry = new EnumAccessibilityUseRegistry(factory);
+        }
+        Constraint methodConstraint = constraintForEnumUnboxing(method, useRegistry);
+        classConstraint = classConstraint.meet(methodConstraint);
         if (classConstraint == Constraint.NEVER) {
           return classConstraint;
         }
@@ -516,45 +526,206 @@ public class EnumUnboxer implements PostOptimization {
     return classConstraint;
   }
 
-  private Constraint meet(Constraint constraint1, Constraint constraint2) {
-    if (constraint1 == Constraint.NEVER || constraint2 == Constraint.NEVER) {
-      return Constraint.NEVER;
-    }
-    if (constraint1 == Constraint.ALWAYS) {
-      return constraint2;
-    }
-    if (constraint2 == Constraint.ALWAYS) {
-      return constraint1;
-    }
-    assert constraint1 == Constraint.PACKAGE && constraint2 == Constraint.PACKAGE;
-    return Constraint.PACKAGE;
+  public Constraint constraintForEnumUnboxing(
+      DexEncodedMethod method, EnumAccessibilityUseRegistry useRegistry) {
+    return useRegistry.computeConstraint(method.asProgramMethod(appView));
   }
 
-  public Constraint constraintForEnumUnboxing(DexEncodedMethod method) {
-    // TODO(b/160939354): Use a UseRegistry instead of inlining constraints.
-    assert appView.definitionForProgramType(method.holder()) != null;
-    assert appView.definitionForProgramType(method.holder()).isEnum();
-    assert appView.definitionForProgramType(method.holder()).isEffectivelyFinal(appView);
-    assert appView.definitionForProgramType(method.holder()).superType
-        == appView.dexItemFactory().enumType;
-    assert !appView.definitionForProgramType(method.holder()).isInANest()
-        : "Unboxable enum is in a nest, this should not happen in cf to dex compilation, R8 needs"
-            + " to take care of nest access control when relocating unboxable enums methods";
-    switch (method.getCompilationState()) {
-      case PROCESSED_INLINING_CANDIDATE_ANY:
+  private class EnumAccessibilityUseRegistry extends UseRegistry {
+
+    private ProgramMethod context;
+    private Constraint constraint;
+
+    public EnumAccessibilityUseRegistry(DexItemFactory factory) {
+      super(factory);
+    }
+
+    public Constraint computeConstraint(ProgramMethod method) {
+      constraint = Constraint.ALWAYS;
+      context = method;
+      method.registerCodeReferences(this);
+      return constraint;
+    }
+
+    public Constraint deriveConstraint(DexType targetHolder, AccessFlags<?> flags) {
+      DexProgramClass contextHolder = context.getHolder();
+      if (targetHolder == contextHolder.type) {
         return Constraint.ALWAYS;
-      case PROCESSED_INLINING_CANDIDATE_SAME_NEST:
-        assert false;
-        // fall through
-      case PROCESSED_INLINING_CANDIDATE_SUBCLASS:
-        // There is no such thing as subclass access in this context, enums analyzed here have no
-        // subclasses, inherit directly from java.lang.Enum and are not analyzed if they call
-        // the protected methods in java.lang.Enum and java.lang.Object.
-      case PROCESSED_INLINING_CANDIDATE_SAME_CLASS:
-      case PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE:
-        return Constraint.PACKAGE;
-      default:
+      }
+      if (flags.isPublic()) {
+        return Constraint.ALWAYS;
+      }
+      if (flags.isPrivate()) {
+        // Enum unboxing is currently happening only cf to dex, and no class should be in a nest
+        // at this point. If that is the case, we just don't unbox the enum, or we would need to
+        // support Constraint.SAMENEST in the enum unboxer.
+        assert !contextHolder.isInANest();
+        // Only accesses within the enum are allowed since all enum methods and fields will be
+        // moved to the same class, and the enum itself becomes an integer, which is
+        // accessible everywhere.
         return Constraint.NEVER;
+      }
+      assert flags.isProtected() || flags.isPackagePrivate();
+      // Protected is in practice equivalent to package private in this analysis since we are
+      // accessing the member from an enum context where subclassing is limited.
+      // At this point we don't support unboxing enums with subclasses, so we assume either
+      // same package access, or we just don't unbox.
+      // The only protected methods in java.lang.Enum are clone, finalize and the constructor.
+      // Besides calls to the constructor in the instance initializer, Enums with calls to such
+      // methods cannot be unboxed.
+      return targetHolder.isSamePackage(contextHolder.type) ? Constraint.PACKAGE : Constraint.NEVER;
+    }
+
+    @Override
+    public boolean registerTypeReference(DexType type) {
+      if (type.isArrayType()) {
+        return registerTypeReference(type.toBaseType(factory));
+      }
+
+      if (type.isPrimitiveType()) {
+        return true;
+      }
+
+      DexClass definition = appView.definitionFor(type);
+      if (definition == null) {
+        constraint = Constraint.NEVER;
+        return true;
+      }
+      constraint = constraint.meet(deriveConstraint(type, definition.accessFlags));
+      return true;
+    }
+
+    @Override
+    public boolean registerInitClass(DexType type) {
+      return registerTypeReference(type);
+    }
+
+    @Override
+    public boolean registerInstanceOf(DexType type) {
+      return registerTypeReference(type);
+    }
+
+    @Override
+    public boolean registerNewInstance(DexType type) {
+      return registerTypeReference(type);
+    }
+
+    @Override
+    public boolean registerInvokeVirtual(DexMethod method) {
+      return registerVirtualInvoke(method, false);
+    }
+
+    @Override
+    public boolean registerInvokeInterface(DexMethod method) {
+      return registerVirtualInvoke(method, true);
+    }
+
+    private boolean registerVirtualInvoke(DexMethod method, boolean isInterface) {
+      if (method.holder.isArrayType()) {
+        return true;
+      }
+      // Perform resolution and derive unboxing constraints based on the accessibility of the
+      // resolution result.
+      ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method, isInterface);
+      if (!resolutionResult.isVirtualTarget()) {
+        constraint = Constraint.NEVER;
+        return false;
+      }
+      return registerTarget(
+          resolutionResult.getInitialResolutionHolder(), resolutionResult.getSingleTarget());
+    }
+
+    private boolean registerTarget(
+        DexClass initialResolutionHolder, DexEncodedMember<?, ?> target) {
+      if (target == null) {
+        // This will fail at runtime.
+        constraint = Constraint.NEVER;
+        return false;
+      }
+      DexType resolvedHolder = target.holder();
+      if (initialResolutionHolder == null) {
+        constraint = Constraint.NEVER;
+        return true;
+      }
+      Constraint memberConstraint = deriveConstraint(resolvedHolder, target.getAccessFlags());
+      // We also have to take the constraint of the initial resolution holder into account.
+      Constraint classConstraint =
+          deriveConstraint(initialResolutionHolder.type, initialResolutionHolder.accessFlags);
+      Constraint instructionConstraint = memberConstraint.meet(classConstraint);
+      constraint = instructionConstraint.meet(constraint);
+      return true;
+    }
+
+    @Override
+    public boolean registerInvokeDirect(DexMethod method) {
+      return registerSingleTargetInvoke(method, DexEncodedMethod::isDirectMethod);
+    }
+
+    @Override
+    public boolean registerInvokeStatic(DexMethod method) {
+      return registerSingleTargetInvoke(method, DexEncodedMethod::isStatic);
+    }
+
+    private boolean registerSingleTargetInvoke(
+        DexMethod method, Predicate<DexEncodedMethod> methodValidator) {
+      if (method.holder.isArrayType()) {
+        return true;
+      }
+      ResolutionResult resolutionResult =
+          appView.appInfo().unsafeResolveMethodDueToDexFormat(method);
+      DexEncodedMethod target = resolutionResult.getSingleTarget();
+      if (target == null || !methodValidator.test(target)) {
+        constraint = Constraint.NEVER;
+        return false;
+      }
+      return registerTarget(resolutionResult.getInitialResolutionHolder(), target);
+    }
+
+    @Override
+    public boolean registerInvokeSuper(DexMethod method) {
+      // Invoke-super can only target java.lang.Enum methods since we do not unbox enums with
+      // subclasses. Calls to java.lang.Object methods would have resulted in the enum to be marked
+      // as unboxable. The methods of java.lang.Enum called are already analyzed in the enum
+      // unboxer analysis, so invoke-super is always valid.
+      assert method.holder == factory.enumType;
+      return true;
+    }
+
+    @Override
+    public void registerCallSite(DexCallSite callSite) {
+      // This is reached after lambda desugaring, so this should not be a lambda call site.
+      // We do not unbox enums with invoke custom since it's not clear the accessibility
+      // constraints would be correct if the method holding the invoke custom is moved to
+      // another class.
+      assert !factory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
+      constraint = Constraint.NEVER;
+    }
+
+    private boolean registerFieldInstruction(DexField field) {
+      FieldResolutionResult fieldResolutionResult = appView.appInfo().resolveField(field, context);
+      return registerTarget(
+          fieldResolutionResult.getInitialResolutionHolder(),
+          fieldResolutionResult.getResolvedField());
+    }
+
+    @Override
+    public boolean registerInstanceFieldRead(DexField field) {
+      return registerFieldInstruction(field);
+    }
+
+    @Override
+    public boolean registerInstanceFieldWrite(DexField field) {
+      return registerFieldInstruction(field);
+    }
+
+    @Override
+    public boolean registerStaticFieldRead(DexField field) {
+      return registerFieldInstruction(field);
+    }
+
+    @Override
+    public boolean registerStaticFieldWrite(DexField field) {
+      return registerFieldInstruction(field);
     }
   }
 

@@ -297,6 +297,13 @@ public class Inliner implements PostOptimization {
       assert SUBCLASS.ordinal() < ALWAYS.ordinal();
     }
 
+    public Constraint meet(Constraint otherConstraint) {
+      if (this.ordinal() < otherConstraint.ordinal()) {
+        return this;
+      }
+      return otherConstraint;
+    }
+
     boolean isSet(int value) {
       return (this.value & value) != 0;
     }

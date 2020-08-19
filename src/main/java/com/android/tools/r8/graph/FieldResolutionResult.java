@@ -35,6 +35,10 @@ public abstract class FieldResolutionResult {
     return false;
   }
 
+  public DexClass getInitialResolutionHolder() {
+    return null;
+  }
+
   public static class SuccessfulFieldResolutionResult extends FieldResolutionResult {
 
     private final DexClass initialResolutionHolder;
@@ -49,6 +53,7 @@ public abstract class FieldResolutionResult {
       this.resolvedField = resolvedField;
     }
 
+    @Override
     public DexClass getInitialResolutionHolder() {
       return initialResolutionHolder;
     }

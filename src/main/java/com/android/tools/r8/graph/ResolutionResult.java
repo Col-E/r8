@@ -59,6 +59,10 @@ public abstract class ResolutionResult {
     return isSingleResolution() ? asSingleResolution().getResolvedMethod() : null;
   }
 
+  public DexClass getInitialResolutionHolder() {
+    return null;
+  }
+
   public abstract OptionalBool isAccessibleFrom(
       DexProgramClass context, AppInfoWithClassHierarchy appInfo);
 
@@ -139,6 +143,11 @@ public abstract class ResolutionResult {
       this.initialResolutionHolder = initialResolutionHolder;
       assert !resolvedMethod.isPrivateMethod()
           || initialResolutionHolder.type == resolvedMethod.holder();
+    }
+
+    @Override
+    public DexClass getInitialResolutionHolder() {
+      return initialResolutionHolder;
     }
 
     public DexClass getResolvedHolder() {

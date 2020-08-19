@@ -76,6 +76,11 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return kotlinMemberInfo;
   }
 
+  @Override
+  public FieldAccessFlags getAccessFlags() {
+    return accessFlags;
+  }
+
   public void setKotlinMemberInfo(KotlinFieldLevelInfo kotlinMemberInfo) {
     assert this.kotlinMemberInfo == NO_KOTLIN_INFO;
     this.kotlinMemberInfo = kotlinMemberInfo;

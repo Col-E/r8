@@ -1768,11 +1768,6 @@ public class IRConverter {
         || definition.getOptimizationInfo().isReachabilitySensitive()) {
       return false;
     }
-    if (appView.options().enableEnumUnboxing && method.getHolder().isEnum()) {
-      // Although the method is pinned, we compute the inlining constraint for enum unboxing,
-      // but the inliner won't be able to inline the method (marked as pinned).
-      return true;
-    }
     if (appView.appInfo().hasLiveness()
         && appView.appInfo().withLiveness().isPinned(method.getReference())) {
       return false;

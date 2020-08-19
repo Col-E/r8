@@ -180,8 +180,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     obsolete = true;
   }
 
-  public CompilationState getCompilationState() {
-    return compilationState;
+  @Override
+  public MethodAccessFlags getAccessFlags() {
+    return accessFlags;
   }
 
   public DexEncodedMethod getDefaultInterfaceMethodImplementation() {
