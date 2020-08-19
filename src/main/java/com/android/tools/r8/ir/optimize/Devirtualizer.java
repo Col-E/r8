@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -23,7 +24,6 @@ import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -166,10 +166,9 @@ public class Devirtualizer {
         if (holderClass == null || holderClass.isInterface()) {
           continue;
         }
+
         // Due to the potential downcast below, make sure the new target holder is visible.
-        ConstraintWithTarget visibility =
-            ConstraintWithTarget.classIsVisible(context.getHolder(), holderType, appView);
-        if (visibility == ConstraintWithTarget.NEVER) {
+        if (AccessControl.isClassAccessible(holderClass, context, appView).isPossiblyFalse()) {
           continue;
         }
 

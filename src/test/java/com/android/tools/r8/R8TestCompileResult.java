@@ -132,6 +132,11 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
     return new R8TestRunResult(app, runtime, result, proguardMap, this::graphInspector);
   }
 
+  public R8TestRunResult runFeature(TestRuntime runtime, Class<?> mainFeatureClass)
+      throws IOException {
+    return runFeature(runtime, mainFeatureClass, features.get(0));
+  }
+
   public R8TestRunResult runFeature(
       TestRuntime runtime, Class<?> mainFeatureClass, Path feature, Path... featureDependencies)
       throws IOException {
