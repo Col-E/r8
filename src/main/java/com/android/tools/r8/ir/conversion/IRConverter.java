@@ -595,7 +595,7 @@ public class IRConverter {
         if (appView.options().enableNeverMergePrefixes) {
           for (DexString neverMergePrefix : neverMergePrefixes) {
             // Synthetic classes will always be merged.
-            if (method.getHolderType().isD8R8SynthesizedClassType()) {
+            if (appView.appInfo().getSyntheticItems().isSyntheticClass(method.getHolder())) {
               continue;
             }
             if (method.getHolderType().descriptor.startsWith(neverMergePrefix)) {

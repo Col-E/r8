@@ -92,7 +92,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   public Collection<DexProgramClass> synthesizedClasses() {
     assert checkIfObsolete();
-    return syntheticItems.getSyntheticClasses();
+    return syntheticItems.getPendingSyntheticClasses();
   }
 
   public Collection<DexProgramClass> classes() {
@@ -112,10 +112,10 @@ public class AppInfo implements DexDefinitionSupplier {
 
   public final DexClass definitionForWithoutExistenceAssert(DexType type) {
     assert checkIfObsolete();
-    DexProgramClass cached = syntheticItems.getSyntheticClass(type);
-    if (cached != null) {
+    DexProgramClass pending = syntheticItems.getPendingSyntheticClass(type);
+    if (pending != null) {
       assert app.definitionFor(type) == null : "Program type also in pending synthetics: " + type;
-      return cached;
+      return pending;
     }
     return app.definitionFor(type);
   }

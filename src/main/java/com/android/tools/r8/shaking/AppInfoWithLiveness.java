@@ -786,7 +786,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private boolean isInstantiatedDirectly(DexProgramClass clazz) {
     assert checkIfObsolete();
     DexType type = clazz.type;
-    return type.isD8R8SynthesizedClassType()
+    return
+    // TODO(b/165224388): Synthetic classes should be represented in the allocation info.
+    getSyntheticItems().isSyntheticClass(clazz)
         || (!clazz.isInterface() && objectAllocationInfoCollection.isInstantiatedDirectly(clazz))
         // TODO(b/145344105): Model annotations in the object allocation info.
         || (clazz.isAnnotation() && liveTypes.contains(type));
@@ -809,11 +811,16 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (info != null && info.isRead()) {
       return true;
     }
-    return keepInfo.isPinned(field, this)
-        // Fields in the class that is synthesized by D8/R8 would be used soon.
-        || field.holder.isD8R8SynthesizedClassType()
-        // For library classes we don't know whether a field is read.
-        || isLibraryOrClasspathField(encodedField);
+    if (keepInfo.isPinned(field, this)) {
+      return true;
+    }
+    // Fields in the class that is synthesized by D8/R8 would be used soon.
+    // TODO(b/165229577): Do we need this special handling of synthetics?
+    if (getSyntheticItems().isSyntheticClass(field.holder)) {
+      return true;
+    }
+    // For library classes we don't know whether a field is read.
+    return isLibraryOrClasspathField(encodedField);
   }
 
   public boolean isFieldWritten(DexEncodedField encodedField) {
@@ -829,15 +836,12 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       // The field is written directly by the program itself.
       return true;
     }
-    if (field.holder.isD8R8SynthesizedClassType()) {
-      // Fields in the class that is synthesized by D8/R8 would be used soon.
+    // TODO(b/165229577): Do we need this special handling of synthetics?
+    if (getSyntheticItems().isSyntheticClass(field.holder)) {
       return true;
     }
-    if (isLibraryOrClasspathField(encodedField)) {
-      // For library classes we don't know whether a field is rewritten.
-      return true;
-    }
-    return false;
+    // For library classes we don't know whether a field is rewritten.
+    return isLibraryOrClasspathField(encodedField);
   }
 
   public boolean isFieldOnlyWrittenInMethod(DexEncodedField field, DexEncodedMethod method) {

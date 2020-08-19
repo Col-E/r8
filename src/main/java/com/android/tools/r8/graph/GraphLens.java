@@ -347,9 +347,9 @@ public abstract class GraphLens {
   }
 
   public boolean verifyMappingToOriginalProgram(
-      Iterable<DexProgramClass> classes,
-      DexApplication originalApplication,
-      DexItemFactory dexItemFactory) {
+      AppView<?> appView, DexApplication originalApplication) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    Iterable<DexProgramClass> classes = appView.appInfo().classesWithDeterministicOrder();
     // Collect all original fields and methods for efficient querying.
     Set<DexField> originalFields = Sets.newIdentityHashSet();
     Set<DexMethod> originalMethods = Sets.newIdentityHashSet();
@@ -365,7 +365,7 @@ public abstract class GraphLens {
     // Check that all fields and methods in the generated program can be mapped back to one of the
     // original fields or methods.
     for (DexProgramClass clazz : classes) {
-      if (clazz.type.isD8R8SynthesizedClassType()) {
+      if (appView.appInfo().getSyntheticItems().isSyntheticClass(clazz)) {
         continue;
       }
       for (DexEncodedField field : clazz.fields()) {
