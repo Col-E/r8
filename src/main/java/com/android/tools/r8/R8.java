@@ -39,6 +39,7 @@ import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
@@ -539,6 +540,13 @@ public class R8 {
             appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
             appView.rewriteWithLens(lens);
           }
+          timing.end();
+        }
+        if (options.enableHorizontalClassMerging) {
+          timing.begin("HorizontalClassMerger");
+          HorizontalClassMerger merger =
+              new HorizontalClassMerger(appViewWithLiveness, mainDexClasses);
+          merger.run();
           timing.end();
         }
 
