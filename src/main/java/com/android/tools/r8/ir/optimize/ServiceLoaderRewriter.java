@@ -261,7 +261,6 @@ public class ServiceLoaderRewriter {
               return newClass;
             });
     assert clazz != null;
-    appView.appInfo().addSynthesizedClass(clazz);
     return clazz;
   }
 
