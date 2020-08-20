@@ -4,10 +4,15 @@
 
 package com.android.tools.r8.enumunboxing;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,7 +22,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class SwitchEnumUnboxingTest extends EnumUnboxingTestBase {
 
-  private static final Class<?> ENUM_CLASS = MyEnum.class;
+  private static final Class<?> ENUM_CLASS = MyEnumFewCases.class;
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
@@ -45,10 +50,12 @@ public class SwitchEnumUnboxingTest extends EnumUnboxingTestBase {
             .addKeepRules(enumKeepRules.getKeepRules())
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
+            .noMinification() // For assertions.
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
             .compile()
+            .inspect(this::assertSwitchPresentButSwitchMapRemoved)
             .inspectDiagnosticMessages(
                 m -> assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m))
             .run(parameters.getRuntime(), classToTest)
@@ -56,30 +63,119 @@ public class SwitchEnumUnboxingTest extends EnumUnboxingTestBase {
     assertLines2By2Correct(run.getStdOut());
   }
 
+  private void assertSwitchPresentButSwitchMapRemoved(CodeInspector i) {
+    if (enumValueOptimization) {
+      assertFalse(
+          i.clazz("com.android.tools.r8.enumunboxing.SwitchEnumUnboxingTest$1").isPresent());
+    }
+    assertTrue(
+        i.clazz(Switch.class)
+            .uniqueMethodWithName("switchOnEnumManyCases")
+            .streamInstructions()
+            .anyMatch(InstructionSubject::isSwitch));
+  }
+
   @NeverClassInline
-  enum MyEnum {
+  enum MyEnumFewCases {
     A,
     B,
-    C
+    C;
+
+    @NeverInline
+    void print() {
+      Switch.packagePrivatePrint();
+    }
+  }
+
+  @NeverClassInline
+  enum MyEnumManyCases {
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I;
+
+    @NeverInline
+    void print() {
+      Switch.packagePrivatePrint();
+    }
   }
 
   static class Switch {
 
     public static void main(String[] args) {
-      System.out.println(switchOnEnum(MyEnum.A));
+      System.out.println(switchOnEnumFewCases(MyEnumFewCases.A));
       System.out.println(0xC0FFEE);
-      System.out.println(switchOnEnum(MyEnum.B));
+      System.out.println(switchOnEnumFewCases(MyEnumFewCases.B));
       System.out.println(0xBABE);
+
+      System.out.println(switchOnEnumManyCases(MyEnumManyCases.A));
+      System.out.println(0xACE);
+      System.out.println(switchOnEnumManyCases(MyEnumManyCases.B));
+      System.out.println(0xBABE);
+      System.out.println(switchOnEnumManyCases(MyEnumManyCases.C));
+      System.out.println(0xC0FFEE);
+      System.out.println(switchOnEnumManyCases(MyEnumManyCases.D));
+      System.out.println(0xDEC0DE);
+      System.out.println(switchOnEnumManyCases(MyEnumManyCases.E));
+      System.out.println(0xEFFACE);
+      System.out.println(switchOnEnumManyCases(MyEnumManyCases.F));
+      System.out.println(0xF00D);
+      System.out.println(switchOnEnumManyCases(MyEnumManyCases.G));
+      System.out.println(0x0);
+      System.out.println(switchOnEnumManyCases(MyEnumManyCases.H));
+      System.out.println(0x1);
+      System.out.println(switchOnEnumManyCases(MyEnumManyCases.I));
+      System.out.println(0x2);
+
+      MyEnumFewCases.A.print();
+      MyEnumManyCases.A.print();
     }
 
-    // Avoid removing the switch entirely.
     @NeverInline
-    static int switchOnEnum(MyEnum e) {
+    static void packagePrivatePrint() {
+      System.out.println("package private dependency");
+    }
+
+    // This switch will be converted into branches.
+    @NeverInline
+    static int switchOnEnumFewCases(MyEnumFewCases e) {
       switch (e) {
         case A:
           return 0xC0FFEE;
         case B:
           return 0xBABE;
+        default:
+          return 0xDEADBEEF;
+      }
+    }
+
+    // This switch will remain a switch.
+    @NeverInline
+    static int switchOnEnumManyCases(MyEnumManyCases e) {
+      switch (e) {
+        case A:
+          return 0xACE;
+        case B:
+          return 0xBABE;
+        case C:
+          return 0xC0FFEE;
+        case D:
+          return 0xDEC0DE;
+        case E:
+          return 0xEFFACE;
+        case F:
+          return 0xF00D;
+        case G:
+          return 0x0;
+        case H:
+          return 0x1;
+        case I:
+          return 0x2;
         default:
           return 0xDEADBEEF;
       }

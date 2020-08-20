@@ -7,8 +7,11 @@ package com.android.tools.r8.ir.optimize.enums;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -23,8 +26,10 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
@@ -61,6 +66,7 @@ import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
+import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -75,7 +81,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -338,8 +343,7 @@ public class EnumUnboxer implements PostOptimization {
   public void unboxEnums(
       PostMethodProcessor.Builder postBuilder,
       ExecutorService executorService,
-      OptimizationFeedbackDelayed feedback,
-      Set<DexType> hostsToAvoidIfPossible)
+      OptimizationFeedbackDelayed feedback)
       throws ExecutionException {
     // At this point the enumsToUnbox are no longer candidates, they will all be unboxed.
     if (enumsUnboxingCandidates.isEmpty()) {
@@ -349,13 +353,13 @@ public class EnumUnboxer implements PostOptimization {
     // Update keep info on any of the enum methods of the removed classes.
     updatePinnedItems(enumsToUnbox);
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox);
-    Map<DexType, DexType> newMethodLocation =
-        findNewMethodLocationOfUnboxableEnums(enumsToUnbox, hostsToAvoidIfPossible);
+    DirectMappedDexApplication.Builder appBuilder = appView.appInfo().app().asDirect().builder();
+    Map<DexType, DexType> newMethodLocation = synthesizeUnboxedEnumsMethodsLocations(appBuilder);
     NestedGraphLens enumUnboxingLens =
         new TreeFixer(enumsToUnbox).fixupTypeReferences(newMethodLocation);
     appView.setUnboxedEnums(enumUnboxerRewriter.getEnumsToUnbox());
     GraphLens previousLens = appView.graphLens();
-    appView.rewriteWithLens(enumUnboxingLens);
+    appView.rewriteWithLensAndApplication(enumUnboxingLens, appBuilder.build());
     // Update optimization info.
     feedback.fixupOptimizationInfos(
         appView,
@@ -393,82 +397,68 @@ public class EnumUnboxer implements PostOptimization {
   }
 
   // Some enums may have methods which require to stay in the current package for accessibility,
-  // in this case we find another class than the enum unboxing utility class to host these methods.
-  private Map<DexType, DexType> findNewMethodLocationOfUnboxableEnums(
-      Set<DexType> enumsToUnbox, Set<DexType> hostsToAvoidIfPossible) {
+  // in this case we create another class than the enum unboxing utility class to host these
+  // methods.
+  private Map<DexType, DexType> synthesizeUnboxedEnumsMethodsLocations(
+      DirectMappedDexApplication.Builder appBuilder) {
     if (enumsToUnboxWithPackageRequirement.isEmpty()) {
       return Collections.emptyMap();
     }
     Map<DexType, DexType> newMethodLocationMap = new IdentityHashMap<>();
-    Map<String, DexProgramClass> packageToClassMap =
-        getPackageToClassMapExcluding(enumsToUnbox, hostsToAvoidIfPossible);
+    Map<String, DexProgramClass> packageToClassMap = new HashMap<>();
     for (DexType toUnbox : enumsToUnboxWithPackageRequirement) {
-      DexProgramClass packageClass = packageToClassMap.get(toUnbox.getPackageDescriptor());
-      if (packageClass != null) {
-        newMethodLocationMap.put(toUnbox, packageClass.type);
+      String packageDescriptor = toUnbox.getPackageDescriptor();
+      DexProgramClass syntheticClass = packageToClassMap.get(packageDescriptor);
+      if (syntheticClass == null) {
+        syntheticClass = synthesizeUtilityClassInPackage(packageDescriptor, appBuilder);
+        packageToClassMap.put(packageDescriptor, syntheticClass);
       }
+      if (appView.appInfo().isInMainDexList(toUnbox)) {
+        appBuilder.addToMainDexList(syntheticClass.type);
+      }
+      newMethodLocationMap.put(toUnbox, syntheticClass.type);
     }
     enumsToUnboxWithPackageRequirement.clear();
     return newMethodLocationMap;
   }
 
-  // We are looking for another class in the same package as the unboxed enum to host the unboxed
-  // enum methods. We go through all classes, and for each package where a host is needed, we
-  // select a class.
-  private Map<String, DexProgramClass> getPackageToClassMapExcluding(
-      Set<DexType> enumsToUnbox, Set<DexType> hostsToAvoidIfPossible) {
-    HashSet<String> relevantPackages = new HashSet<>();
-    for (DexType toUnbox : enumsToUnbox) {
-      relevantPackages.add(toUnbox.getPackageDescriptor());
+  private DexProgramClass synthesizeUtilityClassInPackage(
+      String packageDescriptor, DirectMappedDexApplication.Builder appBuilder) {
+    DexType type =
+        factory.createType(
+            "L"
+                + packageDescriptor
+                + "/"
+                + EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_CLASS_NAME
+                + ";");
+    if (type == factory.enumUnboxingUtilityType) {
+      return appView.definitionFor(type).asProgramClass();
     }
-
-    Map<String, DexProgramClass> packageToClassMap = new HashMap<>();
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      String packageDescriptor = clazz.type.getPackageDescriptor();
-      if (relevantPackages.contains(packageDescriptor) && !enumsToUnbox.contains(clazz.type)) {
-        DexProgramClass previousClass = packageToClassMap.get(packageDescriptor);
-        if (previousClass == null) {
-          packageToClassMap.put(packageDescriptor, clazz);
-        } else {
-          packageToClassMap.put(
-              packageDescriptor, selectHost(clazz, previousClass, hostsToAvoidIfPossible));
-        }
-      }
-    }
-
-    return packageToClassMap;
+    DexProgramClass syntheticClass =
+        new DexProgramClass(
+            type,
+            null,
+            new SynthesizedOrigin("enum unboxing", EnumUnboxer.class),
+            ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC),
+            factory.objectType,
+            DexTypeList.empty(),
+            null,
+            null,
+            Collections.emptyList(),
+            null,
+            Collections.emptyList(),
+            DexAnnotationSet.empty(),
+            DexEncodedField.EMPTY_ARRAY,
+            DexEncodedField.EMPTY_ARRAY,
+            DexEncodedMethod.EMPTY_ARRAY,
+            DexEncodedMethod.EMPTY_ARRAY,
+            factory.getSkipNameValidationForTesting(),
+            DexProgramClass::checksumFromType);
+    appBuilder.addSynthesizedClass(syntheticClass, false);
+    appView.appInfo().addSynthesizedClass(syntheticClass);
+    return syntheticClass;
   }
 
-  // We are trying to select a host for the enum unboxing methods, but multiple candidates are
-  // available. We need to pick one of the two classes and the result has to be deterministic.
-  // We follow the heuristics, in order:
-  //  1. don't pick a class from hostToAvoidIfPossible, or merged, if possible
-  //  2. pick the class with the least number of methods
-  //  3. pick the first class name in alphabetical order for determinism.
-  private DexProgramClass selectHost(
-      DexProgramClass class1, DexProgramClass class2, Set<DexType> hostsToAvoidIfPossible) {
-    boolean avoid1 = appView.hasBeenMerged(class1) || hostsToAvoidIfPossible.contains(class1.type);
-    boolean avoid2 = appView.hasBeenMerged(class2) || hostsToAvoidIfPossible.contains(class2.type);
-    if (avoid1 && !avoid2) {
-      return class2;
-    }
-    if (avoid2 && !avoid1) {
-      return class1;
-    }
-    int size1 = class1.getMethodCollection().size();
-    int size2 = class2.getMethodCollection().size();
-    if (size1 < size2) {
-      return class1;
-    }
-    if (size2 < size1) {
-      return class2;
-    }
-    assert class1.type != class2.type;
-    if (class1.type.slowCompareTo(class2.type) < 0) {
-      return class1;
-    }
-    return class2;
-  }
 
   private void updatePinnedItems(Set<DexType> enumsToUnbox) {
     appView

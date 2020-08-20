@@ -208,6 +208,11 @@ public abstract class DexApplication {
       return mainDexList;
     }
 
+    public Builder<T> addToMainDexList(DexType mainDex) {
+      mainDexList.add(mainDex);
+      return this;
+    }
+
     public Builder<T> addToMainDexList(Collection<DexType> mainDexList) {
       this.mainDexList.addAll(mainDexList);
       return this;

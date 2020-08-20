@@ -106,7 +106,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -740,11 +739,7 @@ public class IRConverter {
     }
     if (enumUnboxer != null) {
       enumUnboxer.finishAnalysis();
-      enumUnboxer.unboxEnums(
-          postMethodProcessorBuilder,
-          executorService,
-          feedback,
-          classStaticizer == null ? Sets.newIdentityHashSet() : classStaticizer.getCandidates());
+      enumUnboxer.unboxEnums(postMethodProcessorBuilder, executorService, feedback);
     }
     if (!options.debug) {
       new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
@@ -780,7 +775,7 @@ public class IRConverter {
     }
 
     // Build a new application with jumbo string info.
-    Builder<?> builder = application.builder();
+    Builder<?> builder = appView.appInfo().app().builder();
     builder.setHighestSortingString(highestSortingString);
 
     printPhase("Lambda class synthesis");
