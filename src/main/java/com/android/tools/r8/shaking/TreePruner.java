@@ -36,7 +36,7 @@ public class TreePruner {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final TreePrunerConfiguration configuration;
-  private final UsagePrinter usagePrinter;
+  private final UnusedItemsPrinter unusedItemsPrinter;
   private final Set<DexType> prunedTypes = Sets.newIdentityHashSet();
   private final Set<DexMethod> methodsToKeepForConfigurationDebugging = Sets.newIdentityHashSet();
 
@@ -48,13 +48,13 @@ public class TreePruner {
     InternalOptions options = appView.options();
     this.appView = appView;
     this.configuration = configuration;
-    this.usagePrinter =
+    this.unusedItemsPrinter =
         options.hasUsageInformationConsumer()
-            ? new UsagePrinter(
+            ? new UnusedItemsPrinter(
                 s ->
                     ExceptionUtils.withConsumeResourceHandler(
                         options.reporter, options.usageInformationConsumer, s))
-            : UsagePrinter.DONT_PRINT;
+            : UnusedItemsPrinter.DONT_PRINT;
   }
 
   public DirectMappedDexApplication run() {
@@ -114,10 +114,11 @@ public class TreePruner {
         //  clazz.type.isD8R8SynthesizedType, but such test is currently expensive since it is
         //  based on strings, so we check only against the enum unboxing utility class.
         if (clazz.type != appView.dexItemFactory().enumUnboxingUtilityType) {
-          usagePrinter.printUnusedClass(clazz);
+          unusedItemsPrinter.registerUnusedClass(clazz);
         }
       }
     }
+    unusedItemsPrinter.finished();
     return newClasses;
   }
 
@@ -160,7 +161,7 @@ public class TreePruner {
   }
 
   private void pruneMembersAndAttributes(DexProgramClass clazz) {
-    usagePrinter.visiting(clazz);
+    unusedItemsPrinter.visiting(clazz);
     DexEncodedMethod[] reachableDirectMethods = reachableMethods(clazz.directMethods(), clazz);
     if (reachableDirectMethods != null) {
       clazz.setDirectMethods(reachableDirectMethods);
@@ -181,7 +182,7 @@ public class TreePruner {
     clazz.removeInnerClasses(this::isAttributeReferencingPrunedType);
     clazz.removeEnclosingMethodAttribute(this::isAttributeReferencingPrunedItem);
     rewriteNestAttributes(clazz);
-    usagePrinter.visited();
+    unusedItemsPrinter.visited();
     assert verifyNoDeadFields(clazz);
   }
 
@@ -318,7 +319,7 @@ public class TreePruner {
         if (Log.ENABLED) {
           Log.debug(getClass(), "Removing method %s.", method.method);
         }
-        usagePrinter.printUnusedMethod(method);
+        unusedItemsPrinter.registerUnusedMethod(method);
       }
     }
     return reachableMethods.isEmpty()
@@ -338,7 +339,7 @@ public class TreePruner {
     if (Log.ENABLED) {
       Log.debug(getClass(), "Removing field %s.", fields.get(firstUnreachable));
     }
-    usagePrinter.printUnusedField(fields.get(firstUnreachable));
+    unusedItemsPrinter.registerUnusedField(fields.get(firstUnreachable));
     ArrayList<DexEncodedField> reachableOrReferencedFields = new ArrayList<>(fields.size());
     for (int i = 0; i < firstUnreachable; i++) {
       reachableOrReferencedFields.add(fields.get(i));
@@ -351,7 +352,7 @@ public class TreePruner {
         if (Log.ENABLED) {
           Log.debug(getClass(), "Removing field %s.", field.field);
         }
-        usagePrinter.printUnusedField(field);
+        unusedItemsPrinter.registerUnusedField(field);
       }
     }
     return reachableOrReferencedFields.isEmpty()
