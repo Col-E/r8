@@ -1007,7 +1007,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             .collect(Collectors.toList()));
 
     DexDefinitionSupplier definitionSupplier =
-        application.getDefinitionsSupplier(getSyntheticItems());
+        application.getDefinitionsSupplier(SyntheticItems.createInitialSyntheticItems());
     return new AppInfoWithLiveness(
         application,
         getSyntheticItems().commit(application, lens),
