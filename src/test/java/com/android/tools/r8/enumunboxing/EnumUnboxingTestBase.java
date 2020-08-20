@@ -67,8 +67,6 @@ public class EnumUnboxingTestBase extends TestBase {
   }
 
   void enableEnumOptions(InternalOptions options, boolean enumValueOptimization) {
-    // TODO(b/160854837): re-enable enum unboxing.
-    options.enableEnumUnboxing = true;
     options.enableEnumValueOptimization = enumValueOptimization;
     options.enableEnumSwitchMapRemoval = enumValueOptimization;
     options.testing.enableEnumUnboxingDebugLogs = true;

@@ -133,13 +133,8 @@ public class EnumToStringLibTest extends EnumUnboxingTestBase {
             Reference.methodFromMethod(ToStringLib.class.getDeclaredMethod("directBean")),
             Reference.methodFromMethod(ToStringLib.class.getDeclaredMethod("directSugar")))
         .addKeepClassRules(ToStringLib.LibEnum.class)
-        .allowDiagnosticMessages()
         .setMinApi(parameters.getApiLevel())
-        .compile()
-        .inspectDiagnosticMessages(
-            msg ->
-                assertEnumIsBoxed(
-                    ToStringLib.LibEnum.class, ToStringLib.LibEnum.class.getSimpleName(), msg));
+        .compile();
   }
 
   // This class emulates a library with the three public methods getEnumXXX.
