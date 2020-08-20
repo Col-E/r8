@@ -74,9 +74,8 @@ public class ProguardConfigurationParser {
       "dontshrinkduringoptimization",
       "convert_proto_enum_to_string");
 
-  private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList.of(
-      "isclassnamestring",
-      "whyarenotsimple");
+  private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS =
+      ImmutableList.of("isclassnamestring", "whyarenotsimple", "convertchecknotnull");
 
   private static final List<String> WARNED_SINGLE_ARG_OPTIONS = ImmutableList.of(
       // TODO(b/37137994): -outjars should be reported as errors, not just as warnings!
