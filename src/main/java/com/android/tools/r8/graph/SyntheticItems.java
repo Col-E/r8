@@ -6,14 +6,14 @@ package com.android.tools.r8.graph;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 public class SyntheticItems {
 
   // Thread safe collection of synthesized classes that are not yet committed to the application.
-  private final ConcurrentHashMap<DexType, DexProgramClass> pendingClasses =
-      new ConcurrentHashMap<>();
+  private final Map<DexType, DexProgramClass> pendingClasses = new ConcurrentHashMap<>();
 
   // Immutable set of types that represent synthetic definitions in the application (eg, committed).
   private final ImmutableSet<DexType> syntheticTypes;
