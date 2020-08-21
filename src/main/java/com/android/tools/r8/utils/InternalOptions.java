@@ -1068,7 +1068,19 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // Repackaging all classes into the single user-given (or top-level) package.
     REPACKAGE,
     // Repackaging all packages into the single user-given (or top-level) package.
-    FLATTEN
+    FLATTEN;
+
+    public boolean isNone() {
+      return this == NONE;
+    }
+
+    public boolean isFlattenPackageHierarchy() {
+      return this == FLATTEN;
+    }
+
+    public boolean isRepackageClasses() {
+      return this == REPACKAGE;
+    }
   }
 
   public static class OutlineOptions {

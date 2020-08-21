@@ -108,6 +108,11 @@ public abstract class DexClass extends DexDefinition {
     }
   }
 
+  @Override
+  public ClassAccessFlags getAccessFlags() {
+    return accessFlags;
+  }
+
   public Iterable<DexEncodedField> fields() {
     return fields(Predicates.alwaysTrue());
   }

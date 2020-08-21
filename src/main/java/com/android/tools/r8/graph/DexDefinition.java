@@ -25,6 +25,8 @@ public abstract class DexDefinition extends DexItem {
     return annotations;
   }
 
+  public abstract AccessFlags<?> getAccessFlags();
+
   public DexAnnotationSet liveAnnotations(AppView<AppInfoWithLiveness> appView) {
     return annotations.keepIf(
         annotation -> AnnotationRemover.shouldKeepAnnotation(appView, this, annotation));

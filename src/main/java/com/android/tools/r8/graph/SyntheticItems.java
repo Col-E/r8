@@ -40,6 +40,10 @@ public class SyntheticItems {
     return new SyntheticItems(ImmutableSet.of());
   }
 
+  public boolean hasPendingSyntheticClasses() {
+    return !pendingClasses.isEmpty();
+  }
+
   public Collection<DexProgramClass> getPendingSyntheticClasses() {
     return Collections.unmodifiableCollection(pendingClasses.values());
   }

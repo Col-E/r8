@@ -14,8 +14,6 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
     return toReference().holder;
   }
 
-  public abstract AccessFlags<?> getAccessFlags();
-
   @Override
   public abstract R toReference();
 

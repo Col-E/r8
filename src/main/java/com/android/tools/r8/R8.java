@@ -76,6 +76,7 @@ import com.android.tools.r8.optimize.ClassAndMemberPublicizer;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
 import com.android.tools.r8.origin.CommandLineOrigin;
+import com.android.tools.r8.repackaging.Repackaging;
 import com.android.tools.r8.shaking.AbstractMethodRemover;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -794,6 +795,12 @@ public class R8 {
                   shrinker.postOptimizeGeneratedExtensionRegistry(
                       converter, executorService, timing));
         }
+      }
+
+      // Perform repackaging.
+      // TODO(b/165783399): Consider making repacking available without minification.
+      if (appView.options().isMinifying()) {
+        new Repackaging(appView.withLiveness()).run(executorService, timing);
       }
 
       // Perform minification.
