@@ -51,6 +51,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -1758,6 +1759,71 @@ public class DexItemFactory {
   public DexString createString(String source) {
     assert !sorted;
     return canonicalize(strings, new DexString(source));
+  }
+
+  public static String escapeMemberString(String str) {
+    return str.replace('.', '$');
+  }
+
+  public DexString createFreshMemberString(String baseName, DexType holder, int index) {
+    StringBuilder sb =
+        new StringBuilder()
+            .append(baseName)
+            .append('$')
+            .append(escapeMemberString(holder.toSourceString()));
+
+    if (index > 0) {
+      sb.append("$").append(index);
+    }
+
+    return createString(sb.toString());
+  }
+
+  /**
+   * Find a fresh method name that is not used by any other method. The method name takes the form
+   * "basename$holdername$index".
+   *
+   * @param tryString callback to check if the method name is in use.
+   */
+  public <T extends DexMember<?, ?>> T createFreshMember(
+      String baseName, DexType holder, Function<DexString, Optional<T>> tryString) {
+    int index = 0;
+    while (true) {
+      DexString name = createFreshMemberString(baseName, holder, index++);
+      Optional<T> result = tryString.apply(name);
+      if (result.isPresent()) {
+        return result.get();
+      }
+    }
+  }
+
+  /**
+   * Tries to find a method name for insertion into the class {@code target} of the form
+   * baseName$holder$n, where {@code baseName} and {@code holder} are supplied by the user, and
+   * {@code n} is picked to be the first number so that {@code isFresh.apply(method)} returns {@code
+   * true}.
+   *
+   * @param holder indicates where the method originates from.
+   */
+  public DexMethod createFreshMethodName(
+      String baseName,
+      DexType holder,
+      DexProto proto,
+      DexType target,
+      Predicate<DexMethod> isFresh) {
+    DexMethod method =
+        createFreshMember(
+            baseName,
+            holder,
+            name -> {
+              DexMethod tryMethod = createMethod(target, proto, name);
+              if (isFresh.test(tryMethod)) {
+                return Optional.of(tryMethod);
+              } else {
+                return Optional.empty();
+              }
+            });
+    return method;
   }
 
   public DexString lookupString(int size, byte[] content) {
