@@ -139,7 +139,7 @@ public class RepackageTest extends TestBase {
           } else {
             assertEquals(
                 clazz.getTypeName(),
-                RepackageTest.class.getPackage().getName() + ".testclasses",
+                RepackageTest.class.getPackage().getName() + ".testclasses.repackagetest",
                 subject.getDexProgramClass().getType().getPackageName());
           }
         });
