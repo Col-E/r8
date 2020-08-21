@@ -35,6 +35,10 @@ public class RetraceTypeResult extends Result<Element, RetraceTypeResult> {
         .map(clazz -> new Element(clazz.getClassReference()));
   }
 
+  public boolean isAmbiguous() {
+    return false;
+  }
+
   @Override
   public RetraceTypeResult forEach(Consumer<Element> resultConsumer) {
     stream().forEach(resultConsumer);

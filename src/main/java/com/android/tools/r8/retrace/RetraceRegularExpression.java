@@ -7,20 +7,21 @@ package com.android.tools.r8.retrace;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassResult.Element;
-import com.android.tools.r8.retrace.RetraceRegularExpression.RetraceString.RetraceStringBuilder;
+import com.android.tools.r8.retrace.RetraceRegularExpression.ClassNameGroup.ClassNameGroupHandler;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -72,40 +73,47 @@ public class RetraceRegularExpression {
     List<String> result = new ArrayList<>();
     for (String string : stackTrace) {
       Matcher matcher = compiledPattern.matcher(string);
-      List<RetraceString> retracedStrings =
-          Lists.newArrayList(RetraceStringBuilder.create(string).build());
-      if (matcher.matches()) {
-        for (RegularExpressionGroupHandler handler : handlers) {
-          retracedStrings = handler.handleMatch(retracedStrings, matcher, retracer);
-        }
+      if (!matcher.matches()) {
+        result.add(string);
+        continue;
+      }
+      // Iterate through handlers to set contexts. That will allow us to process all handlers from
+      // left to right.
+      RetraceStringContext initialContext = RetraceStringContext.empty();
+      for (RegularExpressionGroupHandler handler : handlers) {
+        initialContext = handler.buildInitial(initialContext, matcher, retracer);
+      }
+      final RetraceString initialRetraceString = RetraceString.start(initialContext);
+      List<RetraceString> retracedStrings = Lists.newArrayList(initialRetraceString);
+      for (RegularExpressionGroupHandler handler : handlers) {
+        retracedStrings = handler.handleMatch(string, retracedStrings, matcher, retracer);
       }
       if (retracedStrings.isEmpty()) {
         // We could not find a match. Output the identity.
         result.add(string);
-      } else {
-        boolean isAmbiguous = retracedStrings.size() > 1 && retracedStrings.get(0).isAmbiguous;
-        if (isAmbiguous) {
-          retracedStrings.sort(new RetraceLineComparator());
-        }
-        ClassReference previousContext = null;
-        for (RetraceString retracedString : retracedStrings) {
-          String finalString = retracedString.getRetracedString();
-          if (!isAmbiguous) {
-            result.add(finalString);
-            continue;
-          }
-          assert retracedString.getClassContext() != null;
-          ClassReference currentContext = retracedString.getClassContext().getClassReference();
-          if (currentContext.equals(previousContext)) {
-            int firstNonWhitespaceCharacter = StringUtils.firstNonWhitespaceCharacter(finalString);
-            finalString =
-                finalString.substring(0, firstNonWhitespaceCharacter)
-                    + "<OR> "
-                    + finalString.substring(firstNonWhitespaceCharacter);
-          }
-          previousContext = currentContext;
+      }
+      boolean isAmbiguous = retracedStrings.size() > 1 && retracedStrings.get(0).isAmbiguous();
+      if (isAmbiguous) {
+        retracedStrings.sort(new RetraceLineComparator());
+      }
+      ClassReference previousContext = null;
+      for (RetraceString retracedString : retracedStrings) {
+        String finalString = retracedString.builder.build(string);
+        if (!isAmbiguous) {
           result.add(finalString);
+          continue;
         }
+        assert retracedString.getClassContext() != null;
+        ClassReference currentContext = retracedString.getClassContext().getClassReference();
+        if (currentContext.equals(previousContext)) {
+          int firstNonWhitespaceCharacter = StringUtils.firstNonWhitespaceCharacter(finalString);
+          finalString =
+              finalString.substring(0, firstNonWhitespaceCharacter)
+                  + "<OR> "
+                  + finalString.substring(firstNonWhitespaceCharacter);
+        }
+        previousContext = currentContext;
+        result.add(finalString);
       }
     }
     return new RetraceCommandLineResult(result);
@@ -139,6 +147,7 @@ public class RetraceRegularExpression {
       List<RegularExpressionGroupHandler> handlers,
       int captureGroupIndex) {
     int lastCommittedIndex = 0;
+    RegularExpressionGroupHandler lastHandler = null;
     boolean seenPercentage = false;
     boolean escaped = false;
     for (int i = 0; i < regularExpression.length(); i++) {
@@ -146,7 +155,6 @@ public class RetraceRegularExpression {
         assert !escaped;
         final RegularExpressionGroup group = getGroupFromVariable(regularExpression.charAt(i));
         refinedRegularExpression.append(regularExpression, lastCommittedIndex, i - 1);
-        lastCommittedIndex = i + 1;
         if (group.isSynthetic()) {
           captureGroupIndex =
               registerGroups(
@@ -159,8 +167,25 @@ public class RetraceRegularExpression {
               .append(">")
               .append(group.subExpression())
               .append(")");
-          handlers.add(group.createHandler(captureGroupName));
+          final RegularExpressionGroupHandler handler = group.createHandler(captureGroupName);
+          // If we see a pattern as %c.%m or %C/%m, then register the groups to allow delaying
+          // writing of the class string until we have the fully qualified member.
+          if (lastHandler != null
+              && handler.isQualifiedHandler()
+              && lastHandler.isClassNameGroupHandler()
+              && lastCommittedIndex == i - 3
+              && isTypeOrBinarySeparator(regularExpression, lastCommittedIndex, i - 2)) {
+            final ClassNameGroupHandler classNameGroupHandler =
+                lastHandler.asClassNameGroupHandler();
+            final QualifiedRegularExpressionGroupHandler qualifiedHandler =
+                handler.asQualifiedHandler();
+            classNameGroupHandler.setQualifiedHandler(qualifiedHandler);
+            qualifiedHandler.setClassNameGroupHandler(classNameGroupHandler);
+          }
+          lastHandler = handler;
+          handlers.add(handler);
         }
+        lastCommittedIndex = i + 1;
         seenPercentage = false;
       } else {
         seenPercentage = !escaped && regularExpression.charAt(i) == '%';
@@ -170,6 +195,18 @@ public class RetraceRegularExpression {
     refinedRegularExpression.append(
         regularExpression, lastCommittedIndex, regularExpression.length());
     return captureGroupIndex;
+  }
+
+  private boolean isTypeOrBinarySeparator(String regularExpression, int startIndex, int endIndex) {
+    assert endIndex < regularExpression.length();
+    if (startIndex + 1 != endIndex) {
+      return false;
+    }
+    if (regularExpression.charAt(startIndex) != '\\') {
+      return false;
+    }
+    return regularExpression.charAt(startIndex + 1) == '.'
+        || regularExpression.charAt(startIndex + 1) == '/';
   }
 
   private RegularExpressionGroup getGroupFromVariable(char variable) {
@@ -197,223 +234,230 @@ public class RetraceRegularExpression {
     }
   }
 
-  static class RetraceString {
-
+  static class RetraceStringContext {
     private final Element classContext;
-    private final ClassNameGroup classNameGroup;
     private final ClassReference qualifiedContext;
+    private final String methodName;
     private final RetraceMethodResult.Element methodContext;
-    private final TypeReference typeOrReturnTypeContext;
-    private final boolean hasTypeOrReturnTypeContext;
-    private final String retracedString;
-    private final int adjustedIndex;
-    private final boolean isAmbiguous;
-    private final int lineNumber;
+    private final int minifiedLineNumber;
+    private final int originalLineNumber;
     private final String source;
+    private final boolean isAmbiguous;
 
-    private RetraceString(
+    private RetraceStringContext(
         Element classContext,
-        ClassNameGroup classNameGroup,
         ClassReference qualifiedContext,
+        String methodName,
         RetraceMethodResult.Element methodContext,
-        TypeReference typeOrReturnTypeContext,
-        boolean hasTypeOrReturnTypeContext,
-        String retracedString,
-        int adjustedIndex,
-        boolean isAmbiguous,
-        int lineNumber,
-        String source) {
+        int minifiedLineNumber,
+        int originalLineNumber,
+        String source,
+        boolean isAmbiguous) {
       this.classContext = classContext;
-      this.classNameGroup = classNameGroup;
       this.qualifiedContext = qualifiedContext;
+      this.methodName = methodName;
       this.methodContext = methodContext;
-      this.typeOrReturnTypeContext = typeOrReturnTypeContext;
-      this.hasTypeOrReturnTypeContext = hasTypeOrReturnTypeContext;
-      this.retracedString = retracedString;
-      this.adjustedIndex = adjustedIndex;
-      this.isAmbiguous = isAmbiguous;
-      this.lineNumber = lineNumber;
+      this.minifiedLineNumber = minifiedLineNumber;
+      this.originalLineNumber = originalLineNumber;
       this.source = source;
+      this.isAmbiguous = isAmbiguous;
     }
 
-    String getRetracedString() {
-      return retracedString;
+    private static RetraceStringContext empty() {
+      return new RetraceStringContext(null, null, null, null, NO_MATCH, NO_MATCH, null, false);
     }
 
-    boolean hasTypeOrReturnTypeContext() {
-      return hasTypeOrReturnTypeContext;
+    private RetraceStringContext withClassContext(
+        Element classContext, ClassReference qualifiedContext) {
+      return new RetraceStringContext(
+          classContext,
+          qualifiedContext,
+          methodName,
+          methodContext,
+          minifiedLineNumber,
+          originalLineNumber,
+          source,
+          isAmbiguous);
     }
 
-    Element getClassContext() {
-      return classContext;
+    private RetraceStringContext withMethodName(String methodName) {
+      return new RetraceStringContext(
+          classContext,
+          qualifiedContext,
+          methodName,
+          methodContext,
+          minifiedLineNumber,
+          originalLineNumber,
+          source,
+          isAmbiguous);
     }
 
-    RetraceMethodResult.Element getMethodContext() {
-      return methodContext;
+    private RetraceStringContext withMethodContext(
+        RetraceMethodResult.Element methodContext,
+        ClassReference qualifiedContext,
+        boolean isAmbiguous) {
+      return new RetraceStringContext(
+          classContext,
+          qualifiedContext,
+          methodName,
+          methodContext,
+          minifiedLineNumber,
+          originalLineNumber,
+          source,
+          isAmbiguous);
     }
 
-    TypeReference getTypeOrReturnTypeContext() {
-      return typeOrReturnTypeContext;
+    private RetraceStringContext withQualifiedContext(ClassReference qualifiedContext) {
+      return new RetraceStringContext(
+          classContext,
+          qualifiedContext,
+          methodName,
+          methodContext,
+          minifiedLineNumber,
+          originalLineNumber,
+          source,
+          isAmbiguous);
     }
 
-    public ClassReference getQualifiedContext() {
-      return qualifiedContext;
+    public RetraceStringContext withSource(String source) {
+      return new RetraceStringContext(
+          classContext,
+          qualifiedContext,
+          methodName,
+          methodContext,
+          minifiedLineNumber,
+          originalLineNumber,
+          source,
+          isAmbiguous);
     }
 
-    RetraceStringBuilder transform() {
-      return RetraceStringBuilder.create(this);
+    public RetraceStringContext withLineNumbers(int minifiedLineNumber, int originalLineNumber) {
+      return new RetraceStringContext(
+          classContext,
+          qualifiedContext,
+          methodName,
+          methodContext,
+          minifiedLineNumber,
+          originalLineNumber,
+          source,
+          isAmbiguous);
+    }
+  }
+
+  static class RetraceStringBuilder {
+
+    private final StringBuilder retracedString;
+    private int lastCommittedIndex;
+
+    private RetraceStringBuilder(String retracedString, int lastCommittedIndex) {
+      this.retracedString = new StringBuilder(retracedString);
+      this.lastCommittedIndex = lastCommittedIndex;
     }
 
-    public int getLineNumber() {
-      return lineNumber;
+    private void appendRetracedString(
+        String source, String stringToAppend, int originalFromIndex, int originalToIndex) {
+      retracedString.append(source, lastCommittedIndex, originalFromIndex);
+      retracedString.append(stringToAppend);
+      lastCommittedIndex = originalToIndex;
     }
 
-    public String getSource() {
-      return source;
+    private String build(String source) {
+      return retracedString.append(source, lastCommittedIndex, source.length()).toString();
+    }
+  }
+
+  private static class RetraceString {
+
+    private final RetraceStringBuilder builder;
+    private final RetraceStringContext context;
+
+    private RetraceString(RetraceStringBuilder builder, RetraceStringContext context) {
+      this.builder = builder;
+      this.context = context;
     }
 
-    static class RetraceStringBuilder {
+    private Element getClassContext() {
+      return context.classContext;
+    }
 
-      private Element classContext;
-      private ClassNameGroup classNameGroup;
-      private ClassReference qualifiedContext;
-      private RetraceMethodResult.Element methodContext;
-      private TypeReference typeOrReturnTypeContext;
-      private boolean hasTypeOrReturnTypeContext;
-      private String retracedString;
-      private int adjustedIndex;
-      private boolean isAmbiguous;
-      private int lineNumber;
-      private String source;
+    private RetraceMethodResult.Element getMethodContext() {
+      return context.methodContext;
+    }
 
-      private int maxReplaceStringIndex = NO_MATCH;
+    private String getSource() {
+      return context.source;
+    }
 
-      private RetraceStringBuilder(
-          Element classContext,
-          ClassNameGroup classNameGroup,
-          ClassReference qualifiedContext,
-          RetraceMethodResult.Element methodContext,
-          TypeReference typeOrReturnTypeContext,
-          boolean hasTypeOrReturnTypeContext,
-          String retracedString,
-          int adjustedIndex,
-          boolean isAmbiguous,
-          int lineNumber,
-          String source) {
-        this.classContext = classContext;
-        this.classNameGroup = classNameGroup;
-        this.qualifiedContext = qualifiedContext;
-        this.methodContext = methodContext;
-        this.typeOrReturnTypeContext = typeOrReturnTypeContext;
-        this.hasTypeOrReturnTypeContext = hasTypeOrReturnTypeContext;
-        this.retracedString = retracedString;
-        this.adjustedIndex = adjustedIndex;
-        this.isAmbiguous = isAmbiguous;
-        this.lineNumber = lineNumber;
-        this.source = source;
-      }
+    private int getLineNumber() {
+      return context.originalLineNumber;
+    }
 
-      static RetraceStringBuilder create(String string) {
-        return new RetraceStringBuilder(
-            null, null, null, null, null, false, string, 0, false, 0, "");
-      }
+    private boolean isAmbiguous() {
+      return context.isAmbiguous;
+    }
 
-      static RetraceStringBuilder create(RetraceString string) {
-        return new RetraceStringBuilder(
-            string.classContext,
-            string.classNameGroup,
-            string.qualifiedContext,
-            string.methodContext,
-            string.typeOrReturnTypeContext,
-            string.hasTypeOrReturnTypeContext,
-            string.retracedString,
-            string.adjustedIndex,
-            string.isAmbiguous,
-            string.lineNumber,
-            string.source);
-      }
+    private static RetraceString start(RetraceStringContext initialContext) {
+      return new RetraceString(new RetraceStringBuilder("", 0), initialContext);
+    }
 
-      RetraceStringBuilder setClassContext(Element classContext, ClassNameGroup classNameGroup) {
-        this.classContext = classContext;
-        this.classNameGroup = classNameGroup;
-        return this;
-      }
+    private RetraceString updateContext(
+        Function<RetraceStringContext, RetraceStringContext> update) {
+      return new RetraceString(builder, update.apply(context));
+    }
 
-      RetraceStringBuilder setMethodContext(RetraceMethodResult.Element methodContext) {
-        this.methodContext = methodContext;
-        return this;
-      }
+    private RetraceString duplicate(RetraceStringContext newContext) {
+      return new RetraceString(
+          new RetraceStringBuilder(builder.retracedString.toString(), builder.lastCommittedIndex),
+          newContext);
+    }
 
-      RetraceStringBuilder setTypeOrReturnTypeContext(TypeReference typeOrReturnTypeContext) {
-        hasTypeOrReturnTypeContext = true;
-        this.typeOrReturnTypeContext = typeOrReturnTypeContext;
-        return this;
-      }
-
-      RetraceStringBuilder setQualifiedContext(ClassReference qualifiedContext) {
-        this.qualifiedContext = qualifiedContext;
-        return this;
-      }
-
-      RetraceStringBuilder setAmbiguous(boolean isAmbiguous) {
-        this.isAmbiguous = isAmbiguous;
-        return this;
-      }
-
-      RetraceStringBuilder setLineNumber(int lineNumber) {
-        this.lineNumber = lineNumber;
-        return this;
-      }
-
-      RetraceStringBuilder setSource(String source) {
-        this.source = source;
-        return this;
-      }
-
-      RetraceStringBuilder replaceInString(String oldString, String newString) {
-        int oldStringStartIndex = retracedString.indexOf(oldString);
-        assert oldStringStartIndex > NO_MATCH;
-        int oldStringEndIndex = oldStringStartIndex + oldString.length();
-        return replaceInStringRaw(newString, oldStringStartIndex, oldStringEndIndex);
-      }
-
-      RetraceStringBuilder replaceInString(String newString, int originalFrom, int originalTo) {
-        return replaceInStringRaw(
-            newString, originalFrom + adjustedIndex, originalTo + adjustedIndex);
-      }
-
-      RetraceStringBuilder replaceInStringRaw(String newString, int from, int to) {
-        assert from <= to;
-        assert from > maxReplaceStringIndex;
-        String prefix = retracedString.substring(0, from);
-        String postFix = retracedString.substring(to);
-        this.retracedString = prefix + newString + postFix;
-        this.adjustedIndex = adjustedIndex + newString.length() - (to - from);
-        maxReplaceStringIndex = prefix.length() + newString.length();
-        return this;
-      }
-
-      RetraceString build() {
-        return new RetraceString(
-            classContext,
-            classNameGroup,
-            qualifiedContext,
-            methodContext,
-            typeOrReturnTypeContext,
-            hasTypeOrReturnTypeContext,
-            retracedString,
-            adjustedIndex,
-            isAmbiguous,
-            lineNumber,
-            source);
-      }
+    private RetraceString appendRetracedString(
+        String source, String stringToAppend, int originalFromIndex, int originalToIndex) {
+      builder.appendRetracedString(source, stringToAppend, originalFromIndex, originalToIndex);
+      return this;
     }
   }
 
   private interface RegularExpressionGroupHandler {
 
     List<RetraceString> handleMatch(
-        List<RetraceString> strings, Matcher matcher, RetraceApi retracer);
+        String original, List<RetraceString> strings, Matcher matcher, RetraceApi retracer);
+
+    default RetraceStringContext buildInitial(
+        RetraceStringContext context, Matcher matcher, RetraceApi retracer) {
+      return context;
+    }
+
+    default boolean isClassNameGroupHandler() {
+      return false;
+    }
+
+    default ClassNameGroupHandler asClassNameGroupHandler() {
+      return null;
+    }
+
+    default boolean isQualifiedHandler() {
+      return false;
+    }
+
+    default QualifiedRegularExpressionGroupHandler asQualifiedHandler() {
+      return null;
+    }
+  }
+
+  private interface QualifiedRegularExpressionGroupHandler extends RegularExpressionGroupHandler {
+
+    @Override
+    default boolean isQualifiedHandler() {
+      return true;
+    }
+
+    @Override
+    default QualifiedRegularExpressionGroupHandler asQualifiedHandler() {
+      return this;
+    }
+
+    void setClassNameGroupHandler(ClassNameGroupHandler handler);
   }
 
   private abstract static class RegularExpressionGroup {
@@ -431,7 +475,10 @@ public class RetraceRegularExpression {
   private static final String javaIdentifierSegment =
       "\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*";
 
-  private abstract static class ClassNameGroup extends RegularExpressionGroup {
+  private static final String METHOD_NAME_REGULAR_EXPRESSION =
+      "(?:(" + javaIdentifierSegment + "|\\<init\\>|\\<clinit\\>))";
+
+  abstract static class ClassNameGroup extends RegularExpressionGroup {
 
     abstract String getClassName(ClassReference classReference);
 
@@ -439,30 +486,101 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retracer) -> {
-        if (matcher.start(captureGroup) == NO_MATCH) {
+      return new ClassNameGroupHandler(this, captureGroup);
+    }
+
+    static class ClassNameGroupHandler implements RegularExpressionGroupHandler {
+
+      private RetraceClassResult retraceClassResult = null;
+      private final ClassNameGroup classNameGroup;
+      private final String captureGroup;
+      private RegularExpressionGroupHandler qualifiedHandler;
+
+      public ClassNameGroupHandler(ClassNameGroup classNameGroup, String captureGroup) {
+        this.classNameGroup = classNameGroup;
+        this.captureGroup = captureGroup;
+      }
+
+      @Override
+      public List<RetraceString> handleMatch(
+          String original, List<RetraceString> strings, Matcher matcher, RetraceApi retracer) {
+        final int startOfGroup = matcher.start(captureGroup);
+        if (startOfGroup == NO_MATCH) {
           return strings;
         }
         String typeName = matcher.group(captureGroup);
-        RetraceClassResult retraceResult = retracer.retrace(classFromMatch(typeName));
-        List<RetraceString> retracedStrings = new ArrayList<>();
+        RetraceClassResult retraceResult =
+            retraceClassResult == null
+                ? retracer.retrace(classNameGroup.classFromMatch(typeName))
+                : retraceClassResult;
+        assert !retraceResult.isAmbiguous();
+        List<RetraceString> retraceStrings = new ArrayList<>(strings.size());
         for (RetraceString retraceString : strings) {
           retraceResult.forEach(
               element -> {
-                retracedStrings.add(
-                    retraceString
-                        .transform()
-                        .setClassContext(element, this)
-                        .setMethodContext(null)
-                        .replaceInString(
-                            getClassName(element.getClassReference()),
-                            matcher.start(captureGroup),
-                            matcher.end(captureGroup))
-                        .build());
+                final RetraceString newRetraceString =
+                    retraceString.updateContext(
+                        context -> context.withClassContext(element, element.getClassReference()));
+                retraceStrings.add(newRetraceString);
+                if (qualifiedHandler == null) {
+                  // If there is no qualified handler, commit right away.
+                  newRetraceString.builder.appendRetracedString(
+                      original,
+                      classNameGroup.getClassName(element.getClassReference()),
+                      startOfGroup,
+                      matcher.end(captureGroup));
+                }
               });
         }
-        return retracedStrings;
-      };
+        return retraceStrings;
+      }
+
+      void commitClassName(
+          String original,
+          RetraceString retraceString,
+          ClassReference qualifiedContext,
+          Matcher matcher) {
+        if (matcher.start(captureGroup) == NO_MATCH) {
+          return;
+        }
+        retraceString.builder.appendRetracedString(
+            original,
+            classNameGroup.getClassName(qualifiedContext),
+            matcher.start(captureGroup),
+            matcher.end(captureGroup));
+      }
+
+      @Override
+      public RetraceStringContext buildInitial(
+          RetraceStringContext context, Matcher matcher, RetraceApi retracer) {
+        // Reset the local class context since this the same handler is used for multiple lines.
+        retraceClassResult = null;
+        if (matcher.start(captureGroup) == NO_MATCH || context.classContext != null) {
+          return context;
+        }
+        String typeName = matcher.group(captureGroup);
+        retraceClassResult = retracer.retrace(classNameGroup.classFromMatch(typeName));
+        assert !retraceClassResult.isAmbiguous();
+        Box<RetraceStringContext> box = new Box<>();
+        retraceClassResult.forEach(
+            element -> box.set(context.withClassContext(element, element.getClassReference())));
+        return box.get();
+      }
+
+      public void setQualifiedHandler(RegularExpressionGroupHandler handler) {
+        assert handler.isQualifiedHandler();
+        this.qualifiedHandler = handler;
+      }
+
+      @Override
+      public boolean isClassNameGroupHandler() {
+        return true;
+      }
+
+      @Override
+      public ClassNameGroupHandler asClassNameGroupHandler() {
+        return this;
+      }
     }
   }
 
@@ -506,63 +624,92 @@ public class RetraceRegularExpression {
 
     @Override
     String subExpression() {
-      return "(?:(" + javaIdentifierSegment + "|\\<init\\>|\\<clinit\\>))";
+      return METHOD_NAME_REGULAR_EXPRESSION;
     }
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retracer) -> {
-        if (matcher.start(captureGroup) == NO_MATCH) {
-          return strings;
+      return new QualifiedRegularExpressionGroupHandler() {
+
+        private ClassNameGroupHandler classNameGroupHandler;
+
+        @Override
+        public void setClassNameGroupHandler(ClassNameGroupHandler handler) {
+          classNameGroupHandler = handler;
         }
-        String methodName = matcher.group(captureGroup);
-        List<RetraceString> retracedStrings = new ArrayList<>();
-        for (RetraceString retraceString : strings) {
-          if (retraceString.classContext == null) {
-            retracedStrings.add(retraceString);
-            continue;
+
+        @Override
+        public List<RetraceString> handleMatch(
+            String original, List<RetraceString> strings, Matcher matcher, RetraceApi retracer) {
+          final int startOfGroup = matcher.start(captureGroup);
+          if (startOfGroup == NO_MATCH) {
+            if (classNameGroupHandler != null) {
+              for (RetraceString string : strings) {
+                classNameGroupHandler.commitClassName(
+                    original, string, string.context.qualifiedContext, matcher);
+              }
+            }
+            return strings;
           }
-          retraceString
-              .getClassContext()
-              .lookupMethod(methodName)
-              .forEach(
-                  element -> {
-                    MethodReference methodReference = element.getMethodReference();
-                    if (retraceString.hasTypeOrReturnTypeContext()) {
-                      if (methodReference.getReturnType() == null
-                          && retraceString.getTypeOrReturnTypeContext() != null) {
-                        return;
-                      } else if (methodReference.getReturnType() != null
-                          && !methodReference
-                              .getReturnType()
-                              .equals(retraceString.getTypeOrReturnTypeContext())) {
-                        return;
-                      }
-                    }
-                    RetraceStringBuilder newRetraceString = retraceString.transform();
-                    ClassReference existingClass =
-                        retraceString.getClassContext().getClassReference();
-                    ClassReference holder = methodReference.getHolderClass();
-                    if (holder != existingClass) {
-                      // The element is defined on another holder.
-                      newRetraceString
-                          .replaceInString(
-                              newRetraceString.classNameGroup.getClassName(existingClass),
-                              newRetraceString.classNameGroup.getClassName(holder))
-                          .setQualifiedContext(holder);
-                    }
-                    newRetraceString
-                        .setMethodContext(element)
-                        .setAmbiguous(element.getRetraceMethodResult().isAmbiguous())
-                        .replaceInString(
-                            methodReference.getMethodName(),
-                            matcher.start(captureGroup),
-                            matcher.end(captureGroup));
-                    retracedStrings.add(newRetraceString.build());
-                  });
+          String methodName = matcher.group(captureGroup);
+          List<RetraceString> retracedStrings = new ArrayList<>();
+          for (RetraceString retraceString : strings) {
+            retraceMethodForString(
+                retraceString,
+                methodName,
+                (element, newContext) -> {
+                  final RetraceString newRetraceString = retraceString.duplicate(newContext);
+                  if (classNameGroupHandler != null) {
+                    classNameGroupHandler.commitClassName(
+                        original,
+                        newRetraceString,
+                        element.getMethodReference().getHolderClass(),
+                        matcher);
+                  }
+                  retracedStrings.add(
+                      newRetraceString.appendRetracedString(
+                          original,
+                          element.getMethodReference().getMethodName(),
+                          startOfGroup,
+                          matcher.end(captureGroup)));
+                });
+          }
+          return retracedStrings;
         }
-        return retracedStrings;
+
+        @Override
+        public RetraceStringContext buildInitial(
+            RetraceStringContext context, Matcher matcher, RetraceApi retracer) {
+          final int startOfGroup = matcher.start(captureGroup);
+          if (startOfGroup == NO_MATCH || context.methodName != null) {
+            return context;
+          }
+          return context.withMethodName(matcher.group(captureGroup));
+        }
       };
+    }
+
+    private static void retraceMethodForString(
+        RetraceString retraceString,
+        String methodName,
+        BiConsumer<RetraceMethodResult.Element, RetraceStringContext> process) {
+      if (retraceString.context.classContext == null) {
+        return;
+      }
+      RetraceMethodResult retraceMethodResult =
+          retraceString.getClassContext().lookupMethod(methodName);
+      if (retraceString.context.minifiedLineNumber > NO_MATCH) {
+        retraceMethodResult =
+            retraceMethodResult.narrowByLine(retraceString.context.minifiedLineNumber);
+      }
+      retraceMethodResult.forEach(
+          element ->
+              process.accept(
+                  element,
+                  retraceString.context.withMethodContext(
+                      element,
+                      element.getMethodReference().getHolderClass(),
+                      element.getRetraceMethodResult().isAmbiguous())));
     }
   }
 
@@ -575,42 +722,62 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retracer) -> {
-        if (matcher.start(captureGroup) == NO_MATCH) {
-          return strings;
+      return new QualifiedRegularExpressionGroupHandler() {
+
+        private ClassNameGroupHandler classNameGroupHandler;
+
+        @Override
+        public void setClassNameGroupHandler(ClassNameGroupHandler handler) {
+          classNameGroupHandler = handler;
         }
-        String methodName = matcher.group(captureGroup);
-        List<RetraceString> retracedStrings = new ArrayList<>();
-        for (RetraceString retraceString : strings) {
-          if (retraceString.getClassContext() == null) {
-            retracedStrings.add(retraceString);
-            continue;
+
+        @Override
+        public List<RetraceString> handleMatch(
+            String original, List<RetraceString> strings, Matcher matcher, RetraceApi retracer) {
+          final int startOfGroup = matcher.start(captureGroup);
+          if (startOfGroup == NO_MATCH) {
+            if (classNameGroupHandler != null) {
+              for (RetraceString string : strings) {
+                classNameGroupHandler.commitClassName(
+                    original, string, string.context.qualifiedContext, matcher);
+              }
+            }
+            return strings;
           }
-          retraceString
-              .getClassContext()
-              .lookupField(methodName)
-              .forEach(
-                  element -> {
-                    RetraceStringBuilder newRetraceString = retraceString.transform();
-                    ClassReference existingClass =
-                        retraceString.getClassContext().getClassReference();
-                    ClassReference holder = element.getFieldReference().getHolderClass();
-                    if (holder != existingClass) {
-                      // The element is defined on another holder.
-                      newRetraceString
-                          .replaceInString(
-                              newRetraceString.classNameGroup.getClassName(existingClass),
-                              newRetraceString.classNameGroup.getClassName(holder))
-                          .setQualifiedContext(holder);
-                    }
-                    newRetraceString.replaceInString(
-                        element.getFieldReference().getFieldName(),
-                        matcher.start(captureGroup),
-                        matcher.end(captureGroup));
-                    retracedStrings.add(newRetraceString.build());
-                  });
+          String methodName = matcher.group(captureGroup);
+          List<RetraceString> retracedStrings = new ArrayList<>();
+          for (RetraceString retraceString : strings) {
+            if (retraceString.getClassContext() == null) {
+              assert classNameGroupHandler == null;
+              return strings;
+            }
+            final RetraceFieldResult retraceFieldResult =
+                retraceString.getClassContext().lookupField(methodName);
+            assert !retraceFieldResult.isAmbiguous();
+            retraceFieldResult.forEach(
+                element -> {
+                  if (classNameGroupHandler != null) {
+                    classNameGroupHandler.commitClassName(
+                        original,
+                        retraceString,
+                        element.getFieldReference().getHolderClass(),
+                        matcher);
+                  }
+                  retracedStrings.add(
+                      retraceString
+                          .updateContext(
+                              context ->
+                                  context.withQualifiedContext(
+                                      element.getFieldReference().getHolderClass()))
+                          .appendRetracedString(
+                              original,
+                              element.getFieldReference().getFieldName(),
+                              startOfGroup,
+                              matcher.end(captureGroup)));
+                });
+          }
+          return retracedStrings;
         }
-        return retracedStrings;
       };
     }
   }
@@ -624,33 +791,35 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retracer) -> {
-        if (matcher.start(captureGroup) == NO_MATCH) {
+      return (original, strings, matcher, retracer) -> {
+        final int startOfGroup = matcher.start(captureGroup);
+        if (startOfGroup == NO_MATCH) {
           return strings;
         }
         String fileName = matcher.group(captureGroup);
-        List<RetraceString> retracedStrings = new ArrayList<>();
+        List<RetraceString> retracedStrings = null;
         for (RetraceString retraceString : strings) {
-          if (retraceString.classContext == null) {
-            retracedStrings.add(retraceString);
-            continue;
+          if (retraceString.context.classContext == null) {
+            return strings;
+          }
+          if (retracedStrings == null) {
+            retracedStrings = new ArrayList<>();
           }
           RetraceSourceFileResult sourceFileResult =
               retraceString.getMethodContext() != null
                   ? retraceString.getMethodContext().retraceSourceFile(fileName)
                   : RetraceUtils.getSourceFile(
                       retraceString.getClassContext(),
-                      retraceString.getQualifiedContext(),
+                      retraceString.context.qualifiedContext,
                       fileName);
           retracedStrings.add(
               retraceString
-                  .transform()
-                  .setSource(fileName)
-                  .replaceInString(
+                  .updateContext(context -> context.withSource(sourceFileResult.getFilename()))
+                  .appendRetracedString(
+                      original,
                       sourceFileResult.getFilename(),
-                      matcher.start(captureGroup),
-                      matcher.end(captureGroup))
-                  .build());
+                      startOfGroup,
+                      matcher.end(captureGroup)));
         }
         return retracedStrings;
       };
@@ -666,63 +835,90 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retracer) -> {
-        if (matcher.start(captureGroup) == NO_MATCH) {
-          return strings;
+      return new RegularExpressionGroupHandler() {
+        @Override
+        public List<RetraceString> handleMatch(
+            String original, List<RetraceString> strings, Matcher matcher, RetraceApi retracer) {
+          final int startOfGroup = matcher.start(captureGroup);
+          if (startOfGroup == NO_MATCH) {
+            return strings;
+          }
+          String lineNumberAsString = matcher.group(captureGroup);
+          if (lineNumberAsString.isEmpty()) {
+            return strings;
+          }
+          int lineNumber = Integer.parseInt(lineNumberAsString);
+          List<RetraceString> retracedStrings = new ArrayList<>();
+          for (RetraceString retraceString : strings) {
+            RetraceMethodResult.Element methodContext = retraceString.context.methodContext;
+            if (methodContext == null) {
+              if (retraceString.context.classContext == null
+                  || retraceString.context.methodName == null) {
+                // We have no way of retracing the line number.
+                retracedStrings.add(retraceString);
+                continue;
+              }
+              // This situation arises when we have a matched pattern as %l..%c.%m where the
+              // line number handler is defined before the methodname handler.
+              MethodNameGroup.retraceMethodForString(
+                  retraceString,
+                  retraceString.context.methodName,
+                  (element, newContext) -> {
+                    // The same method can be represented multiple times if it has multiple
+                    // mappings.
+                    if (element.hasNoLineNumberRange()
+                        || !element.containsMinifiedLineNumber(lineNumber)) {
+                      diagnosticsHandler.info(
+                          new StringDiagnostic(
+                              "Pruning "
+                                  + retraceString.builder.retracedString.toString()
+                                  + " from result because method is not in range on line number "
+                                  + lineNumber));
+                    }
+                    final int originalLineNumber = element.getOriginalLineNumber(lineNumber);
+                    retracedStrings.add(
+                        retraceString
+                            .updateContext(
+                                context -> context.withLineNumbers(lineNumber, originalLineNumber))
+                            .appendRetracedString(
+                                original,
+                                originalLineNumber + "",
+                                startOfGroup,
+                                matcher.end(captureGroup)));
+                  });
+              continue;
+            }
+            // If the method context is unknown, do nothing.
+            if (methodContext.getMethodReference().isUnknown()
+                || methodContext.hasNoLineNumberRange()) {
+              retracedStrings.add(retraceString);
+              continue;
+            }
+            int originalLineNumber = methodContext.getOriginalLineNumber(lineNumber);
+            retracedStrings.add(
+                retraceString
+                    .updateContext(
+                        context -> context.withLineNumbers(lineNumber, originalLineNumber))
+                    .appendRetracedString(
+                        original,
+                        originalLineNumber + "",
+                        startOfGroup,
+                        matcher.end(captureGroup)));
+          }
+          return retracedStrings;
         }
-        String lineNumberAsString = matcher.group(captureGroup);
-        int lineNumber =
-            lineNumberAsString.isEmpty() ? NO_MATCH : Integer.parseInt(lineNumberAsString);
-        List<RetraceString> retracedStrings = new ArrayList<>();
-        boolean seenRange = false;
-        for (RetraceString retraceString : strings) {
-          RetraceMethodResult.Element methodContext = retraceString.methodContext;
-          if (methodContext == null || methodContext.getMethodReference().isUnknown()) {
-            retracedStrings.add(retraceString);
-            continue;
+
+        @Override
+        public RetraceStringContext buildInitial(
+            RetraceStringContext context, Matcher matcher, RetraceApi retracer) {
+          if (matcher.start(captureGroup) == NO_MATCH || context.minifiedLineNumber > NO_MATCH) {
+            return context;
           }
-          if (methodContext.hasNoLineNumberRange()) {
-            continue;
-          }
-          seenRange = true;
-          Set<MethodReference> narrowedSet =
-              methodContext.getRetraceMethodResult().narrowByLine(lineNumber).stream()
-                  .map(RetraceMethodResult.Element::getMethodReference)
-                  .collect(Collectors.toSet());
-          if (!narrowedSet.contains(methodContext.getMethodReference())) {
-            // Prune the retraceString since we now have line number information and this is not
-            // a part of the result.
-            diagnosticsHandler.info(
-                new StringDiagnostic(
-                    "Pruning "
-                        + retraceString.getRetracedString()
-                        + " from result because method is not defined on line number "
-                        + lineNumber));
-            continue;
-          }
-          // The same method can be represented multiple times if it has multiple mappings.
-          if (!methodContext.containsMinifiedLineNumber(lineNumber)) {
-            diagnosticsHandler.info(
-                new StringDiagnostic(
-                    "Pruning "
-                        + retraceString.getRetracedString()
-                        + " from result because method is not in range on line number "
-                        + lineNumber));
-            continue;
-          }
-          int originalLineNumber = methodContext.getOriginalLineNumber(lineNumber);
-          retracedStrings.add(
-              retraceString
-                  .transform()
-                  .setAmbiguous(false)
-                  .setLineNumber(originalLineNumber)
-                  .replaceInString(
-                      originalLineNumber + "",
-                      matcher.start(captureGroup),
-                      matcher.end(captureGroup))
-                  .build());
+          String lineNumberAsString = matcher.group(captureGroup);
+          return context.withLineNumbers(
+              lineNumberAsString.isEmpty() ? NO_MATCH : Integer.parseInt(lineNumberAsString),
+              NO_MATCH);
         }
-        return seenRange ? retracedStrings : strings;
       };
     }
   }
@@ -757,8 +953,9 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retracer) -> {
-        if (matcher.start(captureGroup) == NO_MATCH) {
+      return (original, strings, matcher, retracer) -> {
+        final int startOfGroup = matcher.start(captureGroup);
+        if (startOfGroup == NO_MATCH) {
           return strings;
         }
         String typeName = matcher.group(captureGroup);
@@ -767,29 +964,25 @@ public class RetraceRegularExpression {
           return strings;
         }
         TypeReference typeReference = Reference.returnTypeFromDescriptor(descriptor);
-        List<RetraceString> retracedStrings = new ArrayList<>();
         RetraceTypeResult retracedType = retracer.retrace(typeReference);
+        assert !retracedType.isAmbiguous();
         for (RetraceString retraceString : strings) {
           retracedType.forEach(
               element -> {
                 TypeReference retracedReference = element.getTypeReference();
-                retracedStrings.add(
-                    retraceString
-                        .transform()
-                        .setTypeOrReturnTypeContext(retracedReference)
-                        .replaceInString(
-                            retracedReference == null ? "void" : retracedReference.getTypeName(),
-                            matcher.start(captureGroup),
-                            matcher.end(captureGroup))
-                        .build());
+                retraceString.appendRetracedString(
+                    original,
+                    retracedReference == null ? "void" : retracedReference.getTypeName(),
+                    startOfGroup,
+                    matcher.end(captureGroup));
               });
         }
-        return retracedStrings;
+        return strings;
       };
     }
   }
 
-  private class MethodArgumentsGroup extends RegularExpressionGroup {
+  private static class MethodArgumentsGroup extends RegularExpressionGroup {
 
     @Override
     String subExpression() {
@@ -798,74 +991,36 @@ public class RetraceRegularExpression {
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      return (strings, matcher, retracer) -> {
-        if (matcher.start(captureGroup) == NO_MATCH) {
+      return (original, strings, matcher, retracer) -> {
+        final int startOfGroup = matcher.start(captureGroup);
+        if (startOfGroup == NO_MATCH) {
           return strings;
         }
-        Set<List<TypeReference>> initialValue = new LinkedHashSet<>();
-        initialValue.add(new ArrayList<>());
-        Set<List<TypeReference>> allRetracedReferences =
+        final String formals =
             Arrays.stream(matcher.group(captureGroup).split(","))
-                .map(String::trim)
-                .reduce(
-                    initialValue,
-                    (acc, typeName) -> {
+                .map(
+                    typeName -> {
+                      typeName = typeName.trim();
+                      if (typeName.isEmpty()) {
+                        return null;
+                      }
                       String descriptor = DescriptorUtils.javaTypeToDescriptor(typeName);
                       if (!DescriptorUtils.isDescriptor(descriptor) && !"V".equals(descriptor)) {
-                        return acc;
+                        return typeName;
                       }
-                      TypeReference typeReference = Reference.returnTypeFromDescriptor(descriptor);
-                      Set<List<TypeReference>> retracedTypes = new LinkedHashSet<>();
-                      retracer
-                          .retrace(typeReference)
-                          .forEach(
-                              element -> {
-                                for (List<TypeReference> currentReferences : acc) {
-                                  ArrayList<TypeReference> newList =
-                                      new ArrayList<>(currentReferences);
-                                  newList.add(element.getTypeReference());
-                                  retracedTypes.add(newList);
-                                }
-                              });
-                      return retracedTypes;
-                    },
-                    (l1, l2) -> {
-                      l1.addAll(l2);
-                      return l1;
-                    });
-        List<RetraceString> retracedStrings = new ArrayList<>();
-        for (RetraceString retraceString : strings) {
-          if (retraceString.getMethodContext() != null
-              && !allRetracedReferences.contains(
-                  retraceString.getMethodContext().getMethodReference().getFormalTypes())) {
-            // Prune the string since we now know the formals.
-            String formals =
-                retraceString.getMethodContext().getMethodReference().getFormalTypes().stream()
-                    .map(TypeReference::getTypeName)
-                    .collect(Collectors.joining(","));
-            diagnosticsHandler.info(
-                new StringDiagnostic(
-                    "Pruning "
-                        + retraceString.getRetracedString()
-                        + " from result because formals ("
-                        + formals
-                        + ") do not match result set."));
-            continue;
-          }
-          for (List<TypeReference> retracedReferences : allRetracedReferences) {
-            retracedStrings.add(
-                retraceString
-                    .transform()
-                    .replaceInString(
-                        retracedReferences.stream()
-                            .map(TypeReference::getTypeName)
-                            .collect(Collectors.joining(",")),
-                        matcher.start(captureGroup),
-                        matcher.end(captureGroup))
-                    .build());
-          }
+                      final RetraceTypeResult retraceResult =
+                          retracer.retrace(Reference.returnTypeFromDescriptor(descriptor));
+                      assert !retraceResult.isAmbiguous();
+                      final Box<TypeReference> elementBox = new Box<>();
+                      retraceResult.forEach(element -> elementBox.set(element.getTypeReference()));
+                      return elementBox.get().getTypeName();
+                    })
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(","));
+        for (RetraceString string : strings) {
+          string.appendRetracedString(original, formals, startOfGroup, matcher.end(captureGroup));
         }
-        return retracedStrings;
+        return strings;
       };
     }
   }

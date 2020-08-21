@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -394,7 +395,7 @@ public class RetraceRegularExpressionTests extends TestBase {
   }
 
   @Test
-  public void testNotFoundLineNumberInMethodContext() {
+  public void testNoLineNumberInMethodContext() {
     runRetraceTest(
         "%c\\.%m\\(%l\\)",
         new StackTraceForTest() {
@@ -411,7 +412,35 @@ public class RetraceRegularExpressionTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
-            return ImmutableList.of("a.b.c.a()");
+            return ImmutableList.of("com.android.tools.r8.R8.foo()");
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        });
+  }
+
+  @Test
+  public void testNotFoundLineNumberInMethodContext() {
+    runRetraceTest(
+        "%c\\.%m\\(%l\\)",
+        new StackTraceForTest() {
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            return ImmutableList.of("a.b.c.a(42)");
+          }
+
+          @Override
+          public String mapping() {
+            return StringUtils.lines(
+                "com.android.tools.r8.R8 -> a.b.c:", "  3:3:boolean foo():7 -> a");
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8.a(42)");
           }
 
           @Override
@@ -539,6 +568,7 @@ public class RetraceRegularExpressionTests extends TestBase {
   }
 
   @Test
+  @Ignore("b/165782924")
   public void useReturnTypeToNarrowMethodMatches() {
     runRetraceTest(
         "%t %c.%m",
@@ -662,6 +692,7 @@ public class RetraceRegularExpressionTests extends TestBase {
   }
 
   @Test
+  @Ignore("b/165782924")
   public void testPruningOfMethodsByFormals() {
     runRetraceTest(
         "%c.%m\\(%a\\)",

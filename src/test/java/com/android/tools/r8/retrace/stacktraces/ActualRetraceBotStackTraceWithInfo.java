@@ -45,59 +45,6 @@ public class ActualRetraceBotStackTraceWithInfo extends ActualBotStackTraceBase 
   @Override
   public List<String> retracedStackTrace() {
     return Arrays.asList(
-        "Pruning \tat com.android.tools.r8.utils.Reporter.error(Reporter.java:21) from result"
-            + " because method is not defined on line number 21",
-        "Pruning \tat com.android.tools.r8.utils.Reporter.error(Reporter.java:21) from result"
-            + " because method is not defined on line number 21",
-        "Pruning \tat com.android.tools.r8.utils.Reporter.fatalError(Reporter.java:21) from result"
-            + " because method is not defined on line number 21",
-        "Pruning \tat"
-            + " com.android.tools.r8.utils.Reporter.addSuppressedExceptions(Reporter.java:21) from"
-            + " result because method is not defined on line number 21",
-        "Pruning \tat"
-            + " com.android.tools.r8.shaking.ProguardConfigurationParser.parse(ProguardConfigurationParser.java:19)"
-            + " from result because method is not defined on line number 19",
-        "Pruning \tat"
-            + " com.android.tools.r8.shaking.ProguardConfigurationParser.parse(ProguardConfigurationParser.java:19)"
-            + " from result because method is not defined on line number 19",
-        "Pruning \tat"
-            + " com.android.tools.r8.shaking.ProguardConfigurationParser.parse(ProguardConfigurationParser.java:19)"
-            + " from result because method is not in range on line number 19",
-        "Pruning \tat"
-            + " com.android.tools.r8.shaking.ProguardConfigurationParser.parse(ProguardConfigurationParser.java:19)"
-            + " from result because method is not in range on line number 19",
-        "Pruning \tat com.android.tools.r8.R8Command$Builder.makeCommand(R8Command.java:11) from"
-            + " result because method is not defined on line number 11",
-        "Pruning \tat"
-            + " com.android.tools.r8.R8Command$Builder.setDisableVerticalClassMerging(R8Command.java:11)"
-            + " from result because method is not defined on line number 11",
-        "Pruning \tat"
-            + " com.android.tools.r8.R8Command$Builder.lambda$addProguardConfigurationFiles$4(R8Command.java:11)"
-            + " from result because method is not defined on line number 11",
-        "Pruning \tat"
-            + " com.android.tools.r8.R8Command$Builder.lambda$addProguardConfiguration$6(R8Command.java:11)"
-            + " from result because method is not defined on line number 11",
-        "Pruning \tat"
-            + " com.android.tools.r8.R8Command$Builder.lambda$addProguardConfiguration$6(R8Command.java:11)"
-            + " from result because method is not defined on line number 11",
-        "Pruning \tat com.android.tools.r8.R8Command$Builder.makeCommand(R8Command.java:11) from"
-            + " result because method is not in range on line number 11",
-        "Pruning \tat"
-            + " com.android.tools.r8.R8Command$Builder.setDisableVerticalClassMerging(R8Command.java:1)"
-            + " from result because method is not defined on line number 1",
-        "Pruning \tat"
-            + " com.android.tools.r8.R8Command$Builder.lambda$addProguardConfigurationFiles$4(R8Command.java:1)"
-            + " from result because method is not defined on line number 1",
-        "Pruning \tat"
-            + " com.android.tools.r8.R8Command$Builder.lambda$addProguardConfiguration$6(R8Command.java:1)"
-            + " from result because method is not defined on line number 1",
-        "Pruning \tat"
-            + " com.android.tools.r8.R8Command$Builder.lambda$addProguardConfiguration$6(R8Command.java:1)"
-            + " from result because method is not defined on line number 1",
-        "Pruning \tat com.android.tools.r8.R8Command$Builder.makeCommand(R8Command.java:1) from"
-            + " result because method is not defined on line number 1",
-        "Pruning \tat com.android.tools.r8.R8Command$Builder.makeCommand(R8Command.java:1) from"
-            + " result because method is not defined on line number 1",
         "com.android.tools.r8.CompilationFailedException: Compilation failed to complete",
         "\tat com.android.tools.r8.BaseCommand$Builder.build(BaseCommand.java:143)",
         "\tat com.android.tools.r8.R8TestBuilder.internalCompile(R8TestBuilder.java:104)",

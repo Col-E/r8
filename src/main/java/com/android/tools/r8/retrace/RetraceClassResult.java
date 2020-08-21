@@ -90,7 +90,8 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
         new Element(
             this,
             mapper == null ? obfuscatedReference : Reference.classFromTypeName(mapper.originalName),
-            mapper));
+            mapper,
+            false));
   }
 
   @Override
@@ -103,6 +104,11 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
     R create(Element element, T mappings, String obfuscatedName);
   }
 
+  public boolean isAmbiguous() {
+    // Currently we have no way of producing ambiguous class results.
+    return false;
+  }
+
   public static class Element {
 
     private final RetraceClassResult classResult;
@@ -112,7 +118,8 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
     public Element(
         RetraceClassResult classResult,
         ClassReference classReference,
-        ClassNamingForNameMapper mapper) {
+        ClassNamingForNameMapper mapper,
+        boolean isAmbiguous) {
       this.classResult = classResult;
       this.classReference = classReference;
       this.mapper = mapper;

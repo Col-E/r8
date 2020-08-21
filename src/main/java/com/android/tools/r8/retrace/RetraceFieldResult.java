@@ -40,7 +40,7 @@ public class RetraceFieldResult extends Result<RetraceFieldResult.Element, Retra
     return memberNamings != null;
   }
 
-  private boolean isAmbiguous() {
+  public boolean isAmbiguous() {
     if (!hasRetraceResult()) {
       return false;
     }
