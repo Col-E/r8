@@ -7,6 +7,7 @@ package com.android.tools.r8.repackaging;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -71,20 +72,8 @@ public class RepackagingUseRegistry extends UseRegistry {
       return;
     }
 
-    // Check access to the initial resolution holder. We only want to connect the current method
-    // node to the initial resolution holder node if the access requires the two nodes to be in the
-    // same package. Therefore, we ignore accesses to non-program classes and program classes
-    // outside the current package.
-    DexProgramClass initialResolutionHolder =
-        successfulResolutionResult.getInitialResolutionHolder().asProgramClass();
-    if (initialResolutionHolder != null) {
-      RepackagingConstraintGraph.Node initialResolutionHolderNode =
-          constraintGraph.getNode(initialResolutionHolder);
-      if (initialResolutionHolderNode != null
-          && isOnlyAccessibleFromSamePackage(initialResolutionHolder)) {
-        node.addNeighbor(initialResolutionHolderNode);
-      }
-    }
+    // Check access to the initial resolution holder.
+    registerTypeAccess(successfulResolutionResult.getInitialResolutionHolder());
 
     // Similarly, check access to the resolved member.
     ProgramMember<?, ?> resolvedMember =
@@ -98,9 +87,37 @@ public class RepackagingUseRegistry extends UseRegistry {
     }
   }
 
+  private void registerTypeAccess(DexType type) {
+    if (type.isArrayType()) {
+      registerTypeAccess(type.toBaseType(appInfo.dexItemFactory()));
+      return;
+    }
+    if (type.isPrimitiveType()) {
+      return;
+    }
+    assert type.isClassType();
+    DexClass clazz = appInfo.definitionFor(type);
+    if (clazz != null) {
+      registerTypeAccess(clazz);
+    }
+  }
+
+  private void registerTypeAccess(DexClass clazz) {
+    // We only want to connect the current method node to the class node if the access requires the
+    // two nodes to be in the same package. Therefore, we ignore accesses to non-program classes
+    // and program classes outside the current package.
+    DexProgramClass programClass = clazz.asProgramClass();
+    if (programClass != null) {
+      RepackagingConstraintGraph.Node classNode = constraintGraph.getNode(programClass);
+      if (classNode != null && isOnlyAccessibleFromSamePackage(programClass)) {
+        node.addNeighbor(classNode);
+      }
+    }
+  }
+
   @Override
   public boolean registerInitClass(DexType type) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+    registerTypeAccess(type);
     return false;
   }
 
@@ -148,7 +165,7 @@ public class RepackagingUseRegistry extends UseRegistry {
 
   @Override
   public boolean registerNewInstance(DexType type) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+    registerTypeAccess(type);
     return false;
   }
 
@@ -166,13 +183,13 @@ public class RepackagingUseRegistry extends UseRegistry {
 
   @Override
   public boolean registerTypeReference(DexType type) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+    registerTypeAccess(type);
     return false;
   }
 
   @Override
   public boolean registerInstanceOf(DexType type) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+    registerTypeAccess(type);
     return false;
   }
 }
