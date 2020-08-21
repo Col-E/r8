@@ -400,6 +400,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return programConsumer instanceof ClassFileConsumer;
   }
 
+  public boolean isDesugaring() {
+    return !isGeneratingClassFiles() || cfToCfDesugar;
+  }
+
   public DexIndexedConsumer getDexIndexedConsumer() {
     return (DexIndexedConsumer) programConsumer;
   }
@@ -1295,7 +1299,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   private boolean hasMinApi(AndroidApiLevel level) {
-    assert isGeneratingDex();
     return minApiLevel >= level.getLevel();
   }
 
@@ -1346,23 +1349,23 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseDefaultAndStaticInterfaceMethods() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.N);
+    return !isDesugaring() || hasMinApi(AndroidApiLevel.N);
   }
 
   public boolean canUseNestBasedAccess() {
-    return isGeneratingClassFiles();
+    return !isDesugaring();
   }
 
   public boolean canLeaveStaticInterfaceMethodInvokes() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.L);
+    return !isDesugaring() || hasMinApi(AndroidApiLevel.L);
   }
 
   public boolean canUseTwrCloseResourceMethod() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
+    return !isDesugaring() || hasMinApi(AndroidApiLevel.K);
   }
 
   public boolean canUsePrivateInterfaceMethods() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.N);
+    return !isDesugaring() || hasMinApi(AndroidApiLevel.N);
   }
 
   public boolean canUseDexPcAsDebugInformation() {
@@ -1377,7 +1380,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
     return desugarState == DesugarState.ON
         && interfaceMethodDesugaring == OffOrAuto.Auto
-        && (!canUseDefaultAndStaticInterfaceMethods() || cfToCfDesugar);
+        && !canUseDefaultAndStaticInterfaceMethods();
   }
 
   public boolean isStringSwitchConversionEnabled() {
@@ -1394,11 +1397,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseSuppressedExceptions() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
+    return (isGeneratingClassFiles() && !cfToCfDesugar) || hasMinApi(AndroidApiLevel.K);
   }
 
   public boolean canUseAssertionErrorTwoArgumentConstructor() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
+    return (isGeneratingClassFiles() && !cfToCfDesugar) || hasMinApi(AndroidApiLevel.K);
   }
 
   // The Apache Harmony-based AssertionError constructor which takes an Object on API 15 and older
@@ -1408,7 +1411,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // https://android.googlesource.com/platform/libcore/+/refs/heads/ics-mr1/luni/src/main/java/java/lang/AssertionError.java#56
   public boolean canInitCauseAfterAssertionErrorObjectConstructor() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.J);
+    return (isGeneratingClassFiles() && !cfToCfDesugar) || hasMinApi(AndroidApiLevel.J);
   }
 
   // Dalvik x86-atom backend had a bug that made it crash on filled-new-array instructions for

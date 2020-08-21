@@ -29,10 +29,20 @@ public class DesugarToClassFile extends TestBase {
     this.parameters = parameters;
   }
 
-  private void checkHasCompanionClass(CodeInspector inspector) {
-    assertTrue(
-        inspector.allClasses().stream()
-            .anyMatch(subject -> subject.getOriginalName().endsWith("$-CC")));
+  private void checkHasCompanionClassIfRequired(CodeInspector inspector) {
+    boolean canUseDefaultAndStaticInterfaceMethods =
+        parameters
+            .getApiLevel()
+            .isGreaterThanOrEqualTo(apiLevelWithDefaultInterfaceMethodsSupport());
+    if (canUseDefaultAndStaticInterfaceMethods) {
+      assertTrue(
+          inspector.allClasses().stream()
+              .noneMatch(subject -> subject.getOriginalName().endsWith("$-CC")));
+    } else {
+      assertTrue(
+          inspector.allClasses().stream()
+              .anyMatch(subject -> subject.getOriginalName().endsWith("$-CC")));
+    }
   }
 
   private void checkHasLambdaClass(CodeInspector inspector) {
@@ -49,7 +59,7 @@ public class DesugarToClassFile extends TestBase {
             .addInnerClasses(DesugarToClassFile.class)
             .setMinApi(parameters.getApiLevel())
             .compile()
-            .inspect(this::checkHasCompanionClass)
+            .inspect(this::checkHasCompanionClassIfRequired)
             .inspect(this::checkHasLambdaClass)
             .writeToZip();
 
