@@ -36,11 +36,20 @@ def parse_arguments(argv):
                     help='The retracer to use',
                     choices=RETRACERS,
                     required=True)
+  parser.add_argument('--download-benchmarks',
+                      help='Download retrace benchmarks',
+                      default=False,
+                      action='store_true')
   options = parser.parse_args(argv)
   return options
 
+def download_benchmarks():
+  utils.DownloadFromGoogleCloudStorage(
+      os.path.join(utils.THIRD_PARTY, 'retrace_benchmark') + '.tar.gz.sha1')
 
 def run_retrace(options, temp):
+  if options.download_benchmarks:
+    download_benchmarks()
   if options.retracer == 'r8':
     retracer_args = [
         '-cp', utils.R8LIB_JAR, 'com.android.tools.r8.retrace.Retrace']
