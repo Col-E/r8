@@ -66,21 +66,26 @@ public class EnumUnboxingTestBase extends TestBase {
     }
   }
 
-  void enableEnumOptions(InternalOptions options, boolean enumValueOptimization) {
+  protected void enableEnumOptions(InternalOptions options, boolean enumValueOptimization) {
     options.enableEnumValueOptimization = enumValueOptimization;
     options.enableEnumSwitchMapRemoval = enumValueOptimization;
     options.testing.enableEnumUnboxingDebugLogs = true;
   }
 
-  void assertEnumIsUnboxed(Class<?> enumClass, String testName, TestDiagnosticMessages m) {
+  protected void assertEnumIsUnboxed(
+      Class<?> enumClass, String testName, TestDiagnosticMessages m) {
     assertTrue(enumClass.isEnum());
+    assertEnumIsUnboxed(enumClass.getSimpleName(), testName, m);
+  }
+
+  protected void assertEnumIsUnboxed(String enumClass, String testName, TestDiagnosticMessages m) {
     Diagnostic diagnostic = m.getInfos().get(0);
     assertTrue(diagnostic.getDiagnosticMessage().startsWith("Unboxed enums"));
     assertTrue(
         StringUtils.joinLines(
             "Expected enum to be removed (" + testName + "):",
             m.getInfos().get(1).getDiagnosticMessage()),
-        diagnostic.getDiagnosticMessage().contains(enumClass.getSimpleName()));
+        diagnostic.getDiagnosticMessage().contains(enumClass));
   }
 
   void assertEnumIsBoxed(Class<?> enumClass, String testName, TestDiagnosticMessages m) {
@@ -99,7 +104,7 @@ public class EnumUnboxingTestBase extends TestBase {
         getAllEnumKeepRules());
   }
 
-  static EnumKeepRules[] getAllEnumKeepRules() {
+  protected static EnumKeepRules[] getAllEnumKeepRules() {
     return EnumKeepRules.values();
   }
 }
