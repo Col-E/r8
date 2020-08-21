@@ -6,7 +6,8 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.utils.OptionalBool;
 
-public abstract class FieldResolutionResult {
+public abstract class FieldResolutionResult
+    implements MemberResolutionResult<DexEncodedField, DexField> {
 
   public static FailedFieldResolutionResult failure() {
     return FailedFieldResolutionResult.INSTANCE;
@@ -31,6 +32,16 @@ public abstract class FieldResolutionResult {
     return null;
   }
 
+  @Override
+  public boolean isSuccessfulMemberResolutionResult() {
+    return false;
+  }
+
+  @Override
+  public SuccessfulFieldResolutionResult asSuccessfulMemberResolutionResult() {
+    return null;
+  }
+
   public boolean isFailedOrUnknownResolution() {
     return false;
   }
@@ -39,7 +50,8 @@ public abstract class FieldResolutionResult {
     return null;
   }
 
-  public static class SuccessfulFieldResolutionResult extends FieldResolutionResult {
+  public static class SuccessfulFieldResolutionResult extends FieldResolutionResult
+      implements SuccessfulMemberResolutionResult<DexEncodedField, DexField> {
 
     private final DexClass initialResolutionHolder;
     private final DexClass resolvedHolder;
@@ -58,12 +70,18 @@ public abstract class FieldResolutionResult {
       return initialResolutionHolder;
     }
 
+    @Override
     public DexClass getResolvedHolder() {
       return resolvedHolder;
     }
 
     @Override
     public DexEncodedField getResolvedField() {
+      return resolvedField;
+    }
+
+    @Override
+    public DexEncodedField getResolvedMember() {
       return resolvedField;
     }
 
@@ -84,6 +102,16 @@ public abstract class FieldResolutionResult {
 
     @Override
     public SuccessfulFieldResolutionResult asSuccessfulResolution() {
+      return this;
+    }
+
+    @Override
+    public boolean isSuccessfulMemberResolutionResult() {
+      return true;
+    }
+
+    @Override
+    public SuccessfulFieldResolutionResult asSuccessfulMemberResolutionResult() {
       return this;
     }
   }

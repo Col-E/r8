@@ -43,12 +43,16 @@ public class RepackagingConstraintGraph {
     this.pkg = pkg;
   }
 
+  /** Returns true if all classes in the package can be repackaged. */
   public boolean initializeGraph() {
     // Add all the items in the package into the graph. This way we know which items belong to the
     // package without having to extract package descriptor strings and comparing them with the
     // package descriptor.
     boolean hasPackagePrivateOrProtectedItem = false;
+    boolean hasPinnedItem = false;
     for (DexProgramClass clazz : pkg) {
+      boolean isPinned = !appView.appInfo().isMinificationAllowed(clazz.getType());
+      hasPinnedItem |= isPinned;
       nodes.put(clazz, new Node(clazz));
       hasPackagePrivateOrProtectedItem |= clazz.getAccessFlags().isPackagePrivateOrProtected();
       for (DexEncodedMember<?, ?> member : clazz.members()) {
@@ -56,7 +60,11 @@ public class RepackagingConstraintGraph {
         hasPackagePrivateOrProtectedItem |= member.getAccessFlags().isPackagePrivateOrProtected();
       }
     }
-    return hasPackagePrivateOrProtectedItem;
+    return !hasPinnedItem || !hasPackagePrivateOrProtectedItem;
+  }
+
+  Node getNode(DexDefinition definition) {
+    return nodes.get(definition);
   }
 
   public void populateConstraints(ExecutorService executorService) throws ExecutionException {
@@ -98,14 +106,19 @@ public class RepackagingConstraintGraph {
     return Collections.emptyList();
   }
 
-  private static class Node {
+  static class Node {
 
     private final DexDefinition definition;
 
-    private final Set<Node> neighbors = Sets.newIdentityHashSet();
+    private final Set<Node> neighbors = Sets.newConcurrentHashSet();
 
     private Node(DexDefinition definition) {
       this.definition = definition;
+    }
+
+    public void addNeighbor(Node neighbor) {
+      neighbors.add(neighbor);
+      neighbor.neighbors.add(this);
     }
   }
 }

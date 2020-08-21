@@ -18,7 +18,8 @@ import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
-public abstract class ResolutionResult {
+public abstract class ResolutionResult
+    implements MemberResolutionResult<DexEncodedMethod, DexMethod> {
 
   /**
    * Returns true if resolution succeeded *and* the resolved method has a known definition.
@@ -33,6 +34,17 @@ public abstract class ResolutionResult {
 
   /** Returns non-null if isSingleResolution() is true, otherwise null. */
   public SingleResolutionResult asSingleResolution() {
+    return null;
+  }
+
+  @Override
+  public boolean isSuccessfulMemberResolutionResult() {
+    return false;
+  }
+
+  @Override
+  public SuccessfulMemberResolutionResult<DexEncodedMethod, DexMethod>
+      asSuccessfulMemberResolutionResult() {
     return null;
   }
 
@@ -125,7 +137,8 @@ public abstract class ResolutionResult {
       LambdaDescriptor lambdaInstance, AppInfoWithClassHierarchy appInfo);
 
   /** Result for a resolution that succeeds with a known declaration/definition. */
-  public static class SingleResolutionResult extends ResolutionResult {
+  public static class SingleResolutionResult extends ResolutionResult
+      implements SuccessfulMemberResolutionResult<DexEncodedMethod, DexMethod> {
     private final DexClass initialResolutionHolder;
     private final DexClass resolvedHolder;
     private final DexEncodedMethod resolvedMethod;
@@ -150,8 +163,14 @@ public abstract class ResolutionResult {
       return initialResolutionHolder;
     }
 
+    @Override
     public DexClass getResolvedHolder() {
       return resolvedHolder;
+    }
+
+    @Override
+    public DexEncodedMethod getResolvedMember() {
+      return resolvedMethod;
     }
 
     public DexEncodedMethod getResolvedMethod() {
@@ -169,6 +188,17 @@ public abstract class ResolutionResult {
 
     @Override
     public SingleResolutionResult asSingleResolution() {
+      return this;
+    }
+
+    @Override
+    public boolean isSuccessfulMemberResolutionResult() {
+      return true;
+    }
+
+    @Override
+    public SuccessfulMemberResolutionResult<DexEncodedMethod, DexMethod>
+        asSuccessfulMemberResolutionResult() {
       return this;
     }
 

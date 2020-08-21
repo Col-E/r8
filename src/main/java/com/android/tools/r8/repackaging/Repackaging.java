@@ -61,29 +61,12 @@ public class Repackaging {
 
   private Iterable<DexProgramClass> computeClassesToRepackage(
       ProgramPackage pkg, ExecutorService executorService) throws ExecutionException {
-    // If all classes can be minified, then we are free to move all the classes to a new package.
-    if (isMinificationAllowedForAllClasses(pkg)) {
-      return pkg;
-    }
-
-    // Otherwise, only a subset of classes in the package can be repackaged, and we need to ensure
-    // that package-private accesses continue to work after the split.
     RepackagingConstraintGraph constraintGraph = new RepackagingConstraintGraph(appView, pkg);
-    boolean hasPackagePrivateOrProtectedItem = constraintGraph.initializeGraph();
-    if (!hasPackagePrivateOrProtectedItem) {
+    boolean canRepackageAllClasses = constraintGraph.initializeGraph();
+    if (canRepackageAllClasses) {
       return pkg;
     }
     constraintGraph.populateConstraints(executorService);
     return constraintGraph.computeClassesToRepackage();
-  }
-
-  private boolean isMinificationAllowedForAllClasses(ProgramPackage pkg) {
-    AppInfoWithLiveness appInfo = appView.appInfo();
-    for (DexProgramClass clazz : pkg) {
-      if (!appInfo.isMinificationAllowed(clazz.getType())) {
-        return false;
-      }
-    }
-    return true;
   }
 }

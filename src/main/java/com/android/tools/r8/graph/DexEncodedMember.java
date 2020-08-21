@@ -27,6 +27,8 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
     return this;
   }
 
+  public abstract ProgramMember<D, R> asProgramMember(DexDefinitionSupplier definitions);
+
   @Override
   public final boolean equals(Object other) {
     if (other == this) {

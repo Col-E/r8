@@ -4,28 +4,98 @@
 
 package com.android.tools.r8.repackaging;
 
+import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MemberResolutionResult;
+import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.SuccessfulMemberResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class RepackagingUseRegistry extends UseRegistry {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppInfoWithLiveness appInfo;
   private final RepackagingConstraintGraph constraintGraph;
-  private final ProgramMethod method;
+  private final ProgramMethod context;
+  private final RepackagingConstraintGraph.Node node;
 
   public RepackagingUseRegistry(
       AppView<AppInfoWithLiveness> appView,
       RepackagingConstraintGraph constraintGraph,
-      ProgramMethod method) {
+      ProgramMethod context) {
     super(appView.dexItemFactory());
-    this.appView = appView;
+    this.appInfo = appView.appInfo();
     this.constraintGraph = constraintGraph;
-    this.method = method;
+    this.context = context;
+    this.node = constraintGraph.getNode(context.getDefinition());
+  }
+
+  private boolean isOnlyAccessibleFromSamePackage(DexProgramClass referencedClass) {
+    ClassAccessFlags accessFlags = referencedClass.getAccessFlags();
+    if (accessFlags.isPackagePrivate()) {
+      return true;
+    }
+    if (accessFlags.isProtected()
+        && !appInfo.isSubtype(context.getHolderType(), referencedClass.getType())) {
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isOnlyAccessibleFromSamePackage(ProgramMember<?, ?> member) {
+    AccessFlags<?> accessFlags = member.getDefinition().getAccessFlags();
+    if (accessFlags.isPackagePrivate()) {
+      return true;
+    }
+    if (accessFlags.isProtected()
+        && !appInfo.isSubtype(context.getHolderType(), member.getHolderType())) {
+      return true;
+    }
+    return false;
+  }
+
+  private void registerMemberAccess(MemberResolutionResult<?, ?> resolutionResult) {
+    SuccessfulMemberResolutionResult<?, ?> successfulResolutionResult =
+        resolutionResult.asSuccessfulMemberResolutionResult();
+    if (successfulResolutionResult == null) {
+      // TODO(b/165783399): If we want to preserve errors in the original program, we need to look
+      //  at the failure dependencies. For example, if this method accesses in a package-private
+      //  method in another package, and we move the two methods to the same package, then the
+      //  invoke would no longer fail with an IllegalAccessError.
+      return;
+    }
+
+    // Check access to the initial resolution holder. We only want to connect the current method
+    // node to the initial resolution holder node if the access requires the two nodes to be in the
+    // same package. Therefore, we ignore accesses to non-program classes and program classes
+    // outside the current package.
+    DexProgramClass initialResolutionHolder =
+        successfulResolutionResult.getInitialResolutionHolder().asProgramClass();
+    if (initialResolutionHolder != null) {
+      RepackagingConstraintGraph.Node initialResolutionHolderNode =
+          constraintGraph.getNode(initialResolutionHolder);
+      if (initialResolutionHolderNode != null
+          && isOnlyAccessibleFromSamePackage(initialResolutionHolder)) {
+        node.addNeighbor(initialResolutionHolderNode);
+      }
+    }
+
+    // Similarly, check access to the resolved member.
+    ProgramMember<?, ?> resolvedMember =
+        successfulResolutionResult.getResolvedMember().asProgramMember(appInfo);
+    if (resolvedMember != null) {
+      RepackagingConstraintGraph.Node resolvedMemberNode =
+          constraintGraph.getNode(resolvedMember.getDefinition());
+      if (resolvedMemberNode != null && isOnlyAccessibleFromSamePackage(resolvedMember)) {
+        node.addNeighbor(resolvedMemberNode);
+      }
+    }
   }
 
   @Override
@@ -35,44 +105,44 @@ public class RepackagingUseRegistry extends UseRegistry {
   }
 
   @Override
-  public boolean registerInvokeVirtual(DexMethod method) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+  public boolean registerInvokeVirtual(DexMethod invokedMethod) {
+    registerMemberAccess(appInfo.resolveMethod(invokedMethod, false));
     return false;
   }
 
   @Override
-  public boolean registerInvokeDirect(DexMethod method) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+  public boolean registerInvokeDirect(DexMethod invokedMethod) {
+    registerMemberAccess(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
     return false;
   }
 
   @Override
-  public boolean registerInvokeStatic(DexMethod method) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+  public boolean registerInvokeStatic(DexMethod invokedMethod) {
+    registerMemberAccess(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
     return false;
   }
 
   @Override
-  public boolean registerInvokeInterface(DexMethod method) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+  public boolean registerInvokeInterface(DexMethod invokedMethod) {
+    registerMemberAccess(appInfo.resolveMethod(invokedMethod, true));
     return false;
   }
 
   @Override
-  public boolean registerInvokeSuper(DexMethod method) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+  public boolean registerInvokeSuper(DexMethod invokedMethod) {
+    registerMemberAccess(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
     return false;
   }
 
   @Override
   public boolean registerInstanceFieldRead(DexField field) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+    registerMemberAccess(appInfo.resolveField(field));
     return false;
   }
 
   @Override
   public boolean registerInstanceFieldWrite(DexField field) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+    registerMemberAccess(appInfo.resolveField(field));
     return false;
   }
 
@@ -84,13 +154,13 @@ public class RepackagingUseRegistry extends UseRegistry {
 
   @Override
   public boolean registerStaticFieldRead(DexField field) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+    registerMemberAccess(appInfo.resolveField(field));
     return false;
   }
 
   @Override
   public boolean registerStaticFieldWrite(DexField field) {
-    // TODO(b/165783399): Add reference-edges to the graph.
+    registerMemberAccess(appInfo.resolveField(field));
     return false;
   }
 

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 
@@ -129,6 +130,20 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   @Override
   public DexEncodedField asDexEncodedField() {
     return this;
+  }
+
+  @Override
+  public ProgramField asProgramMember(DexDefinitionSupplier definitions) {
+    return asProgramField(definitions);
+  }
+
+  public ProgramField asProgramField(DexDefinitionSupplier definitions) {
+    assert holder().isClassType();
+    DexProgramClass clazz = asProgramClassOrNull(definitions.definitionForHolder(field));
+    if (clazz != null) {
+      return new ProgramField(clazz, this);
+    }
+    return null;
   }
 
   public boolean isEnum() {

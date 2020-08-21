@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.graph;
 
-public class ProgramField extends DexClassAndField {
+public class ProgramField extends DexClassAndField
+    implements ProgramMember<DexEncodedField, DexField> {
 
   public ProgramField(DexProgramClass holder, DexEncodedField field) {
     super(holder, field);

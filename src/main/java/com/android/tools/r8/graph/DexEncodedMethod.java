@@ -322,6 +322,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return false;
   }
 
+  @Override
+  public ProgramMethod asProgramMember(DexDefinitionSupplier definitions) {
+    return asProgramMethod(definitions);
+  }
+
   public ProgramMethod asProgramMethod(DexDefinitionSupplier definitions) {
     assert method.holder.isClassType();
     DexProgramClass clazz = asProgramClassOrNull(definitions.definitionForHolder(method));

@@ -11,7 +11,8 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 
 /** Type representing a method definition in the programs compilation unit and its holder. */
-public final class ProgramMethod extends DexClassAndMethod {
+public final class ProgramMethod extends DexClassAndMethod
+    implements ProgramMember<DexEncodedMethod, DexMethod> {
 
   public ProgramMethod(DexProgramClass holder, DexEncodedMethod method) {
     super(holder, method);
