@@ -687,85 +687,82 @@ public final class ClassStaticizer {
       super(factory);
     }
 
-    private boolean registerMethod(DexMethod method) {
+    private void registerMethod(DexMethod method) {
       registerTypeReference(method.holder);
       registerProto(method.proto);
-      return true;
     }
 
-    private boolean registerField(DexField field) {
+    private void registerField(DexField field) {
       registerTypeReference(field.holder);
       registerTypeReference(field.type);
-      return true;
     }
 
     @Override
-    public boolean registerInitClass(DexType clazz) {
-      return registerTypeReference(clazz);
+    public void registerInitClass(DexType clazz) {
+      registerTypeReference(clazz);
     }
 
     @Override
-    public boolean registerInvokeVirtual(DexMethod method) {
-      return registerMethod(method);
+    public void registerInvokeVirtual(DexMethod method) {
+      registerMethod(method);
     }
 
     @Override
-    public boolean registerInvokeDirect(DexMethod method) {
-      return registerMethod(method);
+    public void registerInvokeDirect(DexMethod method) {
+      registerMethod(method);
     }
 
     @Override
-    public boolean registerInvokeStatic(DexMethod method) {
-      return registerMethod(method);
+    public void registerInvokeStatic(DexMethod method) {
+      registerMethod(method);
     }
 
     @Override
-    public boolean registerInvokeInterface(DexMethod method) {
-      return registerMethod(method);
+    public void registerInvokeInterface(DexMethod method) {
+      registerMethod(method);
     }
 
     @Override
-    public boolean registerInvokeSuper(DexMethod method) {
-      return registerMethod(method);
+    public void registerInvokeSuper(DexMethod method) {
+      registerMethod(method);
     }
 
     @Override
-    public boolean registerInstanceFieldWrite(DexField field) {
-      return registerField(field);
+    public void registerInstanceFieldWrite(DexField field) {
+      registerField(field);
     }
 
     @Override
-    public boolean registerInstanceFieldRead(DexField field) {
-      return registerField(field);
+    public void registerInstanceFieldRead(DexField field) {
+      registerField(field);
     }
 
     @Override
-    public boolean registerNewInstance(DexType type) {
-      return registerTypeReference(type);
+    public void registerNewInstance(DexType type) {
+      registerTypeReference(type);
     }
 
     @Override
-    public boolean registerStaticFieldRead(DexField field) {
-      return registerField(field);
+    public void registerStaticFieldRead(DexField field) {
+      registerField(field);
     }
 
     @Override
-    public boolean registerStaticFieldWrite(DexField field) {
-      return registerField(field);
+    public void registerStaticFieldWrite(DexField field) {
+      registerField(field);
     }
 
     @Override
-    public boolean registerTypeReference(DexType type) {
+    public void registerTypeReference(DexType type) {
       CandidateInfo candidateInfo = candidates.get(type);
       if (candidateInfo != null) {
         candidateInfo.invalidate();
       }
-      return true;
     }
 
     @Override
-    public boolean registerInstanceOf(DexType type) {
-      return registerTypeReference(type);
+    public void registerInstanceOf(DexType type) {
+      registerTypeReference(type);
     }
   }
 }

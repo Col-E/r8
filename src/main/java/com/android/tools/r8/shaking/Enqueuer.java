@@ -918,12 +918,12 @@ public class Enqueuer {
     }
   }
 
-  boolean traceCheckCast(DexType type, ProgramMethod currentMethod) {
+  void traceCheckCast(DexType type, ProgramMethod currentMethod) {
     checkCastAnalyses.forEach(analysis -> analysis.traceCheckCast(type, currentMethod));
-    return traceConstClassOrCheckCast(type, currentMethod);
+    traceConstClassOrCheckCast(type, currentMethod);
   }
 
-  boolean traceConstClass(DexType type, ProgramMethod currentMethod) {
+  void traceConstClass(DexType type, ProgramMethod currentMethod) {
     // We conservatively group T.class and T[].class to ensure that we do not merge T with S if
     // potential locks on T[].class and S[].class exists.
     DexType baseType = type.toBaseType(appView.dexItemFactory());
@@ -933,12 +933,13 @@ public class Enqueuer {
         constClassReferences.add(baseType);
       }
     }
-    return traceConstClassOrCheckCast(type, currentMethod);
+    traceConstClassOrCheckCast(type, currentMethod);
   }
 
-  private boolean traceConstClassOrCheckCast(DexType type, ProgramMethod currentMethod) {
+  private void traceConstClassOrCheckCast(DexType type, ProgramMethod currentMethod) {
     if (!forceProguardCompatibility) {
-      return traceTypeReference(type, currentMethod);
+      traceTypeReference(type, currentMethod);
+      return;
     }
     DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (baseType.isClassType()) {
@@ -948,12 +949,10 @@ public class Enqueuer {
         markClassAsInstantiatedWithCompatRule(
             baseClass, graphReporter.reportCompatInstantiated(baseClass, currentMethod));
       }
-      return true;
     }
-    return false;
   }
 
-  boolean traceInitClass(DexType type, ProgramMethod currentMethod) {
+  void traceInitClass(DexType type, ProgramMethod currentMethod) {
     assert type.isClassType();
 
     Visibility oldMinimumRequiredVisibility = initClassReferences.get(type);
@@ -961,7 +960,7 @@ public class Enqueuer {
       DexProgramClass clazz = getProgramClassOrNull(type);
       if (clazz == null) {
         assert false;
-        return false;
+        return;
       }
 
       initClassReferences.put(
@@ -969,11 +968,11 @@ public class Enqueuer {
 
       markTypeAsLive(type, classReferencedFromReporter(currentMethod));
       markDirectAndIndirectClassInitializersAsLive(clazz);
-      return true;
+      return;
     }
 
     if (oldMinimumRequiredVisibility.isPublic()) {
-      return false;
+      return;
     }
 
     Visibility minimumRequiredVisibilityForCurrentMethod =
@@ -984,21 +983,20 @@ public class Enqueuer {
 
     if (minimumRequiredVisibilityForCurrentMethod.isPublic()) {
       initClassReferences.put(type, minimumRequiredVisibilityForCurrentMethod);
-      return true;
+      return;
     }
 
     if (oldMinimumRequiredVisibility.isProtected()) {
-      return false;
+      return;
     }
 
     if (minimumRequiredVisibilityForCurrentMethod.isProtected()) {
       initClassReferences.put(type, minimumRequiredVisibilityForCurrentMethod);
-      return true;
+      return;
     }
 
     assert oldMinimumRequiredVisibility.isPackagePrivate();
     assert minimumRequiredVisibilityForCurrentMethod.isPackagePrivate();
-    return false;
   }
 
   private Visibility computeMinimumRequiredVisibilityForInitClassField(
@@ -1037,17 +1035,16 @@ public class Enqueuer {
     }
   }
 
-  boolean traceTypeReference(DexType type, ProgramMethod currentMethod) {
+  void traceTypeReference(DexType type, ProgramMethod currentMethod) {
     markTypeAsLive(type, classReferencedFromReporter(currentMethod));
-    return true;
   }
 
-  boolean traceInstanceOf(DexType type, ProgramMethod currentMethod) {
+  void traceInstanceOf(DexType type, ProgramMethod currentMethod) {
     instanceOfAnalyses.forEach(analysis -> analysis.traceInstanceOf(type, currentMethod));
-    return traceTypeReference(type, currentMethod);
+    traceTypeReference(type, currentMethod);
   }
 
-  boolean traceInvokeDirect(DexMethod invokedMethod, ProgramMethod context) {
+  void traceInvokeDirect(DexMethod invokedMethod, ProgramMethod context) {
     boolean skipTracing =
         registerDeferredActionForDeadProtoBuilder(
             invokedMethod.holder,
@@ -1055,10 +1052,10 @@ public class Enqueuer {
             () -> workList.enqueueTraceInvokeDirectAction(invokedMethod, context));
     if (skipTracing) {
       addDeadProtoTypeCandidate(invokedMethod.holder);
-      return false;
+      return;
     }
 
-    return traceInvokeDirect(invokedMethod, context, KeepReason.invokedFrom(context));
+    traceInvokeDirect(invokedMethod, context, KeepReason.invokedFrom(context));
   }
 
   /** Returns true if a deferred action was registered. */
@@ -1075,56 +1072,51 @@ public class Enqueuer {
     return false;
   }
 
-  boolean traceInvokeDirectFromLambda(DexMethod invokedMethod, ProgramMethod context) {
-    return traceInvokeDirect(
-        invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context));
+  void traceInvokeDirectFromLambda(DexMethod invokedMethod, ProgramMethod context) {
+    traceInvokeDirect(invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context));
   }
 
-  private boolean traceInvokeDirect(
+  private void traceInvokeDirect(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
     if (!registerMethodWithTargetAndContext(directInvokes, invokedMethod, context)) {
-      return false;
+      return;
     }
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Register invokeDirect `%s`.", invokedMethod);
     }
     handleInvokeOfDirectTarget(invokedMethod, reason);
     invokeAnalyses.forEach(analysis -> analysis.traceInvokeDirect(invokedMethod, context));
-    return true;
   }
 
-  boolean traceInvokeInterface(DexMethod invokedMethod, ProgramMethod context) {
-    return traceInvokeInterface(invokedMethod, context, KeepReason.invokedFrom(context));
+  void traceInvokeInterface(DexMethod invokedMethod, ProgramMethod context) {
+    traceInvokeInterface(invokedMethod, context, KeepReason.invokedFrom(context));
   }
 
-  boolean traceInvokeInterfaceFromLambda(DexMethod invokedMethod, ProgramMethod context) {
-    return traceInvokeInterface(
-        invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context));
+  void traceInvokeInterfaceFromLambda(DexMethod invokedMethod, ProgramMethod context) {
+    traceInvokeInterface(invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context));
   }
 
-  private boolean traceInvokeInterface(
+  private void traceInvokeInterface(
       DexMethod method, ProgramMethod context, KeepReason keepReason) {
     if (!registerMethodWithTargetAndContext(interfaceInvokes, method, context)) {
-      return false;
+      return;
     }
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Register invokeInterface `%s`.", method);
     }
     markVirtualMethodAsReachable(method, true, context, keepReason);
     invokeAnalyses.forEach(analysis -> analysis.traceInvokeInterface(method, context));
-    return true;
   }
 
-  boolean traceInvokeStatic(DexMethod invokedMethod, ProgramMethod context) {
-    return traceInvokeStatic(invokedMethod, context, KeepReason.invokedFrom(context));
+  void traceInvokeStatic(DexMethod invokedMethod, ProgramMethod context) {
+    traceInvokeStatic(invokedMethod, context, KeepReason.invokedFrom(context));
   }
 
-  boolean traceInvokeStaticFromLambda(DexMethod invokedMethod, ProgramMethod context) {
-    return traceInvokeStatic(
-        invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context));
+  void traceInvokeStaticFromLambda(DexMethod invokedMethod, ProgramMethod context) {
+    traceInvokeStatic(invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context));
   }
 
-  private boolean traceInvokeStatic(
+  private void traceInvokeStatic(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     if (dexItemFactory.classMethods.isReflectiveClassLookup(invokedMethod)
@@ -1146,41 +1138,38 @@ public class Enqueuer {
       pendingReflectiveUses.add(context);
     }
     if (!registerMethodWithTargetAndContext(staticInvokes, invokedMethod, context)) {
-      return false;
+      return;
     }
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Register invokeStatic `%s`.", invokedMethod);
     }
     handleInvokeOfStaticTarget(invokedMethod, reason);
     invokeAnalyses.forEach(analysis -> analysis.traceInvokeStatic(invokedMethod, context));
-    return true;
   }
 
-  boolean traceInvokeSuper(DexMethod invokedMethod, ProgramMethod context) {
+  void traceInvokeSuper(DexMethod invokedMethod, ProgramMethod context) {
     // We have to revisit super invokes based on the context they are found in. The same
     // method descriptor will hit different targets, depending on the context it is used in.
     DexMethod actualTarget = getInvokeSuperTarget(invokedMethod, context);
     if (!registerMethodWithTargetAndContext(superInvokes, invokedMethod, context)) {
-      return false;
+      return;
     }
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Register invokeSuper `%s`.", actualTarget);
     }
     workList.enqueueMarkReachableSuperAction(invokedMethod, context);
     invokeAnalyses.forEach(analysis -> analysis.traceInvokeSuper(invokedMethod, context));
-    return true;
   }
 
-  boolean traceInvokeVirtual(DexMethod invokedMethod, ProgramMethod context) {
-    return traceInvokeVirtual(invokedMethod, context, KeepReason.invokedFrom(context));
+  void traceInvokeVirtual(DexMethod invokedMethod, ProgramMethod context) {
+    traceInvokeVirtual(invokedMethod, context, KeepReason.invokedFrom(context));
   }
 
-  boolean traceInvokeVirtualFromLambda(DexMethod invokedMethod, ProgramMethod context) {
-    return traceInvokeVirtual(
-        invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context));
+  void traceInvokeVirtualFromLambda(DexMethod invokedMethod, ProgramMethod context) {
+    traceInvokeVirtual(invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context));
   }
 
-  private boolean traceInvokeVirtual(
+  private void traceInvokeVirtual(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
     if (invokedMethod == appView.dexItemFactory().classMethods.newInstance
         || invokedMethod == appView.dexItemFactory().constructorMethods.newInstance) {
@@ -1192,38 +1181,37 @@ public class Enqueuer {
       pendingReflectiveUses.add(context);
     }
     if (!registerMethodWithTargetAndContext(virtualInvokes, invokedMethod, context)) {
-      return false;
+      return;
     }
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Register invokeVirtual `%s`.", invokedMethod);
     }
     markVirtualMethodAsReachable(invokedMethod, false, context, reason);
     invokeAnalyses.forEach(analysis -> analysis.traceInvokeVirtual(invokedMethod, context));
-    return true;
   }
 
-  boolean traceNewInstance(DexType type, ProgramMethod context) {
+  void traceNewInstance(DexType type, ProgramMethod context) {
     boolean skipTracing =
         registerDeferredActionForDeadProtoBuilder(
             type, context, () -> workList.enqueueTraceNewInstanceAction(type, context));
     if (skipTracing) {
       addDeadProtoTypeCandidate(type);
-      return false;
+      return;
     }
 
-    return traceNewInstance(
+    traceNewInstance(
         type,
         context,
         InstantiationReason.NEW_INSTANCE_INSTRUCTION,
         KeepReason.instantiatedIn(context));
   }
 
-  boolean traceNewInstanceFromLambda(DexType type, ProgramMethod context) {
-    return traceNewInstance(
+  void traceNewInstanceFromLambda(DexType type, ProgramMethod context) {
+    traceNewInstance(
         type, context, InstantiationReason.LAMBDA, KeepReason.invokedFromLambdaCreatedIn(context));
   }
 
-  private boolean traceNewInstance(
+  private void traceNewInstance(
       DexType type,
       ProgramMethod context,
       InstantiationReason instantiationReason,
@@ -1236,21 +1224,20 @@ public class Enqueuer {
         workList.enqueueMarkInstantiatedAction(clazz, context, instantiationReason, keepReason);
       }
     }
-    return true;
   }
 
-  boolean traceInstanceFieldRead(DexField field, ProgramMethod currentMethod) {
-    return traceInstanceFieldRead(field, currentMethod, false);
+  void traceInstanceFieldRead(DexField field, ProgramMethod currentMethod) {
+    traceInstanceFieldRead(field, currentMethod, false);
   }
 
-  boolean traceInstanceFieldReadFromMethodHandle(DexField field, ProgramMethod currentMethod) {
-    return traceInstanceFieldRead(field, currentMethod, true);
+  void traceInstanceFieldReadFromMethodHandle(DexField field, ProgramMethod currentMethod) {
+    traceInstanceFieldRead(field, currentMethod, true);
   }
 
-  private boolean traceInstanceFieldRead(
+  private void traceInstanceFieldRead(
       DexField fieldReference, ProgramMethod currentMethod, boolean fromMethodHandle) {
     if (!registerFieldRead(fieldReference, currentMethod)) {
-      return false;
+      return;
     }
 
     // Must mark the field as targeted even if it does not exist.
@@ -1258,14 +1245,14 @@ public class Enqueuer {
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference);
     if (resolutionResult.isFailedOrUnknownResolution()) {
-      return false;
+      return;
     }
 
     ProgramField field =
         resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
     if (field == null) {
       // No need to trace into the non-program code.
-      return false;
+      return;
     }
 
     if (fromMethodHandle) {
@@ -1287,21 +1274,20 @@ public class Enqueuer {
     }
 
     workList.enqueueMarkReachableFieldAction(field, KeepReason.fieldReferencedIn(currentMethod));
-    return true;
   }
 
-  boolean traceInstanceFieldWrite(DexField field, ProgramMethod currentMethod) {
-    return traceInstanceFieldWrite(field, currentMethod, false);
+  void traceInstanceFieldWrite(DexField field, ProgramMethod currentMethod) {
+    traceInstanceFieldWrite(field, currentMethod, false);
   }
 
-  boolean traceInstanceFieldWriteFromMethodHandle(DexField field, ProgramMethod currentMethod) {
-    return traceInstanceFieldWrite(field, currentMethod, true);
+  void traceInstanceFieldWriteFromMethodHandle(DexField field, ProgramMethod currentMethod) {
+    traceInstanceFieldWrite(field, currentMethod, true);
   }
 
-  private boolean traceInstanceFieldWrite(
+  private void traceInstanceFieldWrite(
       DexField fieldReference, ProgramMethod currentMethod, boolean fromMethodHandle) {
     if (!registerFieldWrite(fieldReference, currentMethod)) {
-      return false;
+      return;
     }
 
     // Must mark the field as targeted even if it does not exist.
@@ -1309,14 +1295,14 @@ public class Enqueuer {
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference);
     if (resolutionResult.isFailedOrUnknownResolution()) {
-      return false;
+      return;
     }
 
     ProgramField field =
         resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
     if (field == null) {
       // No need to trace into the non-program code.
-      return false;
+      return;
     }
 
     if (fromMethodHandle) {
@@ -1339,35 +1325,34 @@ public class Enqueuer {
 
     KeepReason reason = KeepReason.fieldReferencedIn(currentMethod);
     workList.enqueueMarkReachableFieldAction(field, reason);
-    return true;
   }
 
-  boolean traceStaticFieldRead(DexField field, ProgramMethod currentMethod) {
-    return traceStaticFieldRead(field, currentMethod, false);
+  void traceStaticFieldRead(DexField field, ProgramMethod currentMethod) {
+    traceStaticFieldRead(field, currentMethod, false);
   }
 
-  boolean traceStaticFieldReadFromMethodHandle(DexField field, ProgramMethod currentMethod) {
-    return traceStaticFieldRead(field, currentMethod, true);
+  void traceStaticFieldReadFromMethodHandle(DexField field, ProgramMethod currentMethod) {
+    traceStaticFieldRead(field, currentMethod, true);
   }
 
-  private boolean traceStaticFieldRead(
+  private void traceStaticFieldRead(
       DexField fieldReference, ProgramMethod currentMethod, boolean fromMethodHandle) {
     if (!registerFieldRead(fieldReference, currentMethod)) {
-      return false;
+      return;
     }
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference);
     if (resolutionResult.isFailedOrUnknownResolution()) {
       // Must mark the field as targeted even if it does not exist.
       markFieldAsTargeted(fieldReference, currentMethod);
-      return false;
+      return;
     }
 
     ProgramField field =
         resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
     if (field == null) {
       // No need to trace into the non-program code.
-      return false;
+      return;
     }
 
     if (fromMethodHandle) {
@@ -1387,7 +1372,7 @@ public class Enqueuer {
               false);
       if (skipTracing) {
         addDeadProtoTypeCandidate(field.getHolder());
-        return false;
+        return;
       }
     }
 
@@ -1398,35 +1383,34 @@ public class Enqueuer {
     }
 
     markStaticFieldAsLive(field, KeepReason.fieldReferencedIn(currentMethod));
-    return true;
   }
 
-  boolean traceStaticFieldWrite(DexField field, ProgramMethod currentMethod) {
-    return traceStaticFieldWrite(field, currentMethod, false);
+  void traceStaticFieldWrite(DexField field, ProgramMethod currentMethod) {
+    traceStaticFieldWrite(field, currentMethod, false);
   }
 
-  boolean traceStaticFieldWriteFromMethodHandle(DexField field, ProgramMethod currentMethod) {
-    return traceStaticFieldWrite(field, currentMethod, true);
+  void traceStaticFieldWriteFromMethodHandle(DexField field, ProgramMethod currentMethod) {
+    traceStaticFieldWrite(field, currentMethod, true);
   }
 
-  private boolean traceStaticFieldWrite(
+  private void traceStaticFieldWrite(
       DexField fieldReference, ProgramMethod currentMethod, boolean fromMethodHandle) {
     if (!registerFieldWrite(fieldReference, currentMethod)) {
-      return false;
+      return;
     }
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference);
     if (resolutionResult.isFailedOrUnknownResolution()) {
       // Must mark the field as targeted even if it does not exist.
       markFieldAsTargeted(fieldReference, currentMethod);
-      return false;
+      return;
     }
 
     ProgramField field =
         resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
     if (field == null) {
       // No need to trace into the non-program code.
-      return false;
+      return;
     }
 
     if (fromMethodHandle) {
@@ -1446,7 +1430,7 @@ public class Enqueuer {
               false);
       if (skipTracing) {
         addDeadProtoTypeCandidate(field.getHolder());
-        return false;
+        return;
       }
     }
 
@@ -1457,7 +1441,6 @@ public class Enqueuer {
     }
 
     markStaticFieldAsLive(field, KeepReason.fieldReferencedIn(currentMethod));
-    return true;
   }
 
   private Function<DexProgramClass, KeepReasonWitness> classReferencedFromReporter(

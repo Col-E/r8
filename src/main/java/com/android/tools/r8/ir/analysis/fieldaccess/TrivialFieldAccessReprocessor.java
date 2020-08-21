@@ -183,68 +183,50 @@ public class TrivialFieldAccessReprocessor {
     }
 
     @Override
-    public boolean registerInstanceFieldWrite(DexField field) {
-      return registerFieldAccess(field, false);
+    public void registerInstanceFieldWrite(DexField field) {
+      registerFieldAccess(field, false);
     }
 
     @Override
-    public boolean registerInstanceFieldRead(DexField field) {
-      return registerFieldAccess(field, false);
+    public void registerInstanceFieldRead(DexField field) {
+      registerFieldAccess(field, false);
     }
 
     @Override
-    public boolean registerStaticFieldRead(DexField field) {
-      return registerFieldAccess(field, true);
+    public void registerStaticFieldRead(DexField field) {
+      registerFieldAccess(field, true);
     }
 
     @Override
-    public boolean registerStaticFieldWrite(DexField field) {
-      return registerFieldAccess(field, true);
+    public void registerStaticFieldWrite(DexField field) {
+      registerFieldAccess(field, true);
     }
 
     @Override
-    public boolean registerInitClass(DexType clazz) {
-      return false;
-    }
+    public void registerInitClass(DexType clazz) {}
 
     @Override
-    public boolean registerInvokeVirtual(DexMethod method) {
-      return false;
-    }
+    public void registerInvokeVirtual(DexMethod method) {}
 
     @Override
-    public boolean registerInvokeDirect(DexMethod method) {
-      return false;
-    }
+    public void registerInvokeDirect(DexMethod method) {}
 
     @Override
-    public boolean registerInvokeStatic(DexMethod method) {
-      return false;
-    }
+    public void registerInvokeStatic(DexMethod method) {}
 
     @Override
-    public boolean registerInvokeInterface(DexMethod method) {
-      return false;
-    }
+    public void registerInvokeInterface(DexMethod method) {}
 
     @Override
-    public boolean registerInvokeSuper(DexMethod method) {
-      return false;
-    }
+    public void registerInvokeSuper(DexMethod method) {}
 
     @Override
-    public boolean registerNewInstance(DexType type) {
-      return false;
-    }
+    public void registerNewInstance(DexType type) {}
 
     @Override
-    public boolean registerTypeReference(DexType type) {
-      return false;
-    }
+    public void registerTypeReference(DexType type) {}
 
     @Override
-    public boolean registerInstanceOf(DexType type) {
-      return false;
-    }
+    public void registerInstanceOf(DexType type) {}
   }
 }

@@ -567,75 +567,74 @@ public class EnumUnboxer implements PostOptimization {
     }
 
     @Override
-    public boolean registerTypeReference(DexType type) {
+    public void registerTypeReference(DexType type) {
       if (type.isArrayType()) {
-        return registerTypeReference(type.toBaseType(factory));
+        registerTypeReference(type.toBaseType(factory));
+        return;
       }
 
       if (type.isPrimitiveType()) {
-        return true;
+        return;
       }
 
       DexClass definition = appView.definitionFor(type);
       if (definition == null) {
         constraint = Constraint.NEVER;
-        return true;
+        return;
       }
       constraint = constraint.meet(deriveConstraint(type, definition.accessFlags));
-      return true;
     }
 
     @Override
-    public boolean registerInitClass(DexType type) {
-      return registerTypeReference(type);
+    public void registerInitClass(DexType type) {
+      registerTypeReference(type);
     }
 
     @Override
-    public boolean registerInstanceOf(DexType type) {
-      return registerTypeReference(type);
+    public void registerInstanceOf(DexType type) {
+      registerTypeReference(type);
     }
 
     @Override
-    public boolean registerNewInstance(DexType type) {
-      return registerTypeReference(type);
+    public void registerNewInstance(DexType type) {
+      registerTypeReference(type);
     }
 
     @Override
-    public boolean registerInvokeVirtual(DexMethod method) {
-      return registerVirtualInvoke(method, false);
+    public void registerInvokeVirtual(DexMethod method) {
+      registerVirtualInvoke(method, false);
     }
 
     @Override
-    public boolean registerInvokeInterface(DexMethod method) {
-      return registerVirtualInvoke(method, true);
+    public void registerInvokeInterface(DexMethod method) {
+      registerVirtualInvoke(method, true);
     }
 
-    private boolean registerVirtualInvoke(DexMethod method, boolean isInterface) {
+    private void registerVirtualInvoke(DexMethod method, boolean isInterface) {
       if (method.holder.isArrayType()) {
-        return true;
+        return;
       }
       // Perform resolution and derive unboxing constraints based on the accessibility of the
       // resolution result.
       ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method, isInterface);
       if (!resolutionResult.isVirtualTarget()) {
         constraint = Constraint.NEVER;
-        return false;
+        return;
       }
-      return registerTarget(
+      registerTarget(
           resolutionResult.getInitialResolutionHolder(), resolutionResult.getSingleTarget());
     }
 
-    private boolean registerTarget(
-        DexClass initialResolutionHolder, DexEncodedMember<?, ?> target) {
+    private void registerTarget(DexClass initialResolutionHolder, DexEncodedMember<?, ?> target) {
       if (target == null) {
         // This will fail at runtime.
         constraint = Constraint.NEVER;
-        return false;
+        return;
       }
       DexType resolvedHolder = target.holder();
       if (initialResolutionHolder == null) {
         constraint = Constraint.NEVER;
-        return true;
+        return;
       }
       Constraint memberConstraint = deriveConstraint(resolvedHolder, target.getAccessFlags());
       // We also have to take the constraint of the initial resolution holder into account.
@@ -643,42 +642,40 @@ public class EnumUnboxer implements PostOptimization {
           deriveConstraint(initialResolutionHolder.type, initialResolutionHolder.accessFlags);
       Constraint instructionConstraint = memberConstraint.meet(classConstraint);
       constraint = instructionConstraint.meet(constraint);
-      return true;
     }
 
     @Override
-    public boolean registerInvokeDirect(DexMethod method) {
-      return registerSingleTargetInvoke(method, DexEncodedMethod::isDirectMethod);
+    public void registerInvokeDirect(DexMethod method) {
+      registerSingleTargetInvoke(method, DexEncodedMethod::isDirectMethod);
     }
 
     @Override
-    public boolean registerInvokeStatic(DexMethod method) {
-      return registerSingleTargetInvoke(method, DexEncodedMethod::isStatic);
+    public void registerInvokeStatic(DexMethod method) {
+      registerSingleTargetInvoke(method, DexEncodedMethod::isStatic);
     }
 
-    private boolean registerSingleTargetInvoke(
+    private void registerSingleTargetInvoke(
         DexMethod method, Predicate<DexEncodedMethod> methodValidator) {
       if (method.holder.isArrayType()) {
-        return true;
+        return;
       }
       ResolutionResult resolutionResult =
           appView.appInfo().unsafeResolveMethodDueToDexFormat(method);
       DexEncodedMethod target = resolutionResult.getSingleTarget();
       if (target == null || !methodValidator.test(target)) {
         constraint = Constraint.NEVER;
-        return false;
+        return;
       }
-      return registerTarget(resolutionResult.getInitialResolutionHolder(), target);
+      registerTarget(resolutionResult.getInitialResolutionHolder(), target);
     }
 
     @Override
-    public boolean registerInvokeSuper(DexMethod method) {
+    public void registerInvokeSuper(DexMethod method) {
       // Invoke-super can only target java.lang.Enum methods since we do not unbox enums with
       // subclasses. Calls to java.lang.Object methods would have resulted in the enum to be marked
       // as unboxable. The methods of java.lang.Enum called are already analyzed in the enum
       // unboxer analysis, so invoke-super is always valid.
       assert method.holder == factory.enumType;
-      return true;
     }
 
     @Override
@@ -691,31 +688,31 @@ public class EnumUnboxer implements PostOptimization {
       constraint = Constraint.NEVER;
     }
 
-    private boolean registerFieldInstruction(DexField field) {
+    private void registerFieldInstruction(DexField field) {
       FieldResolutionResult fieldResolutionResult = appView.appInfo().resolveField(field, context);
-      return registerTarget(
+      registerTarget(
           fieldResolutionResult.getInitialResolutionHolder(),
           fieldResolutionResult.getResolvedField());
     }
 
     @Override
-    public boolean registerInstanceFieldRead(DexField field) {
-      return registerFieldInstruction(field);
+    public void registerInstanceFieldRead(DexField field) {
+      registerFieldInstruction(field);
     }
 
     @Override
-    public boolean registerInstanceFieldWrite(DexField field) {
-      return registerFieldInstruction(field);
+    public void registerInstanceFieldWrite(DexField field) {
+      registerFieldInstruction(field);
     }
 
     @Override
-    public boolean registerStaticFieldRead(DexField field) {
-      return registerFieldInstruction(field);
+    public void registerStaticFieldRead(DexField field) {
+      registerFieldInstruction(field);
     }
 
     @Override
-    public boolean registerStaticFieldWrite(DexField field) {
-      return registerFieldInstruction(field);
+    public void registerStaticFieldWrite(DexField field) {
+      registerFieldInstruction(field);
     }
   }
 

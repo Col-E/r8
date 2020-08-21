@@ -1792,7 +1792,7 @@ public class VerticalClassMerger {
       this.context = context;
     }
 
-    private boolean checkFieldReference(DexField field) {
+    private void checkFieldReference(DexField field) {
       if (!foundIllegalAccess) {
         DexType baseType =
             appView.graphLens().lookupType(field.holder.toBaseType(appView.dexItemFactory()));
@@ -1806,10 +1806,9 @@ public class VerticalClassMerger {
           }
         }
       }
-      return true;
     }
 
-    private boolean checkMethodReference(DexMethod method, OptionalBool isInterface) {
+    private void checkMethodReference(DexMethod method, OptionalBool isInterface) {
       if (!foundIllegalAccess) {
         DexType baseType =
             appView.graphLens().lookupType(method.holder.toBaseType(appView.dexItemFactory()));
@@ -1829,10 +1828,9 @@ public class VerticalClassMerger {
           }
         }
       }
-      return true;
     }
 
-    private boolean checkTypeReference(DexType type) {
+    private void checkTypeReference(DexType type) {
       if (!foundIllegalAccess) {
         DexType baseType =
             appView.graphLens().lookupType(type.toBaseType(appView.dexItemFactory()));
@@ -1843,87 +1841,86 @@ public class VerticalClassMerger {
           }
         }
       }
-      return true;
     }
 
     @Override
-    public boolean registerInitClass(DexType clazz) {
-      return checkTypeReference(clazz);
+    public void registerInitClass(DexType clazz) {
+      checkTypeReference(clazz);
     }
 
     @Override
-    public boolean registerInvokeVirtual(DexMethod method) {
+    public void registerInvokeVirtual(DexMethod method) {
       assert context != null;
       GraphLensLookupResult lookup =
           appView.graphLens().lookupMethod(method, context.getReference(), Type.VIRTUAL);
-      return checkMethodReference(lookup.getMethod(), OptionalBool.FALSE);
+      checkMethodReference(lookup.getMethod(), OptionalBool.FALSE);
     }
 
     @Override
-    public boolean registerInvokeDirect(DexMethod method) {
+    public void registerInvokeDirect(DexMethod method) {
       assert context != null;
       GraphLensLookupResult lookup =
           appView.graphLens().lookupMethod(method, context.getReference(), Type.DIRECT);
-      return checkMethodReference(lookup.getMethod(), OptionalBool.UNKNOWN);
+      checkMethodReference(lookup.getMethod(), OptionalBool.UNKNOWN);
     }
 
     @Override
-    public boolean registerInvokeStatic(DexMethod method) {
+    public void registerInvokeStatic(DexMethod method) {
       assert context != null;
       GraphLensLookupResult lookup =
           appView.graphLens().lookupMethod(method, context.getReference(), Type.STATIC);
-      return checkMethodReference(lookup.getMethod(), OptionalBool.UNKNOWN);
+      checkMethodReference(lookup.getMethod(), OptionalBool.UNKNOWN);
     }
 
     @Override
-    public boolean registerInvokeInterface(DexMethod method) {
+    public void registerInvokeInterface(DexMethod method) {
       assert context != null;
       GraphLensLookupResult lookup =
           appView.graphLens().lookupMethod(method, context.getReference(), Type.INTERFACE);
-      return checkMethodReference(lookup.getMethod(), OptionalBool.TRUE);
+      checkMethodReference(lookup.getMethod(), OptionalBool.TRUE);
     }
 
     @Override
-    public boolean registerInvokeSuper(DexMethod method) {
+    public void registerInvokeSuper(DexMethod method) {
       assert context != null;
       GraphLensLookupResult lookup =
           appView.graphLens().lookupMethod(method, context.getReference(), Type.SUPER);
-      return checkMethodReference(lookup.getMethod(), OptionalBool.UNKNOWN);
+      checkMethodReference(lookup.getMethod(), OptionalBool.UNKNOWN);
     }
 
     @Override
-    public boolean registerInstanceFieldWrite(DexField field) {
-      return checkFieldReference(appView.graphLens().lookupField(field));
+    public void registerInstanceFieldWrite(DexField field) {
+      checkFieldReference(appView.graphLens().lookupField(field));
     }
 
     @Override
-    public boolean registerInstanceFieldRead(DexField field) {
-      return checkFieldReference(appView.graphLens().lookupField(field));
+    public void registerInstanceFieldRead(DexField field) {
+      checkFieldReference(appView.graphLens().lookupField(field));
     }
 
     @Override
-    public boolean registerNewInstance(DexType type) {
-      return checkTypeReference(type);
+    public void registerNewInstance(DexType type) {
+      checkTypeReference(type);
     }
 
     @Override
-    public boolean registerStaticFieldRead(DexField field) {
-      return checkFieldReference(appView.graphLens().lookupField(field));
+    public void registerStaticFieldRead(DexField field) {
+      checkFieldReference(appView.graphLens().lookupField(field));
     }
 
     @Override
-    public boolean registerStaticFieldWrite(DexField field) {
-      return checkFieldReference(appView.graphLens().lookupField(field));
+    public void registerStaticFieldWrite(DexField field) {
+      checkFieldReference(appView.graphLens().lookupField(field));
     }
 
     @Override
-    public boolean registerTypeReference(DexType type) {
-      return checkTypeReference(type);
+    public void registerTypeReference(DexType type) {
+      checkTypeReference(type);
     }
 
     @Override
-    public boolean registerInstanceOf(DexType type) {
-      return checkTypeReference(type);
+    public void registerInstanceOf(DexType type) {
+      checkTypeReference(type);
     }
   }
 

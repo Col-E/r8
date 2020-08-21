@@ -300,82 +300,67 @@ abstract class CallGraphBuilderBase {
     }
 
     @Override
-    public boolean registerInitClass(DexType clazz) {
+    public void registerInitClass(DexType clazz) {
       processInitClass(clazz);
-      return false;
     }
 
     @Override
-    public boolean registerInvokeVirtual(DexMethod method) {
+    public void registerInvokeVirtual(DexMethod method) {
       processInvoke(Invoke.Type.VIRTUAL, method);
-      return false;
     }
 
     @Override
-    public boolean registerInvokeDirect(DexMethod method) {
+    public void registerInvokeDirect(DexMethod method) {
       processInvoke(Invoke.Type.DIRECT, method);
-      return false;
     }
 
     @Override
-    public boolean registerInvokeStatic(DexMethod method) {
+    public void registerInvokeStatic(DexMethod method) {
       processInvoke(Invoke.Type.STATIC, method);
-      return false;
     }
 
     @Override
-    public boolean registerInvokeInterface(DexMethod method) {
+    public void registerInvokeInterface(DexMethod method) {
       processInvoke(Invoke.Type.INTERFACE, method);
-      return false;
     }
 
     @Override
-    public boolean registerInvokeSuper(DexMethod method) {
+    public void registerInvokeSuper(DexMethod method) {
       processInvoke(Invoke.Type.SUPER, method);
-      return false;
     }
 
     @Override
-    public boolean registerInstanceFieldRead(DexField field) {
+    public void registerInstanceFieldRead(DexField field) {
       processFieldRead(field);
-      return false;
     }
 
     @Override
-    public boolean registerInstanceFieldWrite(DexField field) {
+    public void registerInstanceFieldWrite(DexField field) {
       processFieldWrite(field);
-      return false;
     }
 
     @Override
-    public boolean registerNewInstance(DexType type) {
+    public void registerNewInstance(DexType type) {
       if (type.isClassType()) {
         addClassInitializerTarget(type);
       }
-      return false;
     }
 
     @Override
-    public boolean registerStaticFieldRead(DexField field) {
+    public void registerStaticFieldRead(DexField field) {
       processFieldRead(field);
-      return false;
     }
 
     @Override
-    public boolean registerStaticFieldWrite(DexField field) {
+    public void registerStaticFieldWrite(DexField field) {
       processFieldWrite(field);
-      return false;
     }
 
     @Override
-    public boolean registerTypeReference(DexType type) {
-      return false;
-    }
+    public void registerTypeReference(DexType type) {}
 
     @Override
-    public boolean registerInstanceOf(DexType type) {
-      return false;
-    }
+    public void registerInstanceOf(DexType type) {}
 
     @Override
     public void registerCallSite(DexCallSite callSite) {

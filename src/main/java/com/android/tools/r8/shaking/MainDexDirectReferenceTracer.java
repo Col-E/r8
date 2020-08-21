@@ -102,83 +102,78 @@ public class MainDexDirectReferenceTracer {
     }
 
     @Override
-    public boolean registerInitClass(DexType clazz) {
+    public void registerInitClass(DexType clazz) {
       consumer.accept(clazz);
-      return true;
     }
 
     @Override
-    public boolean registerInvokeVirtual(DexMethod method) {
-      return registerInvoke(method);
+    public void registerInvokeVirtual(DexMethod method) {
+      registerInvoke(method);
     }
 
     @Override
-    public boolean registerInvokeDirect(DexMethod method) {
-      return registerInvoke(method);
+    public void registerInvokeDirect(DexMethod method) {
+      registerInvoke(method);
     }
 
     @Override
-    public boolean registerInvokeStatic(DexMethod method) {
-      return registerInvoke(method);
+    public void registerInvokeStatic(DexMethod method) {
+      registerInvoke(method);
     }
 
     @Override
-    public boolean registerInvokeInterface(DexMethod method) {
-      return registerInvoke(method);
+    public void registerInvokeInterface(DexMethod method) {
+      registerInvoke(method);
     }
 
     @Override
-    public boolean registerInvokeSuper(DexMethod method) {
-      return registerInvoke(method);
+    public void registerInvokeSuper(DexMethod method) {
+      registerInvoke(method);
     }
 
-    protected boolean registerInvoke(DexMethod method) {
+    protected void registerInvoke(DexMethod method) {
       consumer.accept(method.holder);
       traceMethodDirectDependencies(method, consumer);
-      return true;
     }
 
     @Override
-    public boolean registerInstanceFieldWrite(DexField field) {
-      return registerFieldAccess(field);
+    public void registerInstanceFieldWrite(DexField field) {
+      registerFieldAccess(field);
     }
 
     @Override
-    public boolean registerInstanceFieldRead(DexField field) {
-      return registerFieldAccess(field);
+    public void registerInstanceFieldRead(DexField field) {
+      registerFieldAccess(field);
     }
 
     @Override
-    public boolean registerStaticFieldRead(DexField field) {
-      return registerFieldAccess(field);
+    public void registerStaticFieldRead(DexField field) {
+      registerFieldAccess(field);
     }
 
     @Override
-    public boolean registerStaticFieldWrite(DexField field) {
-      return registerFieldAccess(field);
+    public void registerStaticFieldWrite(DexField field) {
+      registerFieldAccess(field);
     }
 
-    protected boolean registerFieldAccess(DexField field) {
+    protected void registerFieldAccess(DexField field) {
       consumer.accept(field.holder);
       consumer.accept(field.type);
-      return true;
     }
 
     @Override
-    public boolean registerNewInstance(DexType type) {
+    public void registerNewInstance(DexType type) {
       consumer.accept(type);
-      return true;
     }
 
     @Override
-    public boolean registerTypeReference(DexType type) {
+    public void registerTypeReference(DexType type) {
       consumer.accept(type);
-      return true;
     }
 
     @Override
-    public boolean registerInstanceOf(DexType type) {
-      return registerTypeReference(type);
+    public void registerInstanceOf(DexType type) {
+      registerTypeReference(type);
     }
   }
 

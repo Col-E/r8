@@ -116,80 +116,67 @@ public class RepackagingUseRegistry extends UseRegistry {
   }
 
   @Override
-  public boolean registerInitClass(DexType type) {
+  public void registerInitClass(DexType type) {
     registerTypeAccess(type);
-    return false;
   }
 
   @Override
-  public boolean registerInvokeVirtual(DexMethod invokedMethod) {
+  public void registerInvokeVirtual(DexMethod invokedMethod) {
     registerMemberAccess(appInfo.resolveMethod(invokedMethod, false));
-    return false;
   }
 
   @Override
-  public boolean registerInvokeDirect(DexMethod invokedMethod) {
+  public void registerInvokeDirect(DexMethod invokedMethod) {
     registerMemberAccess(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
-    return false;
   }
 
   @Override
-  public boolean registerInvokeStatic(DexMethod invokedMethod) {
+  public void registerInvokeStatic(DexMethod invokedMethod) {
     registerMemberAccess(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
-    return false;
   }
 
   @Override
-  public boolean registerInvokeInterface(DexMethod invokedMethod) {
+  public void registerInvokeInterface(DexMethod invokedMethod) {
     registerMemberAccess(appInfo.resolveMethod(invokedMethod, true));
-    return false;
   }
 
   @Override
-  public boolean registerInvokeSuper(DexMethod invokedMethod) {
+  public void registerInvokeSuper(DexMethod invokedMethod) {
     registerMemberAccess(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
-    return false;
   }
 
   @Override
-  public boolean registerInstanceFieldRead(DexField field) {
+  public void registerInstanceFieldRead(DexField field) {
     registerMemberAccess(appInfo.resolveField(field));
-    return false;
   }
 
   @Override
-  public boolean registerInstanceFieldWrite(DexField field) {
+  public void registerInstanceFieldWrite(DexField field) {
     registerMemberAccess(appInfo.resolveField(field));
-    return false;
   }
 
   @Override
-  public boolean registerNewInstance(DexType type) {
+  public void registerNewInstance(DexType type) {
     registerTypeAccess(type);
-    return false;
   }
 
   @Override
-  public boolean registerStaticFieldRead(DexField field) {
+  public void registerStaticFieldRead(DexField field) {
     registerMemberAccess(appInfo.resolveField(field));
-    return false;
   }
 
   @Override
-  public boolean registerStaticFieldWrite(DexField field) {
+  public void registerStaticFieldWrite(DexField field) {
     registerMemberAccess(appInfo.resolveField(field));
-    return false;
   }
 
   @Override
-  public boolean registerTypeReference(DexType type) {
+  public void registerTypeReference(DexType type) {
     registerTypeAccess(type);
-    return false;
   }
 
   @Override
-  public boolean registerInstanceOf(DexType type) {
+  public void registerInstanceOf(DexType type) {
     registerTypeAccess(type);
-    return false;
   }
 }

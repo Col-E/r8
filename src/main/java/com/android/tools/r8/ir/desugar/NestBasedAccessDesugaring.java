@@ -361,105 +361,97 @@ public abstract class NestBasedAccessDesugaring {
       this.context = context;
     }
 
-    private boolean registerInvoke(DexMethod method, Invoke.Type invokeType) {
+    private void registerInvoke(DexMethod method, Invoke.Type invokeType) {
       // Calls to non class type are not done through nest based access control.
       // Work-around for calls to enum.clone().
       if (!method.holder.isClassType()) {
-        return false;
+        return;
       }
       DexEncodedMethod encodedMethod = lookupOnHolder(method, context, invokeType);
       if (encodedMethod != null && invokeRequiresRewriting(encodedMethod, context)) {
         ensureInvokeBridge(encodedMethod);
-        return true;
       }
-      return false;
     }
 
-    private boolean registerFieldAccess(DexField field, boolean isGet) {
+    private void registerFieldAccess(DexField field, boolean isGet) {
       // Since we only need to desugar accesses to private fields, and all accesses to private
       // fields must be accessing the private field directly on its holder, we can lookup the field
       // on the holder instead of resolving the field.
       DexEncodedField encodedField = lookupOnHolder(field);
       if (encodedField != null && fieldAccessRequiresRewriting(encodedField, context)) {
         ensureFieldAccessBridge(encodedField, isGet);
-        return true;
       }
-      return false;
     }
 
     @Override
-    public boolean registerInitClass(DexType clazz) {
+    public void registerInitClass(DexType clazz) {
       // Nothing to do since we always use a public field for initializing the class.
-      return true;
     }
 
     @Override
-    public boolean registerInvokeVirtual(DexMethod method) {
+    public void registerInvokeVirtual(DexMethod method) {
       // Calls to class nest mate private methods are targeted by invokeVirtual in jdk11.
       // The spec recommends to do so, but do not enforce it, hence invokeDirect is also registered.
-      return registerInvoke(method, Invoke.Type.VIRTUAL);
+      registerInvoke(method, Invoke.Type.VIRTUAL);
     }
 
     @Override
-    public boolean registerInvokeDirect(DexMethod method) {
-      return registerInvoke(method, Invoke.Type.DIRECT);
+    public void registerInvokeDirect(DexMethod method) {
+      registerInvoke(method, Invoke.Type.DIRECT);
     }
 
     @Override
-    public boolean registerInvokeStatic(DexMethod method) {
-      return registerInvoke(method, Invoke.Type.STATIC);
+    public void registerInvokeStatic(DexMethod method) {
+      registerInvoke(method, Invoke.Type.STATIC);
     }
 
     @Override
-    public boolean registerInvokeInterface(DexMethod method) {
+    public void registerInvokeInterface(DexMethod method) {
       // Calls to interface nest mate private methods are targeted by invokeInterface in jdk11.
       // The spec recommends to do so, but do not enforce it, hence invokeDirect is also registered.
-      return registerInvoke(method, Invoke.Type.INTERFACE);
+      registerInvoke(method, Invoke.Type.INTERFACE);
     }
 
     @Override
-    public boolean registerInvokeSuper(DexMethod method) {
-      return registerInvoke(method, Invoke.Type.SUPER);
+    public void registerInvokeSuper(DexMethod method) {
+      registerInvoke(method, Invoke.Type.SUPER);
     }
 
     @Override
-    public boolean registerInstanceFieldWrite(DexField field) {
-      return registerFieldAccess(field, false);
+    public void registerInstanceFieldWrite(DexField field) {
+      registerFieldAccess(field, false);
     }
 
     @Override
-    public boolean registerInstanceFieldRead(DexField field) {
-      return registerFieldAccess(field, true);
+    public void registerInstanceFieldRead(DexField field) {
+      registerFieldAccess(field, true);
     }
 
     @Override
-    public boolean registerNewInstance(DexType type) {
+    public void registerNewInstance(DexType type) {
       // Unrelated to access based control.
       // The <init> method has to be rewritten instead
       // and <init> is called through registerInvoke.
-      return false;
     }
 
     @Override
-    public boolean registerStaticFieldRead(DexField field) {
-      return registerFieldAccess(field, true);
+    public void registerStaticFieldRead(DexField field) {
+      registerFieldAccess(field, true);
     }
 
     @Override
-    public boolean registerStaticFieldWrite(DexField field) {
-      return registerFieldAccess(field, false);
+    public void registerStaticFieldWrite(DexField field) {
+      registerFieldAccess(field, false);
     }
 
     @Override
-    public boolean registerTypeReference(DexType type) {
+    public void registerTypeReference(DexType type) {
       // Unrelated to access based control.
-      return false;
     }
 
     @Override
-    public boolean registerInstanceOf(DexType type) {
+    public void registerInstanceOf(DexType type) {
       // Unrelated to access based control.
-      return false;
     }
   }
 

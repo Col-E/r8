@@ -17,54 +17,54 @@ public abstract class UseRegistry {
     this.factory = factory;
   }
 
-  public abstract boolean registerInitClass(DexType type);
+  public abstract void registerInitClass(DexType type);
 
-  public abstract boolean registerInvokeVirtual(DexMethod method);
+  public abstract void registerInvokeVirtual(DexMethod method);
 
-  public abstract boolean registerInvokeDirect(DexMethod method);
+  public abstract void registerInvokeDirect(DexMethod method);
 
-  public abstract boolean registerInvokeStatic(DexMethod method);
+  public abstract void registerInvokeStatic(DexMethod method);
 
-  public abstract boolean registerInvokeInterface(DexMethod method);
+  public abstract void registerInvokeInterface(DexMethod method);
 
-  public abstract boolean registerInvokeSuper(DexMethod method);
+  public abstract void registerInvokeSuper(DexMethod method);
 
-  public abstract boolean registerInstanceFieldRead(DexField field);
+  public abstract void registerInstanceFieldRead(DexField field);
 
-  public boolean registerInstanceFieldReadFromMethodHandle(DexField field) {
-    return registerInstanceFieldRead(field);
+  public void registerInstanceFieldReadFromMethodHandle(DexField field) {
+    registerInstanceFieldRead(field);
   }
 
-  public abstract boolean registerInstanceFieldWrite(DexField field);
+  public abstract void registerInstanceFieldWrite(DexField field);
 
-  public boolean registerInstanceFieldWriteFromMethodHandle(DexField field) {
-    return registerInstanceFieldWrite(field);
+  public void registerInstanceFieldWriteFromMethodHandle(DexField field) {
+    registerInstanceFieldWrite(field);
   }
 
-  public abstract boolean registerNewInstance(DexType type);
+  public abstract void registerNewInstance(DexType type);
 
-  public abstract boolean registerStaticFieldRead(DexField field);
+  public abstract void registerStaticFieldRead(DexField field);
 
-  public boolean registerStaticFieldReadFromMethodHandle(DexField field) {
-    return registerStaticFieldRead(field);
+  public void registerStaticFieldReadFromMethodHandle(DexField field) {
+    registerStaticFieldRead(field);
   }
 
-  public abstract boolean registerStaticFieldWrite(DexField field);
+  public abstract void registerStaticFieldWrite(DexField field);
 
-  public boolean registerStaticFieldWriteFromMethodHandle(DexField field) {
-    return registerStaticFieldWrite(field);
+  public void registerStaticFieldWriteFromMethodHandle(DexField field) {
+    registerStaticFieldWrite(field);
   }
 
-  public abstract boolean registerTypeReference(DexType type);
+  public abstract void registerTypeReference(DexType type);
 
-  public abstract boolean registerInstanceOf(DexType type);
+  public abstract void registerInstanceOf(DexType type);
 
-  public boolean registerConstClass(DexType type) {
-    return registerTypeReference(type);
+  public void registerConstClass(DexType type) {
+    registerTypeReference(type);
   }
 
-  public boolean registerCheckCast(DexType type) {
-    return registerTypeReference(type);
+  public void registerCheckCast(DexType type) {
+    registerTypeReference(type);
   }
 
   public void registerMethodHandle(DexMethodHandle methodHandle, MethodHandleUse use) {

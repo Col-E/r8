@@ -93,13 +93,12 @@ public class PrintUses {
     }
 
     @Override
-    public boolean registerInitClass(DexType clazz) {
+    public void registerInitClass(DexType clazz) {
       addType(clazz);
-      return false;
     }
 
     @Override
-    public boolean registerInvokeVirtual(DexMethod method) {
+    public void registerInvokeVirtual(DexMethod method) {
       ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
       DexEncodedMethod target =
           resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
@@ -109,17 +108,15 @@ public class PrintUses {
       } else {
         addMethod(method);
       }
-      return false;
     }
 
     @Override
-    public boolean registerInvokeDirect(DexMethod method) {
+    public void registerInvokeDirect(DexMethod method) {
       addMethod(method);
-      return false;
     }
 
     @Override
-    public boolean registerInvokeStatic(DexMethod method) {
+    public void registerInvokeStatic(DexMethod method) {
       DexEncodedMethod target = appInfo.unsafeResolveMethodDueToDexFormat(method).getSingleTarget();
       if (target != null && target.method != method) {
         addType(method.holder);
@@ -127,65 +124,56 @@ public class PrintUses {
       } else {
         addMethod(method);
       }
-      return false;
     }
 
     @Override
-    public boolean registerInvokeInterface(DexMethod method) {
-      return registerInvokeVirtual(method);
+    public void registerInvokeInterface(DexMethod method) {
+      registerInvokeVirtual(method);
     }
 
     @Override
-    public boolean registerInvokeSuper(DexMethod method) {
+    public void registerInvokeSuper(DexMethod method) {
       DexEncodedMethod superTarget = appInfo.lookupSuperTarget(method, context);
       if (superTarget != null) {
         addMethod(superTarget.method);
       } else {
         addMethod(method);
       }
-      return false;
     }
 
     @Override
-    public boolean registerInstanceFieldWrite(DexField field) {
+    public void registerInstanceFieldWrite(DexField field) {
       addField(field);
-      return false;
     }
 
     @Override
-    public boolean registerInstanceFieldRead(DexField field) {
+    public void registerInstanceFieldRead(DexField field) {
       addField(field);
-      return false;
     }
 
     @Override
-    public boolean registerNewInstance(DexType type) {
+    public void registerNewInstance(DexType type) {
       addType(type);
-      return false;
     }
 
     @Override
-    public boolean registerStaticFieldRead(DexField field) {
+    public void registerStaticFieldRead(DexField field) {
       addField(field);
-      return false;
     }
 
     @Override
-    public boolean registerStaticFieldWrite(DexField field) {
+    public void registerStaticFieldWrite(DexField field) {
       addField(field);
-      return false;
     }
 
     @Override
-    public boolean registerTypeReference(DexType type) {
+    public void registerTypeReference(DexType type) {
       addType(type);
-      return false;
     }
 
     @Override
-    public boolean registerInstanceOf(DexType type) {
+    public void registerInstanceOf(DexType type) {
       addType(type);
-      return false;
     }
 
     private void addType(DexType type) {

@@ -17,7 +17,7 @@ public class InvokeSingleTargetExtractor extends UseRegistry {
     super(factory);
   }
 
-  private boolean setTarget(DexMethod target, InvokeKind kind) {
+  private void setTarget(DexMethod target, InvokeKind kind) {
     if (this.kind != InvokeKind.NONE) {
       this.kind = InvokeKind.ILLEGAL;
       this.target = null;
@@ -26,12 +26,10 @@ public class InvokeSingleTargetExtractor extends UseRegistry {
       this.target = target;
       this.kind = kind;
     }
-    return false;
   }
 
-  private boolean invalid() {
+  private void invalid() {
     kind = InvokeKind.ILLEGAL;
-    return false;
   }
 
   public DexMethod getTarget() {
@@ -43,68 +41,68 @@ public class InvokeSingleTargetExtractor extends UseRegistry {
   }
 
   @Override
-  public boolean registerInitClass(DexType clazz) {
-    return invalid();
+  public void registerInitClass(DexType clazz) {
+    invalid();
   }
 
   @Override
-  public boolean registerInvokeVirtual(DexMethod method) {
-    return setTarget(method, InvokeKind.VIRTUAL);
+  public void registerInvokeVirtual(DexMethod method) {
+    setTarget(method, InvokeKind.VIRTUAL);
   }
 
   @Override
-  public boolean registerInvokeDirect(DexMethod method) {
-    return invalid();
+  public void registerInvokeDirect(DexMethod method) {
+    invalid();
   }
 
   @Override
-  public boolean registerInvokeStatic(DexMethod method) {
-    return setTarget(method, InvokeKind.STATIC);
+  public void registerInvokeStatic(DexMethod method) {
+    setTarget(method, InvokeKind.STATIC);
   }
 
   @Override
-  public boolean registerInvokeInterface(DexMethod method) {
-    return invalid();
+  public void registerInvokeInterface(DexMethod method) {
+    invalid();
   }
 
   @Override
-  public boolean registerInvokeSuper(DexMethod method) {
-    return setTarget(method, InvokeKind.SUPER);
+  public void registerInvokeSuper(DexMethod method) {
+    setTarget(method, InvokeKind.SUPER);
   }
 
   @Override
-  public boolean registerInstanceFieldWrite(DexField field) {
-    return invalid();
+  public void registerInstanceFieldWrite(DexField field) {
+    invalid();
   }
 
   @Override
-  public boolean registerInstanceFieldRead(DexField field) {
-    return invalid();
+  public void registerInstanceFieldRead(DexField field) {
+    invalid();
   }
 
   @Override
-  public boolean registerNewInstance(DexType type) {
-    return invalid();
+  public void registerNewInstance(DexType type) {
+    invalid();
   }
 
   @Override
-  public boolean registerStaticFieldRead(DexField field) {
-    return invalid();
+  public void registerStaticFieldRead(DexField field) {
+    invalid();
   }
 
   @Override
-  public boolean registerStaticFieldWrite(DexField field) {
-    return invalid();
+  public void registerStaticFieldWrite(DexField field) {
+    invalid();
   }
 
   @Override
-  public boolean registerTypeReference(DexType type) {
-    return invalid();
+  public void registerTypeReference(DexType type) {
+    invalid();
   }
 
   @Override
-  public boolean registerInstanceOf(DexType type) {
-    return invalid();
+  public void registerInstanceOf(DexType type) {
+    invalid();
   }
 
   public enum InvokeKind {

@@ -37,12 +37,12 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
    * traced manually by {@link ProtoEnqueuerExtension#tracePendingInstructionsInDynamicMethods}.
    */
   @Override
-  public boolean registerConstClass(DexType type) {
+  public void registerConstClass(DexType type) {
     if (references.isDynamicMethod(getContextMethod())) {
       enqueuer.addDeadProtoTypeCandidate(type);
-      return false;
+      return;
     }
-    return super.registerConstClass(type);
+    super.registerConstClass(type);
   }
 
   /**
@@ -53,11 +53,11 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
    * traced manually by {@link ProtoEnqueuerExtension#tracePendingInstructionsInDynamicMethods}.
    */
   @Override
-  public boolean registerStaticFieldRead(DexField field) {
+  public void registerStaticFieldRead(DexField field) {
     if (references.isDynamicMethod(getContextMethod())) {
       enqueuer.addDeadProtoTypeCandidate(field.holder);
-      return false;
+      return;
     }
-    return super.registerStaticFieldRead(field);
+    super.registerStaticFieldRead(field);
   }
 }
