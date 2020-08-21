@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -18,6 +19,10 @@ import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 
 public abstract class MarkerMatcher extends TypeSafeMatcher<Marker> {
+
+  public static void assertMarkersMatch(Iterable<Marker> markers, Matcher<Marker> matcher) {
+    assertMarkersMatch(markers, ImmutableList.of(matcher));
+  }
 
   public static void assertMarkersMatch(
       Iterable<Marker> markers, Collection<Matcher<Marker>> matchers) {
@@ -99,6 +104,20 @@ public abstract class MarkerMatcher extends TypeSafeMatcher<Marker> {
       @Override
       protected void explain(Description description) {
         description.appendText(Marker.COMPILATION_MODE + " ").appendText(compilationMode.name());
+      }
+    };
+  }
+
+  public static Matcher<Marker> markerIsDesugared() {
+    return new MarkerMatcher() {
+      @Override
+      protected boolean eval(Marker marker) {
+        return marker.isDesugared();
+      }
+
+      @Override
+      protected void explain(Description description) {
+        description.appendText("desugared ");
       }
     };
   }

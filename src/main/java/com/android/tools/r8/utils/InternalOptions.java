@@ -325,7 +325,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
             .setVersion(Version.LABEL)
             .setCompilationMode(debug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
             .setHasChecksums(encodeChecksums);
-    if (!isGeneratingClassFiles()) {
+    // Compiling with D8 and L8 is always with a min API level and desugaring to that level. If
+    // desugaring is explicitly turned off for D8 the input is expected to already have been
+    // desugared to the specified min API level. For R8 desugaring is optional.
+    if (tool == Tool.D8
+        || tool == Tool.L8
+        || (tool == Tool.R8 && desugarState != DesugarState.OFF)) {
       marker.setMinApi(minApiLevel);
     }
     if (desugaredLibraryConfiguration.getIdentifier() != null) {

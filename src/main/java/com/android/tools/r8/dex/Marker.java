@@ -88,10 +88,11 @@ public class Marker {
                 new StringDiagnostic(
                     "Merging program compiled with multiple desugared libraries."));
         }
-        if (identifier.equals(NO_LIBRARY_DESUGARING) && marker.tool == Tool.R8) {
-          continue;
+        if (marker.isDesugared()) {
+          desugaredLibraryIdentifiers.add(identifier);
+        } else {
+          assert identifier.equals(NO_LIBRARY_DESUGARING);
         }
-        desugaredLibraryIdentifiers.add(identifier);
       }
     }
 
@@ -132,6 +133,12 @@ public class Marker {
     assert !jsonObject.has(VERSION);
     jsonObject.addProperty(VERSION, version);
     return this;
+  }
+
+  public boolean isDesugared() {
+    // For both DEX and CF output from D8 and R8 a min-api setting implies that the code has been
+    // desugared, as even the highest min-api require desugaring of lambdas.
+    return hasMinApi();
   }
 
   public boolean hasMinApi() {

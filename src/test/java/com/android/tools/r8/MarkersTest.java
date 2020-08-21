@@ -7,10 +7,15 @@ import static com.android.tools.r8.MarkerMatcher.assertMarkersMatch;
 import static com.android.tools.r8.MarkerMatcher.markerCompilationMode;
 import static com.android.tools.r8.MarkerMatcher.markerDesugaredLibraryIdentifier;
 import static com.android.tools.r8.MarkerMatcher.markerHasChecksums;
+import static com.android.tools.r8.MarkerMatcher.markerHasDesugaredLibraryIdentifier;
+import static com.android.tools.r8.MarkerMatcher.markerHasMinApi;
+import static com.android.tools.r8.MarkerMatcher.markerIsDesugared;
 import static com.android.tools.r8.MarkerMatcher.markerMinApi;
 import static com.android.tools.r8.MarkerMatcher.markerR8Mode;
 import static com.android.tools.r8.MarkerMatcher.markerTool;
 import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -93,6 +98,159 @@ public class MarkersTest extends TestBase {
       assertMarkersMatch(markers, ImmutableList.of(l8Matcher, d8Matcher));
     } else {
       assertMarkersMatch(markers, ImmutableList.of(l8Matcher, r8Matcher));
+    }
+  }
+
+  @Test
+  public void testD8MarkerInDex() throws Throwable {
+    AndroidApiLevel apiLevel = AndroidApiLevel.L;
+    Path output = temp.newFolder().toPath().resolve("output.zip");
+    D8Command.Builder builder =
+        D8Command.builder()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class))
+            .setMode(compilationMode)
+            .setMinApiLevel(apiLevel.getLevel())
+            .setOutput(output, OutputMode.DexIndexed);
+    D8.run(builder.build());
+    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    Matcher<Marker> matcher =
+        allOf(
+            markerTool(Tool.D8),
+            markerCompilationMode(compilationMode),
+            markerIsDesugared(),
+            markerMinApi(apiLevel),
+            not(markerHasDesugaredLibraryIdentifier()));
+    assertMarkersMatch(markers, matcher);
+  }
+
+  @Test
+  public void testD8MarkerInCf() throws Throwable {
+    // Shrinking of desugared library is not affecting this test.
+    assumeTrue(shrinkDesugaredLibrary);
+
+    AndroidApiLevel apiLevel = AndroidApiLevel.L;
+    Path output = temp.newFolder().toPath().resolve("output.zip");
+    D8Command.Builder builder =
+        D8Command.builder()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class))
+            .setMode(compilationMode)
+            .setMinApiLevel(apiLevel.getLevel())
+            .setOutput(output, OutputMode.ClassFile);
+    D8.run(builder.build());
+    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    Matcher<Marker> matcher =
+        allOf(
+            markerTool(Tool.D8),
+            markerCompilationMode(compilationMode),
+            markerIsDesugared(),
+            markerMinApi(apiLevel),
+            not(markerHasDesugaredLibraryIdentifier()));
+    assertMarkersMatch(markers, matcher);
+  }
+
+  @Test
+  public void testR8MarkerInDex() throws Throwable {
+    // Shrinking of desugared library is not affecting this test.
+    assumeTrue(shrinkDesugaredLibrary);
+
+    AndroidApiLevel apiLevel = AndroidApiLevel.L;
+    Path output = temp.newFolder().toPath().resolve("output.zip");
+    R8Command.Builder builder =
+        R8Command.builder()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class))
+            .addProguardConfiguration(ImmutableList.of("-keep class * { *; }"), Origin.unknown())
+            .setMode(compilationMode)
+            .setMinApiLevel(apiLevel.getLevel())
+            .setOutput(output, OutputMode.DexIndexed);
+    R8.run(builder.build());
+    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    Matcher<Marker> matcher =
+        allOf(
+            markerTool(Tool.R8),
+            markerCompilationMode(compilationMode),
+            markerIsDesugared(),
+            markerMinApi(apiLevel),
+            not(markerHasDesugaredLibraryIdentifier()));
+    assertMarkersMatch(markers, matcher);
+  }
+
+  @Test
+  public void testR8MarkerInCf() throws Throwable {
+    // Shrinking of desugared library is not affecting this test.
+    assumeTrue(shrinkDesugaredLibrary);
+
+    Path output = temp.newFolder().toPath().resolve("output.zip");
+    R8Command.Builder builder =
+        R8Command.builder()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class))
+            .addProguardConfiguration(ImmutableList.of("-keep class * { *; }"), Origin.unknown())
+            .setMode(compilationMode)
+            .setOutput(output, OutputMode.ClassFile);
+    R8.run(builder.build());
+    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    Matcher<Marker> matcher =
+        allOf(
+            markerTool(Tool.R8),
+            markerCompilationMode(compilationMode),
+            not(markerIsDesugared()),
+            not(markerHasMinApi()),
+            not(markerHasDesugaredLibraryIdentifier()));
+    assertMarkersMatch(markers, matcher);
+  }
+
+  @Test
+  public void testR8MarkerInCfAfterD8CfDesugar() throws Throwable {
+    // Shrinking of desugared library is not affecting this test.
+    assumeTrue(shrinkDesugaredLibrary);
+
+    AndroidApiLevel apiLevel = AndroidApiLevel.L;
+    Path d8DesugaredOutput = temp.newFolder().toPath().resolve("output.zip");
+    D8.run(
+        D8Command.builder()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class))
+            .setMode(compilationMode)
+            .setMinApiLevel(apiLevel.getLevel())
+            .setOutput(d8DesugaredOutput, OutputMode.ClassFile)
+            .build());
+    assertMarkersMatch(
+        ExtractMarker.extractMarkerFromDexFile(d8DesugaredOutput),
+        allOf(
+            markerTool(Tool.D8),
+            markerCompilationMode(compilationMode),
+            markerIsDesugared(),
+            markerMinApi(apiLevel),
+            not(markerHasDesugaredLibraryIdentifier())));
+
+    // Running R8 on desugared input will clear that information and leave no markers with
+    // that information.
+    Path output = temp.newFolder().toPath().resolve("output.zip");
+    R8.run(
+        R8Command.builder()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class))
+            .addProguardConfiguration(ImmutableList.of("-keep class * { *; }"), Origin.unknown())
+            .setMode(compilationMode)
+            .setOutput(output, OutputMode.ClassFile)
+            .build());
+    assertMarkersMatch(
+        ExtractMarker.extractMarkerFromDexFile(output),
+        allOf(
+            markerTool(Tool.R8),
+            markerCompilationMode(compilationMode),
+            not(markerIsDesugared()),
+            not(markerHasMinApi()),
+            not(markerHasDesugaredLibraryIdentifier())));
+  }
+
+  public static class TestClass {
+
+    public static void main(String[] args) {
+      System.out.println("Hello, world!");
     }
   }
 }

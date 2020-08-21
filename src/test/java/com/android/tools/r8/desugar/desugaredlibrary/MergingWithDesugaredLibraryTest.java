@@ -7,7 +7,8 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static com.android.tools.r8.MarkerMatcher.assertMarkersMatch;
 import static com.android.tools.r8.MarkerMatcher.markerCompilationMode;
 import static com.android.tools.r8.MarkerMatcher.markerHasDesugaredLibraryIdentifier;
-import static com.android.tools.r8.MarkerMatcher.markerHasMinApi;
+import static com.android.tools.r8.MarkerMatcher.markerIsDesugared;
+import static com.android.tools.r8.MarkerMatcher.markerMinApi;
 import static com.android.tools.r8.MarkerMatcher.markerTool;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.not;
@@ -97,10 +98,9 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
         allOf(
             markerTool(Tool.R8),
             markerCompilationMode(CompilationMode.RELEASE),
-            not(markerHasMinApi()),
+            not(markerIsDesugared()),
             not(markerHasDesugaredLibraryIdentifier()));
-    assertMarkersMatch(
-        ExtractMarker.extractMarkerFromJarFile(shrunkenLib), ImmutableList.of(libraryMatcher));
+    assertMarkersMatch(ExtractMarker.extractMarkerFromJarFile(shrunkenLib), libraryMatcher);
 
     // Build an app with the R8 compiled library.
     Path app =
@@ -116,11 +116,60 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
     Matcher<Marker> d8Matcher =
         allOf(
             markerTool(Tool.D8),
-            markerHasMinApi(),
+            markerIsDesugared(),
             markerHasDesugaredLibraryIdentifier(
                 parameters.getApiLevel().isLessThan(AndroidApiLevel.O)));
     assertMarkersMatch(
         ExtractMarker.extractMarkerFromDexFile(app), ImmutableList.of(libraryMatcher, d8Matcher));
+  }
+
+  @Test
+  public void testMergeDesugaredWithDesugaredLib() throws Exception {
+    // Compile a library with D8 to CF.
+    Path desugaredLibCf =
+        testForD8(Backend.CF)
+            .addProgramClasses(Part2.class)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+
+    // D8 class file output marker has desugaring but no library desugaring.
+    Matcher<Marker> markerMatcher =
+        allOf(
+            markerTool(Tool.D8),
+            markerCompilationMode(CompilationMode.DEBUG),
+            markerIsDesugared(),
+            markerMinApi(parameters.getApiLevel()),
+            not(markerHasDesugaredLibraryIdentifier()));
+    assertMarkersMatch(ExtractMarker.extractMarkerFromJarFile(desugaredLibCf), markerMatcher);
+
+    Path desugaredLibDex =
+        testForD8()
+            .addProgramFiles(desugaredLibCf)
+            .disableDesugaring()
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+
+    // D8 dex file output marker has the same marker as the D8 class file output.
+    assertMarkersMatch(ExtractMarker.extractMarkerFromJarFile(desugaredLibDex), markerMatcher);
+
+    // Build an app using library desugaring merging with library not using library desugaring.
+    Path app;
+    try {
+      app =
+          testForD8()
+              .addProgramFiles(buildPart1DesugaredLibrary(), desugaredLibDex)
+              .setMinApi(parameters.getApiLevel())
+              .compile()
+              .writeToZip();
+
+      assertMarkersMatch(ExtractMarker.extractMarkerFromDexFile(app), markerMatcher);
+    } catch (CompilationFailedException e) {
+      assertTrue(someLibraryDesugaringRequired());
+      return;
+    }
+    assert !someLibraryDesugaringRequired();
   }
 
   private void assertError(TestDiagnosticMessages m) {
@@ -141,6 +190,10 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
   }
 
   private boolean expectError() {
+    return someLibraryDesugaringRequired();
+  }
+
+  private boolean someLibraryDesugaringRequired() {
     return parameters.getApiLevel().getLevel() <= AndroidApiLevel.N.getLevel();
   }
 

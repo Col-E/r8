@@ -9,6 +9,7 @@ import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -29,6 +30,22 @@ public abstract class TestShrinkerBuilder<
 
   TestShrinkerBuilder(TestState state, B builder, Backend backend) {
     super(state, builder, backend);
+  }
+
+  @Override
+  public T setMinApi(AndroidApiLevel minApiLevel) {
+    if (backend == Backend.DEX) {
+      return super.setMinApi(minApiLevel.getLevel());
+    }
+    return self();
+  }
+
+  @Override
+  public T setMinApi(int minApiLevel) {
+    if (backend == Backend.DEX) {
+      return super.setMinApi(minApiLevel);
+    }
+    return self();
   }
 
   public T treeShaking(boolean enable) {
