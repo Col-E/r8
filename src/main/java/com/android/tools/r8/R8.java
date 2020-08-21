@@ -799,7 +799,7 @@ public class R8 {
 
       // Perform repackaging.
       // TODO(b/165783399): Consider making repacking available without minification.
-      if (appView.options().isMinifying()) {
+      if (options.isMinifying() && options.testing.enableExperimentalRepackaging) {
         new Repackaging(appView.withLiveness()).run(executorService, timing);
       }
 

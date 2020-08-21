@@ -64,7 +64,10 @@ class ClassNameMinifier {
     this.packageNamingStrategy = packageNamingStrategy;
     this.classes = classes;
     InternalOptions options = appView.options();
-    this.packageObfuscationMode = options.getProguardConfiguration().getPackageObfuscationMode();
+    this.packageObfuscationMode =
+        options.testing.enableExperimentalRepackaging
+            ? PackageObfuscationMode.NONE
+            : options.getProguardConfiguration().getPackageObfuscationMode();
     this.isAccessModificationAllowed =
         options.getProguardConfiguration().isAccessModificationAllowed();
     this.keepInnerClassStructure = options.keepInnerClassStructure();
