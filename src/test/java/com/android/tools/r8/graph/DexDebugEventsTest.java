@@ -137,7 +137,8 @@ public class DexDebugEventsTest {
         nextPc,
         new Position(nextLine, null, method, null),
         events,
-        factory);
+        factory,
+        false);
     consumer.accept(events);
   }
 }

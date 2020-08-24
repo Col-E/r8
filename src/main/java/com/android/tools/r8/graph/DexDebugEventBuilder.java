@@ -189,11 +189,12 @@ public class DexDebugEventBuilder {
         return;
       }
       startLine = position.line;
-      emittedPosition = new Position(position.line, null, method.method, null);
+      emittedPosition =
+          new Position(position.line, null, position.getOutermostCaller().method, null);
     }
     assert emittedPc != pc;
     int previousPc = emittedPc == NO_PC_INFO ? 0 : emittedPc;
-    emitAdvancementEvents(previousPc, emittedPosition, pc, position, events, factory);
+    emitAdvancementEvents(previousPc, emittedPosition, pc, position, events, factory, false);
     emittedPc = pc;
     emittedPosition = position;
     if (localsChanged()) {
@@ -225,7 +226,8 @@ public class DexDebugEventBuilder {
       int nextPc,
       Position nextPosition,
       List<DexDebugEvent> events,
-      DexItemFactory factory) {
+      DexItemFactory factory,
+      boolean optimizingLineNumbers) {
     assert previousPc >= 0;
     int pcDelta = nextPc - previousPc;
     assert !previousPosition.isNone() || nextPosition.isNone();
@@ -235,8 +237,14 @@ public class DexDebugEventBuilder {
     if (nextPosition.file != previousPosition.file) {
       events.add(factory.createSetFile(nextPosition.file));
     }
-    if (nextPosition.method != previousPosition.method
-        || nextPosition.callerPosition != previousPosition.callerPosition) {
+    // The LineNumberOptimizer maps new positions based on the outer most caller with
+    // callerPosition == null.
+    assert null != nextPosition.callerPosition
+        || null != previousPosition.callerPosition
+        || nextPosition.method == previousPosition.method
+        || optimizingLineNumbers;
+    if (nextPosition.callerPosition != previousPosition.callerPosition
+        || nextPosition.method != previousPosition.method) {
       events.add(factory.createSetInlineFrame(nextPosition.method, nextPosition.callerPosition));
     }
     if (lineDelta < Constants.DBG_LINE_BASE

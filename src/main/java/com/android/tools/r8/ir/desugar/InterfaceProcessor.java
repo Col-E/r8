@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import static com.android.tools.r8.graph.DexEncodedMethod.setOriginalMethodPosition;
-
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.Instruction;
@@ -96,12 +94,6 @@ final class InterfaceProcessor {
         newFlags.promoteToStatic();
         DexEncodedMethod.setDebugInfoWithFakeThisParameter(
             code, companionMethod.getArity(), appView);
-        if (!appView.options().isDesugaredLibraryCompilation()) {
-          setOriginalMethodPosition(
-              code, appView.graphLens().getOriginalMethodSignature(virtual.method));
-        } else {
-          assert appView.graphLens().isIdentityLens();
-        }
         DexEncodedMethod implMethod =
             new DexEncodedMethod(
                 companionMethod,
@@ -142,12 +134,6 @@ final class InterfaceProcessor {
             : "Static interface method " + direct.toSourceString() + " is expected to "
             + "either be public or private in " + iface.origin;
         DexMethod companionMethod = rewriter.staticAsMethodOfCompanionClass(oldMethod);
-        if (!appView.options().isDesugaredLibraryCompilation()) {
-          setOriginalMethodPosition(
-              direct.getCode(), appView.graphLens().getOriginalMethodSignature(oldMethod));
-        } else {
-          assert appView.graphLens().isIdentityLens();
-        }
         DexEncodedMethod implMethod =
             new DexEncodedMethod(
                 companionMethod,
@@ -175,12 +161,6 @@ final class InterfaceProcessor {
           }
           DexEncodedMethod.setDebugInfoWithFakeThisParameter(
               code, companionMethod.getArity(), appView);
-          if (!appView.options().isDesugaredLibraryCompilation()) {
-            setOriginalMethodPosition(
-                code, appView.graphLens().getOriginalMethodSignature(oldMethod));
-          } else {
-            assert appView.graphLens().isIdentityLens();
-          }
           DexEncodedMethod implMethod =
               new DexEncodedMethod(
                   companionMethod,

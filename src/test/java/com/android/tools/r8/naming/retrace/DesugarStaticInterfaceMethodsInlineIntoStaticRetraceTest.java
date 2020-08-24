@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
@@ -19,7 +20,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class DesugarStaticInterfaceMethodsRetraceTest extends RetraceTestBase {
+public class DesugarStaticInterfaceMethodsInlineIntoStaticRetraceTest extends RetraceTestBase {
 
   @Parameters(name = "{0}, mode: {1}, compat: {2}")
   public static Collection<Object[]> data() {
@@ -29,9 +30,14 @@ public class DesugarStaticInterfaceMethodsRetraceTest extends RetraceTestBase {
         BooleanUtils.values());
   }
 
-  public DesugarStaticInterfaceMethodsRetraceTest(
+  public DesugarStaticInterfaceMethodsInlineIntoStaticRetraceTest(
       TestParameters parameters, CompilationMode mode, boolean compat) {
     super(parameters, mode, compat);
+  }
+
+  @Override
+  public void configure(R8TestBuilder<?> builder) {
+    builder.enableInliningAnnotations();
   }
 
   @Override
@@ -63,7 +69,7 @@ public class DesugarStaticInterfaceMethodsRetraceTest extends RetraceTestBase {
 
 interface InterfaceWithStaticMethod2 {
 
-  static void staticMethod1() {
+  static void staticMethod2() {
     throw null;
   }
 }
@@ -71,14 +77,14 @@ interface InterfaceWithStaticMethod2 {
 interface InterfaceWithStaticMethod1 {
 
   @NeverInline
-  static void staticMethod2() {
-    InterfaceWithStaticMethod2.staticMethod1();
+  static void staticMethod1() {
+    InterfaceWithStaticMethod2.staticMethod2();
   }
 }
 
 class MainDesugarStaticInterfaceMethodsRetraceTest {
 
   public static void main(String[] args) {
-    InterfaceWithStaticMethod1.staticMethod2();
+    InterfaceWithStaticMethod1.staticMethod1();
   }
 }

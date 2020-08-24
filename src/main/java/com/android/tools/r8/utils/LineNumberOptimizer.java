@@ -235,7 +235,8 @@ public class LineNumberOptimizer {
           currentPc,
           currentPosition,
           processedEvents,
-          dexItemFactory);
+          dexItemFactory,
+          true);
       previousPc = currentPc;
       previousPosition = currentPosition;
     }
@@ -377,10 +378,9 @@ public class LineNumberOptimizer {
           Map<DexMethod, MethodSignature> signatures = new IdentityHashMap<>();
           signatures.put(originalMethod, originalSignature);
           Function<DexMethod, MethodSignature> getOriginalMethodSignature =
-              m -> {
-                return signatures.computeIfAbsent(
-                    m, key -> MethodSignature.fromDexMethod(m, m.holder != clazz.getType()));
-              };
+              m ->
+                  signatures.computeIfAbsent(
+                      m, key -> MethodSignature.fromDexMethod(m, m.holder != clazz.getType()));
 
           MemberNaming memberNaming = new MemberNaming(originalSignature, obfuscatedName);
           onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
@@ -622,13 +622,17 @@ public class LineNumberOptimizer {
     List<DexDebugEvent> processedEvents = new ArrayList<>();
 
     PositionEventEmitter positionEventEmitter =
-        new PositionEventEmitter(application.dexItemFactory, method.method, processedEvents);
+        new PositionEventEmitter(
+            application.dexItemFactory,
+            appView.graphLens().getOriginalMethodSignature(method.method),
+            processedEvents);
 
     Box<Boolean> inlinedOriginalPosition = new Box<>(false);
 
     // Debug event visitor to map line numbers.
     DexDebugEventVisitor visitor =
-        new DexDebugPositionState(debugInfo.startLine, method.method) {
+        new DexDebugPositionState(
+            debugInfo.startLine, appView.graphLens().getOriginalMethodSignature(method.method)) {
 
           // Keep track of what PC has been emitted.
           private int emittedPc = 0;
