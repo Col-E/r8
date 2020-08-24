@@ -162,6 +162,11 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     return addVmArguments(Arrays.asList(arguments));
   }
 
+  public JvmTestBuilder disassemble() throws Exception {
+    ToolHelper.disassemble(builder.build(), System.out);
+    return self();
+  }
+
   public JvmTestBuilder addAndroidBuildVersion() {
     addVmArguments("-D" + AndroidBuildVersion.PROPERTY + "=10000");
     return addProgramClasses(AndroidBuildVersion.class);

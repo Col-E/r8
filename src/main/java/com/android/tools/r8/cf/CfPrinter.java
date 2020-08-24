@@ -52,6 +52,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -389,10 +390,15 @@ public class CfPrinter {
 
   public void print(CfInvokeDynamic invoke) {
     indent();
+    DexCallSite callSite = invoke.getCallSite();
+    DexMethodHandle bootstrapMethod = callSite.bootstrapMethod;
     builder.append(opcodeName(Opcodes.INVOKEDYNAMIC)).append(' ');
-    builder.append(invoke.getCallSite().methodName);
-    builder.append(invoke.getCallSite().methodProto.toDescriptorString());
-    DexMethodHandle bootstrapMethod = invoke.getCallSite().bootstrapMethod;
+    builder.append(callSite.methodName);
+    builder.append(callSite.methodProto.toDescriptorString());
+    DexMethodHandle handle = callSite.bootstrapArgs.get(1).asDexValueMethodHandle().getValue();
+    builder.append(", handle:");
+    builder.append(handle.toSourceString());
+    builder.append(", itf: ").append(handle.isInterface);
     builder.append(", bsm:");
     appendMethod(bootstrapMethod.asMethod());
   }

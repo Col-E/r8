@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -365,20 +366,22 @@ public final class LambdaClass {
     assert implHandle != null;
     DexMethod implMethod = implHandle.asMethod();
 
-    // Lambda$ method. We must always find it.
+    // Lambda$ method. We should always find it. If not found an ICCE can be expected to be thrown.
     assert implMethod.holder == accessedFrom.getHolderType();
     assert descriptor.verifyTargetFoundInClass(accessedFrom.getHolderType());
     if (implHandle.type.isInvokeStatic()) {
-      SingleResolutionResult resolution =
-          appView
-              .appInfoForDesugaring()
-              .resolveMethod(implMethod, implHandle.isInterface)
-              .asSingleResolution();
-      assert resolution.getResolvedMethod().isStatic();
-      assert resolution.getResolvedHolder().isProgramClass();
+      ResolutionResult resolution =
+          appView.appInfoForDesugaring().resolveMethod(implMethod, implHandle.isInterface);
+      if (resolution.isFailedResolution()) {
+        return new InvalidLambdaImplTarget(
+            implMethod, Type.STATIC, appView.dexItemFactory().icceType);
+      }
+      SingleResolutionResult result = resolution.asSingleResolution();
+      assert result.getResolvedMethod().isStatic();
+      assert result.getResolvedHolder().isProgramClass();
       return new StaticLambdaImplTarget(
           new ProgramMethod(
-              resolution.getResolvedHolder().asProgramClass(), resolution.getResolvedMethod()));
+              result.getResolvedHolder().asProgramClass(), result.getResolvedMethod()));
     }
 
     assert implHandle.type.isInvokeInstance() || implHandle.type.isInvokeDirect();
@@ -637,6 +640,21 @@ public final class LambdaClass {
           : "Unexpected failure to find direct lambda target for: " + implMethod.qualifiedName();
 
       return new ProgramMethod(implMethodHolder, replacement);
+    }
+  }
+
+  class InvalidLambdaImplTarget extends Target {
+
+    final DexType exceptionType;
+
+    public InvalidLambdaImplTarget(DexMethod callTarget, Type invokeType, DexType exceptionType) {
+      super(callTarget, invokeType);
+      this.exceptionType = exceptionType;
+    }
+
+    @Override
+    ProgramMethod ensureAccessibility(boolean allowMethodModification) {
+      return null;
     }
   }
 

@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.IRBuilder;
 import java.util.Collections;
 
 // Source code representing simple forwarding method.
@@ -27,21 +28,22 @@ public final class ExceptionThrowingSourceCode extends SyntheticSourceCode {
 
   @Override
   protected void prepareInstructions() {
-    add(
-        builder -> {
-          DexItemFactory factory = builder.appView.dexItemFactory();
-          DexProto initProto = factory.createProto(factory.voidType);
-          DexMethod initMethod =
-              factory.createMethod(exceptionType, initProto, factory.constructorMethodName);
-          builder.addNewInstance(register, exceptionType);
-          builder.addInvoke(
-              Type.DIRECT,
-              initMethod,
-              initMethod.proto,
-              Collections.singletonList(ValueType.OBJECT),
-              Collections.singletonList(register),
-              false /* isInterface */);
-          builder.addThrow(register);
-        });
+    add(builder -> build(builder, exceptionType));
+  }
+
+  public static void build(IRBuilder builder, DexType exceptionType) {
+    DexItemFactory factory = builder.appView.dexItemFactory();
+    DexProto initProto = factory.createProto(factory.voidType);
+    DexMethod initMethod =
+        factory.createMethod(exceptionType, initProto, factory.constructorMethodName);
+    builder.addNewInstance(register, exceptionType);
+    builder.addInvoke(
+        Type.DIRECT,
+        initMethod,
+        initMethod.proto,
+        Collections.singletonList(ValueType.OBJECT),
+        Collections.singletonList(register),
+        false /* isInterface */);
+    builder.addThrow(register);
   }
 }

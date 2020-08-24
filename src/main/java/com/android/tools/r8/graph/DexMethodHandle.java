@@ -206,10 +206,7 @@ public class DexMethodHandle extends IndexedDexItem implements
       MethodHandleType type,
       DexMember<? extends DexItem, ? extends DexMember<?, ?>> fieldOrMethod,
       boolean isInterface) {
-    this.type = type;
-    this.fieldOrMethod = fieldOrMethod;
-    this.isInterface = isInterface;
-    this.rewrittenTarget = null;
+    this(type, fieldOrMethod, isInterface, null);
   }
 
   public DexMethodHandle(

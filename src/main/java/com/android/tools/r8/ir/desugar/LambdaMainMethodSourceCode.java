@@ -15,6 +15,8 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.desugar.LambdaClass.InvalidLambdaImplTarget;
+import com.android.tools.r8.ir.synthetic.ExceptionThrowingSourceCode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -166,6 +168,15 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
     DexType enforcedReturnType = descriptor().enforcedProto.returnType;
 
     LambdaClass.Target target = lambda.target;
+    if (target instanceof InvalidLambdaImplTarget) {
+      add(
+          builder -> {
+            InvalidLambdaImplTarget invalidTarget = (InvalidLambdaImplTarget) target;
+            ExceptionThrowingSourceCode.build(builder, invalidTarget.exceptionType);
+          });
+      return;
+    }
+
     DexMethod methodToCall = target.callTarget;
 
     // Only constructor call should use direct invoke type since super

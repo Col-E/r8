@@ -448,6 +448,18 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer renameMethod(String oldName, String newName) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public MethodVisitor visitMethod(
+              int access, String name, String descriptor, String signature, String[] exceptions) {
+            return super.visitMethod(
+                access, name.equals(oldName) ? newName : name, descriptor, signature, exceptions);
+          }
+        });
+  }
+
   /** Abstraction of the MethodVisitor.visitMethodInsn method with its sub visitor. */
   @FunctionalInterface
   public interface MethodInsnTransform {
