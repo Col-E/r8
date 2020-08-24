@@ -24,7 +24,6 @@ import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -40,8 +39,6 @@ import java.util.function.Predicate;
  * by the {@link MemberRebindingAnalysis} optimization.
  */
 public abstract class NamingLens {
-
-  protected boolean isSortingBeforeWriting;
 
   public abstract String lookupPackageName(String packageName);
 
@@ -101,8 +98,6 @@ public abstract class NamingLens {
     return dexItemFactory.createType(lookupDescriptor(type));
   }
 
-  public abstract boolean verifyNoOverlap(Map<DexType, DexString> map);
-
   public boolean hasPrefixRewritingLogic() {
     return false;
   }
@@ -123,8 +118,6 @@ public abstract class NamingLens {
     assert type.isClassType() || type.isArrayType();
     return DescriptorUtils.descriptorToInternalName(lookupDescriptor(type).toString());
   }
-
-  public abstract void forAllRenamedTypes(Consumer<DexType> consumer);
 
   public abstract <T extends DexItem> Map<String, T> getRenamedItems(
       Class<T> clazz, Predicate<T> predicate, Function<T, String> namer);
@@ -165,10 +158,6 @@ public abstract class NamingLens {
     return true;
   }
 
-  public void setIsSortingBeforeWriting(boolean isSorting) {
-    isSortingBeforeWriting = isSorting;
-  }
-
   private static class IdentityLens extends NamingLens {
 
     private IdentityLens() {
@@ -201,18 +190,8 @@ public abstract class NamingLens {
     }
 
     @Override
-    public boolean verifyNoOverlap(Map<DexType, DexString> map) {
-      return true;
-    }
-
-    @Override
     public String lookupPackageName(String packageName) {
       return packageName;
-    }
-
-    @Override
-    public void forAllRenamedTypes(Consumer<DexType> consumer) {
-      // Intentionally left empty.
     }
 
     @Override

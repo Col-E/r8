@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
@@ -17,7 +16,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -114,11 +112,6 @@ public class PrefixRewritingNamingLens extends NamingLens {
   }
 
   @Override
-  public boolean verifyNoOverlap(Map<DexType, DexString> map) {
-    throw new Unreachable("Multiple prefix rewriting lens not supported.");
-  }
-
-  @Override
   public String lookupPackageName(String packageName) {
     // Used for resource shrinking.
     // Desugared libraries do not have resources.
@@ -135,18 +128,6 @@ public class PrefixRewritingNamingLens extends NamingLens {
           assert !dexType.getPackageDescriptor().equals(packageName);
         });
     return true;
-  }
-
-  @Override
-  public void forAllRenamedTypes(Consumer<DexType> consumer) {
-    // Used for printing the applyMapping map.
-    // If compiling the program using a desugared library, nothing needs to be printed.
-    // If compiling the desugared library, the mapping needs to be printed.
-    // When debugging the program, both mapping files need to be merged.
-    if (options.isDesugaredLibraryCompilation()) {
-      appView.rewritePrefix.forAllRewrittenTypes(consumer);
-    }
-    namingLens.forAllRenamedTypes(consumer);
   }
 
   @Override

@@ -579,9 +579,7 @@ public class ProguardMapMinifier {
 
     @Override
     public DexString lookupDescriptor(DexType type) {
-      if (!isSortingBeforeWriting) {
-        checkForUseOfNotMappedReference(type);
-      }
+      checkForUseOfNotMappedReference(type);
       return super.lookupDescriptor(type);
     }
 

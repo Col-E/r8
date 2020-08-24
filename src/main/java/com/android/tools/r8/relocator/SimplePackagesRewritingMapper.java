@@ -22,7 +22,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -157,16 +156,6 @@ class SimplePackagesRewritingMapper {
     @Override
     public DexString lookupName(DexField field) {
       return field.name;
-    }
-
-    @Override
-    public boolean verifyNoOverlap(Map<DexType, DexString> map) {
-      return true;
-    }
-
-    @Override
-    public void forAllRenamedTypes(Consumer<DexType> consumer) {
-      typeMappings.keySet().forEach(consumer);
     }
 
     @Override

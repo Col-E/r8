@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
@@ -26,7 +25,6 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -128,22 +126,6 @@ class MinifiedRenaming extends NamingLens {
   @Override
   public DexString lookupName(DexField field) {
     return renaming.getOrDefault(field, field.name);
-  }
-
-  @Override
-  public boolean verifyNoOverlap(Map<DexType, DexString> map) {
-    for (DexType alreadyRenamedInOtherLens : map.keySet()) {
-      assert !renaming.containsKey(alreadyRenamedInOtherLens);
-      assert !renaming.containsKey(
-          appView.dexItemFactory().createType(map.get(alreadyRenamedInOtherLens)));
-    }
-    return true;
-  }
-
-  @Override
-  public void forAllRenamedTypes(Consumer<DexType> consumer) {
-    DexReference.filterDexType(DexReference.filterDexReference(renaming.keySet().stream()))
-        .forEach(consumer);
   }
 
   @Override
