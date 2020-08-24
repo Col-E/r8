@@ -17,13 +17,17 @@ import org.objectweb.asm.MethodVisitor;
  */
 public class MethodTransformer extends MethodVisitor {
 
-  static class MethodContext {
+  public static class MethodContext {
     public final MethodReference method;
     public final int accessFlags;
 
     public MethodContext(MethodReference method, int accessFlags) {
       this.method = method;
       this.accessFlags = accessFlags;
+    }
+
+    public MethodReference getReference() {
+      return method;
     }
   }
 
@@ -43,7 +47,7 @@ public class MethodTransformer extends MethodVisitor {
 
   // Package internals.
 
-  MethodContext getContext() {
+  protected MethodContext getContext() {
     return context;
   }
 
