@@ -77,6 +77,7 @@ import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.repackaging.Repackaging;
+import com.android.tools.r8.repackaging.RepackagingLens;
 import com.android.tools.r8.shaking.AbstractMethodRemover;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -800,7 +801,15 @@ public class R8 {
       // Perform repackaging.
       // TODO(b/165783399): Consider making repacking available without minification.
       if (options.isMinifying() && options.testing.enableExperimentalRepackaging) {
-        new Repackaging(appView.withLiveness()).run(executorService, timing);
+        DirectMappedDexApplication.Builder appBuilder =
+            appView.appInfo().app().asDirect().builder();
+        // TODO(b/165783399): We need to deal with non-rebound member references in the writer,
+        //  possibly be adding a member rebinding lens on top of the repackaging lens.
+        RepackagingLens lens =
+            new Repackaging(appView.withLiveness()).run(appBuilder, executorService, timing);
+        if (lens != null) {
+          appView.rewriteWithLensAndApplication(lens, appBuilder.build());
+        }
       }
 
       // Perform minification.

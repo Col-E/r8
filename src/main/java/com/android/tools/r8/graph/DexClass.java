@@ -113,6 +113,10 @@ public abstract class DexClass extends DexDefinition {
     return accessFlags;
   }
 
+  public DexString getSourceFile() {
+    return sourceFile;
+  }
+
   public Iterable<DexEncodedField> fields() {
     return fields(Predicates.alwaysTrue());
   }

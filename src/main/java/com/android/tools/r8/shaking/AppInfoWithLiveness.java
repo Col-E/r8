@@ -48,7 +48,6 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
-import com.android.tools.r8.utils.AssertionUtils;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -1000,12 +999,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             .map(FieldResolutionResult::getResolvedField)
             .collect(Collectors.toList()));
 
-    assert lens.assertDefinitionsNotModified(
-        neverMerge.stream()
-            .map(this::definitionFor)
-            .filter(AssertionUtils::assertNotNull)
-            .collect(Collectors.toList()));
-
     DexDefinitionSupplier definitionSupplier =
         application.getDefinitionsSupplier(SyntheticItems.createInitialSyntheticItems());
     return new AppInfoWithLiveness(
@@ -1031,7 +1024,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         // TODO(sgjesse): Rewrite call sites as well? Right now they are only used by minification
         //   after second tree shaking.
         callSites,
-        keepInfo.rewrite(lens),
+        keepInfo.rewrite(lens, application.options),
         lens.rewriteReferenceKeys(mayHaveSideEffects),
         lens.rewriteReferenceKeys(noSideEffects),
         lens.rewriteReferenceKeys(assumedValues),
