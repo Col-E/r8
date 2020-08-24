@@ -12,4 +12,8 @@ public class InstructionOffsetSubject {
     this.offset = offset;
   }
 
+  @Override
+  public String toString() {
+    return "" + offset;
+  }
 }

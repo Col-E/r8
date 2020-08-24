@@ -34,10 +34,12 @@ import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.Monitor.Type;
 import com.android.tools.r8.ir.code.ValueType;
+import java.util.Iterator;
 import org.objectweb.asm.Opcodes;
 
 public class CfInstructionSubject implements InstructionSubject {
@@ -358,8 +360,17 @@ public class CfInstructionSubject implements InstructionSubject {
 
   @Override
   public InstructionOffsetSubject getOffset(MethodSubject methodSubject) {
-    // TODO(b/122302789): CfInstruction#getOffset()
-    throw new UnsupportedOperationException("CfInstruction doesn't have offset yet.");
+    // TODO(b/122302789): Update this if 'offset' is introduced.
+    Iterator<InstructionSubject> it = methodSubject.iterateInstructions();
+    int bci = 0;
+    while (it.hasNext()) {
+      ++bci;
+      InstructionSubject next = it.next();
+      if (next.asCfInstruction().instruction == instruction) {
+        return new InstructionOffsetSubject(bci);
+      }
+    }
+    throw new Unreachable();
   }
 
   @Override

@@ -18,4 +18,9 @@ public class RangeSubject {
   public boolean includes(InstructionOffsetSubject offsetSubject) {
     return this.start <= offsetSubject.offset && offsetSubject.offset <= this.end;
   }
+
+  @Override
+  public String toString() {
+    return "[" + start + ":" + end + "]";
+  }
 }

@@ -371,8 +371,10 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
               }
             });
       } else {
-        // We replaced a dead, non-throwing instruction by a throwing instruction. Since this is
-        // dead code, we don't need to worry about the catch handlers of the `throwBlock`.
+        // This is dead code and does not need to be guarded by catch handlers, except in the case
+        // of locking, which should be statically verifiable. Currently we copy over the handlers of
+        // the block in any case which is sound in all cases.
+        throwBlock.copyCatchHandlers(code, blockIterator, block, appView.options());
       }
     }
   }
