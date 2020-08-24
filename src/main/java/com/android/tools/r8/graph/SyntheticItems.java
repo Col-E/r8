@@ -11,9 +11,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-public class SyntheticItems {
+public class SyntheticItems implements SyntheticDefinitionsProvider {
 
-  public static class CommittedItems {
+  public static class CommittedItems implements SyntheticDefinitionsProvider {
     // Set of all types that represent synthesized items.
     private final ImmutableSet<DexType> syntheticTypes;
 
@@ -23,6 +23,11 @@ public class SyntheticItems {
 
     SyntheticItems toSyntheticItems() {
       return new SyntheticItems(syntheticTypes);
+    }
+
+    @Override
+    public DexClass definitionFor(DexType type, Function<DexType, DexClass> baseDefinitionFor) {
+      return baseDefinitionFor.apply(type);
     }
   }
 
@@ -48,6 +53,7 @@ public class SyntheticItems {
     return Collections.unmodifiableCollection(pendingClasses.values());
   }
 
+  @Override
   public DexClass definitionFor(DexType type, Function<DexType, DexClass> baseDefinitionFor) {
     DexProgramClass pending = pendingClasses.get(type);
     if (pending != null) {

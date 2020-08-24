@@ -73,12 +73,13 @@ public class DirectMappedDexApplication extends DexApplication {
     return classpathClasses;
   }
 
-  public DexDefinitionSupplier getDefinitionsSupplier(SyntheticItems syntheticItems) {
+  public DexDefinitionSupplier getDefinitionsSupplier(
+      SyntheticDefinitionsProvider syntheticDefinitionsProvider) {
     DirectMappedDexApplication self = this;
     return new DexDefinitionSupplier() {
       @Override
       public DexClass definitionFor(DexType type) {
-        return syntheticItems.definitionFor(type, self::definitionFor);
+        return syntheticDefinitionsProvider.definitionFor(type, self::definitionFor);
       }
 
       @Override
