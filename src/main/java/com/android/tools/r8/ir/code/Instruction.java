@@ -86,6 +86,12 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     this.position = position;
   }
 
+  public void forceOverwritePosition(Position position) {
+    assert position != null;
+    assert this.position != null;
+    this.position = position;
+  }
+
   public String getPositionAsString() {
     return position == null ? "???" : position.toString();
   }

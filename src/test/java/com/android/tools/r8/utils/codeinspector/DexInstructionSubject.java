@@ -121,6 +121,11 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public CfInstructionSubject asCfInstruction() {
+    return null;
+  }
+
+  @Override
   public boolean isFieldAccess() {
     return isInstanceGet() || isInstancePut() || isStaticGet() || isStaticPut();
   }

@@ -192,7 +192,7 @@ public class TestParametersBuilder {
   }
 
   public TestParametersCollection build() {
-    assert !enableApiLevels || hasDexRuntimeFilter;
+    assert !enableApiLevels || enableApiLevelsForCf || hasDexRuntimeFilter;
     return new TestParametersCollection(
         getAvailableRuntimes()
             .flatMap(this::createParameters)

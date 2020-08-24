@@ -18,6 +18,8 @@ public interface InstructionSubject {
 
   DexInstructionSubject asDexInstruction();
 
+  CfInstructionSubject asCfInstruction();
+
   boolean isFieldAccess();
 
   boolean isInstancePut();

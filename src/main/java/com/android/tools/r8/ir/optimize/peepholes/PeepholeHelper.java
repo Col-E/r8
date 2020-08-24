@@ -20,10 +20,12 @@ public class PeepholeHelper {
             && (t.outValue() == null || !t.outValue().hasLocalInfo());
   }
 
-  public static void resetNext(InstructionListIterator it, int count) {
+  public static Instruction resetNext(InstructionListIterator it, int count) {
+    Instruction instruction = null;
     for (int i = 0; i < count; i++) {
-      it.previous();
+      instruction = it.previous();
     }
+    return instruction;
   }
 
   public static void resetPrevious(InstructionListIterator it, int count) {

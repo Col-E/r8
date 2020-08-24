@@ -19,7 +19,8 @@ import java.util.ListIterator;
 public class BasicBlockMuncher {
 
   private static List<BasicBlockPeephole> nonDestructivePeepholes() {
-    return ImmutableList.of(new MoveLoadUpPeephole(), new StoreLoadPeephole());
+    return ImmutableList.of(
+        new RemoveDebugPositionPeephole(), new MoveLoadUpPeephole(), new StoreLoadPeephole());
   }
 
   // The StoreLoadPeephole and StoreSequenceLoadPeephole are non-destructive but we would like it
@@ -48,13 +49,7 @@ public class BasicBlockMuncher {
           new LinearFlowInstructionListIterator(
               code, currentBlock, currentBlock.getInstructions().size());
       boolean matched = false;
-      while (matched || it.hasPrevious()) {
-        if (!it.hasPrevious()) {
-          matched = false;
-          it =
-              new LinearFlowInstructionListIterator(
-                  code, currentBlock, currentBlock.getInstructions().size());
-        }
+      while (true) {
         for (BasicBlockPeephole peepHole : peepholes) {
           boolean localMatch = peepHole.match(it);
           if (localMatch && peepHole.resetAfterMatch()) {
@@ -73,6 +68,13 @@ public class BasicBlockMuncher {
             iterations++;
           }
           it.previous();
+        } else if (matched) {
+          matched = false;
+          it =
+              new LinearFlowInstructionListIterator(
+                  code, currentBlock, currentBlock.getInstructions().size());
+        } else {
+          break;
         }
       }
     }

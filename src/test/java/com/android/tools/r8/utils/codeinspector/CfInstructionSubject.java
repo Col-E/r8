@@ -31,6 +31,7 @@ import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.graph.DexField;
@@ -52,6 +53,11 @@ public class CfInstructionSubject implements InstructionSubject {
   @Override
   public DexInstructionSubject asDexInstruction() {
     return null;
+  }
+
+  @Override
+  public CfInstructionSubject asCfInstruction() {
+    return this;
   }
 
   @Override
@@ -295,6 +301,10 @@ public class CfInstructionSubject implements InstructionSubject {
 
   public boolean isLoad() {
     return instruction instanceof CfLoad;
+  }
+
+  public boolean isStore() {
+    return instruction instanceof CfStore;
   }
 
   @Override
