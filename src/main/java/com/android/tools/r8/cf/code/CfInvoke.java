@@ -71,10 +71,12 @@ public class CfInvoke extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens) {
-    String owner = lens.lookupInternalName(method.holder);
-    String name = lens.lookupName(method).toString();
-    String desc = method.proto.toDescriptorString(lens);
+  public void write(
+      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
+    DexMethod newMethod = graphLens.getRenamedMethodSignature(method);
+    String owner = lens.lookupInternalName(newMethod.holder);
+    String name = lens.lookupName(newMethod).toString();
+    String desc = newMethod.proto.toDescriptorString(lens);
     visitor.visitMethodInsn(opcode, owner, name, desc, itf);
   }
 

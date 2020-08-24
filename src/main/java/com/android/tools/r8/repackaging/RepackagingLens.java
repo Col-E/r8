@@ -12,29 +12,36 @@ import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import java.util.IdentityHashMap;
-import java.util.Map;
 
 public class RepackagingLens extends NestedGraphLens {
+
+  private final BiMap<DexType, DexType> originalTypes;
 
   private RepackagingLens(
       AppView<AppInfoWithLiveness> appView,
       BiMap<DexField, DexField> originalFieldSignatures,
       BiMap<DexMethod, DexMethod> originalMethodSignatures,
-      Map<DexType, DexType> typeMap) {
+      BiMap<DexType, DexType> originalTypes) {
     super(
-        typeMap,
+        originalTypes.inverse(),
         originalMethodSignatures.inverse(),
         originalFieldSignatures.inverse(),
         originalFieldSignatures,
         originalMethodSignatures,
         appView.graphLens(),
         appView.dexItemFactory());
+    this.originalTypes = originalTypes;
+  }
+
+  @Override
+  public DexType getOriginalType(DexType type) {
+    DexType previous = previousLens.getOriginalType(type);
+    return originalTypes.getOrDefault(previous, previous);
   }
 
   public static class Builder {
 
-    protected final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
+    protected final BiMap<DexType, DexType> originalTypes = HashBiMap.create();
     protected final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
     protected final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
 
@@ -47,13 +54,13 @@ public class RepackagingLens extends NestedGraphLens {
     }
 
     public void recordMove(DexType from, DexType to) {
-      typeMap.put(from, to);
+      originalTypes.put(to, from);
     }
 
     public RepackagingLens build(AppView<AppInfoWithLiveness> appView) {
-      assert !typeMap.isEmpty();
+      assert !originalTypes.isEmpty();
       return new RepackagingLens(
-          appView, originalFieldSignatures, originalMethodSignatures, typeMap);
+          appView, originalFieldSignatures, originalMethodSignatures, originalTypes);
     }
   }
 }

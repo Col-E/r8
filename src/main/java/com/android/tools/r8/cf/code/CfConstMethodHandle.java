@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
@@ -31,7 +32,8 @@ public class CfConstMethodHandle extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens) {
+  public void write(
+      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
     visitor.visitLdcInsn(handle.toAsmHandle(lens));
   }
 

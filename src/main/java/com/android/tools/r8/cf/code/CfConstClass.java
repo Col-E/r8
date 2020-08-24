@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
@@ -32,8 +33,12 @@ public class CfConstClass extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens) {
-    visitor.visitLdcInsn(Type.getObjectType(getInternalName(lens)));
+  public void write(
+      MethodVisitor visitor,
+      GraphLens graphLens,
+      InitClassLens initClassLens,
+      NamingLens namingLens) {
+    visitor.visitLdcInsn(Type.getObjectType(getInternalName(graphLens, namingLens)));
   }
 
   @Override
@@ -46,11 +51,11 @@ public class CfConstClass extends CfInstruction {
     return true;
   }
 
-  private String getInternalName(NamingLens lens) {
+  private String getInternalName(GraphLens graphLens, NamingLens namingLens) {
     switch (type.toShorty()) {
       case '[':
       case 'L':
-        return lens.lookupInternalName(type);
+        return namingLens.lookupInternalName(graphLens.lookupType(type));
       case 'Z':
         return "java/lang/Boolean/TYPE";
       case 'B':

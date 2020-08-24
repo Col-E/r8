@@ -386,7 +386,7 @@ public class R8 {
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
-        assert appView.rootSet().verifyKeptItemsAreKept(appView.appInfo().app(), appView.appInfo());
+        assert appView.rootSet().verifyKeptItemsAreKept(appView);
 
         missingClasses =
             Sets.union(missingClasses, appViewWithLiveness.appInfo().getMissingTypes());
@@ -804,7 +804,7 @@ public class R8 {
         DirectMappedDexApplication.Builder appBuilder =
             appView.appInfo().app().asDirect().builder();
         // TODO(b/165783399): We need to deal with non-rebound member references in the writer,
-        //  possibly be adding a member rebinding lens on top of the repackaging lens.
+        //  possibly by adding a member rebinding lens on top of the repackaging lens.
         RepackagingLens lens =
             new Repackaging(appView.withLiveness()).run(appBuilder, executorService, timing);
         if (lens != null) {
@@ -886,7 +886,7 @@ public class R8 {
       if (options.isShrinking()
           || options.isMinifying()
           || options.getProguardConfiguration().hasApplyMappingFile()) {
-        assert appView.rootSet().verifyKeptItemsAreKept(appView.appInfo().app(), appView.appInfo());
+        assert appView.rootSet().verifyKeptItemsAreKept(appView);
       }
       assert appView
           .graphLens()
@@ -912,6 +912,7 @@ public class R8 {
           .run(appView.appInfo().classes(), executorService);
 
       // Generate the resulting application resources.
+      // TODO(b/165783399): Apply the graph lens to all instructions in the CF and DEX backends.
       writeApplication(
           executorService,
           appView.appInfo().app(),

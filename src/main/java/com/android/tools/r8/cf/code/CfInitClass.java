@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
@@ -37,7 +38,8 @@ public class CfInitClass extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens) {
+  public void write(
+      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
     DexField field = initClassLens.getInitClassField(clazz);
     String owner = lens.lookupInternalName(field.holder);
     String name = lens.lookupName(field).toString();

@@ -51,26 +51,24 @@ public class RepackagingConstraintGraph {
     // Add all the items in the package into the graph. This way we know which items belong to the
     // package without having to extract package descriptor strings and comparing them with the
     // package descriptor.
-    boolean hasPackagePrivateOrProtectedItem = false;
     boolean hasPinnedItem = false;
     for (DexProgramClass clazz : pkg) {
       boolean isPinned = !appView.appInfo().isMinificationAllowed(clazz.getType());
       hasPinnedItem |= isPinned;
-      hasPackagePrivateOrProtectedItem |= createNode(clazz, isPinned);
+      createNode(clazz, isPinned);
       for (DexEncodedMember<?, ?> member : clazz.members()) {
-        hasPackagePrivateOrProtectedItem |= createNode(member, isPinned);
+        createNode(member, isPinned);
       }
     }
-    return !hasPinnedItem || !hasPackagePrivateOrProtectedItem;
+    return !hasPinnedItem;
   }
 
-  private boolean createNode(DexDefinition definition, boolean isPinned) {
+  private void createNode(DexDefinition definition, boolean isPinned) {
     Node node = new Node(definition);
     nodes.put(definition, node);
     if (isPinned) {
       pinnedNodes.add(node);
     }
-    return definition.getAccessFlags().isPackagePrivateOrProtected();
   }
 
   Node getNode(DexDefinition definition) {
