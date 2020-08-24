@@ -14,11 +14,9 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -39,7 +37,6 @@ public class RepackagingConstraintGraph {
   private final AppView<AppInfoWithLiveness> appView;
   private final ProgramPackage pkg;
   private final Map<DexDefinition, Node> nodes = new IdentityHashMap<>();
-  private final Set<Node> pinnedNodes = Sets.newIdentityHashSet();
 
   public RepackagingConstraintGraph(AppView<AppInfoWithLiveness> appView, ProgramPackage pkg) {
     this.appView = appView;
@@ -51,24 +48,19 @@ public class RepackagingConstraintGraph {
     // Add all the items in the package into the graph. This way we know which items belong to the
     // package without having to extract package descriptor strings and comparing them with the
     // package descriptor.
+    boolean hasPackagePrivateOrProtectedItem = false;
     boolean hasPinnedItem = false;
     for (DexProgramClass clazz : pkg) {
       boolean isPinned = !appView.appInfo().isMinificationAllowed(clazz.getType());
       hasPinnedItem |= isPinned;
-      createNode(clazz, isPinned);
+      nodes.put(clazz, new Node(clazz));
+      hasPackagePrivateOrProtectedItem |= clazz.getAccessFlags().isPackagePrivateOrProtected();
       for (DexEncodedMember<?, ?> member : clazz.members()) {
-        createNode(member, isPinned);
+        nodes.put(member, new Node(member));
+        hasPackagePrivateOrProtectedItem |= member.getAccessFlags().isPackagePrivateOrProtected();
       }
     }
-    return !hasPinnedItem;
-  }
-
-  private void createNode(DexDefinition definition, boolean isPinned) {
-    Node node = new Node(definition);
-    nodes.put(definition, node);
-    if (isPinned) {
-      pinnedNodes.add(node);
-    }
+    return !hasPinnedItem || !hasPackagePrivateOrProtectedItem;
   }
 
   Node getNode(DexDefinition definition) {
@@ -109,18 +101,9 @@ public class RepackagingConstraintGraph {
   }
 
   public Iterable<DexProgramClass> computeClassesToRepackage() {
-    WorkList<Node> worklist = WorkList.newIdentityWorkList(pinnedNodes);
-    while (worklist.hasNext()) {
-      worklist.addIfNotSeen(worklist.next().getNeighbors());
-    }
-    Set<Node> pinnedNodes = worklist.getSeenSet();
-    List<DexProgramClass> classesToRepackage = new ArrayList<>();
-    for (DexProgramClass clazz : pkg) {
-      if (!pinnedNodes.contains(getNode(clazz))) {
-        classesToRepackage.add(clazz);
-      }
-    }
-    return classesToRepackage;
+    // TODO(b/165783399): From each node in the graph that cannot be moved elsewhere due to a -keep
+    //  rule, mark all neighbors as pinned, and repeat.
+    return Collections.emptyList();
   }
 
   static class Node {
@@ -136,10 +119,6 @@ public class RepackagingConstraintGraph {
     public void addNeighbor(Node neighbor) {
       neighbors.add(neighbor);
       neighbor.neighbors.add(this);
-    }
-
-    public Set<Node> getNeighbors() {
-      return neighbors;
     }
   }
 }

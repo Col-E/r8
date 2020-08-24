@@ -204,13 +204,12 @@ public class CfCode extends Code {
       NamingLens namingLens,
       AppView<?> appView,
       int classFileVersion) {
-    GraphLens graphLens = appView.graphLens();
     InitClassLens initClassLens = appView.initClassLens();
     InternalOptions options = appView.options();
     CfLabel parameterLabel = null;
     if (shouldAddParameterNames(method, appView)) {
       parameterLabel = new CfLabel();
-      parameterLabel.write(visitor, graphLens, initClassLens, namingLens);
+      parameterLabel.write(visitor, initClassLens, namingLens);
     }
     for (CfInstruction instruction : instructions) {
       if (instruction instanceof CfFrame
@@ -218,7 +217,7 @@ public class CfCode extends Code {
               || (classFileVersion == V1_6 && !options.shouldKeepStackMapTable()))) {
         continue;
       }
-      instruction.write(visitor, graphLens, initClassLens, namingLens);
+      instruction.write(visitor, initClassLens, namingLens);
     }
     visitor.visitEnd();
     visitor.visitMaxs(maxStack, maxLocals);

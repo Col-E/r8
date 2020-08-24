@@ -22,7 +22,6 @@ import com.android.tools.r8.shaking.ProguardPackageNameList;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -74,19 +73,10 @@ class ClassNameMinifier {
     this.keepInnerClassStructure = options.keepInnerClassStructure();
 
     // Initialize top-level naming state.
-    if (options.testing.enableExperimentalRepackaging) {
-      topLevelState = new Namespace("");
-      String newPackageDescriptor =
-          StringUtils.replaceAll(options.getProguardConfiguration().getPackagePrefix(), ".", "/");
-      if (!newPackageDescriptor.isEmpty()) {
-        registerPackagePrefixesAsUsed(newPackageDescriptor, false);
-      }
-    } else {
-      topLevelState =
-          new Namespace(
-              getPackageBinaryNameFromJavaType(
-                  options.getProguardConfiguration().getPackagePrefix()));
-    }
+    topLevelState =
+        new Namespace(
+            getPackageBinaryNameFromJavaType(
+                options.getProguardConfiguration().getPackagePrefix()));
 
     states.put("", topLevelState);
 
@@ -209,8 +199,7 @@ class ClassNameMinifier {
   private void registerClassAsUsed(DexType type, DexString descriptor) {
     renaming.put(type, descriptor);
     registerPackagePrefixesAsUsed(
-        getParentPackagePrefix(getClassBinaryNameFromDescriptor(descriptor.toSourceString())),
-        isAccessModificationAllowed);
+        getParentPackagePrefix(getClassBinaryNameFromDescriptor(descriptor.toSourceString())));
     setUsedTypeName(descriptor.toString());
     if (keepInnerClassStructure) {
       DexType outerClass = getOutClassForType(type);
@@ -226,10 +215,10 @@ class ClassNameMinifier {
   }
 
   /** Registers the given package prefix and all of parent packages as used. */
-  private void registerPackagePrefixesAsUsed(String packagePrefix, boolean isMinificationAllowed) {
+  private void registerPackagePrefixesAsUsed(String packagePrefix) {
     // If -allowaccessmodification is not set, we may keep classes in their original packages,
     // accounting for package-private accesses.
-    if (!isMinificationAllowed) {
+    if (!isAccessModificationAllowed) {
       noObfuscationPrefixes.add(packagePrefix);
     }
     String usedPrefix = packagePrefix;

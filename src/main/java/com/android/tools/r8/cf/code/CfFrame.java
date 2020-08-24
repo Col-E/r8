@@ -10,7 +10,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
@@ -224,8 +223,7 @@ public class CfFrame extends CfInstruction {
   }
 
   @Override
-  public void write(
-      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
+  public void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens) {
     int stackCount = computeStackCount();
     Object[] stackTypes = computeStackTypes(stackCount, lens);
     int localsCount = computeLocalsCount();

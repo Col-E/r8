@@ -7,7 +7,6 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
@@ -33,9 +32,8 @@ public class CfCheckCast extends CfInstruction {
   }
 
   @Override
-  public void write(
-      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
-    visitor.visitTypeInsn(Opcodes.CHECKCAST, lens.lookupInternalName(graphLens.lookupType(type)));
+  public void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens) {
+    visitor.visitTypeInsn(Opcodes.CHECKCAST, lens.lookupInternalName(type));
   }
 
   @Override

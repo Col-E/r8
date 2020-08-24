@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.KeepFieldInfo.Joiner;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -161,7 +160,7 @@ public abstract class KeepInfoCollection {
   @Deprecated
   public abstract void forEachPinnedField(Consumer<DexField> consumer);
 
-  public abstract KeepInfoCollection rewrite(NestedGraphLens lens, InternalOptions options);
+  public abstract KeepInfoCollection rewrite(NestedGraphLens lens);
 
   public abstract KeepInfoCollection mutate(Consumer<MutableKeepInfoCollection> mutator);
 
@@ -197,26 +196,26 @@ public abstract class KeepInfoCollection {
     }
 
     @Override
-    public KeepInfoCollection rewrite(NestedGraphLens lens, InternalOptions options) {
+    public KeepInfoCollection rewrite(NestedGraphLens lens) {
       Map<DexType, KeepClassInfo> newClassInfo = new IdentityHashMap<>(keepClassInfo.size());
       keepClassInfo.forEach(
           (type, info) -> {
             DexType newType = lens.lookupType(type);
-            assert newType == type || info.isMinificationAllowed(options);
+            assert !info.isPinned() || type == newType;
             newClassInfo.put(newType, info);
           });
       Map<DexMethod, KeepMethodInfo> newMethodInfo = new IdentityHashMap<>(keepMethodInfo.size());
       keepMethodInfo.forEach(
           (method, info) -> {
             DexMethod newMethod = lens.getRenamedMethodSignature(method);
-            assert newMethod.match(method) || info.isMinificationAllowed(options);
+            assert !info.isPinned() || method == newMethod;
             newMethodInfo.put(newMethod, info);
           });
       Map<DexField, KeepFieldInfo> newFieldInfo = new IdentityHashMap<>(keepFieldInfo.size());
       keepFieldInfo.forEach(
           (field, info) -> {
             DexField newField = lens.getRenamedFieldSignature(field);
-            assert newField.match(field) || info.isMinificationAllowed(options);
+            assert !info.isPinned() || field == newField;
             newFieldInfo.put(newField, info);
           });
       Map<DexReference, List<Consumer<KeepInfo.Joiner<?, ?, ?>>>> newRuleInstances =

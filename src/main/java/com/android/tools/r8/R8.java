@@ -77,7 +77,6 @@ import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.repackaging.Repackaging;
-import com.android.tools.r8.repackaging.RepackagingLens;
 import com.android.tools.r8.shaking.AbstractMethodRemover;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -386,7 +385,7 @@ public class R8 {
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
-        assert appView.rootSet().verifyKeptItemsAreKept(appView);
+        assert appView.rootSet().verifyKeptItemsAreKept(appView.appInfo().app(), appView.appInfo());
 
         missingClasses =
             Sets.union(missingClasses, appViewWithLiveness.appInfo().getMissingTypes());
@@ -801,15 +800,7 @@ public class R8 {
       // Perform repackaging.
       // TODO(b/165783399): Consider making repacking available without minification.
       if (options.isMinifying() && options.testing.enableExperimentalRepackaging) {
-        DirectMappedDexApplication.Builder appBuilder =
-            appView.appInfo().app().asDirect().builder();
-        // TODO(b/165783399): We need to deal with non-rebound member references in the writer,
-        //  possibly by adding a member rebinding lens on top of the repackaging lens.
-        RepackagingLens lens =
-            new Repackaging(appView.withLiveness()).run(appBuilder, executorService, timing);
-        if (lens != null) {
-          appView.rewriteWithLensAndApplication(lens, appBuilder.build());
-        }
+        new Repackaging(appView.withLiveness()).run(executorService, timing);
       }
 
       // Perform minification.
@@ -886,7 +877,7 @@ public class R8 {
       if (options.isShrinking()
           || options.isMinifying()
           || options.getProguardConfiguration().hasApplyMappingFile()) {
-        assert appView.rootSet().verifyKeptItemsAreKept(appView);
+        assert appView.rootSet().verifyKeptItemsAreKept(appView.appInfo().app(), appView.appInfo());
       }
       assert appView
           .graphLens()
@@ -912,7 +903,6 @@ public class R8 {
           .run(appView.appInfo().classes(), executorService);
 
       // Generate the resulting application resources.
-      // TODO(b/165783399): Apply the graph lens to all instructions in the CF and DEX backends.
       writeApplication(
           executorService,
           appView.appInfo().app(),

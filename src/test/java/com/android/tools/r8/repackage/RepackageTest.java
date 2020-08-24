@@ -7,7 +7,6 @@ package com.android.tools.r8.repackage;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
@@ -48,8 +47,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class RepackageTest extends TestBase {
 
-  private static final String FLATTEN_PACKAGE_HIERARCHY = "flattenpackagehierarchy";
-  private static final String REPACKAGE_CLASSES = "repackageclasses";
   private static final String REPACKAGE_DIR = "foo";
 
   private static final List<String> EXPECTED =
@@ -71,35 +68,28 @@ public class RepackageTest extends TestBase {
           "ReachableClass.packagePrivateMethod()");
 
   private final boolean allowAccessModification;
-  private final boolean enableExperimentalRepackaging;
   private final String flattenPackageHierarchyOrRepackageClasses;
   private final TestParameters parameters;
 
-  @Parameters(name = "{3}, allow access modification: {0}, experimental: {1}, kind: {2}")
+  @Parameters(name = "{1}, allow access modification: {0}")
   public static List<Object[]> data() {
     return buildParameters(
         BooleanUtils.values(),
-        BooleanUtils.values(),
-        ImmutableList.of(FLATTEN_PACKAGE_HIERARCHY, REPACKAGE_CLASSES),
+        ImmutableList.of("flattenpackagehierarchy", "repackageclasses"),
         getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public RepackageTest(
       boolean allowAccessModification,
-      boolean enableExperimentalRepackaging,
       String flattenPackageHierarchyOrRepackageClasses,
       TestParameters parameters) {
     this.allowAccessModification = allowAccessModification;
-    this.enableExperimentalRepackaging = enableExperimentalRepackaging;
     this.flattenPackageHierarchyOrRepackageClasses = flattenPackageHierarchyOrRepackageClasses;
     this.parameters = parameters;
   }
 
   @Test
   public void testJvm() throws Exception {
-    assumeFalse(allowAccessModification);
-    assumeFalse(enableExperimentalRepackaging);
-    assumeTrue(flattenPackageHierarchyOrRepackageClasses.equals(FLATTEN_PACKAGE_HIERARCHY));
     assumeTrue(parameters.isCfRuntime());
     testForJvm()
         .addTestClasspath()
@@ -109,7 +99,6 @@ public class RepackageTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(!enableExperimentalRepackaging || parameters.isCfRuntime());
     testForR8(parameters.getBackend())
         .addProgramFiles(ToolHelper.getClassFilesForTestPackage(TestClass.class.getPackage()))
         .addKeepMainRule(TestClass.class)
@@ -126,9 +115,6 @@ public class RepackageTest extends TestBase {
             "  <methods>;",
             "}")
         .allowAccessModification(allowAccessModification)
-        .addOptionsModification(
-            options ->
-                options.testing.enableExperimentalRepackaging = enableExperimentalRepackaging)
         .enableInliningAnnotations()
         .enableMergeAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -146,7 +132,7 @@ public class RepackageTest extends TestBase {
           if (eligibleForRepackaging) {
             assertEquals(
                 clazz.getTypeName(),
-                flattenPackageHierarchyOrRepackageClasses.equals(FLATTEN_PACKAGE_HIERARCHY)
+                flattenPackageHierarchyOrRepackageClasses.equals("flattenpackagehierarchy")
                     ? REPACKAGE_DIR + ".a"
                     : REPACKAGE_DIR + "",
                 subject.getDexProgramClass().getType().getPackageName());
@@ -168,7 +154,7 @@ public class RepackageTest extends TestBase {
     //  the consumer, since these classes should be repackaged independent of
     //  -allowaccessmodification.
     Consumer<Class<?>> markShouldAlwaysBeEligible =
-        clazz -> consumer.accept(clazz, allowAccessModification || enableExperimentalRepackaging);
+        clazz -> consumer.accept(clazz, allowAccessModification);
     Consumer<Class<?>> markEligibleWithAllowAccessModification =
         clazz -> consumer.accept(clazz, allowAccessModification);
 

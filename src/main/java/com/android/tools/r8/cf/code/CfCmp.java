@@ -6,7 +6,6 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.ir.code.Cmp;
 import com.android.tools.r8.ir.code.Cmp.Bias;
@@ -80,8 +79,7 @@ public class CfCmp extends CfInstruction {
   }
 
   @Override
-  public void write(
-      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
+  public void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens) {
     visitor.visitInsn(getAsmOpcode());
   }
 

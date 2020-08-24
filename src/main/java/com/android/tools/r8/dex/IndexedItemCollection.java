@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.InitClassLens;
 
@@ -100,10 +99,6 @@ public interface IndexedItemCollection {
    * @return true if the method handle was not in the pool before.
    */
   boolean addMethodHandle(DexMethodHandle methodHandle);
-
-  default GraphLens getGraphLens() {
-    return GraphLens.getIdentityLens();
-  }
 
   default InitClassLens getInitClassLens() {
     return InitClassLens.getDefault();

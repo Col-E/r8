@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -71,7 +70,7 @@ public class InheritanceClassInDexDistributor {
 
     public void updateNumbersOfIds() {
       // Use a temporary VirtualFile to evaluate the number of ids in the group.
-      VirtualFile virtualFile = new VirtualFile(0, graphLens, initClassLens, namingLens);
+      VirtualFile virtualFile = new VirtualFile(0, initClassLens, namingLens);
       // Note: sort not needed.
       for (DexProgramClass clazz : members) {
         virtualFile.addClass(clazz);
@@ -285,7 +284,6 @@ public class InheritanceClassInDexDistributor {
   private final Set<DexProgramClass> classes;
   private final DexApplication app;
   private int dexIndexOffset;
-  private final GraphLens graphLens;
   private final InitClassLens initClassLens;
   private final NamingLens namingLens;
   private final DirectSubClassesInfo directSubClasses;
@@ -295,7 +293,6 @@ public class InheritanceClassInDexDistributor {
       List<VirtualFile> dexes,
       Set<DexProgramClass> classes,
       int dexIndexOffset,
-      GraphLens graphLens,
       InitClassLens initClassLens,
       NamingLens namingLens,
       DexApplication app,
@@ -304,7 +301,6 @@ public class InheritanceClassInDexDistributor {
     this.dexes = dexes;
     this.classes = classes;
     this.dexIndexOffset = dexIndexOffset;
-    this.graphLens = graphLens;
     this.initClassLens = initClassLens;
     this.namingLens = namingLens;
     this.app = app;
@@ -378,7 +374,7 @@ public class InheritanceClassInDexDistributor {
 
   private Collection<VirtualFile> assignGroup(ClassGroup group, List<VirtualFile> dexBlackList) {
     VirtualFileCycler cycler =
-        new VirtualFileCycler(dexes, graphLens, initClassLens, namingLens, dexIndexOffset);
+        new VirtualFileCycler(dexes, initClassLens, namingLens, dexIndexOffset);
     if (group.members.isEmpty()) {
       return Collections.emptyList();
     } else if (group.canFitInOneDex()) {
@@ -427,7 +423,7 @@ public class InheritanceClassInDexDistributor {
 
     Collection<VirtualFile> usedDex = new ArrayList<>();
     VirtualFileCycler cycler =
-        new VirtualFileCycler(dexes, graphLens, initClassLens, namingLens, dexIndexOffset);
+        new VirtualFileCycler(dexes, initClassLens, namingLens, dexIndexOffset);
     // Don't modify input dexBlackList. Think about modifying the input collection considering this
     // is private API.
     Set<VirtualFile> currentBlackList = new HashSet<>(dexBlackList);
