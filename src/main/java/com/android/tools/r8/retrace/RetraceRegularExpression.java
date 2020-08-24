@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassResult.Element;
@@ -39,12 +40,13 @@ public class RetraceRegularExpression {
       new SourceFileLineNumberGroup();
   private final TypeNameGroup typeNameGroup = new TypeNameGroup();
   private final BinaryNameGroup binaryNameGroup = new BinaryNameGroup();
-  private final MethodNameGroup methodNameGroup = new MethodNameGroup();
-  private final FieldNameGroup fieldNameGroup = new FieldNameGroup();
   private final SourceFileGroup sourceFileGroup = new SourceFileGroup();
   private final LineNumberGroup lineNumberGroup = new LineNumberGroup();
   private final FieldOrReturnTypeGroup fieldOrReturnTypeGroup = new FieldOrReturnTypeGroup();
   private final MethodArgumentsGroup methodArgumentsGroup = new MethodArgumentsGroup();
+
+  private final MethodNameGroup methodNameGroup;
+  private final FieldNameGroup fieldNameGroup;
 
   private static final String CAPTURE_GROUP_PREFIX = "captureGroup";
   private static final int FIRST_CAPTURE_GROUP_INDEX = 0;
@@ -53,11 +55,14 @@ public class RetraceRegularExpression {
       RetraceApi retracer,
       List<String> stackTrace,
       DiagnosticsHandler diagnosticsHandler,
-      String regularExpression) {
+      String regularExpression,
+      boolean isVerbose) {
     this.retracer = retracer;
     this.stackTrace = stackTrace;
     this.diagnosticsHandler = diagnosticsHandler;
     this.regularExpression = regularExpression;
+    methodNameGroup = new MethodNameGroup(isVerbose);
+    fieldNameGroup = new FieldNameGroup(isVerbose);
   }
 
   public RetraceCommandLineResult retrace() {
@@ -622,6 +627,12 @@ public class RetraceRegularExpression {
 
   private static class MethodNameGroup extends RegularExpressionGroup {
 
+    private final boolean printVerbose;
+
+    public MethodNameGroup(boolean printVerbose) {
+      this.printVerbose = printVerbose;
+    }
+
     @Override
     String subExpression() {
       return METHOD_NAME_REGULAR_EXPRESSION;
@@ -669,7 +680,10 @@ public class RetraceRegularExpression {
                   retracedStrings.add(
                       newRetraceString.appendRetracedString(
                           original,
-                          element.getMethodReference().getMethodName(),
+                          printVerbose
+                              ? RetraceUtils.methodDescriptionFromMethodReference(
+                                  element.getMethodReference(), false, true)
+                              : element.getMethodReference().getMethodName(),
                           startOfGroup,
                           matcher.end(captureGroup)));
                 });
@@ -714,6 +728,12 @@ public class RetraceRegularExpression {
   }
 
   private static class FieldNameGroup extends RegularExpressionGroup {
+
+    private final boolean printVerbose;
+
+    public FieldNameGroup(boolean printVerbose) {
+      this.printVerbose = printVerbose;
+    }
 
     @Override
     String subExpression() {
@@ -771,7 +791,7 @@ public class RetraceRegularExpression {
                                       element.getFieldReference().getHolderClass()))
                           .appendRetracedString(
                               original,
-                              element.getFieldReference().getFieldName(),
+                              getFieldString(element.getFieldReference()),
                               startOfGroup,
                               matcher.end(captureGroup)));
                 });
@@ -779,6 +799,13 @@ public class RetraceRegularExpression {
           return retracedStrings;
         }
       };
+    }
+
+    private String getFieldString(FieldReference fieldReference) {
+      if (!printVerbose) {
+        return fieldReference.getFieldName();
+      }
+      return fieldReference.getFieldType().getTypeName() + " " + fieldReference.getFieldName();
     }
   }
 

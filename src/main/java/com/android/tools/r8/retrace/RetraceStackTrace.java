@@ -434,7 +434,7 @@ public final class RetraceStackTrace {
                     moduleName,
                     methodReference.getHolderClass().getTypeName(),
                     methodReference.getMethodName(),
-                    methodDescriptionFromMethodReference(methodReference, verbose),
+                    methodDescriptionFromMethodReference(methodReference, true, verbose),
                     methodElement.retraceSourceFile(fileName).getFilename(),
                     hasLinePosition()
                         ? methodElement.getOriginalLineNumber(linePosition)

@@ -66,8 +66,7 @@ public class RetraceCommandLineTests {
   @Test
   public void testVerbose() throws IOException {
     FoundMethodVerboseStackTrace stackTrace = new FoundMethodVerboseStackTrace();
-    // TODO(b/159562137): Add proper support for -verbose when using regexp.
-    runTestNotEquals(
+    runTest(
         stackTrace.mapping(),
         StringUtils.joinLines(stackTrace.obfuscatedStackTrace()),
         false,
@@ -78,8 +77,7 @@ public class RetraceCommandLineTests {
   @Test
   public void testVerboseSingleHyphen() throws IOException {
     FoundMethodVerboseStackTrace stackTrace = new FoundMethodVerboseStackTrace();
-    // TODO(b/159562137): Add proper support for -verbose when using regexp.
-    runTestNotEquals(
+    runTest(
         stackTrace.mapping(),
         StringUtils.joinLines(stackTrace.obfuscatedStackTrace()),
         false,

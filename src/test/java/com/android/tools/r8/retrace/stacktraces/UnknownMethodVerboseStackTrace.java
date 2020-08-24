@@ -25,7 +25,7 @@ public class UnknownMethodVerboseStackTrace implements StackTraceForTest {
         "com.android.tools.r8.naming.retrace.Main -> a.a:",
         "    com.android.Foo main(java.lang.String[],com.android.Bar) -> a",
         "    com.android.Foo main(java.lang.String[]) -> b",
-        "    com.android.Bar main(com.android.Bar) -> b");
+        "    void main(com.android.Bar) -> b");
   }
 
   @Override
@@ -33,11 +33,11 @@ public class UnknownMethodVerboseStackTrace implements StackTraceForTest {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.c(Main.java)",
-        "\tat com.android.Foo com.android.tools.r8.naming.retrace.Main.main("
+        "\tat com.android.tools.r8.naming.retrace.Main.com.android.Foo main("
             + "java.lang.String[])(Main.java)",
-        "\t<OR> at com.android.Bar com.android.tools.r8.naming.retrace.Main.main("
+        "\t<OR> at com.android.tools.r8.naming.retrace.Main.void main("
             + "com.android.Bar)(Main.java)",
-        "\tat com.android.Foo com.android.tools.r8.naming.retrace.Main.main("
+        "\tat com.android.tools.r8.naming.retrace.Main.com.android.Foo main("
             + "java.lang.String[],com.android.Bar)(Main.java)");
   }
 

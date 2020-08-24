@@ -27,7 +27,7 @@ public class FoundMethodVerboseStackTrace implements StackTraceForTest {
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat com.android.Foo com.android.tools.r8.naming.retrace.Main.main(java.lang.String[],"
+        "\tat com.android.tools.r8.naming.retrace.Main.com.android.Foo main(java.lang.String[],"
             + "com.android.Bar)(Main.java:102)");
   }
 

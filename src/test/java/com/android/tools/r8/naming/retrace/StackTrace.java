@@ -233,23 +233,6 @@ public class StackTrace {
     // \tat com.android.tools.r8.naming.retrace.Main.a(:150)
     // \tat com.android.tools.r8.naming.retrace.Main.a(:156)
     // \tat com.android.tools.r8.naming.retrace.Main.main(:162)
-    // TODO(122940268): Remove test code when fixed.
-    System.out.println("TOTAL STDERR LINES: " + stderrLines.size());
-    for (int i = 0; i < stderrLines.size(); i++) {
-      System.out.print("LINE " + i + ": " + stderrLines.get(i));
-      if (stderrLines.get(i).length() > 3) {
-        System.out.print(" (" + ((int) stderrLines.get(i).charAt(0)));
-        System.out.print(", " + ((int) stderrLines.get(i).charAt(1)));
-        System.out.print(", " + ((int) stderrLines.get(i).charAt(2) + ")"));
-      } else {
-        System.out.print(" (less than three chars)");
-      }
-      if (stderrLines.get(i).startsWith(TAB_AT_PREFIX)) {
-        System.out.println(" IS STACKTRACE LINE");
-      } else {
-        System.out.println(" IS NOT STACKTRACE LINE");
-      }
-    }
     for (int i = 0; i < stderrLines.size(); i++) {
       String line = stderrLines.get(i);
       // Find all lines starting with "\tat" except "dalvik.system.NativeStart.main" frame

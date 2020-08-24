@@ -155,7 +155,8 @@ public class Retrace {
                     retracer,
                     command.stackTrace,
                     command.diagnosticsHandler,
-                    command.regularExpression)
+                    command.regularExpression,
+                    command.isVerbose)
                 .retrace();
       } else {
         result =

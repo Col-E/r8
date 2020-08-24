@@ -17,18 +17,20 @@ public class RetraceUtils {
       Sets.newHashSet("", "SourceFile", "Unknown", "Unknown Source");
 
   public static String methodDescriptionFromMethodReference(
-      MethodReference methodReference, boolean verbose) {
+      MethodReference methodReference, boolean appendHolder, boolean verbose) {
     if (!verbose || methodReference.isUnknown()) {
       return methodReference.getHolderClass().getTypeName() + "." + methodReference.getMethodName();
     }
     StringBuilder sb = new StringBuilder();
+    if (appendHolder) {
+      sb.append(methodReference.getHolderClass().getTypeName());
+      sb.append(".");
+    }
     sb.append(
         methodReference.getReturnType() == null
             ? "void"
             : methodReference.getReturnType().getTypeName());
     sb.append(" ");
-    sb.append(methodReference.getHolderClass().getTypeName());
-    sb.append(".");
     sb.append(methodReference.getMethodName());
     sb.append("(");
     boolean seenFirstIndex = false;
