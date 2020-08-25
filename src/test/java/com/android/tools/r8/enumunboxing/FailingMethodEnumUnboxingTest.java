@@ -1,12 +1,10 @@
 // Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
 package com.android.tools.r8.enumunboxing;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
-
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
@@ -22,17 +20,14 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
-
   private static final Class<?>[] FAILURES = {
     InstanceFieldPutObject.class,
     StaticFieldPutObject.class,
-    ToString.class,
     EnumSetTest.class,
     FailingPhi.class,
     FailingReturnType.class,
     FailingParameterType.class
   };
-
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
   private final EnumKeepRules enumKeepRules;
@@ -83,18 +78,15 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private void assertEnumsAsExpected(CodeInspector inspector) {
     // Check all as expected (else we test nothing)
-
     assertEquals(
         1,
         inspector.clazz(InstanceFieldPutObject.class).getDexProgramClass().instanceFields().size());
     assertEquals(
         1, inspector.clazz(StaticFieldPutObject.class).getDexProgramClass().staticFields().size());
-
     assertTrue(inspector.clazz(FailingPhi.class).uniqueMethodWithName("switchOn").isPresent());
   }
 
   static class InstanceFieldPutObject {
-
     @NeverClassInline
     enum MyEnum {
       A,
@@ -119,7 +111,6 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   static class StaticFieldPutObject {
-
     @NeverClassInline
     enum MyEnum {
       A,
@@ -142,24 +133,7 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
     }
   }
 
-  static class ToString {
-
-    @NeverClassInline
-    enum MyEnum {
-      A,
-      B,
-      C
-    }
-
-    public static void main(String[] args) {
-      MyEnum e1 = MyEnum.A;
-      System.out.println(e1.toString());
-      System.out.println("A");
-    }
-  }
-
   static class EnumSetTest {
-
     @NeverClassInline
     enum MyEnum {
       A,
@@ -175,7 +149,6 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   static class FailingPhi {
-
     @NeverClassInline
     enum MyEnum {
       A,
@@ -189,7 +162,6 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
       System.out.println(switchOn(2));
       System.out.println("class java.lang.Object");
     }
-
     // Avoid removing the switch entirely.
     @NeverInline
     static Object switchOn(int i) {
@@ -205,7 +177,6 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   static class FailingReturnType {
-
     @NeverClassInline
     enum MyEnum {
       A,
@@ -227,7 +198,6 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   static class FailingParameterType {
-
     @NeverClassInline
     enum MyEnum {
       A,

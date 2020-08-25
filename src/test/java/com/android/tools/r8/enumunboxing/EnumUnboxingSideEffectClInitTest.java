@@ -44,15 +44,7 @@ public class EnumUnboxingSideEffectClInitTest extends EnumUnboxingTestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspectDiagnosticMessages(
-            m -> {
-              // The snap keep rule forces to keep the static MainEnum#e field, so the enum
-              // cannot be unboxed anymore.
-              if (enumKeepRules.isSnap()) {
-                assertEnumIsBoxed(ENUM_CLASS, classToTest.getSimpleName(), m);
-              } else {
-                assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m);
-              }
-            })
+            m -> assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m))
         .run(parameters.getRuntime(), classToTest)
         .assertSuccessWithOutputLines("0");
   }

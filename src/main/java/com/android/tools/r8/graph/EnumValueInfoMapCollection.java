@@ -84,6 +84,10 @@ public class EnumValueInfoMapCollection {
       this.map = map;
     }
 
+    public Set<DexField> enumValues() {
+      return map.keySet();
+    }
+
     public int size() {
       return map.size();
     }

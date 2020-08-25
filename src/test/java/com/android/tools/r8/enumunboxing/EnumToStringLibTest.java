@@ -7,7 +7,6 @@ package com.android.tools.r8.enumunboxing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -76,32 +75,15 @@ public class EnumToStringLibTest extends EnumUnboxingTestBase {
             .allowDiagnosticInfoMessages(enumUnboxing)
             .setMinApi(parameters.getApiLevel())
             .compile();
-    if (enumKeepRules.isStudio() && enumValueOptimization && enumUnboxing) {
-      // TODO(b/160939354): Enum unboxing synthesizes a toString() method based on field names.
-      compile
-          .run(parameters.getRuntime(), AlwaysCorrectProgram.class)
-          .assertFailureWithErrorThatMatches(containsString("IllegalArgumentException"));
-    } else {
       compile
           .run(parameters.getRuntime(), AlwaysCorrectProgram.class)
           .assertSuccessWithOutputLines("0", "1", "2", "0", "1", "2", "0", "1", "2");
-    }
-    if (!enumKeepRules.isSnap() && enumUnboxing) {
-      // TODO(b/160939354): Enum unboxing synthesizes a toString() method based on field names.
-      compile
-          .run(parameters.getRuntime(), AlwaysCorrectProgram2.class)
-          .assertFailureWithErrorThatMatches(containsString("IllegalArgumentException"));
-    } else {
       compile
           .run(parameters.getRuntime(), AlwaysCorrectProgram2.class)
           .assertSuccessWithOutputLines("0", "1", "2", "0", "1", "2");
-    }
   }
 
   private void assertEnumFieldsMinified(CodeInspector codeInspector) throws Exception {
-    if (enumKeepRules.isSnap()) {
-      return;
-    }
     ClassSubject clazz = codeInspector.clazz(ToStringLib.LibEnum.class);
     assertThat(clazz, isPresent());
     for (String fieldName : new String[] {"COFFEE", "BEAN", "SUGAR"}) {

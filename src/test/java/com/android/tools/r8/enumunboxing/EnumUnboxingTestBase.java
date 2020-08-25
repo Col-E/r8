@@ -23,18 +23,10 @@ public class EnumUnboxingTestBase extends TestBase {
           + " public static **[] values();\n"
           + " public static ** valueOf(java.lang.String);\n"
           + "}";
-  // Default keep rule present in Snap.
-  private static final String KEEP_ENUM_SNAP =
-      "-keepclassmembers enum * {\n"
-          + "<fields>;\n"
-          + " public static **[] values();\n"
-          + " public static ** valueOf(java.lang.String);\n"
-          + "}";
 
   public enum EnumKeepRules {
     NONE(""),
-    STUDIO(KEEP_ENUM_STUDIO),
-    SNAP(KEEP_ENUM_SNAP);
+    STUDIO(KEEP_ENUM_STUDIO);
 
     private final String keepRules;
 
@@ -44,10 +36,6 @@ public class EnumUnboxingTestBase extends TestBase {
 
     public boolean isStudio() {
       return this == STUDIO;
-    }
-
-    public boolean isSnap() {
-      return this == SNAP;
     }
 
     EnumKeepRules(String keepRules) {

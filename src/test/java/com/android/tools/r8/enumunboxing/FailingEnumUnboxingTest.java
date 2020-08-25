@@ -5,12 +5,8 @@
 package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.R8FullTestBuilder;
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.enumunboxing.FailingEnumUnboxingTest.EnumInstanceFieldMain.EnumInstanceField;
-import com.android.tools.r8.enumunboxing.FailingEnumUnboxingTest.EnumStaticFieldMain.EnumStaticField;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,11 +15,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
-
-  private static final Class<?>[] FAILURES = {
-    EnumStaticField.class,
-    EnumInstanceField.class,
-  };
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
@@ -43,28 +34,25 @@ public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxingFailure() throws Exception {
-    R8FullTestBuilder r8FullTestBuilder =
-        testForR8(parameters.getBackend()).addInnerClasses(FailingEnumUnboxingTest.class);
-    for (Class<?> failure : FAILURES) {
-      r8FullTestBuilder.addKeepMainRule(failure.getEnclosingClass());
-    }
-    R8TestCompileResult compile =
-        r8FullTestBuilder
+    R8TestRunResult run =
+        testForR8(parameters.getBackend())
+            .addInnerClasses(FailingEnumUnboxingTest.class)
+            .addKeepMainRule(EnumStaticFieldMain.class)
             .enableNeverClassInliningAnnotations()
             .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
-            .compile();
-    for (Class<?> failure : FAILURES) {
-      R8TestRunResult run =
-          compile
-              .inspectDiagnosticMessages(
-                  m -> assertEnumIsBoxed(failure, failure.getSimpleName(), m))
-              .run(parameters.getRuntime(), failure.getEnclosingClass())
-              .assertSuccess();
-      assertLines2By2Correct(run.getStdOut());
-    }
+            .compile()
+            .inspectDiagnosticMessages(
+                m ->
+                    assertEnumIsBoxed(
+                        EnumStaticFieldMain.EnumStaticField.class,
+                        EnumStaticFieldMain.class.getSimpleName(),
+                        m))
+            .run(parameters.getRuntime(), EnumStaticFieldMain.class)
+            .assertSuccess();
+    assertLines2By2Correct(run.getStdOut());
   }
 
   static class EnumStaticFieldMain {
@@ -82,28 +70,6 @@ public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
       B,
       C;
       static EnumStaticField X = A;
-    }
-  }
-
-  static class EnumInstanceFieldMain {
-
-    @NeverClassInline
-    enum EnumInstanceField {
-      A(10),
-      B(20),
-      C(30);
-      private int a;
-
-      EnumInstanceField(int i) {
-        this.a = i;
-      }
-    }
-
-    public static void main(String[] args) {
-      System.out.println(EnumInstanceField.A.ordinal());
-      System.out.println(0);
-      System.out.println(EnumInstanceField.A.a);
-      System.out.println(10);
     }
   }
 }

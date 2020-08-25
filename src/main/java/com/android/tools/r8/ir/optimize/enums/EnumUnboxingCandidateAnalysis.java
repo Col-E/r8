@@ -22,6 +22,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 class EnumUnboxingCandidateAnalysis {
 
+  // Each time we unbox an enum with instance fields, we need to generate a method with a
+  // switch case to dispatch from the enum to the instance field value. We introduce this heuristic
+  // to avoid unboxing enums with too many instance fields.
+  private static final int MAX_INSTANCE_FIELDS_FOR_UNBOXING = 7;
+
   private final AppView<AppInfoWithLiveness> appView;
   private final EnumUnboxer enumUnboxer;
   private final DexItemFactory factory;
@@ -55,8 +60,8 @@ class EnumUnboxingCandidateAnalysis {
       enumUnboxer.reportFailure(clazz.type, Reason.SUBTYPES);
       return false;
     }
-    if (!clazz.instanceFields().isEmpty()) {
-      enumUnboxer.reportFailure(clazz.type, Reason.INSTANCE_FIELD);
+    if (clazz.instanceFields().size() > MAX_INSTANCE_FIELDS_FOR_UNBOXING) {
+      enumUnboxer.reportFailure(clazz.type, Reason.MANY_INSTANCE_FIELDS);
       return false;
     }
     if (!enumHasBasicStaticFields(clazz)) {
@@ -69,21 +74,7 @@ class EnumUnboxingCandidateAnalysis {
       enumUnboxer.reportFailure(clazz.type, Reason.MISSING_INFO_MAP);
       return false;
     }
-
-    // TODO(b/155036467): Fail lazily when an unsupported method is not only present but also used.
-    // Only Enums with default initializers and static methods can be unboxed at the moment.
-    for (DexEncodedMethod directMethod : clazz.directMethods()) {
-      if (directMethod.isInstanceInitializer() && !isStandardEnumInitializer(directMethod)) {
-        enumUnboxer.reportFailure(clazz.type, Reason.INVALID_INIT);
-        return false;
-      }
-    }
     return true;
-  }
-
-  private boolean isStandardEnumInitializer(DexEncodedMethod method) {
-    return method.isInstanceInitializer()
-        && method.method.proto == factory.enumMembers.constructor.proto;
   }
 
   // The enum should have the $VALUES static field and only fields directly referencing the enum

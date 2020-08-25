@@ -30,6 +30,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
@@ -42,6 +43,8 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
@@ -49,6 +52,7 @@ import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -62,6 +66,9 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.conversion.PostOptimization;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
+import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldOrdinalData;
+import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldUnknownData;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
@@ -97,6 +104,8 @@ public class EnumUnboxer implements PostOptimization {
   // Map the enum candidates with their dependencies, i.e., the methods to reprocess for the given
   // enum if the optimization eventually decides to unbox it.
   private final Map<DexType, ProgramMethodSet> enumsUnboxingCandidates;
+  private final EnumInstanceFieldDataMap.Builder enumInstanceFieldData =
+      EnumInstanceFieldDataMap.builder();
   private final Set<DexType> enumsToUnboxWithPackageRequirement = Sets.newIdentityHashSet();
 
   private EnumUnboxingRewriter enumUnboxerRewriter;
@@ -268,27 +277,38 @@ public class EnumUnboxer implements PostOptimization {
     // We are using the ConstClass of an enum, which typically means the enum cannot be unboxed.
     // We however allow unboxing if the ConstClass is only used as an argument to Enum#valueOf, to
     // allow unboxing of: MyEnum a = Enum.valueOf(MyEnum.class, "A");.
-    if (!enumsUnboxingCandidates.containsKey(constClass.getValue())) {
+    DexType enumType = constClass.getValue();
+    if (!enumsUnboxingCandidates.containsKey(enumType)) {
       return;
     }
     if (constClass.outValue() == null) {
-      eligibleEnums.add(constClass.getValue());
+      eligibleEnums.add(enumType);
       return;
     }
+    DexProgramClass enumClass = appView.definitionFor(enumType).asProgramClass();
     if (constClass.outValue().hasPhiUsers()) {
-      markEnumAsUnboxable(
-          Reason.CONST_CLASS, appView.definitionForProgramType(constClass.getValue()));
+      markEnumAsUnboxable(Reason.CONST_CLASS, enumClass);
       return;
     }
     for (Instruction user : constClass.outValue().uniqueUsers()) {
       if (!(user.isInvokeStatic()
           && user.asInvokeStatic().getInvokedMethod() == factory.enumMembers.valueOf)) {
-        markEnumAsUnboxable(
-            Reason.CONST_CLASS, appView.definitionForProgramType(constClass.getValue()));
+        markEnumAsUnboxable(Reason.CONST_CLASS, enumClass);
         return;
       }
     }
-    eligibleEnums.add(constClass.getValue());
+    // The name data is required for the correct mapping from the enum name to the ordinal in the
+    // valueOf utility method.
+    EnumInstanceFieldData nameData =
+        enumInstanceFieldData.computeInstanceFieldDataIfAbsent(
+            enumType,
+            factory.enumMembers.nameField,
+            field -> computeEnumFieldData(field, enumClass));
+    if (nameData.isUnknown()) {
+      markEnumAsUnboxable(Reason.MISSING_NAME_DATA, enumClass);
+      return;
+    }
+    eligibleEnums.add(enumType);
   }
 
   private void addNullDependencies(IRCode code, Set<Instruction> uses, Set<DexType> eligibleEnums) {
@@ -352,7 +372,8 @@ public class EnumUnboxer implements PostOptimization {
     ImmutableSet<DexType> enumsToUnbox = ImmutableSet.copyOf(this.enumsUnboxingCandidates.keySet());
     // Update keep info on any of the enum methods of the removed classes.
     updatePinnedItems(enumsToUnbox);
-    enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox);
+    enumUnboxerRewriter =
+        new EnumUnboxingRewriter(appView, enumsToUnbox, enumInstanceFieldData.build(enumsToUnbox));
     DirectMappedDexApplication.Builder appBuilder = appView.appInfo().app().asDirect().builder();
     Map<DexType, DexType> newMethodLocation = synthesizeUnboxedEnumsMethodsLocations(appBuilder);
     NestedGraphLens enumUnboxingLens =
@@ -721,18 +742,24 @@ public class EnumUnboxer implements PostOptimization {
       DexProgramClass enumClass = appView.definitionForProgramType(toUnbox);
       assert enumClass != null;
 
-      // Enum candidates have necessarily only one constructor matching enumMethods.constructor
-      // signature.
-      DexEncodedMethod initializer = enumClass.lookupDirectMethod(factory.enumMembers.constructor);
-      if (initializer == null) {
+      boolean hasInstanceInitializer = false;
+      for (DexEncodedMethod directMethod : enumClass.directMethods()) {
+        if (directMethod.isInstanceInitializer()) {
+          hasInstanceInitializer = true;
+          if (directMethod
+              .getOptimizationInfo()
+              .getInstanceInitializerInfo()
+              .mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
+            markEnumAsUnboxable(Reason.INVALID_INIT, enumClass);
+            break;
+          }
+        }
+      }
+      if (!hasInstanceInitializer) {
         // This case typically happens when a programmer uses EnumSet/EnumMap without using the
         // enum keep rules. The code is incorrect in this case (EnumSet/EnumMap won't work).
         // We bail out.
         markEnumAsUnboxable(Reason.NO_INIT, enumClass);
-        continue;
-      }
-      if (initializer.getOptimizationInfo().mayHaveSideEffects()) {
-        markEnumAsUnboxable(Reason.INVALID_INIT, enumClass);
         continue;
       }
 
@@ -809,9 +836,18 @@ public class EnumUnboxer implements PostOptimization {
         return Reason.ELIGIBLE;
       } else if (singleTarget == factory.enumMembers.equals) {
         return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMembers.nameMethod) {
-        return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMembers.toString) {
+      } else if (singleTarget == factory.enumMembers.nameMethod
+          || singleTarget == factory.enumMembers.toString) {
+        assert invokeMethod.asInvokeMethodWithReceiver().getReceiver() == enumValue;
+        EnumInstanceFieldData nameData =
+            enumInstanceFieldData.computeInstanceFieldDataIfAbsent(
+                enumClass.type,
+                factory.enumMembers.nameField,
+                field -> computeEnumFieldData(field, enumClass));
+        if (nameData.isUnknown()) {
+          computeEnumFieldData(factory.enumMembers.nameField, enumClass);
+          return Reason.MISSING_NAME_DATA;
+        }
         return Reason.ELIGIBLE;
       } else if (singleTarget == factory.enumMembers.ordinalMethod) {
         return Reason.ELIGIBLE;
@@ -841,9 +877,26 @@ public class EnumUnboxer implements PostOptimization {
       if (dexClass == null) {
         return Reason.INVALID_FIELD_PUT;
       }
+      if (fieldInstruction.isInstancePut()
+          && fieldInstruction.asInstancePut().object() == enumValue) {
+        return Reason.ELIGIBLE;
+      }
       // The put value has to be of the field type.
       if (field.field.type.toBaseType(factory) != enumClass.type) {
         return Reason.TYPE_MISMATCH_FIELD_PUT;
+      }
+      return Reason.ELIGIBLE;
+    }
+
+    if (instruction.isInstanceGet()) {
+      InstanceGet instanceGet = instruction.asInstanceGet();
+      assert instanceGet.getField().holder == enumClass.type;
+      DexField field = instanceGet.getField();
+      EnumInstanceFieldData enumFieldData =
+          enumInstanceFieldData.computeInstanceFieldDataIfAbsent(
+              enumClass.type, field, theField -> computeEnumFieldData(theField, enumClass));
+      if (enumFieldData.isUnknown()) {
+        return Reason.INVALID_FIELD_READ;
       }
       return Reason.ELIGIBLE;
     }
@@ -927,6 +980,44 @@ public class EnumUnboxer implements PostOptimization {
     return Reason.OTHER_UNSUPPORTED_INSTRUCTION;
   }
 
+  private EnumInstanceFieldData computeEnumFieldData(
+      DexField instanceField, DexProgramClass enumClass) {
+    EnumValueInfoMapCollection.EnumValueInfoMap enumValueInfoMap =
+        appView.appInfo().getEnumValueInfoMap(enumClass.type);
+    DexEncodedField encodedInstanceField =
+        appView.appInfo().resolveFieldOn(enumClass, instanceField).getResolvedField();
+    assert encodedInstanceField != null;
+    boolean canBeOrdinal = instanceField.type.isIntType();
+    Map<DexField, AbstractValue> data = new IdentityHashMap<>();
+    for (DexField staticField : enumValueInfoMap.enumValues()) {
+      DexEncodedField encodedStaticField = enumClass.lookupStaticField(staticField);
+      AbstractValue enumInstanceValue = encodedStaticField.getOptimizationInfo().getAbstractValue();
+      // TODO(b/155368026): Support other constants than Number and String, so far we support only
+      //  these two because they're the most common and we don't have to deal with accessibility.
+      if (!enumInstanceValue.isSingleFieldValue()) {
+        return EnumInstanceFieldUnknownData.getInstance();
+      }
+      ObjectState enumInstanceState = enumInstanceValue.asSingleFieldValue().getState();
+      AbstractValue fieldValue = enumInstanceState.getAbstractFieldValue(encodedInstanceField);
+      if (!(fieldValue.isSingleNumberValue() || fieldValue.isSingleStringValue())) {
+        return EnumInstanceFieldUnknownData.getInstance();
+      }
+      data.put(staticField, fieldValue);
+      if (canBeOrdinal) {
+        int ordinalValue = enumValueInfoMap.getEnumValueInfo(staticField).ordinal;
+        assert fieldValue.isSingleNumberValue();
+        int computedValue = (int) fieldValue.asSingleNumberValue().getValue();
+        if (computedValue != ordinalValue) {
+          canBeOrdinal = false;
+        }
+      }
+    }
+    if (canBeOrdinal) {
+      return new EnumInstanceFieldOrdinalData();
+    }
+    return new EnumInstanceFieldMappingData(data);
+  }
+
   private boolean isFirstInstructionAfterArguments(InvokeMethod invokeMethod, IRCode code) {
     BasicBlock basicBlock = code.entryBlock();
     for (Instruction instruction : basicBlock.getInstructions()) {
@@ -1004,7 +1095,7 @@ public class EnumUnboxer implements PostOptimization {
     DOWN_CAST,
     SUBTYPES,
     INTERFACE,
-    INSTANCE_FIELD,
+    MANY_INSTANCE_FIELDS,
     GENERIC_INVOKE,
     DEFAULT_METHOD_INVOKE,
     UNEXPECTED_STATIC_FIELD,
@@ -1022,6 +1113,8 @@ public class EnumUnboxer implements PostOptimization {
     COMPARE_TO_INVOKE,
     UNSUPPORTED_LIBRARY_CALL,
     MISSING_INFO_MAP,
+    MISSING_NAME_DATA,
+    INVALID_FIELD_READ,
     INVALID_FIELD_PUT,
     INVALID_ARRAY_PUT,
     FIELD_PUT_ON_ENUM,
@@ -1048,7 +1141,6 @@ public class EnumUnboxer implements PostOptimization {
       // Fix all methods and fields using enums to unbox.
       for (DexProgramClass clazz : appView.appInfo().classes()) {
         if (enumsToUnbox.contains(clazz.type)) {
-          assert clazz.instanceFields().size() == 0;
           // Clear the initializers and move the static methods to the new location.
           Set<DexEncodedMethod> methodsToRemove = Sets.newIdentityHashSet();
           clazz

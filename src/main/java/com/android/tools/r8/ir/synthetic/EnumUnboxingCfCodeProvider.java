@@ -19,6 +19,7 @@ import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfThrow;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexField;
@@ -26,8 +27,10 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
@@ -38,40 +41,60 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
     super(appView, holder);
   }
 
-  public static class EnumUnboxingDefaultToStringCfCodeProvider extends EnumUnboxingCfCodeProvider {
+  void addCfInstructionsForAbstractValue(
+      List<CfInstruction> instructions, AbstractValue value, DexType returnType) {
+    // TODO(b/155368026): Support fields and const class fields.
+    // Move this to something similar than SingleValue#createMaterializingInstruction
+    if (value.isSingleStringValue()) {
+      instructions.add(new CfConstString(value.asSingleStringValue().getDexString()));
+    } else if (value.isSingleNumberValue()) {
+      instructions.add(
+          new CfConstNumber(
+              value.asSingleNumberValue().getValue(), ValueType.fromDexType(returnType)));
+    } else {
+      throw new Unreachable("Only Number and String fields in enums are supported.");
+    }
+  }
 
-    private DexType enumType;
-    private EnumValueInfoMap map;
+  public static class EnumUnboxingInstanceFieldCfCodeProvider extends EnumUnboxingCfCodeProvider {
 
-    public EnumUnboxingDefaultToStringCfCodeProvider(
-        AppView<?> appView, DexType holder, DexType enumType, EnumValueInfoMap map) {
+    private final DexType returnType;
+    private final EnumValueInfoMap enumValueInfoMap;
+    private final EnumInstanceFieldMappingData fieldDataMap;
+
+    public EnumUnboxingInstanceFieldCfCodeProvider(
+        AppView<?> appView,
+        DexType holder,
+        DexType returnType,
+        EnumValueInfoMap enumValueInfoMap,
+        EnumInstanceFieldMappingData fieldDataMap) {
       super(appView, holder);
-      this.enumType = enumType;
-      this.map = map;
+      this.returnType = returnType;
+      this.enumValueInfoMap = enumValueInfoMap;
+      this.fieldDataMap = fieldDataMap;
     }
 
     @Override
     public CfCode generateCfCode() {
-      // Generated static method, for class com.x.MyEnum {A,B} would look like:
+      // Generated static method, for class com.x.MyEnum {A(10),B(20);} would look like:
       // String UtilityClass#com.x.MyEnum_toString(int i) {
-      // if (i == 1) { return "A";}
-      // if (i == 2) { return "B";}
+      // if (i == 1) { return 10;}
+      // if (i == 2) { return 20;}
       // throw null;
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
 
-      // if (i == 1) { return "A";}
-      // if (i == 2) { return "B";}
-      map.forEach(
+      // if (i == 1) { return 10;}
+      // if (i == 2) { return 20;}
+      enumValueInfoMap.forEach(
           (field, enumValueInfo) -> {
             CfLabel dest = new CfLabel();
             instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));
             instructions.add(new CfConstNumber(enumValueInfo.convertToInt(), ValueType.INT));
             instructions.add(new CfIfCmp(If.Type.NE, ValueType.INT, dest));
-            // TODO(b/160939354): Should use the value passed to the enum constructor, since this
-            //  value may be different from the enum field name.
-            instructions.add(new CfConstString(field.name));
-            instructions.add(new CfReturn(ValueType.OBJECT));
+            AbstractValue value = fieldDataMap.getData(field);
+            addCfInstructionsForAbstractValue(instructions, value, returnType);
+            instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
             instructions.add(dest);
           });
 
@@ -87,12 +110,18 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
 
     private DexType enumType;
     private EnumValueInfoMap map;
+    private final EnumInstanceFieldMappingData fieldDataMap;
 
     public EnumUnboxingValueOfCfCodeProvider(
-        AppView<?> appView, DexType holder, DexType enumType, EnumValueInfoMap map) {
+        AppView<?> appView,
+        DexType holder,
+        DexType enumType,
+        EnumValueInfoMap map,
+        EnumInstanceFieldMappingData fieldDataMap) {
       super(appView, holder);
       this.enumType = enumType;
       this.map = map;
+      this.fieldDataMap = fieldDataMap;
     }
 
     @Override
@@ -125,9 +154,8 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
           (field, enumValueInfo) -> {
             CfLabel dest = new CfLabel();
             instructions.add(new CfLoad(ValueType.fromDexType(factory.stringType), 0));
-            // TODO(b/160939354): Should use the value passed to the enum constructor, since this
-            //  value may be different from the enum field name.
-            instructions.add(new CfConstString(field.name));
+            AbstractValue value = fieldDataMap.getData(field);
+            addCfInstructionsForAbstractValue(instructions, value, factory.intType);
             instructions.add(
                 new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.stringMembers.equals, false));
             instructions.add(new CfIf(If.Type.EQ, ValueType.INT, dest));
