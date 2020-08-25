@@ -233,13 +233,15 @@ def Main():
 
       # Upload desugar_jdk_libs configuration to a maven compatible location.
       if file == utils.DESUGAR_CONFIGURATION:
-        jar_name = 'desugar_jdk_libs_configuration-%s.jar' % version
+        jar_basename = 'desugar_jdk_libs_configuration.jar'
+        jar_version_name = 'desugar_jdk_libs_configuration-%s.jar' % version
         maven_dst = GetUploadDestination(
             utils.get_maven_path('desugar_jdk_libs_configuration', version),
-                                 jar_name, is_master)
+                                 jar_version_name, is_master)
 
         with utils.TempDir() as tmp_dir:
-          desugar_jdk_libs_configuration_jar = os.path.join(tmp_dir, jar_name)
+          desugar_jdk_libs_configuration_jar = os.path.join(tmp_dir,
+                                                            jar_version_name)
           create_maven_release.generate_jar_with_desugar_configuration(
               utils.DESUGAR_CONFIGURATION,
               utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP,
@@ -251,11 +253,17 @@ def Main():
             if options.dry_run_output:
               shutil.copyfile(
                   desugar_jdk_libs_configuration_jar,
-                  os.path.join(options.dry_run_output, jar_name))
+                  os.path.join(options.dry_run_output, jar_version_name))
           else:
             utils.upload_file_to_cloud_storage(
                 desugar_jdk_libs_configuration_jar, maven_dst)
             print('Maven repo root available at: %s' % GetMavenUrl(is_master))
+            # Also archive the jar as non maven destination for Google3
+            jar_destination = GetUploadDestination(
+                version, jar_basename, is_master)
+            utils.upload_file_to_cloud_storage(
+                desugar_jdk_libs_configuration_jar, jar_destination)
+
 
 if __name__ == '__main__':
   sys.exit(Main())
