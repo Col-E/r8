@@ -9,6 +9,7 @@ import com.android.tools.r8.utils.DirectoryBuilder;
 import com.android.tools.r8.utils.OutputBuilder;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.io.Closer;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
@@ -148,7 +149,9 @@ public interface ClassFileConsumer extends ProgramConsumer {
       OpenOption[] options =
           new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
       try (Closer closer = Closer.create()) {
-        try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(archive, options))) {
+        try (ZipOutputStream out =
+            new ZipOutputStream(
+                new BufferedOutputStream(Files.newOutputStream(archive, options)))) {
           ZipUtils.writeResourcesToZip(resources, dataResources, closer, out);
         }
       }

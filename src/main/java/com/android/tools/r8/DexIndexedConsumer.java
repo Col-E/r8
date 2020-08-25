@@ -14,6 +14,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
@@ -186,7 +187,9 @@ public interface DexIndexedConsumer extends ProgramConsumer, ByteBufferProvider 
       OpenOption[] options =
           new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
       try (Closer closer = Closer.create()) {
-        try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(archive, options))) {
+        try (ZipOutputStream out =
+            new ZipOutputStream(
+                new BufferedOutputStream(Files.newOutputStream(archive, options)))) {
           for (int i = 0; i < resources.size(); i++) {
             ProgramResource resource = resources.get(i);
             String entryName = getDefaultDexFileName(i);

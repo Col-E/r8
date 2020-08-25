@@ -14,6 +14,7 @@ import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.CompilationError;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -74,7 +75,8 @@ public class ZipUtils {
   }
 
   public static void zip(Path zipFile, Path inputDirectory) throws IOException {
-    try (ZipOutputStream stream = new ZipOutputStream(Files.newOutputStream(zipFile))) {
+    try (ZipOutputStream stream =
+        new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(zipFile)))) {
       List<Path> files =
           Files.walk(inputDirectory)
               .filter(path -> !Files.isDirectory(path))

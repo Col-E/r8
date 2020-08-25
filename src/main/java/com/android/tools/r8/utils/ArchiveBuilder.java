@@ -12,6 +12,7 @@ import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.google.common.io.ByteStreams;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -80,8 +81,11 @@ public class ArchiveBuilder implements OutputBuilder {
     if (stream != null) {
       return stream;
     }
-    stream = new ZipOutputStream(Files.newOutputStream(
-        archive, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
+    stream =
+        new ZipOutputStream(
+            new BufferedOutputStream(
+                Files.newOutputStream(
+                    archive, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)));
     return stream;
   }
 
