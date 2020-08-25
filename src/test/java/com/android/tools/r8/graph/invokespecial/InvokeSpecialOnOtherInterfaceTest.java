@@ -7,23 +7,18 @@ package com.android.tools.r8.graph.invokespecial;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromJavaType;
 import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
-import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-// This is a reproduction of b/144450911.
 @RunWith(Parameterized.class)
-public class InvokeSpecialForInvokeVirtualTest extends TestBase {
-
-  private static final String EXPECTED = StringUtils.lines("Hello World!");
+public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -32,61 +27,67 @@ public class InvokeSpecialForInvokeVirtualTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public InvokeSpecialForInvokeVirtualTest(TestParameters parameters) {
+  public InvokeSpecialOnOtherInterfaceTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-        .addProgramClasses(A.class, Main.class)
-        .addProgramClassFileData(getClassBWithTransformedInvoked())
+        .addProgramClasses(I.class, Main.class)
+        .addProgramClassFileData(getClassWithTransformedInvoked())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutput(EXPECTED);
+        .assertFailureWithErrorThatThrows(
+            parameters.isCfRuntime()
+                ? VerifyError.class
+                // TODO(b/144410139): Consider making this a compilation failure.
+                : NoClassDefFoundError.class);
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(A.class, Main.class)
-        .addProgramClassFileData(getClassBWithTransformedInvoked())
+        .addProgramClasses(I.class, Main.class)
+        .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/166210854): Fails but should not.
-        .assertFailure();
+        .assertFailureWithErrorThatThrows(
+            parameters.isCfRuntime()
+                ? VerifyError.class
+                // TODO(b/144410139): Consider making this a compilation failure.
+                : NoClassDefFoundError.class);
   }
 
-  private byte[] getClassBWithTransformedInvoked() throws IOException {
-    return transformer(B.class)
+  private byte[] getClassWithTransformedInvoked() throws IOException {
+    return transformer(A.class)
         .transformMethodInsnInMethod(
             "bar",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
-              assertEquals(INVOKEVIRTUAL, opcode);
-              assertEquals(getBinaryNameFromJavaType(B.class.getTypeName()), owner);
+              assertEquals(getBinaryNameFromJavaType(I.class.getTypeName()), owner);
               continuation.visitMethodInsn(INVOKESPECIAL, owner, name, descriptor, isInterface);
             })
         .transform();
   }
 
-  public static class A {
+  public interface I {
 
-    void foo() {
+    default void foo() {
       System.out.println("Hello World!");
     }
   }
 
-  public static class B extends A {
+  public static class A {
 
-    void bar() {
-      foo(); // Will be invoke-special B::foo.
+    public void bar(I i) {
+      i.foo(); // Will be rewritten to invoke-special I.foo()
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      new B().bar();
+      new A().bar(new I() {});
     }
   }
 }

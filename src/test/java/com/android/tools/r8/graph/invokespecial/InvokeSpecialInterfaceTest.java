@@ -57,6 +57,8 @@ public class InvokeSpecialInterfaceTest extends TestBase {
     }
   }
 
+  // TODO(b/166210854): Test behavior on R8 too.
+
   private byte[] getClassWithTransformedInvoked() throws IOException {
     return transformer(B.class)
         .transformMethodInsnInMethod(

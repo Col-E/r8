@@ -9,14 +9,11 @@ import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -38,13 +35,23 @@ public class InvokeSpecialMissingInvokeVirtualTest extends TestBase {
   }
 
   @Test
-  public void testRuntime() throws IOException, CompilationFailedException, ExecutionException {
-    TestRunResult<?> runResult =
-        testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-            .addProgramClasses(A.class, Main.class)
-            .addProgramClassFileData(getClassWithTransformedInvoked())
-            .run(parameters.getRuntime(), Main.class)
-            .assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
+  public void testRuntime() throws Exception {
+    testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
+        .addProgramClasses(A.class, Main.class)
+        .addProgramClassFileData(getClassWithTransformedInvoked())
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClasses(A.class, Main.class)
+        .addProgramClassFileData(getClassWithTransformedInvoked())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {

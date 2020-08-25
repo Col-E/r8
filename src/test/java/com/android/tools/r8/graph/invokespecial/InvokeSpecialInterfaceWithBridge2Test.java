@@ -19,9 +19,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-// This is a reproduction of b/144450911.
 @RunWith(Parameterized.class)
-public class InvokeSpecialForInvokeVirtualTest extends TestBase {
+public class InvokeSpecialInterfaceWithBridge2Test extends TestBase {
 
   private static final String EXPECTED = StringUtils.lines("Hello World!");
 
@@ -32,15 +31,15 @@ public class InvokeSpecialForInvokeVirtualTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public InvokeSpecialForInvokeVirtualTest(TestParameters parameters) {
+  public InvokeSpecialInterfaceWithBridge2Test(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-        .addProgramClasses(A.class, Main.class)
-        .addProgramClassFileData(getClassBWithTransformedInvoked())
+        .addProgramClasses(I.class, A.class, Main.class)
+        .addProgramClassFileData(getClassWithTransformedInvoked())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -48,38 +47,43 @@ public class InvokeSpecialForInvokeVirtualTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(A.class, Main.class)
-        .addProgramClassFileData(getClassBWithTransformedInvoked())
+        .addProgramClasses(I.class, A.class, Main.class)
+        .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/166210854): Fails but should not.
-        .assertFailure();
+        .assertSuccessWithOutput(EXPECTED);
   }
 
-  private byte[] getClassBWithTransformedInvoked() throws IOException {
+  private byte[] getClassWithTransformedInvoked() throws IOException {
     return transformer(B.class)
         .transformMethodInsnInMethod(
             "bar",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               assertEquals(INVOKEVIRTUAL, opcode);
-              assertEquals(getBinaryNameFromJavaType(B.class.getTypeName()), owner);
-              continuation.visitMethodInsn(INVOKESPECIAL, owner, name, descriptor, isInterface);
+              assertEquals(owner, getBinaryNameFromJavaType(B.class.getTypeName()));
+              continuation.visitMethodInsn(
+                  INVOKESPECIAL,
+                  getBinaryNameFromJavaType(A.class.getTypeName()),
+                  name,
+                  descriptor,
+                  isInterface);
             })
         .transform();
   }
 
-  public static class A {
-
-    void foo() {
+  public interface I {
+    default void foo() {
       System.out.println("Hello World!");
     }
   }
 
+  public static class A implements I {}
+
   public static class B extends A {
 
-    void bar() {
-      foo(); // Will be invoke-special B::foo.
+    public void bar() {
+      foo(); // Will be rewritten to invoke-special A.foo()
     }
   }
 

@@ -14,7 +14,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,11 +34,30 @@ public class InvokeSpecialOnSameClassTest extends TestBase {
   }
 
   @Test
-  public void testRuntime() throws IOException, CompilationFailedException, ExecutionException {
+  public void testRuntime() throws Exception {
     try {
       testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
           .addProgramClasses(Main.class)
           .addProgramClassFileData(getClassWithTransformedInvoked())
+          .run(parameters.getRuntime(), Main.class)
+          .assertSuccessWithOutputLines("Hello World!");
+      // TODO(b/110175213): Remove when fixed.
+      assertTrue(parameters.isCfRuntime());
+    } catch (CompilationFailedException compilation) {
+      assertThat(
+          compilation.getCause().getMessage(),
+          containsString("Failed to compile unsupported use of invokespecial"));
+    }
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    try {
+      testForR8(parameters.getBackend())
+          .addProgramClasses(Main.class)
+          .addProgramClassFileData(getClassWithTransformedInvoked())
+          .addKeepMainRule(Main.class)
+          .setMinApi(parameters.getApiLevel())
           .run(parameters.getRuntime(), Main.class)
           .assertSuccessWithOutputLines("Hello World!");
       // TODO(b/110175213): Remove when fixed.

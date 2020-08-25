@@ -4,42 +4,55 @@
 
 package com.android.tools.r8.graph.invokespecial;
 
+import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromJavaType;
 import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-// This is a reproduction of b/144450911.
 @RunWith(Parameterized.class)
-public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
+public class InvokeSpecialInterfaceWithBridge3Test extends TestBase {
+
+  private static final String EXPECTED = StringUtils.lines("Hello World!");
 
   private final TestParameters parameters;
+  private final boolean isInterface;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameters(name = "{0}, itf:{1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public InvokeSpecialInterfaceWithBridgeTest(TestParameters parameters) {
+  public InvokeSpecialInterfaceWithBridge3Test(TestParameters parameters, boolean isInterface) {
     this.parameters = parameters;
+    this.isInterface = isInterface;
   }
 
   @Test
   public void testRuntime() throws Exception {
-    testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-        .addProgramClasses(I.class, A.class, Main.class)
-        .addProgramClassFileData(getClassWithTransformedInvoked())
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello World!");
+    TestRunResult<?> result =
+        testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
+            .addProgramClasses(I.class, A.class, Main.class)
+            .addProgramClassFileData(getClassWithTransformedInvoked())
+            .run(parameters.getRuntime(), Main.class);
+    if (parameters.isDexRuntime()) {
+      // TODO(b/166210854): Runs but should have failed.
+      result.assertSuccessWithOutput(EXPECTED);
+    } else {
+      result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
+    }
   }
 
   @Test
@@ -50,8 +63,8 @@ public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/166210854): Fails but should not.
-        .assertFailure();
+        // TODO(b/166210854): Runs but should have failed.
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {
@@ -60,8 +73,13 @@ public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
             "bar",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               assertEquals(INVOKEVIRTUAL, opcode);
-              assertEquals(owner, DescriptorUtils.getBinaryNameFromJavaType(B.class.getTypeName()));
-              continuation.visitMethodInsn(INVOKESPECIAL, owner, name, descriptor, isInterface);
+              assertEquals(owner, getBinaryNameFromJavaType(B.class.getTypeName()));
+              continuation.visitMethodInsn(
+                  INVOKESPECIAL,
+                  getBinaryNameFromJavaType(I.class.getTypeName()),
+                  name,
+                  descriptor,
+                  isInterface);
             })
         .transform();
   }
@@ -77,7 +95,7 @@ public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
   public static class B extends A {
 
     public void bar() {
-      foo(); // Will be rewritten to invoke-special B.foo()
+      foo(); // Will be rewritten to invoke-special I.foo()
     }
   }
 
