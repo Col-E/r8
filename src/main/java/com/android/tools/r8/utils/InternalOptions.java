@@ -1257,6 +1257,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // Option for testing outlining with interface array arguments, see b/132420510.
     public boolean allowOutlinerInterfaceArrayArguments = false;
 
+    public int limitNumberOfClassesPerDex = -1;
+
     public MinifierTestingOptions minifier = new MinifierTestingOptions();
 
     // Testing hooks to trigger effects in various compiler places.

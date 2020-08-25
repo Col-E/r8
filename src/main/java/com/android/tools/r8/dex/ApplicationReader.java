@@ -89,7 +89,9 @@ public class ApplicationReader {
 
   public final LazyLoadedDexApplication read(ExecutorService executorService) throws IOException {
     return read(
-        null, executorService, ProgramClassCollection.defaultConflictResolver(options.reporter));
+        inputApp.getProguardMapInputData(),
+        executorService,
+        ProgramClassCollection.defaultConflictResolver(options.reporter));
   }
 
   public final LazyLoadedDexApplication read(

@@ -219,6 +219,10 @@ public class VirtualFile {
     return transaction.getNumberOfFields();
   }
 
+  public int getNumberOfClasses() {
+    return transaction.getNumberOfClasses();
+  }
+
   void throwIfFull(boolean hasMainDexList, Reporter reporter) {
     if (!isFull()) {
       return;
@@ -458,7 +462,8 @@ public class VirtualFile {
                 fillStrategy,
                 0,
                 writer.initClassLens,
-                writer.namingLens)
+                writer.namingLens,
+                options)
             .call();
       }
     }
@@ -523,7 +528,8 @@ public class VirtualFile {
                 fillStrategy,
                 fileIndexOffset,
                 writer.initClassLens,
-                writer.namingLens)
+                writer.namingLens,
+                options)
             .call();
       }
       addFeatureSplitFiles(featureSplitClasses, fillStrategy);
@@ -750,6 +756,10 @@ public class VirtualFile {
       return methods.size() + base.getNumberOfMethods();
     }
 
+    int getNumberOfClasses() {
+      return classes.size() + base.classes.size();
+    }
+
     int getNumberOfFields() {
       return fields.size() + base.getNumberOfFields();
     }
@@ -787,9 +797,6 @@ public class VirtualFile {
           && types.isEmpty() && strings.isEmpty();
     }
 
-    int getNumberOfClasses() {
-      return classes.size() + base.classes.size();
-    }
   }
 
   /**
@@ -919,6 +926,7 @@ public class VirtualFile {
     private final Map<DexProgramClass, String> originalNames;
     private final DexItemFactory dexItemFactory;
     private final FillStrategy fillStrategy;
+    private final InternalOptions options;
     private final VirtualFileCycler cycler;
 
     PackageSplitPopulator(
@@ -929,11 +937,13 @@ public class VirtualFile {
         FillStrategy fillStrategy,
         int fileIndexOffset,
         InitClassLens initClassLens,
-        NamingLens namingLens) {
+        NamingLens namingLens,
+        InternalOptions options) {
       this.classes = new ArrayList<>(classes);
       this.originalNames = originalNames;
       this.dexItemFactory = dexItemFactory;
       this.fillStrategy = fillStrategy;
+      this.options = options;
       this.cycler = new VirtualFileCycler(files, initClassLens, namingLens, fileIndexOffset);
     }
 
@@ -1005,7 +1015,7 @@ public class VirtualFile {
           nonPackageClasses.add(clazz);
           continue;
         }
-        if (current.isFilledEnough(fillStrategy) || current.isFull()) {
+        if (isFullEnough(current, options)) {
           current.abortTransaction();
           // We allow for a final rollback that has at most 20% of classes in it.
           // This is a somewhat random number that was empirically chosen.
@@ -1049,6 +1059,14 @@ public class VirtualFile {
       return newPackageAssignments;
     }
 
+    private boolean isFullEnough(VirtualFile current, InternalOptions options) {
+      if (options.testing.limitNumberOfClassesPerDex > 0
+          && current.getNumberOfClasses() > options.testing.limitNumberOfClassesPerDex) {
+        return true;
+      }
+      return current.isFilledEnough(fillStrategy) || current.isFull();
+    }
+
     private void addNonPackageClasses(
         VirtualFileCycler cycler, List<DexProgramClass> nonPackageClasses) {
       cycler.restart();
@@ -1076,9 +1094,8 @@ public class VirtualFile {
 
     private VirtualFile getVirtualFile(VirtualFileCycler cycler) {
       VirtualFile current = null;
-      while (cycler.hasNext()
-          && (current = cycler.next()).isFilledEnough(fillStrategy)) {}
-      if (current == null || current.isFilledEnough(fillStrategy)) {
+      while (cycler.hasNext() && isFullEnough(current = cycler.next(), options)) {}
+      if (current == null || isFullEnough(current, options)) {
         current = cycler.addFile();
       }
       return current;

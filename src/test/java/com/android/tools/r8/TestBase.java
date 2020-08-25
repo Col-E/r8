@@ -73,6 +73,7 @@ import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -449,6 +450,11 @@ public class TestBase {
     return AndroidApp.builder()
         .addProgramResourceProvider(ArchiveProgramResourceProvider.fromArchive(jar))
         .build();
+  }
+
+  protected List<String> classNamesFromDexFile(Path dexFile) throws IOException {
+    return new CodeInspector(dexFile)
+        .allClasses().stream().map(FoundClassSubject::toString).collect(Collectors.toList());
   }
 
   /**

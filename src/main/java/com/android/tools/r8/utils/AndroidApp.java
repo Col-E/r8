@@ -107,6 +107,7 @@ public class AndroidApp {
   private final ImmutableList<InternalArchiveClassFileProvider> archiveProvidersToClose;
 
   private final StringResource proguardMapOutputData;
+  private final StringResource proguardMapInputData;
   private final List<StringResource> mainDexListResources;
   private final List<String> mainDexClasses;
 
@@ -176,6 +177,7 @@ public class AndroidApp {
       ImmutableList<ClassFileResourceProvider> libraryResourceProviders,
       ImmutableList<InternalArchiveClassFileProvider> archiveProvidersToClose,
       StringResource proguardMapOutputData,
+      StringResource proguardMapInputData,
       List<StringResource> mainDexListResources,
       List<String> mainDexClasses) {
     this.programResourceProviders = programResourceProviders;
@@ -184,6 +186,7 @@ public class AndroidApp {
     this.libraryResourceProviders = libraryResourceProviders;
     this.archiveProvidersToClose = archiveProvidersToClose;
     this.proguardMapOutputData = proguardMapOutputData;
+    this.proguardMapInputData = proguardMapInputData;
     this.mainDexListResources = mainDexListResources;
     this.mainDexClasses = mainDexClasses;
     assert verifyInternalProvidersInCloseSet(classpathResourceProviders, archiveProvidersToClose);
@@ -344,6 +347,11 @@ public class AndroidApp {
     return proguardMapOutputData;
   }
 
+  /** Get the proguard-map associated with an input "app" if it exists. */
+  public StringResource getProguardMapInputData() {
+    return proguardMapInputData;
+  }
+
   /**
    * True if the main dex list resources exists.
    */
@@ -381,6 +389,7 @@ public class AndroidApp {
         libraryResourceProviders,
         archiveProvidersToClose,
         proguardMapOutputData,
+        proguardMapInputData,
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -718,8 +727,8 @@ public class AndroidApp {
     private List<String> mainDexListClasses = new ArrayList<>();
     private boolean ignoreDexInArchive = false;
 
-    // Proguard map data is output only data. This should never be used as input to a compilation.
     private StringResource proguardMapOutputData;
+    private StringResource proguardMapInputData;
 
     private final Reporter reporter;
 
@@ -737,6 +746,7 @@ public class AndroidApp {
       archiveProvidersToClose.addAll(app.archiveProvidersToClose);
       mainDexListResources = app.mainDexListResources;
       mainDexListClasses = app.mainDexClasses;
+      proguardMapInputData = app.proguardMapInputData;
     }
 
     public Reporter getReporter() {
@@ -1055,6 +1065,11 @@ public class AndroidApp {
       return this;
     }
 
+    public Builder setProguardMapInputData(Path mapPath) {
+      this.proguardMapInputData = StringResource.fromFile(mapPath);
+      return this;
+    }
+
     /**
      * Add a main-dex list file.
      */
@@ -1150,6 +1165,7 @@ public class AndroidApp {
           ImmutableList.copyOf(libraryResourceProviders),
           ImmutableList.copyOf(archiveProvidersToClose),
           proguardMapOutputData,
+          proguardMapInputData,
           mainDexListResources,
           mainDexListClasses);
     }

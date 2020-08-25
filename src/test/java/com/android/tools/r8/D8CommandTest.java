@@ -621,6 +621,17 @@ public class D8CommandTest extends TestBase {
   }
 
   @Test
+  public void pgInputMap() throws CompilationFailedException, IOException, ResourceException {
+    Path mapFile = temp.newFile().toPath();
+    FileUtils.writeTextFile(
+        mapFile,
+        "com.android.tools.r8.ApiLevelException -> com.android.tools.r8.a:",
+        "    boolean $assertionsDisabled -> c");
+    D8Command d8Command = parse("--pg-map", mapFile.toString());
+    assertFalse(d8Command.getInputApp().getProguardMapInputData().getString().isEmpty());
+  }
+
+  @Test
   public void numThreadsOption() throws Exception {
     assertEquals(ThreadUtils.NOT_SPECIFIED, parse().getThreadCount());
     assertEquals(1, parse("--thread-count", "1").getThreadCount());
