@@ -7,12 +7,18 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.conversion.ExtraParameter;
+import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceRBTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntBidirectionalIterator;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class RewrittenPrototypeDescription {
@@ -325,20 +331,20 @@ public class RewrittenPrototypeDescription {
 
   private static final RewrittenPrototypeDescription none = new RewrittenPrototypeDescription();
 
-  private final int extraUnusedNullParameters;
+  private final List<ExtraParameter> extraParameters;
   private final ArgumentInfoCollection argumentInfoCollection;
   private final RewrittenTypeInfo rewrittenReturnInfo;
 
   private RewrittenPrototypeDescription() {
-    this(0, null, ArgumentInfoCollection.empty());
+    this(Collections.emptyList(), null, ArgumentInfoCollection.empty());
   }
 
   private RewrittenPrototypeDescription(
-      int extraUnusedNullParameters,
+      List<ExtraParameter> extraParameters,
       RewrittenTypeInfo rewrittenReturnInfo,
       ArgumentInfoCollection argumentsInfo) {
     assert argumentsInfo != null;
-    this.extraUnusedNullParameters = extraUnusedNullParameters;
+    this.extraParameters = extraParameters;
     this.rewrittenReturnInfo = rewrittenReturnInfo;
     this.argumentInfoCollection = argumentsInfo;
   }
@@ -350,12 +356,14 @@ public class RewrittenPrototypeDescription {
     DexType returnType = method.proto.returnType;
     RewrittenTypeInfo returnInfo =
         returnType.isAlwaysNull(appView) ? RewrittenTypeInfo.toVoid(returnType, appView) : null;
-    return new RewrittenPrototypeDescription(0, returnInfo, removedArgumentsInfo);
+    return new RewrittenPrototypeDescription(
+        Collections.emptyList(), returnInfo, removedArgumentsInfo);
   }
 
   public static RewrittenPrototypeDescription createForRewrittenTypes(
       RewrittenTypeInfo returnInfo, ArgumentInfoCollection rewrittenArgumentsInfo) {
-    return new RewrittenPrototypeDescription(0, returnInfo, rewrittenArgumentsInfo);
+    return new RewrittenPrototypeDescription(
+        Collections.emptyList(), returnInfo, rewrittenArgumentsInfo);
   }
 
   public static RewrittenPrototypeDescription none() {
@@ -363,13 +371,17 @@ public class RewrittenPrototypeDescription {
   }
 
   public boolean isEmpty() {
-    return extraUnusedNullParameters == 0
+    return extraParameters.isEmpty()
         && rewrittenReturnInfo == null
         && argumentInfoCollection.isEmpty();
   }
 
-  public int numberOfExtraUnusedNullParameters() {
-    return extraUnusedNullParameters;
+  public Collection<ExtraParameter> getExtraParameters() {
+    return extraParameters;
+  }
+
+  public int numberOfExtraParameters() {
+    return extraParameters.size();
   }
 
   public boolean hasBeenChangedToReturnVoid(AppView<?> appView) {
@@ -420,7 +432,7 @@ public class RewrittenPrototypeDescription {
     assert rewrittenReturnInfo == null;
     return !hasBeenChangedToReturnVoid(appView)
         ? new RewrittenPrototypeDescription(
-            extraUnusedNullParameters,
+            extraParameters,
             RewrittenTypeInfo.toVoid(oldReturnType, appView),
             argumentInfoCollection)
         : this;
@@ -428,7 +440,7 @@ public class RewrittenPrototypeDescription {
 
   public RewrittenPrototypeDescription withRemovedArguments(ArgumentInfoCollection other) {
     return new RewrittenPrototypeDescription(
-        extraUnusedNullParameters, rewrittenReturnInfo, argumentInfoCollection.combine(other));
+        extraParameters, rewrittenReturnInfo, argumentInfoCollection.combine(other));
   }
 
   public RewrittenPrototypeDescription withExtraUnusedNullParameter() {
@@ -437,12 +449,23 @@ public class RewrittenPrototypeDescription {
 
   public RewrittenPrototypeDescription withExtraUnusedNullParameters(
       int numberOfExtraUnusedNullParameters) {
-    if (numberOfExtraUnusedNullParameters == 0) {
+    List<ExtraParameter> parameters =
+        Collections.nCopies(numberOfExtraUnusedNullParameters, new ExtraUnusedNullParameter());
+    return withExtraParameters(parameters);
+  }
+
+  public RewrittenPrototypeDescription withExtraParameter(ExtraParameter parameter) {
+    return withExtraParameters(Collections.singletonList(parameter));
+  }
+
+  public RewrittenPrototypeDescription withExtraParameters(List<ExtraParameter> parameters) {
+    if (parameters.isEmpty()) {
       return this;
     }
+    List<ExtraParameter> newExtraParameters = new ArrayList<>();
+    newExtraParameters.addAll(extraParameters);
+    newExtraParameters.addAll(parameters);
     return new RewrittenPrototypeDescription(
-        extraUnusedNullParameters + numberOfExtraUnusedNullParameters,
-        rewrittenReturnInfo,
-        argumentInfoCollection);
+        newExtraParameters, rewrittenReturnInfo, argumentInfoCollection);
   }
 }

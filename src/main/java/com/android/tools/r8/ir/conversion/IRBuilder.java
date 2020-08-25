@@ -542,7 +542,7 @@ public class IRBuilder {
         method.method.proto.parameters.values.length
             + argumentsInfo.numberOfRemovedArguments()
             + (method.isStatic() ? 0 : 1)
-            - prototypeChanges.numberOfExtraUnusedNullParameters();
+            - prototypeChanges.numberOfExtraParameters();
 
     int usedArgumentIndex = 0;
     while (argumentIndex < originalNumberOfArguments) {
@@ -581,13 +581,17 @@ public class IRBuilder {
       argumentIndex++;
     }
 
-    for (int i = 0; i < prototypeChanges.numberOfExtraUnusedNullParameters(); i++) {
+    for (ExtraParameter extraParameter : prototypeChanges.getExtraParameters()) {
       DexType argType = method.method.proto.getParameter(usedArgumentIndex);
-      assert argType.isClassType();
-      TypeElement type = TypeElement.fromDexType(argType, Nullability.maybeNull(), appView);
+      TypeElement type = extraParameter.getTypeElement(appView, argType);
       register += type.requiredRegisters();
       usedArgumentIndex++;
-      addExtraUnusedNullArgument(register);
+      if (extraParameter instanceof ExtraUnusedNullParameter) {
+        assert argType.isClassType();
+        addExtraUnusedNullArgument(register);
+      } else {
+        addNonThisArgument(register, type);
+      }
     }
 
     flushArgumentInstructions();

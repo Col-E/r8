@@ -59,6 +59,7 @@ import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
@@ -83,9 +84,11 @@ import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
+import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
@@ -93,6 +96,7 @@ import com.android.tools.r8.logging.Log;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -284,14 +288,40 @@ public class LensCodeRewriter {
                         ? null
                         : makeOutValue(invoke, code);
 
-                if (prototypeChanges.numberOfExtraUnusedNullParameters() > 0) {
-                  iterator.previous();
-                  Value nullInstruction =
-                      iterator.insertConstNullInstruction(code, appView.options());
-                  iterator.next();
-                  for (int i = 0; i < prototypeChanges.numberOfExtraUnusedNullParameters(); i++) {
-                    newInValues.add(nullInstruction);
-                  }
+                Map<SingleNumberValue, Map<DexType, Value>> parameterMap = new IdentityHashMap<>();
+
+                int parameterIndex = newInValues.size() - (actualInvokeType == STATIC ? 0 : 1);
+                for (ExtraParameter parameter : prototypeChanges.getExtraParameters()) {
+                  DexType type = actualTarget.proto.getParameter(parameterIndex++);
+
+                  SingleNumberValue numberValue = parameter.getValue(appView);
+
+                  // Try to find an existing constant instruction, otherwise generate a new one.
+                  Value value =
+                      parameterMap
+                          .computeIfAbsent(numberValue, ignore -> new IdentityHashMap<>())
+                          .computeIfAbsent(
+                              type,
+                              ignore -> {
+                                iterator.previous();
+                                Instruction instruction =
+                                    numberValue.createMaterializingInstruction(
+                                        appView,
+                                        code,
+                                        TypeAndLocalInfoSupplier.create(
+                                            parameter.getTypeElement(appView, type), null));
+                                assert !instruction.instructionTypeCanThrow();
+                                instruction.setPosition(
+                                    appView.options().debug
+                                        ? invoke.getPosition()
+                                        : Position.none());
+                                iterator.add(instruction);
+                                iterator.next();
+                                return instruction.outValue();
+                              });
+
+                  newInValues.add(value);
+
                   // TODO(b/164901008): Fix when the number of arguments overflows.
                   if (newInValues.size() > 255) {
                     throw new CompilationError(
