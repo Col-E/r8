@@ -312,21 +312,22 @@ def generate_r8_maven_zip(out, is_r8lib=False):
     gradle.RunGradle([utils.R8LIB, '-Pno_internal'])
 
   version = determine_version()
-  # Generate the pom file.
-  pom_file = 'r8.pom'
-  write_pom_file(
-      R8_POMTEMPLATE,
-      pom_file,
-      version,
-      "" if is_r8lib else generate_dependencies(),
-      generate_library_licenses() if is_r8lib else "")
-  # Write the maven zip file.
-  generate_maven_zip(
-      'r8',
-      version,
-      pom_file,
-      utils.R8LIB_JAR if is_r8lib else utils.R8_JAR,
-      out)
+  with utils.TempDir() as tmp_dir:
+    # Generate the pom file.
+    pom_file = join(tmp_dir, 'r8.pom')
+    write_pom_file(
+        R8_POMTEMPLATE,
+        pom_file,
+        version,
+        "" if is_r8lib else generate_dependencies(),
+        generate_library_licenses() if is_r8lib else "")
+    # Write the maven zip file.
+    generate_maven_zip(
+        'r8',
+        version,
+        pom_file,
+        utils.R8LIB_JAR if is_r8lib else utils.R8_JAR,
+        out)
 
 # Write the desugaring configuration of a jar file with the following content:
 #  java/
@@ -369,20 +370,20 @@ def generate_jar_with_desugar_configuration(configuration, conversions, destinat
 
 # Generate the maven zip for the configuration to desugar desugar_jdk_libs.
 def generate_desugar_configuration_maven_zip(out):
-  version = utils.desugar_configuration_version()
-  # Generate the pom file.
-  pom_file = 'desugar_configuration.pom'
-  write_pom_file(DESUGAR_CONFIGUATION_POMTEMPLATE, pom_file, version)
-  # Generate the jar with the configuration file.
-  jar_file = 'desugar_configuration.jar'
-  generate_jar_with_desugar_configuration(
-      utils.DESUGAR_CONFIGURATION,
-      utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP,
-      jar_file)
-  # Write the maven zip file.
-  generate_maven_zip(
-      'desugar_jdk_libs_configuration', version, pom_file, jar_file, out)
-
+  with utils.TempDir() as tmp_dir:
+    version = utils.desugar_configuration_version()
+    # Generate the pom file.
+    pom_file = join(tmp_dir, 'desugar_configuration.pom')
+    write_pom_file(DESUGAR_CONFIGUATION_POMTEMPLATE, pom_file, version)
+    # Generate the jar with the configuration file.
+    jar_file = join(tmp_dir, 'desugar_configuration.jar')
+    generate_jar_with_desugar_configuration(
+        utils.DESUGAR_CONFIGURATION,
+        utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP,
+        jar_file)
+    # Write the maven zip file.
+    generate_maven_zip(
+        'desugar_jdk_libs_configuration', version, pom_file, jar_file, out)
 
 def main(argv):
   options = parse_options(argv)
