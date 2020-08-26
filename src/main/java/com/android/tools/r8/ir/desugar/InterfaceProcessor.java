@@ -259,10 +259,13 @@ final class InterfaceProcessor {
       DexMethod newMethod = rewriter.staticAsMethodOfDispatchClass(origMethod);
       ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
           ForwardMethodSourceCode.builder(newMethod);
+      // Create a forwarding method to the library static interface method. The method is added
+      // to the dispatch class, however, the targeted method is still on the interface, so the
+      // interface bit should be set to true.
       forwardSourceCodeBuilder
           .setTarget(origMethod)
           .setInvokeType(Type.STATIC)
-          .setIsInterface(false); // We forward to the Companion class, not an interface.
+          .setIsInterface(true);
       DexEncodedMethod newEncodedMethod =
           new DexEncodedMethod(
               newMethod,

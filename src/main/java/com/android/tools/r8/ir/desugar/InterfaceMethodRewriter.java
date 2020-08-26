@@ -265,9 +265,13 @@ public final class InterfaceMethodRewriter {
                 // On pre-L devices static calls to interface methods result in verifier
                 // rejecting the whole class. We have to create special dispatch classes,
                 // so the user class is not rejected because it make this call directly.
+                // TODO(b/166247515): If this an incorrect invoke-static without the interface bit
+                //  we end up "fixing" the code and remove and ICCE error.
                 instructions.replaceCurrentInstruction(
-                    new InvokeStatic(staticAsMethodOfDispatchClass(method),
-                        invokeStatic.outValue(), invokeStatic.arguments()));
+                    new InvokeStatic(
+                        staticAsMethodOfDispatchClass(method),
+                        invokeStatic.outValue(),
+                        invokeStatic.arguments()));
                 requiredDispatchClasses
                     .computeIfAbsent(clazz.asLibraryClass(), k -> Sets.newConcurrentHashSet())
                     .add(appInfo.definitionFor(encodedMethod.holder()).asProgramClass());

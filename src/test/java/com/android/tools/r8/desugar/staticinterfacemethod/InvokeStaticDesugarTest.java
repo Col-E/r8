@@ -5,15 +5,13 @@
 package com.android.tools.r8.desugar.staticinterfacemethod;
 
 import static com.android.tools.r8.desugar.staticinterfacemethod.InvokeStaticDesugarTest.Library.foo;
-import static org.junit.Assert.assertThrows;
+import static org.hamcrest.CoreMatchers.containsString;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -38,20 +36,17 @@ public class InvokeStaticDesugarTest extends TestBase {
 
   @Test
   public void testDesugar() throws Exception {
-    final TestBuilder<? extends TestRunResult<?>, ?> testBuilder =
+    final TestRunResult<?> runResult =
         testForDesugaring(parameters)
             .addLibraryClasses(Library.class)
-            .addDefaultRuntimeLibrary(parameters)
-            .addProgramClasses(Main.class);
-    if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L)) {
-      testBuilder
-          .addRunClasspathFiles(compileRunClassPath())
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutputLines(EXPECTED);
+            .addProgramClasses(Main.class)
+            .addRunClasspathFiles(compileRunClassPath())
+            .run(parameters.getRuntime(), Main.class);
+    if (parameters.isDexRuntime()
+        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
+      runResult.assertFailureWithErrorThatMatches(containsString("java.lang.VerifyError"));
     } else {
-      assertThrows(
-          CompilationFailedException.class,
-          () -> testBuilder.run(parameters.getRuntime(), Main.class));
+      runResult.assertSuccessWithOutputLines(EXPECTED);
     }
   }
 
