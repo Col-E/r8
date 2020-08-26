@@ -4,6 +4,7 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.errors.DesugaredLibraryMismatchDiagnostic;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -97,11 +98,7 @@ public class Marker {
     }
 
     if (desugaredLibraryIdentifiers.size() > 1) {
-      reporter.error(
-          new StringDiagnostic(
-              "The compilation is merging inputs with different desugared library desugaring "
-                  + desugaredLibraryIdentifiers
-                  + ", which may lead to unexpected runtime errors."));
+      reporter.error(new DesugaredLibraryMismatchDiagnostic(desugaredLibraryIdentifiers));
     }
   }
 
