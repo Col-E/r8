@@ -209,7 +209,6 @@ public class R8 {
 
   static void writeApplication(
       ExecutorService executorService,
-      DexApplication application,
       AppView<?> appView,
       GraphLens graphLens,
       InitClassLens initClassLens,
@@ -217,7 +216,7 @@ public class R8 {
       InternalOptions options,
       ProguardMapSupplier proguardMapSupplier)
       throws ExecutionException {
-    InspectorImpl.runInspections(options.outputInspections, application);
+    InspectorImpl.runInspections(options.outputInspections, appView.appInfo().classes());
     try {
       Marker marker = options.getMarker(Tool.R8);
       assert marker != null;
@@ -227,11 +226,17 @@ public class R8 {
       markers.remove(marker);
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(
-                application, appView, options, marker, graphLens, namingLens, proguardMapSupplier)
+                appView.appInfo().app(),
+                appView,
+                options,
+                marker,
+                graphLens,
+                namingLens,
+                proguardMapSupplier)
             .write(options.getClassFileConsumer());
       } else {
         new ApplicationWriter(
-                application,
+                appView.appInfo().app(),
                 appView,
                 options,
                 // Ensure that the marker for this compilation is the first in the list.
@@ -905,7 +910,6 @@ public class R8 {
       // Generate the resulting application resources.
       writeApplication(
           executorService,
-          appView.appInfo().app(),
           appView,
           appView.graphLens(),
           appView.initClassLens(),

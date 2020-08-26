@@ -100,9 +100,10 @@ public class IrInjectionTestBase extends SmaliTestBase {
       return iterator;
     }
 
-    private AndroidApp writeDex(DexApplication application, InternalOptions options) {
+    private AndroidApp writeDex() {
       try {
-        ToolHelper.writeApplication(application, options);
+        InternalOptions options = appView.options();
+        ToolHelper.writeApplication(appView, options);
         options.signalFinishedToConsumers();
         return consumers.build();
       } catch (ExecutionException e) {
@@ -114,7 +115,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
       Timing timing = Timing.empty();
       IRConverter converter = new IRConverter(appView, timing, null, MainDexClasses.NONE);
       converter.replaceCodeForTesting(method, code);
-      AndroidApp app = writeDex(application, appView.options());
+      AndroidApp app = writeDex();
       return runOnArtRaw(app, DEFAULT_MAIN_CLASS_NAME).stdout;
     }
   }

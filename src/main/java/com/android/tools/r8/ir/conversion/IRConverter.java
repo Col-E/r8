@@ -470,12 +470,12 @@ public class IRConverter {
     }
   }
 
-  public DexApplication convert(DexApplication application, ExecutorService executor)
+  public void convert(AppView<AppInfo> appView, ExecutorService executor)
       throws ExecutionException {
     removeLambdaDeserializationMethods();
     workaroundAbstractMethodOnNonAbstractClassVerificationBug(
         executor, OptimizationFeedbackIgnore.getInstance());
-
+    DexApplication application = appView.appInfo().app();
     timing.begin("IR conversion");
     ThreadUtils.processItems(application.classes(), this::convertMethods, executor);
 
@@ -496,7 +496,8 @@ public class IRConverter {
     handleSynthesizedClassMapping(builder);
     timing.end();
 
-    return builder.build();
+    DexApplication app = builder.build();
+    appView.setAppInfo(new AppInfo(app, appView.appInfo().getSyntheticItems().commit(app)));
   }
 
   private void handleSynthesizedClassMapping(Builder<?> builder) {

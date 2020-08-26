@@ -119,29 +119,19 @@ public class L8 {
       // on it.
       options.enableLoadStoreOptimization = false;
 
-      LazyLoadedDexApplication lazyApp =
-          new ApplicationReader(inputApp, options, timing).read(executor);
-
-      PrefixRewritingMapper rewritePrefix =
-          options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
-
-      DexApplication app = new L8TreePruner(options).prune(lazyApp, rewritePrefix);
-      AppInfo appInfo = AppInfo.createInitialAppInfo(app);
-
-      AppView<?> appView = AppView.createForL8(appInfo, rewritePrefix);
-      IRConverter converter = new IRConverter(appView, timing);
+      AppView<AppInfo> appView = readApp(inputApp, options, executor, timing);
 
       if (!options.testing.disableL8AnnotationRemoval) {
         AnnotationRemover.clearAnnotations(appView);
       }
-      app = converter.convert(app, executor);
-      assert appView.appInfo() == appInfo;
+
+      new IRConverter(appView, timing).convert(appView, executor);
 
       NamingLens namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
-      new GenericSignatureRewriter(appView, namingLens).run(appInfo.classes(), executor);
+      new GenericSignatureRewriter(appView, namingLens).run(appView.appInfo().classes(), executor);
 
       new CfApplicationWriter(
-              app,
+              appView.appInfo().app(),
               appView,
               options,
               options.getMarker(Tool.L8),
@@ -159,6 +149,19 @@ public class L8 {
         timing.report();
       }
     }
+  }
+
+  private static AppView<AppInfo> readApp(
+      AndroidApp inputApp, InternalOptions options, ExecutorService executor, Timing timing)
+      throws IOException {
+    LazyLoadedDexApplication lazyApp =
+        new ApplicationReader(inputApp, options, timing).read(executor);
+
+    PrefixRewritingMapper rewritePrefix =
+        options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
+
+    DexApplication app = new L8TreePruner(options).prune(lazyApp, rewritePrefix);
+    return AppView.createForL8(AppInfo.createInitialAppInfo(app), rewritePrefix);
   }
 
   private static void run(String[] args) throws CompilationFailedException {

@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
@@ -87,7 +88,8 @@ public final class DexSplitterHelper {
 
         // Run d8 optimize to ensure jumbo strings are handled.
         AppInfo appInfo = AppInfo.createInitialAppInfo(featureApp);
-        featureApp = D8.optimize(featureApp, appInfo, options, timing, executor);
+        AppView<AppInfo> appView = AppView.createForD8(appInfo);
+        D8.optimize(appView, options, timing, executor);
         // We create a specific consumer for each split.
         Path outputDir = Paths.get(output).resolve(entry.getKey());
         if (!Files.exists(outputDir)) {
@@ -97,7 +99,7 @@ public final class DexSplitterHelper {
 
         try {
           new ApplicationWriter(
-                  featureApp,
+                  appView.appInfo().app(),
                   null,
                   options,
                   markers,

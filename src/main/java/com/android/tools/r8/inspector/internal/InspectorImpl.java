@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.inspector.internal;
 
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.inspector.ClassInspector;
 import com.android.tools.r8.inspector.Inspector;
@@ -29,25 +28,25 @@ public class InspectorImpl implements Inspector {
   }
 
   public static void runInspections(
-      List<Consumer<InspectorImpl>> inspections, DexApplication application) {
+      List<Consumer<InspectorImpl>> inspections, Collection<DexProgramClass> classes) {
     if (inspections == null || inspections.isEmpty()) {
       return;
     }
-    InspectorImpl inspector = new InspectorImpl(application);
+    InspectorImpl inspector = new InspectorImpl(classes);
     for (Consumer<InspectorImpl> inspection : inspections) {
       inspection.accept(inspector);
     }
   }
 
-  private final DexApplication application;
+  private final Collection<DexProgramClass> classes;
 
-  public InspectorImpl(DexApplication application) {
-    this.application = application;
+  public InspectorImpl(Collection<DexProgramClass> classes) {
+    this.classes = classes;
   }
 
   @Override
   public void forEachClass(Consumer<ClassInspector> inspection) {
-    for (DexProgramClass clazz : application.classes()) {
+    for (DexProgramClass clazz : classes) {
       inspection.accept(new ClassInspectorImpl(clazz));
     }
   }

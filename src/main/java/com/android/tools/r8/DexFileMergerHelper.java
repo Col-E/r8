@@ -10,6 +10,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
@@ -90,15 +91,15 @@ public class DexFileMergerHelper {
                     null,
                     executor,
                     new DexFileMergerHelper(inputOrdering)::keepFirstProgramClassConflictResolver);
-        AppInfo appInfo = AppInfo.createInitialAppInfo(app);
-        app = D8.optimize(app, appInfo, options, timing, executor);
+        AppView<AppInfo> appView = AppView.createForD8(AppInfo.createInitialAppInfo(app));
+        D8.optimize(appView, options, timing, executor);
 
-        List<Marker> markers = app.dexItemFactory.extractMarkers();
+        List<Marker> markers = appView.dexItemFactory().extractMarkers();
 
         assert !options.hasMethodsFilter();
         ApplicationWriter writer =
             new ApplicationWriter(
-                app,
+                appView.appInfo().app(),
                 null,
                 options,
                 markers,

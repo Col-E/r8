@@ -16,6 +16,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.AssemblyWriter;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -2086,12 +2087,11 @@ public class ToolHelper {
     return builder;
   }
 
-  public static void writeApplication(DexApplication application, InternalOptions options)
+  public static void writeApplication(AppView<?> appView, InternalOptions options)
       throws ExecutionException {
     R8.writeApplication(
         Executors.newSingleThreadExecutor(),
-        application,
-        null,
+        appView,
         GraphLens.getIdentityLens(),
         InitClassLens.getDefault(),
         NamingLens.getIdentityLens(),
