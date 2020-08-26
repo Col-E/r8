@@ -256,6 +256,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  @Override
   public T addMainDexListClasses(Class<?>... classes) {
     builder.addMainDexClasses(
         Arrays.stream(classes).map(Class::getTypeName).collect(Collectors.toList()));

@@ -34,7 +34,7 @@ public abstract class TestCompilerBuilder<
         C extends BaseCompilerCommand,
         B extends BaseCompilerCommand.Builder<C, B>,
         CR extends TestCompileResult<CR, RR>,
-        RR extends TestRunResult,
+        RR extends TestRunResult<RR>,
         T extends TestCompilerBuilder<C, B, CR, RR, T>>
     extends TestBaseBuilder<C, B, CR, RR, T> {
 

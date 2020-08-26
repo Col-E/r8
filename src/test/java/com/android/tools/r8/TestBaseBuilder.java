@@ -19,7 +19,7 @@ public abstract class TestBaseBuilder<
         C extends BaseCommand,
         B extends BaseCommand.Builder<C, B>,
         CR extends TestBaseResult<CR, RR>,
-        RR extends TestRunResult,
+        RR extends TestRunResult<RR>,
         T extends TestBaseBuilder<C, B, CR, RR, T>>
     extends TestBuilder<RR, T> {
 

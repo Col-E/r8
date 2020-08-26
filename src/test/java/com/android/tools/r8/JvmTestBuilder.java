@@ -73,12 +73,12 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
 
   @Override
   public JvmTestBuilder addLibraryFiles(Collection<Path> files) {
-    throw new Unimplemented("No support for changing the Java runtime library.");
+    return addRunClasspathFiles(files);
   }
 
   @Override
   public JvmTestBuilder addLibraryClasses(Collection<Class<?>> classes) {
-    throw new Unimplemented("No support for changing the Java runtime library.");
+    return addRunClasspathFiles(writeClassesToJar(classes));
   }
 
   @Override
