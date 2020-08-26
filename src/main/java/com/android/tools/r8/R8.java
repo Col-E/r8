@@ -226,9 +226,7 @@ public class R8 {
       markers.remove(marker);
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(
-                appView.appInfo().app(),
                 appView,
-                options,
                 marker,
                 graphLens,
                 namingLens,

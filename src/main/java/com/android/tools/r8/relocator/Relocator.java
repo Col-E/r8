@@ -89,9 +89,7 @@ public class Relocator {
       new GenericSignatureRewriter(appView, namingLens).run(appInfo.classes(), executor);
 
       new CfApplicationWriter(
-              app,
               appView,
-              options,
               new Marker(Tool.Relocator),
               GraphLens.getIdentityLens(),
               namingLens,

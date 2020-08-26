@@ -303,7 +303,6 @@ public class GenerateLintFiles {
 
           addMethodsToHeaderJar(builder, clazz, methods);
         });
-    DexApplication app = builder.build();
 
     // Write a plain text file with the desugared APIs.
     desugaredApisSignatures.sort(Comparator.naturalOrder());
@@ -311,13 +310,11 @@ public class GenerateLintFiles {
         lintFile(compilationApiLevel, minApiLevel, ".txt"), desugaredApisSignatures);
 
     // Write a header jar with the desugared APIs.
-    AppInfo appInfo = AppInfo.createInitialAppInfo(app);
+    AppInfo appInfo = AppInfo.createInitialAppInfo(builder.build());
     AppView<?> appView = AppView.createForD8(appInfo);
     CfApplicationWriter writer =
         new CfApplicationWriter(
-            builder.build(),
             appView,
-            options,
             options.getMarker(Tool.L8),
             GraphLens.getIdentityLens(),
             NamingLens.getIdentityLens(),

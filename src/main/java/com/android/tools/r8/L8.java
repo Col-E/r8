@@ -131,9 +131,7 @@ public class L8 {
       new GenericSignatureRewriter(appView, namingLens).run(appView.appInfo().classes(), executor);
 
       new CfApplicationWriter(
-              appView.appInfo().app(),
               appView,
-              options,
               options.getMarker(Tool.L8),
               GraphLens.getIdentityLens(),
               namingLens,

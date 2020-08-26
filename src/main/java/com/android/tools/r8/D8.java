@@ -251,9 +251,7 @@ public final class D8 {
       InspectorImpl.runInspections(options.outputInspections, appView.appInfo().classes());
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(
-                appView.appInfo().app(),
                 appView,
-                options,
                 marker,
                 GraphLens.getIdentityLens(),
                 NamingLens.getIdentityLens(),

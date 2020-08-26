@@ -78,18 +78,16 @@ public class CfApplicationWriter {
   public final ProguardMapSupplier proguardMapSupplier;
 
   public CfApplicationWriter(
-      DexApplication application,
       AppView<?> appView,
-      InternalOptions options,
       Marker marker,
       GraphLens graphLens,
       NamingLens namingLens,
       ProguardMapSupplier proguardMapSupplier) {
-    this.application = application;
+    this.application = appView.appInfo().app();
     this.appView = appView;
     this.graphLens = graphLens;
     this.namingLens = namingLens;
-    this.options = options;
+    this.options = appView.options();
     assert marker != null;
     this.marker = marker;
     this.proguardMapSupplier = proguardMapSupplier;
