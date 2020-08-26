@@ -270,7 +270,8 @@ public class FileWriter {
       return; // Class constructor is always OK.
     }
     if (method.accessFlags.isStatic()) {
-      if (!options.canUseDefaultAndStaticInterfaceMethods()) {
+      if (!options.canUseDefaultAndStaticInterfaceMethods()
+          && !options.testing.allowStaticInterfaceMethodsForPreNApiLevel) {
         throw options.reporter.fatalError(
             new StaticInterfaceMethodDiagnostic(new MethodPosition(method.method)));
       }

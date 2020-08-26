@@ -1236,6 +1236,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean forceLibBackportsInL8CfToCf = false;
     public boolean enumUnboxingRewriteJavaCGeneratedMethod = false;
     public boolean assertConsistentRenamingOfSignature = false;
+    public boolean allowStaticInterfaceMethodsForPreNApiLevel = false;
 
     // Flag to allow processing of resources in D8. A data resource consumer still needs to be
     // specified.
