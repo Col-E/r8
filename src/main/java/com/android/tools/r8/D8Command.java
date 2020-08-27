@@ -200,6 +200,9 @@ public final class D8Command extends BaseCompilerCommand {
 
     @Override
     void validate() {
+      if (isPrintHelp()) {
+        return;
+      }
       Reporter reporter = getReporter();
       if (getProgramConsumer() instanceof ClassFileConsumer) {
         reporter.warning("Compiling to Java class files with D8 is not officially supported");

@@ -253,6 +253,9 @@ public final class L8Command extends BaseCompilerCommand {
 
     @Override
     void validate() {
+      if (isPrintHelp()) {
+        return;
+      }
       Reporter reporter = getReporter();
       if (!hasDesugaredLibraryConfiguration()) {
         reporter.error("L8 requires a desugared library configuration");

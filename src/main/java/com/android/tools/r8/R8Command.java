@@ -407,6 +407,9 @@ public final class R8Command extends BaseCompilerCommand {
 
     @Override
     void validate() {
+      if (isPrintHelp()) {
+        return;
+      }
       Reporter reporter = getReporter();
       if (getProgramConsumer() instanceof DexFilePerClassFileConsumer) {
         reporter.error("R8 does not support compiling to a single DEX file per Java class file");
