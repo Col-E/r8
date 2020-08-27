@@ -36,6 +36,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -243,7 +244,8 @@ public final class D8 {
       }
       Marker marker = options.getMarker(Tool.D8);
       Set<Marker> markers = new HashSet<>(appView.dexItemFactory().extractMarkers());
-      if (marker != null && hasClassResources) {
+      // TODO(b/166617364): Don't add an additional marker when desugaring is turned off.
+      if (hasClassResources && (options.desugarState != DesugarState.OFF || markers.isEmpty())) {
         markers.add(marker);
       }
       Marker.checkCompatibleDesugaredLibrary(markers, options.reporter);
@@ -254,7 +256,9 @@ public final class D8 {
                 appView,
                 marker,
                 GraphLens.getIdentityLens(),
-                NamingLens.getIdentityLens(),
+                appView.rewritePrefix.isRewriting()
+                    ? PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView)
+                    : NamingLens.getIdentityLens(),
                 null)
             .write(options.getClassFileConsumer());
       } else {

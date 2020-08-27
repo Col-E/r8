@@ -23,6 +23,7 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.android.tools.r8.utils.codeinspector.TryCatchSubject;
 import com.android.tools.r8.utils.codeinspector.TypeSubject;
 import com.google.common.collect.ImmutableSet;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -110,6 +111,41 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
             .map(TypeSubject::toString)
             .collect(Collectors.toSet());
     assertEquals(expectedCatchGuards, foundCatchGuards);
+  }
+
+  @Test
+  public void testTimeD8Cf() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    // Use D8 to desugar with Java classfile output.
+    Path jar =
+        testForD8(Backend.CF)
+            .addInnerClasses(JavaTimeTest.class)
+            .setMinApi(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .compile()
+            .inspect(this::checkRewrittenInvokes)
+            .writeToZip();
+
+    // Collection keep rules is only implemented in the DEX writer.
+    String desugaredLibraryKeepRules = keepRuleConsumer.get();
+    if (desugaredLibraryKeepRules != null) {
+      assertEquals(0, desugaredLibraryKeepRules.length());
+      desugaredLibraryKeepRules = "-keep class * { *; }";
+    }
+
+    // Convert to DEX without desugaring.
+    testForD8()
+        .addProgramFiles(jar)
+        .setMinApi(parameters.getApiLevel())
+        .disableDesugaring()
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            desugaredLibraryKeepRules,
+            shrinkDesugaredLibrary)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(expectedOutput);
   }
 
   @Test
