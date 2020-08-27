@@ -46,6 +46,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
     // TODO(b/155368026): Support fields and const class fields.
     // Move this to something similar than SingleValue#createMaterializingInstruction
     if (value.isSingleStringValue()) {
+      assert returnType == appView.dexItemFactory().stringType;
       instructions.add(new CfConstString(value.asSingleStringValue().getDexString()));
     } else if (value.isSingleNumberValue()) {
       instructions.add(
@@ -88,14 +89,16 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       // if (i == 2) { return 20;}
       enumValueInfoMap.forEach(
           (field, enumValueInfo) -> {
-            CfLabel dest = new CfLabel();
-            instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));
-            instructions.add(new CfConstNumber(enumValueInfo.convertToInt(), ValueType.INT));
-            instructions.add(new CfIfCmp(If.Type.NE, ValueType.INT, dest));
             AbstractValue value = fieldDataMap.getData(field);
-            addCfInstructionsForAbstractValue(instructions, value, returnType);
-            instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
-            instructions.add(dest);
+            if (value != null) {
+              CfLabel dest = new CfLabel();
+              instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));
+              instructions.add(new CfConstNumber(enumValueInfo.convertToInt(), ValueType.INT));
+              instructions.add(new CfIfCmp(If.Type.NE, ValueType.INT, dest));
+              addCfInstructionsForAbstractValue(instructions, value, returnType);
+              instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
+              instructions.add(dest);
+            }
           });
 
       // throw null;
@@ -155,7 +158,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
             CfLabel dest = new CfLabel();
             instructions.add(new CfLoad(ValueType.fromDexType(factory.stringType), 0));
             AbstractValue value = fieldDataMap.getData(field);
-            addCfInstructionsForAbstractValue(instructions, value, factory.intType);
+            addCfInstructionsForAbstractValue(instructions, value, factory.stringType);
             instructions.add(
                 new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.stringMembers.equals, false));
             instructions.add(new CfIf(If.Type.EQ, ValueType.INT, dest));

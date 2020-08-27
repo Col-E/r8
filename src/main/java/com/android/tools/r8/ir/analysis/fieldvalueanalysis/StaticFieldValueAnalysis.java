@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.ir.analysis.value.EnumValuesObjectState;
 import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -25,6 +26,7 @@ import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
@@ -141,9 +143,132 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
    * array as long as the array is identified as being the {@code $VALUES} array.
    */
   private SingleFieldValue computeSingleEnumFieldValue(Value value) {
+    if (!context.getHolder().isEnum()) {
+      return null;
+    }
     assert !value.hasAliasedValue();
-    if (!context.getHolder().isEnum()
-        || !value.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
+    if (isEnumValuesArray(value)) {
+      return computeSingleEnumFieldValueForValuesArray(value);
+    }
+    return computeSingleEnumFieldValueForInstance(value);
+  }
+
+  private SingleFieldValue computeSingleEnumFieldValueForValuesArray(Value value) {
+    if (!value.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmpty)) {
+      return null;
+    }
+
+    NewArrayEmpty newArrayEmpty = value.definition.asNewArrayEmpty();
+    if (newArrayEmpty.type.toBaseType(appView.dexItemFactory()) != context.getHolder().type) {
+      return null;
+    }
+    if (value.hasDebugUsers() || value.hasPhiUsers()) {
+      return null;
+    }
+    if (!newArrayEmpty.size().isConstNumber()) {
+      return null;
+    }
+
+    int valuesSize = newArrayEmpty.size().getConstInstruction().asConstNumber().getIntValue();
+    if (valuesSize == 0) {
+      // No need to compute the state of an empty array.
+      return null;
+    }
+
+    ObjectState[] valuesState = new ObjectState[valuesSize];
+    DexEncodedField valuesField = null;
+    for (Instruction user : value.uniqueUsers()) {
+      switch (user.opcode()) {
+        case ARRAY_PUT:
+          ArrayPut arrayPut = user.asArrayPut();
+          if (arrayPut.array() != value) {
+            return null;
+          }
+          if (!arrayPut.index().isConstNumber()) {
+            return null;
+          }
+          int index = arrayPut.index().getConstInstruction().asConstNumber().getIntValue();
+          if (index < 0 || index >= valuesSize) {
+            return null;
+          }
+          ObjectState objectState = computeEnumInstanceObjectState(arrayPut.value());
+          if (objectState == null || objectState.isEmpty()) {
+            // We need the state of all fields for the analysis to be valuable.
+            return null;
+          }
+          assert verifyValuesArrayIndexMatchesOrdinal(index, objectState);
+          if (valuesState[index] != null) {
+            return null;
+          }
+          valuesState[index] = objectState;
+          break;
+
+        case STATIC_PUT:
+          DexEncodedField field =
+              context.getHolder().lookupStaticField(user.asStaticPut().getField());
+          if (field == null) {
+            return null;
+          }
+          if (valuesField != null) {
+            return null;
+          }
+          valuesField = field;
+          break;
+
+        default:
+          return null;
+      }
+    }
+
+    if (valuesField == null) {
+      return null;
+    }
+
+    for (ObjectState objectState : valuesState) {
+      if (objectState == null) {
+        return null;
+      }
+    }
+
+    return appView
+        .abstractValueFactory()
+        .createSingleFieldValue(valuesField.field, new EnumValuesObjectState(valuesState));
+  }
+
+  private ObjectState computeEnumInstanceObjectState(Value value) {
+    Value root = value.getAliasedValue();
+    if (root.isPhi()) {
+      return ObjectState.empty();
+    }
+    Instruction definition = root.getDefinition();
+    if (definition.isNewInstance()) {
+      return computeObjectState(definition.outValue());
+    }
+    if (definition.isStaticGet()) {
+      // TODO(b/166532388) : Enums with many instance rely on staticGets to set the $VALUES data
+      // instead of directly keeping the values in registers. We could consider analysing these
+      // and answer the analysed object state here.
+      return ObjectState.empty();
+    }
+    return ObjectState.empty();
+  }
+
+  private boolean verifyValuesArrayIndexMatchesOrdinal(int ordinal, ObjectState objectState) {
+    DexEncodedField ordinalField =
+        appView
+            .appInfo()
+            .resolveField(appView.dexItemFactory().enumMembers.ordinalField, context)
+            .getResolvedField();
+    assert ordinalField != null;
+    AbstractValue ordinalState = objectState.getAbstractFieldValue(ordinalField);
+    assert ordinalState != null;
+    assert ordinalState.isSingleNumberValue();
+    assert ordinalState.asSingleNumberValue().getIntValue() == ordinal;
+    return true;
+  }
+
+  private SingleFieldValue computeSingleEnumFieldValueForInstance(Value value) {
+    if (!value.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
       return null;
     }
 

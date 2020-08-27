@@ -994,33 +994,32 @@ public class EnumUnboxer implements PostOptimization {
 
   private EnumInstanceFieldData computeEnumFieldData(
       DexField instanceField, DexProgramClass enumClass) {
-    EnumValueInfoMapCollection.EnumValueInfoMap enumValueInfoMap =
-        appView.appInfo().getEnumValueInfoMap(enumClass.type);
     DexEncodedField encodedInstanceField =
         appView.appInfo().resolveFieldOn(enumClass, instanceField).getResolvedField();
     assert encodedInstanceField != null;
     boolean canBeOrdinal = instanceField.type.isIntType();
     Map<DexField, AbstractValue> data = new IdentityHashMap<>();
+    EnumValueInfoMapCollection.EnumValueInfoMap enumValueInfoMap =
+        appView.appInfo().getEnumValueInfoMap(enumClass.type);
     for (DexField staticField : enumValueInfoMap.enumValues()) {
-      DexEncodedField encodedStaticField = enumClass.lookupStaticField(staticField);
-      AbstractValue enumInstanceValue = encodedStaticField.getOptimizationInfo().getAbstractValue();
-      // TODO(b/155368026): Support other constants than Number and String, so far we support only
-      //  these two because they're the most common and we don't have to deal with accessibility.
-      if (!enumInstanceValue.isSingleFieldValue()) {
-        return EnumInstanceFieldUnknownData.getInstance();
-      }
-      ObjectState enumInstanceState = enumInstanceValue.asSingleFieldValue().getState();
-      AbstractValue fieldValue = enumInstanceState.getAbstractFieldValue(encodedInstanceField);
-      if (!(fieldValue.isSingleNumberValue() || fieldValue.isSingleStringValue())) {
-        return EnumInstanceFieldUnknownData.getInstance();
-      }
-      data.put(staticField, fieldValue);
-      if (canBeOrdinal) {
-        int ordinalValue = enumValueInfoMap.getEnumValueInfo(staticField).ordinal;
-        assert fieldValue.isSingleNumberValue();
-        int computedValue = (int) fieldValue.asSingleNumberValue().getValue();
-        if (computedValue != ordinalValue) {
-          canBeOrdinal = false;
+      ObjectState enumInstanceState =
+          computeEnumInstanceObjectState(enumClass, staticField, enumValueInfoMap);
+      if (enumInstanceState == null) {
+        // The enum instance is effectively unused. No need to generate anything for it, the path
+        // will never be taken.
+      } else {
+        AbstractValue fieldValue = enumInstanceState.getAbstractFieldValue(encodedInstanceField);
+        if (!(fieldValue.isSingleNumberValue() || fieldValue.isSingleStringValue())) {
+          return EnumInstanceFieldUnknownData.getInstance();
+        }
+        data.put(staticField, fieldValue);
+        if (canBeOrdinal) {
+          int ordinalValue = enumValueInfoMap.getEnumValueInfo(staticField).ordinal;
+          assert fieldValue.isSingleNumberValue();
+          int computedValue = fieldValue.asSingleNumberValue().getIntValue();
+          if (computedValue != ordinalValue) {
+            canBeOrdinal = false;
+          }
         }
       }
     }
@@ -1028,6 +1027,52 @@ public class EnumUnboxer implements PostOptimization {
       return new EnumInstanceFieldOrdinalData();
     }
     return new EnumInstanceFieldMappingData(data);
+  }
+
+  // We need to access the enum instance object state to figure out if it contains known constant
+  // field values. The enum instance may be accessed in two ways, directly through the enum
+  // static field, or through the enum $VALUES field. If none of them are kept, the instance is
+  // effectively unused. The object state may be stored in the enum static field optimization
+  // info, if kept, or in the $VALUES optimization info, if kept.
+  // If the enum instance is unused, this method answers null.
+  private ObjectState computeEnumInstanceObjectState(
+      DexProgramClass enumClass,
+      DexField staticField,
+      EnumValueInfoMapCollection.EnumValueInfoMap enumValueInfoMap) {
+    // Attempt 1: Get object state from the instance field's optimization info.
+    DexEncodedField encodedStaticField = enumClass.lookupStaticField(staticField);
+    AbstractValue enumInstanceValue = encodedStaticField.getOptimizationInfo().getAbstractValue();
+    if (enumInstanceValue.isSingleFieldValue()) {
+      return enumInstanceValue.asSingleFieldValue().getState();
+    }
+    if (enumInstanceValue.isUnknown()) {
+      return ObjectState.empty();
+    }
+    assert enumInstanceValue.isZero();
+
+    // Attempt 2: Get object state from the values field's optimization info.
+    DexEncodedField valuesField =
+        enumClass.lookupStaticField(
+            factory.createField(
+                enumClass.type,
+                factory.createArrayType(1, enumClass.type),
+                factory.enumValuesFieldName));
+    AbstractValue valuesValue = valuesField.getOptimizationInfo().getAbstractValue();
+    if (valuesValue.isZero()) {
+      // Unused enum instance.
+      return null;
+    }
+    if (valuesValue.isUnknown()) {
+      return ObjectState.empty();
+    }
+    assert valuesValue.isSingleFieldValue();
+    ObjectState valuesState = valuesValue.asSingleFieldValue().getState();
+    if (valuesState.isEnumValuesObjectState()) {
+      return valuesState
+          .asEnumValuesObjectState()
+          .getObjectStateForOrdinal(enumValueInfoMap.getEnumValueInfo(staticField).ordinal);
+    }
+    return ObjectState.empty();
   }
 
   private boolean isFirstInstructionAfterArguments(InvokeMethod invokeMethod, IRCode code) {

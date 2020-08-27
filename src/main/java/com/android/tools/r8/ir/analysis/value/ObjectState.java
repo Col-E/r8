@@ -35,6 +35,14 @@ public abstract class ObjectState {
   @Override
   public abstract int hashCode();
 
+  public boolean isEnumValuesObjectState() {
+    return false;
+  }
+
+  public EnumValuesObjectState asEnumValuesObjectState() {
+    return null;
+  }
+
   public static class Builder {
 
     private final Map<DexField, AbstractValue> state = new IdentityHashMap<>();

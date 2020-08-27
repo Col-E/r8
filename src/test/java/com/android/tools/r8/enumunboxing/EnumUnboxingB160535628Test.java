@@ -52,7 +52,7 @@ public class EnumUnboxingB160535628Test extends EnumUnboxingTestBase {
             .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(
                 options -> {
-                  options.enableEnumUnboxing = true;
+                  assert options.enableEnumUnboxing;
                   options.testing.enableEnumUnboxingDebugLogs = true;
                 })
             .allowDiagnosticMessages()

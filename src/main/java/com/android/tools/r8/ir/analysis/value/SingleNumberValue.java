@@ -50,6 +50,10 @@ public class SingleNumberValue extends SingleConstValue {
     return value;
   }
 
+  public int getIntValue() {
+    return (int) value;
+  }
+
   @Override
   public boolean equals(Object o) {
     return this == o;
