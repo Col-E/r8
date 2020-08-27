@@ -170,6 +170,7 @@ public class DexItemFactory {
   public final DexString endsWithMethodName = createString("endsWith");
   public final DexString equalsMethodName = createString("equals");
   public final DexString hashCodeMethodName = createString("hashCode");
+  public final DexString identityHashCodeName = createString("identityHashCode");
   public final DexString equalsIgnoreCaseMethodName = createString("equalsIgnoreCase");
   public final DexString contentEqualsMethodName = createString("contentEquals");
   public final DexString indexOfMethodName = createString("indexOf");
@@ -225,6 +226,7 @@ public class DexItemFactory {
   public final DexString fieldDescriptor = createString("Ljava/lang/reflect/Field;");
   public final DexString methodDescriptor = createString("Ljava/lang/reflect/Method;");
   public final DexString enumDescriptor = createString("Ljava/lang/Enum;");
+  public final DexString javaLangSystemDescriptor = createString("Ljava/lang/System;");
   public final DexString annotationDescriptor = createString("Ljava/lang/annotation/Annotation;");
   public final DexString objectsDescriptor = createString("Ljava/util/Objects;");
   public final DexString collectionsDescriptor = createString("Ljava/util/Collections;");
@@ -353,7 +355,7 @@ public class DexItemFactory {
   public final DexType stringBuilderType = createStaticallyKnownType(stringBuilderDescriptor);
   public final DexType stringBufferType = createStaticallyKnownType(stringBufferDescriptor);
 
-  public final DexType javaLangSystemType = createStaticallyKnownType("Ljava/lang/System;");
+  public final DexType javaLangSystemType = createStaticallyKnownType(javaLangSystemDescriptor);
   public final DexType javaIoPrintStreamType = createStaticallyKnownType("Ljava/io/PrintStream;");
 
   public final DexType varHandleType = createStaticallyKnownType(varHandleDescriptor);
@@ -464,6 +466,7 @@ public class DexItemFactory {
   public final ClassMethods classMethods = new ClassMethods();
   public final ConstructorMethods constructorMethods = new ConstructorMethods();
   public final EnumMembers enumMembers = new EnumMembers();
+  public final JavaLangSystemMethods javaLangSystemMethods = new JavaLangSystemMethods();
   public final NullPointerExceptionMethods npeMethods = new NullPointerExceptionMethods();
   public final IllegalArgumentExceptionMethods illegalArgumentExceptionMethods =
       new IllegalArgumentExceptionMethods();
@@ -1266,6 +1269,19 @@ public class DexItemFactory {
               newInstanceName,
               objectDescriptor,
               new DexString[] {objectArrayDescriptor});
+    }
+  }
+
+  public class JavaLangSystemMethods {
+    public final DexMethod identityHashCode;
+
+    private JavaLangSystemMethods() {
+      identityHashCode =
+          createMethod(
+              javaLangSystemDescriptor,
+              identityHashCodeName,
+              intDescriptor,
+              new DexString[] {objectDescriptor});
     }
   }
 

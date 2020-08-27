@@ -5,6 +5,7 @@
 package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
@@ -43,6 +44,7 @@ public class OrdinalHashCodeEnumUnboxingTest extends EnumUnboxingTestBase {
             .addKeepMainRule(classToTest)
             .addKeepRules(enumKeepRules.getKeepRules())
             .enableNeverClassInliningAnnotations()
+            .enableInliningAnnotations()
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
@@ -66,8 +68,29 @@ public class OrdinalHashCodeEnumUnboxingTest extends EnumUnboxingTestBase {
     public static void main(String[] args) {
       System.out.println(MyEnum.A.ordinal());
       System.out.println(0);
-      System.out.println(MyEnum.A.hashCode());
+      System.out.println(ordinal(MyEnum.A));
       System.out.println(0);
+      System.out.println(ordinal(MyEnum.B));
+      System.out.println(1);
+      System.out.println(MyEnum.A.hashCode());
+      System.out.println(MyEnum.A.hashCode());
+      System.out.println(hash(MyEnum.A));
+      System.out.println(System.identityHashCode(MyEnum.A));
+      System.out.println(hash(null));
+      System.out.println(0);
+      Object o = new Object();
+      System.out.println(System.identityHashCode(o));
+      System.out.println(o.hashCode());
+    }
+
+    @NeverInline
+    private static int hash(MyEnum e) {
+      return System.identityHashCode(e);
+    }
+
+    @NeverInline
+    private static int ordinal(MyEnum e) {
+      return e.ordinal();
     }
   }
 }

@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.MemberType;
@@ -176,6 +177,14 @@ public class EnumUnboxingRewriter {
             convertedEnums.put(invoke, enumType);
             continue;
           }
+        } else if (invokedMethod == factory.javaLangSystemMethods.identityHashCode) {
+          assert invokeStatic.inValues().size() == 1;
+          Value argument = invokeStatic.getArgument(0);
+          DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
+          if (enumType != null) {
+            invokeStatic.outValue().replaceUsers(argument);
+            iterator.removeOrReplaceByDebugLocalRead();
+          }
         }
       }
       // Rewrites direct access to enum values into the corresponding int, $VALUES is not
@@ -185,7 +194,7 @@ public class EnumUnboxingRewriter {
         DexType holder = staticGet.getField().holder;
         if (enumsToUnbox.containsEnum(holder)) {
           if (staticGet.outValue() == null) {
-            iterator.removeInstructionIgnoreOutValue();
+            iterator.removeOrReplaceByDebugLocalRead();
             continue;
           }
           EnumValueInfoMap enumValueInfoMap = enumsToUnbox.getEnumValueInfoMap(holder);
@@ -236,7 +245,7 @@ public class EnumUnboxingRewriter {
 
   private void replaceEnumInvoke(
       InstructionListIterator iterator,
-      InvokeMethodWithReceiver invokeMethod,
+      InvokeMethod invokeMethod,
       DexMethod method,
       Function<DexMethod, DexEncodedMethod> synthesizor) {
     utilityMethods.computeIfAbsent(method, synthesizor);

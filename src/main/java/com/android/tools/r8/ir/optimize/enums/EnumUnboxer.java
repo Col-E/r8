@@ -798,6 +798,10 @@ public class EnumUnboxer implements PostOptimization {
       }
       assert dexClass.isLibraryClass();
       if (dexClass.type != factory.enumType) {
+        // System.identityHashCode(Object) is supported for proto enums.
+        if (singleTarget == factory.javaLangSystemMethods.identityHashCode) {
+          return Reason.ELIGIBLE;
+        }
         return Reason.UNSUPPORTED_LIBRARY_CALL;
       }
       // TODO(b/147860220): EnumSet and EnumMap may be interesting to model.
