@@ -31,6 +31,10 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     }
   }
 
+  public DexType getReturnType() {
+    return proto.returnType;
+  }
+
   @Override
   public <T> T apply(
       Function<DexType, T> classConsumer,

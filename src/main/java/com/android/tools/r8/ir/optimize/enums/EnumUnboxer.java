@@ -1213,7 +1213,7 @@ public class EnumUnboxer implements PostOptimization {
 
   private static class EnumUnboxingLens extends NestedGraphLens {
 
-    private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges;
+    private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod;
     private final Set<DexType> unboxedEnums;
 
     EnumUnboxingLens(
@@ -1224,7 +1224,7 @@ public class EnumUnboxer implements PostOptimization {
         BiMap<DexMethod, DexMethod> originalMethodSignatures,
         GraphLens previousLens,
         DexItemFactory dexItemFactory,
-        Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges,
+        Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod,
         Set<DexType> unboxedEnums) {
       super(
           typeMap,
@@ -1234,17 +1234,18 @@ public class EnumUnboxer implements PostOptimization {
           originalMethodSignatures,
           previousLens,
           dexItemFactory);
-      this.prototypeChanges = prototypeChanges;
+      this.prototypeChangesPerMethod = prototypeChangesPerMethod;
       this.unboxedEnums = unboxedEnums;
     }
 
     @Override
-    public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
+    protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
+        RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
       // During the second IR processing enum unboxing is the only optimization rewriting
       // prototype description, if this does not hold, remove the assertion and merge
       // the two prototype changes.
-      assert previousLens.lookupPrototypeChanges(method).isEmpty();
-      return prototypeChanges.getOrDefault(method, RewrittenPrototypeDescription.none());
+      assert prototypeChanges.isEmpty();
+      return prototypeChangesPerMethod.getOrDefault(method, RewrittenPrototypeDescription.none());
     }
 
     @Override
@@ -1264,7 +1265,7 @@ public class EnumUnboxer implements PostOptimization {
 
     private static class Builder extends NestedGraphLens.Builder {
 
-      private Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges =
+      private Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
           new IdentityHashMap<>();
 
       public void move(DexMethod from, boolean fromStatic, DexMethod to, boolean toStatic) {
@@ -1299,7 +1300,7 @@ public class EnumUnboxer implements PostOptimization {
             from.proto.returnType == to.proto.returnType
                 ? null
                 : new RewrittenTypeInfo(from.proto.returnType, to.proto.returnType);
-        prototypeChanges.put(
+        prototypeChangesPerMethod.put(
             to,
             RewrittenPrototypeDescription.createForRewrittenTypes(returnInfo, builder.build())
                 .withExtraUnusedNullParameters(numberOfExtraNullParameters));
@@ -1318,7 +1319,7 @@ public class EnumUnboxer implements PostOptimization {
             originalMethodSignatures,
             previousLens,
             dexItemFactory,
-            ImmutableMap.copyOf(prototypeChanges),
+            ImmutableMap.copyOf(prototypeChangesPerMethod),
             ImmutableSet.copyOf(unboxedEnums));
       }
     }

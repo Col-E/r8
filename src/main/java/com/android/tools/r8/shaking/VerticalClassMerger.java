@@ -1140,7 +1140,9 @@ public class VerticalClassMerger {
         // if I has a supertype J. This is due to the fact that invoke-super instructions that
         // resolve to a method on an interface never hit an implementation below that interface.
         deferredRenamings.mapVirtualMethodToDirectInType(
-            oldTarget, new GraphLensLookupResult(newTarget, STATIC), target.type);
+            oldTarget,
+            prototypeChanges -> new GraphLensLookupResult(newTarget, STATIC, prototypeChanges),
+            target.type);
       } else {
         // If we merge class B into class C, and class C contains an invocation super.m(), then it
         // is insufficient to rewrite "invoke-super B.m()" to "invoke-direct C.m$B()" (the method
@@ -1159,7 +1161,9 @@ public class VerticalClassMerger {
                   || appInfo.lookupSuperTarget(signatureInHolder, holder) != null;
           if (resolutionSucceeds) {
             deferredRenamings.mapVirtualMethodToDirectInType(
-                signatureInHolder, new GraphLensLookupResult(newTarget, DIRECT), target.type);
+                signatureInHolder,
+                prototypeChanges -> new GraphLensLookupResult(newTarget, DIRECT, prototypeChanges),
+                target.type);
           } else {
             break;
           }
@@ -1181,7 +1185,10 @@ public class VerticalClassMerger {
                       || appInfo.lookupSuperTarget(signatureInHolder, holder) != null;
               if (resolutionSucceededBeforeMerge) {
                 deferredRenamings.mapVirtualMethodToDirectInType(
-                    signatureInType, new GraphLensLookupResult(newTarget, DIRECT), target.type);
+                    signatureInType,
+                    prototypeChanges ->
+                        new GraphLensLookupResult(newTarget, DIRECT, prototypeChanges),
+                    target.type);
               }
             }
           }
@@ -1733,27 +1740,26 @@ public class VerticalClassMerger {
       // First look up the method using the existing graph lens (for example, the type will have
       // changed if the method was publicized by ClassAndMemberPublicizer).
       GraphLensLookupResult lookup = appView.graphLens().lookupMethod(method, context, type);
-      DexMethod previousMethod = lookup.getMethod();
-      Type previousType = lookup.getType();
       // Then check if there is a renaming due to the vertical class merger.
-      DexMethod newMethod = renamedMembersLens.methodMap.get(previousMethod);
-      if (newMethod != null) {
-        if (previousType == Type.INTERFACE) {
-          // If an interface has been merged into a class, invoke-interface needs to be translated
-          // to invoke-virtual.
-          DexClass clazz = appInfo.definitionFor(newMethod.holder);
-          if (clazz != null && !clazz.accessFlags.isInterface()) {
-            assert appInfo.definitionFor(method.holder).accessFlags.isInterface();
-            return new GraphLensLookupResult(newMethod, Type.VIRTUAL);
-          }
-        }
-        return new GraphLensLookupResult(newMethod, previousType);
+      DexMethod newMethod = renamedMembersLens.methodMap.get(lookup.getMethod());
+      if (newMethod == null) {
+        return lookup;
       }
-      return new GraphLensLookupResult(previousMethod, previousType);
+      if (lookup.getType() == Type.INTERFACE) {
+        // If an interface has been merged into a class, invoke-interface needs to be translated
+        // to invoke-virtual.
+        DexClass clazz = appInfo.definitionFor(newMethod.holder);
+        if (clazz != null && !clazz.accessFlags.isInterface()) {
+          assert appInfo.definitionFor(method.holder).accessFlags.isInterface();
+          return new GraphLensLookupResult(newMethod, Type.VIRTUAL, lookup.getPrototypeChanges());
+        }
+      }
+      return new GraphLensLookupResult(newMethod, lookup.getType(), lookup.getPrototypeChanges());
     }
 
     @Override
-    public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
+    public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
+        DexMethod method) {
       throw new Unreachable();
     }
 

@@ -76,14 +76,10 @@ public class UnusedArgumentsCollector {
     }
 
     @Override
-    public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
-      DexMethod originalMethod =
-          originalMethodSignatures != null
-              ? originalMethodSignatures.getOrDefault(method, method)
-              : method;
-      RewrittenPrototypeDescription result = previousLens.lookupPrototypeChanges(originalMethod);
-      ArgumentInfoCollection removedArguments = this.removedArguments.get(method);
-      return removedArguments != null ? result.withRemovedArguments(removedArguments) : result;
+    protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
+        RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
+      return prototypeChanges.withRemovedArguments(
+          removedArguments.getOrDefault(method, ArgumentInfoCollection.empty()));
     }
   }
 

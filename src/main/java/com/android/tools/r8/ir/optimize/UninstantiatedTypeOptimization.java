@@ -70,21 +70,18 @@ public class UninstantiatedTypeOptimization {
     }
 
     @Override
-    public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
-      DexMethod originalMethod = originalMethodSignatures.getOrDefault(method, method);
-      RewrittenPrototypeDescription result = previousLens.lookupPrototypeChanges(originalMethod);
-      if (originalMethod != method) {
-        if (method.proto.returnType.isVoidType() && !originalMethod.proto.returnType.isVoidType()) {
-          result = result.withConstantReturn(originalMethod.proto.returnType, appView);
-        }
-        ArgumentInfoCollection removedArgumentsInfo = removedArgumentsInfoPerMethod.get(method);
-        if (removedArgumentsInfo != null) {
-          result = result.withRemovedArguments(removedArgumentsInfo);
-        }
-      } else {
+    protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
+        RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
+      DexMethod previous = internalGetPreviousMethodSignature(method);
+      if (previous == method) {
         assert !removedArgumentsInfoPerMethod.containsKey(method);
+        return prototypeChanges;
       }
-      return result;
+      if (method.getReturnType().isVoidType() && !previous.getReturnType().isVoidType()) {
+        prototypeChanges = prototypeChanges.withConstantReturn(previous.getReturnType(), appView);
+      }
+      return prototypeChanges.withRemovedArguments(
+          removedArgumentsInfoPerMethod.getOrDefault(method, ArgumentInfoCollection.empty()));
     }
   }
 

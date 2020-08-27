@@ -42,16 +42,21 @@ public abstract class GraphLens {
   /**
    * Result of a method lookup in a GraphLens.
    *
-   * <p>This provide the new target and the invoke type to use.
+   * <p>This provides the new target and invoke type to use, along with a description of the
+   * prototype changes that have been made to the target method and the corresponding required
+   * changes to the invoke arguments.
    */
   public static class GraphLensLookupResult {
 
     private final DexMethod method;
     private final Type type;
+    private final RewrittenPrototypeDescription prototypeChanges;
 
-    public GraphLensLookupResult(DexMethod method, Type type) {
+    public GraphLensLookupResult(
+        DexMethod method, Type type, RewrittenPrototypeDescription prototypeChanges) {
       this.method = method;
       this.type = type;
+      this.prototypeChanges = prototypeChanges;
     }
 
     public DexMethod getMethod() {
@@ -60,6 +65,10 @@ public abstract class GraphLens {
 
     public Type getType() {
       return type;
+    }
+
+    public RewrittenPrototypeDescription getPrototypeChanges() {
+      return prototypeChanges;
     }
   }
 
@@ -189,7 +198,8 @@ public abstract class GraphLens {
   public abstract GraphLensLookupResult lookupMethod(
       DexMethod method, DexMethod context, Type type);
 
-  public abstract RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method);
+  public abstract RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
+      DexMethod method);
 
   public abstract DexField lookupField(DexField field);
 
@@ -434,11 +444,12 @@ public abstract class GraphLens {
 
     @Override
     public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-      return new GraphLensLookupResult(method, type);
+      return new GraphLensLookupResult(method, type, RewrittenPrototypeDescription.none());
     }
 
     @Override
-    public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
+    public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
+        DexMethod method) {
       return RewrittenPrototypeDescription.none();
     }
 
@@ -628,24 +639,38 @@ public abstract class GraphLens {
 
     @Override
     public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-      DexMethod previousContext =
-          originalMethodSignatures != null
-              ? originalMethodSignatures.getOrDefault(context, context)
-              : context;
-      GraphLensLookupResult previous = previousLens.lookupMethod(method, previousContext, type);
-      DexMethod newMethod = methodMap.get(previous.getMethod());
+      DexMethod previousContext = internalGetPreviousMethodSignature(context);
+      GraphLensLookupResult lookup = previousLens.lookupMethod(method, previousContext, type);
+      DexMethod newMethod = methodMap.get(lookup.getMethod());
       if (newMethod == null) {
-        return previous;
+        return lookup;
       }
       // TODO(sgjesse): Should we always do interface to virtual mapping? Is it a performance win
-      // that only subclasses which are known to need it actually do it?
+      //  that only subclasses which are known to need it actually do it?
       return new GraphLensLookupResult(
-          newMethod, mapInvocationType(newMethod, method, previous.getType()));
+          newMethod,
+          mapInvocationType(newMethod, method, lookup.getType()),
+          internalDescribePrototypeChanges(lookup.getPrototypeChanges(), newMethod));
     }
 
     @Override
-    public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
-      return previousLens.lookupPrototypeChanges(method);
+    public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
+        DexMethod method) {
+      DexMethod previous = internalGetPreviousMethodSignature(method);
+      RewrittenPrototypeDescription lookup =
+          previousLens.lookupPrototypeChangesForMethodDefinition(previous);
+      return internalDescribePrototypeChanges(lookup, method);
+    }
+
+    protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
+        RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
+      return prototypeChanges;
+    }
+
+    protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+      return originalMethodSignatures != null
+          ? originalMethodSignatures.getOrDefault(method, method)
+          : method;
     }
 
     @Override

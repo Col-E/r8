@@ -87,14 +87,16 @@ public class MemberRebindingLens extends NestedGraphLens {
 
   @Override
   public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-    GraphLensLookupResult previous = previousLens.lookupMethod(method, context, type);
+    GraphLensLookupResult lookup = previousLens.lookupMethod(method, context, type);
     Map<DexMethod, DexMethod> methodMap = methodMaps.getOrDefault(type, Collections.emptyMap());
-    DexMethod newMethod = methodMap.get(previous.getMethod());
-    if (newMethod != null) {
-      return new GraphLensLookupResult(
-          newMethod, mapInvocationType(newMethod, method, previous.getType()));
+    DexMethod newMethod = methodMap.get(lookup.getMethod());
+    if (newMethod == null) {
+      return lookup;
     }
-    return previous;
+    return new GraphLensLookupResult(
+        newMethod,
+        mapInvocationType(newMethod, method, lookup.getType()),
+        lookup.getPrototypeChanges());
   }
 
   @Override

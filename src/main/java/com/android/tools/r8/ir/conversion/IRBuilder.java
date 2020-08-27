@@ -457,7 +457,7 @@ public class IRBuilder {
   private static RewrittenPrototypeDescription lookupPrototypeChanges(
       AppView<?> appView, ProgramMethod method) {
     RewrittenPrototypeDescription prototypeChanges =
-        appView.graphLens().lookupPrototypeChanges(method.getReference());
+        appView.graphLens().lookupPrototypeChangesForMethodDefinition(method.getReference());
     if (Log.ENABLED && prototypeChanges.getArgumentInfoCollection().hasRemovedArguments()) {
       Log.info(
           IRBuilder.class,

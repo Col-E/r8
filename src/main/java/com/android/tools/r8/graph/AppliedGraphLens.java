@@ -117,12 +117,12 @@ public class AppliedGraphLens extends GraphLens {
 
   @Override
   public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Invoke.Type type) {
-    return new GraphLensLookupResult(method, type);
+    return GraphLens.getIdentityLens().lookupMethod(method, context, type);
   }
 
   @Override
-  public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
-    return RewrittenPrototypeDescription.none();
+  public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(DexMethod method) {
+    return GraphLens.getIdentityLens().lookupPrototypeChangesForMethodDefinition(method);
   }
 
   @Override

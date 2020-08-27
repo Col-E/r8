@@ -439,6 +439,9 @@ public class RewrittenPrototypeDescription {
   }
 
   public RewrittenPrototypeDescription withRemovedArguments(ArgumentInfoCollection other) {
+    if (other.isEmpty()) {
+      return this;
+    }
     return new RewrittenPrototypeDescription(
         extraParameters, rewrittenReturnInfo, argumentInfoCollection.combine(other));
   }

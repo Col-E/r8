@@ -98,33 +98,36 @@ public class NestedPrivateMethodLens extends NestedGraphLens {
   }
 
   @Override
-  public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
+  protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
+      RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
     if (isConstructorBridge(method)) {
       // TODO (b/132767654): Try to write a test which breaks that assertion.
-      assert previousLens.lookupPrototypeChanges(method).isEmpty();
+      assert prototypeChanges.isEmpty();
       // TODO(b/164901008): Fix when the number of arguments overflows.
       return RewrittenPrototypeDescription.none().withExtraUnusedNullParameter();
-    } else {
-      return previousLens.lookupPrototypeChanges(method);
     }
+    return prototypeChanges;
   }
 
   @Override
   public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Invoke.Type type) {
     assert originalMethodSignatures == null;
-    GraphLensLookupResult previous = previousLens.lookupMethod(method, context, type);
-    DexMethod bridge = methodMap.get(previous.getMethod());
+    GraphLensLookupResult lookup = previousLens.lookupMethod(method, context, type);
+    DexMethod bridge = methodMap.get(lookup.getMethod());
     if (bridge == null) {
-      return previous;
+      return lookup;
     }
     assert context != null : "Guaranteed by isContextFreeForMethod";
     if (bridge.holder == context.holder) {
-      return previous;
+      return lookup;
     }
     if (isConstructorBridge(bridge)) {
-      return new GraphLensLookupResult(bridge, Invoke.Type.DIRECT);
+      return new GraphLensLookupResult(
+          bridge,
+          Invoke.Type.DIRECT,
+          internalDescribePrototypeChanges(lookup.getPrototypeChanges(), bridge));
     }
-    return new GraphLensLookupResult(bridge, Invoke.Type.STATIC);
+    return new GraphLensLookupResult(bridge, Invoke.Type.STATIC, lookup.getPrototypeChanges());
   }
 
   public static Builder builder() {
