@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.function.BiFunction;
 import org.junit.rules.TemporaryFolder;
 
 public class TestState {
@@ -53,5 +54,10 @@ public class TestState {
 
   void setStderr(String stderr) {
     this.stderr = stderr;
+  }
+
+  void setDiagnosticsLevelModifier(
+      BiFunction<DiagnosticsLevel, Diagnostic, DiagnosticsLevel> modifier) {
+    messages.setDiagnosticsLevelModifier(modifier);
   }
 }

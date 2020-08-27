@@ -57,4 +57,19 @@ public interface DiagnosticsHandler {
     }
     System.out.println(info.getDiagnosticMessage());
   }
+
+  /**
+   * Modify the level of a diagnostic.
+   *
+   * <p>This modification is allowed only for non-fatal compiler diagnostics.
+   *
+   * <p>Changing a non-error into an error will cause the compiler to exit with a <code>
+   * CompilationFailedException</code> at its next error check point.
+   *
+   * <p>Changing an error into a non-error will allow the compiler to continue compilation. Note
+   * that doing so could very well lead to an internal compiler error due to a broken invariant.
+   */
+  default DiagnosticsLevel modifyDiagnosticsLevel(DiagnosticsLevel level, Diagnostic diagnostic) {
+    return level;
+  }
 }

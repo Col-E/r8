@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiFunction;
 
 public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBuilder<RR, T>> {
 
@@ -189,5 +190,11 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
 
   public T addRunClasspathFiles(Path... files) {
     return addRunClasspathFiles(Arrays.asList(files));
+  }
+
+  public T setDiagnosticsLevelModifier(
+      BiFunction<DiagnosticsLevel, Diagnostic, DiagnosticsLevel> modifier) {
+    getState().setDiagnosticsLevelModifier(modifier);
+    return self();
   }
 }

@@ -3,8 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import static com.android.tools.r8.DiagnosticsLevel.ERROR;
+import static com.android.tools.r8.DiagnosticsLevel.INFO;
+import static com.android.tools.r8.DiagnosticsLevel.WARNING;
+
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.DiagnosticsLevel;
+import com.android.tools.r8.errors.Unreachable;
 
 public class Reporter implements DiagnosticsHandler {
 
@@ -19,14 +25,39 @@ public class Reporter implements DiagnosticsHandler {
     this.clientHandler = clientHandler;
   }
 
+  private void handleDiagnostic(DiagnosticsLevel level, Diagnostic diagnostic) {
+    // To avoid having an entry for fatal error in the public  API enum use null to signal
+    // fatal error internally.
+    if (level != null) {
+      DiagnosticsLevel modifiedLevel = clientHandler.modifyDiagnosticsLevel(level, diagnostic);
+      level = modifiedLevel != null ? modifiedLevel : level;
+    } else {
+      level = ERROR;
+    }
+    switch (level) {
+      case INFO:
+        clientHandler.info(diagnostic);
+        break;
+      case WARNING:
+        clientHandler.warning(diagnostic);
+        break;
+      case ERROR:
+        abort = new AbortException(diagnostic);
+        clientHandler.error(diagnostic);
+        break;
+      default:
+        throw new Unreachable();
+    }
+  }
+
   @Override
   public synchronized void info(Diagnostic info) {
-    clientHandler.info(info);
+    handleDiagnostic(INFO, info);
   }
 
   @Override
   public synchronized void warning(Diagnostic warning) {
-    clientHandler.warning(warning);
+    handleDiagnostic(WARNING, warning);
   }
 
   public void warning(String message) {
@@ -35,8 +66,7 @@ public class Reporter implements DiagnosticsHandler {
 
   @Override
   public synchronized void error(Diagnostic error) {
-    abort = new AbortException(error);
-    clientHandler.error(error);
+    handleDiagnostic(ERROR, error);
   }
 
   public void error(String message) {
@@ -54,7 +84,7 @@ public class Reporter implements DiagnosticsHandler {
    * @throws AbortException always.
    */
   public RuntimeException fatalError(Diagnostic error) {
-    error(error);
+    handleDiagnostic(null, error);
     throw abort;
   }
 

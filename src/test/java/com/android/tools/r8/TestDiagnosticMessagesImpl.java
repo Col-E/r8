@@ -16,12 +16,14 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
 import org.hamcrest.Matcher;
 
 public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagnosticMessages {
   private final List<Diagnostic> infos = new ArrayList<>();
   private final List<Diagnostic> warnings = new ArrayList<>();
   private final List<Diagnostic> errors = new ArrayList<>();
+  BiFunction<DiagnosticsLevel, Diagnostic, DiagnosticsLevel> modifier;
 
   @Override
   public String toString() {
@@ -63,6 +65,11 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
   @Override
   public void error(Diagnostic error) {
     errors.add(error);
+  }
+
+  @Override
+  public DiagnosticsLevel modifyDiagnosticsLevel(DiagnosticsLevel level, Diagnostic diagnostic) {
+    return modifier == null ? level : modifier.apply(level, diagnostic);
   }
 
   @Override
@@ -302,5 +309,10 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
   @Override
   public TestDiagnosticMessages assertAllErrorsMatch(Matcher<Diagnostic> matcher) {
     return assertAllDiagnosticsMatches(getErrors(), "error", matcher);
+  }
+
+  void setDiagnosticsLevelModifier(
+      BiFunction<DiagnosticsLevel, Diagnostic, DiagnosticsLevel> modifier) {
+    this.modifier = modifier;
   }
 }

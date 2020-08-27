@@ -358,6 +358,7 @@ public class R8 {
             }
           }
         }
+        options.reporter.failIfPendingErrors();
 
         // Add synthesized -assumenosideeffects from min api if relevant.
         if (options.isGeneratingDex()) {
