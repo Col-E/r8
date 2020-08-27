@@ -8,8 +8,10 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
+import com.android.tools.r8.graph.classmerging.MergedClasses;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
+import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
@@ -70,6 +72,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private Predicate<DexType> classesEscapingIntoLibrary = Predicates.alwaysTrue();
   private InitializedClassesInInstanceMethods initializedClassesInInstanceMethods;
   private HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses;
+  private HorizontallyMergedClasses horizontallyMergedClasses;
   private VerticallyMergedClasses verticallyMergedClasses;
   private EnumValueInfoMapCollection unboxedEnums = EnumValueInfoMapCollection.empty();
   private Set<DexMethod> cfByteCodePassThrough = ImmutableSet.of();
@@ -398,32 +401,48 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public boolean hasBeenMerged(DexProgramClass clazz) {
-    // TODO(b/165227525): Add support for the horizontal class merger here.
-    if (horizontallyMergedLambdaClasses != null
-        && horizontallyMergedLambdaClasses.hasBeenMerged(clazz)) {
-      return true;
-    }
-    return verticallyMergedClasses != null && verticallyMergedClasses.hasBeenMerged(clazz);
+    return MergedClasses.hasBeenMerged(horizontallyMergedClasses, clazz)
+        || MergedClasses.hasBeenMerged(horizontallyMergedLambdaClasses, clazz)
+        || MergedClasses.hasBeenMerged(verticallyMergedClasses, clazz);
   }
 
-  // Get the result of horizontal lambda class merging. Returns null if horizontal lambda class
-  // merging has not been run.
+  /**
+   * Get the result of horizontal lambda class merging. Returns null if horizontal lambda class
+   * merging has not been run.
+   */
   public HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses() {
     return horizontallyMergedLambdaClasses;
   }
 
   public void setHorizontallyMergedLambdaClasses(
       HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses) {
+    assert this.horizontallyMergedLambdaClasses == null;
     this.horizontallyMergedLambdaClasses = horizontallyMergedLambdaClasses;
   }
 
-  // Get the result of vertical class merging. Returns null if vertical class merging has not been
-  // run.
+  /**
+   * Get the result of horizontal class merging. Returns null if horizontal lambda class merging has
+   * not been run.
+   */
+  public HorizontallyMergedClasses horizontallyMergedClasses() {
+    return horizontallyMergedClasses;
+  }
+
+  public void setHorizontallyMergedClasses(HorizontallyMergedClasses horizontallyMergedClasses) {
+    assert this.horizontallyMergedClasses == null;
+    this.horizontallyMergedClasses = horizontallyMergedClasses;
+  }
+
+  /**
+   * Get the result of vertical class merging. Returns null if vertical class merging has not been
+   * run.
+   */
   public VerticallyMergedClasses verticallyMergedClasses() {
     return verticallyMergedClasses;
   }
 
   public void setVerticallyMergedClasses(VerticallyMergedClasses verticallyMergedClasses) {
+    assert this.verticallyMergedClasses == null;
     this.verticallyMergedClasses = verticallyMergedClasses;
   }
 

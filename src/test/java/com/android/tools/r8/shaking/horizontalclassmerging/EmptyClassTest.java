@@ -6,8 +6,11 @@ package com.android.tools.r8.shaking.horizontalclassmerging;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsNot.not;
 
-import com.android.tools.r8.*;
+import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import org.junit.Test;
@@ -15,12 +18,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class IdenticalFieldMembersTest extends TestBase {
+public class EmptyClassTest extends TestBase {
   private final TestParameters parameters;
   private final boolean enableHorizontalClassMerging;
 
-  public IdenticalFieldMembersTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
+  public EmptyClassTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
     this.parameters = parameters;
     this.enableHorizontalClassMerging = enableHorizontalClassMerging;
   }
@@ -34,22 +36,19 @@ public class IdenticalFieldMembersTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(IdenticalFieldMembersTest.class)
+        .addInnerClasses(EmptyClassTest.class)
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
-        .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("foo A", "bar 2")
+        .assertSuccess()
         .inspect(
             codeInspector -> {
               if (enableHorizontalClassMerging) {
                 assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
-                // TODO(b/163311975): A and B should be merged
-                //   assertThat(codeInspector.clazz(B.class), not(isPresent()));
+                assertThat(codeInspector.clazz(B.class), not(isPresent()));
                 // TODO(b/165517236): Explicitly check classes have been merged.
               } else {
                 assertThat(codeInspector.clazz(A.class), isPresent());
@@ -59,39 +58,20 @@ public class IdenticalFieldMembersTest extends TestBase {
   }
 
   @NeverClassInline
-  public static class A {
-    private String field;
-
-    public A(String v) {
-      this.field = v;
-    }
-
-    @NeverInline
-    public void foo() {
-      System.out.println("foo " + field);
-    }
-  }
+  public static class A {}
 
   @NeverClassInline
   public static class B {
-    private String field;
-
-    public B(int v) {
-      this.field = Integer.toString(v);
-    }
-
-    @NeverInline
-    public void bar() {
-      System.out.println("bar " + field);
-    }
+    // TODO(b/164924717): remove non overlapping constructor requirement
+    public B(String s) {}
   }
 
   public static class Main {
     public static void main(String[] args) {
-      A a = new A("A");
-      a.foo();
-      B b = new B(2);
-      b.bar();
+      A a = new A();
+      System.out.println(a);
+      B b = new B("");
+      System.out.println(b);
     }
   }
 }

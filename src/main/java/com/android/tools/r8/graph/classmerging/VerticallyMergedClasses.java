@@ -5,7 +5,6 @@
 package com.android.tools.r8.graph.classmerging;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
@@ -56,7 +55,7 @@ public class VerticallyMergedClasses implements MergedClasses {
   }
 
   @Override
-  public boolean hasBeenMerged(DexProgramClass clazz) {
-    return hasBeenMergedIntoSubtype(clazz.type);
+  public boolean hasBeenMerged(DexType type) {
+    return hasBeenMergedIntoSubtype(type);
   }
 }

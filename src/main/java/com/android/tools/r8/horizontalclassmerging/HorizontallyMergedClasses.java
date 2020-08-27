@@ -1,25 +1,25 @@
-// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.graph.classmerging;
+package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.classmerging.MergedClasses;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.Set;
+import java.util.Map;
 
-public class HorizontallyMergedLambdaClasses implements MergedClasses {
+public class HorizontallyMergedClasses implements MergedClasses {
+  private final Map<DexType, DexType> horizontallyMergedClasses;
 
-  private final Set<DexType> sources;
-
-  public HorizontallyMergedLambdaClasses(Set<DexType> sources) {
-    this.sources = sources;
+  public HorizontallyMergedClasses(Map<DexType, DexType> horizontallyMergedClasses) {
+    this.horizontallyMergedClasses = horizontallyMergedClasses;
   }
 
   @Override
   public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
-    for (DexType source : sources) {
+    for (DexType source : horizontallyMergedClasses.keySet()) {
       assert appView.appInfo().wasPruned(source)
           : "Expected horizontally merged lambda class `"
               + source.toSourceString()
@@ -30,6 +30,6 @@ public class HorizontallyMergedLambdaClasses implements MergedClasses {
 
   @Override
   public boolean hasBeenMerged(DexType type) {
-    return sources.contains(type);
+    return horizontallyMergedClasses.containsKey(type);
   }
 }

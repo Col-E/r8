@@ -5,7 +5,7 @@
 package com.android.tools.r8.graph.classmerging;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,9 +27,9 @@ public class MergedClassesCollection implements MergedClasses {
   }
 
   @Override
-  public boolean hasBeenMerged(DexProgramClass clazz) {
+  public boolean hasBeenMerged(DexType type) {
     for (MergedClasses mergedClasses : collection) {
-      if (mergedClasses.hasBeenMerged(clazz)) {
+      if (mergedClasses.hasBeenMerged(type)) {
         return true;
       }
     }

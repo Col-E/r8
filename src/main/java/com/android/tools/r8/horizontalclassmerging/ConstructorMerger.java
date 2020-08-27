@@ -42,6 +42,23 @@ public class ConstructorMerger {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
+  public static class Builder {
+    private final Collection<DexEncodedMethod> constructors;
+
+    public Builder() {
+      constructors = new ArrayList<>();
+    }
+
+    public Builder add(DexEncodedMethod constructor) {
+      constructors.add(constructor);
+      return this;
+    }
+
+    public ConstructorMerger build(AppView<?> appView, DexProgramClass target) {
+      return new ConstructorMerger(appView, target, constructors);
+    }
+  }
+
   private DexMethod moveConstructor(DexEncodedMethod constructor) {
     DexMethod method =
         dexItemFactory.createFreshMethodName(
@@ -75,7 +92,8 @@ public class ConstructorMerger {
     return MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, true);
   }
 
-  public void merge() {
+  /** Synthesize a new method which selects the constructor based on a parameter type. */
+  void mergeMany(HorizontalClassMergerGraphLens.Builder lensBuilder) {
     Map<DexType, DexMethod> typeConstructors = new IdentityHashMap<>();
 
     for (DexEncodedMethod constructor : constructors) {
@@ -99,6 +117,40 @@ public class ConstructorMerger {
             ParameterAnnotationsList.empty(),
             synthesizedCode);
 
+    // Map each old constructor to the newly synthesized constructor in the graph lens.
+    int constructorId = 0;
+    for (DexEncodedMethod constructor : constructors) {
+      lensBuilder.mapConstructor(constructor.method, newMethod.method, constructorId++);
+    }
+
     target.addDirectMethod(newMethod);
+  }
+
+  /**
+   * The constructor does not conflict with any other constructors. Add the constructor (if any) to
+   * the target directly.
+   */
+  void mergeTrivial(HorizontalClassMergerGraphLens.Builder lensBuilder) {
+    assert constructors.size() <= 1;
+
+    if (!constructors.isEmpty()) {
+      DexEncodedMethod constructor = constructors.iterator().next();
+
+      // Only move the constructor if it is not already in the target type.
+      if (constructor.holder() != target.type) {
+        DexEncodedMethod newConstructor =
+            constructor.toRenamedHolderMethod(target.type, dexItemFactory);
+        target.addDirectMethod(constructor);
+        lensBuilder.moveConstructor(constructor.method, newConstructor.method);
+      }
+    }
+  }
+
+  public void merge(HorizontalClassMergerGraphLens.Builder lensBuilder) {
+    if (constructors.size() <= 1) {
+      mergeTrivial(lensBuilder);
+    } else {
+      mergeMany(lensBuilder);
+    }
   }
 }

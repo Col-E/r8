@@ -8,6 +8,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.graph.LazyLoadedDexApplication.AllClasses;
+import com.android.tools.r8.graph.classmerging.MergedClasses;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -137,7 +138,8 @@ public class DirectMappedDexApplication extends DexApplication {
         .allMatch(
             type ->
                 lens.lookupType(type) == type
-                    || appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(type));
+                    || MergedClasses.hasBeenMerged(appView.verticallyMergedClasses(), type)
+                    || MergedClasses.hasBeenMerged(appView.horizontallyMergedClasses(), type));
     assert verifyCodeObjectsOwners();
     return true;
   }

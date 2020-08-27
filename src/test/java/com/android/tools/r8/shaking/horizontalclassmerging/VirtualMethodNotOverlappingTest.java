@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking.horizontalclassmerging;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsNot.not;
 
 import com.android.tools.r8.*;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -15,11 +16,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class NoFieldMembersTest extends TestBase {
+public class VirtualMethodNotOverlappingTest extends TestBase {
   private final TestParameters parameters;
   private final boolean enableHorizontalClassMerging;
 
-  public NoFieldMembersTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
+  public VirtualMethodNotOverlappingTest(
+      TestParameters parameters, boolean enableHorizontalClassMerging) {
     this.parameters = parameters;
     this.enableHorizontalClassMerging = enableHorizontalClassMerging;
   }
@@ -33,7 +35,7 @@ public class NoFieldMembersTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(NoFieldMembersTest.class)
+        .addInnerClasses(VirtualMethodNotOverlappingTest.class)
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
@@ -45,14 +47,9 @@ public class NoFieldMembersTest extends TestBase {
         .inspect(
             codeInspector -> {
               if (enableHorizontalClassMerging) {
-                // TODO(b/163311975): A and B should be merged
-                //
-                //                        Class[] classes = { A.class, B.class };
-                //                        assertEquals(1, Arrays.stream(classes)
-                //                                .filter(a -> codeInspector.clazz(a).isPresent())
-                //                                .count());
                 assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
+                assertThat(codeInspector.clazz(B.class), not(isPresent()));
+                // TODO(b/165517236): Explicitly check classes have been merged.
               } else {
                 assertThat(codeInspector.clazz(A.class), isPresent());
                 assertThat(codeInspector.clazz(B.class), isPresent());
@@ -70,6 +67,9 @@ public class NoFieldMembersTest extends TestBase {
 
   @NeverClassInline
   public static class B {
+    // TODO(b/164924717): remove non overlapping constructor requirement
+    public B(String s) {}
+
     @NeverInline
     public void bar() {
       System.out.println("bar");
@@ -80,7 +80,7 @@ public class NoFieldMembersTest extends TestBase {
     public static void main(String[] args) {
       A a = new A();
       a.foo();
-      B b = new B();
+      B b = new B("");
       b.bar();
     }
   }
