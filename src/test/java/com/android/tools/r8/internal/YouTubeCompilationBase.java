@@ -22,6 +22,7 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
   static final String PG_MAP = "YouTubeRelease_proguard.map";
   static final String PG_CONF = "YouTubeRelease_proguard.config";
   static final String PG_PROTO_CONF = "YouTubeRelease_proto_safety.pgconf";
+  static final String PG_MISSING_CLASSES_CONF = "YouTubeRelease_proguard_missing_classes.config";
 
   final String base;
 
@@ -38,9 +39,11 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
     ImmutableList.Builder<Path> builder = ImmutableList.builder();
     builder.add(Paths.get(base).resolve(PG_CONF));
     builder.add(Paths.get(ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS).resolve(PG_CONF));
-    Path config = Paths.get(base).resolve(PG_PROTO_CONF);
-    if (config.toFile().exists()) {
-      builder.add(config);
+    for (String name : new String[] {PG_PROTO_CONF, PG_MISSING_CLASSES_CONF}) {
+      Path config = Paths.get(base).resolve(name);
+      if (config.toFile().exists()) {
+        builder.add(config);
+      }
     }
     return builder.build();
   }
