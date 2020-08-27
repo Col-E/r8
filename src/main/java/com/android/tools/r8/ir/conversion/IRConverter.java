@@ -739,7 +739,6 @@ public class IRConverter {
       postMethodProcessorBuilder.put(inliner);
     }
     if (enumUnboxer != null) {
-      enumUnboxer.finishAnalysis();
       enumUnboxer.unboxEnums(postMethodProcessorBuilder, executorService, feedback);
     }
     if (!options.debug) {

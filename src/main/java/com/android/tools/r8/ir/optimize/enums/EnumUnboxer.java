@@ -66,6 +66,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.conversion.PostOptimization;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
+import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldOrdinalData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldUnknownData;
@@ -104,8 +105,8 @@ public class EnumUnboxer implements PostOptimization {
   // Map the enum candidates with their dependencies, i.e., the methods to reprocess for the given
   // enum if the optimization eventually decides to unbox it.
   private final Map<DexType, ProgramMethodSet> enumsUnboxingCandidates;
-  private final EnumInstanceFieldDataMap.Builder enumInstanceFieldData =
-      EnumInstanceFieldDataMap.builder();
+  private final Map<DexType, Set<DexField>> requiredEnumInstanceFieldData =
+      new ConcurrentHashMap<>();
   private final Set<DexType> enumsToUnboxWithPackageRequirement = Sets.newIdentityHashSet();
 
   private EnumUnboxingRewriter enumUnboxerRewriter;
@@ -125,6 +126,12 @@ public class EnumUnboxer implements PostOptimization {
     }
     assert !appView.options().debug;
     enumsUnboxingCandidates = new EnumUnboxingCandidateAnalysis(appView, this).findCandidates();
+  }
+
+  private void requiredEnumInstanceFieldData(DexType enumType, DexField field) {
+    requiredEnumInstanceFieldData
+        .computeIfAbsent(enumType, ignored -> Sets.newConcurrentHashSet())
+        .add(field);
   }
 
   private void markEnumAsUnboxable(Reason reason, DexProgramClass enumClass) {
@@ -299,15 +306,7 @@ public class EnumUnboxer implements PostOptimization {
     }
     // The name data is required for the correct mapping from the enum name to the ordinal in the
     // valueOf utility method.
-    EnumInstanceFieldData nameData =
-        enumInstanceFieldData.computeInstanceFieldDataIfAbsent(
-            enumType,
-            factory.enumMembers.nameField,
-            field -> computeEnumFieldData(field, enumClass));
-    if (nameData.isUnknown()) {
-      markEnumAsUnboxable(Reason.MISSING_NAME_DATA, enumClass);
-      return;
-    }
+    requiredEnumInstanceFieldData(enumType, factory.enumMembers.nameField);
     eligibleEnums.add(enumType);
   }
 
@@ -365,6 +364,7 @@ public class EnumUnboxer implements PostOptimization {
       ExecutorService executorService,
       OptimizationFeedbackDelayed feedback)
       throws ExecutionException {
+    EnumInstanceFieldDataMap enumInstanceFieldDataMap = finishAnalysis();
     // At this point the enumsToUnbox are no longer candidates, they will all be unboxed.
     if (enumsUnboxingCandidates.isEmpty()) {
       return;
@@ -372,8 +372,7 @@ public class EnumUnboxer implements PostOptimization {
     ImmutableSet<DexType> enumsToUnbox = ImmutableSet.copyOf(this.enumsUnboxingCandidates.keySet());
     // Update keep info on any of the enum methods of the removed classes.
     updatePinnedItems(enumsToUnbox);
-    enumUnboxerRewriter =
-        new EnumUnboxingRewriter(appView, enumsToUnbox, enumInstanceFieldData.build(enumsToUnbox));
+    enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox, enumInstanceFieldDataMap);
     DirectMappedDexApplication.Builder appBuilder = appView.appInfo().app().asDirect().builder();
     Map<DexType, DexType> newMethodLocation = synthesizeUnboxedEnumsMethodsLocations(appBuilder);
     NestedGraphLens enumUnboxingLens =
@@ -496,12 +495,38 @@ public class EnumUnboxer implements PostOptimization {
             });
   }
 
-  public void finishAnalysis() {
+  public EnumInstanceFieldDataMap finishAnalysis() {
     analyzeInitializers();
     analyzeAccessibility();
+    EnumInstanceFieldDataMap enumInstanceFieldDataMap = analyzeFields();
     if (debugLogEnabled) {
       reportEnumsAnalysis();
     }
+    return enumInstanceFieldDataMap;
+  }
+
+  private EnumInstanceFieldDataMap analyzeFields() {
+    ImmutableMap.Builder<DexType, ImmutableMap<DexField, EnumInstanceFieldKnownData>> builder =
+        ImmutableMap.builder();
+    requiredEnumInstanceFieldData.forEach(
+        (enumType, fields) -> {
+          ImmutableMap.Builder<DexField, EnumInstanceFieldKnownData> typeBuilder =
+              ImmutableMap.builder();
+          if (enumsUnboxingCandidates.containsKey(enumType)) {
+            DexProgramClass enumClass = appView.definitionFor(enumType).asProgramClass();
+            assert enumClass != null;
+            for (DexField field : fields) {
+              EnumInstanceFieldData enumInstanceFieldData = computeEnumFieldData(field, enumClass);
+              if (enumInstanceFieldData.isUnknown()) {
+                markEnumAsUnboxable(Reason.MISSING_INSTANCE_FIELD_DATA, enumClass);
+                return;
+              }
+              typeBuilder.put(field, enumInstanceFieldData.asEnumFieldKnownData());
+            }
+            builder.put(enumType, typeBuilder.build());
+          }
+        });
+    return new EnumInstanceFieldDataMap(builder.build());
   }
 
   private void analyzeAccessibility() {
@@ -839,15 +864,7 @@ public class EnumUnboxer implements PostOptimization {
       } else if (singleTarget == factory.enumMembers.nameMethod
           || singleTarget == factory.enumMembers.toString) {
         assert invokeMethod.asInvokeMethodWithReceiver().getReceiver() == enumValue;
-        EnumInstanceFieldData nameData =
-            enumInstanceFieldData.computeInstanceFieldDataIfAbsent(
-                enumClass.type,
-                factory.enumMembers.nameField,
-                field -> computeEnumFieldData(field, enumClass));
-        if (nameData.isUnknown()) {
-          computeEnumFieldData(factory.enumMembers.nameField, enumClass);
-          return Reason.MISSING_NAME_DATA;
-        }
+        requiredEnumInstanceFieldData(enumClass.type, factory.enumMembers.nameField);
         return Reason.ELIGIBLE;
       } else if (singleTarget == factory.enumMembers.ordinalMethod) {
         return Reason.ELIGIBLE;
@@ -892,12 +909,7 @@ public class EnumUnboxer implements PostOptimization {
       InstanceGet instanceGet = instruction.asInstanceGet();
       assert instanceGet.getField().holder == enumClass.type;
       DexField field = instanceGet.getField();
-      EnumInstanceFieldData enumFieldData =
-          enumInstanceFieldData.computeInstanceFieldDataIfAbsent(
-              enumClass.type, field, theField -> computeEnumFieldData(theField, enumClass));
-      if (enumFieldData.isUnknown()) {
-        return Reason.INVALID_FIELD_READ;
-      }
+      requiredEnumInstanceFieldData(enumClass.type, field);
       return Reason.ELIGIBLE;
     }
 
@@ -1113,7 +1125,7 @@ public class EnumUnboxer implements PostOptimization {
     COMPARE_TO_INVOKE,
     UNSUPPORTED_LIBRARY_CALL,
     MISSING_INFO_MAP,
-    MISSING_NAME_DATA,
+    MISSING_INSTANCE_FIELD_DATA,
     INVALID_FIELD_READ,
     INVALID_FIELD_PUT,
     INVALID_ARRAY_PUT,

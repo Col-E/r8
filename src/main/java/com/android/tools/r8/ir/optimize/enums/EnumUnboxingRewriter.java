@@ -86,6 +86,7 @@ public class EnumUnboxingRewriter {
     this.factory = appView.dexItemFactory();
     EnumValueInfoMapCollection.Builder builder = EnumValueInfoMapCollection.builder();
     for (DexType toUnbox : enumsToUnbox) {
+      assert appView.appInfo().withLiveness().getEnumValueInfoMap(toUnbox) != null;
       builder.put(toUnbox, appView.appInfo().withLiveness().getEnumValueInfoMap(toUnbox));
     }
     this.enumsToUnbox = builder.build();
@@ -460,7 +461,7 @@ public class EnumUnboxingRewriter {
                 appView,
                 factory.enumUnboxingUtilityType,
                 field.type,
-                enumsToUnbox.getEnumValueInfoMap(field.holder),
+                enumsToUnbox.getEnumValueInfoMap(enumType),
                 unboxedEnumsInstanceFieldData
                     .getInstanceFieldData(enumType, field)
                     .asEnumFieldMappingData())

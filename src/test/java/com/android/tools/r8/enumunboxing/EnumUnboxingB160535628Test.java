@@ -21,16 +21,21 @@ public class EnumUnboxingB160535628Test extends EnumUnboxingTestBase {
 
   private final TestParameters parameters;
   private final boolean missingStaticMethods;
+  private final EnumKeepRules enumKeepRules;
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameterized.Parameters(name = "{0} missing: {1} keep: {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevels().build(), BooleanUtils.values());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        BooleanUtils.values(),
+        getAllEnumKeepRules());
   }
 
-  public EnumUnboxingB160535628Test(TestParameters parameters, boolean missingStaticMethods) {
+  public EnumUnboxingB160535628Test(
+      TestParameters parameters, boolean missingStaticMethods, EnumKeepRules enumKeepRules) {
     this.parameters = parameters;
     this.missingStaticMethods = missingStaticMethods;
+    this.enumKeepRules = enumKeepRules;
   }
 
   @Test
@@ -44,6 +49,7 @@ public class EnumUnboxingB160535628Test extends EnumUnboxingTestBase {
             .addProgramClasses(ProgramValueOf.class, ProgramStaticMethod.class)
             .addProgramFiles(javaLibShrunk)
             .addKeepMainRules(ProgramValueOf.class, ProgramStaticMethod.class)
+            .addKeepRules(enumKeepRules.getKeepRules())
             .addOptionsModification(
                 options -> {
                   options.enableEnumUnboxing = true;
@@ -58,18 +64,23 @@ public class EnumUnboxingB160535628Test extends EnumUnboxingTestBase {
                 this::assertEnumUnboxedIfStaticMethodsPresent);
     if (missingStaticMethods) {
       compile
-          .run(parameters.getRuntime(), ProgramValueOf.class)
-          .assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"))
-          .assertFailureWithErrorThatMatches(containsString("valueOf"));
-      compile
           .run(parameters.getRuntime(), ProgramStaticMethod.class)
           .assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"))
           .assertFailureWithErrorThatMatches(containsString("staticMethod"));
     } else {
-      compile.run(parameters.getRuntime(), ProgramValueOf.class).assertSuccessWithOutputLines("0");
       compile
           .run(parameters.getRuntime(), ProgramStaticMethod.class)
-          .assertSuccessWithOutputLines("42");
+          .assertSuccessWithOutputLines("0", "42");
+    }
+    if (missingStaticMethods && enumKeepRules == EnumKeepRules.NONE) {
+      compile
+          .run(parameters.getRuntime(), ProgramValueOf.class)
+          .assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"))
+          .assertFailureWithErrorThatMatches(containsString("valueOf"));
+    } else {
+      compile
+          .run(parameters.getRuntime(), ProgramValueOf.class)
+          .assertSuccessWithOutputLines("0", "0");
     }
   }
 
@@ -77,6 +88,7 @@ public class EnumUnboxingB160535628Test extends EnumUnboxingTestBase {
     return testForR8(Backend.CF)
         .addProgramClasses(Lib.class, Lib.LibEnumStaticMethod.class, Lib.LibEnum.class)
         .addKeepRules("-keep enum * { <fields>; }")
+        .addKeepRules(enumKeepRules.getKeepRules())
         .addKeepRules(missingStaticMethods ? "" : "-keep enum * { static <methods>; }")
         .addOptionsModification(
             options -> {
@@ -130,13 +142,15 @@ public class EnumUnboxingB160535628Test extends EnumUnboxingTestBase {
   public static class ProgramValueOf {
 
     public static void main(String[] args) {
-      System.out.println(Lib.LibEnumStaticMethod.valueOf(Lib.LibEnum.A.name()).ordinal());
+      System.out.println(Lib.LibEnum.A.ordinal());
+      System.out.println(Lib.LibEnum.valueOf(Lib.LibEnum.A.name()).ordinal());
     }
   }
 
   public static class ProgramStaticMethod {
 
     public static void main(String[] args) {
+      System.out.println(Lib.LibEnumStaticMethod.A.ordinal());
       System.out.println(Lib.LibEnumStaticMethod.staticMethod());
     }
   }
