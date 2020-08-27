@@ -127,6 +127,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   @Test
   public void testLineNumberTableOnly() throws Exception {
     assumeTrue(compat);
+    assumeTrue(parameters.isDexRuntime());
     runTest(
         ImmutableList.of("-keepattributes LineNumberTable"), this::checkIsSameExceptForFileName);
   }
@@ -134,6 +135,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   @Test
   public void testNoLineNumberTable() throws Exception {
     assumeTrue(compat);
+    assumeTrue(parameters.isDexRuntime());
     runTest(ImmutableList.of(), this::checkIsSameExceptForFileNameAndLineNumber);
   }
 }

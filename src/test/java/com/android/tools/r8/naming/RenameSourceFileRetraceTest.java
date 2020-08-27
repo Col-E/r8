@@ -109,11 +109,12 @@ public class RenameSourceFileRetraceTest extends TestBase {
   }
 
   private String getDefaultExpectedName(String name) {
-    if (!isCompat && !keepSourceFile) {
-      return null;
-    } else {
-      return name;
+    if (!keepSourceFile) {
+      if (parameters.getBackend() == Backend.CF || !isCompat) {
+        return null;
+      }
     }
+    return name;
   }
 
   private void inspectOutput(

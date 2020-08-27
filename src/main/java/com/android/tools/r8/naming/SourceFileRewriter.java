@@ -83,9 +83,17 @@ public class SourceFileRewriter {
 
   private DexString getSourceFileRenaming(ProguardConfiguration proguardConfiguration) {
     // If we should not be keeping the source file, null it out.
-    if (!appView.options().forceProguardCompatibility
-        && !proguardConfiguration.getKeepAttributes().sourceFile) {
-      return null;
+    if (!proguardConfiguration.getKeepAttributes().sourceFile) {
+      // For class files, we always remove the attribute
+      if (appView.options().isGeneratingClassFiles()) {
+        return null;
+      }
+      assert appView.options().isGeneratingDex();
+      // When generating DEX we only remove the attribute for full-mode to ensure that we get
+      // line-numbers printed in stack traces.
+      if (!appView.options().forceProguardCompatibility) {
+        return null;
+      }
     }
 
     String renamedSourceFileAttribute = proguardConfiguration.getRenameSourceFileAttribute();

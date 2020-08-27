@@ -87,6 +87,7 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
   @Test
   public void testLineNumberTableOnly() throws Exception {
     assumeTrue(compat);
+    assumeTrue(backend == Backend.DEX);
     runTest(
         ImmutableList.of("-keepattributes LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
@@ -102,6 +103,7 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
   @Test
   public void testNoLineNumberTable() throws Exception {
     assumeTrue(compat);
+    assumeTrue(backend == Backend.DEX);
     haveSeenLines.clear();
     runTest(
         ImmutableList.of(),
