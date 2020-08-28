@@ -216,11 +216,18 @@ public class TestBase {
   }
 
   public TestBuilder<? extends TestRunResult<?>, ?> testForDesugaring(TestParameters parameters) {
-    return testForDesugaring(parameters.getRuntime().getBackend(), parameters.getApiLevel());
+    return testForDesugaring(
+        parameters.getRuntime().getBackend(), parameters.getApiLevel(), o -> {});
+  }
+
+  public TestBuilder<? extends TestRunResult<?>, ?> testForDesugaring(
+      TestParameters parameters, Consumer<InternalOptions> optionsModification) {
+    return testForDesugaring(
+        parameters.getRuntime().getBackend(), parameters.getApiLevel(), optionsModification);
   }
 
   private TestBuilder<? extends TestRunResult<?>, ?> testForDesugaring(
-      Backend backend, AndroidApiLevel apiLevel) {
+      Backend backend, AndroidApiLevel apiLevel, Consumer<InternalOptions> optionsModification) {
     assert apiLevel != null : "No API level. Add .withAllApiLevelsAlsoForCf() to test parameters?";
     TestState state = new TestState(temp);
     List<Pair<String, TestBuilder<? extends TestRunResult<?>, ?>>> builders;
@@ -228,13 +235,24 @@ public class TestBase {
       builders =
           ImmutableList.of(
               new Pair<>("JAVAC", JvmTestBuilder.create(state)),
-              new Pair<>("D8/CF", D8TestBuilder.create(state, Backend.CF).setMinApi(apiLevel)));
+              new Pair<>(
+                  "D8/CF",
+                  D8TestBuilder.create(state, Backend.CF)
+                      .setMinApi(apiLevel)
+                      .addOptionsModification(optionsModification)));
     } else {
       assert backend == Backend.DEX;
       builders =
           ImmutableList.of(
-              new Pair<>("D8/DEX", D8TestBuilder.create(state, Backend.DEX).setMinApi(apiLevel)),
-              new Pair<>("D8/DEX o D8/CF", IntermediateCfD8TestBuilder.create(state, apiLevel)));
+              new Pair<>(
+                  "D8/DEX",
+                  D8TestBuilder.create(state, Backend.DEX)
+                      .setMinApi(apiLevel)
+                      .addOptionsModification(optionsModification)),
+              new Pair<>(
+                  "D8/DEX o D8/CF",
+                  IntermediateCfD8TestBuilder.create(state, apiLevel)
+                      .addOptionsModification(optionsModification)));
     }
     return TestBuilderCollection.create(state, builders);
   }
@@ -1527,11 +1545,29 @@ public class TestBase {
     }
     Path path = temp.newFolder().toPath().resolve("classes.jar");
     ArchiveConsumer consumer = new ArchiveConsumer(path);
-    for (Class clazz : classes) {
+    for (Class<?> clazz : classes) {
       consumer.accept(
           ByteDataView.of(ToolHelper.getClassAsBytes(clazz)),
           DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName()),
           null);
+    }
+    consumer.finished(null);
+    return path;
+  }
+
+  public Path buildOnDexRuntime(TestParameters parameters, byte[]... classes)
+      throws IOException, CompilationFailedException {
+    if (parameters.isDexRuntime()) {
+      return testForD8()
+          .addProgramClassFileData(classes)
+          .setMinApi(parameters.getApiLevel())
+          .compile()
+          .writeToZip();
+    }
+    Path path = temp.newFolder().toPath().resolve("classes.jar");
+    ArchiveConsumer consumer = new ArchiveConsumer(path);
+    for (byte[] clazz : classes) {
+      consumer.accept(ByteDataView.of(clazz), extractClassDescriptor(clazz), null);
     }
     consumer.finished(null);
     return path;
@@ -1550,6 +1586,10 @@ public class TestBase {
   }
 
   public static AndroidApiLevel apiLevelWithDefaultInterfaceMethodsSupport() {
+    return AndroidApiLevel.N;
+  }
+
+  public static AndroidApiLevel apiLevelWithStaticInterfaceMethodsSupport() {
     return AndroidApiLevel.N;
   }
 

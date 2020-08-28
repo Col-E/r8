@@ -10,7 +10,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -34,7 +33,6 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.base.Suppliers;
 import com.google.common.primitives.Longs;
@@ -541,18 +539,8 @@ public final class LambdaClass {
       return accessibilityBridge;
     }
 
-    boolean holderIsInterface() {
-      InternalOptions options = appView.options();
-      DexMethod implMethod = descriptor.implHandle.asMethod();
-      DexClass implMethodHolder = appView.definitionFor(implMethod.holder);
-      if (implMethodHolder == null) {
-        assert options
-            .desugaredLibraryConfiguration
-            .getBackportCoreLibraryMember()
-            .containsKey(implMethod.holder);
-        return false;
-      }
-      return implMethodHolder.isInterface();
+    boolean isInterface() {
+      return descriptor.implHandle.isInterface;
     }
   }
 

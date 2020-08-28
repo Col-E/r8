@@ -7,10 +7,12 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 public class IntermediateCfD8TestBuilder
     extends TestBuilder<D8TestRunResult, IntermediateCfD8TestBuilder> {
@@ -29,6 +31,12 @@ public class IntermediateCfD8TestBuilder
     cf2cf = D8TestBuilder.create(state, Backend.CF).setMinApi(apiLevel);
     cf2dex =
         D8TestBuilder.create(state, Backend.DEX).setMinApi(apiLevel).setDisableDesugaring(true);
+  }
+
+  public IntermediateCfD8TestBuilder addOptionsModification(Consumer<InternalOptions> fn) {
+    cf2cf.addOptionsModification(fn);
+    cf2dex.addOptionsModification(fn);
+    return self();
   }
 
   @Override
