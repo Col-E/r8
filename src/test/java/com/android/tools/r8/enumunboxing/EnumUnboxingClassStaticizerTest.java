@@ -65,12 +65,16 @@ public class EnumUnboxingClassStaticizerTest extends EnumUnboxingTestBase {
   }
 
   private void assertClassStaticized(CodeInspector codeInspector) {
+    String renamedMethodName = "method$enumunboxing$";
     if (parameters.isCfRuntime()) {
       // There is no class staticizer in Cf.
-      assertThat(codeInspector.clazz(Companion.class).uniqueMethodWithName("method"), isPresent());
+      assertThat(
+          codeInspector.clazz(Companion.class).uniqueMethodWithName(renamedMethodName),
+          isPresent());
       return;
     }
-    MethodSubject method = codeInspector.clazz(CompanionHost.class).uniqueMethodWithName("method");
+    MethodSubject method =
+        codeInspector.clazz(CompanionHost.class).uniqueMethodWithName(renamedMethodName);
     assertThat(method, isPresent());
     assertEquals("int", method.getMethod().method.proto.parameters.toString());
   }

@@ -359,7 +359,9 @@ public class R8InliningTest extends TestBase {
     assertEquals(0, invokeCount);
 
     // The enum parameter may get unboxed.
-    m = clazz.uniqueMethodWithName("moreControlFlows");
+    m =
+        clazz.uniqueMethodWithName(
+            parameters.isCfRuntime() ? "moreControlFlows" : "moreControlFlows$enumunboxing$");
     assertTrue(m.isPresent());
 
     // Verify that a.b() is resolved to an inline instance-get.
