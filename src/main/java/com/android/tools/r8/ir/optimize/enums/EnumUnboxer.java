@@ -77,6 +77,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -1276,14 +1277,23 @@ public class EnumUnboxer implements PostOptimization {
         return encodedMethod;
       }
       assert !encodedMethod.isClassInitializer();
-      DexMethod newMethod =
-          factory.createMethod(encodedMethod.holder(), newProto, encodedMethod.getName());
+      // We add the $enumunboxing$ suffix to make sure we do not create a library override.
+      String newMethodName =
+          encodedMethod.getName().toString()
+              + (encodedMethod.isNonPrivateVirtualMethod() ? "$enumunboxing$" : "");
+      DexMethod newMethod = factory.createMethod(encodedMethod.holder(), newProto, newMethodName);
       newMethod = ensureUniqueMethod(encodedMethod, newMethod);
       int numberOfExtraNullParameters = newMethod.getArity() - encodedMethod.method.getArity();
       boolean isStatic = encodedMethod.isStatic();
       lensBuilder.move(
           encodedMethod.method, isStatic, newMethod, isStatic, numberOfExtraNullParameters);
-      return encodedMethod.toTypeSubstitutedMethod(newMethod);
+      DexEncodedMethod newEncodedMethod = encodedMethod.toTypeSubstitutedMethod(newMethod);
+      assert !encodedMethod.isLibraryMethodOverride().isTrue()
+          : "Enum unboxing is changing the signature of a library override in a non unboxed class.";
+      if (newEncodedMethod.isNonPrivateVirtualMethod()) {
+        newEncodedMethod.setLibraryMethodOverride(OptionalBool.FALSE);
+      }
+      return newEncodedMethod;
     }
 
     private DexMethod ensureUniqueMethod(DexEncodedMethod encodedMethod, DexMethod newMethod) {
