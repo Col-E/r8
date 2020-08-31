@@ -5,12 +5,18 @@
 package com.android.tools.r8.repackaging;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -29,34 +35,52 @@ import java.util.concurrent.ExecutorService;
 public class Repackaging {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final DexItemFactory dexItemFactory;
   private final ProguardConfiguration proguardConfiguration;
 
   public Repackaging(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
+    this.dexItemFactory = appView.dexItemFactory();
     this.proguardConfiguration = appView.options().getProguardConfiguration();
   }
 
-  public void run(ExecutorService executorService, Timing timing) throws ExecutionException {
+  public RepackagingLens run(
+      DirectMappedDexApplication.Builder appBuilder, ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     timing.begin("Repackage classes");
-    run(executorService);
+    RepackagingLens lens = run(appBuilder, executorService);
     timing.end();
+    return lens;
   }
 
-  private void run(ExecutorService executorService) throws ExecutionException {
+  private RepackagingLens run(
+      DirectMappedDexApplication.Builder appBuilder, ExecutorService executorService)
+      throws ExecutionException {
     if (proguardConfiguration.getPackageObfuscationMode().isNone()) {
-      return;
+      return null;
     }
 
     // For each package, find the set of classes that can be repackaged, and move them to the
     // desired namespace.
-    ProgramPackageCollection packages = ProgramPackageCollection.create(appView);
-    for (ProgramPackage pkg : packages) {
+    Map<DexType, DexType> mappings = new IdentityHashMap<>();
+    for (ProgramPackage pkg : ProgramPackageCollection.create(appView)) {
       Iterable<DexProgramClass> classesToRepackage =
           computeClassesToRepackage(pkg, executorService);
-      // TODO(b/165783399): Move each class in `classesToRepackage`.
+      String newPackageDescriptor = getNewPackageDescriptor(pkg);
+      for (DexProgramClass classToRepackage : classesToRepackage) {
+        // TODO(b/165783399): Handle class collisions when different packages are repackaged into
+        //  the same package.
+        DexType newType =
+            classToRepackage.getType().replacePackage(newPackageDescriptor, dexItemFactory);
+        mappings.put(classToRepackage.getType(), newType);
+      }
       // TODO(b/165783399): Investigate if repackaging can lead to different dynamic dispatch. See,
       //  for example, CrossPackageInvokeSuperToPackagePrivateMethodTest.
     }
+    if (mappings.isEmpty()) {
+      return null;
+    }
+    return new RepackagingTreeFixer(appBuilder, appView, mappings).run();
   }
 
   private Iterable<DexProgramClass> computeClassesToRepackage(
@@ -68,5 +92,15 @@ public class Repackaging {
     }
     constraintGraph.populateConstraints(executorService);
     return constraintGraph.computeClassesToRepackage();
+  }
+
+  private String getNewPackageDescriptor(ProgramPackage pkg) {
+    String newPackageDescriptor =
+        StringUtils.replaceAll(proguardConfiguration.getPackagePrefix(), ".", "/");
+    if (proguardConfiguration.getPackageObfuscationMode().isFlattenPackageHierarchy()) {
+      // TODO(b/165783399): Handle collisions among package names.
+      newPackageDescriptor += "/" + pkg.getLastPackageName();
+    }
+    return newPackageDescriptor;
   }
 }

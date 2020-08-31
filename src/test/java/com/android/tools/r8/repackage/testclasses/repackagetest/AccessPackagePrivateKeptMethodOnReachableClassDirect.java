@@ -11,7 +11,7 @@ import com.android.tools.r8.NeverMerge;
 public class AccessPackagePrivateKeptMethodOnReachableClassDirect {
 
   @NeverInline
-  static void test() {
+  public static void test() {
     ReachableClassWithKeptMethod.packagePrivateMethod();
   }
 }

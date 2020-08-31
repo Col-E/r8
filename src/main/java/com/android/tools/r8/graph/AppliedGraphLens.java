@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.utils.MapUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.IdentityHashMap;
@@ -24,8 +25,11 @@ public class AppliedGraphLens extends GraphLens {
   private final BiMap<DexType, DexType> originalTypeNames = HashBiMap.create();
   private final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
   private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
-  private final Map<DexMethod, DexMethod> originalMethodSignaturesForBridges =
-      new IdentityHashMap<>();
+
+  // Original method signatures for bridges and companion methods. Due to the synthesis of these
+  // methods, the mapping from original methods to final methods is not one-to-one, but one-to-many,
+  // which is why we need an additional map.
+  private final Map<DexMethod, DexMethod> extraOriginalMethodSignatures = new IdentityHashMap<>();
 
   public AppliedGraphLens(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
@@ -58,22 +62,24 @@ public class AppliedGraphLens extends GraphLens {
       for (DexEncodedMethod encodedMethod : clazz.methods()) {
         DexMethod method = encodedMethod.method;
         DexMethod original = appView.graphLens().getOriginalMethodSignature(method);
-        if (original != method) {
-          DexMethod existing = originalMethodSignatures.inverse().get(original);
-          if (existing == null) {
-            originalMethodSignatures.put(method, original);
+        DexMethod existing = originalMethodSignatures.inverse().get(original);
+        if (existing == null) {
+          originalMethodSignatures.put(method, original);
+        } else {
+          DexMethod renamed = appView.graphLens().getRenamedMethodSignature(original);
+          if (renamed == existing) {
+            extraOriginalMethodSignatures.put(method, original);
           } else {
-            DexMethod renamed = getRenamedMethodSignature(original);
-            if (renamed == existing) {
-              originalMethodSignaturesForBridges.put(method, original);
-            } else {
-              originalMethodSignatures.forcePut(method, original);
-              originalMethodSignaturesForBridges.put(existing, original);
-            }
+            originalMethodSignatures.forcePut(method, original);
+            extraOriginalMethodSignatures.put(existing, original);
           }
         }
       }
     }
+
+    // Trim original method signatures.
+    MapUtils.removeIdentityMappings(originalMethodSignatures);
+    MapUtils.removeIdentityMappings(extraOriginalMethodSignatures);
   }
 
   @Override
@@ -88,8 +94,8 @@ public class AppliedGraphLens extends GraphLens {
 
   @Override
   public DexMethod getOriginalMethodSignature(DexMethod method) {
-    if (originalMethodSignaturesForBridges.containsKey(method)) {
-      return originalMethodSignaturesForBridges.get(method);
+    if (extraOriginalMethodSignatures.containsKey(method)) {
+      return extraOriginalMethodSignatures.get(method);
     }
     return originalMethodSignatures.getOrDefault(method, method);
   }

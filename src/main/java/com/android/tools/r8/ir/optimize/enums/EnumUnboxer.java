@@ -372,7 +372,7 @@ public class EnumUnboxer implements PostOptimization {
     }
     ImmutableSet<DexType> enumsToUnbox = ImmutableSet.copyOf(this.enumsUnboxingCandidates.keySet());
     // Update keep info on any of the enum methods of the removed classes.
-    updatePinnedItems(enumsToUnbox);
+    updateKeepInfo(enumsToUnbox);
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox, enumInstanceFieldDataMap);
     DirectMappedDexApplication.Builder appBuilder = appView.appInfo().app().asDirect().builder();
     Map<DexType, DexType> newMethodLocation = synthesizeUnboxedEnumsMethodsLocations(appBuilder);
@@ -480,8 +480,7 @@ public class EnumUnboxer implements PostOptimization {
     return syntheticClass;
   }
 
-
-  private void updatePinnedItems(Set<DexType> enumsToUnbox) {
+  private void updateKeepInfo(Set<DexType> enumsToUnbox) {
     appView
         .appInfo()
         .getKeepInfo()
@@ -490,8 +489,16 @@ public class EnumUnboxer implements PostOptimization {
               for (DexType type : enumsToUnbox) {
                 DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
                 assert !keepInfo.getClassInfo(clazz).isPinned();
-                clazz.forEachProgramMethod(keepInfo::unsafeUnpinMethod);
-                clazz.forEachField(field -> keepInfo.unsafeUnpinField(clazz, field));
+                clazz.forEachProgramMethod(
+                    method -> {
+                      keepInfo.unsafeAllowMinificationOfMethod(method);
+                      keepInfo.unsafeUnpinMethod(method);
+                    });
+                clazz.forEachProgramField(
+                    field -> {
+                      keepInfo.unsafeAllowMinificationOfField(field);
+                      keepInfo.unsafeUnpinField(field);
+                    });
               }
             });
   }

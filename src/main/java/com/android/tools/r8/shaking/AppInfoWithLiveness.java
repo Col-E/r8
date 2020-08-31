@@ -1025,7 +1025,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         // TODO(sgjesse): Rewrite call sites as well? Right now they are only used by minification
         //   after second tree shaking.
         callSites,
-        keepInfo.rewrite(lens),
+        keepInfo.rewrite(lens, application.options),
         lens.rewriteReferenceKeys(mayHaveSideEffects),
         lens.rewriteReferenceKeys(noSideEffects),
         lens.rewriteReferenceKeys(assumedValues),

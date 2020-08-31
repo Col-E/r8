@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
@@ -20,7 +21,8 @@ import org.objectweb.asm.MethodVisitor;
 
 public abstract class CfInstruction {
 
-  public abstract void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens);
+  public abstract void write(
+      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens);
 
   public abstract void print(CfPrinter printer);
 

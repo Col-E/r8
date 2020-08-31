@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.logging.Log;
@@ -76,29 +77,39 @@ public class VirtualFile {
 
   private final DexProgramClass primaryClass;
 
-  VirtualFile(int id, InitClassLens initClassLens, NamingLens namingLens) {
-    this(id, initClassLens, namingLens, null, null);
+  VirtualFile(int id, GraphLens graphLens, InitClassLens initClassLens, NamingLens namingLens) {
+    this(id, graphLens, initClassLens, namingLens, null, null);
   }
 
   VirtualFile(
-      int id, InitClassLens initClassLens, NamingLens namingLens, FeatureSplit featureSplit) {
-    this(id, initClassLens, namingLens, null, featureSplit);
-  }
-
-  private VirtualFile(
-      int id, InitClassLens initClassLens, NamingLens namingLens, DexProgramClass primaryClass) {
-    this(id, initClassLens, namingLens, primaryClass, null);
+      int id,
+      GraphLens graphLens,
+      InitClassLens initClassLens,
+      NamingLens namingLens,
+      FeatureSplit featureSplit) {
+    this(id, graphLens, initClassLens, namingLens, null, featureSplit);
   }
 
   private VirtualFile(
       int id,
+      GraphLens graphLens,
+      InitClassLens initClassLens,
+      NamingLens namingLens,
+      DexProgramClass primaryClass) {
+    this(id, graphLens, initClassLens, namingLens, primaryClass, null);
+  }
+
+  private VirtualFile(
+      int id,
+      GraphLens graphLens,
       InitClassLens initClassLens,
       NamingLens namingLens,
       DexProgramClass primaryClass,
       FeatureSplit featureSplit) {
     this.id = id;
-    this.indexedItems = new VirtualFileIndexedItemCollection(initClassLens, namingLens);
-    this.transaction = new IndexedItemTransaction(indexedItems, initClassLens, namingLens);
+    this.indexedItems = new VirtualFileIndexedItemCollection(graphLens, initClassLens, namingLens);
+    this.transaction =
+        new IndexedItemTransaction(indexedItems, graphLens, initClassLens, namingLens);
     this.primaryClass = primaryClass;
     this.featureSplit = featureSplit;
   }
@@ -296,7 +307,12 @@ public class VirtualFile {
       for (DexProgramClass clazz : application.classes()) {
         if (!combineSyntheticClassesWithPrimaryClass || clazz.getSynthesizedFrom().isEmpty()) {
           VirtualFile file =
-              new VirtualFile(virtualFiles.size(), writer.initClassLens, writer.namingLens, clazz);
+              new VirtualFile(
+                  virtualFiles.size(),
+                  writer.graphLens,
+                  writer.initClassLens,
+                  writer.namingLens,
+                  clazz);
           virtualFiles.add(file);
           file.addClass(clazz);
           files.put(clazz, file);
@@ -329,7 +345,7 @@ public class VirtualFile {
       this.options = options;
 
       // Create the primary dex file. The distribution will add more if needed.
-      mainDexFile = new VirtualFile(0, writer.initClassLens, writer.namingLens);
+      mainDexFile = new VirtualFile(0, writer.graphLens, writer.initClassLens, writer.namingLens);
       assert virtualFiles.isEmpty();
       virtualFiles.add(mainDexFile);
       addMarkers(mainDexFile);
@@ -447,7 +463,11 @@ public class VirtualFile {
         // Add a new virtual file, start from index 0 again
         VirtualFile featureFile =
             new VirtualFile(
-                0, writer.initClassLens, writer.namingLens, featureSplitSetEntry.getKey());
+                0,
+                writer.graphLens,
+                writer.initClassLens,
+                writer.namingLens,
+                featureSplitSetEntry.getKey());
         virtualFiles.add(featureFile);
         addMarkers(featureFile);
         Set<DexProgramClass> featureClasses =
@@ -461,6 +481,7 @@ public class VirtualFile {
                 application.dexItemFactory,
                 fillStrategy,
                 0,
+                writer.graphLens,
                 writer.initClassLens,
                 writer.namingLens,
                 options)
@@ -497,7 +518,8 @@ public class VirtualFile {
         assert !virtualFiles.get(0).isEmpty();
         assert virtualFiles.size() == 1;
         // The main dex file is filtered out, so ensure at least one file for the remaining classes.
-        virtualFiles.add(new VirtualFile(1, writer.initClassLens, writer.namingLens));
+        virtualFiles.add(
+            new VirtualFile(1, writer.graphLens, writer.initClassLens, writer.namingLens));
         filesForDistribution = virtualFiles.subList(1, virtualFiles.size());
         fileIndexOffset = 1;
       }
@@ -511,6 +533,7 @@ public class VirtualFile {
                 filesForDistribution,
                 classes,
                 fileIndexOffset,
+                writer.graphLens,
                 writer.initClassLens,
                 writer.namingLens,
                 writer.application,
@@ -527,6 +550,7 @@ public class VirtualFile {
                 application.dexItemFactory,
                 fillStrategy,
                 fileIndexOffset,
+                writer.graphLens,
                 writer.initClassLens,
                 writer.namingLens,
                 options)
@@ -566,6 +590,7 @@ public class VirtualFile {
 
   private static class VirtualFileIndexedItemCollection implements IndexedItemCollection {
 
+    private final GraphLens graphLens;
     private final InitClassLens initClassLens;
     private final NamingLens namingLens;
 
@@ -578,7 +603,9 @@ public class VirtualFile {
     private final Set<DexCallSite> callSites = Sets.newIdentityHashSet();
     private final Set<DexMethodHandle> methodHandles = Sets.newIdentityHashSet();
 
-    public VirtualFileIndexedItemCollection(InitClassLens initClassLens, NamingLens namingLens) {
+    public VirtualFileIndexedItemCollection(
+        GraphLens graphLens, InitClassLens initClassLens, NamingLens namingLens) {
+      this.graphLens = graphLens;
       this.initClassLens = initClassLens;
       this.namingLens = namingLens;
     }
@@ -636,6 +663,11 @@ public class VirtualFile {
     }
 
     @Override
+    public GraphLens getGraphLens() {
+      return graphLens;
+    }
+
+    @Override
     public InitClassLens getInitClassLens() {
       return initClassLens;
     }
@@ -660,6 +692,7 @@ public class VirtualFile {
   public static class IndexedItemTransaction implements IndexedItemCollection {
 
     private final VirtualFileIndexedItemCollection base;
+    private final GraphLens graphLens;
     private final InitClassLens initClassLens;
     private final NamingLens namingLens;
 
@@ -673,8 +706,12 @@ public class VirtualFile {
     private final Set<DexMethodHandle> methodHandles = new LinkedHashSet<>();
 
     private IndexedItemTransaction(
-        VirtualFileIndexedItemCollection base, InitClassLens initClassLens, NamingLens namingLens) {
+        VirtualFileIndexedItemCollection base,
+        GraphLens graphLens,
+        InitClassLens initClassLens,
+        NamingLens namingLens) {
       this.base = base;
+      this.graphLens = graphLens;
       this.initClassLens = initClassLens;
       this.namingLens = namingLens;
     }
@@ -729,6 +766,11 @@ public class VirtualFile {
     @Override
     public boolean addMethodHandle(DexMethodHandle methodHandle) {
       return maybeInsert(methodHandle, methodHandles, base.methodHandles);
+    }
+
+    @Override
+    public GraphLens getGraphLens() {
+      return graphLens;
     }
 
     @Override
@@ -813,6 +855,7 @@ public class VirtualFile {
   static class VirtualFileCycler {
 
     private final List<VirtualFile> files;
+    private final GraphLens graphLens;
     private final InitClassLens initClassLens;
     private final NamingLens namingLens;
 
@@ -823,10 +866,12 @@ public class VirtualFile {
 
     VirtualFileCycler(
         List<VirtualFile> files,
+        GraphLens graphLens,
         InitClassLens initClassLens,
         NamingLens namingLens,
         int fileIndexOffset) {
       this.files = files;
+      this.graphLens = graphLens;
       this.initClassLens = initClassLens;
       this.namingLens = namingLens;
 
@@ -859,7 +904,7 @@ public class VirtualFile {
         return activeFiles.next();
       } else {
         VirtualFile newFile =
-            new VirtualFile(nextFileId++, initClassLens, namingLens, featuresplit);
+            new VirtualFile(nextFileId++, graphLens, initClassLens, namingLens, featuresplit);
         files.add(newFile);
         allFilesCyclic = Iterators.cycle(files);
         return newFile;
@@ -890,7 +935,8 @@ public class VirtualFile {
     }
 
     VirtualFile addFile() {
-      VirtualFile newFile = new VirtualFile(nextFileId++, initClassLens, namingLens, featuresplit);
+      VirtualFile newFile =
+          new VirtualFile(nextFileId++, graphLens, initClassLens, namingLens, featuresplit);
       files.add(newFile);
 
       reset();
@@ -936,6 +982,7 @@ public class VirtualFile {
         DexItemFactory dexItemFactory,
         FillStrategy fillStrategy,
         int fileIndexOffset,
+        GraphLens graphLens,
         InitClassLens initClassLens,
         NamingLens namingLens,
         InternalOptions options) {
@@ -944,7 +991,8 @@ public class VirtualFile {
       this.dexItemFactory = dexItemFactory;
       this.fillStrategy = fillStrategy;
       this.options = options;
-      this.cycler = new VirtualFileCycler(files, initClassLens, namingLens, fileIndexOffset);
+      this.cycler =
+          new VirtualFileCycler(files, graphLens, initClassLens, namingLens, fileIndexOffset);
     }
 
     static boolean coveredByPrefix(String originalName, String currentPrefix) {

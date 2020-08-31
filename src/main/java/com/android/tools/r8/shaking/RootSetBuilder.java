@@ -8,13 +8,11 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.BottomUpClassHierarchyTraversal;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
@@ -29,6 +27,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -1962,26 +1961,30 @@ public class RootSetBuilder {
       return false;
     }
 
-    public boolean verifyKeptItemsAreKept(DexApplication application, AppInfo appInfo) {
+    public boolean verifyKeptItemsAreKept(AppView<? extends AppInfoWithClassHierarchy> appView) {
+      AppInfoWithClassHierarchy appInfo = appView.appInfo();
+      GraphLens lens = appView.graphLens();
       // Create a mapping from each required type to the set of required members on that type.
       Map<DexType, Set<DexMember<?, ?>>> requiredMembersPerType = new IdentityHashMap<>();
       noShrinking.forEachClass(
           type -> {
-            assert !appInfo.hasLiveness() || appInfo.withLiveness().isPinned(type)
-                : "Expected reference `" + type.toSourceString() + "` to be pinned";
-            requiredMembersPerType.computeIfAbsent(type, key -> Sets.newIdentityHashSet());
+            DexType rewrittenType = lens.lookupType(type);
+            assert !appInfo.hasLiveness() || appInfo.withLiveness().isPinned(rewrittenType)
+                : "Expected reference `" + rewrittenType.toSourceString() + "` to be pinned";
+            requiredMembersPerType.computeIfAbsent(rewrittenType, key -> Sets.newIdentityHashSet());
           });
       noShrinking.forEachMember(
           member -> {
-            assert !appInfo.hasLiveness() || appInfo.withLiveness().isPinned(member)
-                : "Expected reference `" + member.toSourceString() + "` to be pinned";
+            DexMember<?, ?> rewrittenMember = lens.getRenamedMemberSignature(member);
+            assert !appInfo.hasLiveness() || appInfo.withLiveness().isPinned(rewrittenMember)
+                : "Expected reference `" + rewrittenMember.toSourceString() + "` to be pinned";
             requiredMembersPerType
-                .computeIfAbsent(member.holder, key -> Sets.newIdentityHashSet())
-                .add(member);
+                .computeIfAbsent(rewrittenMember.holder, key -> Sets.newIdentityHashSet())
+                .add(rewrittenMember);
           });
 
       // Run through each class in the program and check that it has members it must have.
-      for (DexProgramClass clazz : application.classes()) {
+      for (DexProgramClass clazz : appView.appInfo().classes()) {
         Set<DexMember<?, ?>> requiredMembers =
             requiredMembersPerType.getOrDefault(clazz.type, ImmutableSet.of());
 
@@ -2023,7 +2026,7 @@ public class RootSetBuilder {
       // If the map is non-empty, then a type in the root set was not in the application.
       if (!requiredMembersPerType.isEmpty()) {
         DexType type = requiredMembersPerType.keySet().iterator().next();
-        DexClass clazz = application.definitionFor(type);
+        DexClass clazz = appView.definitionFor(type);
         assert clazz == null || clazz.isProgramClass()
             : "Unexpected library type in root set: `" + type + "`";
         assert requiredMembersPerType.isEmpty()

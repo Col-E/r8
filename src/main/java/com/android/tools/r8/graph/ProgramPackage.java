@@ -23,6 +23,14 @@ public class ProgramPackage implements Iterable<DexProgramClass> {
     classes.add(clazz);
   }
 
+  public String getLastPackageName() {
+    int index = packageDescriptor.lastIndexOf('/');
+    if (index >= 0) {
+      return packageDescriptor.substring(index + 1);
+    }
+    return packageDescriptor;
+  }
+
   public void forEachClass(Consumer<DexProgramClass> consumer) {
     forEach(consumer);
   }

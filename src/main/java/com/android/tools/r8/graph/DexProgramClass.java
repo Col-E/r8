@@ -221,6 +221,10 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
                     : TraversalContinuation.CONTINUE);
   }
 
+  public Kind getOriginKind() {
+    return originKind;
+  }
+
   public boolean originatesFromDexResource() {
     return originKind == Kind.DEX;
   }

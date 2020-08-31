@@ -20,6 +20,8 @@ import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.KeepFieldInfo.Joiner;
+import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -160,7 +162,7 @@ public abstract class KeepInfoCollection {
   @Deprecated
   public abstract void forEachPinnedField(Consumer<DexField> consumer);
 
-  public abstract KeepInfoCollection rewrite(NestedGraphLens lens);
+  public abstract KeepInfoCollection rewrite(NestedGraphLens lens, InternalOptions options);
 
   public abstract KeepInfoCollection mutate(Consumer<MutableKeepInfoCollection> mutator);
 
@@ -196,26 +198,39 @@ public abstract class KeepInfoCollection {
     }
 
     @Override
-    public KeepInfoCollection rewrite(NestedGraphLens lens) {
+    public KeepInfoCollection rewrite(NestedGraphLens lens, InternalOptions options) {
       Map<DexType, KeepClassInfo> newClassInfo = new IdentityHashMap<>(keepClassInfo.size());
       keepClassInfo.forEach(
           (type, info) -> {
             DexType newType = lens.lookupType(type);
-            assert !info.isPinned() || type == newType;
+            assert newType == type || !info.isPinned() || info.isMinificationAllowed(options);
             newClassInfo.put(newType, info);
           });
       Map<DexMethod, KeepMethodInfo> newMethodInfo = new IdentityHashMap<>(keepMethodInfo.size());
       keepMethodInfo.forEach(
           (method, info) -> {
             DexMethod newMethod = lens.getRenamedMethodSignature(method);
-            assert !info.isPinned() || method == newMethod;
+            assert !info.isPinned()
+                || info.isMinificationAllowed(options)
+                || newMethod.name == method.name;
+            assert !info.isPinned() || newMethod.getArity() == method.getArity();
+            assert !info.isPinned()
+                || Streams.zip(
+                        newMethod.getParameters().stream(),
+                        method.getParameters().stream().map(lens::lookupType),
+                        Object::equals)
+                    .allMatch(x -> x);
+            assert !info.isPinned()
+                || newMethod.getReturnType() == lens.lookupType(method.getReturnType());
             newMethodInfo.put(newMethod, info);
           });
       Map<DexField, KeepFieldInfo> newFieldInfo = new IdentityHashMap<>(keepFieldInfo.size());
       keepFieldInfo.forEach(
           (field, info) -> {
             DexField newField = lens.getRenamedFieldSignature(field);
-            assert !info.isPinned() || field == newField;
+            assert newField.name == field.name
+                || !info.isPinned()
+                || info.isMinificationAllowed(options);
             newFieldInfo.put(newField, info);
           });
       Map<DexReference, List<Consumer<KeepInfo.Joiner<?, ?, ?>>>> newRuleInstances =
@@ -353,6 +368,13 @@ public abstract class KeepInfoCollection {
       joinMethod(holder, method, KeepInfo.Joiner::pin);
     }
 
+    public void unsafeAllowMinificationOfMethod(ProgramMethod method) {
+      KeepMethodInfo info = keepMethodInfo.get(method.getReference());
+      if (info != null && !info.internalIsMinificationAllowed()) {
+        keepMethodInfo.put(method.getReference(), info.builder().allowMinification().build());
+      }
+    }
+
     // Unpinning a method represents a non-monotonic change to the keep info of that item.
     // This is generally unsound as it requires additional analysis to determine that a method that
     // was pinned no longer is. A known sound example is the enum analysis that will identify
@@ -409,12 +431,19 @@ public abstract class KeepInfoCollection {
       }
     }
 
-    public void unsafeUnpinField(DexProgramClass holder, DexEncodedField field) {
-      assert holder.type == field.holder();
-      assert !getClassInfo(holder).isPinned();
-      KeepFieldInfo info = this.keepFieldInfo.get(field.toReference());
+    public void unsafeAllowMinificationOfField(ProgramField field) {
+      assert !getClassInfo(field.getHolder()).isPinned();
+      KeepFieldInfo info = keepFieldInfo.get(field.getReference());
+      if (info != null && !info.internalIsMinificationAllowed()) {
+        keepFieldInfo.put(field.getReference(), info.builder().allowAccessModification().build());
+      }
+    }
+
+    public void unsafeUnpinField(ProgramField field) {
+      assert !getClassInfo(field.getHolder()).isPinned();
+      KeepFieldInfo info = this.keepFieldInfo.get(field.getReference());
       if (info != null && info.isPinned()) {
-        keepFieldInfo.put(field.toReference(), info.builder().unpin().build());
+        keepFieldInfo.put(field.getReference(), info.builder().unpin().build());
       }
     }
 

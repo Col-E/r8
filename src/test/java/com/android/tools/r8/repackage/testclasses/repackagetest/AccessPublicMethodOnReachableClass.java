@@ -11,7 +11,7 @@ import com.android.tools.r8.NeverMerge;
 public class AccessPublicMethodOnReachableClass {
 
   @NeverInline
-  static void test() {
+  public static void test() {
     ReachableClass.publicMethod();
   }
 }

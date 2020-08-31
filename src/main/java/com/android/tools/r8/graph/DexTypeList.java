@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
 import java.util.Arrays;
+import java.util.stream.Stream;
 
 public class DexTypeList extends DexItem {
 
@@ -66,6 +67,10 @@ public class DexTypeList extends DexItem {
 
   public int size() {
     return values.length;
+  }
+
+  public Stream<DexType> stream() {
+    return Stream.of(values);
   }
 
   @Override

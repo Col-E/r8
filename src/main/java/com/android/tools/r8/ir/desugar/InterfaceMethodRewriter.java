@@ -26,7 +26,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -1032,7 +1031,8 @@ public final class InterfaceMethodRewriter {
   }
 
   private Map<DexType, DexProgramClass> processInterfaces(Builder<?> builder, Flavor flavour) {
-    NestedGraphLens.Builder graphLensBuilder = InterfaceProcessorNestedGraphLens.builder();
+    InterfaceProcessorNestedGraphLens.Builder graphLensBuilder =
+        InterfaceProcessorNestedGraphLens.builder();
     InterfaceProcessor processor = new InterfaceProcessor(appView, this);
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, true)) {

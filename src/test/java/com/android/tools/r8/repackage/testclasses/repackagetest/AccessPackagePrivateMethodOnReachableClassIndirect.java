@@ -11,7 +11,16 @@ import com.android.tools.r8.NeverMerge;
 public class AccessPackagePrivateMethodOnReachableClassIndirect {
 
   @NeverInline
-  static void test() {
-    AccessPackagePrivateMethodOnReachableClassDirect.test();
+  public static void test() {
+    Helper.test();
+  }
+
+  @NeverMerge
+  public static class Helper {
+
+    @NeverInline
+    static void test() {
+      ReachableClass.packagePrivateMethod();
+    }
   }
 }
