@@ -7,6 +7,9 @@ package com.android.tools.r8.utils.codeinspector;
 import static com.android.tools.r8.KotlinTestBase.METADATA_TYPE;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.TestRuntime.CfRuntime;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -27,6 +30,7 @@ import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -407,5 +411,26 @@ public class FoundClassSubject extends ClassSubject {
   @Override
   public ClassNamingForNameMapper getNaming() {
     return naming;
+  }
+
+  @Override
+  public void disassembleUsingJavap(boolean verbose) throws Exception {
+    assert dexClass.origin != null;
+    List<String> command = new ArrayList<>();
+    command.add(
+        CfRuntime.getCheckedInJdk9().getJavaHome().resolve("bin").resolve("javap").toString());
+    if (verbose) {
+      command.add("-v");
+      command.add("-c");
+      command.add("-p");
+    }
+    command.add("-cp");
+    List<String> parts = dexClass.origin.parts();
+    assert parts.size() == 2;
+    command.add(parts.get(0));
+    command.add(parts.get(1).replace(".class", ""));
+    ProcessResult processResult = ToolHelper.runProcess(new ProcessBuilder(command));
+    assert processResult.exitCode == 0;
+    System.out.println(processResult.stdout);
   }
 }

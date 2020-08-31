@@ -118,6 +118,7 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
     return self();
   }
 
+  @Override
   public RR disassemble() throws IOException, ExecutionException {
     return disassemble(System.out);
   }

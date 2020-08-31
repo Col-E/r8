@@ -214,4 +214,6 @@ public abstract class ClassSubject extends Subject {
   }
 
   public abstract ClassNamingForNameMapper getNaming();
+
+  public abstract void disassembleUsingJavap(boolean verbose) throws Exception;
 }

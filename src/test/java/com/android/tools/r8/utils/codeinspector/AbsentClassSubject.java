@@ -183,4 +183,9 @@ public class AbsentClassSubject extends ClassSubject {
   public ClassNamingForNameMapper getNaming() {
     return null;
   }
+
+  @Override
+  public void disassembleUsingJavap(boolean verbose) throws Exception {
+    throw new Unreachable("Cannot disassembly an absent class");
+  }
 }
