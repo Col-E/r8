@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.BiMap;
@@ -256,6 +257,22 @@ public abstract class GraphLens {
     return this == getIdentityLens();
   }
 
+  public boolean isInterfaceProcessorLens() {
+    return false;
+  }
+
+  public InterfaceProcessorNestedGraphLens asInterfaceProcessorLens() {
+    return null;
+  }
+
+  public boolean isGraphLensWithPrevious() {
+    return false;
+  }
+
+  public GraphLensWithPrevious asGraphLensWithPrevious() {
+    return null;
+  }
+
   public GraphLens withCodeRewritingsApplied() {
     if (hasCodeRewritings()) {
       return new ClearCodeRewritingGraphLens(this);
@@ -477,12 +494,28 @@ public abstract class GraphLens {
 
   // This lens clears all code rewriting (lookup methods mimics identity lens behavior) but still
   // relies on the previous lens for names (getRenamed/Original methods).
-  public static class ClearCodeRewritingGraphLens extends IdentityGraphLens {
+  public static class ClearCodeRewritingGraphLens extends IdentityGraphLens
+      implements GraphLensWithPrevious {
 
     private final GraphLens previous;
 
     public ClearCodeRewritingGraphLens(GraphLens previous) {
       this.previous = previous;
+    }
+
+    @Override
+    public boolean isGraphLensWithPrevious() {
+      return true;
+    }
+
+    @Override
+    public GraphLensWithPrevious asGraphLensWithPrevious() {
+      return this;
+    }
+
+    @Override
+    public GraphLens getPrevious() {
+      return previous;
     }
 
     @Override
@@ -518,6 +551,11 @@ public abstract class GraphLens {
     }
   }
 
+  public interface GraphLensWithPrevious {
+
+    GraphLens getPrevious();
+  }
+
   /**
    * GraphLens implementation with a parent lens using a simple mapping for type, method and field
    * mapping.
@@ -528,7 +566,7 @@ public abstract class GraphLens {
    * #mapInvocationType(DexMethod, DexMethod, Type)} if the default name mapping applies, and only
    * invocation type might need to change.
    */
-  public static class NestedGraphLens extends GraphLens {
+  public static class NestedGraphLens extends GraphLens implements GraphLensWithPrevious {
 
     protected GraphLens previousLens;
     protected final DexItemFactory dexItemFactory;
@@ -541,7 +579,7 @@ public abstract class GraphLens {
     // Maps that store the original signature of fields and methods that have been affected, for
     // example, by vertical class merging. Needed to generate a correct Proguard map in the end.
     protected final BiMap<DexField, DexField> originalFieldSignatures;
-    protected final BiMap<DexMethod, DexMethod> originalMethodSignatures;
+    protected BiMap<DexMethod, DexMethod> originalMethodSignatures;
 
     // Overrides this if the sub type needs to be a nested lens while it doesn't have any mappings
     // at all, e.g., publicizer lens that changes invocation type only.
@@ -570,12 +608,27 @@ public abstract class GraphLens {
       this.dexItemFactory = dexItemFactory;
     }
 
+    @Override
+    public GraphLens getPrevious() {
+      return previousLens;
+    }
+
     public <T> T withAlternativeParentLens(GraphLens lens, Supplier<T> action) {
       GraphLens oldParent = previousLens;
       previousLens = lens;
       T result = action.get();
       previousLens = oldParent;
       return result;
+    }
+
+    @Override
+    public boolean isGraphLensWithPrevious() {
+      return true;
+    }
+
+    @Override
+    public NestedGraphLens asGraphLensWithPrevious() {
+      return this;
     }
 
     @Override

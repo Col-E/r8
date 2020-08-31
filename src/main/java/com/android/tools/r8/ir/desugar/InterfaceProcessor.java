@@ -36,6 +36,7 @@ import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,7 +53,7 @@ import java.util.Set;
 // a companion class. Removes bridge default methods.
 //
 // Also moves static interface methods into a companion class.
-final class InterfaceProcessor {
+public final class InterfaceProcessor {
 
   private final AppView<?> appView;
   private final InterfaceMethodRewriter rewriter;
@@ -385,7 +386,7 @@ final class InterfaceProcessor {
   // are to static companion methods.
   public static class InterfaceProcessorNestedGraphLens extends NestedGraphLens {
 
-    private final Map<DexMethod, DexMethod> extraOriginalMethodSignatures;
+    private BiMap<DexMethod, DexMethod> extraOriginalMethodSignatures;
 
     public InterfaceProcessorNestedGraphLens(
         Map<DexType, DexType> typeMap,
@@ -393,7 +394,7 @@ final class InterfaceProcessor {
         Map<DexField, DexField> fieldMap,
         BiMap<DexField, DexField> originalFieldSignatures,
         BiMap<DexMethod, DexMethod> originalMethodSignatures,
-        Map<DexMethod, DexMethod> extraOriginalMethodSignatures,
+        BiMap<DexMethod, DexMethod> extraOriginalMethodSignatures,
         GraphLens previousLens,
         DexItemFactory dexItemFactory) {
       super(
@@ -405,6 +406,36 @@ final class InterfaceProcessor {
           previousLens,
           dexItemFactory);
       this.extraOriginalMethodSignatures = extraOriginalMethodSignatures;
+    }
+
+    public static InterfaceProcessorNestedGraphLens find(GraphLens lens) {
+      if (lens.isInterfaceProcessorLens()) {
+        return lens.asInterfaceProcessorLens();
+      }
+      if (lens.isIdentityLens()) {
+        return null;
+      }
+      if (lens.isGraphLensWithPrevious()) {
+        return find(lens.asGraphLensWithPrevious().getPrevious());
+      }
+      assert false;
+      return null;
+    }
+
+    public void toggleMappingToExtraMethods() {
+      BiMap<DexMethod, DexMethod> tmp = originalMethodSignatures;
+      this.originalMethodSignatures = extraOriginalMethodSignatures;
+      this.extraOriginalMethodSignatures = tmp;
+    }
+
+    @Override
+    public boolean isInterfaceProcessorLens() {
+      return true;
+    }
+
+    @Override
+    public InterfaceProcessorNestedGraphLens asInterfaceProcessorLens() {
+      return this;
     }
 
     @Override
@@ -435,8 +466,7 @@ final class InterfaceProcessor {
 
     public static class Builder extends NestedGraphLens.Builder {
 
-      private final Map<DexMethod, DexMethod> extraOriginalMethodSignatures =
-          new IdentityHashMap<>();
+      private final BiMap<DexMethod, DexMethod> extraOriginalMethodSignatures = HashBiMap.create();
 
       public void recordOrigin(DexMethod method, DexMethod origin) {
         if (method == origin) {

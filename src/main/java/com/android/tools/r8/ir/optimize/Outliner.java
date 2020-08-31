@@ -58,6 +58,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
+import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
@@ -1313,11 +1314,20 @@ public class Outliner {
   public ProgramMethodSet selectMethodsForOutlining() {
     ProgramMethodSet methodsSelectedForOutlining = ProgramMethodSet.create();
     assert outlineSites.isEmpty();
+
+    InterfaceProcessorNestedGraphLens interfaceProcessorLens =
+        InterfaceProcessorNestedGraphLens.find(appView.graphLens());
+    if (interfaceProcessorLens != null) {
+      interfaceProcessorLens.toggleMappingToExtraMethods();
+    }
     for (LongLivedProgramMethodMultisetBuilder outlineMethods : candidateMethodLists) {
       if (outlineMethods.size() >= appView.options().outline.threshold) {
         ProgramMethodMultiset multiset = outlineMethods.build(appView);
         multiset.forEachEntry((method, ignore) -> methodsSelectedForOutlining.add(method));
       }
+    }
+    if (interfaceProcessorLens != null) {
+      interfaceProcessorLens.toggleMappingToExtraMethods();
     }
     candidateMethodLists.clear();
     return methodsSelectedForOutlining;
