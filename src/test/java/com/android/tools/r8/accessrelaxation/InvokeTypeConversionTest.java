@@ -6,36 +6,45 @@ package com.android.tools.r8.accessrelaxation;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.R8Command;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import java.util.List;
 import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class InvokeTypeConversionTest extends SmaliTestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  }
+
   private final String CLASS_NAME = "Example";
   private MethodSignature main;
+
+  private final TestParameters parameters;
+
+  public InvokeTypeConversionTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   private SmaliBuilder buildTestClass(String invokeLine) {
     SmaliBuilder builder = new SmaliBuilder(CLASS_NAME);
@@ -63,29 +72,23 @@ public class InvokeTypeConversionTest extends SmaliTestBase {
       SmaliBuilder builder,
       String expectedException,
       Consumer<CodeInspector> inspectorConsumer) throws Exception {
-    AndroidApp app = buildApplication(builder);
-    List<String> pgConfigs =
-        ImmutableList.of(
-            keepMainProguardConfiguration(CLASS_NAME),
-            // We're testing lens-based invocation type conversions.
-            "-dontoptimize",
-            "-dontobfuscate",
-            "-allowaccessmodification");
-    R8Command.Builder command = ToolHelper.prepareR8CommandBuilder(app);
-    command.addProguardConfiguration(pgConfigs, Origin.unknown());
-    AndroidApp processedApp = ToolHelper.runR8(command.build(), o -> {
-      o.enableInlining = false;
-    });
-    ProcessResult artResult = runOnArtRaw(processedApp, CLASS_NAME);
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramDexFileData(builder.compile())
+            .addKeepMainRule(CLASS_NAME)
+            .addKeepRules(
+                // We're testing lens-based invocation type conversions.
+                "-dontoptimize", "-dontobfuscate", "-allowaccessmodification")
+            .addOptionsModification(o -> o.enableInlining = false)
+            .setMinApi(parameters.getApiLevel())
+            .run(parameters.getRuntime(), CLASS_NAME);
     if (expectedException == null) {
-      assertEquals(0, artResult.exitCode);
-      assertEquals("0", artResult.stdout);
+      result.assertSuccessWithOutput("0");
+      result.inspect(inspectorConsumer::accept);
     } else {
-      assertEquals(1, artResult.exitCode);
-      assertThat(artResult.stderr, containsString(expectedException));
+      result.assertFailureWithErrorThatMatches(containsString(expectedException));
+      result.inspectFailure(inspectorConsumer::accept);
     }
-    CodeInspector inspector = new CodeInspector(processedApp);
-    inspectorConsumer.accept(inspector);
   }
 
   // The following test checks invoke-direct, which refers to the private static method, is *not*
@@ -105,8 +108,9 @@ public class InvokeTypeConversionTest extends SmaliTestBase {
     SmaliBuilder builder = buildTestClass(
         "invoke-direct { v1 }, L" + CLASS_NAME + ";->bar()I");
     String expectedError =
-        ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)
-            ? "VerifyError" : "IncompatibleClassChangeError";
+        parameters.getRuntime().asDex().getVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)
+            ? "VerifyError"
+            : "IncompatibleClassChangeError";
     run(builder, expectedError, dexInspector -> {
       ClassSubject clazz = dexInspector.clazz(CLASS_NAME);
       assertThat(clazz, isPresent());
