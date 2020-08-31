@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.errors;
 
-public class InvalidDescriptorException extends InternalCompilerError {
+public class InvalidDescriptorException extends RuntimeException {
   public InvalidDescriptorException(String message) {
     super(message);
   }

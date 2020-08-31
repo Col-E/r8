@@ -6,9 +6,12 @@ package com.android.tools.r8.errors;
 /**
  * Exception to signal an unexpected state internally to the compiler.
  *
- * Exceptions of this type always represent an bug in the compiler.
- * For expected errors, such as invalid input, the compiler should generate a CompilationError.
-  */
+ * <p>Exceptions of this type always represent an bug in the compiler.
+ *
+ * <p>For expected errors, such as invalid input, the compiler should generate a CompilationError.
+ *
+ * <p>For internal recoverable exceptions (eg, control operators) this base should not be used.
+ */
 public class InternalCompilerError extends IllegalStateException {
 
   public InternalCompilerError() {

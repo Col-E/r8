@@ -3,7 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.errors;
 
-public class InvalidDebugInfoException extends InternalCompilerError {
+/** An always caught exception to abort/restart IR construction due to invalid locals. */
+public class InvalidDebugInfoException extends RuntimeException {
   public InvalidDebugInfoException(String message) {
     super(message);
   }
