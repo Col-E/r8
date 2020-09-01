@@ -54,7 +54,7 @@ public class CfInstanceOf extends CfInstruction {
 
   @Override
   void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
-    registry.registerTypeReference(type);
+    registry.registerInstanceOf(type);
   }
 
   @Override

@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.shaking.horizontalclassmerging;
+package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -10,34 +10,18 @@ import static org.hamcrest.core.IsNot.not;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
-import java.util.List;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-@RunWith(Parameterized.class)
-public class RemapMethodTest extends TestBase {
-  private final TestParameters parameters;
-  private final boolean enableHorizontalClassMerging;
-
+public class RemapMethodTest extends HorizontalClassMergingTestBase {
   public RemapMethodTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
-    this.parameters = parameters;
-    this.enableHorizontalClassMerging = enableHorizontalClassMerging;
-  }
-
-  @Parameterized.Parameters(name = "{0}, horizontalClassMerging:{1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+    super(parameters, enableHorizontalClassMerging);
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(this.getClass())
+        .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> {

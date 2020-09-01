@@ -552,7 +552,8 @@ public class R8 {
         if (options.enableHorizontalClassMerging) {
           timing.begin("HorizontalClassMerger");
           HorizontalClassMerger merger =
-              new HorizontalClassMerger(appViewWithLiveness, mainDexClasses);
+              new HorizontalClassMerger(
+                  appViewWithLiveness, mainDexClasses, classMergingEnqueuerExtension);
           HorizontalClassMergerGraphLens lens = merger.run();
           if (lens != null) {
             appView.setHorizontallyMergedClasses(lens.getHorizontallyMergedClasses());

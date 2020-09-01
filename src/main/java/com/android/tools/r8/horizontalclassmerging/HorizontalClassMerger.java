@@ -11,10 +11,12 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoFields;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInternalUtilityClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoOverlappingConstructors;
+import com.android.tools.r8.horizontalclassmerging.policies.NoRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoStaticClassInitializer;
 import com.android.tools.r8.horizontalclassmerging.policies.NotEntryPoint;
 import com.android.tools.r8.horizontalclassmerging.policies.SameParentClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.ClassMergingEnqueuerExtension;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -25,22 +27,22 @@ import java.util.List;
 import java.util.Map;
 
 public class HorizontalClassMerger {
-
   private final AppView<AppInfoWithLiveness> appView;
-  private final MainDexClasses mainDexClasses;
-
   private final PolicyExecutor policyExecutor;
 
   public HorizontalClassMerger(
-      AppView<AppInfoWithLiveness> appView, MainDexClasses mainDexClasses) {
+      AppView<AppInfoWithLiveness> appView,
+      MainDexClasses mainDexClasses,
+      ClassMergingEnqueuerExtension classMergingEnqueuerExtension) {
     this.appView = appView;
-    this.mainDexClasses = mainDexClasses;
 
     List<Policy> policies =
         ImmutableList.of(
             new NoFields(),
+            // TODO(b/166071504): Allow merging of classes that implement interfaces.
             new NoInterfaces(),
             new NoStaticClassInitializer(),
+            new NoRuntimeTypeChecks(classMergingEnqueuerExtension),
             new NotEntryPoint(appView.dexItemFactory()),
             new NoInternalUtilityClasses(appView.dexItemFactory()),
             new SameParentClass(),
