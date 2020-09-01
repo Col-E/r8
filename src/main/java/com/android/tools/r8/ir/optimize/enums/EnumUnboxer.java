@@ -893,9 +893,7 @@ public class EnumUnboxer implements PostOptimization {
         return Reason.ELIGIBLE;
       } else if (singleTarget == factory.enumMembers.constructor) {
         // Enum constructor call is allowed only if first call of an enum initializer.
-        if (code.method().isInstanceInitializer()
-            && code.method().holder() == enumClass.type
-            && isFirstInstructionAfterArguments(invokeMethod, code)) {
+        if (code.method().isInstanceInitializer() && code.method().holder() == enumClass.type) {
           return Reason.ELIGIBLE;
         }
       }
@@ -1094,16 +1092,6 @@ public class EnumUnboxer implements PostOptimization {
           .getObjectStateForOrdinal(enumValueInfoMap.getEnumValueInfo(staticField).ordinal);
     }
     return ObjectState.empty();
-  }
-
-  private boolean isFirstInstructionAfterArguments(InvokeMethod invokeMethod, IRCode code) {
-    BasicBlock basicBlock = code.entryBlock();
-    for (Instruction instruction : basicBlock.getInstructions()) {
-      if (!instruction.isArgument()) {
-        return instruction == invokeMethod;
-      }
-    }
-    return false;
   }
 
   private void reportEnumsAnalysis() {

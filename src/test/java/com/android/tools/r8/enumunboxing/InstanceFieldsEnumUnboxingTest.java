@@ -33,7 +33,7 @@ public class InstanceFieldsEnumUnboxingTest extends EnumUnboxingTestBase {
     SuccessIntFieldOrdinal.class,
     SuccessIntFieldInitializerInit.class,
     SuccessStringField.class,
-    SuccessMultiConstructorIntField.class
+    SuccessMultiConstructorIntField.class,
   };
 
   private final TestParameters parameters;
@@ -71,7 +71,7 @@ public class InstanceFieldsEnumUnboxingTest extends EnumUnboxingTestBase {
       testClass(compile, failure, true);
     }
     for (Class<?> success : SUCCESSES) {
-      testClass(compile, success, success != SuccessUnusedField.class);
+      testClass(compile, success, false);
     }
   }
 
@@ -423,8 +423,7 @@ public class InstanceFieldsEnumUnboxingTest extends EnumUnboxingTestBase {
       int field1;
 
       EnumField(int i0) {
-        this.field0 = i0;
-        this.field1 = -1;
+        this(i0, -1);
       }
 
       EnumField(int i0, int i1) {
