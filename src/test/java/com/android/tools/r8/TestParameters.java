@@ -4,9 +4,11 @@
 package com.android.tools.r8;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.NoneRuntime;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
 
 // Actual test parameters for a specific configuration. Currently just the runtime configuration.
@@ -75,5 +77,10 @@ public class TestParameters {
 
   public void assertNoneRuntime() {
     assertEquals(NoneRuntime.getInstance(), runtime);
+  }
+
+  public DexVm.Version getDexRuntimeVersion() {
+    assertTrue(isDexRuntime());
+    return getRuntime().asDex().getVm().getVersion();
   }
 }

@@ -167,6 +167,10 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     return self();
   }
 
+  public JvmTestBuilder noVerify() {
+    return addVmArguments("-noverify");
+  }
+
   public JvmTestBuilder addAndroidBuildVersion() {
     addVmArguments("-D" + AndroidBuildVersion.PROPERTY + "=10000");
     return addProgramClasses(AndroidBuildVersion.class);
