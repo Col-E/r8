@@ -10,6 +10,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
+import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.conversion.ExtraConstantIntParameter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.Collections;
@@ -20,9 +22,11 @@ import java.util.Set;
 
 public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   private final AppView<?> appView;
+  private final Map<DexMethod, Integer> constructorIds;
 
   private HorizontalClassMergerGraphLens(
       AppView<?> appView,
+      Map<DexMethod, Integer> constructorIds,
       Map<DexType, DexType> typeMap,
       Map<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
@@ -38,10 +42,32 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
         previousLens,
         appView.dexItemFactory());
     this.appView = appView;
+    this.constructorIds = constructorIds;
   }
 
   public HorizontallyMergedClasses getHorizontallyMergedClasses() {
     return new HorizontallyMergedClasses(this.typeMap);
+  }
+
+  /**
+   * If an overloaded constructor is requested, add the constructor id as a parameter to the
+   * constructor. Otherwise return the lookup on the underlying graph lens.
+   */
+  @Override
+  public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+    Integer constructorId = constructorIds.get(method);
+    GraphLensLookupResult lookup = super.lookupMethod(method, context, type);
+    if (constructorId != null) {
+      DexMethod newMethod = lookup.getMethod();
+      return new GraphLensLookupResult(
+          newMethod,
+          mapInvocationType(newMethod, method, lookup.getType()),
+          lookup
+              .getPrototypeChanges()
+              .withExtraParameter(new ExtraConstantIntParameter(constructorId)));
+    } else {
+      return lookup;
+    }
   }
 
   public static class Builder {
@@ -64,6 +90,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
         BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
         return new HorizontalClassMergerGraphLens(
             appView,
+            constructorIds,
             mergedClasses,
             fieldMap,
             methodMap,
@@ -76,7 +103,12 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
     /** Bidirectional mapping from one method to another. */
     public Builder moveMethod(DexMethod from, DexMethod to) {
       mapMethod(from, to);
-      originalMethodSignatures.put(to, from);
+      recordOriginalSignature(from, to);
+      return this;
+    }
+
+    public Builder recordOriginalSignature(DexMethod from, DexMethod to) {
+      originalMethodSignatures.forcePut(to, originalMethodSignatures.getOrDefault(from, from));
       return this;
     }
 

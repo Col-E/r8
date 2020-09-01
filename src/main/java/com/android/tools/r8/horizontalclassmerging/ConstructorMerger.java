@@ -16,12 +16,13 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ConstructorMerger {
   private final AppView<?> appView;
@@ -72,7 +73,9 @@ public class ConstructorMerger {
       target.removeMethod(constructor.toReference());
     }
 
-    target.addDirectMethod(constructor.toTypeSubstitutedMethod(method));
+    DexEncodedMethod encodedMethod = constructor.toTypeSubstitutedMethod(method);
+    encodedMethod.getMutableOptimizationInfo().markForceInline();
+    target.addDirectMethod(encodedMethod);
     return method;
   }
 
@@ -93,37 +96,48 @@ public class ConstructorMerger {
   }
 
   /** Synthesize a new method which selects the constructor based on a parameter type. */
-  void mergeMany(HorizontalClassMergerGraphLens.Builder lensBuilder) {
-    Map<DexType, DexMethod> typeConstructors = new IdentityHashMap<>();
+  void mergeMany(
+      HorizontalClassMergerGraphLens.Builder lensBuilder,
+      Reference2IntMap<DexType> classIdentifiers) {
+    // Tree map as must be sorted.
+    Int2ReferenceSortedMap<DexMethod> typeConstructorClassMap = new Int2ReferenceAVLTreeMap<>();
 
+    int classFileVersion = -1;
     for (DexEncodedMethod constructor : constructors) {
-      typeConstructors.put(constructor.holder(), moveConstructor(constructor));
+      if (constructor.hasClassFileVersion()) {
+        classFileVersion = Integer.max(classFileVersion, constructor.getClassFileVersion());
+      }
+      DexMethod movedConstructor = moveConstructor(constructor);
+      lensBuilder.recordOriginalSignature(constructor.method, movedConstructor);
+      typeConstructorClassMap.put(
+          classIdentifiers.getInt(constructor.getHolderType()), movedConstructor);
     }
 
     DexProto newProto = getNewConstructorProto();
 
-    DexMethod newConstructor =
+    DexMethod newConstructorReference =
         appView.dexItemFactory().createMethod(target.type, newProto, dexItemFactory.initMethodName);
     SynthesizedCode synthesizedCode =
-        new SynthesizedCode(
-            callerPosition ->
-                new ConstructorEntryPoint(
-                    typeConstructors.values(), newConstructor, callerPosition));
-    DexEncodedMethod newMethod =
+        new ConstructorEntryPointSynthesizedCode(typeConstructorClassMap, newConstructorReference);
+    DexEncodedMethod newConstructor =
         new DexEncodedMethod(
-            newConstructor,
+            newConstructorReference,
             getAccessFlags(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            synthesizedCode);
+            synthesizedCode,
+            classFileVersion,
+            true);
 
     // Map each old constructor to the newly synthesized constructor in the graph lens.
-    int constructorId = 0;
-    for (DexEncodedMethod constructor : constructors) {
-      lensBuilder.mapConstructor(constructor.method, newMethod.method, constructorId++);
+    for (DexEncodedMethod oldConstructor : constructors) {
+      lensBuilder.mapConstructor(
+          oldConstructor.method,
+          newConstructorReference,
+          classIdentifiers.getInt(oldConstructor.getHolderType()));
     }
 
-    target.addDirectMethod(newMethod);
+    target.addDirectMethod(newConstructor);
   }
 
   /**
@@ -146,11 +160,13 @@ public class ConstructorMerger {
     }
   }
 
-  public void merge(HorizontalClassMergerGraphLens.Builder lensBuilder) {
+  public void merge(
+      HorizontalClassMergerGraphLens.Builder lensBuilder,
+      Reference2IntMap<DexType> classIdentifiers) {
     if (constructors.size() <= 1) {
       mergeTrivial(lensBuilder);
     } else {
-      mergeMany(lensBuilder);
+      mergeMany(lensBuilder, classIdentifiers);
     }
   }
 }

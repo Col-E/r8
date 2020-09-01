@@ -6,16 +6,15 @@ package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsNot.not;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
-public class ClassesDistuingishedByIndirectInstanceOfInterfaceCheckCast
-    extends HorizontalClassMergingTestBase {
-  public ClassesDistuingishedByIndirectInstanceOfInterfaceCheckCast(
+public class OverlappingConstructorsTest extends HorizontalClassMergingTestBase {
+
+  public OverlappingConstructorsTest(
       TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
   }
@@ -27,53 +26,59 @@ public class ClassesDistuingishedByIndirectInstanceOfInterfaceCheckCast
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
-        .enableInliningAnnotations()
-        .enableMergeAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("false", "true")
         .inspect(
             codeInspector -> {
-              // The two classes should not be merged.
-              assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(codeInspector.clazz(B.class), isPresent());
+              if (enableHorizontalClassMerging) {
+                assertThat(codeInspector.clazz(A.class), isPresent());
+                assertThat(codeInspector.clazz(B.class), not(isPresent()));
+                assertThat(codeInspector.clazz(C.class), not(isPresent()));
+                // TODO(b/165517236): Explicitly check classes have been merged.
+              } else {
+                assertThat(codeInspector.clazz(A.class), isPresent());
+                assertThat(codeInspector.clazz(B.class), isPresent());
+                assertThat(codeInspector.clazz(C.class), isPresent());
+              }
             });
   }
 
   @NeverClassInline
-  @NeverMerge
-  public interface I {
-    void bar();
-  }
-
-  @NeverClassInline
   public static class A {
-    @NeverInline
-    public void foo() {
-      System.out.println("foo");
+    public A(String s) {
+      System.out.println(s);
     }
   }
 
   @NeverClassInline
-  public static class B implements I {
-    @NeverInline
-    public void bar() {
-      System.out.println("bar");
+  public static class B {
+    public B(String s) {
+      System.out.println(s);
+    }
+
+    public B(boolean b) {
+      System.out.println(b);
+    }
+  }
+
+  @NeverClassInline
+  public static class C {
+    public C(boolean b) {
+      System.out.println(b);
     }
   }
 
   public static class Main {
-    @NeverInline
-    public static void checkObject(Object o) {
-      System.out.println(o instanceof I);
-    }
-
     public static void main(String[] args) {
-      A a = new A();
-      B b = new B();
-      checkObject(a);
-      checkObject(b);
+      A a = new A("foo");
+      System.out.println(a);
+      B b1 = new B("");
+      System.out.println(b1);
+      B b2 = new B(false);
+      System.out.println(b2);
+      C c = new C(true);
+      System.out.println(c);
     }
   }
 }

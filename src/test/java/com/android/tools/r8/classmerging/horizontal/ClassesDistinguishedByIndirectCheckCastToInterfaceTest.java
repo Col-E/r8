@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
@@ -26,6 +27,7 @@ public class ClassesDistinguishedByIndirectCheckCastToInterfaceTest
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+        .enableMergeAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -39,6 +41,7 @@ public class ClassesDistinguishedByIndirectCheckCastToInterfaceTest
             });
   }
 
+  @NeverMerge
   @NeverClassInline
   public interface I {
     void bar();

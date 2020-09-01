@@ -8,36 +8,34 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
 import com.android.tools.r8.utils.IntBox;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.SortedMap;
 
 /**
  * Generate code of the form: <code>
  *   MyClass(int constructorId, [args]) {
  *     switch (constructorId) {
- *       case 0:
- *         this.Constructor$A([args]);
- *         return;
  *       case 1:
  *         this.Constructor$B([args]);
  *         return;
  *       ...
  *       default:
- *         throw null;
+ *         this.Constructor$A([args]);
+ *         return;
  *     }
  *   }
  * </code>
  */
 public class ConstructorEntryPoint extends SyntheticSourceCode {
-  private final Collection<DexMethod> typeConstructors;
+  private final SortedMap<Integer, DexMethod> typeConstructors;
 
   public ConstructorEntryPoint(
-      Collection<DexMethod> typeConstructors, DexMethod method, Position callerPosition) {
+      SortedMap<Integer, DexMethod> typeConstructors, DexMethod method, Position callerPosition) {
     super(method.holder, method, callerPosition);
 
     this.typeConstructors = typeConstructors;
@@ -46,25 +44,30 @@ public class ConstructorEntryPoint extends SyntheticSourceCode {
   @Override
   protected void prepareInstructions() {
     int typeConstructorCount = typeConstructors.size();
-    int idRegister = getParamRegister(0);
+    int idRegister = getParamRegister(method.getArity() - 1);
 
-    int[] keys = new int[typeConstructorCount];
-    int[] offsets = new int[typeConstructorCount];
+    int[] keys = new int[typeConstructorCount - 1];
+    int[] offsets = new int[typeConstructorCount - 1];
     IntBox fallthrough = new IntBox();
     int switchIndex = lastInstructionIndex();
     add(
         builder -> builder.addSwitch(idRegister, keys, fallthrough.get(), offsets),
         builder -> endsSwitch(builder, switchIndex, fallthrough.get(), offsets));
 
-    fallthrough.set(nextInstructionIndex());
-    int nullRegister = nextRegister(ValueType.OBJECT);
-    add(builder -> builder.addNullConst(nullRegister));
-    add(builder -> builder.addThrow(nullRegister), endsBlock);
 
     int index = 0;
-    for (DexMethod typeConstructor : typeConstructors) {
-      keys[index] = index;
-      offsets[index] = nextInstructionIndex();
+    for (Entry<Integer, DexMethod> entry : typeConstructors.entrySet()) {
+      int classId = entry.getKey();
+      DexMethod typeConstructor = entry.getValue();
+
+      if (index == 0) {
+        // The first constructor is the fallthrough case.
+        fallthrough.set(nextInstructionIndex());
+      } else {
+        // All subsequent constructors are matched on a specific case.
+        keys[index - 1] = classId;
+        offsets[index - 1] = nextInstructionIndex();
+      }
 
       add(
           builder -> {
@@ -80,7 +83,6 @@ public class ConstructorEntryPoint extends SyntheticSourceCode {
             builder.addInvoke(
                 Type.DIRECT, typeConstructor, typeConstructor.proto, arguments, false);
           });
-
       add(IRBuilder::addReturn, endsBlock);
 
       index++;

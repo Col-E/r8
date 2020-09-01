@@ -10,9 +10,12 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -29,6 +32,8 @@ class ClassMerger {
   private final DexItemFactory dexItemFactory;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
 
+  private final Reference2IntMap<DexType> classIdentifiers = new Reference2IntOpenHashMap<>();
+
   private final Map<DexProto, ConstructorMerger.Builder> constructorMergers;
 
   ClassMerger(
@@ -43,9 +48,11 @@ class ClassMerger {
     this.constructorMergers = new IdentityHashMap<>();
 
     this.dexItemFactory = appView.dexItemFactory();
+
+    buildClassIdentifierMap();
   }
 
-  private Wrapper<DexMethod> bySignature(DexMethod method) {
+  Wrapper<DexMethod> bySignature(DexMethod method) {
     return MethodSignatureEquivalence.get().wrap(method);
   }
 
@@ -56,7 +63,14 @@ class ClassMerger {
         .add(method);
   }
 
-  private void merge(DexProgramClass toMerge) {
+  void buildClassIdentifierMap() {
+    classIdentifiers.put(target.type, 0);
+    for (DexProgramClass toMerge : toMergeGroup) {
+      classIdentifiers.put(toMerge.type, classIdentifiers.size());
+    }
+  }
+
+  void merge(DexProgramClass toMerge) {
     toMerge.forEachProgramMethod(
         programMethod -> {
           DexEncodedMethod method = programMethod.getDefinition();
@@ -99,7 +113,7 @@ class ClassMerger {
   void mergeConstructors() {
     for (ConstructorMerger.Builder builder : constructorMergers.values()) {
       ConstructorMerger constructorMerger = builder.build(appView, target);
-      constructorMerger.merge(lensBuilder);
+      constructorMerger.merge(lensBuilder, classIdentifiers);
     }
   }
 

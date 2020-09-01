@@ -227,12 +227,7 @@ public class R8 {
       Set<Marker> markers = new HashSet<>(options.itemFactory.extractMarkers());
       markers.remove(marker);
       if (options.isGeneratingClassFiles()) {
-        new CfApplicationWriter(
-                appView,
-                marker,
-                graphLens,
-                namingLens,
-                proguardMapSupplier)
+        new CfApplicationWriter(appView, marker, graphLens, namingLens, proguardMapSupplier)
             .write(options.getClassFileConsumer());
       } else {
         new ApplicationWriter(

@@ -12,9 +12,8 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
-public class NoOverlappingConstructorsPolicyTest extends HorizontalClassMergingTestBase {
-
-  public NoOverlappingConstructorsPolicyTest(
+public class ConstructorMergingWithArgumentsTest extends HorizontalClassMergingTestBase {
+  public ConstructorMergingWithArgumentsTest(
       TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
   }
@@ -29,56 +28,38 @@ public class NoOverlappingConstructorsPolicyTest extends HorizontalClassMergingT
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("foo hello", "bar world")
         .inspect(
             codeInspector -> {
               if (enableHorizontalClassMerging) {
                 assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
-                assertThat(codeInspector.clazz(C.class), not(isPresent()));
+                assertThat(codeInspector.clazz(B.class), not(isPresent()));
                 // TODO(b/165517236): Explicitly check classes have been merged.
               } else {
                 assertThat(codeInspector.clazz(A.class), isPresent());
                 assertThat(codeInspector.clazz(B.class), isPresent());
-                assertThat(codeInspector.clazz(C.class), isPresent());
               }
             });
   }
 
   @NeverClassInline
   public static class A {
-    public A(String s) {
-      System.out.println(s);
+    public A(String arg) {
+      System.out.println("foo " + arg);
     }
   }
 
   @NeverClassInline
   public static class B {
-    public B(String s) {
-      System.out.println(s);
-    }
-
-    public B(boolean b) {
-      System.out.println(b);
-    }
-  }
-
-  @NeverClassInline
-  public static class C {
-    public C(boolean b) {
-      System.out.println(b);
+    public B(String arg) {
+      System.out.println("bar " + arg);
     }
   }
 
   public static class Main {
     public static void main(String[] args) {
-      A a = new A("foo");
-      System.out.println(a);
-      B b1 = new B("");
-      System.out.println(b1);
-      B b2 = new B(false);
-      System.out.println(b2);
-      C c = new C(true);
-      System.out.println(c);
+      A a = new A("hello");
+      B b = new B("world");
     }
   }
 }
