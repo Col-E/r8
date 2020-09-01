@@ -283,8 +283,11 @@ public class EnumUnboxer implements PostOptimization {
 
   private void analyzeConstClass(ConstClass constClass, Set<DexType> eligibleEnums) {
     // We are using the ConstClass of an enum, which typically means the enum cannot be unboxed.
-    // We however allow unboxing if the ConstClass is only used as an argument to Enum#valueOf, to
-    // allow unboxing of: MyEnum a = Enum.valueOf(MyEnum.class, "A");.
+    // We however allow unboxing if the ConstClass is used only:
+    // - as an argument to Enum#valueOf, to allow unboxing of:
+    //    MyEnum a = Enum.valueOf(MyEnum.class, "A");
+    // - as a receiver for a name method, to allow unboxing of:
+    //    MyEnum.class.getName();
     DexType enumType = constClass.getValue();
     if (!enumsUnboxingCandidates.containsKey(enumType)) {
       return;
@@ -299,6 +302,10 @@ public class EnumUnboxer implements PostOptimization {
       return;
     }
     for (Instruction user : constClass.outValue().uniqueUsers()) {
+      if (user.isInvokeVirtual()
+          && isUnboxableNameMethod(user.asInvokeVirtual().getInvokedMethod())) {
+        continue;
+      }
       if (!(user.isInvokeStatic()
           && user.asInvokeStatic().getInvokedMethod() == factory.enumMembers.valueOf)) {
         markEnumAsUnboxable(Reason.CONST_CLASS, enumClass);
@@ -309,6 +316,12 @@ public class EnumUnboxer implements PostOptimization {
     // valueOf utility method.
     requiredEnumInstanceFieldData(enumType, factory.enumMembers.nameField);
     eligibleEnums.add(enumType);
+  }
+
+  private boolean isUnboxableNameMethod(DexMethod method) {
+    return method == factory.classMethods.getName
+        || method == factory.classMethods.getCanonicalName
+        || method == factory.classMethods.getSimpleName;
   }
 
   private void addNullDependencies(IRCode code, Set<Instruction> uses, Set<DexType> eligibleEnums) {
