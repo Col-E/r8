@@ -51,7 +51,7 @@ public class CompileToInvalidFileTest extends TestBase {
             ? new ClassFileConsumer.ArchiveConsumer(INVALID_FILE)
             : new ArchiveConsumer(INVALID_FILE);
     try {
-      testForD8()
+      testForD8(Backend.fromConsumer(programConsumer))
           .addProgramClasses(Main.class)
           .setProgramConsumer(programConsumer)
           .compileWithExpectedDiagnostics(diagnostics -> checkDiagnostics(diagnostics, true));
@@ -69,7 +69,7 @@ public class CompileToInvalidFileTest extends TestBase {
             ? new ClassFileConsumer.ArchiveConsumer(INVALID_FILE)
             : new ArchiveConsumer(INVALID_FILE);
     try {
-      testForR8(classFileConsumer ? Backend.CF : Backend.DEX)
+      testForR8(Backend.fromConsumer(programConsumer))
           .addProgramClasses(Main.class)
           .addKeepMainRule(Main.class)
           .setProgramConsumer(programConsumer)

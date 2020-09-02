@@ -300,6 +300,7 @@ public abstract class TestCompilerBuilder<
 
   public T setProgramConsumer(ProgramConsumer programConsumer) {
     assert programConsumer != null;
+    assert backend == Backend.fromConsumer(programConsumer);
     this.programConsumer = programConsumer;
     return self();
   }

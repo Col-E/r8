@@ -120,7 +120,11 @@ public class TestBase {
 
   public enum Backend {
     CF,
-    DEX
+    DEX;
+
+    public static Backend fromConsumer(ProgramConsumer consumer) {
+      return consumer instanceof ClassFileConsumer ? CF : DEX;
+    }
   }
 
   public static R8FullTestBuilder testForR8(TemporaryFolder temp, Backend backend) {
