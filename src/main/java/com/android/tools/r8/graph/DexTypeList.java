@@ -39,11 +39,9 @@ public class DexTypeList extends DexItem {
     return Arrays.hashCode(values);
   }
 
-  @Override
-  void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
+  void collectIndexedItems(IndexedItemCollection indexedItems) {
     for (DexType type : values) {
-      type.collectIndexedItems(indexedItems, method, instructionOffset);
+      type.collectIndexedItems(indexedItems);
     }
   }
 

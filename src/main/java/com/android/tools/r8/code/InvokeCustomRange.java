@@ -3,12 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class InvokeCustomRange extends Format3rc {
+public class InvokeCustomRange extends Format3rc<DexCallSite> {
 
   public static final int OPCODE = 0xfd;
   public static final String NAME = "InvokeCustomRange";
@@ -38,8 +39,13 @@ public class InvokeCustomRange extends Format3rc {
   }
 
   @Override
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    getCallSite().collectIndexedItems(indexedItems);
+  }
+
+  @Override
   public DexCallSite getCallSite() {
-    return (DexCallSite) BBBB;
+    return BBBB;
   }
 
   @Override

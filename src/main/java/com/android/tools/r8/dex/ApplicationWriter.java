@@ -14,6 +14,7 @@ import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.features.FeatureSplitConfiguration.DataResourceProvidersAndConsumer;
@@ -23,6 +24,7 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexEncodedArray;
@@ -250,6 +252,11 @@ public class ApplicationWriter {
     try {
       // TODO(b/151313715): Move this to the writer threads.
       insertAttributeAnnotations();
+
+      // Each DexCallSite must have its instruction offset set for sorting.
+      if (options.isGeneratingDex()) {
+        setCallSiteContexts(executorService);
+      }
 
       // Generate the dex file contents.
       List<Future<Boolean>> dexDataFutures = new ArrayList<>();
@@ -523,6 +530,26 @@ public class ApplicationWriter {
       // Clear the attribute structures now that they are represented in annotations.
       clazz.clearEnclosingMethodAttribute();
       clazz.clearInnerClasses();
+    }
+  }
+
+  private void setCallSiteContexts(ExecutorService executorService) throws ExecutionException {
+    ThreadUtils.processItems(
+        appView.appInfo().classes(), this::setCallSiteContexts, executorService);
+  }
+
+  private void setCallSiteContexts(DexProgramClass clazz) {
+    for (DexEncodedMethod method : clazz.methods()) {
+      if (method.hasCode()) {
+        DexCode code = method.getCode().asDexCode();
+        assert code != null;
+        for (Instruction instruction : code.instructions) {
+          DexCallSite callSite = instruction.getCallSite();
+          if (callSite != null) {
+            callSite.setContext(method.getReference(), instruction.getOffset());
+          }
+        }
+      }
     }
   }
 

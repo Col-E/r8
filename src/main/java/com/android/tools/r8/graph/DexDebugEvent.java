@@ -13,9 +13,7 @@ import java.util.Objects;
 abstract public class DexDebugEvent extends DexItem {
   public static final DexDebugEvent[] EMPTY_ARRAY = {};
 
-  @Override
-  public void collectIndexedItems(IndexedItemCollection collection,
-      DexMethod method, int instructionOffset) {
+  public void collectIndexedItems(IndexedItemCollection collection) {
     // Empty by default.
   }
 
@@ -222,16 +220,15 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection collection,
-        DexMethod method, int instructionOffset) {
+    public void collectIndexedItems(IndexedItemCollection collection) {
       if (name != null) {
-        name.collectIndexedItems(collection, method, instructionOffset);
+        name.collectIndexedItems(collection);
       }
       if (type != null) {
-        type.collectIndexedItems(collection, method, instructionOffset);
+        type.collectIndexedItems(collection);
       }
       if (signature != null) {
-        signature.collectIndexedItems(collection, method, instructionOffset);
+        signature.collectIndexedItems(collection);
       }
     }
 
@@ -362,9 +359,8 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection collection,
-        DexMethod method, int instructionOffset) {
-      fileName.collectIndexedItems(collection, method, instructionOffset);
+    public void collectIndexedItems(IndexedItemCollection collection) {
+      fileName.collectIndexedItems(collection);
     }
 
     @Override

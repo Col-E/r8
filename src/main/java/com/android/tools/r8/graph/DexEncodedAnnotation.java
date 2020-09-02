@@ -23,11 +23,11 @@ public class DexEncodedAnnotation extends DexItem {
     this.elements = elements;
   }
 
-  @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
-    type.collectIndexedItems(indexedItems, method, instructionOffset);
-    collectAll(indexedItems, elements);
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    type.collectIndexedItems(indexedItems);
+    for (DexAnnotationElement element : elements) {
+      element.collectIndexedItems(indexedItems);
+    }
   }
 
   @Override

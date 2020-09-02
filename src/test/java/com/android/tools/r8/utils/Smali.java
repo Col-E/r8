@@ -8,6 +8,8 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
@@ -114,7 +116,7 @@ public class Smali {
       ApplicationWriter writer =
           new ApplicationWriter(
               dexApp,
-              null,
+              AppView.createForD8(AppInfo.createInitialAppInfo(dexApp)),
               options,
               null,
               GraphLens.getIdentityLens(),

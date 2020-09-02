@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
@@ -89,12 +88,6 @@ public class DexAnnotationDirectory extends DexItem {
       return clazz.annotations().hashCode();
     }
     return super.hashCode();
-  }
-
-  @Override
-  public void collectIndexedItems(IndexedItemCollection collection,
-      DexMethod method, int instructionOffset) {
-    throw new Unreachable();
   }
 
   @Override

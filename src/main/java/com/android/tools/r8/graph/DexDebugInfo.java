@@ -54,11 +54,15 @@ public class DexDebugInfo extends CachedHashValueDexItem {
     return false;
   }
 
-  @Override
-  public void collectIndexedItems(IndexedItemCollection collection,
-      DexMethod method, int instructionOffset) {
-    collectAll(collection, parameters);
-    collectAll(collection, events);
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    for (DexString parameter : parameters) {
+      if (parameter != null) {
+        parameter.collectIndexedItems(indexedItems);
+      }
+    }
+    for (DexDebugEvent event : events) {
+      event.collectIndexedItems(indexedItems);
+    }
   }
 
   @Override

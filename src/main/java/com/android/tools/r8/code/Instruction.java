@@ -24,7 +24,7 @@ public abstract class Instruction {
   public final static int[] NO_TARGETS = null;
   public final static int[] EXIT_TARGET = {};
 
-  public int offset;
+  private int offset;
 
   Instruction(BytecodeStream stream) {
     // When this constructor is invoked, we have already read 1 ushort from the stream.
@@ -311,8 +311,7 @@ public abstract class Instruction {
 
   public abstract void write(ShortBuffer buffer, ObjectToOffsetMapping mapping);
 
-  public abstract void collectIndexedItems(
-      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset);
+  public abstract void collectIndexedItems(IndexedItemCollection indexedItems);
 
   public boolean equals(Instruction other, BiPredicate<IndexedDexItem, IndexedDexItem> equality) {
     // In the default case, there is nothing to substitute.

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import java.util.Collection;
 import java.util.function.Consumer;
@@ -11,17 +10,13 @@ import java.util.stream.Stream;
 
 public abstract class DexItem {
 
-  static <T extends DexItem> void collectAll(IndexedItemCollection indexedItems, T[] items) {
-    consumeArray(items, (T item) -> item.collectIndexedItems(indexedItems));
-  }
-
   public static <T extends DexItem> void collectAll(MixedSectionCollection mixedItems, T[] items) {
-    consumeArray(items, (T item) -> item.collectMixedSectionItems(mixedItems));
+    consumeArray(items, item -> item.collectMixedSectionItems(mixedItems));
   }
 
   public static <T extends DexItem> void collectAll(MixedSectionCollection mixedItems,
       Collection<T> items) {
-    items.forEach((T item) -> item.collectMixedSectionItems(mixedItems));
+    items.forEach(item -> item.collectMixedSectionItems(mixedItems));
   }
 
   /**
@@ -37,17 +32,6 @@ public abstract class DexItem {
         consumer.accept(item);
       }
     }
-  }
-
-  abstract void collectIndexedItems(IndexedItemCollection collection,
-      DexMethod method, int instructionOffset);
-
-  public void collectIndexedItems(IndexedItemCollection collection) {
-    collectIndexedItems(collection, null, -1);
-  }
-
-  public void collectIndexedItems(IndexedItemCollection collection, DexMethod method) {
-    collectIndexedItems(collection, method, -1);
   }
 
   abstract void collectMixedSectionItems(MixedSectionCollection collection);

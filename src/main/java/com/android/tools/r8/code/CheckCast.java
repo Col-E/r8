@@ -3,12 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class CheckCast extends Format21c {
+public class CheckCast extends Format21c<DexType> {
 
   public static final int OPCODE = 0x1f;
   public static final String NAME = "CheckCast";
@@ -38,6 +39,11 @@ public class CheckCast extends Format21c {
   }
 
   @Override
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    getType().collectIndexedItems(indexedItems);
+  }
+
+  @Override
   public CheckCast asCheckCast() {
     return this;
   }
@@ -53,7 +59,7 @@ public class CheckCast extends Format21c {
   }
 
   public DexType getType() {
-    return (DexType) BBBB;
+    return BBBB;
   }
 
   @Override

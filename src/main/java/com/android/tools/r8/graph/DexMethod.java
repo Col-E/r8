@@ -96,26 +96,23 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
-    if (collectIndexedItemsExceptName(indexedItems, method, instructionOffset)) {
-      collectIndexedItemsName(indexedItems, method, instructionOffset);
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    if (collectIndexedItemsExceptName(indexedItems)) {
+      collectIndexedItemsName(indexedItems);
     }
   }
 
-  public boolean collectIndexedItemsExceptName(
-      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
+  boolean collectIndexedItemsExceptName(IndexedItemCollection indexedItems) {
     if (indexedItems.addMethod(this)) {
-      holder.collectIndexedItems(indexedItems, method, instructionOffset);
-      proto.collectIndexedItems(indexedItems, method, instructionOffset);
+      holder.collectIndexedItems(indexedItems);
+      proto.collectIndexedItems(indexedItems);
       return true;
     }
     return false;
   }
 
-  public void collectIndexedItemsName(
-      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
-    indexedItems.getRenamedName(this).collectIndexedItems(indexedItems, method, instructionOffset);
+  void collectIndexedItemsName(IndexedItemCollection indexedItems) {
+    indexedItems.getRenamedName(this).collectIndexedItems(indexedItems);
   }
 
   @Override

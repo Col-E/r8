@@ -4,27 +4,25 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.dex.IndexedItemCollection;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
 
-abstract class Format21c extends Base2Format {
+abstract class Format21c<T extends IndexedDexItem> extends Base2Format {
 
   public final short AA;
-  public IndexedDexItem BBBB;
+  public T BBBB;
 
   // AA | op | [type|field|string]@BBBB
-  Format21c(int high, BytecodeStream stream, IndexedDexItem[] map) {
+  Format21c(int high, BytecodeStream stream, T[] map) {
     super(stream);
     AA = (short) high;
     BBBB = map[read16BitValue(stream)];
   }
 
-  protected Format21c(int AA, IndexedDexItem BBBB) {
+  protected Format21c(int AA, T BBBB) {
     assert 0 <= AA && AA <= Constants.U8BIT_MAX;
     this.AA = (short) AA;
     this.BBBB = BBBB;
@@ -46,7 +44,7 @@ abstract class Format21c extends Base2Format {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
     }
-    Format21c o = (Format21c) other;
+    Format21c<?> o = (Format21c<?>) other;
     return o.AA == AA && o.BBBB.equals(BBBB);
   }
 
@@ -63,17 +61,11 @@ abstract class Format21c extends Base2Format {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
-    BBBB.collectIndexedItems(indexedItems, method, instructionOffset);
-  }
-
-  @Override
   public boolean equals(Instruction other, BiPredicate<IndexedDexItem, IndexedDexItem> equality) {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
     }
-    Format21c o = (Format21c) other;
+    Format21c<?> o = (Format21c<?>) other;
     return o.AA == AA && equality.test(BBBB, o.BBBB);
   }
 }

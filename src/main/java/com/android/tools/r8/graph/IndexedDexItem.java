@@ -3,15 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 
 /** Subset of dex items that are referenced by some table index. */
 public abstract class IndexedDexItem extends CachedHashValueDexItem {
-
-  @Override
-  public abstract void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset);
 
   @Override
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {

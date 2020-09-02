@@ -17,13 +17,6 @@ public class DexMemberAnnotation<R extends DexMember<?, R>, S extends DexItem> e
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
-    item.collectIndexedItems(indexedItems, method, instructionOffset);
-    annotations.collectIndexedItems(indexedItems, method, instructionOffset);
-  }
-
-  @Override
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     annotations.collectMixedSectionItems(mixedItems);
   }
@@ -50,12 +43,22 @@ public class DexMemberAnnotation<R extends DexMember<?, R>, S extends DexItem> e
     public DexFieldAnnotation(DexField item, DexAnnotationSet annotations) {
       super(item, annotations);
     }
+
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      item.collectIndexedItems(indexedItems);
+      annotations.collectIndexedItems(indexedItems);
+    }
   }
 
   public static class DexMethodAnnotation extends DexMemberAnnotation<DexMethod, DexAnnotationSet> {
 
     public DexMethodAnnotation(DexMethod item, DexAnnotationSet annotations) {
       super(item, annotations);
+    }
+
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      item.collectIndexedItems(indexedItems);
+      annotations.collectIndexedItems(indexedItems);
     }
   }
 
@@ -64,6 +67,11 @@ public class DexMemberAnnotation<R extends DexMember<?, R>, S extends DexItem> e
 
     public DexParameterAnnotation(DexMethod item, ParameterAnnotationsList annotations) {
       super(item, annotations);
+    }
+
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      item.collectIndexedItems(indexedItems);
+      annotations.collectIndexedItems(indexedItems);
     }
   }
 }

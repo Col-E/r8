@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
@@ -13,7 +14,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 
-public class ConstMethodHandle extends Format21c {
+public class ConstMethodHandle extends Format21c<DexMethodHandle> {
 
   public static final int OPCODE = 0xfe;
   public static final String NAME = "ConstMethodHandle";
@@ -28,7 +29,7 @@ public class ConstMethodHandle extends Format21c {
   }
 
   public DexMethodHandle getMethodHandle() {
-    return (DexMethodHandle) BBBB;
+    return BBBB;
   }
 
   @Override
@@ -72,8 +73,13 @@ public class ConstMethodHandle extends Format21c {
   }
 
   @Override
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    getMethodHandle().collectIndexedItems(indexedItems);
+  }
+
+  @Override
   public void buildIR(IRBuilder builder) {
-    builder.addConstMethodHandle(AA, (DexMethodHandle) BBBB);
+    builder.addConstMethodHandle(AA, BBBB);
   }
 
   @Override

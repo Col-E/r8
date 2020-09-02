@@ -4,34 +4,36 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.dex.IndexedItemCollection;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
 
-public abstract class Format3rc extends Base3Format {
+public abstract class Format3rc<T extends IndexedDexItem> extends Base3Format {
 
   public final short AA;
   public final char CCCC;
-  public IndexedDexItem BBBB;
+  public T BBBB;
 
   // AA | op | [meth|type]@BBBBB | CCCC
-  Format3rc(int high, BytecodeStream stream, IndexedDexItem[] map) {
+  Format3rc(int high, BytecodeStream stream, T[] map) {
     super(stream);
     this.AA = (short) high;
     this.BBBB = map[read16BitValue(stream)];
     this.CCCC = read16BitValue(stream);
   }
 
-  Format3rc(int firstArgumentRegister, int argumentCount, IndexedDexItem dexItem) {
+  Format3rc(int firstArgumentRegister, int argumentCount, T dexItem) {
     assert 0 <= firstArgumentRegister && firstArgumentRegister <= Constants.U16BIT_MAX;
     assert 0 <= argumentCount && argumentCount <= Constants.U8BIT_MAX;
     this.CCCC = (char) firstArgumentRegister;
     this.AA = (short) argumentCount;
     BBBB = dexItem;
+  }
+
+  public T getItem() {
+    return BBBB;
   }
 
   @Override
@@ -51,7 +53,7 @@ public abstract class Format3rc extends Base3Format {
     if (other == null || (this.getClass() != other.getClass())) {
       return false;
     }
-    Format3rc o = (Format3rc) other;
+    Format3rc<?> o = (Format3rc<?>) other;
     return o.AA == AA && o.CCCC == CCCC && o.BBBB.equals(BBBB);
   }
 
@@ -89,17 +91,11 @@ public abstract class Format3rc extends Base3Format {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
-    BBBB.collectIndexedItems(indexedItems, method, instructionOffset);
-  }
-
-  @Override
   public boolean equals(Instruction other, BiPredicate<IndexedDexItem, IndexedDexItem> equality) {
     if (other == null || (this.getClass() != other.getClass())) {
       return false;
     }
-    Format3rc o = (Format3rc) other;
+    Format3rc<?> o = (Format3rc<?>) other;
     return o.AA == AA && o.CCCC == CCCC && equality.test(BBBB, o.BBBB);
   }
 }

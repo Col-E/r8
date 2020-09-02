@@ -4,29 +4,27 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.dex.IndexedItemCollection;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
 
-public abstract class Format22c extends Base2Format {
+public abstract class Format22c<T extends IndexedDexItem> extends Base2Format {
 
   public final byte A;
   public final byte B;
-  public IndexedDexItem CCCC;
+  public T CCCC;
 
   // vB | vA | op | [type|field]@CCCC
-  /*package*/ Format22c(int high, BytecodeStream stream, IndexedDexItem[] map) {
+  /*package*/ Format22c(int high, BytecodeStream stream, T[] map) {
     super(stream);
     A = (byte) (high & 0xf);
     B = (byte) ((high >> 4) & 0xf);
     CCCC = map[read16BitValue(stream)];
   }
 
-  /*package*/ Format22c(int A, int B, IndexedDexItem CCCC) {
+  /*package*/ Format22c(int A, int B, T CCCC) {
     assert 0 <= A && A <= Constants.U4BIT_MAX;
     assert 0 <= B && B <= Constants.U4BIT_MAX;
     this.A = (byte) A;
@@ -50,7 +48,7 @@ public abstract class Format22c extends Base2Format {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
     }
-    Format22c o = (Format22c) other;
+    Format22c<?> o = (Format22c<?>) other;
     return o.A == A && o.B == B && o.CCCC.equals(CCCC);
   }
 
@@ -67,17 +65,11 @@ public abstract class Format22c extends Base2Format {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
-    CCCC.collectIndexedItems(indexedItems, method, instructionOffset);
-  }
-
-  @Override
   public boolean equals(Instruction other, BiPredicate<IndexedDexItem, IndexedDexItem> equality) {
     if (other == null || this.getClass() != other.getClass()) {
       return false;
     }
-    Format22c o = (Format22c) other;
+    Format22c<?> o = (Format22c<?>) other;
     return o.A == A && o.B == B && equality.test(CCCC, o.CCCC);
   }
 }

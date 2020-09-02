@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class InvokeVirtual extends Format35c {
+public class InvokeVirtual extends InvokeMethod {
 
   public static final int OPCODE = 0x6e;
   public static final String NAME = "InvokeVirtual";
@@ -51,11 +51,6 @@ public class InvokeVirtual extends Format35c {
   @Override
   public void registerUse(UseRegistry registry) {
     registry.registerInvokeVirtual(getMethod());
-  }
-
-  @Override
-  public DexMethod getMethod() {
-    return (DexMethod) BBBB;
   }
 
   @Override

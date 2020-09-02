@@ -9,6 +9,8 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
@@ -152,7 +154,7 @@ public class SharedClassWritingTest {
     ApplicationWriter writer =
         new ApplicationWriter(
             application,
-            null,
+            AppView.createForD8(AppInfo.createInitialAppInfo(application)),
             options,
             null,
             GraphLens.getIdentityLens(),

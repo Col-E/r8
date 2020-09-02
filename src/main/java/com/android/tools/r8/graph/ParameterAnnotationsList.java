@@ -82,10 +82,10 @@ public class ParameterAnnotationsList extends DexItem {
     return false;
   }
 
-  @Override
-  public void collectIndexedItems(
-      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
-    collectAll(indexedItems, values);
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    for (DexAnnotationSet value : values) {
+      value.collectIndexedItems(indexedItems);
+    }
   }
 
   @Override

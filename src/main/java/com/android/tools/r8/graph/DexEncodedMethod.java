@@ -657,13 +657,15 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return "Encoded method " + method;
   }
 
-  @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
     checkIfObsolete();
     this.method.collectIndexedItems(indexedItems);
     if (code != null) {
-      code.collectIndexedItems(indexedItems, this.method);
+      if (code.isDexCode()) {
+        code.asDexCode().collectIndexedItems(indexedItems);
+      } else {
+        assert false;
+      }
     }
     annotations().collectIndexedItems(indexedItems);
     parameterAnnotationsList.collectIndexedItems(indexedItems);

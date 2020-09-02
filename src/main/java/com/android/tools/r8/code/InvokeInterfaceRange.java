@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class InvokeInterfaceRange extends Format3rc {
+public class InvokeInterfaceRange extends InvokeMethodRange {
 
   public static final int OPCODE = 0x78;
   public static final String NAME = "InvokeInterfaceRange";
@@ -41,11 +41,6 @@ public class InvokeInterfaceRange extends Format3rc {
   @Override
   public void registerUse(UseRegistry registry) {
     registry.registerInvokeInterface(getMethod());
-  }
-
-  @Override
-  public DexMethod getMethod() {
-    return (DexMethod) BBBB;
   }
 
   @Override

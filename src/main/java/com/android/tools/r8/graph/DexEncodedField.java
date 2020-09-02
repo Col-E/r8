@@ -87,13 +87,11 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     this.kotlinMemberInfo = kotlinMemberInfo;
   }
 
-  @Override
-  public void collectIndexedItems(
-      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
-    field.collectIndexedItems(indexedItems, method, instructionOffset);
-    annotations().collectIndexedItems(indexedItems, method, instructionOffset);
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    field.collectIndexedItems(indexedItems);
+    annotations().collectIndexedItems(indexedItems);
     if (accessFlags.isStatic()) {
-      getStaticValue().collectIndexedItems(indexedItems, method, instructionOffset);
+      getStaticValue().collectIndexedItems(indexedItems);
     }
   }
 

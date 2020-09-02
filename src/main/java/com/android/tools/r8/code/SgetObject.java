@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class SgetObject extends Format21c {
+public class SgetObject extends SgetOrSput {
 
   public static final int OPCODE = 0x62;
   public static final String NAME = "SgetObject";
@@ -40,11 +40,6 @@ public class SgetObject extends Format21c {
   @Override
   public void registerUse(UseRegistry registry) {
     registry.registerStaticFieldRead(getField());
-  }
-
-  @Override
-  public DexField getField() {
-    return (DexField) BBBB;
   }
 
   @Override

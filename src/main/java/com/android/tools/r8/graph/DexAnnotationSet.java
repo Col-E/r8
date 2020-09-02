@@ -77,10 +77,10 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
     return false;
   }
 
-  @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
-    collectAll(indexedItems, annotations);
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    for (DexAnnotation annotation : annotations) {
+      annotation.collectIndexedItems(indexedItems);
+    }
   }
 
   @Override

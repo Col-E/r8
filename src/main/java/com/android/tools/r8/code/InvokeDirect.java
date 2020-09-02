@@ -4,13 +4,12 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class InvokeDirect extends Format35c {
+public class InvokeDirect extends InvokeMethod {
 
   public static final int OPCODE = 0x70;
   public static final String NAME = "InvokeDirect";
@@ -20,7 +19,7 @@ public class InvokeDirect extends Format35c {
     super(high, stream, mapping.getMethodMap());
   }
 
-  public InvokeDirect(int A, IndexedDexItem BBBB, int C, int D, int E, int F, int G) {
+  public InvokeDirect(int A, DexMethod BBBB, int C, int D, int E, int F, int G) {
     super(A, BBBB, C, D, E, F, G);
   }
 
@@ -42,11 +41,6 @@ public class InvokeDirect extends Format35c {
   @Override
   public void registerUse(UseRegistry registry) {
     registry.registerInvokeDirect(getMethod());
-  }
-
-  @Override
-  public DexMethod getMethod() {
-    return (DexMethod) BBBB;
   }
 
   @Override

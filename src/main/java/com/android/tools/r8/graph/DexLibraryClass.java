@@ -5,7 +5,6 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
-import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
@@ -78,12 +77,6 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
     assert !field.isPrivate();
     assert !field.isStatic() || !field.hasExplicitStaticValue();
     return true;
-  }
-
-  @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
-    throw new Unreachable();
   }
 
   @Override

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
@@ -11,7 +12,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 
-public class ConstString extends Format21c {
+public class ConstString extends Format21c<DexString> {
 
   public static final int OPCODE = 0x1a;
   public static final String NAME = "ConstString";
@@ -26,7 +27,12 @@ public class ConstString extends Format21c {
   }
 
   public DexString getString() {
-    return (DexString) BBBB;
+    return BBBB;
+  }
+
+  @Override
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    getString().collectIndexedItems(indexedItems);
   }
 
   @Override

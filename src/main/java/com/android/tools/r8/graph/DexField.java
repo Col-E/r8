@@ -79,13 +79,11 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
     if (indexedItems.addField(this)) {
-      holder.collectIndexedItems(indexedItems, method, instructionOffset);
-      type.collectIndexedItems(indexedItems, method, instructionOffset);
-      indexedItems.getRenamedName(this).collectIndexedItems(
-          indexedItems, method, instructionOffset);
+      holder.collectIndexedItems(indexedItems);
+      type.collectIndexedItems(indexedItems);
+      indexedItems.getRenamedName(this).collectIndexedItems(indexedItems);
     }
   }
 

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.IRCode;
@@ -86,12 +85,6 @@ public abstract class Code extends CachedHashValueDexItem {
 
   public OutlineCode asOutlineCode() {
     throw new Unreachable(getClass().getCanonicalName() + ".asOutlineCode()");
-  }
-
-  @Override
-  void collectIndexedItems(IndexedItemCollection collection,
-      DexMethod method, int instructionOffset) {
-    throw new Unreachable();
   }
 
   @Override

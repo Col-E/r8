@@ -10,6 +10,8 @@ import com.android.tools.r8.bisect.BisectOptions.Result;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.InitClassLens;
@@ -188,7 +190,7 @@ public class Bisect {
     ApplicationWriter writer =
         new ApplicationWriter(
             app,
-            null,
+            AppView.createForD8(AppInfo.createInitialAppInfo(app)),
             options,
             null,
             null,

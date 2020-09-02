@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class InvokeVirtualRange extends Format3rc {
+public class InvokeVirtualRange extends InvokeMethodRange {
 
   public static final int OPCODE = 0x74;
   public static final String NAME = "InvokeVirtualRange";
@@ -51,11 +51,6 @@ public class InvokeVirtualRange extends Format3rc {
   @Override
   public void registerUse(UseRegistry registry) {
     registry.registerInvokeVirtual(getMethod());
-  }
-
-  @Override
-  public DexMethod getMethod() {
-    return (DexMethod) BBBB;
   }
 
   @Override

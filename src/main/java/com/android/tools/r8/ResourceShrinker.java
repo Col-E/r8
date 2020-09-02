@@ -288,7 +288,8 @@ final public class ResourceShrinker {
         // of integers. This can be improved later, but for now we make sure no ints are missed.
       }
 
-      methodIntArrayPayloadOffsets.add(fillArrayData.getPayloadOffset() + fillArrayData.offset);
+      methodIntArrayPayloadOffsets.add(
+          fillArrayData.getPayloadOffset() + fillArrayData.getOffset());
     }
 
     private void processAnnotationValue(DexValue value) {

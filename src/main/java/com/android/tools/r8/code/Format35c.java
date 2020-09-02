@@ -4,15 +4,13 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.dex.IndexedItemCollection;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
 
-public abstract class Format35c extends Base3Format {
+public abstract class Format35c<T extends IndexedDexItem> extends Base3Format {
 
   public final byte A;
   public final byte C;
@@ -20,10 +18,10 @@ public abstract class Format35c extends Base3Format {
   public final byte E;
   public final byte F;
   public final byte G;
-  public IndexedDexItem BBBB;
+  public T BBBB;
 
   // A | G | op | BBBB | F | E | D | C
-  Format35c(int high, BytecodeStream stream, IndexedDexItem[] map) {
+  Format35c(int high, BytecodeStream stream, T[] map) {
     super(stream);
     G = (byte) (high & 0xf);
     A = (byte) ((high >> 4) & 0xf);
@@ -36,7 +34,7 @@ public abstract class Format35c extends Base3Format {
     D = (byte) ((next >> 4) & 0xf);
   }
 
-  protected Format35c(int A, IndexedDexItem BBBB, int C, int D, int E, int F, int G) {
+  Format35c(int A, T BBBB, int C, int D, int E, int F, int G) {
     assert 0 <= A && A <= Constants.U4BIT_MAX;
     assert 0 <= C && C <= Constants.U4BIT_MAX;
     assert 0 <= D && D <= Constants.U4BIT_MAX;
@@ -108,12 +106,6 @@ public abstract class Format35c extends Base3Format {
     // TODO(sgjesse): Add support for smali name mapping.
     builder.append(BBBB.toSmaliString());
     return formatSmaliString(builder.toString());
-  }
-
-  @Override
-  public void collectIndexedItems(
-      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
-    BBBB.collectIndexedItems(indexedItems, method, instructionOffset);
   }
 
   @Override

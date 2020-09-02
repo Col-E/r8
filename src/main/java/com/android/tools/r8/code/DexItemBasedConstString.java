@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
@@ -12,7 +13,7 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.nio.ShortBuffer;
 
-public class DexItemBasedConstString extends Format21c {
+public class DexItemBasedConstString extends Format21c<DexReference> {
 
   public static final String NAME = "DexItemBasedConstString";
   public static final String SMALI_NAME = "const-string*";
@@ -26,11 +27,16 @@ public class DexItemBasedConstString extends Format21c {
   }
 
   public DexReference getItem() {
-    return (DexReference) BBBB;
+    return BBBB;
   }
 
   public NameComputationInfo<?> getNameComputationInfo() {
     return nameComputationInfo;
+  }
+
+  @Override
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    getItem().collectIndexedItems(indexedItems);
   }
 
   @Override

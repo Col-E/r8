@@ -3,13 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexCallSite;
-import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class InvokeCustom extends Format35c {
+public class InvokeCustom extends Format35c<DexCallSite> {
 
   public static final int OPCODE = 0xfc;
   public static final String NAME = "InvokeCustom";
@@ -19,7 +19,7 @@ public class InvokeCustom extends Format35c {
     super(high, stream, mapping.getCallSiteMap());
   }
 
-  public InvokeCustom(int A, IndexedDexItem BBBB, int C, int D, int E, int F, int G) {
+  public InvokeCustom(int A, DexCallSite BBBB, int C, int D, int E, int F, int G) {
     super(A, BBBB, C, D, E, F, G);
   }
 
@@ -39,13 +39,18 @@ public class InvokeCustom extends Format35c {
   }
 
   @Override
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    getCallSite().collectIndexedItems(indexedItems);
+  }
+
+  @Override
   public void registerUse(UseRegistry registry) {
     registry.registerCallSite(getCallSite());
   }
 
   @Override
   public DexCallSite getCallSite() {
-    return (DexCallSite) BBBB;
+    return BBBB;
   }
 
   @Override

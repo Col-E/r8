@@ -30,6 +30,7 @@ import com.android.tools.r8.dexsplitter.DexSplitter.Options;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
@@ -866,7 +867,7 @@ public class MainDexListTests extends TestBase {
     ApplicationWriter writer =
         new ApplicationWriter(
             application,
-            null,
+            AppView.createForD8(AppInfo.createInitialAppInfo(application)),
             options,
             null,
             GraphLens.getIdentityLens(),

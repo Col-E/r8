@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class SputByte extends Format21c {
+public class SputByte extends SgetOrSput {
 
   public static final int OPCODE = 0x6b;
   public static final String NAME = "SputByte";
@@ -40,11 +40,6 @@ public class SputByte extends Format21c {
   @Override
   public void registerUse(UseRegistry registry) {
     registry.registerStaticFieldWrite(getField());
-  }
-
-  @Override
-  public DexField getField() {
-    return (DexField) BBBB;
   }
 
   @Override

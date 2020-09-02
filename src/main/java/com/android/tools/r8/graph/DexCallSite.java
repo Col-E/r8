@@ -35,7 +35,7 @@ public final class DexCallSite extends IndexedDexItem implements Comparable<DexC
   // Only used for sorting for deterministic output. This is the method and the instruction
   // offset where this DexCallSite ends up in the output.
   private DexMethod method;
-  private int instructionOffset;
+  private int instructionOffset = -1;
 
   DexCallSite(
       DexString methodName,
@@ -84,6 +84,15 @@ public final class DexCallSite extends IndexedDexItem implements Comparable<DexC
     return application.getCallSite(name, desc, bootstrapMethod, bootstrapArgs);
   }
 
+  public void setContext(DexMethod method, int instructionOffset) {
+    assert method != null;
+    assert instructionOffset >= 0;
+    assert this.method == null;
+    assert this.instructionOffset == -1;
+    this.method = method;
+    this.instructionOffset = instructionOffset;
+  }
+
   @Override
   public int computeHashCode() {
     // Call sites are equal only when this == other, which was already computed by the caller of
@@ -115,23 +124,13 @@ public final class DexCallSite extends IndexedDexItem implements Comparable<DexC
     return builder.toString();
   }
 
-  @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
-    assert method != null;
-    // Since collectIndexedItems() is called in transactions that may be rolled back, we may end up
-    // setting this.method and this.instructionOffset more than once. If we do set them more than
-    // once, then we must have the same values for method and instructionOffset every time.
-    assert this.method == null || this.method == method;
-    assert this.instructionOffset == 0 || this.instructionOffset == instructionOffset;
-    this.method = method;
-    this.instructionOffset = instructionOffset;
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
     if (indexedItems.addCallSite(this)) {
-      methodName.collectIndexedItems(indexedItems, method, instructionOffset);
-      methodProto.collectIndexedItems(indexedItems, method, instructionOffset);
-      bootstrapMethod.collectIndexedItems(indexedItems, method, instructionOffset);
+      methodName.collectIndexedItems(indexedItems);
+      methodProto.collectIndexedItems(indexedItems);
+      bootstrapMethod.collectIndexedItems(indexedItems);
       for (DexValue arg : bootstrapArgs) {
-        arg.collectIndexedItems(indexedItems, method, instructionOffset);
+        arg.collectIndexedItems(indexedItems);
       }
     }
   }

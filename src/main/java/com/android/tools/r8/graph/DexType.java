@@ -171,12 +171,9 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   }
 
   @Override
-  public void collectIndexedItems(
-      IndexedItemCollection collection, DexMethod method, int instructionOffset) {
+  public void collectIndexedItems(IndexedItemCollection collection) {
     if (collection.addType(this)) {
-      collection
-          .getRenamedDescriptor(this)
-          .collectIndexedItems(collection, method, instructionOffset);
+      collection.getRenamedDescriptor(this).collectIndexedItems(collection);
     }
   }
 

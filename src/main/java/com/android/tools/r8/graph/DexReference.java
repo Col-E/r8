@@ -3,11 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 /**
  * A common interface for {@link DexType}, {@link DexField}, and {@link DexMethod}.
@@ -29,6 +28,8 @@ public abstract class DexReference extends IndexedDexItem {
       BiConsumer<DexField, T> fieldConsumer,
       BiConsumer<DexMethod, T> methodConsumer,
       T arg);
+
+  public abstract void collectIndexedItems(IndexedItemCollection indexedItems);
 
   public boolean isDexType() {
     return false;
@@ -60,28 +61,5 @@ public abstract class DexReference extends IndexedDexItem {
 
   public DexMethod asDexMethod() {
     return null;
-  }
-
-  public static Stream<DexReference> filterDexReference(Stream<DexItem> stream) {
-    return DexItem.filter(stream, DexReference.class);
-  }
-
-  private static <T extends DexReference> Stream<T> filter(
-      Stream<DexReference> stream,
-      Predicate<DexReference> pred,
-      Function<DexReference, T> f) {
-    return stream.filter(pred).map(f);
-  }
-
-  public static Stream<DexType> filterDexType(Stream<DexReference> stream) {
-    return filter(stream, DexReference::isDexType, DexReference::asDexType);
-  }
-
-  public static Stream<DexField> filterDexField(Stream<DexReference> stream) {
-    return filter(stream, DexReference::isDexField, DexReference::asDexField);
-  }
-
-  public static Stream<DexMethod> filterDexMethod(Stream<DexReference> stream) {
-    return filter(stream, DexReference::isDexMethod, DexReference::asDexMethod);
   }
 }

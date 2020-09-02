@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
@@ -12,7 +13,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 
-public class ConstMethodType extends Format21c {
+public class ConstMethodType extends Format21c<DexProto> {
 
   public static final int OPCODE = 0xff;
   public static final String NAME = "ConstMethodType";
@@ -27,7 +28,7 @@ public class ConstMethodType extends Format21c {
   }
 
   public DexProto getMethodType() {
-    return (DexProto) BBBB;
+    return BBBB;
   }
 
   @Override
@@ -70,8 +71,13 @@ public class ConstMethodType extends Format21c {
   }
 
   @Override
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    getMethodType().collectIndexedItems(indexedItems);
+  }
+
+  @Override
   public void buildIR(IRBuilder builder) {
-    builder.addConstMethodType(AA, (DexProto) BBBB);
+    builder.addConstMethodType(AA, BBBB);
   }
 
   @Override

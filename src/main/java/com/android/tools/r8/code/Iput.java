@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class Iput extends Format22c {
+public class Iput extends IgetOrIput {
 
   public static final int OPCODE = 0x59;
   public static final String NAME = "Iput";
@@ -40,11 +40,6 @@ public class Iput extends Format22c {
   @Override
   public void registerUse(UseRegistry registry) {
     registry.registerInstanceFieldWrite(getField());
-  }
-
-  @Override
-  public DexField getField() {
-    return (DexField) CCCC;
   }
 
   @Override

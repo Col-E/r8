@@ -5,7 +5,6 @@ package com.android.tools.r8.code;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
@@ -79,8 +78,7 @@ public abstract class Format21t extends Base2Format {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
     // No references.
   }
 }

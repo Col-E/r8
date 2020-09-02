@@ -5,7 +5,6 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
-import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
@@ -51,12 +50,6 @@ public class DexClasspathClass extends DexClass implements Supplier<DexClasspath
         origin,
         skipNameValidationForTesting);
     assert kind == Kind.CF : "Invalid kind " + kind + " for class-path class " + type;
-  }
-
-  @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
-    throw new Unreachable();
   }
 
   @Override

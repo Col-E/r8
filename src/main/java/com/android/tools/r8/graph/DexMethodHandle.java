@@ -187,7 +187,7 @@ public class DexMethodHandle extends IndexedDexItem implements
   public final MethodHandleType type;
 
   // Field or method that the method handle is targeting.
-  public final DexMember<? extends DexItem, ? extends DexMember<?, ?>> fieldOrMethod;
+  public final DexMember<? extends DexItem, ? extends DexMember<?, ?>> member;
 
   public final boolean isInterface;
 
@@ -204,18 +204,18 @@ public class DexMethodHandle extends IndexedDexItem implements
 
   public DexMethodHandle(
       MethodHandleType type,
-      DexMember<? extends DexItem, ? extends DexMember<?, ?>> fieldOrMethod,
+      DexMember<? extends DexItem, ? extends DexMember<?, ?>> member,
       boolean isInterface) {
-    this(type, fieldOrMethod, isInterface, null);
+    this(type, member, isInterface, null);
   }
 
   public DexMethodHandle(
       MethodHandleType type,
-      DexMember<? extends DexItem, ? extends DexMember<?, ?>> fieldOrMethod,
+      DexMember<? extends DexItem, ? extends DexMember<?, ?>> member,
       boolean isInterface,
       DexMethod rewrittenTarget) {
     this.type = type;
-    this.fieldOrMethod = fieldOrMethod;
+    this.member = member;
     this.isInterface = isInterface;
     this.rewrittenTarget = rewrittenTarget;
   }
@@ -232,7 +232,7 @@ public class DexMethodHandle extends IndexedDexItem implements
 
   @Override
   public int computeHashCode() {
-    return Objects.hash(type, fieldOrMethod.computeHashCode(), isInterface, rewrittenTarget);
+    return Objects.hash(type, member.computeHashCode(), isInterface, rewrittenTarget);
   }
 
   @Override
@@ -240,7 +240,7 @@ public class DexMethodHandle extends IndexedDexItem implements
     if (other instanceof DexMethodHandle) {
       DexMethodHandle o = (DexMethodHandle) other;
       return type.equals(o.type)
-          && fieldOrMethod.equals(o.fieldOrMethod)
+          && member.equals(o.member)
           && (isInterface == o.isInterface)
           && Objects.equals(rewrittenTarget, o.rewrittenTarget);
     }
@@ -249,28 +249,32 @@ public class DexMethodHandle extends IndexedDexItem implements
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder("MethodHandle: {")
+    StringBuilder builder =
+        new StringBuilder("MethodHandle: {")
             .append(type)
             .append(", ")
-            .append(fieldOrMethod.toSourceString())
+            .append(member.toSourceString())
             .append("}");
     return builder.toString();
   }
 
-  @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
     if (indexedItems.addMethodHandle(this)) {
-      if (fieldOrMethod.isDexMethod() && rewrittenTarget != null) {
-        // If there is a rewritten target we need to use that to get the right name of the
-        // targeted method (only member rebound methods take part in naming). The rest of the
-        // indexed items are collected from fieldOrMethod.
-        if (fieldOrMethod.asDexMethod().collectIndexedItemsExceptName(
-            indexedItems, method, instructionOffset)) {
-          rewrittenTarget.collectIndexedItemsName(indexedItems, method, instructionOffset);
-        }
+      if (member.isDexField()) {
+        DexField field = member.asDexField();
+        field.collectIndexedItems(indexedItems);
       } else {
-        fieldOrMethod.collectIndexedItems(indexedItems, method, instructionOffset);
+        DexMethod method = member.asDexMethod();
+        if (rewrittenTarget != null) {
+          // If there is a rewritten target we need to use that to get the right name of the
+          // targeted method (only member rebound methods take part in naming). The rest of the
+          // indexed items are collected from method.
+          if (method.collectIndexedItemsExceptName(indexedItems)) {
+            rewrittenTarget.collectIndexedItemsName(indexedItems);
+          }
+        } else {
+          method.collectIndexedItems(indexedItems);
+        }
       }
     }
   }
@@ -300,12 +304,12 @@ public class DexMethodHandle extends IndexedDexItem implements
 
   public DexMethod asMethod() {
     assert isMethodHandle();
-    return (DexMethod) fieldOrMethod;
+    return (DexMethod) member;
   }
 
   public DexField asField() {
     assert isFieldHandle();
-    return (DexField) fieldOrMethod;
+    return (DexField) member;
   }
 
   @Override

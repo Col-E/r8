@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class InvokeDirectRange extends Format3rc {
+public class InvokeDirectRange extends InvokeMethodRange {
 
   public static final int OPCODE = 0x76;
   public static final String NAME = "InvokeDirectRange";
@@ -36,11 +36,6 @@ public class InvokeDirectRange extends Format3rc {
   @Override
   public int getOpcode() {
     return OPCODE;
-  }
-
-  @Override
-  public DexMethod getMethod() {
-    return (DexMethod) BBBB;
   }
 
   @Override

@@ -3,12 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class NewArray extends Format22c {
+public class NewArray extends Format22c<DexType> {
 
   public static final int OPCODE = 0x23;
   public static final String NAME = "NewArray";
@@ -38,12 +39,17 @@ public class NewArray extends Format22c {
   }
 
   @Override
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    getType().collectIndexedItems(indexedItems);
+  }
+
+  @Override
   public void registerUse(UseRegistry registry) {
     registry.registerTypeReference(getType());
   }
 
   public DexType getType() {
-    return (DexType) CCCC;
+    return CCCC;
   }
 
   @Override

@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class IgetObject extends Format22c {
+public class IgetObject extends IgetOrIput {
 
   public static final int OPCODE = 0x54;
   public static final String NAME = "IgetObject";
@@ -35,11 +35,6 @@ public class IgetObject extends Format22c {
   @Override
   public int getOpcode() {
     return OPCODE;
-  }
-
-  @Override
-  public DexField getField() {
-    return (DexField) CCCC;
   }
 
   @Override

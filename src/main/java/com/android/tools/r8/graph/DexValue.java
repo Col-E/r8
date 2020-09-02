@@ -307,6 +307,10 @@ public abstract class DexValue extends DexItem {
     dest.putByte((byte) ((arg << 5) | kind.toByte()));
   }
 
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    // Intentionally left empty
+  }
+
   @Override
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     // Should never be visited.
@@ -378,12 +382,6 @@ public abstract class DexValue extends DexItem {
   public abstract Object asAsmEncodedObject();
 
   private abstract static class SimpleDexValue extends DexValue {
-
-    @Override
-    public void collectIndexedItems(
-        IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
-      // Intentionally left empty
-    }
 
     @Override
     public void sort() {
@@ -1054,12 +1052,6 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems,
-        DexMethod method, int instructionOffset) {
-      value.collectIndexedItems(indexedItems, method, instructionOffset);
-    }
-
-    @Override
     public void sort() {
       // Intentionally empty.
     }
@@ -1091,6 +1083,11 @@ public abstract class DexValue extends DexItem {
 
     public DexValueString(DexString value) {
       super(value);
+    }
+
+    @Override
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(indexedItems);
     }
 
     @Override
@@ -1150,6 +1147,11 @@ public abstract class DexValue extends DexItem {
     public DexItemBasedValueString(DexReference value, NameComputationInfo<?> nameComputationInfo) {
       super(value);
       this.nameComputationInfo = nameComputationInfo;
+    }
+
+    @Override
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(indexedItems);
     }
 
     public NameComputationInfo<?> getNameComputationInfo() {
@@ -1223,9 +1225,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(
-        IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
-      value.collectIndexedItems(indexedItems, method, instructionOffset);
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(indexedItems);
     }
 
     @Override
@@ -1256,9 +1257,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(
-        IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
-      value.collectIndexedItems(indexedItems, method, instructionOffset);
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(indexedItems);
     }
 
     @Override
@@ -1289,9 +1289,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(
-        IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
-      value.collectIndexedItems(indexedItems, method, instructionOffset);
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(indexedItems);
     }
 
     @Override
@@ -1322,9 +1321,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(
-        IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
-      value.collectIndexedItems(indexedItems, method, instructionOffset);
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(indexedItems);
     }
 
     @Override
@@ -1365,9 +1363,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(
-        IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
-      value.collectIndexedItems(indexedItems, method, instructionOffset);
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(indexedItems);
     }
 
     @Override
@@ -1394,9 +1391,10 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems,
-        DexMethod method, int instructionOffset) {
-      collectAll(indexedItems, values);
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      for (DexValue value : values) {
+        value.collectIndexedItems(indexedItems);
+      }
     }
 
     @Override
@@ -1492,9 +1490,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems,
-        DexMethod method, int instructionOffset) {
-      value.collectIndexedItems(indexedItems, method, instructionOffset);
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(indexedItems);
     }
 
     @Override
@@ -1736,9 +1733,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(
-        IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
-      value.collectIndexedItems(indexedItems, method, instructionOffset);
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      value.collectIndexedItems(indexedItems);
     }
 
     @Override

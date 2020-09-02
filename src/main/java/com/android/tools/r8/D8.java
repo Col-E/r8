@@ -341,7 +341,7 @@ public final class D8 {
     new KotlinMetadataRewriter(appView, prefixRewritingNamingLens).runForD8(executor);
     new ApplicationWriter(
             cfApp,
-            null,
+            appView,
             options,
             null,
             GraphLens.getIdentityLens(),

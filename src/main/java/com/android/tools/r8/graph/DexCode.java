@@ -403,14 +403,11 @@ public class DexCode extends Code {
     return builder.toString();
   }
 
-  @Override
-  public void collectIndexedItems(
-      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
-    assert instructionOffset == -1;
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
     highestSortingString = null;
     for (Instruction insn : instructions) {
       assert !insn.isDexItemBasedConstString();
-      insn.collectIndexedItems(indexedItems, method, insn.getOffset());
+      insn.collectIndexedItems(indexedItems);
       if (insn.isConstString()) {
         updateHighestSortingString(insn.asConstString().getString());
       } else if (insn.isConstStringJumbo()) {
@@ -512,12 +509,6 @@ public class DexCode extends Code {
     }
 
     @Override
-    void collectIndexedItems(IndexedItemCollection indexedItems,
-        DexMethod method, int instructionOffset) {
-      // Intentionally left empty.
-    }
-
-    @Override
     void collectMixedSectionItems(MixedSectionCollection mixedItems) {
       // Should never be visited.
       assert false;
@@ -557,10 +548,10 @@ public class DexCode extends Code {
       return false;
     }
 
-    @Override
-    public void collectIndexedItems(IndexedItemCollection indexedItems,
-        DexMethod method, int instructionOffset) {
-      collectAll(indexedItems, pairs);
+    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+      for (TypeAddrPair pair : pairs) {
+        pair.collectIndexedItems(indexedItems);
+      }
     }
 
     @Override
@@ -599,10 +590,8 @@ public class DexCode extends Code {
         this.addr = addr;
       }
 
-      @Override
-      public void collectIndexedItems(IndexedItemCollection indexedItems,
-          DexMethod method, int instructionOffset) {
-        type.collectIndexedItems(indexedItems, method, instructionOffset);
+      public void collectIndexedItems(IndexedItemCollection indexedItems) {
+        type.collectIndexedItems(indexedItems);
       }
 
       @Override

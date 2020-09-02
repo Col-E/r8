@@ -87,10 +87,9 @@ public abstract class Format45cc extends Base4Format {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
-    BBBB.collectIndexedItems(indexedItems, method, instructionOffset);
-    HHHH.collectIndexedItems(indexedItems, method, instructionOffset);
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    BBBB.collectIndexedItems(indexedItems);
+    HHHH.collectIndexedItems(indexedItems);
   }
 
   @Override

@@ -15,10 +15,10 @@ public class DexEncodedArray extends DexItem {
     this.values = values;
   }
 
-  @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
-    collectAll(indexedItems, values);
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    for (DexValue value : values) {
+      value.collectIndexedItems(indexedItems);
+    }
   }
 
   @Override

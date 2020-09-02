@@ -7,7 +7,6 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.UseRegistry;
@@ -37,10 +36,9 @@ public class DexInitClass extends Base2Format {
   }
 
   @Override
-  public void collectIndexedItems(
-      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
     DexField field = indexedItems.getInitClassLens().getInitClassField(clazz);
-    field.collectIndexedItems(indexedItems, method, instructionOffset);
+    field.collectIndexedItems(indexedItems);
   }
 
   @Override
