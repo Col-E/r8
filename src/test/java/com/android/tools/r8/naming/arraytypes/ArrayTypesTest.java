@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.naming.arraytypes;
 
-import static org.junit.Assume.assumeTrue;
-
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -41,7 +39,7 @@ public class ArrayTypesTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @BeforeClass
@@ -75,7 +73,7 @@ public class ArrayTypesTest extends TestBase {
         .addProgramClassFileData(generateTestClass())
         .addKeepMainRule(Main.class)
         .addKeepRules("-keep class " + generatedTestClassName + " { test(...); }")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(expectedOutput);
   }
@@ -106,20 +104,17 @@ public class ArrayTypesTest extends TestBase {
         .addKeepRules("-applymapping " + mappingFile.toAbsolutePath())
         .noMinification()
         .noTreeShaking()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(expectedOutput);
   }
 
   @Test
-  public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8()
+  public void testRuntime() throws Exception {
+    testForRuntime(parameters)
         .addProgramClasses(Main.class, A.class)
         .addProgramClassFileData(generateTestClass())
-        .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), Main.class)
-        .writeProcessResult(System.out)
         .assertSuccessWithOutput(expectedOutput);
   }
 
@@ -129,7 +124,7 @@ public class ArrayTypesTest extends TestBase {
     MethodVisitor mv;
 
     classWriter.visit(
-        Opcodes.V1_8,
+        Opcodes.V1_6,
         Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL | Opcodes.ACC_SUPER | Opcodes.ACC_ENUM,
         DescriptorUtils.getBinaryNameFromJavaType(generatedTestClassName),
         null,
@@ -165,15 +160,19 @@ public class ArrayTypesTest extends TestBase {
         mv.visitVarInsn(Opcodes.ALOAD, 2);
       });
 
-      printCompareIntergers("Hashcode: ", mv, (mvCopy) -> {
-        assert mv == mvCopy;
-        // Invoke hashCode using both java.lang.Object and array type an holder.
-        mv.visitVarInsn(Opcodes.ALOAD, 0);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Object", "hashCode", "()I", false);
+      printCompareIntegers(
+          "Hashcode: ",
+          mv,
+          (mvCopy) -> {
+            assert mv == mvCopy;
+            // Invoke hashCode using both java.lang.Object and array type an holder.
+            mv.visitVarInsn(Opcodes.ALOAD, 0);
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Object", "hashCode", "()I", false);
 
-        mv.visitVarInsn(Opcodes.ALOAD, 0);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, arrayTypeDescriptor, "hashCode", "()I", false);
-      });
+            mv.visitVarInsn(Opcodes.ALOAD, 0);
+            mv.visitMethodInsn(
+                Opcodes.INVOKEVIRTUAL, arrayTypeDescriptor, "hashCode", "()I", false);
+          });
 
       printBoolean("Compare with Object: ", mv, (mvCopy) -> {
         assert mv == mvCopy;
@@ -213,7 +212,7 @@ public class ArrayTypesTest extends TestBase {
           Opcodes.INVOKEVIRTUAL, arrayTypeDescriptor, "notPresent", "()Ljava/lang/String;", false);
 
       mv.visitInsn(Opcodes.RETURN);
-      mv.visitMaxs(-1, -1);
+      mv.visitMaxs(10, 10);
       mv.visitEnd();
     }
 
@@ -221,7 +220,8 @@ public class ArrayTypesTest extends TestBase {
 
     return classWriter.toByteArray();
   }
-  public static void printCompareIntergers(
+
+  public static void printCompareIntegers(
       String header, MethodVisitor mv, Consumer<MethodVisitor> consumer) {
     mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
     mv.visitLdcInsn(header);
