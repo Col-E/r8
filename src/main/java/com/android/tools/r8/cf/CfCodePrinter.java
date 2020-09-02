@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
+import static com.android.tools.r8.utils.StringUtils.join;
+
 import com.android.tools.r8.cf.code.CfArithmeticBinop;
 import com.android.tools.r8.cf.code.CfArrayLength;
 import com.android.tools.r8.cf.code.CfArrayLoad;
@@ -18,6 +20,7 @@ import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfDexItemBasedConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
+import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
@@ -46,6 +49,7 @@ import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
@@ -183,6 +187,23 @@ public class CfCodePrinter extends CfPrinter {
 
   private String immutableListType() {
     return type("ImmutableList", ImmutableList.of("com", "google", "common", "collect"));
+  }
+
+  private String int2ReferenceAVLTreeMapType() {
+    return type(
+        "Int2ReferenceAVLTreeMap", ImmutableList.of("it", "unimi", "dsi", "fastutil", "ints"));
+  }
+
+  private String frameTypeType() {
+    return r8Type("FrameType", ImmutableList.of("cf", "code", "CfFrame"));
+  }
+
+  private String dexItemFactoryType() {
+    return r8Type("DexItemFactory", "graph");
+  }
+
+  private String arraysType() {
+    return type("Arrays", ImmutableList.of("java", "util"));
   }
 
   private String r8Type(String name, String pkg) {
@@ -427,7 +448,40 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfFrame frame) {
-    throw new Unimplemented(frame.getClass().getSimpleName());
+    String keys = join(frame.getLocals().keySet(), ",", BraceType.NONE);
+    String values = join(frame.getLocals().values(), ",", BraceType.NONE, this::frameTypeType);
+    String stack = join(frame.getStack(), ",", BraceType.NONE, this::frameTypeType);
+    printNewInstruction(
+        "CfFrame",
+        "new "
+            + int2ReferenceAVLTreeMapType()
+            + "<>("
+            + "new int[] {"
+            + keys
+            + "},"
+            + "new "
+            + frameTypeType()
+            + "[] { "
+            + values
+            + " })",
+        arraysType() + ".asList(" + stack + ")");
+  }
+
+  private String frameTypeType(FrameType frameType) {
+    if (frameType.isTop()) {
+      return frameTypeType() + ".top()";
+    } else if (frameType.isUninitializedThis()) {
+      return frameTypeType() + ".uninitializedThis()";
+    } else if (frameType.isUninitializedNew()) {
+      return frameTypeType() + ".uninitializedNew(new " + cfType("CfLabel") + "())";
+    } else {
+      assert frameType.isInitialized();
+      if (frameType.getInitializedType() == DexItemFactory.nullValueType) {
+        return frameTypeType() + ".initialized(" + dexItemFactoryType() + ".nullValueType)";
+      } else {
+        return frameTypeType() + ".initialized(" + dexType(frameType.getInitializedType()) + ")";
+      }
+    }
   }
 
   @Override
