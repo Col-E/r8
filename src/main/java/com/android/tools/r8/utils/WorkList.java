@@ -76,6 +76,10 @@ public class WorkList<T> {
     return !workingList.isEmpty();
   }
 
+  public boolean isEmpty() {
+    return !hasNext();
+  }
+
   public void markAsSeen(T item) {
     seen.add(item);
   }

@@ -16,6 +16,8 @@ public interface ObjectAllocationInfoCollection {
   void forEachClassWithKnownAllocationSites(
       BiConsumer<DexProgramClass, Set<DexEncodedMethod>> consumer);
 
+  boolean hasInstantiatedStrictSubtype(DexProgramClass clazz);
+
   boolean isAllocationSitesKnown(DexProgramClass clazz);
 
   boolean isInstantiatedDirectly(DexProgramClass clazz);

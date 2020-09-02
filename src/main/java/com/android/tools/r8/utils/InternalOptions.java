@@ -491,6 +491,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private final boolean enableTreeShaking;
   private final boolean enableMinification;
 
+  public boolean isRelease() {
+    return !debug;
+  }
+
   public boolean isShrinking() {
     assert proguardConfiguration == null
         || enableTreeShaking == proguardConfiguration.isShrinking();

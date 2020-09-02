@@ -27,8 +27,18 @@ public class SingleNumberValue extends SingleConstValue {
   }
 
   @Override
-  public boolean isZero() {
+  public boolean isSingleBoolean() {
+    return isFalse() || isTrue();
+  }
+
+  @Override
+  public boolean isFalse() {
     return value == 0;
+  }
+
+  @Override
+  public boolean isTrue() {
+    return value == 1;
   }
 
   @Override
@@ -46,12 +56,24 @@ public class SingleNumberValue extends SingleConstValue {
     return value != 0;
   }
 
-  public long getValue() {
-    return value;
+  public double getDoubleValue() {
+    return Double.longBitsToDouble(value);
+  }
+
+  public float getFloatValue() {
+    return Float.intBitsToFloat((int) value);
   }
 
   public int getIntValue() {
     return (int) value;
+  }
+
+  public long getLongValue() {
+    return value;
+  }
+
+  public long getValue() {
+    return value;
   }
 
   @Override

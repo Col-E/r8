@@ -189,6 +189,11 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
+  public synchronized void unsetAbstractReturnValue(DexEncodedMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetAbstractReturnValue();
+  }
+
+  @Override
   public synchronized void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeElement type) {
     getMethodOptimizationInfoForUpdating(method).markReturnsObjectWithUpperBoundType(appView, type);

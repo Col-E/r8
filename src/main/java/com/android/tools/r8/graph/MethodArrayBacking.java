@@ -269,12 +269,28 @@ public class MethodArrayBacking extends MethodCollectionBacking {
   @Override
   public DexEncodedMethod replaceDirectMethod(
       DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement) {
-    for (int i = 0; i < directMethods.length; i++) {
-      DexEncodedMethod directMethod = directMethods[i];
-      if (method.match(directMethod)) {
-        DexEncodedMethod newMethod = replacement.apply(directMethod);
-        assert belongsToDirectPool(newMethod);
-        directMethods[i] = newMethod;
+    DexEncodedMethod newMethod = replaceMethod(method, replacement, directMethods);
+    assert newMethod == null || belongsToDirectPool(newMethod);
+    return newMethod;
+  }
+
+  @Override
+  public DexEncodedMethod replaceVirtualMethod(
+      DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    DexEncodedMethod newMethod = replaceMethod(method, replacement, virtualMethods);
+    assert newMethod == null || belongsToVirtualPool(newMethod);
+    return newMethod;
+  }
+
+  private DexEncodedMethod replaceMethod(
+      DexMethod reference,
+      Function<DexEncodedMethod, DexEncodedMethod> replacement,
+      DexEncodedMethod[] methods) {
+    for (int i = 0; i < methods.length; i++) {
+      DexEncodedMethod method = methods[i];
+      if (reference.match(method)) {
+        DexEncodedMethod newMethod = replacement.apply(method);
+        methods[i] = newMethod;
         return newMethod;
       }
     }

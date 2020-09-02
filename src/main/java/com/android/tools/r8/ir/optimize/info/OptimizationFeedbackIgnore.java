@@ -76,6 +76,9 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue value) {}
 
   @Override
+  public void unsetAbstractReturnValue(DexEncodedMethod method) {}
+
+  @Override
   public void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeElement type) {}
 

@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
@@ -48,6 +49,10 @@ public class ProgramMethodSet implements Iterable<ProgramMethod> {
 
   public static ProgramMethodSet createLinked() {
     return new ProgramMethodSet(new LinkedHashMap<>());
+  }
+
+  public static ProgramMethodSet createSorted() {
+    return new ProgramMethodSet(new TreeMap<>(DexMethod::slowCompareTo));
   }
 
   public static ProgramMethodSet empty() {
