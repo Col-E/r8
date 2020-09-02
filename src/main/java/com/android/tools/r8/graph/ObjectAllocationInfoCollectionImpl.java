@@ -93,7 +93,6 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
   }
 
   /** True if there might exist an instantiated (strict) subtype of the given type. */
-  @Override
   public boolean hasInstantiatedStrictSubtype(DexProgramClass clazz) {
     if (instantiatedHierarchy.get(clazz.type) != null) {
       return true;

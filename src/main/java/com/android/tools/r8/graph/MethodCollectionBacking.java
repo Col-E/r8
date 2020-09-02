@@ -113,9 +113,6 @@ public abstract class MethodCollectionBacking {
   abstract DexEncodedMethod replaceDirectMethod(
       DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement);
 
-  abstract DexEncodedMethod replaceVirtualMethod(
-      DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement);
-
   abstract DexEncodedMethod replaceDirectMethodWithVirtualMethod(
       DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement);
 

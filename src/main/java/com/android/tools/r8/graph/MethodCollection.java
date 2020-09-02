@@ -212,12 +212,6 @@ public class MethodCollection {
     return backing.replaceDirectMethod(method, replacement);
   }
 
-  public DexEncodedMethod replaceVirtualMethod(
-      DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement) {
-    resetVirtualMethodCaches();
-    return backing.replaceVirtualMethod(method, replacement);
-  }
-
   public void replaceMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
     resetCaches();
     backing.replaceMethods(replacement);

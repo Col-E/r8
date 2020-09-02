@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
@@ -405,10 +404,6 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     assert !abstractReturnValue.isSingleValue() || abstractReturnValue.equals(value)
         : "return single value changed from " + abstractReturnValue + " to " + value;
     abstractReturnValue = value;
-  }
-
-  void unsetAbstractReturnValue() {
-    abstractReturnValue = UnknownValue.getInstance();
   }
 
   void markReturnsObjectWithUpperBoundType(AppView<?> appView, TypeElement type) {

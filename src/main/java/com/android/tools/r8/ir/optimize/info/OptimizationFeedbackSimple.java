@@ -98,12 +98,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void methodReturnsAbstractValue(
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue value) {
-    method.getMutableOptimizationInfo().markReturnsAbstractValue(value);
-  }
-
-  @Override
-  public void unsetAbstractReturnValue(DexEncodedMethod method) {
-    method.getMutableOptimizationInfo().unsetAbstractReturnValue();
+    // Ignored.
   }
 
   @Override

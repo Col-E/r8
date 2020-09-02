@@ -286,26 +286,13 @@ public class MethodMapBacking extends MethodCollectionBacking {
   @Override
   DexEncodedMethod replaceDirectMethod(
       DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement) {
-    return replaceMethod(method, replacement, this::belongsToDirectPool);
-  }
-
-  @Override
-  DexEncodedMethod replaceVirtualMethod(
-      DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement) {
-    return replaceMethod(method, replacement, this::belongsToVirtualPool);
-  }
-
-  private DexEncodedMethod replaceMethod(
-      DexMethod method,
-      Function<DexEncodedMethod, DexEncodedMethod> replacement,
-      Predicate<DexEncodedMethod> predicate) {
     Wrapper<DexMethod> key = wrap(method);
     DexEncodedMethod existing = methodMap.get(key);
-    if (existing == null || !predicate.test(existing)) {
+    if (existing == null || belongsToVirtualPool(existing)) {
       return null;
     }
     DexEncodedMethod newMethod = replacement.apply(existing);
-    assert predicate.test(newMethod);
+    assert belongsToDirectPool(newMethod);
     replace(key, newMethod);
     return newMethod;
   }

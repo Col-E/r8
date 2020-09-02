@@ -309,7 +309,7 @@ public class IRConverter {
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
       this.methodOptimizationInfoCollector =
-          new MethodOptimizationInfoCollector(appViewWithLiveness, this);
+          new MethodOptimizationInfoCollector(appViewWithLiveness);
       if (options.isMinifying()) {
         this.identifierNameStringMarker = new IdentifierNameStringMarker(appViewWithLiveness);
       } else {
@@ -1239,7 +1239,7 @@ public class IRConverter {
       assert appView.enableWholeProgramOptimizations();
       timing.begin("Collect optimization info");
       collectOptimizationInfo(
-          context, code, ClassInitializerDefaultsResult.empty(), feedback, methodProcessor, timing);
+          method, code, ClassInitializerDefaultsResult.empty(), feedback, methodProcessor, timing);
       timing.end();
       return timing;
     }
@@ -1601,7 +1601,7 @@ public class IRConverter {
     if (appView.enableWholeProgramOptimizations()) {
       timing.begin("Collect optimization info");
       collectOptimizationInfo(
-          context, code, classInitializerDefaultsResult, feedback, methodProcessor, timing);
+          method, code, classInitializerDefaultsResult, feedback, methodProcessor, timing);
       timing.end();
     }
 
@@ -1636,7 +1636,7 @@ public class IRConverter {
   // Compute optimization info summary for the current method unless it is pinned
   // (in that case we should not be making any assumptions about the behavior of the method).
   public void collectOptimizationInfo(
-      ProgramMethod method,
+      DexEncodedMethod method,
       IRCode code,
       ClassInitializerDefaultsResult classInitializerDefaultsResult,
       OptimizationFeedback feedback,
@@ -1658,8 +1658,7 @@ public class IRConverter {
     }
 
     // Arguments can be changed during the debug mode.
-    boolean isDebugMode =
-        options.debug || method.getDefinition().getOptimizationInfo().isReachabilitySensitive();
+    boolean isDebugMode = options.debug || method.getOptimizationInfo().isReachabilitySensitive();
     if (!isDebugMode && appView.callSiteOptimizationInfoPropagator() != null) {
       timing.begin("Collect call-site info");
       appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code, timing);
@@ -1671,8 +1670,8 @@ public class IRConverter {
     }
 
     InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos = null;
-    if (method.getDefinition().isInitializer()) {
-      if (method.getDefinition().isClassInitializer()) {
+    if (method.isInitializer()) {
+      if (method.isClassInitializer()) {
         StaticFieldValueAnalysis.run(
             appView, code, classInitializerDefaultsResult, feedback, timing);
       } else {
@@ -1682,7 +1681,12 @@ public class IRConverter {
       }
     }
     methodOptimizationInfoCollector.collectMethodOptimizationInfo(
-        method, code, feedback, dynamicTypeOptimization, instanceFieldInitializationInfos, timing);
+        code.method(),
+        code,
+        feedback,
+        dynamicTypeOptimization,
+        instanceFieldInitializationInfos,
+        timing);
   }
 
   public void removeDeadCodeAndFinalizeIR(
@@ -1740,7 +1744,7 @@ public class IRConverter {
     timing.end();
   }
 
-  public void markProcessed(IRCode code, OptimizationFeedback feedback) {
+  private void markProcessed(IRCode code, OptimizationFeedback feedback) {
     // After all the optimizations have take place, we compute whether method should be inlined.
     ProgramMethod method = code.context();
     ConstraintWithTarget state =

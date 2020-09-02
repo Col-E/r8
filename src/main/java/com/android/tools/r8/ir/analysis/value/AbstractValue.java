@@ -12,28 +12,12 @@ public abstract class AbstractValue {
 
   public abstract boolean isNonTrivial();
 
-  public boolean isSingleBoolean() {
-    return false;
-  }
-
   public boolean isBottom() {
     return false;
   }
 
-  public boolean isFalse() {
+  public boolean isZero() {
     return false;
-  }
-
-  public boolean isTrue() {
-    return false;
-  }
-
-  public final boolean isNull() {
-    return isFalse();
-  }
-
-  public final boolean isZero() {
-    return isFalse();
   }
 
   /**
