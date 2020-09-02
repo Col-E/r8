@@ -254,20 +254,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       for (InnerClassAttribute attribute : getInnerClasses()) {
         attribute.collectIndexedItems(indexedItems);
       }
-      synchronizedCollectAll(indexedItems, staticFields);
-      synchronizedCollectAll(indexedItems, instanceFields);
-      synchronized (methodCollection) {
-        methodCollection.forEachMethod(m -> m.collectIndexedItems(indexedItems));
-      }
-    }
-  }
-
-  private static void synchronizedCollectAll(
-      IndexedItemCollection collection, DexEncodedField[] fields) {
-    synchronized (fields) {
-      for (DexEncodedField field : fields) {
-        field.collectIndexedItems(collection);
-      }
+      forEachField(field -> field.collectIndexedItems(indexedItems));
+      forEachMethod(method -> method.collectIndexedItems(indexedItems));
     }
   }
 
