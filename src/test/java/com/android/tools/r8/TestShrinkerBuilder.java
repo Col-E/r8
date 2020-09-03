@@ -10,6 +10,8 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -73,6 +75,12 @@ public abstract class TestShrinkerBuilder<
 
   public T noMinification() {
     return minification(false);
+  }
+
+  public T addClassObfuscationDictionary(String... names) throws IOException {
+    Path path = getState().getNewTempFolder().resolve("classobfuscationdictionary.txt");
+    FileUtils.writeTextFile(path, StringUtils.join(" ", names));
+    return addKeepRules("-classobfuscationdictionary " + path.toString());
   }
 
   public abstract T addDataEntryResources(DataEntryResource... resources);
