@@ -4,8 +4,6 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static com.android.tools.r8.MarkerMatcher.assertMarkersMatch;
-import static com.android.tools.r8.MarkerMatcher.markerTool;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -16,13 +14,11 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope;
 import com.android.tools.r8.dex.Marker;
-import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.google.common.collect.ImmutableList;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -70,7 +66,7 @@ public class L8CommandTest extends TestBase {
   }
 
   @Test
-  public void testDexMarker() throws Throwable {
+  public void testMarker() throws Throwable {
     Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs.zip");
     L8.run(
         L8Command.builder()
@@ -81,28 +77,14 @@ public class L8CommandTest extends TestBase {
                 StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .setOutput(output, OutputMode.DexIndexed)
             .build());
-    assertMarkersMatch(
-        ExtractMarker.extractMarkerFromDexFile(output),
-        ImmutableList.of(markerTool(Tool.L8), markerTool(Tool.D8)));
+    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    // TODO(b/134732760): Shouldn't we remove the D8/R8 marker?
+    assertEquals(2, markers.size());
+    Marker marker = markers.iterator().next();
   }
 
   @Test
-  public void testClassFileMarker() throws Throwable {
-    Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs.zip");
-    L8.run(
-        L8Command.builder()
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-            .setMinApiLevel(20)
-            .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
-            .setOutput(output, OutputMode.ClassFile)
-            .build());
-    assertMarkersMatch(ExtractMarker.extractMarkerFromDexFile(output), markerTool(Tool.L8));
-  }
-
-  @Test
-  public void testDexMarkerCommandLine() throws Throwable {
+  public void testMarkerCommandLine() throws Throwable {
     Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs.zip");
     L8Command l8Command =
         parse(
@@ -117,28 +99,9 @@ public class L8CommandTest extends TestBase {
             output.toString());
     L8.run(l8Command);
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
-    assertMarkersMatch(
-        ExtractMarker.extractMarkerFromDexFile(output),
-        ImmutableList.of(markerTool(Tool.L8), markerTool(Tool.D8)));
-  }
-
-  @Test
-  public void testClassFileMarkerCommandLine() throws Throwable {
-    Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs.zip");
-    L8Command l8Command =
-        parse(
-            ToolHelper.getDesugarJDKLibs().toString(),
-            "--lib",
-            ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
-            "--min-api",
-            "20",
-            "--desugared-lib",
-            ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
-            "--output",
-            output.toString(),
-            "--classfile");
-    L8.run(l8Command);
-    assertMarkersMatch(ExtractMarker.extractMarkerFromDexFile(output), markerTool(Tool.L8));
+    // TODO(b/134732760): Shouldn't we remove the D8/R8 marker?
+    assertEquals(2, markers.size());
+    Marker marker = markers.iterator().next();
   }
 
   @Test

@@ -100,7 +100,7 @@ public class L8 {
       assert !options.cfToCfDesugar;
       if (shrink) {
         R8.run(r8Command);
-      } else if (d8Command != null) {
+      } else {
         D8.run(d8Command, executorService);
       }
     } finally {
