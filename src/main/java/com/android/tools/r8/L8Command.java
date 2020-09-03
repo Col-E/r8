@@ -260,9 +260,6 @@ public final class L8Command extends BaseCompilerCommand {
       if (!hasDesugaredLibraryConfiguration()) {
         reporter.error("L8 requires a desugared library configuration");
       }
-      if (getProgramConsumer() instanceof ClassFileConsumer) {
-        reporter.error("L8 does not support compiling to class files");
-      }
       if (getProgramConsumer() instanceof DexFilePerClassFileConsumer) {
         reporter.error("L8 does not support compiling to dex per class");
       }
@@ -292,12 +289,12 @@ public final class L8Command extends BaseCompilerCommand {
       D8Command d8Command = null;
 
       AndroidApp inputs = getAppBuilder().build();
-      DesugaredLibrary desugaredLibrary = new DesugaredLibrary();
-
+      ProgramConsumer l8CfConsumer = null;
       if (isShrinking()) {
+        l8CfConsumer = new InMemoryJarContent();
         R8Command.Builder r8Builder =
             new CompatProguardCommandBuilder(true, getReporter())
-                .addProgramResourceProvider(desugaredLibrary)
+                .addProgramResourceProvider((ProgramResourceProvider) l8CfConsumer)
                 .setSynthesizedClassesPrefix(
                     libraryConfiguration.getSynthesizedLibraryClassesPackagePrefix())
                 .setMinApiLevel(getMinApiLevel())
@@ -316,10 +313,11 @@ public final class L8Command extends BaseCompilerCommand {
             libraryConfiguration.getExtraKeepRules(), Origin.unknown());
         r8Builder.addProguardConfigurationFiles(proguardConfigFiles);
         r8Command = r8Builder.makeCommand();
-      } else {
+      } else if (!(getProgramConsumer() instanceof ClassFileConsumer)) {
+        l8CfConsumer = new InMemoryJarContent();
         D8Command.Builder d8Builder =
             D8Command.builder(getReporter())
-                .addProgramResourceProvider(desugaredLibrary)
+                .addProgramResourceProvider((ProgramResourceProvider) l8CfConsumer)
                 .setSynthesizedClassesPrefix(
                     libraryConfiguration.getSynthesizedLibraryClassesPackagePrefix())
                 .setMinApiLevel(getMinApiLevel())
@@ -332,13 +330,17 @@ public final class L8Command extends BaseCompilerCommand {
           d8Builder.addLibraryResourceProvider(libraryResourceProvider);
         }
         d8Command = d8Builder.makeCommand();
+      } else {
+        assert getProgramConsumer() instanceof ClassFileConsumer;
+        l8CfConsumer = getProgramConsumer();
+        d8Command = null;
       }
       return new L8Command(
           r8Command,
           d8Command,
           inputs,
           getMode(),
-          desugaredLibrary,
+          l8CfConsumer,
           getMainDexListConsumer(),
           getMinApiLevel(),
           getReporter(),
@@ -352,7 +354,7 @@ public final class L8Command extends BaseCompilerCommand {
     }
   }
 
-  static class DesugaredLibrary implements ClassFileConsumer, ProgramResourceProvider {
+  static class InMemoryJarContent implements ClassFileConsumer, ProgramResourceProvider {
 
     private final List<ProgramResource> resources = new ArrayList<>();
 
