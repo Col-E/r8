@@ -872,7 +872,18 @@ public class EnumUnboxer implements PostOptimization {
       assert dexClass.isLibraryClass();
       if (dexClass.type != factory.enumType) {
         // System.identityHashCode(Object) is supported for proto enums.
+        // Object#getClass without outValue and Objects.requireNonNull are supported since R8
+        // rewrites explicit null checks to such instructions.
         if (singleTarget == factory.javaLangSystemMethods.identityHashCode) {
+          return Reason.ELIGIBLE;
+        }
+        if (singleTarget == factory.objectMembers.getClass
+            && (!invokeMethod.hasOutValue() || !invokeMethod.outValue().hasAnyUsers())) {
+          // This is a hidden null check.
+          return Reason.ELIGIBLE;
+        }
+        if (singleTarget == factory.objectsMethods.requireNonNull
+            || singleTarget == factory.objectsMethods.requireNonNullWithMessage) {
           return Reason.ELIGIBLE;
         }
         return Reason.UNSUPPORTED_LIBRARY_CALL;
