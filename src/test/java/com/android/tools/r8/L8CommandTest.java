@@ -199,14 +199,6 @@ public class L8CommandTest extends TestBase {
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void classFileOutputNotSupported() throws Throwable {
-    DiagnosticsChecker.checkErrorsContains(
-        "L8 does not support compiling to class files",
-        (handler) ->
-            prepareBuilder(handler).setProgramConsumer(ClassFileConsumer.emptyConsumer()).build());
-  }
-
-  @Test(expected = CompilationFailedException.class)
   public void desugaredLibraryConfigurationRequired() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
         "L8 requires a desugared library configuration",
