@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -155,6 +154,26 @@ public class L8CommandTest extends TestBase {
   }
 
   @Test
+  public void testFlagPgConfWithClassFile() throws Exception {
+    TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
+    try {
+      Path pgconf = temp.newFolder().toPath().resolve("pg.conf");
+      FileUtils.writeTextFile(pgconf, "");
+      parse(
+          diagnostics,
+          "--desugared-lib",
+          ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+          "--pg-conf",
+          pgconf.toString(),
+          "--classfile");
+      fail("Expected failure");
+    } catch (CompilationFailedException e) {
+      diagnostics.assertErrorsMatch(
+          diagnosticMessage(containsString("not support shrinking when generating class files")));
+    }
+  }
+
+  @Test
   public void testFlagPgConfMissingParameter() {
     TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
     try {
@@ -206,15 +225,14 @@ public class L8CommandTest extends TestBase {
             prepareBuilder(handler).setProgramConsumer(ClassFileConsumer.emptyConsumer()).build());
   }
 
-  @Test
-  @Ignore("b/143431384: Re-enable shrinking")
-  public void addProguardConfigurationString() throws Throwable {
+  private void addProguardConfigurationString(
+      DiagnosticsHandler diagnostics, ProgramConsumer programConsumer) throws Throwable {
     String keepRule = "-keep class java.time.*";
     List<String> keepRules = new ArrayList<>();
     keepRules.add(keepRule);
     L8Command.Builder builder =
-        prepareBuilder(new TestDiagnosticMessagesImpl())
-            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+        prepareBuilder(diagnostics)
+            .setProgramConsumer(programConsumer)
             .addDesugaredLibraryConfiguration(
                 StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .addProguardConfiguration(keepRules, Origin.unknown());
@@ -223,15 +241,32 @@ public class L8CommandTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/143431384: Re-enable shrinking")
-  public void addProguardConfigurationFile() throws Throwable {
+  public void addProguardConfigurationStringWithDex() throws Throwable {
+    addProguardConfigurationString(
+        new TestDiagnosticMessagesImpl(), DexIndexedConsumer.emptyConsumer());
+  }
+
+  @Test
+  public void addProguardConfigurationStringWithClassFile() throws Throwable {
+    TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
+    try {
+      addProguardConfigurationString(diagnostics, ClassFileConsumer.emptyConsumer());
+      fail("Expected failure");
+    } catch (CompilationFailedException e) {
+      diagnostics.assertErrorsMatch(
+          diagnosticMessage(containsString("not support shrinking when generating class files")));
+    }
+  }
+
+  private void addProguardConfigurationFile(
+      DiagnosticsHandler diagnostics, ProgramConsumer programConsumer) throws Throwable {
     String keepRule = "-keep class java.time.*";
     Path keepRuleFile = temp.newFile("keepRuleFile.txt").toPath();
     Files.write(keepRuleFile, Collections.singletonList(keepRule), StandardCharsets.UTF_8);
 
     L8Command.Builder builder1 =
-        prepareBuilder(new TestDiagnosticMessagesImpl())
-            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+        prepareBuilder(diagnostics)
+            .setProgramConsumer(programConsumer)
             .addDesugaredLibraryConfiguration(
                 StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .addProguardConfigurationFiles(keepRuleFile);
@@ -248,6 +283,24 @@ public class L8CommandTest extends TestBase {
             .addProguardConfigurationFiles(keepRuleFiles);
     assertTrue(builder2.isShrinking());
     assertNotNull(builder2.build().getR8Command());
+  }
+
+  @Test
+  public void addProguardConfigurationFileDex() throws Throwable {
+    addProguardConfigurationFile(
+        new TestDiagnosticMessagesImpl(), DexIndexedConsumer.emptyConsumer());
+  }
+
+  @Test
+  public void addProguardConfigurationFileClassFile() throws Throwable {
+    TestDiagnosticMessagesImpl diagnostics = new TestDiagnosticMessagesImpl();
+    try {
+      addProguardConfigurationFile(diagnostics, ClassFileConsumer.emptyConsumer());
+      fail("Expected failure");
+    } catch (CompilationFailedException e) {
+      diagnostics.assertErrorsMatch(
+          diagnosticMessage(containsString("not support shrinking when generating class files")));
+    }
   }
 
   @Test

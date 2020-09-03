@@ -268,6 +268,9 @@ public final class L8Command extends BaseCompilerCommand {
       } else if (getMainDexListConsumer() != null) {
         reporter.error("L8 does not support generating a main dex list");
       }
+      if (isShrinking() && getProgramConsumer() instanceof ClassFileConsumer) {
+        reporter.error("L8 does not support shrinking when generating class files");
+      }
       super.validate();
     }
 

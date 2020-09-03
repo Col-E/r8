@@ -134,14 +134,14 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
             .inspect(this::checkRewrittenInvokes)
             .writeToZip();
 
-    // Collection keep rules is only implemented in the DEX writer.
-    String desugaredLibraryKeepRules = keepRuleConsumer.get();
-    if (desugaredLibraryKeepRules != null) {
-      assertEquals(0, desugaredLibraryKeepRules.length());
-      desugaredLibraryKeepRules = "-keep class * { *; }";
-    }
-
     if (parameters.getRuntime().isDex()) {
+      // Collection keep rules is only implemented in the DEX writer.
+      String desugaredLibraryKeepRules = keepRuleConsumer.get();
+      if (desugaredLibraryKeepRules != null) {
+        assertEquals(0, desugaredLibraryKeepRules.length());
+        desugaredLibraryKeepRules = "-keep class * { *; }";
+      }
+
       // Convert to DEX without desugaring and run.
       testForD8()
           .addProgramFiles(jar)
