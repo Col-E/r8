@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -150,6 +151,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testTimeD8() throws Exception {
+    Assume.assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(JavaTimeTest.class)
@@ -168,6 +170,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testTimeR8() throws Exception {
+    Assume.assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addInnerClasses(JavaTimeTest.class)
