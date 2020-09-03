@@ -51,17 +51,4 @@ public class EnumUnboxingMethods {
     }
     return unboxedEnum1 == unboxedEnum2;
   }
-
-  // Methods zeroCheck and zeroCheckMessage are used to replace null checks on unboxed enums.
-  public static void zeroCheck(int unboxedEnum) {
-    if (unboxedEnum == 0) {
-      throw new NullPointerException();
-    }
-  }
-
-  public static void zeroCheckMessage(int unboxedEnum, String message) {
-    if (unboxedEnum == 0) {
-      throw new NullPointerException(message);
-    }
-  }
 }
