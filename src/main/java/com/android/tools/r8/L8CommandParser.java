@@ -88,7 +88,7 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
   private L8Command.Builder parse(String[] args, Origin origin, L8Command.Builder builder) {
     CompilationMode compilationMode = null;
     Path outputPath = null;
-    OutputMode outputMode = null;
+    OutputMode outputMode = OutputMode.DexIndexed;
     boolean hasDefinedApiLevel = false;
     OrderedClassFileResourceProvider.Builder classpathBuilder =
         OrderedClassFileResourceProvider.builder();
@@ -149,6 +149,8 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
         builder.addProguardConfigurationFiles(Paths.get(nextArg));
       } else if (arg.equals("--desugared-lib")) {
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
+      } else if (arg.equals("--classfile")) {
+        outputMode = OutputMode.ClassFile;
       } else if (arg.equals(THREAD_COUNT_FLAG)) {
         parsePositiveIntArgument(
             builder::error, THREAD_COUNT_FLAG, nextArg, origin, builder::setThreadCount);
@@ -166,9 +168,6 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
     }
     if (compilationMode != null) {
       builder.setMode(compilationMode);
-    }
-    if (outputMode == null) {
-      outputMode = OutputMode.DexIndexed;
     }
     if (outputPath == null) {
       outputPath = Paths.get(".");
