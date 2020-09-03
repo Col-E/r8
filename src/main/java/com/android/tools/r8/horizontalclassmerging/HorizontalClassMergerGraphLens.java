@@ -23,6 +23,7 @@ import java.util.Set;
 public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   private final AppView<?> appView;
   private final Map<DexMethod, Integer> constructorIds;
+  private final Map<DexMethod, DexMethod> originalConstructorSignatures;
 
   private HorizontalClassMergerGraphLens(
       AppView<?> appView,
@@ -32,6 +33,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       Map<DexMethod, DexMethod> methodMap,
       BiMap<DexField, DexField> originalFieldSignatures,
       BiMap<DexMethod, DexMethod> originalMethodSignatures,
+      Map<DexMethod, DexMethod> originalConstructorSignatures,
       GraphLens previousLens) {
     super(
         typeMap,
@@ -43,6 +45,16 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
         appView.dexItemFactory());
     this.appView = appView;
     this.constructorIds = constructorIds;
+    this.originalConstructorSignatures = originalConstructorSignatures;
+  }
+
+  @Override
+  public DexMethod getOriginalMethodSignature(DexMethod method) {
+    DexMethod originalConstructor = originalConstructorSignatures.get(method);
+    if (originalConstructor == null) {
+      return super.getOriginalMethodSignature(method);
+    }
+    return previousLens.getOriginalMethodSignature(originalConstructor);
   }
 
   public HorizontallyMergedClasses getHorizontallyMergedClasses() {
@@ -77,6 +89,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
         new IdentityHashMap<>();
 
     private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
+    private final Map<DexMethod, DexMethod> extraOriginalMethodSignatures = new IdentityHashMap<>();
 
     private final Map<DexMethod, Integer> constructorIds = new IdentityHashMap<>();
 
@@ -96,6 +109,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
             methodMap,
             originalFieldSignatures,
             originalMethodSignatures,
+            extraOriginalMethodSignatures,
             appView.graphLens());
       }
     }
@@ -112,12 +126,17 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       return this;
     }
 
+    public Builder recordExtraOriginalSignature(DexMethod from, DexMethod to) {
+      extraOriginalMethodSignatures.put(to, extraOriginalMethodSignatures.getOrDefault(from, from));
+      return this;
+    }
+
     /**
      * Unidirectional mapping from one method to another. This seems to only be used by synthesized
      * constructors so is private for now. See {@link Builder#moveConstructor(DexMethod,
      * DexMethod)}.
      */
-    private Builder mapMethod(DexMethod from, DexMethod to) {
+    public Builder mapMethod(DexMethod from, DexMethod to) {
       for (DexMethod existingFrom :
           completeInverseMethodMap.getOrDefault(from, Collections.emptySet())) {
         methodMap.put(existingFrom, to);
@@ -130,6 +149,10 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       methodMap.put(from, to);
       completeInverseMethodMap.computeIfAbsent(to, ignore -> new HashSet<>()).add(from);
       return this;
+    }
+
+    public boolean hasOriginalConstructorSignatureMappingFor(DexMethod method) {
+      return extraOriginalMethodSignatures.containsKey(method);
     }
 
     public boolean hasOriginalSignatureMappingFor(DexMethod method) {

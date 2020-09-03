@@ -6,21 +6,28 @@ package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.synthetic.SynthesizedCode;
+import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import java.util.SortedMap;
 import java.util.function.Consumer;
 
-public class ConstructorEntryPointSynthesizedCode extends SynthesizedCode {
-  private final DexMethod newConstructor;
+public class ConstructorEntryPointSynthesizedCode extends AbstractSynthesizedCode {
+  private DexMethod newConstructor;
+  private DexMethod originalMethod;
   private final SortedMap<Integer, DexMethod> typeConstructors;
 
   public ConstructorEntryPointSynthesizedCode(
-      SortedMap<Integer, DexMethod> typeConstructors, DexMethod newConstructor) {
-    super(
-        callerPosition ->
-            new ConstructorEntryPoint(typeConstructors, newConstructor, callerPosition));
+      SortedMap<Integer, DexMethod> typeConstructors,
+      DexMethod newConstructor,
+      DexMethod originalMethod) {
     this.typeConstructors = typeConstructors;
     this.newConstructor = newConstructor;
+    this.originalMethod = originalMethod;
+  }
+
+  @Override
+  public SourceCodeProvider getSourceCodeProvider() {
+    return callerPosition ->
+        new ConstructorEntryPoint(typeConstructors, newConstructor, callerPosition, originalMethod);
   }
 
   @Override

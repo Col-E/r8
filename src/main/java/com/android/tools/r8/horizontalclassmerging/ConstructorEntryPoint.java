@@ -35,8 +35,11 @@ public class ConstructorEntryPoint extends SyntheticSourceCode {
   private final SortedMap<Integer, DexMethod> typeConstructors;
 
   public ConstructorEntryPoint(
-      SortedMap<Integer, DexMethod> typeConstructors, DexMethod method, Position callerPosition) {
-    super(method.holder, method, callerPosition);
+      SortedMap<Integer, DexMethod> typeConstructors,
+      DexMethod method,
+      Position callerPosition,
+      DexMethod originalMethod) {
+    super(method.holder, method, callerPosition, originalMethod);
 
     this.typeConstructors = typeConstructors;
   }

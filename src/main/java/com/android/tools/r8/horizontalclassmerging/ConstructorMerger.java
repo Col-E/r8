@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -115,10 +114,12 @@ public class ConstructorMerger {
 
     DexProto newProto = getNewConstructorProto();
 
+    DexMethod originalConstructorReference = constructors.iterator().next().method;
     DexMethod newConstructorReference =
         appView.dexItemFactory().createMethod(target.type, newProto, dexItemFactory.initMethodName);
-    SynthesizedCode synthesizedCode =
-        new ConstructorEntryPointSynthesizedCode(typeConstructorClassMap, newConstructorReference);
+    ConstructorEntryPointSynthesizedCode synthesizedCode =
+        new ConstructorEntryPointSynthesizedCode(
+            typeConstructorClassMap, newConstructorReference, originalConstructorReference);
     DexEncodedMethod newConstructor =
         new DexEncodedMethod(
             newConstructorReference,
@@ -136,6 +137,8 @@ public class ConstructorMerger {
           newConstructorReference,
           classIdentifiers.getInt(oldConstructor.getHolderType()));
     }
+    // Map the first constructor to the newly synthesized constructor.
+    lensBuilder.recordExtraOriginalSignature(originalConstructorReference, newConstructorReference);
 
     target.addDirectMethod(newConstructor);
   }

@@ -13,8 +13,9 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
-public class RemapMethodTest extends HorizontalClassMergingTestBase {
-  public RemapMethodTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
+public class SyntheticConstructorArgumentsMerged extends HorizontalClassMergingTestBase {
+  public SyntheticConstructorArgumentsMerged(
+      TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
   }
 
@@ -32,79 +33,46 @@ public class RemapMethodTest extends HorizontalClassMergingTestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("foo", "foo", "bar", "bar")
+        .assertSuccessWithOutputLines("5", "42")
         .inspect(
             codeInspector -> {
-              assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(codeInspector.clazz(C.class), isPresent());
               if (enableHorizontalClassMerging) {
+                assertThat(codeInspector.clazz(A.class), isPresent());
                 assertThat(codeInspector.clazz(B.class), not(isPresent()));
-                assertThat(codeInspector.clazz(D.class), not(isPresent()));
                 // TODO(b/165517236): Explicitly check classes have been merged.
               } else {
+                assertThat(codeInspector.clazz(A.class), isPresent());
                 assertThat(codeInspector.clazz(B.class), isPresent());
-                assertThat(codeInspector.clazz(D.class), isPresent());
               }
             });
   }
 
   @NeverClassInline
   public static class A {
-    @NeverInline
-    public void foo() {
-      System.out.println("foo");
+    public A(B b) {
+      b.print(42);
     }
   }
 
   @NeverClassInline
   public static class B {
-    // TODO(b/164924717): remove non overlapping constructor requirement
-    public B(String s) {}
-
-    @NeverInline
-    public void bar(D d) {
-      d.bar();
-    }
-  }
-
-  @NeverClassInline
-  public static class Other {
-    String field;
-
-    public Other() {
-      field = "";
-    }
-  }
-
-  @NeverClassInline
-  public static class C extends Other {
-    @NeverInline
-    public void foo() {
-      System.out.println("foo");
-    }
-  }
-
-  @NeverClassInline
-  public static class D extends Other {
-    public D(String s) {
-      System.out.println(s);
+    public B(B b) {
+      if (b != null) {
+        b.print(5);
+      }
     }
 
     @NeverInline
-    public void bar() {
-      System.out.println("bar");
+    void print(int v) {
+      System.out.println(v);
     }
   }
 
   public static class Main {
     public static void main(String[] args) {
-      A a = new A();
-      a.foo();
-      B b = new B("bar");
-      C c = new C();
-      c.foo();
-      D d = new D("bar");
-      b.bar(d);
+      B b = new B(null);
+      B b1 = new B(b);
+      A a = new A(b);
     }
   }
 }

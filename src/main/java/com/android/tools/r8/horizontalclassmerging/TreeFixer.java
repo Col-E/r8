@@ -63,7 +63,15 @@ class TreeFixer {
       return method;
     }
 
-    lensBuilder.moveMethod(methodReference, newMethodReference);
+    // If the method is a synthesized method, then don't record the original signature.
+    if ((method.getCode() instanceof ConstructorEntryPointSynthesizedCode)) {
+      assert lensBuilder.hasOriginalConstructorSignatureMappingFor(methodReference);
+      lensBuilder.recordExtraOriginalSignature(methodReference, newMethodReference);
+      lensBuilder.mapMethod(methodReference, newMethodReference);
+    } else {
+      lensBuilder.moveMethod(methodReference, newMethodReference);
+    }
+
     DexEncodedMethod newMethod = method.toTypeSubstitutedMethod(newMethodReference);
     if (newMethod.isNonPrivateVirtualMethod()) {
       // Since we changed the return type or one of the parameters, this method cannot be a
