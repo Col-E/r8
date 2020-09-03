@@ -4,30 +4,35 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
-import java.util.SortedMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.function.Consumer;
 
 public class ConstructorEntryPointSynthesizedCode extends AbstractSynthesizedCode {
-  private DexMethod newConstructor;
-  private DexMethod originalMethod;
-  private final SortedMap<Integer, DexMethod> typeConstructors;
+  private final DexMethod newConstructor;
+  private final DexMethod originalMethod;
+  private final DexField classIdField;
+  private final Int2ReferenceSortedMap<DexMethod> typeConstructors;
 
   public ConstructorEntryPointSynthesizedCode(
-      SortedMap<Integer, DexMethod> typeConstructors,
+      Int2ReferenceSortedMap<DexMethod> typeConstructors,
       DexMethod newConstructor,
+      DexField classIdField,
       DexMethod originalMethod) {
     this.typeConstructors = typeConstructors;
     this.newConstructor = newConstructor;
+    this.classIdField = classIdField;
     this.originalMethod = originalMethod;
   }
 
   @Override
   public SourceCodeProvider getSourceCodeProvider() {
     return callerPosition ->
-        new ConstructorEntryPoint(typeConstructors, newConstructor, callerPosition, originalMethod);
+        new ConstructorEntryPoint(
+            typeConstructors, newConstructor, classIdField, callerPosition, originalMethod);
   }
 
   @Override
@@ -36,7 +41,6 @@ public class ConstructorEntryPointSynthesizedCode extends AbstractSynthesizedCod
   }
 
   private void registerReachableDefinitions(UseRegistry registry) {
-    registry.registerInvokeDirect(newConstructor);
     for (DexMethod typeConstructor : typeConstructors.values()) {
       registry.registerInvokeDirect(typeConstructor);
     }

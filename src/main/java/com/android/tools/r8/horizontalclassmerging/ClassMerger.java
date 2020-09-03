@@ -4,14 +4,20 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -31,23 +37,29 @@ class ClassMerger {
   private final Collection<DexProgramClass> toMergeGroup;
   private final DexItemFactory dexItemFactory;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
+  private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
 
   private final Reference2IntMap<DexType> classIdentifiers = new Reference2IntOpenHashMap<>();
-
   private final Map<DexProto, ConstructorMerger.Builder> constructorMergers;
+  private final DexField classIdField;
 
   ClassMerger(
       AppView<?> appView,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
+      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       DexProgramClass target,
       Collection<DexProgramClass> toMergeGroup) {
     this.appView = appView;
     this.lensBuilder = lensBuilder;
+    this.fieldAccessChangesBuilder = fieldAccessChangesBuilder;
     this.target = target;
     this.toMergeGroup = toMergeGroup;
-    this.constructorMergers = new IdentityHashMap<>();
 
+    this.constructorMergers = new IdentityHashMap<>();
     this.dexItemFactory = appView.dexItemFactory();
+
+    // TODO(b/165498187): ensure the name for the field is fresh
+    classIdField = dexItemFactory.createField(target.type, dexItemFactory.intType, "$r8$classId");
 
     buildClassIdentifierMap();
   }
@@ -112,8 +124,8 @@ class ClassMerger {
 
   void mergeConstructors() {
     for (ConstructorMerger.Builder builder : constructorMergers.values()) {
-      ConstructorMerger constructorMerger = builder.build(appView, target);
-      constructorMerger.merge(lensBuilder, classIdentifiers);
+      ConstructorMerger constructorMerger = builder.build(appView, target, classIdField);
+      constructorMerger.merge(lensBuilder, fieldAccessChangesBuilder, classIdentifiers);
     }
   }
 
@@ -131,8 +143,20 @@ class ClassMerger {
         });
   }
 
+  void appendClassIdField() {
+    DexEncodedField encodedField =
+        new DexEncodedField(
+            classIdField,
+            FieldAccessFlags.fromSharedAccessFlags(
+                Constants.ACC_PUBLIC + Constants.ACC_FINAL + Constants.ACC_SYNTHETIC),
+            DexAnnotationSet.empty(),
+            null);
+    target.appendInstanceField(encodedField);
+  }
+
   public void mergeGroup() {
     addTargetConstructors();
+    appendClassIdField();
 
     for (DexProgramClass clazz : toMergeGroup) {
       merge(clazz);

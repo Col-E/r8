@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.OptionalBool;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -30,14 +31,17 @@ class TreeFixer {
   private final Map<DexType, DexType> mergedClasses;
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
+  private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
   private final AppView<AppInfoWithLiveness> appView;
 
   public TreeFixer(
       AppView<AppInfoWithLiveness> appView,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
+      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       Map<DexType, DexType> mergedClasses) {
     this.mergedClasses = mergedClasses;
     this.lensBuilder = lensBuilder;
+    this.fieldAccessChangesBuilder = fieldAccessChangesBuilder;
     this.appView = appView;
   }
 
@@ -49,6 +53,8 @@ class TreeFixer {
       fixupFields(clazz.instanceFields(), clazz::setInstanceField);
     }
     HorizontalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
+
+    fieldAccessChangesBuilder.build(this::fixupMethod).modify(appView);
 
     if (lens != null) {
       new AnnotationFixer(lens).run(appView.appInfo().classes());
@@ -65,7 +71,7 @@ class TreeFixer {
 
     // If the method is a synthesized method, then don't record the original signature.
     if ((method.getCode() instanceof ConstructorEntryPointSynthesizedCode)) {
-      assert lensBuilder.hasOriginalConstructorSignatureMappingFor(methodReference);
+      assert lensBuilder.hasExtraSignatureMappingFor(methodReference);
       lensBuilder.recordExtraOriginalSignature(methodReference, newMethodReference);
       lensBuilder.mapMethod(methodReference, newMethodReference);
     } else {

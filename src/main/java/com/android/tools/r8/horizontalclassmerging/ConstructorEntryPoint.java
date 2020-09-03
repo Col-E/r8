@@ -4,17 +4,19 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
 import com.android.tools.r8.utils.IntBox;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.SortedMap;
 
 /**
  * Generate code of the form: <code>
@@ -32,22 +34,53 @@ import java.util.SortedMap;
  * </code>
  */
 public class ConstructorEntryPoint extends SyntheticSourceCode {
-  private final SortedMap<Integer, DexMethod> typeConstructors;
+  private final DexField classIdField;
+  private final Int2ReferenceSortedMap<DexMethod> typeConstructors;
 
   public ConstructorEntryPoint(
-      SortedMap<Integer, DexMethod> typeConstructors,
-      DexMethod method,
+      Int2ReferenceSortedMap<DexMethod> typeConstructors,
+      DexMethod newConstructor,
+      DexField classIdField,
       Position callerPosition,
       DexMethod originalMethod) {
-    super(method.holder, method, callerPosition, originalMethod);
+    super(newConstructor.holder, newConstructor, callerPosition, originalMethod);
 
     this.typeConstructors = typeConstructors;
+    this.classIdField = classIdField;
   }
 
-  @Override
-  protected void prepareInstructions() {
+  void addConstructorInvoke(DexMethod typeConstructor) {
+    add(
+        builder -> {
+          List<Value> arguments = new ArrayList<>(typeConstructor.getArity() + 1);
+          arguments.add(builder.getReceiverValue());
+
+          // If there are any arguments add them to the list.
+          for (int i = 0; i < typeConstructor.getArity(); i++) {
+            arguments.add(builder.getArgumentValues().get(i));
+          }
+
+          builder.addInvoke(Type.DIRECT, typeConstructor, typeConstructor.proto, arguments, false);
+        });
+  }
+
+  /** Assign the given register to the class id field. */
+  void addRegisterClassIdAssignment(int idRegister) {
+    add(builder -> builder.addInstancePut(idRegister, getReceiverRegister(), classIdField));
+  }
+
+  /** Assign the given constant integer value to the class id field. */
+  void addConstantRegisterClassIdAssignment(int classId) {
+    int idRegister = nextRegister(ValueType.INT);
+    add(builder -> builder.addIntConst(idRegister, classId));
+    addRegisterClassIdAssignment(idRegister);
+  }
+
+  protected void prepareMultiConstructorInstructions() {
     int typeConstructorCount = typeConstructors.size();
     int idRegister = getParamRegister(method.getArity() - 1);
+
+    addRegisterClassIdAssignment(idRegister);
 
     int[] keys = new int[typeConstructorCount - 1];
     int[] offsets = new int[typeConstructorCount - 1];
@@ -57,10 +90,9 @@ public class ConstructorEntryPoint extends SyntheticSourceCode {
         builder -> builder.addSwitch(idRegister, keys, fallthrough.get(), offsets),
         builder -> endsSwitch(builder, switchIndex, fallthrough.get(), offsets));
 
-
     int index = 0;
-    for (Entry<Integer, DexMethod> entry : typeConstructors.entrySet()) {
-      int classId = entry.getKey();
+    for (Entry<DexMethod> entry : typeConstructors.int2ReferenceEntrySet()) {
+      int classId = entry.getIntKey();
       DexMethod typeConstructor = entry.getValue();
 
       if (index == 0) {
@@ -72,23 +104,26 @@ public class ConstructorEntryPoint extends SyntheticSourceCode {
         offsets[index - 1] = nextInstructionIndex();
       }
 
-      add(
-          builder -> {
-            List<Value> arguments = new ArrayList<>(typeConstructor.getArity());
-            arguments.add(builder.getReceiverValue());
-            int paramIndex = 0;
-            for (Value argument : builder.getArgumentValues()) {
-              if (paramIndex++ >= typeConstructor.getArity()) {
-                break;
-              }
-              arguments.add(argument);
-            }
-            builder.addInvoke(
-                Type.DIRECT, typeConstructor, typeConstructor.proto, arguments, false);
-          });
+      addConstructorInvoke(typeConstructor);
       add(IRBuilder::addReturn, endsBlock);
 
       index++;
+    }
+  }
+
+  protected void prepareSingleConstructorInstructions() {
+    Entry<DexMethod> entry = typeConstructors.int2ReferenceEntrySet().first();
+    addConstantRegisterClassIdAssignment(entry.getIntKey());
+    addConstructorInvoke(entry.getValue());
+    add(IRBuilder::addReturn, endsBlock);
+  }
+
+  @Override
+  protected void prepareInstructions() {
+    if (typeConstructors.size() > 1) {
+      prepareMultiConstructorInstructions();
+    } else {
+      prepareSingleConstructorInstructions();
     }
   }
 }

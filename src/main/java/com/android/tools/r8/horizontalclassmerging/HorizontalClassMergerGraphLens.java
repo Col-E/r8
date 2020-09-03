@@ -126,16 +126,13 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       return this;
     }
 
+    /** Unidirectional mapping from one method to another. */
     public Builder recordExtraOriginalSignature(DexMethod from, DexMethod to) {
       extraOriginalMethodSignatures.put(to, extraOriginalMethodSignatures.getOrDefault(from, from));
       return this;
     }
 
-    /**
-     * Unidirectional mapping from one method to another. This seems to only be used by synthesized
-     * constructors so is private for now. See {@link Builder#moveConstructor(DexMethod,
-     * DexMethod)}.
-     */
+    /** Unidirectional mapping from one method to another. */
     public Builder mapMethod(DexMethod from, DexMethod to) {
       for (DexMethod existingFrom :
           completeInverseMethodMap.getOrDefault(from, Collections.emptySet())) {
@@ -151,7 +148,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       return this;
     }
 
-    public boolean hasOriginalConstructorSignatureMappingFor(DexMethod method) {
+    public boolean hasExtraSignatureMappingFor(DexMethod method) {
       return extraOriginalMethodSignatures.containsKey(method);
     }
 
@@ -167,18 +164,10 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
      * @param constructorId The id that must be appended to the constructor call to ensure the
      *     correct constructor is called.
      */
-    public Builder mapConstructor(DexMethod from, DexMethod to, int constructorId) {
+    public Builder mapMergedConstructor(DexMethod from, DexMethod to, int constructorId) {
       mapMethod(from, to);
       constructorIds.put(from, constructorId);
       return this;
-    }
-
-    /**
-     * Bidirectional mapping from one constructor to another. When a single constructor is simply
-     * moved from one class to another, we can uniquely map the new constructor back to the old one.
-     */
-    public Builder moveConstructor(DexMethod from, DexMethod to) {
-      return moveMethod(from, to);
     }
   }
 }

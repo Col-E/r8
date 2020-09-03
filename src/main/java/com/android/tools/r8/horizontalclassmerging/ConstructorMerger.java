@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -15,6 +16,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -28,12 +30,17 @@ public class ConstructorMerger {
   private final DexProgramClass target;
   private final Collection<DexEncodedMethod> constructors;
   private final DexItemFactory dexItemFactory;
+  private final DexField classIdField;
 
   ConstructorMerger(
-      AppView<?> appView, DexProgramClass target, Collection<DexEncodedMethod> constructors) {
+      AppView<?> appView,
+      DexProgramClass target,
+      Collection<DexEncodedMethod> constructors,
+      DexField classIdField) {
     this.appView = appView;
     this.target = target;
     this.constructors = constructors;
+    this.classIdField = classIdField;
 
     // Constructors should not be empty and all constructors should have the same prototype.
     assert !constructors.isEmpty();
@@ -54,9 +61,14 @@ public class ConstructorMerger {
       return this;
     }
 
-    public ConstructorMerger build(AppView<?> appView, DexProgramClass target) {
-      return new ConstructorMerger(appView, target, constructors);
+    public ConstructorMerger build(
+        AppView<?> appView, DexProgramClass target, DexField classIdField) {
+      return new ConstructorMerger(appView, target, constructors, classIdField);
     }
+  }
+
+  private boolean isTrivialMerge() {
+    return constructors.size() == 1;
   }
 
   private DexMethod moveConstructor(DexEncodedMethod constructor) {
@@ -82,6 +94,10 @@ public class ConstructorMerger {
     DexEncodedMethod firstConstructor = constructors.stream().findFirst().get();
     DexProto oldProto = firstConstructor.getProto();
 
+    if (isTrivialMerge()) {
+      return oldProto;
+    }
+
     List<DexType> parameters = new ArrayList<>();
     Collections.addAll(parameters, oldProto.parameters.values);
     parameters.add(dexItemFactory.intType);
@@ -95,8 +111,9 @@ public class ConstructorMerger {
   }
 
   /** Synthesize a new method which selects the constructor based on a parameter type. */
-  void mergeMany(
+  void merge(
       HorizontalClassMergerGraphLens.Builder lensBuilder,
+      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       Reference2IntMap<DexType> classIdentifiers) {
     // Tree map as must be sorted.
     Int2ReferenceSortedMap<DexMethod> typeConstructorClassMap = new Int2ReferenceAVLTreeMap<>();
@@ -119,7 +136,10 @@ public class ConstructorMerger {
         appView.dexItemFactory().createMethod(target.type, newProto, dexItemFactory.initMethodName);
     ConstructorEntryPointSynthesizedCode synthesizedCode =
         new ConstructorEntryPointSynthesizedCode(
-            typeConstructorClassMap, newConstructorReference, originalConstructorReference);
+            typeConstructorClassMap,
+            newConstructorReference,
+            classIdField,
+            originalConstructorReference);
     DexEncodedMethod newConstructor =
         new DexEncodedMethod(
             newConstructorReference,
@@ -130,46 +150,24 @@ public class ConstructorMerger {
             classFileVersion,
             true);
 
-    // Map each old constructor to the newly synthesized constructor in the graph lens.
-    for (DexEncodedMethod oldConstructor : constructors) {
-      lensBuilder.mapConstructor(
-          oldConstructor.method,
-          newConstructorReference,
-          classIdentifiers.getInt(oldConstructor.getHolderType()));
+    if (isTrivialMerge()) {
+      // The constructor does not require the additional argument, just map it like a regular
+      // method.
+      lensBuilder.mapMethod(constructors.iterator().next().method, newConstructorReference);
+    } else {
+      // Map each old constructor to the newly synthesized constructor in the graph lens.
+      for (DexEncodedMethod oldConstructor : constructors) {
+        lensBuilder.mapMergedConstructor(
+            oldConstructor.method,
+            newConstructorReference,
+            classIdentifiers.getInt(oldConstructor.getHolderType()));
+      }
     }
     // Map the first constructor to the newly synthesized constructor.
     lensBuilder.recordExtraOriginalSignature(originalConstructorReference, newConstructorReference);
 
     target.addDirectMethod(newConstructor);
-  }
 
-  /**
-   * The constructor does not conflict with any other constructors. Add the constructor (if any) to
-   * the target directly.
-   */
-  void mergeTrivial(HorizontalClassMergerGraphLens.Builder lensBuilder) {
-    assert constructors.size() <= 1;
-
-    if (!constructors.isEmpty()) {
-      DexEncodedMethod constructor = constructors.iterator().next();
-
-      // Only move the constructor if it is not already in the target type.
-      if (constructor.holder() != target.type) {
-        DexEncodedMethod newConstructor =
-            constructor.toRenamedHolderMethod(target.type, dexItemFactory);
-        target.addDirectMethod(constructor);
-        lensBuilder.moveConstructor(constructor.method, newConstructor.method);
-      }
-    }
-  }
-
-  public void merge(
-      HorizontalClassMergerGraphLens.Builder lensBuilder,
-      Reference2IntMap<DexType> classIdentifiers) {
-    if (constructors.size() <= 1) {
-      mergeTrivial(lensBuilder);
-    } else {
-      mergeMany(lensBuilder, classIdentifiers);
-    }
+    fieldAccessChangesBuilder.fieldWrittenByMethod(classIdField, newConstructorReference);
   }
 }

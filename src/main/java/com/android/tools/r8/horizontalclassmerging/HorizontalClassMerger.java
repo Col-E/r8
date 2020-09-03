@@ -16,6 +16,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NotEntryPoint;
 import com.android.tools.r8.horizontalclassmerging.policies.SameParentClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ClassMergingEnqueuerExtension;
+import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -76,6 +77,8 @@ public class HorizontalClassMerger {
     Map<DexType, DexType> mergedClasses = new IdentityHashMap<>();
     HorizontalClassMergerGraphLens.Builder lensBuilder =
         new HorizontalClassMergerGraphLens.Builder();
+    FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder =
+        new FieldAccessInfoCollectionModifier.Builder();
 
     // TODO(b/166577694): Replace Collection<DexProgramClass> with MergeGroup
     for (Collection<DexProgramClass> group : groups) {
@@ -88,12 +91,14 @@ public class HorizontalClassMerger {
         mergedClasses.put(clazz.type, target.type);
       }
 
-      ClassMerger merger = new ClassMerger(appView, lensBuilder, target, group);
+      ClassMerger merger =
+          new ClassMerger(appView, lensBuilder, fieldAccessChangesBuilder, target, group);
       merger.mergeGroup();
     }
 
     HorizontalClassMergerGraphLens lens =
-        new TreeFixer(appView, lensBuilder, mergedClasses).fixupTypeReferences();
+        new TreeFixer(appView, lensBuilder, fieldAccessChangesBuilder, mergedClasses)
+            .fixupTypeReferences();
     return lens;
   }
 }
