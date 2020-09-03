@@ -1215,21 +1215,29 @@ public final class InterfaceMethodRewriter {
   }
 
   public static void reportDependencyEdge(
-      DexProgramClass dependent, DexClass dependency, InternalOptions options) {
+      DexClass dependent, DexClass dependency, InternalOptions options) {
+    assert !dependent.isLibraryClass();
     assert !dependency.isLibraryClass();
     DesugarGraphConsumer consumer = options.desugarGraphConsumer;
     if (consumer != null) {
       Origin dependencyOrigin = dependency.getOrigin();
-      java.util.Collection<DexProgramClass> dependents = dependent.getSynthesizedFrom();
+      java.util.Collection<DexProgramClass> dependents =
+          dependent.isProgramClass() ? dependent.asProgramClass().getSynthesizedFrom() : null;
       if (dependents == null || dependents.isEmpty()) {
-        dependents = Collections.singletonList(dependent);
-      }
-      for (DexProgramClass clazz : dependents) {
-        Origin dependentOrigin = clazz.getOrigin();
-        if (dependentOrigin != dependencyOrigin) {
-          consumer.accept(dependentOrigin, dependencyOrigin);
+        reportDependencyEdge(consumer, dependencyOrigin, dependent);
+      } else {
+        for (DexClass clazz : dependents) {
+          reportDependencyEdge(consumer, dependencyOrigin, clazz);
         }
       }
+    }
+  }
+
+  private static void reportDependencyEdge(
+      DesugarGraphConsumer consumer, Origin dependencyOrigin, DexClass clazz) {
+    Origin dependentOrigin = clazz.getOrigin();
+    if (dependentOrigin != dependencyOrigin) {
+      consumer.accept(dependentOrigin, dependencyOrigin);
     }
   }
 }

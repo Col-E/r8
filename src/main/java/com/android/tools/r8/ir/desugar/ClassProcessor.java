@@ -274,7 +274,7 @@ final class ClassProcessor {
   // the 'addForward' call-back is called with the target of the forward.
   private void resolveForwardForSignature(
       DexClass clazz, DexMethod method, BiConsumer<DexClass, DexEncodedMethod> addForward) {
-    // Resolve the default method at base type as the symbolic holder at call sites is not known.
+    // Resolve the default method with base type as the symbolic holder as call sites are not known.
     // The dispatch target is then looked up from the possible "instance" class.
     // Doing so can cause an invalid invoke to become valid (at runtime resolution at a subtype
     // might have failed which is hidden by the insertion of the forward method). However, not doing
@@ -298,7 +298,7 @@ final class ClassProcessor {
 
     DexEncodedMethod target = virtualDispatchTarget.getDefinition();
     DexClass targetHolder = virtualDispatchTarget.getHolder();
-    // Don-t forward if the target is explicitly marked as 'dont-rewrite'
+    // Don't forward if the target is explicitly marked as 'dont-rewrite'
     if (dontRewrite(targetHolder, target)) {
       return;
     }

@@ -8,26 +8,74 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.StringUtils.BraceType;
+import com.android.tools.r8.utils.WorkList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 public class DesugarGraphTestConsumer implements DesugarGraphConsumer {
 
   private boolean finished = false;
-  private Map<Origin, Set<Origin>> edges = new HashMap<>();
+
+  // Map from a dependency to its immediate dependents.
+  private final Map<Origin, Set<Origin>> dependents = new HashMap<>();
+
+  // Map from a dependent to its immedate dependencies.
+  private Map<Origin, Set<Origin>> dependencies = null;
+
+  @Override
+  public String toString() {
+    if (dependents.isEmpty()) {
+      return "<empty>";
+    }
+    StringBuilder builder = new StringBuilder();
+    dependents.forEach(
+        (k, vs) ->
+            StringUtils.append(builder.append(k).append(" -> "), vs, ", ", BraceType.TUBORG)
+                .append("\n"));
+    return builder.toString();
+  }
+
+  public Set<Origin> getDirectDependencies(Origin dependent) {
+    return Collections.unmodifiableSet(
+        dependencies.getOrDefault(dependent, Collections.emptySet()));
+  }
+
+  public Set<Origin> getDirectDependents(Origin dependency) {
+    return Collections.unmodifiableSet(dependents.getOrDefault(dependency, Collections.emptySet()));
+  }
+
+  public Set<Origin> getTransitiveDependencies(Origin dependent) {
+    return getTransitiveClosure(dependent, this::getDirectDependencies);
+  }
+
+  public Set<Origin> getTransitiveDependents(Origin dependency) {
+    return getTransitiveClosure(dependency, this::getDirectDependents);
+  }
+
+  private static Set<Origin> getTransitiveClosure(
+      Origin item, Function<Origin, Set<Origin>> edges) {
+    WorkList<Origin> worklist = WorkList.newEqualityWorkList(edges.apply(item));
+    while (worklist.hasNext()) {
+      worklist.addIfNotSeen(edges.apply(worklist.next()));
+    }
+    return worklist.getSeenSet();
+  }
 
   public boolean contains(Origin dependency, Origin dependent) {
     assertTrue(finished);
-    return edges.getOrDefault(dependency, Collections.emptySet()).contains(dependent);
+    return dependents.getOrDefault(dependency, Collections.emptySet()).contains(dependent);
   }
 
   public int totalEdgeCount() {
     assertTrue(finished);
     int count = 0;
-    for (Set<Origin> dependents : edges.values()) {
+    for (Set<Origin> dependents : dependents.values()) {
       count += dependents.size();
     }
     return count;
@@ -36,12 +84,18 @@ public class DesugarGraphTestConsumer implements DesugarGraphConsumer {
   @Override
   public synchronized void accept(Origin dependent, Origin dependency) {
     assertFalse(finished);
-    edges.computeIfAbsent(dependency, s -> new HashSet<>()).add(dependent);
+    dependents.computeIfAbsent(dependency, s -> new HashSet<>()).add(dependent);
   }
 
   @Override
   public void finished() {
     assertFalse(finished);
     finished = true;
+    dependencies = new HashMap<>();
+    dependents.forEach(
+        (dependency, dependents) ->
+            dependents.forEach(
+                dependent ->
+                    dependencies.computeIfAbsent(dependent, k -> new HashSet<>()).add(dependency)));
   }
 }

@@ -115,9 +115,8 @@ public class AppInfo implements DexDefinitionSupplier {
       return dependent;
     }
     DexClass definition = definitionFor(type);
-    if (definition != null && !definition.isLibraryClass() && dependent.isProgramClass()) {
-      InterfaceMethodRewriter.reportDependencyEdge(
-          dependent.asProgramClass(), definition, options());
+    if (definition != null && !definition.isLibraryClass() && !dependent.isLibraryClass()) {
+      InterfaceMethodRewriter.reportDependencyEdge(dependent, definition, options());
     }
     return definition;
   }
