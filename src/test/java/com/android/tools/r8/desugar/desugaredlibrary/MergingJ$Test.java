@@ -66,7 +66,6 @@ public class MergingJ$Test extends Jdk11DesugaredLibraryTestBase {
   }
 
   private Path buildSplitDesugaredLibraryPart2() throws Exception {
-    Path outputCf = temp.newFolder().toPath().resolve("merger-input-split-cf.zip");
     Path outputDex = temp.newFolder().toPath().resolve("merger-input-split-dex.zip");
     L8.run(
         L8Command.builder()
@@ -76,13 +75,8 @@ public class MergingJ$Test extends Jdk11DesugaredLibraryTestBase {
             .addDesugaredLibraryConfiguration(
                 StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
-            .setOutput(outputCf, OutputMode.DexIndexed)
+            .setOutput(outputDex, OutputMode.DexIndexed)
             .build());
-    testForD8()
-        .addProgramFiles(outputCf)
-        .setMinApi(AndroidApiLevel.B)
-        .compile()
-        .writeToZip(outputDex);
     return outputDex;
   }
 }
