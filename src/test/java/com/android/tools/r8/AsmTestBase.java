@@ -21,18 +21,6 @@ import org.junit.Assert;
 
 public class AsmTestBase extends TestBase {
 
-  protected void ensureException(String main, Class<? extends Throwable> exceptionClass,
-      byte[]... classes) throws Exception {
-    ensureExceptionThrown(runOnJavaRaw(main, classes), exceptionClass);
-    AndroidApp app = buildAndroidApp(classes);
-    ensureExceptionThrown(runOnArtRaw(compileWithD8(app), main), exceptionClass);
-    ensureExceptionThrown(runOnArtRaw(compileWithR8(app), main), exceptionClass);
-    ensureExceptionThrown(
-        runOnArtRaw(compileWithR8(app, keepMainProguardConfiguration(main) + "-dontobfuscate\n"),
-            main),
-        exceptionClass);
-  }
-
   protected void ensureSameOutput(String main, AndroidApiLevel apiLevel, byte[]... classes)
       throws Exception {
     ensureSameOutput(main, apiLevel, Collections.emptyList(), classes);
