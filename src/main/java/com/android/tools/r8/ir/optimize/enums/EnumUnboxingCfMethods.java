@@ -24,6 +24,7 @@ import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.cf.code.CfReturn;
+import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
@@ -257,6 +258,71 @@ public final class EnumUnboxingCfMethods {
             new CfLoad(ValueType.OBJECT, 1),
             new CfReturn(ValueType.OBJECT),
             label6),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode EnumUnboxingMethods_zeroCheck(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        2,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.INT, 0),
+            new CfIf(If.Type.NE, ValueType.INT, label2),
+            label1,
+            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
+                    options.itemFactory.createProto(options.itemFactory.voidType),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label2,
+            new CfReturnVoid(),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode EnumUnboxingMethods_zeroCheckMessage(
+      InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        2,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.INT, 0),
+            new CfIf(If.Type.NE, ValueType.INT, label2),
+            label1,
+            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.voidType, options.itemFactory.stringType),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label2,
+            new CfReturnVoid(),
+            label3),
         ImmutableList.of(),
         ImmutableList.of());
   }

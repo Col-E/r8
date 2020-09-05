@@ -77,6 +77,8 @@ public class EnumUnboxingRewriter {
   private final DexMethod equalsUtilityMethod;
   private final DexMethod compareToUtilityMethod;
   private final DexMethod valuesUtilityMethod;
+  private final DexMethod zeroCheckMethod;
+  private final DexMethod zeroCheckMessageMethod;
 
   EnumUnboxingRewriter(
       AppView<AppInfoWithLiveness> appView,
@@ -114,6 +116,17 @@ public class EnumUnboxingRewriter {
             factory.enumUnboxingUtilityType,
             factory.createProto(factory.intArrayType, factory.intType),
             ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "values");
+    // Custom methods for Object#getClass without outValue and Objects.requireNonNull.
+    this.zeroCheckMethod =
+        factory.createMethod(
+            factory.enumUnboxingUtilityType,
+            factory.createProto(factory.voidType, factory.intType),
+            ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "zeroCheck");
+    this.zeroCheckMessageMethod =
+        factory.createMethod(
+            factory.enumUnboxingUtilityType,
+            factory.createProto(factory.voidType, factory.intType, factory.stringType),
+            ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "zeroCheckMessage");
   }
 
   public EnumValueInfoMapCollection getEnumsToUnbox() {
@@ -160,6 +173,10 @@ public class EnumUnboxingRewriter {
                 new InvokeStatic(
                     toStringMethod, invokeMethod.outValue(), invokeMethod.arguments()));
             continue;
+          } else if (invokedMethod == factory.objectMembers.getClass) {
+            assert !invokeMethod.hasOutValue() || !invokeMethod.outValue().hasAnyUsers();
+            replaceEnumInvoke(
+                iterator, invokeMethod, zeroCheckMethod, m -> synthesizeZeroCheckMethod());
           }
         }
         // TODO(b/147860220): rewrite also other enum methods.
@@ -194,6 +211,25 @@ public class EnumUnboxingRewriter {
           if (enumType != null) {
             invokeStatic.outValue().replaceUsers(argument);
             iterator.removeOrReplaceByDebugLocalRead();
+          }
+        } else if (invokedMethod == factory.objectsMethods.requireNonNull) {
+          assert invokeStatic.inValues().size() == 1;
+          Value argument = invokeStatic.getArgument(0);
+          DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
+          if (enumType != null) {
+            replaceEnumInvoke(
+                iterator, invokeStatic, zeroCheckMethod, m -> synthesizeZeroCheckMethod());
+          }
+        } else if (invokedMethod == factory.objectsMethods.requireNonNullWithMessage) {
+          assert invokeStatic.inValues().size() == 2;
+          Value argument = invokeStatic.getArgument(0);
+          DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
+          if (enumType != null) {
+            replaceEnumInvoke(
+                iterator,
+                invokeStatic,
+                zeroCheckMessageMethod,
+                m -> synthesizeZeroCheckMessageMethod());
           }
         }
       }
@@ -495,6 +531,19 @@ public class EnumUnboxingRewriter {
       }
     }
     return false;
+  }
+
+  private DexEncodedMethod synthesizeZeroCheckMethod() {
+    CfCode cfCode =
+        EnumUnboxingCfMethods.EnumUnboxingMethods_zeroCheck(appView.options(), zeroCheckMethod);
+    return synthesizeUtilityMethod(cfCode, zeroCheckMethod, false);
+  }
+
+  private DexEncodedMethod synthesizeZeroCheckMessageMethod() {
+    CfCode cfCode =
+        EnumUnboxingCfMethods.EnumUnboxingMethods_zeroCheckMessage(
+            appView.options(), zeroCheckMessageMethod);
+    return synthesizeUtilityMethod(cfCode, zeroCheckMessageMethod, false);
   }
 
   private DexEncodedMethod synthesizeOrdinalMethod() {
