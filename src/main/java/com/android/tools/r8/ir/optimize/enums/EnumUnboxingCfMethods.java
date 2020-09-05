@@ -287,6 +287,11 @@ public final class EnumUnboxingCfMethods {
                 false),
             new CfThrow(),
             label2,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0},
+                    new FrameType[] {FrameType.initialized(options.itemFactory.intType)}),
+                Arrays.asList()),
             new CfReturnVoid(),
             label3),
         ImmutableList.of(),
@@ -321,6 +326,14 @@ public final class EnumUnboxingCfMethods {
                 false),
             new CfThrow(),
             label2,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.stringType)
+                    }),
+                Arrays.asList()),
             new CfReturnVoid(),
             label3),
         ImmutableList.of(),
