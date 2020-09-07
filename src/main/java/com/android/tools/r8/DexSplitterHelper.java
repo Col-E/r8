@@ -99,9 +99,7 @@ public final class DexSplitterHelper {
 
         try {
           new ApplicationWriter(
-                  appView.appInfo().app(),
                   appView,
-                  options,
                   markers,
                   GraphLens.getIdentityLens(),
                   InitClassLens.getDefault(),

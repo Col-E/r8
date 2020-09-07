@@ -30,7 +30,6 @@ import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MethodToCodeObjectMapping;
 import com.android.tools.r8.dex.MixedSectionCollection;
@@ -646,20 +645,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public String toString() {
     checkIfObsolete();
     return "Encoded method " + method;
-  }
-
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    checkIfObsolete();
-    this.method.collectIndexedItems(indexedItems);
-    if (code != null) {
-      if (code.isDexCode()) {
-        code.asDexCode().collectIndexedItems(indexedItems);
-      } else {
-        assert false;
-      }
-    }
-    annotations().collectIndexedItems(indexedItems);
-    parameterAnnotationsList.collectIndexedItems(indexedItems);
   }
 
   @Override

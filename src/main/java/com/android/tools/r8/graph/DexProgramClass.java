@@ -11,6 +11,7 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
@@ -233,7 +234,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     return originKind == Kind.CF;
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(
+      IndexedItemCollection indexedItems, GraphLens graphLens, LensCodeRewriterUtils rewriter) {
     if (indexedItems.addClass(this)) {
       type.collectIndexedItems(indexedItems);
       if (superType != null) {
@@ -255,7 +257,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
         attribute.collectIndexedItems(indexedItems);
       }
       forEachField(field -> field.collectIndexedItems(indexedItems));
-      forEachMethod(method -> method.collectIndexedItems(indexedItems));
+      forEachProgramMethod(method -> method.collectIndexedItems(indexedItems, graphLens, rewriter));
     }
   }
 

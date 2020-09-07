@@ -3,9 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
@@ -33,6 +35,20 @@ public final class ProgramMethod extends DexClassAndMethod
     Code code = getDefinition().getCode();
     return code.buildInliningIR(
         context, this, appView, valueNumberGenerator, callerPosition, origin, methodProcessor);
+  }
+
+  public void collectIndexedItems(
+      IndexedItemCollection indexedItems, GraphLens graphLens, LensCodeRewriterUtils rewriter) {
+    DexEncodedMethod definition = getDefinition();
+    assert !definition.isObsolete();
+    assert !definition.hasCode() || definition.getCode().isDexCode();
+    getReference().collectIndexedItems(indexedItems);
+    Code code = definition.getCode();
+    if (code != null && code.isDexCode()) {
+      code.asDexCode().collectIndexedItems(indexedItems, this, graphLens, rewriter);
+    }
+    definition.annotations().collectIndexedItems(indexedItems);
+    definition.parameterAnnotationsList.collectIndexedItems(indexedItems);
   }
 
   public boolean isStructurallyEqualTo(ProgramMethod other) {

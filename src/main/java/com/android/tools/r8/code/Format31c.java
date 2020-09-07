@@ -7,8 +7,11 @@ import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
@@ -32,7 +35,12 @@ abstract class Format31c extends Base3Format {
   }
 
   @Override
-  public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
+  public void write(
+      ShortBuffer dest,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter) {
     writeFirst(AA, dest);
     write32BitReference(BBBBBBBB, dest, mapping);
   }
@@ -58,7 +66,11 @@ abstract class Format31c extends Base3Format {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(
+      IndexedItemCollection indexedItems,
+      ProgramMethod context,
+      GraphLens graphLens,
+      LensCodeRewriterUtils rewriter) {
     BBBBBBBB.collectIndexedItems(indexedItems);
   }
 

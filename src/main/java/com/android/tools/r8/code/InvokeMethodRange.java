@@ -5,6 +5,9 @@ package com.android.tools.r8.code;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 
 public abstract class InvokeMethodRange extends Format3rc<DexMethod> {
 
@@ -17,7 +20,11 @@ public abstract class InvokeMethodRange extends Format3rc<DexMethod> {
   }
 
   @Override
-  public final void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public final void collectIndexedItems(
+      IndexedItemCollection indexedItems,
+      ProgramMethod context,
+      GraphLens graphLens,
+      LensCodeRewriterUtils rewriter) {
     getMethod().collectIndexedItems(indexedItems);
   }
 

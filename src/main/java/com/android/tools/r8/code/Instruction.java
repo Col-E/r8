@@ -9,10 +9,13 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.ShortBuffer;
@@ -309,9 +312,18 @@ public abstract class Instruction {
     return toString(null);
   }
 
-  public abstract void write(ShortBuffer buffer, ObjectToOffsetMapping mapping);
+  public abstract void write(
+      ShortBuffer buffer,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter);
 
-  public abstract void collectIndexedItems(IndexedItemCollection indexedItems);
+  public abstract void collectIndexedItems(
+      IndexedItemCollection indexedItems,
+      ProgramMethod context,
+      GraphLens graphLens,
+      LensCodeRewriterUtils rewriter);
 
   public boolean equals(Instruction other, BiPredicate<IndexedDexItem, IndexedDexItem> equality) {
     // In the default case, there is nothing to substitute.

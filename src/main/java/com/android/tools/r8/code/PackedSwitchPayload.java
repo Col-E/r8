@@ -3,7 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.ShortBuffer;
@@ -38,7 +41,12 @@ public class PackedSwitchPayload extends SwitchPayload {
   }
 
   @Override
-  public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
+  public void write(
+      ShortBuffer dest,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter) {
     writeFirst(1, dest);  // Pseudo-opcode = 0x0100
     write16BitValue(size, dest);
     write32BitValue(first_key, dest);

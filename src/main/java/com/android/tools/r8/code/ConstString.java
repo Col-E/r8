@@ -6,9 +6,12 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 
@@ -31,7 +34,11 @@ public class ConstString extends Format21c<DexString> {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(
+      IndexedItemCollection indexedItems,
+      ProgramMethod context,
+      GraphLens graphLens,
+      LensCodeRewriterUtils rewriter) {
     getString().collectIndexedItems(indexedItems);
   }
 
@@ -71,12 +78,17 @@ public class ConstString extends Format21c<DexString> {
   }
 
   @Override
-  public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
+  public void write(
+      ShortBuffer dest,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter) {
     int index = BBBB.getOffset(mapping);
     if (index != (index & 0xffff)) {
       throw new InternalCompilerError("String-index overflow.");
     }
-    super.write(dest, mapping);
+    super.write(dest, context, graphLens, mapping, rewriter);
   }
 
   @Override

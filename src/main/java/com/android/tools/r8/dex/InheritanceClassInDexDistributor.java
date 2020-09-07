@@ -6,7 +6,7 @@ package com.android.tools.r8.dex;
 
 import com.android.tools.r8.dex.VirtualFile.VirtualFileCycler;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -71,7 +71,7 @@ public class InheritanceClassInDexDistributor {
 
     public void updateNumbersOfIds() {
       // Use a temporary VirtualFile to evaluate the number of ids in the group.
-      VirtualFile virtualFile = new VirtualFile(0, graphLens, initClassLens, namingLens);
+      VirtualFile virtualFile = new VirtualFile(0, appView, graphLens, initClassLens, namingLens);
       // Note: sort not needed.
       for (DexProgramClass clazz : members) {
         virtualFile.addClass(clazz);
@@ -158,29 +158,30 @@ public class InheritanceClassInDexDistributor {
 
     }
 
-    private boolean isDependingOnMainDexClass(Set<DexProgramClass> mainDexDependents,
-        DexProgramClass dexProgramClass) {
-      if (dexProgramClass == null) {
+    private boolean isDependingOnMainDexClass(
+        Set<DexProgramClass> mainDexDependents, DexProgramClass clazz) {
+      if (clazz == null) {
         return false;
       }
 
       // Think: build on one Map<dexProgramClass, Boolean> and split in a second step.
-      if (mainDexIndependents.contains(dexProgramClass)) {
+      if (mainDexIndependents.contains(clazz)) {
         return false;
       }
-      if (mainDexDependents.contains(dexProgramClass)) {
+      if (mainDexDependents.contains(clazz)) {
         return true;
       }
-      if (mainDex.classes().contains(dexProgramClass)) {
+      if (mainDex.classes().contains(clazz)) {
         return true;
       }
       boolean isDependent = false;
-      if (isDependingOnMainDexClass(mainDexDependents,
-          app.programDefinitionFor(dexProgramClass.superType))) {
+      if (isDependingOnMainDexClass(
+          mainDexDependents, appView.programDefinitionFor(clazz.superType, clazz))) {
         isDependent = true;
       } else {
-        for (DexType interfaze : dexProgramClass.interfaces.values) {
-          if (isDependingOnMainDexClass(mainDexDependents, app.programDefinitionFor(interfaze))) {
+        for (DexType interfaze : clazz.interfaces.values) {
+          if (isDependingOnMainDexClass(
+              mainDexDependents, appView.programDefinitionFor(interfaze, clazz))) {
             isDependent = true;
             break;
           }
@@ -188,38 +189,37 @@ public class InheritanceClassInDexDistributor {
       }
 
       if (isDependent) {
-        mainDexDependents.add(dexProgramClass);
+        mainDexDependents.add(clazz);
       } else {
-        mainDexIndependents.add(dexProgramClass);
+        mainDexIndependents.add(clazz);
       }
       return isDependent;
     }
 
-
-    private boolean isDependingOnMainDexIndependents(DexProgramClass dexProgramClass) {
-      if (dexProgramClass == null) {
+    private boolean isDependingOnMainDexIndependents(DexProgramClass clazz) {
+      if (clazz == null) {
         return false;
       }
 
       // Think: build on one Map<dexProgramClass, Boolean> and split in a second step.
-      if (independentsFromMainDexIndependents.contains(dexProgramClass)) {
+      if (independentsFromMainDexIndependents.contains(clazz)) {
         return false;
       }
-      if (dependentsOfMainDexIndependents.contains(dexProgramClass)) {
+      if (dependentsOfMainDexIndependents.contains(clazz)) {
         return true;
       }
-      if (mainDex.classes().contains(dexProgramClass)) {
+      if (mainDex.classes().contains(clazz)) {
         return false;
       }
-      if (mainDexIndependents.contains(dexProgramClass)) {
+      if (mainDexIndependents.contains(clazz)) {
         return true;
       }
       boolean isDependent = false;
-      if (isDependingOnMainDexIndependents(app.programDefinitionFor(dexProgramClass.superType))) {
+      if (isDependingOnMainDexIndependents(appView.programDefinitionFor(clazz.superType, clazz))) {
         isDependent = true;
       } else {
-        for (DexType interfaze : dexProgramClass.interfaces.values) {
-          if (isDependingOnMainDexIndependents(app.programDefinitionFor(interfaze))) {
+        for (DexType interfaze : clazz.interfaces.values) {
+          if (isDependingOnMainDexIndependents(appView.programDefinitionFor(interfaze, clazz))) {
             isDependent = true;
             break;
           }
@@ -227,9 +227,9 @@ public class InheritanceClassInDexDistributor {
       }
 
       if (isDependent) {
-        dependentsOfMainDexIndependents.add(dexProgramClass);
+        dependentsOfMainDexIndependents.add(clazz);
       } else {
-        independentsFromMainDexIndependents.add(dexProgramClass);
+        independentsFromMainDexIndependents.add(clazz);
       }
       return isDependent;
     }
@@ -245,12 +245,12 @@ public class InheritanceClassInDexDistributor {
     private final Map<DexProgramClass, Collection<DexProgramClass>> directSubClasses;
     private final Set<DexProgramClass> classes;
 
-    DirectSubClassesInfo(DexApplication app, Set<DexProgramClass> classes) {
+    DirectSubClassesInfo(AppView<?> appView, Set<DexProgramClass> classes) {
       Map<DexProgramClass, Collection<DexProgramClass>> directSubClasses = new HashMap<>();
       for (DexProgramClass clazz : classes) {
-        addDirectSubClass(app, classes, directSubClasses, clazz.superType, clazz);
+        addDirectSubClass(appView, classes, directSubClasses, clazz.superType, clazz);
         for (DexType interfaze : clazz.interfaces.values) {
-          addDirectSubClass(app, classes, directSubClasses, interfaze, clazz);
+          addDirectSubClass(appView, classes, directSubClasses, interfaze, clazz);
         }
       }
 
@@ -263,12 +263,13 @@ public class InheritanceClassInDexDistributor {
       return directSubClasses.getOrDefault(clazz, Collections.emptyList());
     }
 
-    private static void addDirectSubClass(DexApplication app,
+    private static void addDirectSubClass(
+        AppView<?> appView,
         Set<DexProgramClass> classes,
         Map<DexProgramClass, Collection<DexProgramClass>> directSubClasses,
         DexType superType,
         DexProgramClass clazz) {
-      DexProgramClass zuper = app.programDefinitionFor(superType);
+      DexProgramClass zuper = appView.programDefinitionFor(superType, clazz);
       // Don't bother collecting subclasses info that we won't use.
       if (zuper != null && classes.contains(zuper)) {
         Collection<DexProgramClass> subClasses =
@@ -283,7 +284,7 @@ public class InheritanceClassInDexDistributor {
   private final List<VirtualFile> dexes;
   private final BitSet fullDex = new BitSet();
   private final Set<DexProgramClass> classes;
-  private final DexApplication app;
+  private final AppView<?> appView;
   private int dexIndexOffset;
   private final GraphLens graphLens;
   private final InitClassLens initClassLens;
@@ -298,7 +299,7 @@ public class InheritanceClassInDexDistributor {
       GraphLens graphLens,
       InitClassLens initClassLens,
       NamingLens namingLens,
-      DexApplication app,
+      AppView<?> appView,
       ExecutorService executorService) {
     this.mainDex = mainDex;
     this.dexes = dexes;
@@ -307,10 +308,10 @@ public class InheritanceClassInDexDistributor {
     this.graphLens = graphLens;
     this.initClassLens = initClassLens;
     this.namingLens = namingLens;
-    this.app = app;
+    this.appView = appView;
     this.executorService = executorService;
 
-    directSubClasses = new DirectSubClassesInfo(app, classes);
+    directSubClasses = new DirectSubClassesInfo(appView, classes);
   }
 
   public void distribute() {
@@ -378,7 +379,7 @@ public class InheritanceClassInDexDistributor {
 
   private Collection<VirtualFile> assignGroup(ClassGroup group, List<VirtualFile> dexBlackList) {
     VirtualFileCycler cycler =
-        new VirtualFileCycler(dexes, graphLens, initClassLens, namingLens, dexIndexOffset);
+        new VirtualFileCycler(dexes, appView, graphLens, initClassLens, namingLens, dexIndexOffset);
     if (group.members.isEmpty()) {
       return Collections.emptyList();
     } else if (group.canFitInOneDex()) {
@@ -427,7 +428,7 @@ public class InheritanceClassInDexDistributor {
 
     Collection<VirtualFile> usedDex = new ArrayList<>();
     VirtualFileCycler cycler =
-        new VirtualFileCycler(dexes, graphLens, initClassLens, namingLens, dexIndexOffset);
+        new VirtualFileCycler(dexes, appView, graphLens, initClassLens, namingLens, dexIndexOffset);
     // Don't modify input dexBlackList. Think about modifying the input collection considering this
     // is private API.
     Set<VirtualFile> currentBlackList = new HashSet<>(dexBlackList);
@@ -581,9 +582,9 @@ public class InheritanceClassInDexDistributor {
     group.members.add(clazz);
 
     // Check dependencies are added to the group.
-    collectGroup(classes, group, app.programDefinitionFor(clazz.superType));
+    collectGroup(classes, group, appView.programDefinitionFor(clazz.superType, clazz));
     for (DexType interfaze : clazz.interfaces.values) {
-      collectGroup(classes, group, app.programDefinitionFor(interfaze));
+      collectGroup(classes, group, appView.programDefinitionFor(interfaze, clazz));
     }
 
     // Check that dependants are added to the group.
@@ -666,11 +667,11 @@ public class InheritanceClassInDexDistributor {
 
   private boolean hasDirectInheritanceInCollection(DexProgramClass clazz,
       Set<DexProgramClass> collection) {
-    if (collection.contains(app.programDefinitionFor(clazz.superType))) {
+    if (collection.contains(appView.programDefinitionFor(clazz.superType, clazz))) {
       return true;
     }
     for (DexType interfaze : clazz.interfaces.values) {
-      if (collection.contains(app.programDefinitionFor(interfaze))) {
+      if (collection.contains(appView.programDefinitionFor(interfaze, clazz))) {
         return true;
       }
     }
@@ -708,13 +709,13 @@ public class InheritanceClassInDexDistributor {
 
   private DexProgramClass findOneRootInSetFrom(DexProgramClass searchFrom,
       Set<DexProgramClass> classSet) {
-    DexProgramClass zuper = app.programDefinitionFor(searchFrom.superType);
+    DexProgramClass zuper = appView.programDefinitionFor(searchFrom.superType, searchFrom);
     if (classSet.contains(zuper)) {
       return findOneRootInSetFrom(zuper, classSet);
     }
     for (DexType interfaceType : searchFrom.interfaces.values) {
-      DexClass interfaceClass = app.definitionFor(interfaceType);
-      if (classSet.contains(interfaceClass)) {
+      DexClass interfaceClass = appView.definitionFor(interfaceType);
+      if (interfaceClass.isProgramClass() && classSet.contains(interfaceClass.asProgramClass())) {
         return findOneRootInSetFrom((DexProgramClass) interfaceClass, classSet);
       }
     }

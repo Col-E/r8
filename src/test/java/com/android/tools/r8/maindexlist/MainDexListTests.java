@@ -866,9 +866,7 @@ public class MainDexListTests extends TestBase {
     DirectMappedDexApplication application = builder.build().toDirect();
     ApplicationWriter writer =
         new ApplicationWriter(
-            application,
             AppView.createForD8(AppInfo.createInitialAppInfo(application)),
-            options,
             null,
             GraphLens.getIdentityLens(),
             InitClassLens.getDefault(),

@@ -115,9 +115,7 @@ public class Smali {
       DexApplication dexApp = new ApplicationReader(app, options, Timing.empty()).read(executor);
       ApplicationWriter writer =
           new ApplicationWriter(
-              dexApp,
               AppView.createForD8(AppInfo.createInitialAppInfo(dexApp)),
-              options,
               null,
               GraphLens.getIdentityLens(),
               InitClassLens.getDefault(),

@@ -74,22 +74,6 @@ public class DirectMappedDexApplication extends DexApplication {
     return classpathClasses;
   }
 
-  public DexDefinitionSupplier getDefinitionsSupplier(
-      SyntheticDefinitionsProvider syntheticDefinitionsProvider) {
-    DirectMappedDexApplication self = this;
-    return new DexDefinitionSupplier() {
-      @Override
-      public DexClass definitionFor(DexType type) {
-        return syntheticDefinitionsProvider.definitionFor(type, self::definitionFor);
-      }
-
-      @Override
-      public DexItemFactory dexItemFactory() {
-        return self.dexItemFactory;
-      }
-    };
-  }
-
   @Override
   public DexClass definitionFor(DexType type) {
     assert type.isClassType() : "Cannot lookup definition for type: " + type;

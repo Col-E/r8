@@ -46,6 +46,8 @@ import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramClassVisitor;
+import com.android.tools.r8.graph.ProgramDexCode;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -175,7 +177,7 @@ public class FileWriter {
     assert codeMapping.verifyCodeObjects(mixedSectionOffsets.getCodes());
 
     // Sort the codes first, as their order might impact size due to alignment constraints.
-    List<DexCode> codes = sortDexCodesByClassName();
+    List<ProgramDexCode> codes = sortDexCodesByClassName();
 
     // Output the debug_info_items first, as they have no dependencies.
     dest.moveTo(layout.getCodesOffset() + sizeOfCodeItems(codes));
@@ -185,8 +187,8 @@ public class FileWriter {
       // Ensure deterministic ordering of debug info by sorting consistent with the code objects.
       layout.setDebugInfosOffset(dest.align(1));
       Set<DexDebugInfo> seen = new HashSet<>(mixedSectionOffsets.getDebugInfos().size());
-      for (DexCode code : codes) {
-        DexDebugInfoForWriting info = code.getDebugInfoForWriting();
+      for (ProgramDexCode code : codes) {
+        DexDebugInfoForWriting info = code.getCode().getDebugInfoForWriting();
         if (info != null && seen.add(info)) {
           writeDebugItem(info);
         }
@@ -323,18 +325,19 @@ public class FileWriter {
     return true;
   }
 
-  private List<DexCode> sortDexCodesByClassName() {
-    Map<DexCode, String> codeToSignatureMap = new IdentityHashMap<>();
-    List<DexCode> codesSorted = new ArrayList<>();
+  private List<ProgramDexCode> sortDexCodesByClassName() {
+    Map<ProgramDexCode, String> codeToSignatureMap = new IdentityHashMap<>();
+    List<ProgramDexCode> codesSorted = new ArrayList<>();
     for (DexProgramClass clazz : mapping.getClasses()) {
-      clazz.forEachMethod(
+      clazz.forEachProgramMethod(
           method -> {
-            DexCode code = codeMapping.getCode(method);
-            assert code != null || method.shouldNotHaveCode();
+            DexCode code = codeMapping.getCode(method.getDefinition());
+            assert code != null || method.getDefinition().shouldNotHaveCode();
             if (code != null) {
-              codesSorted.add(code);
-              addSignaturesFromMethod(
-                  method, code, codeToSignatureMap, application.getProguardMap());
+              ProgramDexCode programCode = new ProgramDexCode(code, method);
+              codesSorted.add(programCode);
+              codeToSignatureMap.put(
+                  programCode, getKeyForDexCodeSorting(method, application.getProguardMap()));
             }
           });
     }
@@ -342,21 +345,17 @@ public class FileWriter {
     return codesSorted;
   }
 
-  private static void addSignaturesFromMethod(
-      DexEncodedMethod method,
-      DexCode code,
-      Map<DexCode, String> codeToSignatureMap,
-      ClassNameMapper proguardMap) {
+  private static String getKeyForDexCodeSorting(ProgramMethod method, ClassNameMapper proguardMap) {
     Signature signature;
     String originalClassName;
     if (proguardMap != null) {
-      signature = proguardMap.originalSignatureOf(method.method);
-      originalClassName = proguardMap.originalNameOf(method.holder());
+      signature = proguardMap.originalSignatureOf(method.getReference());
+      originalClassName = proguardMap.originalNameOf(method.getHolderType());
     } else {
-      signature = MethodSignature.fromDexMethod(method.method);
-      originalClassName = method.holder().toSourceString();
+      signature = MethodSignature.fromDexMethod(method.getReference());
+      originalClassName = method.getHolderType().toSourceString();
     }
-    codeToSignatureMap.put(code, originalClassName + signature);
+    return originalClassName + signature;
   }
 
   private <T extends IndexedDexItem> void writeFixedSectionItems(
@@ -380,8 +379,8 @@ public class FileWriter {
     writeItems(items, offsetSetter, writer, 1);
   }
 
-  private <T extends DexItem> void writeItems(Collection<T> items, Consumer<Integer> offsetSetter,
-      Consumer<T> writer, int alignment) {
+  private <T> void writeItems(
+      Collection<T> items, Consumer<Integer> offsetSetter, Consumer<T> writer, int alignment) {
     if (items.isEmpty()) {
       offsetSetter.accept(0);
     } else {
@@ -390,11 +389,11 @@ public class FileWriter {
     }
   }
 
-  private int sizeOfCodeItems(Iterable<DexCode> codes) {
+  private int sizeOfCodeItems(Iterable<ProgramDexCode> codes) {
     int size = 0;
-    for (DexCode code : codes) {
+    for (ProgramDexCode code : codes) {
       size = alignSize(4, size);
-      size += sizeOfCodeItem(code);
+      size += sizeOfCodeItem(code.getCode());
     }
     return size;
   }
@@ -488,7 +487,11 @@ public class FileWriter {
     dest.putBytes(new DebugBytecodeWriter(debugInfo, mapping).generate());
   }
 
-  private void writeCodeItem(DexCode code) {
+  private void writeCodeItem(ProgramDexCode code) {
+    writeCodeItem(code.getCode(), code.getMethod());
+  }
+
+  private void writeCodeItem(DexCode code, ProgramMethod method) {
     mixedSectionOffsets.setOffsetFor(code, dest.align(4));
     // Fixed size header information.
     dest.putShort((short) code.registerSize);
@@ -500,7 +503,7 @@ public class FileWriter {
     int insnSizeOffset = dest.position();
     dest.forward(4);
     // Write instruction stream.
-    dest.putInstructions(code.instructions, mapping, desugaredLibraryCodeToKeep);
+    dest.putInstructions(code, method, mapping, desugaredLibraryCodeToKeep);
     // Compute size and do the backward/forward dance to write the size at the beginning.
     int insnSize = dest.position() - insnSizeOffset - 4;
     dest.rewind(insnSize + 4);

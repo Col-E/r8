@@ -8,8 +8,11 @@ import static com.android.tools.r8.dex.Constants.U4BIT_MAX;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 
@@ -87,13 +90,22 @@ public abstract class Format45cc extends Base4Format {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(
+      IndexedItemCollection indexedItems,
+      ProgramMethod context,
+      GraphLens graphLens,
+      LensCodeRewriterUtils rewriter) {
     BBBB.collectIndexedItems(indexedItems);
     HHHH.collectIndexedItems(indexedItems);
   }
 
   @Override
-  public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
+  public void write(
+      ShortBuffer dest,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter) {
     writeFirst(A, G, dest);
     write16BitReference(BBBB, dest, mapping);
     write16BitValue(combineBytes(makeByte(F, E), makeByte(D, C)), dest);

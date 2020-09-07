@@ -4,8 +4,11 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
@@ -29,7 +32,12 @@ abstract class Format21c<T extends IndexedDexItem> extends Base2Format {
   }
 
   @Override
-  public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
+  public void write(
+      ShortBuffer dest,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter) {
     writeFirst(AA, dest);
     write16BitReference(BBBB, dest, mapping);
   }

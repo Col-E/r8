@@ -5,7 +5,10 @@ package com.android.tools.r8.code;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
 
@@ -33,7 +36,12 @@ abstract class Format23x extends Base2Format {
   }
 
   @Override
-  public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
+  public void write(
+      ShortBuffer dest,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter) {
     writeFirst(AA, dest);
     write16BitValue(combineBytes(CC, BB), dest);
   }
@@ -63,7 +71,11 @@ abstract class Format23x extends Base2Format {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(
+      IndexedItemCollection indexedItems,
+      ProgramMethod context,
+      GraphLens graphLens,
+      LensCodeRewriterUtils rewriter) {
     // No references.
   }
 }

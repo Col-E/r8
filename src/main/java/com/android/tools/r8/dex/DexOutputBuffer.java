@@ -6,9 +6,11 @@ package com.android.tools.r8.dex;
 import com.android.tools.r8.ByteBufferProvider;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.EncodedValueUtils;
 import com.android.tools.r8.utils.LebUtils;
 import com.google.common.annotations.VisibleForTesting;
@@ -93,16 +95,20 @@ public class DexOutputBuffer {
   }
 
   public void putInstructions(
-      Instruction[] insns, ObjectToOffsetMapping mapping, CodeToKeep desugaredLibraryCodeToKeep) {
+      DexCode code,
+      ProgramMethod context,
+      ObjectToOffsetMapping mapping,
+      CodeToKeep desugaredLibraryCodeToKeep) {
     int size = 0;
-    for (Instruction insn : insns) {
-      size += insn.getSize();
+    Instruction[] instructions = code.instructions;
+    for (Instruction instruction : instructions) {
+      size += instruction.getSize();
     }
     ensureSpaceFor(size * Short.BYTES);
     assert byteBuffer.position() % 2 == 0;
     ShortBuffer shortBuffer = byteBuffer.asShortBuffer();
-    for (int i = 0; i < insns.length; i++) {
-      Instruction insn = insns[i];
+    for (int i = 0; i < instructions.length; i++) {
+      Instruction insn = instructions[i];
       DexMethod method = insn.getMethod();
       DexField field = insn.getField();
       if (field != null) {
@@ -117,7 +123,8 @@ public class DexOutputBuffer {
       } else if (insn.isCheckCast()) {
         desugaredLibraryCodeToKeep.recordClass(insn.asCheckCast().getType());
       }
-      insn.write(shortBuffer, mapping);
+      insn.write(
+          shortBuffer, context, mapping.getGraphLens(), mapping, mapping.getLensCodeRewriter());
     }
     byteBuffer.position(byteBuffer.position() + shortBuffer.position() * Short.BYTES);
   }

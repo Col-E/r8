@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.NamingLens;
 import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -23,8 +24,10 @@ public class ObjectToOffsetMapping {
   private final static int NOT_FOUND = -1;
   private final static int NOT_SET = -2;
 
+  private final GraphLens graphLens;
   private final NamingLens namingLens;
   private final InitClassLens initClassLens;
+  private final LensCodeRewriterUtils lensCodeRewriter;
 
   // Sorted collection of objects mapped to their offsets.
   private final DexProgramClass[] classes;
@@ -39,7 +42,8 @@ public class ObjectToOffsetMapping {
   private DexString firstJumboString;
 
   public ObjectToOffsetMapping(
-      DexApplication application,
+      AppInfo appInfo,
+      GraphLens graphLens,
       NamingLens namingLens,
       InitClassLens initClassLens,
       Collection<DexProgramClass> classes,
@@ -50,7 +54,7 @@ public class ObjectToOffsetMapping {
       Collection<DexString> strings,
       Collection<DexCallSite> callSites,
       Collection<DexMethodHandle> methodHandles) {
-    assert application != null;
+    assert appInfo != null;
     assert classes != null;
     assert protos != null;
     assert types != null;
@@ -60,9 +64,11 @@ public class ObjectToOffsetMapping {
     assert callSites != null;
     assert methodHandles != null;
     assert initClassLens != null;
+    this.graphLens = graphLens;
     this.namingLens = namingLens;
     this.initClassLens = initClassLens;
-    this.classes = sortClasses(application, classes, namingLens);
+    this.lensCodeRewriter = new LensCodeRewriterUtils(appInfo, graphLens);
+    this.classes = sortClasses(appInfo, classes, namingLens);
     this.protos = createSortedMap(protos, compare(namingLens), this::failOnOverflow);
     this.types = createSortedMap(types, compare(namingLens), this::failOnOverflow);
     this.methods = createSortedMap(methods, compare(namingLens), this::failOnOverflow);
@@ -114,11 +120,11 @@ public class ObjectToOffsetMapping {
 
     private final static int UNKNOWN_DEPTH = -1;
 
-    private final DexApplication application;
+    private final AppInfo appInfo;
     private final Reference2IntMap<DexProgramClass> depthOfClasses = new Reference2IntOpenHashMap<>();
 
-    ProgramClassDepthsMemoized(DexApplication application) {
-      this.application = application;
+    ProgramClassDepthsMemoized(AppInfo appInfo) {
+      this.appInfo = appInfo;
       depthOfClasses.defaultReturnValue(UNKNOWN_DEPTH);
     }
 
@@ -134,13 +140,13 @@ public class ObjectToOffsetMapping {
           maxDepth = 0;
         } else {
           maxDepth = 1;
-          DexProgramClass superClass = application.programDefinitionFor(superType);
+          DexProgramClass superClass = appInfo.programDefinitionFor(superType, programClass);
           if (superClass != null) {
             maxDepth = getDepth(superClass);
           }
         }
         for (DexType inf : programClass.interfaces.values) {
-          DexProgramClass infClass = application.programDefinitionFor(inf);
+          DexProgramClass infClass = appInfo.programDefinitionFor(inf, programClass);
           maxDepth = Math.max(maxDepth, infClass == null ? 1 : getDepth(infClass));
         }
         depth = maxDepth + 1;
@@ -152,9 +158,9 @@ public class ObjectToOffsetMapping {
   }
 
   private static DexProgramClass[] sortClasses(
-      DexApplication application, Collection<DexProgramClass> classes, NamingLens namingLens) {
+      AppInfo appInfo, Collection<DexProgramClass> classes, NamingLens namingLens) {
     // Collect classes in subtyping order, based on a sorted list of classes to start with.
-    ProgramClassDepthsMemoized classDepths = new ProgramClassDepthsMemoized(application);
+    ProgramClassDepthsMemoized classDepths = new ProgramClassDepthsMemoized(appInfo);
     List<DexProgramClass> sortedClasses =
         classes.stream()
             .sorted(
@@ -172,8 +178,16 @@ public class ObjectToOffsetMapping {
     return map == null ? Collections.emptyList() : map.keySet();
   }
 
+  public GraphLens getGraphLens() {
+    return graphLens;
+  }
+
   public NamingLens getNamingLens() {
     return namingLens;
+  }
+
+  public LensCodeRewriterUtils getLensCodeRewriter() {
+    return lensCodeRewriter;
   }
 
   public Collection<DexMethod> getMethods() {

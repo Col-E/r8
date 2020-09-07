@@ -6,9 +6,12 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.nio.ShortBuffer;
@@ -35,7 +38,11 @@ public class DexItemBasedConstString extends Format21c<DexReference> {
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(
+      IndexedItemCollection indexedItems,
+      ProgramMethod context,
+      GraphLens graphLens,
+      LensCodeRewriterUtils rewriter) {
     getItem().collectIndexedItems(indexedItems);
   }
 
@@ -78,7 +85,12 @@ public class DexItemBasedConstString extends Format21c<DexReference> {
   }
 
   @Override
-  public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
+  public void write(
+      ShortBuffer dest,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter) {
     throw new Unreachable(
         "DexItemBasedConstString instructions should always be rewritten into ConstString");
   }

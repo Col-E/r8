@@ -284,9 +284,7 @@ public final class D8 {
           namingLens = NamingLens.getIdentityLens();
         }
         new ApplicationWriter(
-                appView.appInfo().app(),
                 appView,
-                options,
                 marker == null ? null : ImmutableList.copyOf(markers),
                 GraphLens.getIdentityLens(),
                 InitClassLens.getDefault(),
@@ -307,7 +305,7 @@ public final class D8 {
   }
 
   private static DexApplication rewriteNonDexInputs(
-      AppView<?> appView,
+      AppView<AppInfo> appView,
       AndroidApp inputApp,
       InternalOptions options,
       ExecutorService executor,
@@ -333,6 +331,7 @@ public final class D8 {
       }
     }
     DexApplication cfApp = app.builder().replaceProgramClasses(nonDexProgramClasses).build();
+    appView.setAppInfo(new AppInfo(cfApp, appView.appInfo().getSyntheticItems().commit(cfApp)));
     ConvertedCfFiles convertedCfFiles = new ConvertedCfFiles();
     NamingLens prefixRewritingNamingLens =
         PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
@@ -340,9 +339,7 @@ public final class D8 {
         .run(appView.appInfo().classes(), executor);
     new KotlinMetadataRewriter(appView, prefixRewritingNamingLens).runForD8(executor);
     new ApplicationWriter(
-            cfApp,
             appView,
-            options,
             null,
             GraphLens.getIdentityLens(),
             InitClassLens.getDefault(),

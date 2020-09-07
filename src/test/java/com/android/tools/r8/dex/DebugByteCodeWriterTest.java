@@ -3,11 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.naming.NamingLens;
@@ -21,8 +23,10 @@ public class DebugByteCodeWriterTest {
 
   private ObjectToOffsetMapping emptyObjectTObjectMapping() {
     return new ObjectToOffsetMapping(
-        DexApplication.builder(new InternalOptions(new DexItemFactory(), new Reporter()), null)
-            .build(),
+        AppInfo.createInitialAppInfo(
+            DexApplication.builder(new InternalOptions(new DexItemFactory(), new Reporter()), null)
+                .build()),
+        GraphLens.getIdentityLens(),
         NamingLens.getIdentityLens(),
         InitClassLens.getDefault(),
         Collections.emptyList(),

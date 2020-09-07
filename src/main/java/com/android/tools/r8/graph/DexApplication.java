@@ -57,6 +57,22 @@ public abstract class DexApplication {
 
   public abstract Builder<?> builder();
 
+  public DexDefinitionSupplier getDefinitionsSupplier(
+      SyntheticDefinitionsProvider syntheticDefinitionsProvider) {
+    DexApplication self = this;
+    return new DexDefinitionSupplier() {
+      @Override
+      public DexClass definitionFor(DexType type) {
+        return syntheticDefinitionsProvider.definitionFor(type, self::definitionFor);
+      }
+
+      @Override
+      public DexItemFactory dexItemFactory() {
+        return self.dexItemFactory;
+      }
+    };
+  }
+
   // Reorder classes randomly. Note that the order of classes in program or library
   // class collections should not matter for compilation of valid code and when running
   // with assertions enabled we reorder the classes randomly to catch possible issues.

@@ -69,7 +69,6 @@ import java.util.stream.Collectors;
 
 public class ApplicationWriter {
 
-  public final DexApplication application;
   public final AppView<?> appView;
   public final GraphLens graphLens;
   public final InitClassLens initClassLens;
@@ -146,18 +145,14 @@ public class ApplicationWriter {
   }
 
   public ApplicationWriter(
-      DexApplication application,
       AppView<?> appView,
-      InternalOptions options,
       List<Marker> markers,
       GraphLens graphLens,
       InitClassLens initClassLens,
       NamingLens namingLens,
       ProguardMapSupplier proguardMapSupplier) {
     this(
-        application,
         appView,
-        options,
         markers,
         graphLens,
         initClassLens,
@@ -167,20 +162,15 @@ public class ApplicationWriter {
   }
 
   public ApplicationWriter(
-      DexApplication application,
       AppView<?> appView,
-      InternalOptions options,
       List<Marker> markers,
       GraphLens graphLens,
       InitClassLens initClassLens,
       NamingLens namingLens,
       ProguardMapSupplier proguardMapSupplier,
       DexIndexedConsumer consumer) {
-    assert application != null;
-    this.application = application;
     this.appView = appView;
-    assert options != null;
-    this.options = options;
+    this.options = appView.options();
     this.desugaredLibraryCodeToKeep = CodeToKeep.createCodeToKeep(options, namingLens);
     this.markers = markers;
     this.graphLens = graphLens;
@@ -199,7 +189,7 @@ public class ApplicationWriter {
           options.getDexFilePerClassFileConsumer().combineSyntheticClassesWithPrimaryClass());
     } else if (!options.canUseMultidex()
         && options.mainDexKeepRules.isEmpty()
-        && application.mainDexList.isEmpty()
+        && appView.appInfo().app().mainDexList.isEmpty()
         && options.enableMainDexListCheck) {
       distributor = new VirtualFile.MonoDexDistributor(this, options);
     } else {
@@ -215,7 +205,7 @@ public class ApplicationWriter {
    * This needs to be done after distribute but before dex string sorting.
    */
   private void encodeChecksums(Iterable<VirtualFile> files) {
-    List<DexProgramClass> classes = application.classes();
+    Collection<DexProgramClass> classes = appView.appInfo().classes();
     Reference2LongMap<DexString> inputChecksums = new Reference2LongOpenHashMap<>(classes.size());
     for (DexProgramClass clazz : classes) {
       inputChecksums.put(clazz.getType().descriptor, clazz.getChecksum());
@@ -226,12 +216,12 @@ public class ApplicationWriter {
         DexString desc = clazz.type.descriptor;
         toWrite.addChecksum(desc.toString(), inputChecksums.getLong(desc));
       }
-      file.injectString(application.dexItemFactory.createString(toWrite.toJsonString()));
+      file.injectString(appView.dexItemFactory().createString(toWrite.toJsonString()));
     }
   }
 
   public void write(ExecutorService executorService) throws IOException, ExecutionException {
-    application.timing.begin("DexApplication.write");
+    appView.appInfo().app().timing.begin("DexApplication.write");
     ProguardMapId proguardMapId = null;
     if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
       proguardMapId = proguardMapSupplier.writeProguardMap();
@@ -246,7 +236,7 @@ public class ApplicationWriter {
       }
       markerStrings = new ArrayList<>(markers.size());
       for (Marker marker : markers) {
-        markerStrings.add(application.dexItemFactory.createString(marker.toString()));
+        markerStrings.add(appView.dexItemFactory().createString(marker.toString()));
       }
     }
     try {
@@ -266,16 +256,14 @@ public class ApplicationWriter {
       }
       assert markers == null
           || markers.isEmpty()
-          || application.dexItemFactory.extractMarkers() != null;
-      assert appView == null
-          || appView.withProtoShrinker(
-              shrinker ->
-                  virtualFiles.stream().allMatch(shrinker::verifyDeadProtoTypesNotReferenced),
-              true);
+          || appView.dexItemFactory().extractMarkers() != null;
+      assert appView.withProtoShrinker(
+          shrinker -> virtualFiles.stream().allMatch(shrinker::verifyDeadProtoTypesNotReferenced),
+          true);
 
       // TODO(b/151313617): Sorting annotations mutates elements so run single threaded on main.
       SortAnnotations sortAnnotations = new SortAnnotations(namingLens);
-      application.classes().forEach((clazz) -> clazz.addDependencies(sortAnnotations));
+      appView.appInfo().classes().forEach((clazz) -> clazz.addDependencies(sortAnnotations));
 
       for (VirtualFile virtualFile : virtualFiles) {
         if (virtualFile.isEmpty()) {
@@ -305,10 +293,11 @@ public class ApplicationWriter {
                     }
                   }
                   ObjectToOffsetMapping objectMapping =
-                      virtualFile.computeMapping(application, namingLens, initClassLens);
+                      virtualFile.computeMapping(
+                          appView.appInfo(), graphLens, namingLens, initClassLens);
                   MethodToCodeObjectMapping codeMapping =
                       rewriteCodeWithJumboStrings(
-                          objectMapping, virtualFile.classes(), application);
+                          objectMapping, virtualFile.classes(), appView.appInfo().app());
                   ByteBufferResult result =
                       writeDexFile(objectMapping, codeMapping, byteBufferProvider);
                   ByteDataView data =
@@ -345,9 +334,9 @@ public class ApplicationWriter {
       // Fail if there are pending errors, e.g., the program consumers may have reported errors.
       options.reporter.failIfPendingErrors();
       // Supply info to all additional resource consumers.
-      supplyAdditionalConsumers(application, appView, graphLens, namingLens, options);
+      supplyAdditionalConsumers(appView.appInfo().app(), appView, graphLens, namingLens, options);
     } finally {
-      application.timing.end();
+      appView.appInfo().app().timing.end();
     }
   }
 
@@ -461,7 +450,7 @@ public class ApplicationWriter {
 
   private void insertAttributeAnnotations() {
     // Convert inner-class attributes to DEX annotations
-    for (DexProgramClass clazz : application.classes()) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
       EnclosingMethodAttribute enclosingMethod = clazz.getEnclosingMethodAttribute();
       List<InnerClassAttribute> innerClasses = clazz.getInnerClasses();
       if (enclosingMethod == null && innerClasses.isEmpty()) {
@@ -609,7 +598,7 @@ public class ApplicationWriter {
             provider,
             objectMapping,
             codeMapping,
-            application,
+            appView.appInfo().app(),
             options,
             namingLens,
             desugaredLibraryCodeToKeep);

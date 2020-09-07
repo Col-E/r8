@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
-import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.ARGUMENT_TO_LAMBDA_METAFACTORY;
 import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
@@ -41,13 +40,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
-import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
-import com.android.tools.r8.graph.DexValue.DexValueMethodType;
-import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -55,7 +48,6 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
-import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -101,7 +93,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 
 public class LensCodeRewriter {
@@ -109,11 +100,12 @@ public class LensCodeRewriter {
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
 
   private final EnumUnboxer enumUnboxer;
-  private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
+  private final LensCodeRewriterUtils helper;
 
   LensCodeRewriter(AppView<? extends AppInfoWithClassHierarchy> appView, EnumUnboxer enumUnboxer) {
     this.appView = appView;
     this.enumUnboxer = enumUnboxer;
+    this.helper = new LensCodeRewriterUtils(appView);
   }
 
   private Value makeOutValue(Instruction insn, IRCode code) {
@@ -152,7 +144,7 @@ public class LensCodeRewriter {
             {
               InvokeCustom invokeCustom = current.asInvokeCustom();
               DexCallSite callSite = invokeCustom.getCallSite();
-              DexCallSite newCallSite = rewriteCallSite(callSite, method);
+              DexCallSite newCallSite = helper.rewriteCallSite(callSite, method);
               if (newCallSite != callSite) {
                 Value newOutValue = makeOutValue(invokeCustom, code);
                 InvokeCustom newInvokeCustom =
@@ -169,7 +161,7 @@ public class LensCodeRewriter {
             {
               DexMethodHandle handle = current.asConstMethodHandle().getValue();
               DexMethodHandle newHandle =
-                  rewriteDexMethodHandle(handle, method, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
+                  helper.rewriteDexMethodHandle(handle, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY, method);
               if (newHandle != handle) {
                 Value newOutValue = makeOutValue(current, code);
                 iterator.replaceCurrentInstruction(new ConstMethodHandle(newOutValue, newHandle));
@@ -632,28 +624,6 @@ public class LensCodeRewriter {
     return TypeElement.getNull();
   }
 
-  public DexCallSite rewriteCallSite(DexCallSite callSite, ProgramMethod context) {
-    DexItemFactory dexItemFactory = appView.dexItemFactory();
-    DexProto newMethodProto =
-        dexItemFactory.applyClassMappingToProto(
-            callSite.methodProto, appView.graphLens()::lookupType, protoFixupCache);
-    DexMethodHandle newBootstrapMethod =
-        rewriteDexMethodHandle(
-            callSite.bootstrapMethod, context, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
-    boolean isLambdaMetaFactory =
-        dexItemFactory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
-    MethodHandleUse methodHandleUse =
-        isLambdaMetaFactory ? ARGUMENT_TO_LAMBDA_METAFACTORY : NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
-    List<DexValue> newArgs = rewriteBootstrapArgs(callSite.bootstrapArgs, context, methodHandleUse);
-    if (!newMethodProto.equals(callSite.methodProto)
-        || newBootstrapMethod != callSite.bootstrapMethod
-        || !newArgs.equals(callSite.bootstrapArgs)) {
-      return dexItemFactory.createCallSite(
-          callSite.methodName, newMethodProto, newBootstrapMethod, newArgs);
-    }
-    return callSite;
-  }
-
   // If the given invoke is on the form "invoke-direct A.<init>, v0, ..." and the definition of
   // value v0 is "new-instance v0, B", where B is a subtype of A (see the Art800 and B116282409
   // tests), then fail with a compilation error if A has previously been merged into B.
@@ -729,116 +699,6 @@ public class LensCodeRewriter {
     }
     assert block.consistentCatchHandlers();
     return !deadCatchHandlers.isEmpty();
-  }
-
-  private List<DexValue> rewriteBootstrapArgs(
-      List<DexValue> bootstrapArgs, ProgramMethod method, MethodHandleUse use) {
-    List<DexValue> newBootstrapArgs = null;
-    boolean changed = false;
-    for (int i = 0; i < bootstrapArgs.size(); i++) {
-      DexValue argument = bootstrapArgs.get(i);
-      DexValue newArgument = null;
-      switch (argument.getValueKind()) {
-        case METHOD_HANDLE:
-          newArgument = rewriteDexValueMethodHandle(argument.asDexValueMethodHandle(), method, use);
-          break;
-        case METHOD_TYPE:
-          newArgument = rewriteDexMethodType(argument.asDexValueMethodType());
-          break;
-        case TYPE:
-          DexType oldType = argument.asDexValueType().value;
-          DexType newType = appView.graphLens().lookupType(oldType);
-          if (newType != oldType) {
-            newArgument = new DexValueType(newType);
-          }
-          break;
-        default:
-          // Intentionally empty.
-      }
-      if (newArgument != null) {
-        if (newBootstrapArgs == null) {
-          newBootstrapArgs = new ArrayList<>(bootstrapArgs.subList(0, i));
-        }
-        newBootstrapArgs.add(newArgument);
-        changed = true;
-      } else if (newBootstrapArgs != null) {
-        newBootstrapArgs.add(argument);
-      }
-    }
-    return changed ? newBootstrapArgs : bootstrapArgs;
-  }
-
-  private DexValueMethodHandle rewriteDexValueMethodHandle(
-      DexValueMethodHandle methodHandle, ProgramMethod context, MethodHandleUse use) {
-    DexMethodHandle oldHandle = methodHandle.value;
-    DexMethodHandle newHandle = rewriteDexMethodHandle(oldHandle, context, use);
-    return newHandle != oldHandle ? new DexValueMethodHandle(newHandle) : methodHandle;
-  }
-
-  private DexMethodHandle rewriteDexMethodHandle(
-      DexMethodHandle methodHandle, ProgramMethod context, MethodHandleUse use) {
-    if (methodHandle.isMethodHandle()) {
-      DexMethod invokedMethod = methodHandle.asMethod();
-      MethodHandleType oldType = methodHandle.type;
-      GraphLensLookupResult lensLookup =
-          appView
-              .graphLens()
-              .lookupMethod(invokedMethod, context.getReference(), oldType.toInvokeType());
-      DexMethod rewrittenTarget = lensLookup.getMethod();
-      DexMethod actualTarget;
-      MethodHandleType newType;
-      if (use == ARGUMENT_TO_LAMBDA_METAFACTORY) {
-        // Lambda metafactory arguments will be lambda desugared away and therefore cannot flow
-        // to a MethodHandle.invokeExact call. We can therefore member-rebind with no issues.
-        actualTarget = rewrittenTarget;
-        newType = lensLookup.getType().toMethodHandle(actualTarget);
-      } else {
-        assert use == NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
-        // MethodHandles that are not arguments to a lambda metafactory will not be desugared
-        // away. Therefore they could flow to a MethodHandle.invokeExact call which means that
-        // we cannot member rebind. We therefore keep the receiver and also pin the receiver
-        // with a keep rule (see Enqueuer.registerMethodHandle).
-        actualTarget =
-            appView
-                .dexItemFactory()
-                .createMethod(invokedMethod.holder, rewrittenTarget.proto, rewrittenTarget.name);
-        newType = oldType;
-        if (oldType.isInvokeDirect()) {
-          // For an invoke direct, the rewritten target must have the same holder as the original.
-          // If the method has changed from private to public we need to use virtual instead of
-          // direct.
-          assert rewrittenTarget.holder == actualTarget.holder;
-          newType = lensLookup.getType().toMethodHandle(actualTarget);
-          assert newType == MethodHandleType.INVOKE_DIRECT
-              || newType == MethodHandleType.INVOKE_INSTANCE;
-        }
-      }
-      if (newType != oldType || actualTarget != invokedMethod || rewrittenTarget != actualTarget) {
-        DexClass holder = appView.definitionFor(actualTarget.holder);
-        boolean isInterface = holder != null ? holder.isInterface() : methodHandle.isInterface;
-        return new DexMethodHandle(
-            newType,
-            actualTarget,
-            isInterface,
-            rewrittenTarget != actualTarget ? rewrittenTarget : null);
-      }
-    } else {
-      DexField field = methodHandle.asField();
-      DexField actualField = appView.graphLens().lookupField(field);
-      if (actualField != field) {
-        return new DexMethodHandle(methodHandle.type, actualField, methodHandle.isInterface);
-      }
-    }
-    return methodHandle;
-  }
-
-  private DexValueMethodType rewriteDexMethodType(DexValueMethodType type) {
-    DexProto oldProto = type.value;
-    DexProto newProto =
-        appView
-            .dexItemFactory()
-            .applyClassMappingToProto(oldProto, appView.graphLens()::lookupType, protoFixupCache);
-    return newProto != oldProto ? new DexValueMethodType(newProto) : type;
   }
 
   class InstructionReplacer {

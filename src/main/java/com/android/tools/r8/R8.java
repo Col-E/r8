@@ -231,9 +231,7 @@ public class R8 {
             .write(options.getClassFileConsumer());
       } else {
         new ApplicationWriter(
-                appView.appInfo().app(),
                 appView,
-                options,
                 // Ensure that the marker for this compilation is the first in the list.
                 ImmutableList.<Marker>builder().add(marker).addAll(markers).build(),
                 graphLens,

@@ -3,8 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.ShortBuffer;
@@ -42,7 +45,12 @@ public class FillArrayDataPayload extends Nop {
   }
 
   @Override
-  public void write(ShortBuffer dest, ObjectToOffsetMapping mapping) {
+  public void write(
+      ShortBuffer dest,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter) {
     writeFirst(3, dest);  // Pseudo-opcode = 0x0300
     write16BitValue(element_width, dest);
     write32BitValue(size, dest);

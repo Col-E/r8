@@ -153,9 +153,7 @@ public class SharedClassWritingTest {
     options.programConsumer = consumer;
     ApplicationWriter writer =
         new ApplicationWriter(
-            application,
             AppView.createForD8(AppInfo.createInitialAppInfo(application)),
-            options,
             null,
             GraphLens.getIdentityLens(),
             InitClassLens.getDefault(),

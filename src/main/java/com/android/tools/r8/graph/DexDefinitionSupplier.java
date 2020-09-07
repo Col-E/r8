@@ -31,6 +31,10 @@ public interface DexDefinitionSupplier {
     return type == context.type ? context : contextIndependentDefinitionFor(type);
   }
 
+  default DexClass definitionFor(DexType type, ProgramMethod context) {
+    return definitionFor(type, context.getHolder());
+  }
+
   /**
    * Lookup for the program definition of a type from a given context.
    *

@@ -99,9 +99,7 @@ public class DexFileMergerHelper {
         assert !options.hasMethodsFilter();
         ApplicationWriter writer =
             new ApplicationWriter(
-                appView.appInfo().app(),
-                null,
-                options,
+                appView,
                 markers,
                 GraphLens.getIdentityLens(),
                 InitClassLens.getDefault(),

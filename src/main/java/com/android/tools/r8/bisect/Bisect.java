@@ -189,9 +189,7 @@ public class Bisect {
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer =
         new ApplicationWriter(
-            app,
             AppView.createForD8(AppInfo.createInitialAppInfo(app)),
-            options,
             null,
             null,
             InitClassLens.getDefault(),
