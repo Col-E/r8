@@ -7,15 +7,18 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.CfState.Slot;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
@@ -55,12 +58,18 @@ public class CfFieldInstruction extends CfInstruction {
 
   @Override
   public void write(
-      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
-    DexField newField = graphLens.lookupField(field);
-    DexField newDeclaringField = graphLens.lookupField(declaringField);
-    String owner = lens.lookupInternalName(newField.holder);
-    String name = lens.lookupName(newDeclaringField).toString();
-    String desc = lens.lookupDescriptor(newField.type).toString();
+      ProgramMethod context,
+      DexItemFactory dexItemFactory,
+      GraphLens graphLens,
+      InitClassLens initClassLens,
+      NamingLens namingLens,
+      LensCodeRewriterUtils rewriter,
+      MethodVisitor visitor) {
+    DexField rewrittenField = graphLens.lookupField(field);
+    DexField rewrittenDeclaringField = graphLens.lookupField(declaringField);
+    String owner = namingLens.lookupInternalName(rewrittenField.holder);
+    String name = namingLens.lookupName(rewrittenDeclaringField).toString();
+    String desc = namingLens.lookupDescriptor(rewrittenField.type).toString();
     visitor.visitFieldInsn(opcode, owner, name, desc);
   }
 

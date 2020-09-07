@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
@@ -39,6 +40,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -199,18 +201,21 @@ public class CfCode extends Code {
   }
 
   public void write(
-      DexEncodedMethod method,
-      MethodVisitor visitor,
-      NamingLens namingLens,
+      ProgramMethod method,
+      int classFileVersion,
       AppView<?> appView,
-      int classFileVersion) {
+      NamingLens namingLens,
+      LensCodeRewriterUtils rewriter,
+      MethodVisitor visitor) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     GraphLens graphLens = appView.graphLens();
     InitClassLens initClassLens = appView.initClassLens();
     InternalOptions options = appView.options();
     CfLabel parameterLabel = null;
-    if (shouldAddParameterNames(method, appView)) {
+    if (shouldAddParameterNames(method.getDefinition(), appView)) {
       parameterLabel = new CfLabel();
-      parameterLabel.write(visitor, graphLens, initClassLens, namingLens);
+      parameterLabel.write(
+          method, dexItemFactory, graphLens, initClassLens, namingLens, rewriter, visitor);
     }
     for (CfInstruction instruction : instructions) {
       if (instruction instanceof CfFrame
@@ -218,7 +223,8 @@ public class CfCode extends Code {
               || (classFileVersion == V1_6 && !options.shouldKeepStackMapTable()))) {
         continue;
       }
-      instruction.write(visitor, graphLens, initClassLens, namingLens);
+      instruction.write(
+          method, dexItemFactory, graphLens, initClassLens, namingLens, rewriter, visitor);
     }
     visitor.visitEnd();
     visitor.visitMaxs(maxStack, maxLocals);
@@ -227,19 +233,21 @@ public class CfCode extends Code {
       Label end = tryCatch.end.getLabel();
       for (int i = 0; i < tryCatch.guards.size(); i++) {
         DexType guard = tryCatch.guards.get(i);
+        DexType rewrittenGuard = graphLens.lookupType(guard);
         Label target = tryCatch.targets.get(i).getLabel();
         visitor.visitTryCatchBlock(
             start,
             end,
             target,
-            guard == options.itemFactory.throwableType
+            rewrittenGuard == options.itemFactory.throwableType
                 ? null
-                : namingLens.lookupInternalName(guard));
+                : namingLens.lookupInternalName(rewrittenGuard));
       }
     }
     if (parameterLabel != null) {
       assert localVariables.isEmpty();
-      for (Entry<Integer, DebugLocalInfo> entry : method.getParameterInfo().entrySet()) {
+      Map<Integer, DebugLocalInfo> parameterInfo = method.getDefinition().getParameterInfo();
+      for (Entry<Integer, DebugLocalInfo> entry : parameterInfo.entrySet()) {
         writeLocalVariableEntry(
             visitor, namingLens, entry.getValue(), parameterLabel, parameterLabel, entry.getKey());
       }

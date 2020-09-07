@@ -6,14 +6,17 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
@@ -34,10 +37,13 @@ public class CfConstClass extends CfInstruction {
 
   @Override
   public void write(
-      MethodVisitor visitor,
+      ProgramMethod context,
+      DexItemFactory dexItemFactory,
       GraphLens graphLens,
       InitClassLens initClassLens,
-      NamingLens namingLens) {
+      NamingLens namingLens,
+      LensCodeRewriterUtils rewriter,
+      MethodVisitor visitor) {
     visitor.visitLdcInsn(Type.getObjectType(getInternalName(graphLens, namingLens)));
   }
 
@@ -52,10 +58,11 @@ public class CfConstClass extends CfInstruction {
   }
 
   private String getInternalName(GraphLens graphLens, NamingLens namingLens) {
-    switch (type.toShorty()) {
+    DexType rewrittenType = graphLens.lookupType(type);
+    switch (rewrittenType.toShorty()) {
       case '[':
       case 'L':
-        return namingLens.lookupInternalName(graphLens.lookupType(type));
+        return namingLens.lookupInternalName(rewrittenType);
       case 'Z':
         return "java/lang/Boolean/TYPE";
       case 'B':
@@ -73,7 +80,7 @@ public class CfConstClass extends CfInstruction {
       case 'D':
         return "java/lang/Double/TYPE";
       default:
-        throw new Unreachable("Unexpected type in const-class: " + type);
+        throw new Unreachable("Unexpected type in const-class: " + rewrittenType);
     }
   }
 

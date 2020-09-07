@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
@@ -18,6 +19,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -26,6 +28,7 @@ import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.CfState.Slot;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
@@ -72,12 +75,20 @@ public class CfInvoke extends CfInstruction {
 
   @Override
   public void write(
-      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
-    DexMethod newMethod = graphLens.lookupMethod(method);
-    String owner = lens.lookupInternalName(newMethod.holder);
-    String name = lens.lookupName(newMethod).toString();
-    String desc = newMethod.proto.toDescriptorString(lens);
-    visitor.visitMethodInsn(opcode, owner, name, desc, itf);
+      ProgramMethod context,
+      DexItemFactory dexItemFactory,
+      GraphLens graphLens,
+      InitClassLens initClassLens,
+      NamingLens namingLens,
+      LensCodeRewriterUtils rewriter,
+      MethodVisitor visitor) {
+    GraphLensLookupResult lookup =
+        graphLens.lookupMethod(method, context.getReference(), getInvokeType(context));
+    DexMethod rewrittenMethod = lookup.getMethod();
+    String owner = namingLens.lookupInternalName(rewrittenMethod.holder);
+    String name = namingLens.lookupName(rewrittenMethod).toString();
+    String desc = rewrittenMethod.proto.toDescriptorString(namingLens);
+    visitor.visitMethodInsn(lookup.getType().getCfOpcode(), owner, name, desc, itf);
   }
 
   @Override
@@ -87,25 +98,46 @@ public class CfInvoke extends CfInstruction {
 
   @Override
   void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
-    switch (opcode) {
-      case Opcodes.INVOKEINTERFACE:
+    Type invokeType = getInvokeType(context);
+    switch (invokeType) {
+      case DIRECT:
+        registry.registerInvokeDirect(method);
+        break;
+      case INTERFACE:
         registry.registerInvokeInterface(method);
         break;
-      case Opcodes.INVOKEVIRTUAL:
-        registry.registerInvokeVirtual(method);
-        break;
-      case Opcodes.INVOKESPECIAL:
-        if (method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)) {
-          registry.registerInvokeDirect(method);
-        } else if (method.holder == context.getHolderType()) {
-          registry.registerInvokeDirect(method);
-        } else {
-          registry.registerInvokeSuper(method);
-        }
-        break;
-      case Opcodes.INVOKESTATIC:
+      case STATIC:
         registry.registerInvokeStatic(method);
         break;
+      case SUPER:
+        registry.registerInvokeSuper(method);
+        break;
+      case VIRTUAL:
+        registry.registerInvokeVirtual(method);
+        break;
+      default:
+        throw new Unreachable("Unexpected invoke type " + invokeType);
+    }
+  }
+
+  private Invoke.Type getInvokeType(DexClassAndMethod context) {
+    switch (opcode) {
+      case Opcodes.INVOKEINTERFACE:
+        return Type.INTERFACE;
+
+      case Opcodes.INVOKEVIRTUAL:
+        return Type.VIRTUAL;
+
+      case Opcodes.INVOKESPECIAL:
+        if (method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)
+            || method.holder == context.getHolderType()) {
+          return Type.DIRECT;
+        }
+        return Type.SUPER;
+
+      case Opcodes.INVOKESTATIC:
+        return Type.STATIC;
+
       default:
         throw new Unreachable("unknown CfInvoke opcode " + opcode);
     }

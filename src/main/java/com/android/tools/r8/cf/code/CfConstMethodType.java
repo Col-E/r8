@@ -5,14 +5,17 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
@@ -33,8 +36,15 @@ public class CfConstMethodType extends CfInstruction {
 
   @Override
   public void write(
-      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
-    visitor.visitLdcInsn(Type.getType(type.toDescriptorString(lens)));
+      ProgramMethod context,
+      DexItemFactory dexItemFactory,
+      GraphLens graphLens,
+      InitClassLens initClassLens,
+      NamingLens namingLens,
+      LensCodeRewriterUtils rewriter,
+      MethodVisitor visitor) {
+    DexProto rewrittenType = rewriter.rewriteProto(getType());
+    visitor.visitLdcInsn(Type.getType(rewrittenType.toDescriptorString(namingLens)));
   }
 
   @Override

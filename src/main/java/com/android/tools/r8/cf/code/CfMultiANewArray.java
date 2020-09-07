@@ -5,14 +5,17 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
@@ -39,8 +42,15 @@ public class CfMultiANewArray extends CfInstruction {
 
   @Override
   public void write(
-      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
-    visitor.visitMultiANewArrayInsn(lens.lookupInternalName(type), dimensions);
+      ProgramMethod context,
+      DexItemFactory dexItemFactory,
+      GraphLens graphLens,
+      InitClassLens initClassLens,
+      NamingLens namingLens,
+      LensCodeRewriterUtils rewriter,
+      MethodVisitor visitor) {
+    DexType rewrittenType = graphLens.lookupType(getType());
+    visitor.visitMultiANewArrayInsn(namingLens.lookupInternalName(rewrittenType), dimensions);
   }
 
   @Override

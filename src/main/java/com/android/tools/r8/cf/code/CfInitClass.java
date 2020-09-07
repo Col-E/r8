@@ -6,14 +6,17 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
@@ -39,11 +42,20 @@ public class CfInitClass extends CfInstruction {
 
   @Override
   public void write(
-      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
-    DexField field = initClassLens.getInitClassField(clazz);
-    String owner = lens.lookupInternalName(field.holder);
-    String name = lens.lookupName(field).toString();
-    String desc = lens.lookupDescriptor(field.type).toString();
+      ProgramMethod context,
+      DexItemFactory dexItemFactory,
+      GraphLens graphLens,
+      InitClassLens initClassLens,
+      NamingLens namingLens,
+      LensCodeRewriterUtils rewriter,
+      MethodVisitor visitor) {
+    // We intentionally apply the graph lens first, and then the init class lens, using the fact
+    // that the init class lens maps classes in the final program to fields in the final program.
+    DexType rewrittenClass = graphLens.lookupType(clazz);
+    DexField clinitField = initClassLens.getInitClassField(rewrittenClass);
+    String owner = namingLens.lookupInternalName(clinitField.holder);
+    String name = namingLens.lookupName(clinitField).toString();
+    String desc = namingLens.lookupDescriptor(clinitField.type).toString();
     visitor.visitFieldInsn(OPCODE, owner, name, desc);
   }
 

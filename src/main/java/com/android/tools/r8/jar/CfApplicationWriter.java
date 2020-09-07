@@ -16,6 +16,7 @@ import com.android.tools.r8.errors.ConstantPoolOverflowDiagnostic;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -36,6 +37,8 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.references.Reference;
@@ -108,12 +111,13 @@ public class CfApplicationWriter {
     }
     Optional<String> markerString =
         marker.isRelocator() ? Optional.empty() : Optional.of(marker.toString());
+    LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(appView);
     for (DexProgramClass clazz : application.classes()) {
       if (clazz.getSynthesizedFrom().isEmpty()
           || options.isDesugaredLibraryCompilation()
           || options.cfToCfDesugar) {
         try {
-          writeClass(clazz, consumer, markerString);
+          writeClass(clazz, consumer, rewriter, markerString);
         } catch (ClassTooLargeException e) {
           throw appView
               .options()
@@ -145,7 +149,10 @@ public class CfApplicationWriter {
   }
 
   private void writeClass(
-      DexProgramClass clazz, ClassFileConsumer consumer, Optional<String> markerString) {
+      DexProgramClass clazz,
+      ClassFileConsumer consumer,
+      LensCodeRewriterUtils rewriter,
+      Optional<String> markerString) {
     ClassWriter writer = new ClassWriter(0);
     if (markerString.isPresent()) {
       int markerStringPoolIndex = writer.newConst(markerString.get());
@@ -194,12 +201,7 @@ public class CfApplicationWriter {
     for (DexEncodedField field : clazz.instanceFields()) {
       writeField(field, writer);
     }
-    for (DexEncodedMethod method : clazz.directMethods()) {
-      writeMethod(method, writer, defaults, version);
-    }
-    for (DexEncodedMethod method : clazz.virtualMethods()) {
-      writeMethod(method, writer, defaults, version);
-    }
+    clazz.forEachProgramMethod(method -> writeMethod(method, version, rewriter, writer, defaults));
     writer.visitEnd();
 
     byte[] result = writer.toByteArray();
@@ -323,28 +325,30 @@ public class CfApplicationWriter {
   }
 
   private void writeMethod(
-      DexEncodedMethod method,
+      ProgramMethod method,
+      int classFileVersion,
+      LensCodeRewriterUtils rewriter,
       ClassWriter writer,
-      ImmutableMap<DexString, DexValue> defaults,
-      int classFileVersion) {
-    int access = method.accessFlags.getAsCfAccessFlags();
-    String name = namingLens.lookupName(method.method).toString();
-    String desc = method.descriptor(namingLens);
-    String signature = getSignature(method.annotations());
-    String[] exceptions = getExceptions(method.annotations());
+      ImmutableMap<DexString, DexValue> defaults) {
+    DexEncodedMethod definition = method.getDefinition();
+    int access = definition.getAccessFlags().getAsCfAccessFlags();
+    String name = namingLens.lookupName(method.getReference()).toString();
+    String desc = definition.descriptor(namingLens);
+    String signature = getSignature(definition.annotations());
+    String[] exceptions = getExceptions(definition.annotations());
     MethodVisitor visitor = writer.visitMethod(access, name, desc, signature, exceptions);
-    if (defaults.containsKey(method.method.name)) {
+    if (defaults.containsKey(definition.getName())) {
       AnnotationVisitor defaultVisitor = visitor.visitAnnotationDefault();
       if (defaultVisitor != null) {
-        writeAnnotationElement(defaultVisitor, null, defaults.get(method.method.name));
+        writeAnnotationElement(defaultVisitor, null, defaults.get(definition.getName()));
         defaultVisitor.visitEnd();
       }
     }
-    writeMethodParametersAnnotation(visitor, method.annotations().annotations);
-    writeAnnotations(visitor::visitAnnotation, method.annotations().annotations);
-    writeParameterAnnotations(visitor, method.parameterAnnotationsList);
-    if (!method.shouldNotHaveCode()) {
-      writeCode(method, visitor, classFileVersion);
+    writeMethodParametersAnnotation(visitor, definition.annotations().annotations);
+    writeAnnotations(visitor::visitAnnotation, definition.annotations().annotations);
+    writeParameterAnnotations(visitor, definition.parameterAnnotationsList);
+    if (!definition.shouldNotHaveCode()) {
+      writeCode(method, classFileVersion, rewriter, visitor);
     }
     visitor.visitEnd();
   }
@@ -478,8 +482,13 @@ public class CfApplicationWriter {
     }
   }
 
-  private void writeCode(DexEncodedMethod method, MethodVisitor visitor, int classFileVersion) {
-    method.getCode().asCfCode().write(method, visitor, namingLens, appView, classFileVersion);
+  private void writeCode(
+      ProgramMethod method,
+      int classFileVersion,
+      LensCodeRewriterUtils rewriter,
+      MethodVisitor visitor) {
+    CfCode code = method.getDefinition().getCode().asCfCode();
+    code.write(method, classFileVersion, appView, namingLens, rewriter, visitor);
   }
 
   public static String printCf(byte[] result) {

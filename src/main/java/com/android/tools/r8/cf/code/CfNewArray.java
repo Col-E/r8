@@ -6,15 +6,18 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.CfState.Slot;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
@@ -58,21 +61,36 @@ public class CfNewArray extends CfInstruction {
     }
   }
 
-  private String getElementInternalName(NamingLens lens) {
+  private String getElementInternalName(
+      DexItemFactory dexItemFactory, GraphLens graphLens, NamingLens namingLens) {
     assert !type.isPrimitiveArrayType();
-    String renamedArrayType = lens.lookupDescriptor(type).toString();
-    assert renamedArrayType.charAt(0) == '[';
-    String elementType = renamedArrayType.substring(1);
-    return DescriptorUtils.descriptorToInternalName(elementType);
+    StringBuilder renamedElementDescriptor = new StringBuilder();
+    // Intentionally starting from 1 to get the element descriptor.
+    int numberOfLeadingSquareBrackets = getType().getNumberOfLeadingSquareBrackets();
+    for (int i = 1; i < numberOfLeadingSquareBrackets; i++) {
+      renamedElementDescriptor.append("[");
+    }
+    DexType baseType = getType().toBaseType(dexItemFactory);
+    DexType rewrittenBaseType = graphLens.lookupType(baseType);
+    renamedElementDescriptor.append(
+        namingLens.lookupDescriptor(rewrittenBaseType).toSourceString());
+    return DescriptorUtils.descriptorToInternalName(renamedElementDescriptor.toString());
   }
 
   @Override
   public void write(
-      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
+      ProgramMethod context,
+      DexItemFactory dexItemFactory,
+      GraphLens graphLens,
+      InitClassLens initClassLens,
+      NamingLens namingLens,
+      LensCodeRewriterUtils rewriter,
+      MethodVisitor visitor) {
     if (type.isPrimitiveArrayType()) {
       visitor.visitIntInsn(Opcodes.NEWARRAY, getPrimitiveTypeCode());
     } else {
-      visitor.visitTypeInsn(Opcodes.ANEWARRAY, getElementInternalName(lens));
+      visitor.visitTypeInsn(
+          Opcodes.ANEWARRAY, getElementInternalName(dexItemFactory, graphLens, namingLens));
     }
   }
 

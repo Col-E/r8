@@ -12,9 +12,11 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
@@ -44,7 +46,7 @@ public class CfFrame extends CfInstruction {
       return Top.SINGLETON;
     }
 
-    abstract Object getTypeOpcode(NamingLens lens);
+    abstract Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens);
 
     public boolean isWide() {
       return false;
@@ -102,13 +104,14 @@ public class CfFrame extends CfInstruction {
     }
 
     @Override
-    Object getTypeOpcode(NamingLens lens) {
-      if (type == DexItemFactory.nullValueType) {
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      DexType rewrittenType = graphLens.lookupType(type);
+      if (rewrittenType == DexItemFactory.nullValueType) {
         return Opcodes.NULL;
       }
-      switch (type.toShorty()) {
+      switch (rewrittenType.toShorty()) {
         case 'L':
-          return lens.lookupInternalName(type);
+          return namingLens.lookupInternalName(rewrittenType);
         case 'I':
           return Opcodes.INTEGER;
         case 'F':
@@ -118,7 +121,7 @@ public class CfFrame extends CfInstruction {
         case 'D':
           return Opcodes.DOUBLE;
         default:
-          throw new Unreachable("Unexpected value type: " + type);
+          throw new Unreachable("Unexpected value type: " + rewrittenType);
       }
     }
 
@@ -148,7 +151,7 @@ public class CfFrame extends CfInstruction {
     }
 
     @Override
-    Object getTypeOpcode(NamingLens lens) {
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
       return Opcodes.TOP;
     }
 
@@ -171,7 +174,7 @@ public class CfFrame extends CfInstruction {
     }
 
     @Override
-    Object getTypeOpcode(NamingLens lens) {
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
       return label.getLabel();
     }
 
@@ -190,7 +193,7 @@ public class CfFrame extends CfInstruction {
     private UninitializedThis() {}
 
     @Override
-    Object getTypeOpcode(NamingLens lens) {
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
       return Opcodes.UNINITIALIZED_THIS;
     }
 
@@ -225,11 +228,17 @@ public class CfFrame extends CfInstruction {
 
   @Override
   public void write(
-      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
+      ProgramMethod context,
+      DexItemFactory dexItemFactory,
+      GraphLens graphLens,
+      InitClassLens initClassLens,
+      NamingLens namingLens,
+      LensCodeRewriterUtils rewriter,
+      MethodVisitor visitor) {
     int stackCount = computeStackCount();
-    Object[] stackTypes = computeStackTypes(stackCount, lens);
+    Object[] stackTypes = computeStackTypes(stackCount, graphLens, namingLens);
     int localsCount = computeLocalsCount();
-    Object[] localsTypes = computeLocalsTypes(localsCount, lens);
+    Object[] localsTypes = computeLocalsTypes(localsCount, graphLens, namingLens);
     visitor.visitFrame(F_NEW, localsCount, localsTypes, stackCount, stackTypes);
   }
 
@@ -237,14 +246,14 @@ public class CfFrame extends CfInstruction {
     return stack.size();
   }
 
-  private Object[] computeStackTypes(int stackCount, NamingLens lens) {
+  private Object[] computeStackTypes(int stackCount, GraphLens graphLens, NamingLens namingLens) {
     assert stackCount == stack.size();
     if (stackCount == 0) {
       return null;
     }
     Object[] stackTypes = new Object[stackCount];
     for (int i = 0; i < stackCount; i++) {
-      stackTypes[i] = stack.get(i).getTypeOpcode(lens);
+      stackTypes[i] = stack.get(i).getTypeOpcode(graphLens, namingLens);
     }
     return stackTypes;
   }
@@ -266,7 +275,7 @@ public class CfFrame extends CfInstruction {
     return localsCount;
   }
 
-  private Object[] computeLocalsTypes(int localsCount, NamingLens lens) {
+  private Object[] computeLocalsTypes(int localsCount, GraphLens graphLens, NamingLens namingLens) {
     if (localsCount == 0) {
       return null;
     }
@@ -275,7 +284,8 @@ public class CfFrame extends CfInstruction {
     int localIndex = 0;
     for (int i = 0; i <= maxRegister; i++) {
       FrameType type = locals.get(i);
-      localsTypes[localIndex++] = type == null ? Opcodes.TOP : type.getTypeOpcode(lens);
+      localsTypes[localIndex++] =
+          type == null ? Opcodes.TOP : type.getTypeOpcode(graphLens, namingLens);
       if (type != null && type.isWide()) {
         i++;
       }

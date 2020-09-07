@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.List;
 import java.util.Set;
+import org.objectweb.asm.Opcodes;
 
 public abstract class Invoke extends Instruction {
 
@@ -49,6 +50,26 @@ public abstract class Invoke extends Instruction {
     Type(int dexOpcode, int dexOpcodeRange) {
       this.dexOpcode = dexOpcode;
       this.dexOpcodeRange = dexOpcodeRange;
+    }
+
+    public int getCfOpcode() {
+      switch (this) {
+        case DIRECT:
+          return Opcodes.INVOKESPECIAL;
+        case INTERFACE:
+          return Opcodes.INVOKEINTERFACE;
+        case STATIC:
+          return Opcodes.INVOKESTATIC;
+        case SUPER:
+          return Opcodes.INVOKESPECIAL;
+        case VIRTUAL:
+          return Opcodes.INVOKEVIRTUAL;
+        case NEW_ARRAY:
+        case MULTI_NEW_ARRAY:
+        case POLYMORPHIC:
+        default:
+          throw new Unreachable();
+      }
     }
 
     public int getDexOpcode() {

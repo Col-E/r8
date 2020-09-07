@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
@@ -14,11 +15,13 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
@@ -38,17 +41,27 @@ public class CfInvokeDynamic extends CfInstruction {
 
   @Override
   public void write(
-      MethodVisitor visitor, GraphLens graphLens, InitClassLens initClassLens, NamingLens lens) {
-    DexMethodHandle bootstrapMethod = callSite.bootstrapMethod;
-    List<DexValue> bootstrapArgs = callSite.bootstrapArgs;
+      ProgramMethod context,
+      DexItemFactory dexItemFactory,
+      GraphLens graphLens,
+      InitClassLens initClassLens,
+      NamingLens namingLens,
+      LensCodeRewriterUtils rewriter,
+      MethodVisitor visitor) {
+    DexCallSite rewrittenCallSite = rewriter.rewriteCallSite(callSite, context);
+    DexMethodHandle bootstrapMethod = rewrittenCallSite.bootstrapMethod;
+    List<DexValue> bootstrapArgs = rewrittenCallSite.bootstrapArgs;
     Object[] bsmArgs = new Object[bootstrapArgs.size()];
     for (int i = 0; i < bootstrapArgs.size(); i++) {
-      bsmArgs[i] = decodeBootstrapArgument(bootstrapArgs.get(i), lens);
+      bsmArgs[i] = decodeBootstrapArgument(bootstrapArgs.get(i), namingLens);
     }
-    Handle bsmHandle = bootstrapMethod.toAsmHandle(lens);
-    DexString methodName = lens.lookupMethodName(callSite);
+    Handle bsmHandle = bootstrapMethod.toAsmHandle(namingLens);
+    DexString methodName = namingLens.lookupMethodName(rewrittenCallSite);
     visitor.visitInvokeDynamicInsn(
-        methodName.toString(), callSite.methodProto.toDescriptorString(lens), bsmHandle, bsmArgs);
+        methodName.toString(),
+        rewrittenCallSite.methodProto.toDescriptorString(namingLens),
+        bsmHandle,
+        bsmArgs);
   }
 
   private Object decodeBootstrapArgument(DexValue value, NamingLens lens) {
