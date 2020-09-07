@@ -177,6 +177,12 @@ public abstract class ResolutionResult
       return resolvedMethod;
     }
 
+    public ProgramMethod getResolvedProgramMethod() {
+      return resolvedHolder.isProgramClass()
+          ? new ProgramMethod(resolvedHolder.asProgramClass(), resolvedMethod)
+          : null;
+    }
+
     public DexClassAndMethod getResolutionPair() {
       return DexClassAndMethod.create(resolvedHolder, resolvedMethod);
     }

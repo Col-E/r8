@@ -121,4 +121,10 @@ public class InstanceOf extends Instruction {
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
   }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder(super.toString());
+    return builder.append("; ").append(type.toSourceString()).toString();
+  }
 }

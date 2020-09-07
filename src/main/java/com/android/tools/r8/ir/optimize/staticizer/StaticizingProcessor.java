@@ -402,7 +402,7 @@ final class StaticizingProcessor {
       OptimizationFeedback feedback) {
     return (code, methodProcessor) ->
         converter.collectOptimizationInfo(
-            code.method(),
+            code.context(),
             code,
             ClassInitializerDefaultsResult.empty(),
             feedback,

@@ -13,22 +13,29 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 
 import com.android.tools.r8.cf.code.CfConstNull;
+import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
+import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.cf.code.CfNew;
+import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.code.Const;
 import com.android.tools.r8.code.ConstString;
+import com.android.tools.r8.code.InstanceOf;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.NewInstance;
+import com.android.tools.r8.code.Return;
 import com.android.tools.r8.code.Throw;
+import com.android.tools.r8.code.XorIntLit8;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MethodToCodeObjectMapping;
@@ -37,6 +44,7 @@ import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.DexFieldWithAccess;
@@ -60,6 +68,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
@@ -835,8 +844,44 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public DexCode buildEmptyThrowingDexCode() {
-    Instruction insn[] = {new Const(0, 0), new Throw(0)};
+    Instruction[] insn = {new Const(0, 0), new Throw(0)};
     return generateCodeFromTemplate(1, 0, insn);
+  }
+
+  public Code buildInstanceOfCode(DexType type, boolean negate, InternalOptions options) {
+    return options.isGeneratingClassFiles()
+        ? buildInstanceOfCfCode(type, negate)
+        : buildInstanceOfDexCode(type, negate);
+  }
+
+  public CfCode buildInstanceOfCfCode(DexType type, boolean negate) {
+    CfInstruction[] instructions = new CfInstruction[3 + BooleanUtils.intValue(negate) * 2];
+    int i = 0;
+    instructions[i++] = new CfLoad(ValueType.OBJECT, 0);
+    instructions[i++] = new CfInstanceOf(type);
+    if (negate) {
+      instructions[i++] = new CfConstNumber(1, ValueType.INT);
+      instructions[i++] = new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.INT);
+    }
+    instructions[i] = new CfReturn(ValueType.INT);
+    return new CfCode(
+        method.holder,
+        1 + BooleanUtils.intValue(negate),
+        method.getArity() + 1,
+        Arrays.asList(instructions),
+        Collections.emptyList(),
+        Collections.emptyList());
+  }
+
+  public DexCode buildInstanceOfDexCode(DexType type, boolean negate) {
+    Instruction[] instructions = new Instruction[2 + BooleanUtils.intValue(negate)];
+    int i = 0;
+    instructions[i++] = new InstanceOf(0, 0, type);
+    if (negate) {
+      instructions[i++] = new XorIntLit8(0, 0, 1);
+    }
+    instructions[i] = new Return(0);
+    return generateCodeFromTemplate(1, 0, instructions);
   }
 
   public DexEncodedMethod toMethodThatLogsError(AppView<?> appView) {

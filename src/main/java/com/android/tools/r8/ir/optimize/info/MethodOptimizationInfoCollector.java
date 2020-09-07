@@ -82,6 +82,7 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerReceiverAnalysis;
@@ -92,6 +93,7 @@ import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationIn
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.NonTrivialInstanceInitializerInfo;
+import com.android.tools.r8.ir.optimize.typechecks.CheckCastAndInstanceOfMethodSpecialization;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -112,37 +114,46 @@ import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 public class MethodOptimizationInfoCollector {
-  private final AppView<AppInfoWithLiveness> appView;
-  private final InternalOptions options;
-  private final DexItemFactory dexItemFactory;
 
-  public MethodOptimizationInfoCollector(AppView<AppInfoWithLiveness> appView) {
+  private final AppView<AppInfoWithLiveness> appView;
+  private final CheckCastAndInstanceOfMethodSpecialization
+      checkCastAndInstanceOfMethodSpecialization;
+  private final DexItemFactory dexItemFactory;
+  private final InternalOptions options;
+
+  public MethodOptimizationInfoCollector(
+      AppView<AppInfoWithLiveness> appView, IRConverter converter) {
     this.appView = appView;
-    this.options = appView.options();
+    this.checkCastAndInstanceOfMethodSpecialization =
+        appView.options().isRelease()
+            ? new CheckCastAndInstanceOfMethodSpecialization(appView, converter)
+            : null;
     this.dexItemFactory = appView.dexItemFactory();
+    this.options = appView.options();
   }
 
   public void collectMethodOptimizationInfo(
-      DexEncodedMethod method,
+      ProgramMethod method,
       IRCode code,
       OptimizationFeedback feedback,
       DynamicTypeOptimization dynamicTypeOptimization,
       InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos,
       Timing timing) {
-    identifyBridgeInfo(method, code, feedback, timing);
+    DexEncodedMethod definition = method.getDefinition();
+    identifyBridgeInfo(definition, code, feedback, timing);
     identifyClassInlinerEligibility(code, feedback, timing);
-    identifyParameterUsages(method, code, feedback, timing);
-    identifyReturnsArgument(code, feedback, timing);
+    identifyParameterUsages(definition, code, feedback, timing);
+    analyzeReturns(code, feedback, timing);
     if (options.enableInlining) {
-      identifyInvokeSemanticsForInlining(method, code, feedback, timing);
+      identifyInvokeSemanticsForInlining(definition, code, feedback, timing);
     }
-    computeDynamicReturnType(dynamicTypeOptimization, feedback, method, code, timing);
-    computeInitializedClassesOnNormalExit(feedback, method, code, timing);
+    computeDynamicReturnType(dynamicTypeOptimization, feedback, definition, code, timing);
+    computeInitializedClassesOnNormalExit(feedback, definition, code, timing);
     computeInstanceInitializerInfo(
-        method, code, feedback, instanceFieldInitializationInfos, timing);
-    computeMayHaveSideEffects(feedback, method, code, timing);
-    computeReturnValueOnlyDependsOnArguments(feedback, method, code, timing);
-    computeNonNullParamOrThrow(feedback, method, code, timing);
+        definition, code, feedback, instanceFieldInitializationInfos, timing);
+    computeMayHaveSideEffects(feedback, definition, code, timing);
+    computeReturnValueOnlyDependsOnArguments(feedback, definition, code, timing);
+    computeNonNullParamOrThrow(feedback, definition, code, timing);
     computeNonNullParamOnNormalExits(feedback, code, timing);
   }
 
@@ -345,13 +356,13 @@ public class MethodOptimizationInfoCollector {
     return builder.build();
   }
 
-  private void identifyReturnsArgument(IRCode code, OptimizationFeedback feedback, Timing timing) {
+  private void analyzeReturns(IRCode code, OptimizationFeedback feedback, Timing timing) {
     timing.begin("Identify returns argument");
-    identifyReturnsArgument(code, feedback);
+    analyzeReturns(code, feedback);
     timing.end();
   }
 
-  private void identifyReturnsArgument(IRCode code, OptimizationFeedback feedback) {
+  private void analyzeReturns(IRCode code, OptimizationFeedback feedback) {
     ProgramMethod context = code.context();
     DexEncodedMethod method = context.getDefinition();
     List<BasicBlock> normalExits = code.computeNormalExitBlocks();
@@ -381,6 +392,10 @@ public class MethodOptimizationInfoCollector {
         AbstractValue abstractReturnValue = definition.getAbstractValue(appView, context);
         if (abstractReturnValue.isNonTrivial()) {
           feedback.methodReturnsAbstractValue(method, appView, abstractReturnValue);
+          if (checkCastAndInstanceOfMethodSpecialization != null) {
+            checkCastAndInstanceOfMethodSpecialization.addCandidateForOptimization(
+                context, abstractReturnValue);
+          }
         }
       }
     }
