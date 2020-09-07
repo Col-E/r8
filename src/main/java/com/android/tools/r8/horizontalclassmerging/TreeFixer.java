@@ -48,6 +48,7 @@ class TreeFixer {
   HorizontalClassMergerGraphLens fixupTypeReferences() {
     // Globally substitute merged class types in protos and holders.
     for (DexProgramClass clazz : appView.appInfo().classes()) {
+      clazz.superType = mergedClasses.getOrDefault(clazz.superType, clazz.superType);
       clazz.getMethodCollection().replaceMethods(this::fixupMethod);
       fixupFields(clazz.staticFields(), clazz::setStaticField);
       fixupFields(clazz.instanceFields(), clazz::setInstanceField);

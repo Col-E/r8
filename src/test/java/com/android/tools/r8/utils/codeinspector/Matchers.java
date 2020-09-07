@@ -7,6 +7,7 @@ package com.android.tools.r8.utils.codeinspector;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.references.MethodReference;
@@ -554,6 +555,44 @@ public class Matchers {
             && stackTraceLine.methodName.equals(currentPosition.getMethodName())
             && stackTraceLine.lineNumber == currentPosition.originalPosition
             && stackTraceLine.fileName.equals(currentPosition.filename);
+      }
+    };
+  }
+
+  public static Matcher<MethodSubject> writesInstanceField(DexField field) {
+    return new TypeSafeMatcher<MethodSubject>() {
+      @Override
+      protected boolean matchesSafely(MethodSubject methodSubject) {
+        return methodSubject
+            .streamInstructions()
+            .filter(InstructionSubject::isInstancePut)
+            .map(InstructionSubject::getField)
+            .anyMatch(field::equals);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(
+            "The field " + field.name.toSourceString() + " is not written by the method.");
+      }
+    };
+  }
+
+  public static Matcher<MethodSubject> readsInstanceField(DexField field) {
+    return new TypeSafeMatcher<MethodSubject>() {
+      @Override
+      protected boolean matchesSafely(MethodSubject methodSubject) {
+        return methodSubject
+            .streamInstructions()
+            .filter(InstructionSubject::isInstanceGet)
+            .map(InstructionSubject::getField)
+            .anyMatch(field::equals);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(
+            "The field " + field.name.toSourceString() + " is not read by the method.");
       }
     };
   }

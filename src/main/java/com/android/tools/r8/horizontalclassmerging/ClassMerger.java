@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
@@ -24,6 +25,7 @@ import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.Collection;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -31,35 +33,43 @@ import java.util.Map;
  * class {@link ClassMerger#target}. While performing merging, this class tracks which methods have
  * been moved, as well as which fields have been remapped in the {@link ClassMerger#lensBuilder}.
  */
-class ClassMerger {
-  private final AppView<?> appView;
+public class ClassMerger {
+  public static final String CLASS_ID_FIELD_NAME = "$r8$classId";
+
+  private final AppView<AppInfoWithLiveness> appView;
   private final DexProgramClass target;
   private final Collection<DexProgramClass> toMergeGroup;
   private final DexItemFactory dexItemFactory;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
   private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
+  private final Map<DexType, DexType> mergedClasses;
 
   private final Reference2IntMap<DexType> classIdentifiers = new Reference2IntOpenHashMap<>();
-  private final Map<DexProto, ConstructorMerger.Builder> constructorMergers;
+  private final Map<DexProto, ConstructorMerger.Builder> constructorMergers =
+      new IdentityHashMap<>();
+  private final Map<Wrapper<DexMethod>, VirtualMethodMerger.Builder> virtualMethodMergers =
+      new LinkedHashMap<>();
   private final DexField classIdField;
 
   ClassMerger(
-      AppView<?> appView,
+      AppView<AppInfoWithLiveness> appView,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       DexProgramClass target,
-      Collection<DexProgramClass> toMergeGroup) {
+      Collection<DexProgramClass> toMergeGroup,
+      Map<DexType, DexType> mergedClasses) {
     this.appView = appView;
     this.lensBuilder = lensBuilder;
     this.fieldAccessChangesBuilder = fieldAccessChangesBuilder;
     this.target = target;
     this.toMergeGroup = toMergeGroup;
+    this.mergedClasses = mergedClasses;
 
-    this.constructorMergers = new IdentityHashMap<>();
     this.dexItemFactory = appView.dexItemFactory();
 
     // TODO(b/165498187): ensure the name for the field is fresh
-    classIdField = dexItemFactory.createField(target.type, dexItemFactory.intType, "$r8$classId");
+    classIdField =
+        dexItemFactory.createField(target.type, dexItemFactory.intType, CLASS_ID_FIELD_NAME);
 
     buildClassIdentifierMap();
   }
@@ -75,6 +85,15 @@ class ClassMerger {
         .add(method);
   }
 
+  void addVirtualMethod(ProgramMethod method) {
+    assert method.getDefinition().isNonPrivateVirtualMethod();
+    virtualMethodMergers
+        .computeIfAbsent(
+            MethodSignatureEquivalence.get().wrap(method.getReference()),
+            ignore -> new VirtualMethodMerger.Builder())
+        .add(method);
+  }
+
   void buildClassIdentifierMap() {
     classIdentifiers.put(target.type, 0);
     for (DexProgramClass toMerge : toMergeGroup) {
@@ -83,23 +102,23 @@ class ClassMerger {
   }
 
   void merge(DexProgramClass toMerge) {
-    toMerge.forEachProgramMethod(
-        programMethod -> {
-          DexEncodedMethod method = programMethod.getDefinition();
-          assert !method.isClassInitializer();
+    toMerge.forEachProgramDirectMethod(
+        method -> {
+          DexEncodedMethod definition = method.getDefinition();
+          assert !definition.isClassInitializer();
 
-          if (method.isInstanceInitializer()) {
-            addConstructor(method);
+          if (definition.isInstanceInitializer()) {
+            addConstructor(definition);
           } else {
             // TODO(b/166427795): Ensure that overriding relationships are not changed.
-            assert method.isVirtualMethod();
-
-            DexMethod newMethod = renameMethod(programMethod);
-            // TODO(b/165000217): Add all methods to `target` in one go using addVirtualMethods().;
-            target.addVirtualMethod(method.toTypeSubstitutedMethod(newMethod));
-            lensBuilder.moveMethod(method.method, newMethod);
+            DexMethod newMethod = renameMethod(method);
+            // TODO(b/165000217): Add all methods to `target` in one go using addVirtualMethods().
+            target.addDirectMethod(definition.toTypeSubstitutedMethod(newMethod));
+            lensBuilder.moveMethod(definition.getReference(), newMethod);
           }
         });
+
+    toMerge.forEachProgramVirtualMethod(this::addVirtualMethod);
 
     // Clear the members of the class to be merged since they have now been moved to the target.
     toMerge.setVirtualMethods(null);
@@ -129,6 +148,21 @@ class ClassMerger {
     }
   }
 
+  void mergeVirtualMethods() {
+    for (VirtualMethodMerger.Builder builder : virtualMethodMergers.values()) {
+      VirtualMethodMerger merger = builder.build(appView, target, classIdField, mergedClasses);
+      merger.merge(lensBuilder, fieldAccessChangesBuilder, classIdentifiers);
+    }
+  }
+
+  /**
+   * To ensure constructor merging happens correctly, add all of the target constructors methods to
+   * constructor mergers.
+   */
+  void addTargetVirtualMethods() {
+    target.forEachProgramVirtualMethod(this::addVirtualMethod);
+  }
+
   /**
    * To ensure constructor merging happens correctly, add all of the target constructors methods to
    * constructor mergers.
@@ -156,6 +190,8 @@ class ClassMerger {
 
   public void mergeGroup() {
     addTargetConstructors();
+    addTargetVirtualMethods();
+
     appendClassIdField();
 
     for (DexProgramClass clazz : toMergeGroup) {
@@ -163,5 +199,6 @@ class ClassMerger {
     }
 
     mergeConstructors();
+    mergeVirtualMethods();
   }
 }

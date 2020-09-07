@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.horizontalclassmerging.ClassMerger;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -408,6 +409,12 @@ public abstract class GraphLens {
         if (field.field.match(dexItemFactory.objectMembers.clinitField)) {
           continue;
         }
+
+        // TODO(b/167947782): Should be a general check to see if the field is D8/R8 synthesized.
+        if (field.toReference().name.toSourceString().equals(ClassMerger.CLASS_ID_FIELD_NAME)) {
+          continue;
+        }
+
         DexField originalField = getOriginalFieldSignature(field.field);
         assert originalFields.contains(originalField)
             : "Unable to map field `" + field.field.toSourceString() + "` back to original program";

@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexValue;
 
 public abstract class FieldSubject extends MemberSubject {
@@ -12,6 +13,10 @@ public abstract class FieldSubject extends MemberSubject {
   public abstract boolean hasExplicitStaticValue();
 
   public abstract DexEncodedField getField();
+
+  public DexField getFieldReference() {
+    return getField().field;
+  }
 
   public abstract DexValue getStaticValue();
 

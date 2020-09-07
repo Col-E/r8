@@ -22,6 +22,7 @@ public class SameParentClass extends MultiClassPolicy {
           .computeIfAbsent(clazz.superType, ignore -> new LinkedList<DexProgramClass>())
           .add(clazz);
     }
+    removeTrivialGroups(groups.values());
     return groups.values();
   }
 }

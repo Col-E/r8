@@ -10,6 +10,13 @@ import java.util.Collection;
 public abstract class MultiClassPolicy extends Policy {
 
   /**
+   * Remove all groups containing no or only a single class, as there is no point in merging these.
+   */
+  protected void removeTrivialGroups(Collection<Collection<DexProgramClass>> groups) {
+    groups.removeIf(group -> group.size() < 2);
+  }
+
+  /**
    * Apply the multi class policy to a group of program classes.
    *
    * @param group This is a group of program classes which can currently still be merged.

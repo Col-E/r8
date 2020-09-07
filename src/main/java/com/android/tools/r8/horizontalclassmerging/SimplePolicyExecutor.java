@@ -32,7 +32,7 @@ public class SimplePolicyExecutor extends PolicyExecutor {
           j.remove();
         }
       }
-      if (group.isEmpty()) {
+      if (group.size() < 2) {
         i.remove();
       }
     }
@@ -56,6 +56,9 @@ public class SimplePolicyExecutor extends PolicyExecutor {
       } else if (policy instanceof MultiClassPolicy) {
         groups = applyMultiClassPolicy((MultiClassPolicy) policy, groups);
       }
+
+      // Any policy should not return any trivial groups.
+      assert groups.stream().allMatch(group -> group.size() >= 2);
     }
 
     return groups;

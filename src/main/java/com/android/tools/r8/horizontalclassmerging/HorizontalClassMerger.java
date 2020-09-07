@@ -92,7 +92,8 @@ public class HorizontalClassMerger {
       }
 
       ClassMerger merger =
-          new ClassMerger(appView, lensBuilder, fieldAccessChangesBuilder, target, group);
+          new ClassMerger(
+              appView, lensBuilder, fieldAccessChangesBuilder, target, group, mergedClasses);
       merger.mergeGroup();
     }
 
