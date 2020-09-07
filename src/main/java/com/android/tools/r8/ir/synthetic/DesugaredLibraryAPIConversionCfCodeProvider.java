@@ -8,6 +8,8 @@ import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfFrame;
+import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -30,6 +32,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
+import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
@@ -234,6 +238,11 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
 
+      ImmutableInt2ReferenceSortedMap<FrameType> locals =
+          ImmutableInt2ReferenceSortedMap.<FrameType>builder()
+              .put(0, FrameType.initialized(argType))
+              .build();
+
       // if (arg == null) { return null };
       CfLabel nullDest = new CfLabel();
       instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
@@ -241,6 +250,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
       instructions.add(new CfConstNull());
       instructions.add(new CfReturn(ValueType.OBJECT));
       instructions.add(nullDest);
+      instructions.add(new CfFrame(locals, ImmutableList.of()));
 
       // if (arg instanceOf ReverseWrapper) { return ((ReverseWrapper) arg).wrapperField};
       assert reverseWrapperField != null;
@@ -254,6 +264,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
           new CfFieldInstruction(Opcodes.GETFIELD, reverseWrapperField, reverseWrapperField));
       instructions.add(new CfReturn(ValueType.fromDexType(reverseWrapperField.type)));
       instructions.add(unwrapDest);
+      instructions.add(new CfFrame(locals, ImmutableList.of()));
 
       // return new Wrapper(wrappedValue);
       instructions.add(new CfNew(wrapperField.holder));
