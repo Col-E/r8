@@ -36,6 +36,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public MethodSubject uniqueInstanceInitializer() {
+    return new AbsentMethodSubject();
+  }
+
+  @Override
   public MethodSubject uniqueMethodWithName(String name) {
     return new AbsentMethodSubject();
   }

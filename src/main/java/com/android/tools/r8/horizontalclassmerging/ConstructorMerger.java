@@ -107,7 +107,8 @@ public class ConstructorMerger {
 
   private MethodAccessFlags getAccessFlags() {
     // TODO(b/164998929): ensure this behaviour is correct, should probably calculate upper bound
-    return MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, true);
+    return MethodAccessFlags.fromSharedAccessFlags(
+        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, true);
   }
 
   /** Synthesize a new method which selects the constructor based on a parameter type. */

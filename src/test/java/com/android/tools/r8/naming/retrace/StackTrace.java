@@ -33,8 +33,18 @@ public class StackTrace {
 
     private Builder() {}
 
+    public Builder add(StackTrace stackTrace) {
+      stackTraceLines.addAll(stackTrace.getStackTraceLines());
+      return this;
+    }
+
     public Builder add(StackTraceLine line) {
       stackTraceLines.add(line);
+      return this;
+    }
+
+    public Builder add(int i, StackTraceLine line) {
+      stackTraceLines.add(i, line);
       return this;
     }
 

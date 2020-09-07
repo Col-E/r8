@@ -119,6 +119,16 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public MethodSubject uniqueInstanceInitializer() {
+    MethodSubject methodSubject = null;
+    for (FoundMethodSubject candidate : allMethods(FoundMethodSubject::isInstanceInitializer)) {
+      assert methodSubject == null;
+      methodSubject = candidate;
+    }
+    return methodSubject != null ? methodSubject : new AbsentMethodSubject();
+  }
+
+  @Override
   public MethodSubject uniqueMethodWithName(String name) {
     MethodSubject methodSubject = null;
     for (FoundMethodSubject candidate : allMethods()) {
