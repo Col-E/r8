@@ -10,6 +10,8 @@ import java.util.function.Consumer;
 /** Provides immutable access to {@link FieldAccessInfoCollectionImpl}. */
 public interface FieldAccessInfoCollection<T extends FieldAccessInfo> {
 
+  void destroyAccessContexts();
+
   void flattenAccessContexts();
 
   boolean contains(DexField field);

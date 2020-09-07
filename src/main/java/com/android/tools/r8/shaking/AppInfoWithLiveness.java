@@ -28,7 +28,6 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
-import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
@@ -118,7 +117,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * a given field is read/written by the program, and it also includes all indirect accesses to
    * each field. The latter is used, for example, during member rebinding.
    */
-  private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection;
+  private FieldAccessInfoCollectionImpl fieldAccessInfoCollection;
   /** Information about instantiated classes and their allocation sites. */
   private final ObjectAllocationInfoCollectionImpl objectAllocationInfoCollection;
   /** Set of all methods referenced in virtual invokes, along with calling context. */
@@ -715,25 +714,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return constClassReferences.contains(type);
   }
 
-  public AppInfoWithLiveness withoutStaticFieldsWrites(Set<DexField> noLongerWrittenFields) {
-    assert checkIfObsolete();
-    if (noLongerWrittenFields.isEmpty()) {
-      return this;
-    }
-    AppInfoWithLiveness result = new AppInfoWithLiveness(this);
-    result.fieldAccessInfoCollection.forEach(
-        info -> {
-          if (noLongerWrittenFields.contains(info.getField())) {
-            // Note that this implicitly mutates the current AppInfoWithLiveness, since the `info`
-            // instance is shared between the old and the new AppInfoWithLiveness. This should not
-            // lead to any problems, though, since the new AppInfo replaces the old AppInfo (we
-            // never use an obsolete AppInfo).
-            info.clearWrites();
-          }
-        });
-    return result;
-  }
-
   public Set<DexType> getDeadProtoTypes() {
     return deadProtoTypes;
   }
@@ -810,7 +790,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public boolean isFieldRead(DexEncodedField encodedField) {
     assert checkIfObsolete();
     DexField field = encodedField.field;
-    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
+    FieldAccessInfo info = getFieldAccessInfoCollection().get(field);
     if (info != null && info.isRead()) {
       return true;
     }
@@ -834,7 +814,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public boolean isFieldWrittenByFieldPutInstruction(DexEncodedField encodedField) {
     assert checkIfObsolete();
     DexField field = encodedField.field;
-    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
+    FieldAccessInfo info = getFieldAccessInfoCollection().get(field);
     if (info != null && info.isWritten()) {
       // The field is written directly by the program itself.
       return true;
@@ -850,13 +830,13 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public boolean isFieldOnlyWrittenInMethod(DexEncodedField field, DexEncodedMethod method) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
-    if (!isPinned(field.field)) {
-      FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(field.field);
-      return fieldAccessInfo != null
-          && fieldAccessInfo.isWritten()
-          && !fieldAccessInfo.isWrittenOutside(method);
+    if (isPinned(field.field)) {
+      return false;
     }
-    return false;
+    FieldAccessInfo fieldAccessInfo = getFieldAccessInfoCollection().get(field.field);
+    return fieldAccessInfo != null
+        && fieldAccessInfo.isWritten()
+        && !fieldAccessInfo.isWrittenOutside(method);
   }
 
   public boolean isInstanceFieldWrittenOnlyInInstanceInitializers(DexEncodedField field) {
@@ -865,7 +845,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (isPinned(field.field)) {
       return false;
     }
-    FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(field.field);
+    FieldAccessInfo fieldAccessInfo = getFieldAccessInfoCollection().get(field.field);
     if (fieldAccessInfo == null || !fieldAccessInfo.isWritten()) {
       return false;
     }
@@ -1015,7 +995,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteMethods(methodsTargetedByInvokeDynamic),
         lens.rewriteMethods(virtualMethodsTargetedByInvokeDirect),
         lens.rewriteMethods(liveMethods),
-        fieldAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
+        fieldAccessInfoCollection != null
+            ? fieldAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens)
+            : null,
         objectAllocationInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         rewriteInvokesWithContexts(virtualInvokes, lens),
         rewriteInvokesWithContexts(interfaceInvokes, lens),

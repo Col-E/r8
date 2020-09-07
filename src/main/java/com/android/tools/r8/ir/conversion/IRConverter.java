@@ -716,6 +716,9 @@ public class IRConverter {
       assert graphLensForIR == appView.graphLens();
     }
 
+    // The field access info collection is not maintained during IR processing.
+    appView.appInfo().withLiveness().getFieldAccessInfoCollection().destroyAccessContexts();
+
     // Assure that no more optimization feedback left after primary processing.
     assert feedback.noUpdatesLeft();
     appView.setAllCodeProcessed();

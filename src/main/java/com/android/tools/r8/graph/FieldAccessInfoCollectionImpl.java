@@ -16,6 +16,11 @@ public class FieldAccessInfoCollectionImpl
   private Map<DexField, FieldAccessInfoImpl> infos = new IdentityHashMap<>();
 
   @Override
+  public void destroyAccessContexts() {
+    infos.values().forEach(FieldAccessInfoImpl::destroyAccessContexts);
+  }
+
+  @Override
   public void flattenAccessContexts() {
     infos.values().forEach(FieldAccessInfoImpl::flattenAccessContexts);
   }

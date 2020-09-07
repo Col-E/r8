@@ -273,7 +273,7 @@ abstract class CallGraphBuilderBase {
       }
 
       FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(encodedField.field);
-      if (fieldAccessInfo != null) {
+      if (fieldAccessInfo != null && fieldAccessInfo.hasKnownWriteContexts()) {
         if (fieldAccessInfo.getNumberOfWriteContexts() == 1) {
           fieldAccessInfo.forEachWriteContext(this::addFieldReadEdge);
         }
