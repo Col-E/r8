@@ -24,6 +24,11 @@ public class InvokeStaticRange extends InvokeMethodRange {
   }
 
   @Override
+  public Type getInvokeType() {
+    return Type.STATIC;
+  }
+
+  @Override
   public String getName() {
     return NAME;
   }

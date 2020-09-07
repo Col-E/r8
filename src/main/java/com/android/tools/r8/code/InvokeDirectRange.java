@@ -24,6 +24,11 @@ public class InvokeDirectRange extends InvokeMethodRange {
   }
 
   @Override
+  public Type getInvokeType() {
+    return Type.DIRECT;
+  }
+
+  @Override
   public String getName() {
     return NAME;
   }

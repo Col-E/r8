@@ -24,6 +24,11 @@ public class InvokeSuperRange extends InvokeMethodRange {
   }
 
   @Override
+  public Type getInvokeType() {
+    return Type.SUPER;
+  }
+
+  @Override
   public String getName() {
     return NAME;
   }

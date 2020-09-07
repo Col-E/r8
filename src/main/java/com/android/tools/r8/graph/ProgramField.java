@@ -4,11 +4,22 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.dex.IndexedItemCollection;
+
 public class ProgramField extends DexClassAndField
     implements ProgramMember<DexEncodedField, DexField> {
 
   public ProgramField(DexProgramClass holder, DexEncodedField field) {
     super(holder, field);
+  }
+
+  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    getReference().collectIndexedItems(indexedItems);
+    DexEncodedField definition = getDefinition();
+    definition.annotations().collectIndexedItems(indexedItems);
+    if (definition.isStatic() && definition.hasExplicitStaticValue()) {
+      definition.getStaticValue().collectIndexedItems(indexedItems);
+    }
   }
 
   public boolean isStructurallyEqualTo(ProgramField other) {

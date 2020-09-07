@@ -93,7 +93,11 @@ public abstract class Instruction {
   }
 
   protected void writeFirst(int a, int b, ShortBuffer dest) {
-    dest.put((short) (((a & 0xf) << 12) | ((b & 0xf) << 8) | (getOpcode() & 0xff)));
+    writeFirst(a, b, dest, getOpcode());
+  }
+
+  protected void writeFirst(int a, int b, ShortBuffer dest, int opcode) {
+    dest.put((short) (((a & 0xf) << 12) | ((b & 0xf) << 8) | (opcode & 0xff)));
   }
 
   protected void write16BitValue(int value, ShortBuffer dest) {
@@ -110,8 +114,8 @@ public abstract class Instruction {
     write32BitValue((value >> 32) & 0xffffffff, dest);
   }
 
-  protected void write16BitReference(IndexedDexItem item, ShortBuffer dest,
-      ObjectToOffsetMapping mapping) {
+  protected void write16BitReference(
+      IndexedDexItem item, ShortBuffer dest, ObjectToOffsetMapping mapping) {
     int index = item.getOffset(mapping);
     assert index == (index & 0xffff);
     write16BitValue(index, dest);

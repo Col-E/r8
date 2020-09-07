@@ -6,8 +6,12 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
+import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import java.nio.ShortBuffer;
 
 public abstract class InvokeMethod extends Format35c<DexMethod> {
 
@@ -25,11 +29,29 @@ public abstract class InvokeMethod extends Format35c<DexMethod> {
       ProgramMethod context,
       GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
-    getMethod().collectIndexedItems(indexedItems);
+    DexMethod rewritten =
+        graphLens.lookupMethod(getMethod(), context.getReference(), getInvokeType()).getMethod();
+    rewritten.collectIndexedItems(indexedItems);
   }
 
   @Override
   public final DexMethod getMethod() {
     return BBBB;
+  }
+
+  public abstract Invoke.Type getInvokeType();
+
+  @Override
+  public void write(
+      ShortBuffer dest,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter) {
+    GraphLensLookupResult lookup =
+        graphLens.lookupMethod(getMethod(), context.getReference(), getInvokeType());
+    writeFirst(A, G, dest, lookup.getType().getDexOpcode());
+    write16BitReference(lookup.getMethod(), dest, mapping);
+    write16BitValue(combineBytes(makeByte(F, E), makeByte(D, C)), dest);
   }
 }

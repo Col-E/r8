@@ -6,11 +6,13 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import java.nio.ShortBuffer;
 
 public class InstanceOf extends Format22c<DexType> {
 
@@ -57,7 +59,8 @@ public class InstanceOf extends Format22c<DexType> {
       ProgramMethod context,
       GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
-    getType().collectIndexedItems(indexedItems);
+    DexType rewritten = graphLens.lookupType(getType());
+    rewritten.collectIndexedItems(indexedItems);
   }
 
   public DexType getType() {
@@ -77,5 +80,17 @@ public class InstanceOf extends Format22c<DexType> {
   @Override
   public boolean canThrow() {
     return true;
+  }
+
+  @Override
+  public void write(
+      ShortBuffer dest,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter) {
+    DexType lookup = graphLens.lookupType(getType());
+    writeFirst(B, A, dest);
+    write16BitReference(lookup, dest, mapping);
   }
 }

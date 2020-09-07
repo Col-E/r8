@@ -24,6 +24,11 @@ public class InvokeDirect extends InvokeMethod {
   }
 
   @Override
+  public Type getInvokeType() {
+    return Type.DIRECT;
+  }
+
+  @Override
   public String getName() {
     return NAME;
   }

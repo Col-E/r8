@@ -24,6 +24,11 @@ public class InvokeSuper extends InvokeMethod {
   }
 
   @Override
+  public Type getInvokeType() {
+    return Type.SUPER;
+  }
+
+  @Override
   public String getName() {
     return NAME;
   }

@@ -54,8 +54,8 @@ public class FillArrayDataPayload extends Nop {
     writeFirst(3, dest);  // Pseudo-opcode = 0x0300
     write16BitValue(element_width, dest);
     write32BitValue(size, dest);
-    for (int i = 0; i < data.length; i++) {
-      write16BitValue(data[i], dest);
+    for (short datum : data) {
+      write16BitValue(datum, dest);
     }
   }
 

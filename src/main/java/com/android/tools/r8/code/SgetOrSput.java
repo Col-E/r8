@@ -25,7 +25,8 @@ abstract class SgetOrSput extends Format21c<DexField> {
       ProgramMethod context,
       GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
-    getField().collectIndexedItems(indexedItems);
+    DexField rewritten = graphLens.lookupField(getField());
+    rewritten.collectIndexedItems(indexedItems);
   }
 
   @Override

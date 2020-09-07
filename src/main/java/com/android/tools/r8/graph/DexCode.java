@@ -420,11 +420,11 @@ public class DexCode extends Code {
       }
     }
     if (debugInfo != null) {
-      getDebugInfoForWriting().collectIndexedItems(indexedItems);
+      getDebugInfoForWriting().collectIndexedItems(indexedItems, graphLens);
     }
     if (handlers != null) {
       for (TryHandler handler : handlers) {
-        handler.collectIndexedItems(indexedItems);
+        handler.collectIndexedItems(indexedItems, graphLens);
       }
     }
   }
@@ -553,9 +553,9 @@ public class DexCode extends Code {
       return false;
     }
 
-    public void collectIndexedItems(IndexedItemCollection indexedItems) {
+    public void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens) {
       for (TypeAddrPair pair : pairs) {
-        pair.collectIndexedItems(indexedItems);
+        pair.collectIndexedItems(indexedItems, graphLens);
       }
     }
 
@@ -595,8 +595,9 @@ public class DexCode extends Code {
         this.addr = addr;
       }
 
-      public void collectIndexedItems(IndexedItemCollection indexedItems) {
-        type.collectIndexedItems(indexedItems);
+      public void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens) {
+        DexType rewritten = graphLens.lookupType(type);
+        rewritten.collectIndexedItems(indexedItems);
       }
 
       @Override

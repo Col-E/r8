@@ -6,11 +6,13 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import java.nio.ShortBuffer;
 
 public class InvokeCustomRange extends Format3rc<DexCallSite> {
 
@@ -47,7 +49,8 @@ public class InvokeCustomRange extends Format3rc<DexCallSite> {
       ProgramMethod context,
       GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
-    getCallSite().collectIndexedItems(indexedItems);
+    DexCallSite rewritten = rewriter.rewriteCallSite(getCallSite(), context);
+    rewritten.collectIndexedItems(indexedItems);
   }
 
   @Override
@@ -68,5 +71,18 @@ public class InvokeCustomRange extends Format3rc<DexCallSite> {
   @Override
   public boolean canThrow() {
     return true;
+  }
+
+  @Override
+  public void write(
+      ShortBuffer dest,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter) {
+    DexCallSite rewritten = rewriter.rewriteCallSite(getCallSite(), context);
+    writeFirst(AA, dest);
+    write16BitReference(rewritten, dest, mapping);
+    write16BitValue(CCCC, dest);
   }
 }

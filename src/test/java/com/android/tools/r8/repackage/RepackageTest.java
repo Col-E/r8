@@ -109,7 +109,6 @@ public class RepackageTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(!enableExperimentalRepackaging || parameters.isCfRuntime());
     testForR8(parameters.getBackend())
         .addProgramFiles(ToolHelper.getClassFilesForTestPackage(TestClass.class.getPackage()))
         .addKeepMainRule(TestClass.class)

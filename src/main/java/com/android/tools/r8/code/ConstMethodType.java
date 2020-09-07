@@ -71,11 +71,13 @@ public class ConstMethodType extends Format21c<DexProto> {
       GraphLens graphLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
-    int index = BBBB.getOffset(mapping);
+    DexProto rewritten = rewriter.rewriteProto(getMethodType());
+    int index = rewritten.getOffset(mapping);
     if (index != (index & 0xffff)) {
       throw new InternalCompilerError("MethodType-index overflow.");
     }
-    super.write(dest, context, graphLens, mapping, rewriter);
+    writeFirst(AA, dest);
+    write16BitReference(rewritten, dest, mapping);
   }
 
   @Override
@@ -84,7 +86,8 @@ public class ConstMethodType extends Format21c<DexProto> {
       ProgramMethod context,
       GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
-    getMethodType().collectIndexedItems(indexedItems);
+    DexProto rewritten = rewriter.rewriteProto(getMethodType());
+    rewritten.collectIndexedItems(indexedItems);
   }
 
   @Override

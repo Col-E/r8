@@ -24,6 +24,11 @@ public class InvokeVirtual extends InvokeMethod {
   }
 
   @Override
+  public Type getInvokeType() {
+    return Type.VIRTUAL;
+  }
+
+  @Override
   public String getName() {
     return NAME;
   }

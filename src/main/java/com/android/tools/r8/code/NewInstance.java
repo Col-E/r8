@@ -47,7 +47,8 @@ public class NewInstance extends Format21c<DexType> {
       ProgramMethod context,
       GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
-    getType().collectIndexedItems(indexedItems);
+    DexType rewritten = graphLens.lookupType(getType());
+    rewritten.collectIndexedItems(indexedItems);
   }
 
   @Override

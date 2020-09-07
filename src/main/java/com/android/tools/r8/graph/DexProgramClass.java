@@ -256,7 +256,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       for (InnerClassAttribute attribute : getInnerClasses()) {
         attribute.collectIndexedItems(indexedItems);
       }
-      forEachField(field -> field.collectIndexedItems(indexedItems));
+      forEachProgramField(field -> field.collectIndexedItems(indexedItems));
       forEachProgramMethod(method -> method.collectIndexedItems(indexedItems, graphLens, rewriter));
     }
   }

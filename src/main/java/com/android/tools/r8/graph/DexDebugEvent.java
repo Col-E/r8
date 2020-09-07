@@ -13,7 +13,7 @@ import java.util.Objects;
 abstract public class DexDebugEvent extends DexItem {
   public static final DexDebugEvent[] EMPTY_ARRAY = {};
 
-  public void collectIndexedItems(IndexedItemCollection collection) {
+  public void collectIndexedItems(IndexedItemCollection collection, GraphLens graphLens) {
     // Empty by default.
   }
 
@@ -220,12 +220,13 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection collection) {
+    public void collectIndexedItems(IndexedItemCollection collection, GraphLens graphLens) {
       if (name != null) {
         name.collectIndexedItems(collection);
       }
       if (type != null) {
-        type.collectIndexedItems(collection);
+        DexType rewritten = graphLens.lookupType(type);
+        rewritten.collectIndexedItems(collection);
       }
       if (signature != null) {
         signature.collectIndexedItems(collection);
@@ -359,7 +360,7 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public void collectIndexedItems(IndexedItemCollection collection) {
+    public void collectIndexedItems(IndexedItemCollection collection, GraphLens graphLens) {
       fileName.collectIndexedItems(collection);
     }
 

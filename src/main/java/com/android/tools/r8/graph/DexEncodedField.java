@@ -7,7 +7,6 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 
-import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -85,14 +84,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   public void setKotlinMemberInfo(KotlinFieldLevelInfo kotlinMemberInfo) {
     assert this.kotlinMemberInfo == NO_KOTLIN_INFO;
     this.kotlinMemberInfo = kotlinMemberInfo;
-  }
-
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
-    field.collectIndexedItems(indexedItems);
-    annotations().collectIndexedItems(indexedItems);
-    if (accessFlags.isStatic()) {
-      getStaticValue().collectIndexedItems(indexedItems);
-    }
   }
 
   @Override

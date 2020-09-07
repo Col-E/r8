@@ -54,14 +54,14 @@ public class DexDebugInfo extends CachedHashValueDexItem {
     return false;
   }
 
-  public void collectIndexedItems(IndexedItemCollection indexedItems) {
+  public void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens) {
     for (DexString parameter : parameters) {
       if (parameter != null) {
         parameter.collectIndexedItems(indexedItems);
       }
     }
     for (DexDebugEvent event : events) {
-      event.collectIndexedItems(indexedItems);
+      event.collectIndexedItems(indexedItems, graphLens);
     }
   }
 

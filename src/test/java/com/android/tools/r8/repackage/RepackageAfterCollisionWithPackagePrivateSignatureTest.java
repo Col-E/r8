@@ -47,7 +47,6 @@ public class RepackageAfterCollisionWithPackagePrivateSignatureTest extends Test
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
     testForR8(parameters.getBackend())
         .addInnerClasses(RepackageAfterCollisionWithPackagePrivateSignatureTest.class)
         .addKeepClassAndMembersRules(TestClass.class)

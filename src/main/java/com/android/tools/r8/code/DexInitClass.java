@@ -44,8 +44,11 @@ public class DexInitClass extends Base2Format {
       ProgramMethod context,
       GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
-    DexField field = indexedItems.getInitClassLens().getInitClassField(clazz);
-    field.collectIndexedItems(indexedItems);
+    // We intentionally apply the graph lens first, and then the init class lens, using the fact
+    // that the init class lens maps classes in the final program to fields in the final program.
+    DexType rewrittenClass = graphLens.lookupType(clazz);
+    DexField clinitField = indexedItems.getInitClassLens().getInitClassField(rewrittenClass);
+    clinitField.collectIndexedItems(indexedItems);
   }
 
   @Override
@@ -104,9 +107,12 @@ public class DexInitClass extends Base2Format {
       GraphLens graphLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
-    DexField field = mapping.getClinitField(clazz);
-    writeFirst(dest, buffer, getOpcode(field));
-    write16BitReference(field, buffer, mapping);
+    // We intentionally apply the graph lens first, and then the init class lens, using the fact
+    // that the init class lens maps classes in the final program to fields in the final program.
+    DexType rewrittenClass = graphLens.lookupType(clazz);
+    DexField clinitField = mapping.getClinitField(rewrittenClass);
+    writeFirst(dest, buffer, getOpcode(clinitField));
+    write16BitReference(clinitField, buffer, mapping);
   }
 
   @Override

@@ -24,6 +24,11 @@ public class InvokeInterfaceRange extends InvokeMethodRange {
   }
 
   @Override
+  public Type getInvokeType() {
+    return Type.INTERFACE;
+  }
+
+  @Override
   public String getName() {
     return NAME;
   }

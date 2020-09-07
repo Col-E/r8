@@ -24,6 +24,11 @@ public class InvokeInterface extends InvokeMethod {
   }
 
   @Override
+  public Type getInvokeType() {
+    return Type.INTERFACE;
+  }
+
+  @Override
   public String getName() {
     return NAME;
   }

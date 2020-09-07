@@ -73,11 +73,15 @@ public class ConstMethodHandle extends Format21c<DexMethodHandle> {
       GraphLens graphLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
-    int index = BBBB.getOffset(mapping);
+    DexMethodHandle rewritten =
+        rewriter.rewriteDexMethodHandle(
+            getMethodHandle(), MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY, context);
+    int index = rewritten.getOffset(mapping);
     if (index != (index & 0xffff)) {
       throw new InternalCompilerError("MethodHandle-index overflow.");
     }
-    super.write(dest, context, graphLens, mapping, rewriter);
+    writeFirst(AA, dest);
+    write16BitReference(rewritten, dest, mapping);
   }
 
   @Override
@@ -86,7 +90,10 @@ public class ConstMethodHandle extends Format21c<DexMethodHandle> {
       ProgramMethod context,
       GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
-    getMethodHandle().collectIndexedItems(indexedItems);
+    DexMethodHandle rewritten =
+        rewriter.rewriteDexMethodHandle(
+            getMethodHandle(), MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY, context);
+    rewritten.collectIndexedItems(indexedItems);
   }
 
   @Override
