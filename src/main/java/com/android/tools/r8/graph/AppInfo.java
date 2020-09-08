@@ -106,7 +106,7 @@ public class AppInfo implements DexDefinitionSupplier {
   public void addSynthesizedClass(DexProgramClass clazz, boolean addToMainDexClasses) {
     assert checkIfObsolete();
     syntheticItems.addSyntheticClass(clazz);
-    if (addToMainDexClasses) {
+    if (addToMainDexClasses && !mainDexClasses.isEmpty()) {
       mainDexClasses.add(clazz);
     }
   }

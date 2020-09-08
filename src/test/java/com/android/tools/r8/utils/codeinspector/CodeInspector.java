@@ -82,7 +82,8 @@ public class CodeInspector {
   }
 
   public CodeInspector(Path file, Path mappingFile) throws IOException {
-    this(Collections.singletonList(file), mappingFile.toString(), null);
+    this(
+        Collections.singletonList(file), mappingFile != null ? mappingFile.toString() : null, null);
   }
 
   public CodeInspector(Path file) throws IOException {
