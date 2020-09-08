@@ -5,7 +5,6 @@ package com.android.tools.r8.ir;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -34,8 +33,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
   protected DexApplication buildApplication(SmaliBuilder builder, InternalOptions options) {
     try {
-      return new ApplicationReader(builder.build(), options, Timing.empty())
-          .read(new MainDexClassesIgnoredWitness());
+      return new ApplicationReader(builder.build(), options, Timing.empty()).read();
     } catch (IOException | RecognitionException | ExecutionException e) {
       throw new RuntimeException(e);
     }

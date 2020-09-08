@@ -15,7 +15,6 @@ import com.android.tools.r8.D8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -58,7 +57,7 @@ public class TypeLatticeTest extends TestBase {
                     .build(),
                 options,
                 Timing.empty())
-            .read(new MainDexClassesIgnoredWitness())
+            .read()
             .toDirect();
     factory = options.itemFactory;
     appView = AppView.createForR8(application);

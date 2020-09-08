@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
@@ -76,8 +75,7 @@ public class CatchSuccessorFallthroughTest extends SmaliTestBase {
     options.programConsumer = DexIndexedConsumer.emptyConsumer();
 
     DexApplication application =
-        new ApplicationReader(originalApplication, options, Timing.empty())
-            .read(new MainDexClassesIgnoredWitness());
+        new ApplicationReader(originalApplication, options, Timing.empty()).read();
 
     ProgramMethod method = getProgramMethod(originalApplication, methodSig);
     // Get the IR pre-optimization.

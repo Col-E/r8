@@ -60,12 +60,6 @@ import java.util.stream.Collectors;
 
 public class ApplicationReader {
 
-  public abstract static class MainDexClassesReadOrIgnoredWitness {}
-
-  public static class MainDexClassesIgnoredWitness extends MainDexClassesReadOrIgnoredWitness {}
-
-  public static class MainDexClassesReadWitness extends MainDexClassesReadOrIgnoredWitness {}
-
   private final InternalOptions options;
   private final DexItemFactory itemFactory;
   private final Timing timing;
@@ -82,48 +76,41 @@ public class ApplicationReader {
     this.inputApp = inputApp;
   }
 
-  public LazyLoadedDexApplication read(
-      MainDexClassesReadOrIgnoredWitness mainDexClassesReadOrIgnoredWitness) throws IOException {
-    return read(mainDexClassesReadOrIgnoredWitness, (StringResource) null);
+  public LazyLoadedDexApplication read() throws IOException {
+    return read((StringResource) null);
   }
 
   public LazyLoadedDexApplication read(
-      MainDexClassesReadOrIgnoredWitness mainDexClassesReadOrIgnoredWitness,
       StringResource proguardMap)
       throws IOException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     try {
-      return read(mainDexClassesReadOrIgnoredWitness, proguardMap, executor);
+      return read(proguardMap, executor);
     } finally {
       executor.shutdown();
     }
   }
 
   public final LazyLoadedDexApplication read(
-      MainDexClassesReadOrIgnoredWitness mainDexClassesReadOrIgnoredWitness,
       ExecutorService executorService)
       throws IOException {
     return read(
-        mainDexClassesReadOrIgnoredWitness,
         inputApp.getProguardMapInputData(),
         executorService,
         ProgramClassCollection.defaultConflictResolver(options.reporter));
   }
 
   public final LazyLoadedDexApplication read(
-      MainDexClassesReadOrIgnoredWitness mainDexClassesReadOrIgnoredWitness,
       StringResource proguardMap,
       ExecutorService executorService)
       throws IOException {
     return read(
-        mainDexClassesReadOrIgnoredWitness,
         proguardMap,
         executorService,
         ProgramClassCollection.defaultConflictResolver(options.reporter));
   }
 
   public final LazyLoadedDexApplication read(
-      MainDexClassesReadOrIgnoredWitness mainDexClassesReadOrIgnoredWitness,
       StringResource proguardMap,
       ExecutorService executorService,
       ProgramClassConflictResolver resolver)

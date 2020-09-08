@@ -35,7 +35,6 @@ import com.android.tools.r8.code.SgetObject;
 import com.android.tools.r8.code.SgetShort;
 import com.android.tools.r8.code.SgetWide;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
@@ -464,8 +463,7 @@ final public class ResourceShrinker {
     AndroidApp inputApp = command.getInputApp();
     Timing timing = new Timing("resource shrinker analyzer");
     DexApplication dexApplication =
-        new ApplicationReader(inputApp, command.getInternalOptions(), timing)
-            .read(new MainDexClassesIgnoredWitness());
+        new ApplicationReader(inputApp, command.getInternalOptions(), timing).read();
     for (DexProgramClass programClass : dexApplication.classes()) {
       new DexClassUsageVisitor(programClass, callback).visit();
     }

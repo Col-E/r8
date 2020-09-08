@@ -4,7 +4,6 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -45,7 +44,6 @@ public class PrintClassList {
     DexApplication application =
         new ApplicationReader(builder.build(), new InternalOptions(), new Timing("PrintClassList"))
             .read(
-                new MainDexClassesIgnoredWitness(),
                 proguardMapFile == null ? null : StringResource.fromFile(proguardMapFile),
                 executorService);
     ClassNameMapper map = application.getProguardMap();

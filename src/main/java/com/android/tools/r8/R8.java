@@ -9,8 +9,6 @@ import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesReadWitness;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -292,8 +290,7 @@ public class R8 {
       AppView<AppInfoWithClassHierarchy> appView;
       {
         ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
-        DirectMappedDexApplication application =
-            applicationReader.read(new MainDexClassesReadWitness(), executorService).toDirect();
+        DirectMappedDexApplication application = applicationReader.read(executorService).toDirect();
         MainDexClasses mainDexClasses = applicationReader.readMainDexClasses(application);
 
         // Now that the dex-application is fully loaded, close any internal archive providers.
@@ -892,7 +889,7 @@ public class R8 {
           .verifyMappingToOriginalProgram(
               appView,
               new ApplicationReader(inputApp.withoutMainDexList(), options, timing)
-                  .read(new MainDexClassesIgnoredWitness(), executorService));
+                  .read(executorService));
 
       // Report synthetic rules (only for testing).
       // TODO(b/120959039): Move this to being reported through the graph consumer.

@@ -8,7 +8,6 @@ import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -202,9 +201,7 @@ public class GenerateLintFiles {
     AndroidApp library =
         AndroidApp.builder().addLibraryFiles(getAndroidJarPath(compilationApiLevel)).build();
     DirectMappedDexApplication dexApplication =
-        new ApplicationReader(library, options, Timing.empty())
-            .read(new MainDexClassesIgnoredWitness())
-            .toDirect();
+        new ApplicationReader(library, options, Timing.empty()).read().toDirect();
 
     // Collect all the methods that the library desugar configuration adds support for.
     Set<DexClass> classesWithAllMethodsSupported = Sets.newIdentityHashSet();

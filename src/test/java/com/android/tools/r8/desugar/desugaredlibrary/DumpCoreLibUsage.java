@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -68,7 +67,7 @@ public class DumpCoreLibUsage {
         AndroidApp.builder().addLibraryFiles(ToolHelper.getAndroidJar(apiLevel)).build();
     DirectMappedDexApplication dexApplication =
         new ApplicationReader(input, new InternalOptions(factory, new Reporter()), Timing.empty())
-            .read(new MainDexClassesIgnoredWitness())
+            .read()
             .toDirect();
 
     Set<DexReference> found = Sets.newIdentityHashSet();

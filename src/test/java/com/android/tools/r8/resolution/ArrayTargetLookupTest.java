@@ -10,7 +10,6 @@ import static junit.framework.TestCase.assertNull;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -37,9 +36,7 @@ public class ArrayTargetLookupTest extends TestBase {
             .addProgramFiles(ToolHelper.getClassFileForTestClass(Foo.class))
             .build();
     DirectMappedDexApplication application =
-        new ApplicationReader(app, options, timing)
-            .read(new MainDexClassesIgnoredWitness())
-            .toDirect();
+        new ApplicationReader(app, options, timing).read().toDirect();
     AppInfoWithClassHierarchy appInfo = AppView.createForR8(application).appInfo();
     DexItemFactory factory = options.itemFactory;
     DexType fooType =

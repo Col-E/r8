@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar;
 
 
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -105,8 +104,7 @@ public final class BackportedMethodRewriter {
     AppInfo appInfo = null;
     if (androidApp != null) {
       DexApplication app =
-          new ApplicationReader(androidApp, options, Timing.empty())
-              .read(new MainDexClassesIgnoredWitness(), executor);
+          new ApplicationReader(androidApp, options, Timing.empty()).read(executor);
       appInfo = AppInfo.createInitialAppInfo(app);
     }
     AppView<?> appView = AppView.createForD8(appInfo, rewritePrefix);

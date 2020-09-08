@@ -19,7 +19,6 @@ import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -640,8 +639,7 @@ public class TestBase {
       throws Exception {
     assert options.programConsumer == null;
     options.programConsumer = DexIndexedConsumer.emptyConsumer();
-    return new ApplicationReader(app, options, Timing.empty())
-        .read(new MainDexClassesIgnoredWitness());
+    return new ApplicationReader(app, options, Timing.empty()).read();
   }
 
   protected static AppView<AppInfo> computeAppView(AndroidApp app) throws Exception {

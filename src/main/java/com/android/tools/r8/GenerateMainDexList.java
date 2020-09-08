@@ -6,7 +6,6 @@ package com.android.tools.r8;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
@@ -49,9 +48,7 @@ public class GenerateMainDexList {
       throws IOException {
     try {
       DirectMappedDexApplication application =
-          new ApplicationReader(app, options, timing)
-              .read(new MainDexClassesIgnoredWitness(), executor)
-              .toDirect();
+          new ApplicationReader(app, options, timing).read(executor).toDirect();
       AppView<? extends AppInfoWithClassHierarchy> appView = AppView.createForR8(application);
       appView.setAppServices(AppServices.builder(appView).build());
 

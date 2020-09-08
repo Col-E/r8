@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException
 
 import com.android.tools.r8.DexIndexedConsumer.DirectoryConsumer;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesReadWitness;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.AppInfo;
@@ -75,7 +74,7 @@ public final class DexSplitterHelper {
       Timing timing = new Timing("DexSplitter");
       ApplicationReader applicationReader =
           new ApplicationReader(command.getInputApp(), options, timing);
-      DexApplication app = applicationReader.read(new MainDexClassesReadWitness(), executor);
+      DexApplication app = applicationReader.read(executor);
       MainDexClasses mainDexClasses = applicationReader.readMainDexClasses(app);
 
       List<Marker> markers = app.dexItemFactory.extractMarkers();

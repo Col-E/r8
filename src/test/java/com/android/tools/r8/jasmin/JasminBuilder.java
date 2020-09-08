@@ -9,7 +9,6 @@ import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -519,6 +518,6 @@ public class JasminBuilder {
 
   public DexApplication read(InternalOptions options) throws Exception {
     Timing timing = Timing.empty();
-    return new ApplicationReader(build(), options, timing).read(new MainDexClassesIgnoredWitness());
+    return new ApplicationReader(build(), options, timing).read();
   }
 }

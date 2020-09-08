@@ -11,7 +11,6 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.CfCode;
@@ -108,8 +107,7 @@ public class CodeInspector {
     InternalOptions options = runOptionsConsumer(optionsConsumer);
     dexItemFactory = options.itemFactory;
     AndroidApp input = AndroidApp.builder().addProgramFiles(files).build();
-    application =
-        new ApplicationReader(input, options, timing).read(new MainDexClassesIgnoredWitness());
+    application = new ApplicationReader(input, options, timing).read();
   }
 
   public CodeInspector(AndroidApp app) throws IOException {
@@ -120,7 +118,7 @@ public class CodeInspector {
       throws IOException {
     this(
         new ApplicationReader(app, runOptionsConsumer(optionsConsumer), Timing.empty())
-            .read(new MainDexClassesIgnoredWitness(), app.getProguardMapOutputData()));
+            .read(app.getProguardMapOutputData()));
   }
 
   private static InternalOptions runOptionsConsumer(Consumer<InternalOptions> optionsConsumer) {
@@ -138,14 +136,13 @@ public class CodeInspector {
   public CodeInspector(AndroidApp app, Path proguardMapFile) throws IOException {
     this(
         new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
-            .read(new MainDexClassesIgnoredWitness(), StringResource.fromFile(proguardMapFile)));
+            .read(StringResource.fromFile(proguardMapFile)));
   }
 
   public CodeInspector(AndroidApp app, String proguardMapContent) throws IOException {
     this(
         new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
             .read(
-                new MainDexClassesIgnoredWitness(),
                 StringResource.fromString(proguardMapContent, Origin.unknown())));
   }
 

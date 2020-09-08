@@ -11,7 +11,6 @@ import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.bisect.BisectOptions.Result;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.origin.Origin;
@@ -89,12 +88,8 @@ public class BisectTest extends TestBase {
       while (clazz == null) {
         InternalOptions options = new InternalOptions();
         Timing timing = Timing.empty();
-        DexApplication appGood =
-            new ApplicationReader(goodInput, options, timing)
-                .read(new MainDexClassesIgnoredWitness());
-        DexApplication appBad =
-            new ApplicationReader(badInput, options, timing)
-                .read(new MainDexClassesIgnoredWitness());
+        DexApplication appGood = new ApplicationReader(goodInput, options, timing).read();
+        DexApplication appBad = new ApplicationReader(badInput, options, timing).read();
         BisectState state = new BisectState(appGood, appBad, stateFile);
         state.read();
         if (lastResult != Result.UNKNOWN) {
@@ -117,11 +112,8 @@ public class BisectTest extends TestBase {
   public void bisectWithInternalCommand() throws Exception {
     InternalOptions options = new InternalOptions();
     Timing timing = Timing.empty();
-    DexApplication appGood =
-        new ApplicationReader(buildGood(), options, timing)
-            .read(new MainDexClassesIgnoredWitness());
-    DexApplication appBad =
-        new ApplicationReader(buildBad(), options, timing).read(new MainDexClassesIgnoredWitness());
+    DexApplication appGood = new ApplicationReader(buildGood(), options, timing).read();
+    DexApplication appBad = new ApplicationReader(buildBad(), options, timing).read();
     ExecutorService executor = Executors.newWorkStealingPool();
     try {
       BisectState state = new BisectState(appGood, appBad, null);

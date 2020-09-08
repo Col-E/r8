@@ -7,8 +7,6 @@ import static com.android.tools.r8.D8Command.USAGE_MESSAGE;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesReadWitness;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -168,8 +166,7 @@ public final class D8 {
     PrefixRewritingMapper rewritePrefix =
         options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
     ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
-    LazyLoadedDexApplication app =
-        applicationReader.read(new MainDexClassesReadWitness(), executor);
+    LazyLoadedDexApplication app = applicationReader.read(executor);
     AppInfo appInfo = AppInfo.createInitialAppInfo(app, applicationReader.readMainDexClasses(app));
     return AppView.createForD8(appInfo, rewritePrefix);
   }
@@ -363,9 +360,7 @@ public final class D8 {
     builder.getProgramResourceProviders().clear();
     builder.addProgramResourceProvider(convertedCfFiles);
     AndroidApp newAndroidApp = builder.build();
-    DexApplication newApp =
-        new ApplicationReader(newAndroidApp, options, timing)
-            .read(new MainDexClassesIgnoredWitness(), executor);
+    DexApplication newApp = new ApplicationReader(newAndroidApp, options, timing).read(executor);
     DexApplication.Builder<?> finalDexApp = newApp.builder();
     for (DexProgramClass dexProgramClass : dexProgramClasses) {
       finalDexApp.addProgramClass(dexProgramClass);

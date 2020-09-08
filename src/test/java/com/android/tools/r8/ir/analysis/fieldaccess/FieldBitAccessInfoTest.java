@@ -16,7 +16,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -133,7 +132,7 @@ public class FieldBitAccessInfoTest extends TestBase {
                     .build(),
                 options,
                 timing)
-            .read(new MainDexClassesIgnoredWitness())
+            .read()
             .toDirect();
     return AppView.createForR8(application);
   }

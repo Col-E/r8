@@ -9,7 +9,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -33,7 +32,7 @@ public class DexTypeTest {
                     .build(),
                 options,
                 Timing.empty())
-            .read(new MainDexClassesIgnoredWitness())
+            .read()
             .toDirect();
     factory = options.itemFactory;
     appInfo = AppView.createForR8(application).appInfo();

@@ -14,7 +14,6 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -1098,9 +1097,7 @@ public class ToolHelper {
             .addProgramFiles(ListUtils.map(fileNames, Paths::get))
             .addLibraryFiles(androidJar)
             .build();
-    return new ApplicationReader(input, new InternalOptions(), Timing.empty())
-        .read(new MainDexClassesIgnoredWitness())
-        .toDirect();
+    return new ApplicationReader(input, new InternalOptions(), Timing.empty()).read().toDirect();
   }
 
   public static ProguardConfiguration loadProguardConfiguration(
@@ -2131,9 +2128,7 @@ public class ToolHelper {
   public static void disassemble(AndroidApp app, PrintStream ps)
       throws IOException, ExecutionException {
     DexApplication application =
-        new ApplicationReader(app, new InternalOptions(), Timing.empty())
-            .read(new MainDexClassesIgnoredWitness())
-            .toDirect();
+        new ApplicationReader(app, new InternalOptions(), Timing.empty()).read().toDirect();
     new AssemblyWriter(application, new InternalOptions(), true, false, true).write(ps);
   }
 

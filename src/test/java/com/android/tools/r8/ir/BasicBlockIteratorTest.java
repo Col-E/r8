@@ -7,7 +7,6 @@ package com.android.tools.r8.ir;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
@@ -71,8 +70,7 @@ public class BasicBlockIteratorTest extends SmaliTestBase {
     AndroidApp application = buildApplication(builder);
     InternalOptions options = new InternalOptions();
     DexApplication dexApplication =
-        new ApplicationReader(application, options, Timing.empty())
-            .read(new MainDexClassesIgnoredWitness());
+        new ApplicationReader(application, options, Timing.empty()).read();
     AppView<?> appView = AppView.createForD8(AppInfo.createInitialAppInfo(dexApplication));
 
     // Build the code, and split the code into three blocks.

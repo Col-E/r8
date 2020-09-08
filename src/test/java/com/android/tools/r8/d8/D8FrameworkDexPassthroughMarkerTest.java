@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.DexApplication;
@@ -68,9 +67,7 @@ public class D8FrameworkDexPassthroughMarkerTest {
     Marker selfie = Marker.parse(markerDexString);
     assert marker.equals(selfie);
     AndroidApp app = ToolHelper.runD8(command, opts -> opts.setMarker(marker));
-    DexApplication dexApp =
-        new ApplicationReader(app, options, Timing.empty())
-            .read(new MainDexClassesIgnoredWitness());
+    DexApplication dexApp = new ApplicationReader(app, options, Timing.empty()).read();
     Collection<Marker> markers = dexApp.dexItemFactory.extractMarkers();
     assertEquals(1, markers.size());
     Marker readMarker = markers.iterator().next();

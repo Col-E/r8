@@ -7,7 +7,6 @@ import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -113,9 +112,7 @@ public class Smali {
     options.programConsumer = consumer;
     ExecutorService executor = ThreadUtils.getExecutorService(1);
     try {
-      DexApplication dexApp =
-          new ApplicationReader(app, options, Timing.empty())
-              .read(new MainDexClassesIgnoredWitness(), executor);
+      DexApplication dexApp = new ApplicationReader(app, options, Timing.empty()).read(executor);
       ApplicationWriter writer =
           new ApplicationWriter(
               AppView.createForD8(AppInfo.createInitialAppInfo(dexApp)),

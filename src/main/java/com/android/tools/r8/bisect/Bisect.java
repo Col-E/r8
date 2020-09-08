@@ -8,7 +8,6 @@ import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.bisect.BisectOptions.Result;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfo;
@@ -178,8 +177,7 @@ public class Bisect {
   private DexApplication readApp(Path apk, InternalOptions options, ExecutorService executor)
       throws IOException, ExecutionException {
     AndroidApp app = AndroidApp.builder().addProgramFiles(apk).build();
-    return new ApplicationReader(app, options, timing)
-        .read(new MainDexClassesIgnoredWitness(), executor);
+    return new ApplicationReader(app, options, timing).read(executor);
   }
 
   private static void writeApp(DexApplication app, Path output, ExecutorService executor)

@@ -6,7 +6,6 @@ package com.android.tools.r8;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
@@ -350,9 +349,7 @@ public class PrintUses {
     this.allowObfuscation = allowObfuscation;
     InternalOptions options = new InternalOptions();
     application =
-        new ApplicationReader(inputApp, options, new Timing("PrintUses"))
-            .read(new MainDexClassesIgnoredWitness())
-            .toDirect();
+        new ApplicationReader(inputApp, options, new Timing("PrintUses")).read().toDirect();
     appInfo =
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
             application, MainDexClasses.createEmptyMainDexClasses());
