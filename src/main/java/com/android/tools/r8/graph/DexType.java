@@ -286,21 +286,37 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   // TODO(b/158159959): Remove usage of name-based identification.
   public boolean isD8R8SynthesizedClassType() {
     String name = toSourceString();
-    return name.contains(COMPANION_CLASS_NAME_SUFFIX)
-        || name.contains(ENUM_UNBOXING_UTILITY_CLASS_NAME)
+    // The synthesized classes listed here must always be unique to a program context and thus
+    // never duplicated for distinct inputs.
+    return
+    // Hygienic suffix.
+    name.contains(COMPANION_CLASS_NAME_SUFFIX)
+        // Only generated in core lib.
         || name.contains(EMULATE_LIBRARY_CLASS_NAME_SUFFIX)
-        || name.contains(DISPATCH_CLASS_NAME_SUFFIX)
         || name.contains(TYPE_WRAPPER_SUFFIX)
         || name.contains(VIVIFIED_TYPE_WRAPPER_SUFFIX)
-        || name.contains(LAMBDA_CLASS_NAME_PREFIX)
-        || name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX)
-        || name.contains(OutlineOptions.CLASS_NAME)
-        || name.contains(TwrCloseResourceRewriter.UTILITY_CLASS_NAME)
-        || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME)
-        || name.contains(BackportedMethodRewriter.UTILITY_CLASS_NAME_PREFIX)
         || name.contains(DesugaredLibraryRetargeter.DESUGAR_LIB_RETARGET_CLASS_NAME_PREFIX)
-        || name.contains(ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME)
-        || oldSynthesizedName(name);
+        // Non-hygienic types.
+        || isSynthesizedTypeThatCouldBeDuplicated(name);
+  }
+
+  public boolean isLegacySynthesizedTypeAllowedDuplication() {
+    String name = toSourceString();
+    return isSynthesizedTypeThatCouldBeDuplicated(name) || oldSynthesizedName(name);
+  }
+
+  private static boolean isSynthesizedTypeThatCouldBeDuplicated(String name) {
+    // Any entry that is removed from here must be added to OLD_SYNTHESIZED_NAMES to ensure that
+    // newer releases can be used to merge previous builds.
+    return name.contains(ENUM_UNBOXING_UTILITY_CLASS_NAME) // Global singleton.
+        || name.contains(LAMBDA_CLASS_NAME_PREFIX) // Could collide.
+        || name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
+        || name.contains(DISPATCH_CLASS_NAME_SUFFIX) // Shared on reference.
+        || name.contains(OutlineOptions.CLASS_NAME) // Global singleton.
+        || name.contains(TwrCloseResourceRewriter.UTILITY_CLASS_NAME) // Global singleton.
+        || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME) // Global singleton.
+        || name.contains(BackportedMethodRewriter.UTILITY_CLASS_NAME_PREFIX) // Shared on reference.
+        || name.contains(ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME); // Global singleton.
   }
 
   private boolean oldSynthesizedName(String name) {

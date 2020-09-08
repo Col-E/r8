@@ -589,52 +589,53 @@ public class IRConverter {
 
   private void convertMethod(ProgramMethod method) {
     DexEncodedMethod definition = method.getDefinition();
-    if (definition.getCode() != null) {
-      boolean matchesMethodFilter = options.methodMatchesFilter(definition);
-      if (matchesMethodFilter) {
-        if (appView.options().enableNeverMergePrefixes) {
-          for (DexString neverMergePrefix : neverMergePrefixes) {
-            // Synthetic classes will always be merged.
-            if (appView.appInfo().getSyntheticItems().isSyntheticClass(method.getHolder())) {
-              continue;
-            }
-            if (method.getHolderType().descriptor.startsWith(neverMergePrefix)) {
-              seenNeverMergePrefix.getAndSet(true);
-            } else {
-              seenNotNeverMergePrefix.getAndSet(true);
-            }
-            // Don't mix.
-            if (seenNeverMergePrefix.get() && seenNotNeverMergePrefix.get()) {
-              StringBuilder message = new StringBuilder();
-              message
-                  .append("Merging dex file containing classes with prefix")
-                  .append(neverMergePrefixes.size() > 1 ? "es " : " ");
-              for (int i = 0; i < neverMergePrefixes.size(); i++) {
-                message
-                    .append("'")
-                    .append(neverMergePrefixes.get(0).toString().substring(1).replace('/', '.'))
-                    .append("'")
-                    .append(i < neverMergePrefixes.size() - 1 ? ", " : "");
-              }
-              message.append(" with classes with any other prefixes is not allowed.");
-              throw new CompilationError(message.toString());
-            }
-          }
+    if (definition.getCode() == null) {
+      return;
+    }
+    if (!options.methodMatchesFilter(definition)) {
+      return;
+    }
+    checkPrefixMerging(method);
+    if (options.isGeneratingClassFiles()
+        || !(options.passthroughDexCode && definition.getCode().isDexCode())) {
+      // We do not process in call graph order, so anything could be a leaf.
+      rewriteCode(
+          method, simpleOptimizationFeedback, OneTimeMethodProcessor.create(method, appView), null);
+    } else {
+      assert definition.getCode().isDexCode();
+    }
+    if (!options.isGeneratingClassFiles()) {
+      updateHighestSortingStrings(definition);
+    }
+  }
+
+  private void checkPrefixMerging(ProgramMethod method) {
+    if (!appView.options().enableNeverMergePrefixes) {
+      return;
+    }
+    for (DexString neverMergePrefix : neverMergePrefixes) {
+      if (method.getHolderType().descriptor.startsWith(neverMergePrefix)) {
+        seenNeverMergePrefix.getAndSet(true);
+      } else {
+        seenNotNeverMergePrefix.getAndSet(true);
+      }
+      // Don't mix.
+      // TODO(b/168001352): Consider requiring that no 'never merge' prefix is ever seen as a
+      //  passthrough object.
+      if (seenNeverMergePrefix.get() && seenNotNeverMergePrefix.get()) {
+        StringBuilder message = new StringBuilder();
+        message
+            .append("Merging dex file containing classes with prefix")
+            .append(neverMergePrefixes.size() > 1 ? "es " : " ");
+        for (int i = 0; i < neverMergePrefixes.size(); i++) {
+          message
+              .append("'")
+              .append(neverMergePrefixes.get(0).toString().substring(1).replace('/', '.'))
+              .append("'")
+              .append(i < neverMergePrefixes.size() - 1 ? ", " : "");
         }
-        if (options.isGeneratingClassFiles()
-            || !(options.passthroughDexCode && definition.getCode().isDexCode())) {
-          // We do not process in call graph order, so anything could be a leaf.
-          rewriteCode(
-              method,
-              simpleOptimizationFeedback,
-              OneTimeMethodProcessor.create(method, appView),
-              null);
-        } else {
-          assert definition.getCode().isDexCode();
-        }
-        if (!options.isGeneratingClassFiles()) {
-          updateHighestSortingStrings(definition);
-        }
+        message.append(" with classes with any other prefixes is not allowed.");
+        throw new CompilationError(message.toString());
       }
     }
   }
