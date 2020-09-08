@@ -10,17 +10,39 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class MainDexWarningsTest extends TestBase {
 
-  private List<Class<?>> testClasses = ImmutableList.of(Main.class, Static.class, Static2.class);
-  private Class<?> mainClass = Main.class;
+  private static final List<Class<?>> testClasses =
+      ImmutableList.of(Main.class, Static.class, Static2.class);
+  private static final List<Class<?>> testClassesWithoutStatic =
+      ImmutableList.of(Main.class, Static2.class);
+  private static final Class<?> mainClass = Main.class;
+
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withDexRuntimes()
+        .withApiLevelsEndingAtExcluding(apiLevelWithNativeMultiDexSupport())
+        .build();
+  }
+
+  public MainDexWarningsTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   private void classStaticGone(CodeInspector inspector) {
     assertThat(inspector.clazz(Static.class), CoreMatchers.not(isPresent()));
@@ -29,12 +51,13 @@ public class MainDexWarningsTest extends TestBase {
 
   @Test
   public void testNoWarningFromMainDexRules() throws Exception {
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .setMinApi(AndroidApiLevel.K)
         .addProgramClasses(testClasses)
         .addKeepMainRule(mainClass)
         // Include main dex rule for class Static.
         .addMainDexClassRules(Main.class, Static.class)
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::classStaticGone)
         .assertNoMessages();
@@ -42,13 +65,14 @@ public class MainDexWarningsTest extends TestBase {
 
   @Test
   public void testWarningFromManualMainDexList() throws Exception {
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .setMinApi(AndroidApiLevel.K)
-        .addProgramClasses(testClasses)
+        .addProgramClasses(testClassesWithoutStatic)
         .addKeepMainRule(mainClass)
         // Include explicit main dex entry for class Static.
         .addMainDexListClasses(Static.class)
         .allowDiagnosticWarningMessages()
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::classStaticGone)
         .assertOnlyWarnings()
@@ -59,15 +83,16 @@ public class MainDexWarningsTest extends TestBase {
 
   @Test
   public void testWarningFromManualMainDexListWithRuleAsWell() throws Exception {
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .setMinApi(AndroidApiLevel.K)
-        .addProgramClasses(testClasses)
+        .addProgramClasses(testClassesWithoutStatic)
         .addKeepMainRule(mainClass)
         // Include explicit main dex entry for class Static.
         .addMainDexListClasses(Main.class, Static.class)
         // Include main dex rule for class Static2.
         .addMainDexClassRules(Static2.class)
         .allowDiagnosticWarningMessages()
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::classStaticGone)
         .assertOnlyWarnings()
