@@ -2792,7 +2792,7 @@ public class Enqueuer {
         new ArrayList<>();
 
     // Subset of synthesized classes that need to be added to the main-dex file.
-    Set<DexType> mainDexTypes = Sets.newIdentityHashSet();
+    Set<DexProgramClass> mainDexTypes = Sets.newIdentityHashSet();
 
     boolean isEmpty() {
       boolean empty =
@@ -2808,7 +2808,7 @@ public class Enqueuer {
       assert !syntheticInstantiations.containsKey(clazz.type);
       syntheticInstantiations.put(clazz.type, new Pair<>(clazz, context));
       if (isMainDexClass) {
-        mainDexTypes.add(clazz.type);
+        mainDexTypes.add(clazz);
       }
     }
 
@@ -2836,7 +2836,11 @@ public class Enqueuer {
         appBuilder.addProgramClass(clazzAndContext.getFirst());
       }
       appBuilder.addClasspathClasses(syntheticClasspathClasses.values());
-      appBuilder.addToMainDexList(mainDexTypes);
+    }
+
+    void amendMainDexClasses(MainDexClasses mainDexClasses) {
+      assert !isEmpty();
+      mainDexClasses.addAll(mainDexTypes);
     }
 
     void enqueueWorkItems(Enqueuer enqueuer) {
@@ -2887,6 +2891,7 @@ public class Enqueuer {
               additions.amendApplication(appBuilder);
               return appBuilder.build();
             });
+    additions.amendMainDexClasses(appInfo.getMainDexClasses());
     appView.setAppInfo(appInfo);
     subtypingInfo = new SubtypingInfo(appView);
 
@@ -3015,6 +3020,7 @@ public class Enqueuer {
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             app,
+            appInfo.getMainDexClasses(),
             appInfo.getSyntheticItems().commit(app),
             deadProtoTypes,
             mode.isFinalTreeShaking()

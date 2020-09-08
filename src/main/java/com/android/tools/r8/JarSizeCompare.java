@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
@@ -53,7 +54,8 @@ public class JarSizeCompare {
           + "    --input <name2> <input2.jar> [<map2.txt>] ...\n"
           + "\n"
           + "JarSizeCompare outputs the class, method, field sizes of the given JAR files.\n"
-          + "For each input, a ProGuard map can be passed that is used to resolve minified names.\n";
+          + "For each input, a ProGuard map can be passed that is used to resolve minified"
+          + " names.\n";
 
   private static final ImmutableMap<String, String> R8_RELOCATIONS =
       ImmutableMap.<String, String>builder()
@@ -284,7 +286,10 @@ public class JarSizeCompare {
     DexApplication getReader(InternalOptions options, AndroidApp inputApp, Timing timing)
         throws Exception {
       ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
-      return applicationReader.read(map == null ? null : StringResource.fromFile(map)).toDirect();
+      return applicationReader
+          .read(
+              new MainDexClassesIgnoredWitness(), map == null ? null : StringResource.fromFile(map))
+          .toDirect();
     }
 
     AndroidApp getInputApp(List<Path> libraries) throws Exception {

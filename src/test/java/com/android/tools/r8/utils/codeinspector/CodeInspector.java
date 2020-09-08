@@ -11,6 +11,7 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.CfCode;
@@ -107,20 +108,19 @@ public class CodeInspector {
     InternalOptions options = runOptionsConsumer(optionsConsumer);
     dexItemFactory = options.itemFactory;
     AndroidApp input = AndroidApp.builder().addProgramFiles(files).build();
-    application = new ApplicationReader(input, options, timing).read();
+    application =
+        new ApplicationReader(input, options, timing).read(new MainDexClassesIgnoredWitness());
   }
 
   public CodeInspector(AndroidApp app) throws IOException {
-    this(
-        new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
-            .read(app.getProguardMapOutputData()));
+    this(app, (Consumer<InternalOptions>) null);
   }
 
   public CodeInspector(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
       throws IOException {
     this(
         new ApplicationReader(app, runOptionsConsumer(optionsConsumer), Timing.empty())
-            .read(app.getProguardMapOutputData()));
+            .read(new MainDexClassesIgnoredWitness(), app.getProguardMapOutputData()));
   }
 
   private static InternalOptions runOptionsConsumer(Consumer<InternalOptions> optionsConsumer) {
@@ -138,13 +138,15 @@ public class CodeInspector {
   public CodeInspector(AndroidApp app, Path proguardMapFile) throws IOException {
     this(
         new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
-            .read(StringResource.fromFile(proguardMapFile)));
+            .read(new MainDexClassesIgnoredWitness(), StringResource.fromFile(proguardMapFile)));
   }
 
   public CodeInspector(AndroidApp app, String proguardMapContent) throws IOException {
     this(
         new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
-            .read(StringResource.fromString(proguardMapContent, Origin.unknown())));
+            .read(
+                new MainDexClassesIgnoredWitness(),
+                StringResource.fromString(proguardMapContent, Origin.unknown())));
   }
 
   public CodeInspector(DexApplication application) {

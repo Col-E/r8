@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.naming.NamingLens;
@@ -144,8 +145,9 @@ public class SharedClassWritingTest {
     DexProgramClass sharedSynthesizedClass =
         makeClass(options, "SharedSynthesized", 100, Constants.MAX_NON_JUMBO_INDEX - 1, classes);
 
-    DexApplication.Builder builder = DirectMappedDexApplication.builder(options, Timing.empty());
-    builder.addSynthesizedClass(sharedSynthesizedClass, false);
+    LazyLoadedDexApplication.Builder builder =
+        DirectMappedDexApplication.builder(options, Timing.empty());
+    builder.addSynthesizedClass(sharedSynthesizedClass);
     classes.forEach(builder::addProgramClass);
     DexApplication application = builder.build();
 

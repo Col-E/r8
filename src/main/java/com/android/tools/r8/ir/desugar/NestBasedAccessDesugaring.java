@@ -196,13 +196,9 @@ public abstract class NestBasedAccessDesugaring {
 
   void synthesizeNestConstructor(DexApplication.Builder<?> builder) {
     if (nestConstructorUsed) {
-      appView.appInfo().addSynthesizedClass(nestConstructor);
-      builder.addSynthesizedClass(nestConstructor, true);
+      appView.appInfo().addSynthesizedClass(nestConstructor, true);
+      builder.addSynthesizedClass(nestConstructor);
     }
-  }
-
-  public static boolean isNestConstructor(DexType type) {
-    return type.getName().equals(NEST_CONSTRUCTOR_NAME);
   }
 
   private DexString computeMethodBridgeName(DexEncodedMethod method) {

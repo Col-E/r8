@@ -157,8 +157,8 @@ public class LambdaRewriter {
         knownLambdaClasses.values(), converter, executorService);
     for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
       DexProgramClass synthesizedClass = lambdaClass.getOrCreateLambdaClass();
-      appView.appInfo().addSynthesizedClass(synthesizedClass);
-      builder.addSynthesizedClass(synthesizedClass, lambdaClass.addToMainDexList.get());
+      appView.appInfo().addSynthesizedClass(synthesizedClass, lambdaClass.addToMainDexList.get());
+      builder.addSynthesizedClass(synthesizedClass);
     }
     optimizeSynthesizedClasses(converter, executorService);
   }
@@ -188,10 +188,6 @@ public class LambdaRewriter {
             knownCallSites,
             callSite,
             LambdaDescriptor.infer(callSite, appView.appInfoForDesugaring(), context));
-  }
-
-  private boolean isInMainDexList(DexType type) {
-    return appView.appInfo().isInMainDexList(type);
   }
 
   // Returns a lambda class corresponding to the lambda descriptor and context,
@@ -224,7 +220,7 @@ public class LambdaRewriter {
       }
     }
     lambdaClass.addSynthesizedFrom(accessedFrom.getHolder());
-    if (isInMainDexList(accessedFrom.getHolderType())) {
+    if (appView.appInfo().getMainDexClasses().contains(accessedFrom.getHolder())) {
       lambdaClass.addToMainDexList.set(true);
     }
     return lambdaClass;

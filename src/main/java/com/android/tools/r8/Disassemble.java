@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.AssemblyWriter;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexByteCodeWriter;
@@ -240,7 +241,8 @@ public class Disassemble {
     Timing timing = new Timing("disassemble");
     try {
       DexApplication application =
-          new ApplicationReader(app, options, timing).read(command.proguardMap, executor);
+          new ApplicationReader(app, options, timing)
+              .read(new MainDexClassesIgnoredWitness(), command.proguardMap, executor);
       DexByteCodeWriter writer =
           command.useSmali()
               ? new SmaliWriter(application, options)

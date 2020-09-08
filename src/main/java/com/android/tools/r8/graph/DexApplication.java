@@ -14,19 +14,14 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 public abstract class DexApplication {
 
   public final ImmutableList<DataResourceProvider> dataResourceProviders;
-
-  public final ImmutableSet<DexType> mainDexList;
 
   private final ClassNameMapper proguardMap;
 
@@ -42,13 +37,11 @@ public abstract class DexApplication {
   DexApplication(
       ClassNameMapper proguardMap,
       ImmutableList<DataResourceProvider> dataResourceProviders,
-      ImmutableSet<DexType> mainDexList,
       InternalOptions options,
       DexString highestSortingString,
       Timing timing) {
     this.proguardMap = proguardMap;
     this.dataResourceProviders = dataResourceProviders;
-    this.mainDexList = mainDexList;
     this.options = options;
     this.dexItemFactory = options.itemFactory;
     this.highestSortingString = highestSortingString;
@@ -149,7 +142,6 @@ public abstract class DexApplication {
     final Timing timing;
 
     DexString highestSortingString;
-    final Set<DexType> mainDexList = Sets.newIdentityHashSet();
     private final Collection<DexProgramClass> synthesizedClasses;
 
     public Builder(InternalOptions options, Timing timing) {
@@ -169,7 +161,6 @@ public abstract class DexApplication {
       highestSortingString = application.highestSortingString;
       options = application.options;
       dexItemFactory = application.dexItemFactory;
-      mainDexList.addAll(application.mainDexList);
       synthesizedClasses = new ArrayList<>();
     }
 
@@ -201,14 +192,10 @@ public abstract class DexApplication {
       return self();
     }
 
-    public synchronized T addSynthesizedClass(
-        DexProgramClass synthesizedClass, boolean addToMainDexList) {
+    public synchronized T addSynthesizedClass(DexProgramClass synthesizedClass) {
       assert synthesizedClass.isProgramClass() : "All synthesized classes must be program classes";
       addProgramClass(synthesizedClass);
       synthesizedClasses.add(synthesizedClass);
-      if (addToMainDexList && !mainDexList.isEmpty()) {
-        mainDexList.add(synthesizedClass.type);
-      }
       return self();
     }
 
@@ -218,20 +205,6 @@ public abstract class DexApplication {
 
     public Collection<DexProgramClass> getSynthesizedClasses() {
       return synthesizedClasses;
-    }
-
-    public Set<DexType> getMainDexList() {
-      return mainDexList;
-    }
-
-    public Builder<T> addToMainDexList(DexType mainDex) {
-      mainDexList.add(mainDex);
-      return this;
-    }
-
-    public Builder<T> addToMainDexList(Collection<DexType> mainDexList) {
-      this.mainDexList.addAll(mainDexList);
-      return this;
     }
 
     public abstract DexApplication build();

@@ -41,6 +41,7 @@ import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNest
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.position.MethodPosition;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
@@ -532,17 +533,21 @@ public final class InterfaceMethodRewriter {
   private void generateEmulateInterfaceLibrary(Builder<?> builder) {
     // Emulated library interfaces should generate the Emulated Library EL dispatch class.
     Map<DexType, List<DexType>> emulatedInterfacesHierarchy = processEmulatedInterfaceHierarchy();
+    AppInfo appInfo = appView.appInfo();
+    MainDexClasses mainDexClasses = appInfo.getMainDexClasses();
     for (DexType interfaceType : emulatedInterfaces.keySet()) {
-      DexClass theInterface = appView.definitionFor(interfaceType);
+      DexClass theInterface = appInfo.definitionFor(interfaceType);
       if (theInterface == null) {
         warnMissingEmulatedInterface(interfaceType);
       } else if (theInterface.isProgramClass()) {
+        DexProgramClass theProgramInterface = theInterface.asProgramClass();
         DexProgramClass synthesizedClass =
             synthesizeEmulateInterfaceLibraryClass(
-                theInterface.asProgramClass(), emulatedInterfacesHierarchy);
+                theProgramInterface, emulatedInterfacesHierarchy);
         if (synthesizedClass != null) {
-          builder.addSynthesizedClass(synthesizedClass, isInMainDexList(interfaceType));
-          appView.appInfo().addSynthesizedClass(synthesizedClass);
+          builder.addSynthesizedClass(synthesizedClass);
+          appInfo.addSynthesizedClass(
+              synthesizedClass, mainDexClasses.contains(theProgramInterface));
         }
       }
     }
@@ -797,10 +802,6 @@ public final class InterfaceMethodRewriter {
     return factory.createType(interfaceTypeDescriptor);
   }
 
-  private boolean isInMainDexList(DexType iface) {
-    return appView.appInfo().isInMainDexList(iface);
-  }
-
   // Represent a static interface method as a method of companion class.
   final DexMethod staticAsMethodOfCompanionClass(DexMethod method) {
     // No changes for static methods.
@@ -1000,13 +1001,18 @@ public final class InterfaceMethodRewriter {
     // make original default methods abstract, remove bridge methods, create dispatch
     // classes if needed.
     AppInfo appInfo = appView.appInfo();
-    for (Entry<DexType, DexProgramClass> entry : processInterfaces(builder, flavour).entrySet()) {
-      // Don't need to optimize synthesized class since all of its methods
-      // are just moved from interfaces and don't need to be re-processed.
-      DexProgramClass synthesizedClass = entry.getValue();
-      builder.addSynthesizedClass(synthesizedClass, isInMainDexList(entry.getKey()));
-      appInfo.addSynthesizedClass(synthesizedClass);
-    }
+    MainDexClasses mainDexClasses = appInfo.getMainDexClasses();
+    processInterfaces(builder, flavour)
+        .forEach(
+            (interfaceClass, synthesizedClass) -> {
+              // Don't need to optimize synthesized class since all of its methods
+              // are just moved from interfaces and don't need to be re-processed.
+              builder.addSynthesizedClass(synthesizedClass);
+              boolean addToMainDexClasses =
+                  interfaceClass.isProgramClass()
+                      && mainDexClasses.contains(interfaceClass.asProgramClass());
+              appInfo.addSynthesizedClass(synthesizedClass, addToMainDexClasses);
+            });
 
     if (appView.options().isDesugaredLibraryCompilation()) {
       renameEmulatedInterfaces();
@@ -1030,7 +1036,7 @@ public final class InterfaceMethodRewriter {
         && clazz.isInterface() == mustBeInterface;
   }
 
-  private Map<DexType, DexProgramClass> processInterfaces(Builder<?> builder, Flavor flavour) {
+  private Map<DexClass, DexProgramClass> processInterfaces(Builder<?> builder, Flavor flavour) {
     InterfaceProcessorNestedGraphLens.Builder graphLensBuilder =
         InterfaceProcessorNestedGraphLens.builder();
     InterfaceProcessor processor = new InterfaceProcessor(appView, this);

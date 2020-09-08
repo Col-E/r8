@@ -5,6 +5,7 @@ package com.android.tools.r8.ir;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -14,7 +15,7 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
@@ -33,7 +34,8 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
   protected DexApplication buildApplication(SmaliBuilder builder, InternalOptions options) {
     try {
-      return new ApplicationReader(builder.build(), options, Timing.empty()).read();
+      return new ApplicationReader(builder.build(), options, Timing.empty())
+          .read(new MainDexClassesIgnoredWitness());
     } catch (IOException | RecognitionException | ExecutionException e) {
       throw new RuntimeException(e);
     }
@@ -113,7 +115,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
     public String run() throws IOException {
       Timing timing = Timing.empty();
-      IRConverter converter = new IRConverter(appView, timing, null, MainDexClasses.NONE);
+      IRConverter converter = new IRConverter(appView, timing, null, MainDexTracingResult.NONE);
       converter.replaceCodeForTesting(method, code);
       AndroidApp app = writeDex();
       return runOnArtRaw(app, DEFAULT_MAIN_CLASS_NAME).stdout;

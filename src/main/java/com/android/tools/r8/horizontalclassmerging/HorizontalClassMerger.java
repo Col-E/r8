@@ -16,7 +16,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.SameParentClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ClassMergingEnqueuerExtension;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
-import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,7 +30,7 @@ public class HorizontalClassMerger {
 
   public HorizontalClassMerger(
       AppView<AppInfoWithLiveness> appView,
-      MainDexClasses mainDexClasses,
+      MainDexTracingResult mainDexClasses,
       ClassMergingEnqueuerExtension classMergingEnqueuerExtension) {
     this.appView = appView;
 

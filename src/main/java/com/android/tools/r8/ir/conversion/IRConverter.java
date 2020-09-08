@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
+import static com.android.tools.r8.graph.DexAnnotation.readAnnotationSynthesizedClassMap;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
 
@@ -90,6 +91,7 @@ import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -190,7 +192,7 @@ public class IRConverter {
    * (i.e., whether we are running R8). See {@link AppView#enableWholeProgramOptimizations()}.
    */
   public IRConverter(
-      AppView<?> appView, Timing timing, CfgPrinter printer, MainDexClasses mainDexClasses) {
+      AppView<?> appView, Timing timing, CfgPrinter printer, MainDexTracingResult mainDexClasses) {
     assert appView.appInfo().hasLiveness() || appView.graphLens().isIdentityLens();
     assert appView.options() != null;
     assert appView.options().programConsumer != null;
@@ -364,16 +366,16 @@ public class IRConverter {
 
   /** Create an IR converter for processing methods with full program optimization disabled. */
   public IRConverter(AppView<?> appView, Timing timing) {
-    this(appView, timing, null, MainDexClasses.NONE);
+    this(appView, timing, null, MainDexTracingResult.NONE);
   }
 
   /** Create an IR converter for processing methods with full program optimization disabled. */
   public IRConverter(AppView<?> appView, Timing timing, CfgPrinter printer) {
-    this(appView, timing, printer, MainDexClasses.NONE);
+    this(appView, timing, printer, MainDexTracingResult.NONE);
   }
 
   public IRConverter(AppInfo appInfo, Timing timing, CfgPrinter printer) {
-    this(AppView.createForD8(appInfo), timing, printer, MainDexClasses.NONE);
+    this(AppView.createForD8(appInfo), timing, printer, MainDexTracingResult.NONE);
   }
 
   private boolean enableTwrCloseResourceDesugaring() {
@@ -493,42 +495,54 @@ public class IRConverter {
     processCovariantReturnTypeAnnotations(builder);
     generateDesugaredLibraryAPIWrappers(builder, executor);
 
-    handleSynthesizedClassMapping(builder);
+    handleSynthesizedClassMapping(appView, builder);
     timing.end();
 
     DexApplication app = builder.build();
-    appView.setAppInfo(new AppInfo(app, appView.appInfo().getSyntheticItems().commit(app)));
+    appView.setAppInfo(
+        new AppInfo(
+            app,
+            appView.appInfo().getMainDexClasses(),
+            appView.appInfo().getSyntheticItems().commit(app)));
   }
 
-  private void handleSynthesizedClassMapping(Builder<?> builder) {
+  private void handleSynthesizedClassMapping(AppView<?> appView, Builder<?> builder) {
     if (options.intermediate) {
       updateSynthesizedClassMapping(builder);
     }
 
-    updateMainDexListWithSynthesizedClassMap(builder);
+    updateMainDexListWithSynthesizedClassMap(appView, builder);
 
     if (!options.intermediate) {
       clearSynthesizedClassMapping(builder);
     }
   }
 
-  private void updateMainDexListWithSynthesizedClassMap(Builder<?> builder) {
-    Set<DexType> inputMainDexList = builder.getMainDexList();
-    if (!inputMainDexList.isEmpty()) {
-      Map<DexType, DexProgramClass> programClasses = builder.getProgramClasses().stream()
-          .collect(Collectors.toMap(
-              programClass -> programClass.type,
-              Function.identity()));
-      Collection<DexType> synthesized = new ArrayList<>();
-      for (DexType dexType : inputMainDexList) {
-        DexProgramClass programClass = programClasses.get(dexType);
-        if (programClass != null) {
-          synthesized.addAll(DexAnnotation.readAnnotationSynthesizedClassMap(
-              programClass, builder.dexItemFactory));
-        }
-      }
-      builder.addToMainDexList(synthesized);
+  private void updateMainDexListWithSynthesizedClassMap(AppView<?> appView, Builder<?> builder) {
+    MainDexClasses mainDexClasses = appView.appInfo().getMainDexClasses();
+    if (mainDexClasses.isEmpty()) {
+      return;
     }
+    Map<DexType, DexProgramClass> programClasses =
+        builder.getProgramClasses().stream()
+            .collect(Collectors.toMap(programClass -> programClass.type, Function.identity()));
+    List<DexProgramClass> newMainDexClasses = new ArrayList<>();
+    mainDexClasses.forEach(
+        mainDexClass -> {
+          DexProgramClass definition = programClasses.get(mainDexClass);
+          if (definition == null) {
+            return;
+          }
+          Iterable<DexType> syntheticTypes =
+              readAnnotationSynthesizedClassMap(definition, appView.dexItemFactory());
+          for (DexType syntheticType : syntheticTypes) {
+            DexProgramClass syntheticClass = programClasses.get(syntheticType);
+            if (syntheticClass != null) {
+              newMainDexClasses.add(syntheticClass);
+            }
+          }
+        });
+    mainDexClasses.addAll(newMainDexClasses);
   }
 
   private void clearSynthesizedClassMapping(Builder<?> builder) {
@@ -558,8 +572,7 @@ public class IRConverter {
           .stream()
           .map(dexProgramClass -> dexProgramClass.type)
           .forEach(synthesized::add);
-      synthesized.addAll(
-          DexAnnotation.readAnnotationSynthesizedClassMap(original, builder.dexItemFactory));
+      synthesized.addAll(readAnnotationSynthesizedClassMap(original, builder.dexItemFactory));
 
       DexAnnotation updatedAnnotation =
           DexAnnotation.createAnnotationSynthesizedClassMap(synthesized, builder.dexItemFactory);
@@ -793,7 +806,7 @@ public class IRConverter {
     synthesizeTwrCloseResourceUtilityClass(builder, executorService);
     synthesizeJava8UtilityClass(builder, executorService);
     synthesizeRetargetClass(builder, executorService);
-    handleSynthesizedClassMapping(builder);
+    handleSynthesizedClassMapping(appView, builder);
     synthesizeEnumUnboxingUtilityMethods(builder, executorService);
 
     printPhase("Lambda merging finalization");
@@ -804,10 +817,10 @@ public class IRConverter {
     generateDesugaredLibraryAPIWrappers(builder, executorService);
 
     if (serviceLoaderRewriter != null && serviceLoaderRewriter.getSynthesizedClass() != null) {
-      appView.appInfo().addSynthesizedClass(serviceLoaderRewriter.getSynthesizedClass());
+      appView.appInfo().addSynthesizedClass(serviceLoaderRewriter.getSynthesizedClass(), true);
       processSynthesizedServiceLoaderMethods(
           serviceLoaderRewriter.getSynthesizedClass(), executorService);
-      builder.addSynthesizedClass(serviceLoaderRewriter.getSynthesizedClass(), true);
+      builder.addSynthesizedClass(serviceLoaderRewriter.getSynthesizedClass());
     }
 
     // Update optimization info for all synthesized methods at once.
@@ -827,7 +840,7 @@ public class IRConverter {
             },
             executorService);
         DexProgramClass outlineClass = outliner.buildOutlinerClass(computeOutlineClassType());
-        appView.appInfo().addSynthesizedClass(outlineClass);
+        appView.appInfo().addSynthesizedClass(outlineClass, true);
         optimizeSynthesizedClass(outlineClass, executorService);
         forEachSelectedOutliningMethod(
             methodsSelectedForOutlining,
@@ -840,7 +853,7 @@ public class IRConverter {
             executorService);
         feedback.updateVisibleOptimizationInfo();
         assert outliner.checkAllOutlineSitesFoundAgain();
-        builder.addSynthesizedClass(outlineClass, true);
+        builder.addSynthesizedClass(outlineClass);
         clearDexMethodCompilationState(outlineClass);
       }
       timing.end();

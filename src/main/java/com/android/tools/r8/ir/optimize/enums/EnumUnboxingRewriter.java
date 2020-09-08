@@ -487,9 +487,6 @@ public class EnumUnboxingRewriter {
     utilityClass.appendStaticFields(fields);
     utilityClass.addDirectMethods(requiredMethods);
     assert requiredMethods.stream().allMatch(DexEncodedMethod::isPublic);
-    if (utilityClassInMainDexList()) {
-      builder.addToMainDexList(Collections.singletonList(utilityClass.type));
-    }
     // TODO(b/147860220): Use processMethodsConcurrently on requiredMethods instead.
     converter.optimizeSynthesizedClass(utilityClass, executorService);
   }
@@ -551,16 +548,6 @@ public class EnumUnboxingRewriter {
                     .asEnumFieldMappingData())
             .generateCfCode();
     return synthesizeUtilityMethod(cfCode, method, false);
-  }
-
-  // TODO(b/150178516): Add a test for this case.
-  private boolean utilityClassInMainDexList() {
-    for (DexType toUnbox : enumsToUnbox.enumSet()) {
-      if (appView.appInfo().isInMainDexList(toUnbox)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private DexEncodedMethod synthesizeZeroCheckMethod() {

@@ -15,7 +15,6 @@ import com.android.tools.r8.utils.LibraryClassCollection;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -34,14 +33,12 @@ public class LazyLoadedDexApplication extends DexApplication {
       ImmutableList<DataResourceProvider> dataResourceProviders,
       ClasspathClassCollection classpathClasses,
       LibraryClassCollection libraryClasses,
-      ImmutableSet<DexType> mainDexList,
       InternalOptions options,
       DexString highestSortingString,
       Timing timing) {
     super(
         proguardMap,
         dataResourceProviders,
-        mainDexList,
         options,
         highestSortingString,
         timing);
@@ -236,7 +233,6 @@ public class LazyLoadedDexApplication extends DexApplication {
           ImmutableList.copyOf(dataResourceProviders),
           classpathClasses,
           libraryClasses,
-          ImmutableSet.copyOf(mainDexList),
           options,
           highestSortingString,
           timing);

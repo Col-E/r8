@@ -14,6 +14,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -63,7 +64,8 @@ public class SmaliTestBase extends TestBase {
 
   protected DexApplication buildApplication(AndroidApp input, InternalOptions options) {
     try {
-      return new ApplicationReader(input, options, Timing.empty()).read();
+      return new ApplicationReader(input, options, Timing.empty())
+          .read(new MainDexClassesIgnoredWitness());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

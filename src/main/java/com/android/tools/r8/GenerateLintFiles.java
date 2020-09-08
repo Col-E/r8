@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -25,6 +26,7 @@ import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
@@ -200,7 +202,9 @@ public class GenerateLintFiles {
     AndroidApp library =
         AndroidApp.builder().addLibraryFiles(getAndroidJarPath(compilationApiLevel)).build();
     DirectMappedDexApplication dexApplication =
-        new ApplicationReader(library, options, Timing.empty()).read().toDirect();
+        new ApplicationReader(library, options, Timing.empty())
+            .read(new MainDexClassesIgnoredWitness())
+            .toDirect();
 
     // Collect all the methods that the library desugar configuration adds support for.
     Set<DexClass> classesWithAllMethodsSupported = Sets.newIdentityHashSet();
@@ -284,7 +288,7 @@ public class GenerateLintFiles {
     // Build a plain text file with the desugared APIs.
     List<String> desugaredApisSignatures = new ArrayList<>();
 
-    DexApplication.Builder builder = DexApplication.builder(options, Timing.empty());
+    LazyLoadedDexApplication.Builder builder = DexApplication.builder(options, Timing.empty());
     supportedMethods.supportedMethods.forEach(
         (clazz, methods) -> {
           String classBinaryName =
@@ -310,8 +314,7 @@ public class GenerateLintFiles {
         lintFile(compilationApiLevel, minApiLevel, ".txt"), desugaredApisSignatures);
 
     // Write a header jar with the desugared APIs.
-    AppInfo appInfo = AppInfo.createInitialAppInfo(builder.build());
-    AppView<?> appView = AppView.createForD8(appInfo);
+    AppView<?> appView = AppView.createForD8(AppInfo.createInitialAppInfo(builder.build()));
     CfApplicationWriter writer =
         new CfApplicationWriter(
             appView,

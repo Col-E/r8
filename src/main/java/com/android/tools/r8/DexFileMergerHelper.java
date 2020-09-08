@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesReadWitness;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.AppInfo;
@@ -85,13 +86,18 @@ public class DexFileMergerHelper {
     try {
       try {
         Timing timing = new Timing("DexFileMerger");
+        ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
         DexApplication app =
-            new ApplicationReader(inputApp, options, timing)
-                .read(
-                    null,
-                    executor,
-                    new DexFileMergerHelper(inputOrdering)::keepFirstProgramClassConflictResolver);
-        AppView<AppInfo> appView = AppView.createForD8(AppInfo.createInitialAppInfo(app));
+            applicationReader.read(
+                new MainDexClassesReadWitness(),
+                null,
+                executor,
+                new DexFileMergerHelper(inputOrdering)::keepFirstProgramClassConflictResolver);
+
+        AppView<AppInfo> appView =
+            AppView.createForD8(
+                AppInfo.createInitialAppInfo(app, applicationReader.readMainDexClasses(app)));
+
         D8.optimize(appView, options, timing, executor);
 
         List<Marker> markers = appView.dexItemFactory().extractMarkers();

@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
@@ -78,7 +79,9 @@ public class Relocator {
       throws IOException {
     Timing timing = Timing.create("Relocator", options);
     try {
-      DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
+      DexApplication app =
+          new ApplicationReader(inputApp, options, timing)
+              .read(new MainDexClassesIgnoredWitness(), executor);
       AppInfo appInfo = AppInfo.createInitialAppInfo(app);
       AppView<?> appView = AppView.createForRelocator(appInfo);
       appView.setAppServices(AppServices.builder(appView).build());

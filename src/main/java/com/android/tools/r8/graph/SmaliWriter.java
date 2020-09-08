@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -26,7 +27,8 @@ public class SmaliWriter extends DexByteCodeWriter {
     ByteArrayOutputStream os = new ByteArrayOutputStream();
     try (PrintStream ps = new PrintStream(os)) {
       DexApplication dexApplication =
-          new ApplicationReader(application, options, Timing.empty()).read();
+          new ApplicationReader(application, options, Timing.empty())
+              .read(new MainDexClassesIgnoredWitness());
       SmaliWriter writer = new SmaliWriter(dexApplication, options);
       writer.write(ps);
     } catch (IOException e) {

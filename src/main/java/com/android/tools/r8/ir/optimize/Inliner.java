@@ -61,7 +61,7 @@ import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
@@ -88,7 +88,7 @@ public class Inliner implements PostOptimization {
   private final Set<DexMethod> blacklist;
   private final LambdaMerger lambdaMerger;
   private final LensCodeRewriter lensCodeRewriter;
-  final MainDexClasses mainDexClasses;
+  final MainDexTracingResult mainDexClasses;
 
   // State for inlining methods which are known to be called twice.
   private boolean applyDoubleInlining = false;
@@ -101,7 +101,7 @@ public class Inliner implements PostOptimization {
 
   public Inliner(
       AppView<AppInfoWithLiveness> appView,
-      MainDexClasses mainDexClasses,
+      MainDexTracingResult mainDexClasses,
       LambdaMerger lambdaMerger,
       LensCodeRewriter lensCodeRewriter) {
     Kotlin.Intrinsics intrinsics = appView.dexItemFactory().kotlin.intrinsics;

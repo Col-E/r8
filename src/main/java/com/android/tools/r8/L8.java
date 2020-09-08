@@ -7,6 +7,7 @@ import static com.android.tools.r8.L8Command.USAGE_MESSAGE;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -157,7 +158,8 @@ public class L8 {
       AndroidApp inputApp, InternalOptions options, ExecutorService executor, Timing timing)
       throws IOException {
     LazyLoadedDexApplication lazyApp =
-        new ApplicationReader(inputApp, options, timing).read(executor);
+        new ApplicationReader(inputApp, options, timing)
+            .read(new MainDexClassesIgnoredWitness(), executor);
 
     PrefixRewritingMapper rewritePrefix =
         options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);

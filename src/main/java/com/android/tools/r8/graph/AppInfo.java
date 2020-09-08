@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutio
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collection;
@@ -16,6 +17,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   private final DexApplication app;
   private final DexItemFactory dexItemFactory;
+  private final MainDexClasses mainDexClasses;
   private final SyntheticItems syntheticItems;
 
   // Set when a new AppInfo replaces a previous one. All public methods should verify that the
@@ -23,23 +25,40 @@ public class AppInfo implements DexDefinitionSupplier {
   private final BooleanBox obsolete;
 
   public static AppInfo createInitialAppInfo(DexApplication application) {
-    return new AppInfo(application, SyntheticItems.createInitialSyntheticItems(), new BooleanBox());
+    return createInitialAppInfo(application, MainDexClasses.createEmptyMainDexClasses());
   }
 
-  public AppInfo(DexApplication application, SyntheticItems.CommittedItems committedItems) {
-    this(application, committedItems.toSyntheticItems(), new BooleanBox());
+  public static AppInfo createInitialAppInfo(
+      DexApplication application, MainDexClasses mainDexClasses) {
+    return new AppInfo(
+        application,
+        mainDexClasses,
+        SyntheticItems.createInitialSyntheticItems(),
+        new BooleanBox());
+  }
+
+  public AppInfo(
+      DexApplication application,
+      MainDexClasses mainDexClasses,
+      SyntheticItems.CommittedItems committedItems) {
+    this(application, mainDexClasses, committedItems.toSyntheticItems(), new BooleanBox());
   }
 
   // For desugaring.
   // This is a view onto the app info and is the only place the pending synthetics are shared.
   AppInfo(CreateDesugaringViewOnAppInfo witness, AppInfo appInfo) {
-    this(appInfo.app, appInfo.syntheticItems, appInfo.obsolete);
+    this(appInfo.app, appInfo.mainDexClasses, appInfo.syntheticItems, appInfo.obsolete);
     assert witness != null;
   }
 
-  private AppInfo(DexApplication application, SyntheticItems syntheticItems, BooleanBox obsolete) {
+  private AppInfo(
+      DexApplication application,
+      MainDexClasses mainDexClasses,
+      SyntheticItems syntheticItems,
+      BooleanBox obsolete) {
     this.app = application;
     this.dexItemFactory = application.dexItemFactory;
+    this.mainDexClasses = mainDexClasses;
     this.syntheticItems = syntheticItems;
     this.obsolete = obsolete;
   }
@@ -76,13 +95,20 @@ public class AppInfo implements DexDefinitionSupplier {
     return dexItemFactory;
   }
 
+  public MainDexClasses getMainDexClasses() {
+    return mainDexClasses;
+  }
+
   public SyntheticItems getSyntheticItems() {
     return syntheticItems;
   }
 
-  public void addSynthesizedClass(DexProgramClass clazz) {
+  public void addSynthesizedClass(DexProgramClass clazz, boolean addToMainDexClasses) {
     assert checkIfObsolete();
     syntheticItems.addSyntheticClass(clazz);
+    if (addToMainDexClasses) {
+      mainDexClasses.add(clazz);
+    }
   }
 
   public Collection<DexProgramClass> synthesizedClasses() {
@@ -187,11 +213,6 @@ public class AppInfo implements DexDefinitionSupplier {
   public AppInfoWithLiveness withLiveness() {
     assert checkIfObsolete();
     return null;
-  }
-
-  public boolean isInMainDexList(DexType type) {
-    assert checkIfObsolete();
-    return app.mainDexList.contains(type);
   }
 
   public final FieldResolutionResult resolveField(DexField field, ProgramMethod context) {

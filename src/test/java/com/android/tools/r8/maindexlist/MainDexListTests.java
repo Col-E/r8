@@ -71,7 +71,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.MainDexList;
+import com.android.tools.r8.utils.MainDexListParser;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -182,7 +182,7 @@ public class MainDexListTests extends TestBase {
   }
 
   private static Set<DexType> parse(Path path, DexItemFactory itemFactory) throws IOException {
-    return MainDexList.parseList(StringResource.fromFile(path), itemFactory);
+    return MainDexListParser.parseList(StringResource.fromFile(path), itemFactory);
   }
 
   @Rule
@@ -331,9 +331,11 @@ public class MainDexListTests extends TestBase {
   @Test
   public void singleEntryNoNewLine() throws Exception {
     DexItemFactory factory = new DexItemFactory();
-    Set<DexType> types = MainDexList.parseList(
-        StringResource.fromString("desugaringwithmissingclasstest1/Main.class", Origin.unknown()),
-        factory);
+    Set<DexType> types =
+        MainDexListParser.parseList(
+            StringResource.fromString(
+                "desugaringwithmissingclasstest1/Main.class", Origin.unknown()),
+            factory);
     assertEquals(1, types.size());
     assertEquals(
         "Ldesugaringwithmissingclasstest1/Main;",
@@ -350,7 +352,7 @@ public class MainDexListTests extends TestBase {
     for (String entry : lines) {
       DexType type = factory.createType("L" + entry.replace(".class", "") + ";");
       assertTrue(types.contains(type));
-      assertSame(type, MainDexList.parseEntry(entry, factory));
+      assertSame(type, MainDexListParser.parseEntry(entry, factory));
     }
   }
 

@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.Collections;
@@ -161,10 +162,10 @@ public final class TwrCloseResourceRewriter {
 
     // Process created class and method.
     AppInfo appInfo = appView.appInfo();
-    boolean addToMainDexList =
-        referencingClasses.stream().anyMatch(clazz -> appInfo.isInMainDexList(clazz.type));
-    appInfo.addSynthesizedClass(utilityClass);
+    MainDexClasses mainDexClasses = appInfo.getMainDexClasses();
+    boolean addToMainDexList = mainDexClasses.containsAnyOf(referencingClasses);
+    appInfo.addSynthesizedClass(utilityClass, addToMainDexList);
     converter.optimizeSynthesizedClass(utilityClass, executorService);
-    builder.addSynthesizedClass(utilityClass, addToMainDexList);
+    builder.addSynthesizedClass(utilityClass);
   }
 }

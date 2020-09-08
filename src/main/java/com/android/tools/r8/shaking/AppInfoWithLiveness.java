@@ -196,6 +196,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   // TODO(zerny): Clean up the constructors so we have just one.
   AppInfoWithLiveness(
       DirectMappedDexApplication application,
+      MainDexClasses mainDexClasses,
       SyntheticItems.CommittedItems syntheticItems,
       Set<DexType> deadProtoTypes,
       Set<DexType> missingTypes,
@@ -237,7 +238,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       EnumValueInfoMapCollection enumValueInfoMaps,
       Set<DexType> constClassReferences,
       Map<DexType, Visibility> initClassReferences) {
-    super(application, syntheticItems);
+    super(application, mainDexClasses, syntheticItems);
     this.deadProtoTypes = deadProtoTypes;
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
@@ -324,6 +325,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Map<DexType, Visibility> initClassReferences) {
     super(
         appInfoWithClassHierarchy.app(),
+        appInfoWithClassHierarchy.getMainDexClasses(),
         appInfoWithClassHierarchy.getSyntheticItems().commit(appInfoWithClassHierarchy.app()));
     this.deadProtoTypes = deadProtoTypes;
     this.missingTypes = missingTypes;
@@ -419,6 +421,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Collection<DexReference> additionalPinnedItems) {
     this(
         application,
+        previous.getMainDexClasses(),
         previous.getSyntheticItems().commit(application),
         previous.deadProtoTypes,
         previous.missingTypes,
@@ -506,7 +509,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       AppInfoWithLiveness previous,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       EnumValueInfoMapCollection enumValueInfoMaps) {
-    super(previous.app(), previous.getSyntheticItems().commit(previous.app()));
+    super(
+        previous.app(),
+        previous.getMainDexClasses(),
+        previous.getSyntheticItems().commit(previous.app()));
     this.deadProtoTypes = previous.deadProtoTypes;
     this.missingTypes = previous.missingTypes;
     this.liveTypes = previous.liveTypes;
@@ -984,6 +990,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     DexDefinitionSupplier definitionSupplier = application.getDefinitionsSupplier(committedItems);
     return new AppInfoWithLiveness(
         application,
+        // TODO(b/167939768): Rewrite the main dex classes.
+        getMainDexClasses(),
         committedItems,
         deadProtoTypes,
         missingTypes,

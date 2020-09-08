@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.VDexParser;
 import com.android.tools.r8.dex.VDexReader;
@@ -104,7 +105,8 @@ public class ExtractMarker {
     options.skipReadingDexCode = true;
     options.minApiLevel = AndroidApiLevel.P.getLevel();
     DexApplication dexApp =
-        new ApplicationReader(app, options, new Timing("ExtractMarker")).read();
+        new ApplicationReader(app, options, new Timing("ExtractMarker"))
+            .read(new MainDexClassesIgnoredWitness());
     return dexApp.dexItemFactory.extractMarkers();
   }
 

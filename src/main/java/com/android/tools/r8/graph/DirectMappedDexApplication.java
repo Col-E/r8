@@ -13,7 +13,6 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -40,14 +39,12 @@ public class DirectMappedDexApplication extends DexApplication {
       ImmutableList<DexClasspathClass> classpathClasses,
       ImmutableList<DexLibraryClass> libraryClasses,
       ImmutableList<DataResourceProvider> dataResourceProviders,
-      ImmutableSet<DexType> mainDexList,
       InternalOptions options,
       DexString highestSortingString,
       Timing timing) {
     super(
         proguardMap,
         dataResourceProviders,
-        mainDexList,
         options,
         highestSortingString,
         timing);
@@ -240,7 +237,6 @@ public class DirectMappedDexApplication extends DexApplication {
           classpathClasses,
           libraryClasses,
           ImmutableList.copyOf(dataResourceProviders),
-          ImmutableSet.copyOf(mainDexList),
           options,
           highestSortingString,
           timing);

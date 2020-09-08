@@ -13,6 +13,7 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
@@ -57,7 +58,7 @@ public class R8GMSCoreLookupTest extends TestBase {
     Timing timing = Timing.empty();
     program =
         new ApplicationReader(app, new InternalOptions(), timing)
-            .read(proguardMap, executorService)
+            .read(new MainDexClassesIgnoredWitness(), proguardMap, executorService)
             .toDirect();
     appView = AppView.createForR8(program);
     appView.setAppServices(AppServices.builder(appView).build());

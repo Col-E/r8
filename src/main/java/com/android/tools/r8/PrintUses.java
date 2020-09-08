@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
@@ -25,6 +26,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -348,8 +350,12 @@ public class PrintUses {
     this.allowObfuscation = allowObfuscation;
     InternalOptions options = new InternalOptions();
     application =
-        new ApplicationReader(inputApp, options, new Timing("PrintUses")).read().toDirect();
-    appInfo = AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(application);
+        new ApplicationReader(inputApp, options, new Timing("PrintUses"))
+            .read(new MainDexClassesIgnoredWitness())
+            .toDirect();
+    appInfo =
+        AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
+            application, MainDexClasses.createEmptyMainDexClasses());
   }
 
   private void analyze() {

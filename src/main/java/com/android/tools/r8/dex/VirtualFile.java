@@ -3,13 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -26,11 +27,11 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -378,38 +379,30 @@ public class VirtualFile {
     }
 
     protected void fillForMainDexList(Set<DexProgramClass> classes) {
-      Set<DexType> mainDexList = appView.appInfo().app().mainDexList;
-      if (!mainDexList.isEmpty()) {
-        VirtualFile mainDexFile = virtualFiles.get(0);
-        for (DexType type : mainDexList) {
-          DexClass clazz = appView.appInfo().definitionForWithoutExistenceAssert(type);
-          if (clazz != null && clazz.isProgramClass()) {
-            DexProgramClass programClass = (DexProgramClass) clazz;
-            mainDexFile.addClass(programClass);
-            classes.remove(programClass);
-          } else {
-            if (!options.ignoreMainDexMissingClasses) {
-              options.reporter.warning(
-                  new StringDiagnostic(
-                      "Application does not contain `"
-                          + type.toSourceString()
-                          + "` as referenced in main-dex-list."));
-            }
-          }
-          mainDexFile.commitTransaction();
-        }
-        if (Log.ENABLED) {
-          Log.info(
-              VirtualFile.class,
-              "Main dex classes: " + mainDexFile.transaction.getNumberOfClasses());
-          Log.info(
-              VirtualFile.class,
-              "Main dex methods: " + mainDexFile.transaction.getNumberOfMethods());
-          Log.info(
-              VirtualFile.class, "Main dex fields: " + mainDexFile.transaction.getNumberOfFields());
-        }
-        mainDexFile.throwIfFull(true, options.reporter);
+      MainDexClasses mainDexClasses = appView.appInfo().getMainDexClasses();
+      if (mainDexClasses.isEmpty()) {
+        return;
       }
+      VirtualFile mainDexFile = virtualFiles.get(0);
+      mainDexClasses.forEach(
+          type -> {
+            DexProgramClass clazz =
+                asProgramClassOrNull(appView.appInfo().definitionForWithoutExistenceAssert(type));
+            if (clazz != null) {
+              mainDexFile.addClass(clazz);
+              classes.remove(clazz);
+            }
+            mainDexFile.commitTransaction();
+          });
+      if (Log.ENABLED) {
+        Log.info(
+            VirtualFile.class, "Main dex classes: " + mainDexFile.transaction.getNumberOfClasses());
+        Log.info(
+            VirtualFile.class, "Main dex methods: " + mainDexFile.transaction.getNumberOfMethods());
+        Log.info(
+            VirtualFile.class, "Main dex fields: " + mainDexFile.transaction.getNumberOfFields());
+      }
+      mainDexFile.throwIfFull(true, options.reporter);
     }
 
     TreeSet<DexProgramClass> sortClassesByPackage(Set<DexProgramClass> classes,

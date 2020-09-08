@@ -187,7 +187,7 @@ public class StaticClassMerger {
   }
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final MainDexClasses mainDexClasses;
+  private final MainDexTracingResult mainDexClasses;
 
   /** The equivalence that should be used for the member buckets in {@link Representative}. */
   private final Equivalence<DexField> fieldEquivalence;
@@ -203,7 +203,7 @@ public class StaticClassMerger {
   public StaticClassMerger(
       AppView<AppInfoWithLiveness> appView,
       InternalOptions options,
-      MainDexClasses mainDexClasses) {
+      MainDexTracingResult mainDexClasses) {
     this.appView = appView;
     if (options.getProguardConfiguration().isOverloadAggressively()) {
       fieldEquivalence = FieldSignatureEquivalence.getEquivalenceIgnoreName();

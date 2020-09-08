@@ -15,7 +15,7 @@ import com.android.tools.r8.position.TextPosition;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
-public class MainDexList {
+public class MainDexListParser {
 
   public static DexType parseEntry(String clazz, DexItemFactory itemFactory) {
     if (!clazz.endsWith(CLASS_EXTENSION)) {
@@ -47,7 +47,10 @@ public class MainDexList {
         try {
           result.add(parseEntry(line, itemFactory));
         } catch (CompilationError e) {
-          throw new CompilationError(e.getMessage(), e, resource.getOrigin(),
+          throw new CompilationError(
+              e.getMessage(),
+              e,
+              resource.getOrigin(),
               new TextPosition(offset, lineNumber, TextPosition.UNKNOWN_COLUMN));
         }
       }

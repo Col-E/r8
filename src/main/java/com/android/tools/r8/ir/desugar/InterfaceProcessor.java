@@ -59,7 +59,7 @@ public final class InterfaceProcessor {
   private final InterfaceMethodRewriter rewriter;
 
   // All created companion and dispatch classes indexed by interface type.
-  final Map<DexType, DexProgramClass> syntheticClasses = new IdentityHashMap<>();
+  final Map<DexClass, DexProgramClass> syntheticClasses = new IdentityHashMap<>();
 
   InterfaceProcessor(
       AppView<?> appView, InterfaceMethodRewriter rewriter) {
@@ -221,7 +221,7 @@ public final class InterfaceProcessor {
             rewriter.factory.getSkipNameValidationForTesting(),
             getChecksumSupplier(iface),
             Collections.singletonList(iface));
-    syntheticClasses.put(iface.type, companionClass);
+    syntheticClasses.put(iface, companionClass);
   }
 
   private ChecksumSupplier getChecksumSupplier(DexProgramClass iface) {
@@ -307,7 +307,7 @@ public final class InterfaceProcessor {
             rewriter.factory.getSkipNameValidationForTesting(),
             DexProgramClass::checksumFromType,
             callers);
-    syntheticClasses.put(iface.type, dispatchClass);
+    syntheticClasses.put(iface, dispatchClass);
     return dispatchClass;
   }
 

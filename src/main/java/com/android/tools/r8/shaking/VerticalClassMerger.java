@@ -217,14 +217,14 @@ public class VerticalClassMerger {
   // All the bridge methods that have been synthesized during vertical class merging.
   private final List<SynthesizedBridgeCode> synthesizedBridges = new ArrayList<>();
 
-  private final MainDexClasses mainDexClasses;
+  private final MainDexTracingResult mainDexClasses;
 
   public VerticalClassMerger(
       DexApplication application,
       AppView<AppInfoWithLiveness> appView,
       ExecutorService executorService,
       Timing timing,
-      MainDexClasses mainDexClasses) {
+      MainDexTracingResult mainDexClasses) {
     this.application = application;
     this.appInfo = appView.appInfo();
     this.appView = appView;

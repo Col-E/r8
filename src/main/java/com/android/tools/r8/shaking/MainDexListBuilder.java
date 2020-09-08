@@ -30,7 +30,7 @@ public class MainDexListBuilder {
   private final Set<DexType> roots;
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Map<DexType, Boolean> annotationTypeContainEnum;
-  private final MainDexClasses.Builder mainDexClassesBuilder;
+  private final MainDexTracingResult.Builder mainDexClassesBuilder;
 
   public static void checkForAssumedLibraryTypes(AppInfo appInfo) {
     DexClass enumType = appInfo.definitionFor(appInfo.dexItemFactory().enumType);
@@ -54,7 +54,7 @@ public class MainDexListBuilder {
     this.appView = appView;
     // Only consider program classes for the root set.
     this.roots = SetUtils.mapIdentityHashSet(roots, DexProgramClass::getType);
-    mainDexClassesBuilder = MainDexClasses.builder(appView.appInfo()).addRoots(this.roots);
+    mainDexClassesBuilder = MainDexTracingResult.builder(appView.appInfo()).addRoots(this.roots);
     annotationTypeContainEnum = new IdentityHashMap<>();
   }
 
@@ -62,7 +62,7 @@ public class MainDexListBuilder {
     return appView.appInfo();
   }
 
-  public MainDexClasses run() {
+  public MainDexTracingResult run() {
     traceMainDexDirectDependencies();
     traceRuntimeAnnotationsWithEnumForMainDex();
     return mainDexClassesBuilder.build();

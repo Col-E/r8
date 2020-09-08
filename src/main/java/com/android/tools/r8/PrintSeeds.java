@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
@@ -86,7 +87,9 @@ public class PrintSeeds {
     Timing timing = new Timing("PrintSeeds");
     try {
       DirectMappedDexApplication application =
-          new ApplicationReader(command.getInputApp(), options, timing).read(executor).toDirect();
+          new ApplicationReader(command.getInputApp(), options, timing)
+              .read(new MainDexClassesIgnoredWitness(), executor)
+              .toDirect();
       AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(application);
       appView.setAppServices(AppServices.builder(appView).build());
       SubtypingInfo subtypingInfo = new SubtypingInfo(appView);

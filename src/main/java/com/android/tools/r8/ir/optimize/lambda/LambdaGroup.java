@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.lambda.CodeProcessor.Strategy;
 import com.android.tools.r8.kotlin.Kotlin;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.Lists;
 import com.google.common.io.BaseEncoding;
@@ -58,6 +59,10 @@ public abstract class LambdaGroup {
       this.id = id;
       this.clazz = clazz;
     }
+
+    public DexProgramClass getLambdaClass() {
+      return clazz;
+    }
   }
 
   public LambdaGroup(LambdaGroupId id) {
@@ -93,8 +98,9 @@ public abstract class LambdaGroup {
   final boolean shouldAddToMainDex(AppView<?> appView) {
     // We add the group class to main index if any of the
     // lambda classes it replaces is added to main index.
-    for (DexType type : lambdas.keySet()) {
-      if (appView.appInfo().isInMainDexList(type)) {
+    MainDexClasses mainDexClasses = appView.appInfo().getMainDexClasses();
+    for (LambdaInfo info : lambdas.values()) {
+      if (mainDexClasses.contains(info.getLambdaClass())) {
         return true;
       }
     }

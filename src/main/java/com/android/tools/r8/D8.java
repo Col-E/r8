@@ -7,6 +7,8 @@ import static com.android.tools.r8.D8Command.USAGE_MESSAGE;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesReadWitness;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -165,8 +167,10 @@ public final class D8 {
       throws IOException {
     PrefixRewritingMapper rewritePrefix =
         options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
-    LazyLoadedDexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
-    AppInfo appInfo = AppInfo.createInitialAppInfo(app);
+    ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
+    LazyLoadedDexApplication app =
+        applicationReader.read(new MainDexClassesReadWitness(), executor);
+    AppInfo appInfo = AppInfo.createInitialAppInfo(app, applicationReader.readMainDexClasses(app));
     return AppView.createForD8(appInfo, rewritePrefix);
   }
 
@@ -280,7 +284,11 @@ public final class D8 {
           DexApplication app =
               rewriteNonDexInputs(
                   appView, inputApp, options, executor, timing, appView.appInfo().app());
-          appView.setAppInfo(new AppInfo(app, appView.appInfo().getSyntheticItems().commit(app)));
+          appView.setAppInfo(
+              new AppInfo(
+                  app,
+                  appView.appInfo().getMainDexClasses(),
+                  appView.appInfo().getSyntheticItems().commit(app)));
           namingLens = NamingLens.getIdentityLens();
         }
         new ApplicationWriter(
@@ -331,7 +339,11 @@ public final class D8 {
       }
     }
     DexApplication cfApp = app.builder().replaceProgramClasses(nonDexProgramClasses).build();
-    appView.setAppInfo(new AppInfo(cfApp, appView.appInfo().getSyntheticItems().commit(cfApp)));
+    appView.setAppInfo(
+        new AppInfo(
+            cfApp,
+            appView.appInfo().getMainDexClasses(),
+            appView.appInfo().getSyntheticItems().commit(cfApp)));
     ConvertedCfFiles convertedCfFiles = new ConvertedCfFiles();
     NamingLens prefixRewritingNamingLens =
         PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
@@ -351,7 +363,9 @@ public final class D8 {
     builder.getProgramResourceProviders().clear();
     builder.addProgramResourceProvider(convertedCfFiles);
     AndroidApp newAndroidApp = builder.build();
-    DexApplication newApp = new ApplicationReader(newAndroidApp, options, timing).read(executor);
+    DexApplication newApp =
+        new ApplicationReader(newAndroidApp, options, timing)
+            .read(new MainDexClassesIgnoredWitness(), executor);
     DexApplication.Builder<?> finalDexApp = newApp.builder();
     for (DexProgramClass dexProgramClass : dexProgramClasses) {
       finalDexApp.addProgramClass(dexProgramClass);

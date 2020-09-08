@@ -24,10 +24,12 @@ import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ClassProvider;
@@ -36,7 +38,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LibraryClassCollection;
-import com.android.tools.r8.utils.MainDexList;
+import com.android.tools.r8.utils.MainDexListParser;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -58,6 +60,12 @@ import java.util.stream.Collectors;
 
 public class ApplicationReader {
 
+  public abstract static class MainDexClassesReadOrIgnoredWitness {}
+
+  public static class MainDexClassesIgnoredWitness extends MainDexClassesReadOrIgnoredWitness {}
+
+  public static class MainDexClassesReadWitness extends MainDexClassesReadOrIgnoredWitness {}
+
   private final InternalOptions options;
   private final DexItemFactory itemFactory;
   private final Timing timing;
@@ -74,35 +82,48 @@ public class ApplicationReader {
     this.inputApp = inputApp;
   }
 
-  public LazyLoadedDexApplication read() throws IOException {
-    return read((StringResource) null);
+  public LazyLoadedDexApplication read(
+      MainDexClassesReadOrIgnoredWitness mainDexClassesReadOrIgnoredWitness) throws IOException {
+    return read(mainDexClassesReadOrIgnoredWitness, (StringResource) null);
   }
 
-  public LazyLoadedDexApplication read(StringResource proguardMap) throws IOException {
+  public LazyLoadedDexApplication read(
+      MainDexClassesReadOrIgnoredWitness mainDexClassesReadOrIgnoredWitness,
+      StringResource proguardMap)
+      throws IOException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     try {
-      return read(proguardMap, executor);
+      return read(mainDexClassesReadOrIgnoredWitness, proguardMap, executor);
     } finally {
       executor.shutdown();
     }
   }
 
-  public final LazyLoadedDexApplication read(ExecutorService executorService) throws IOException {
+  public final LazyLoadedDexApplication read(
+      MainDexClassesReadOrIgnoredWitness mainDexClassesReadOrIgnoredWitness,
+      ExecutorService executorService)
+      throws IOException {
     return read(
+        mainDexClassesReadOrIgnoredWitness,
         inputApp.getProguardMapInputData(),
         executorService,
         ProgramClassCollection.defaultConflictResolver(options.reporter));
   }
 
   public final LazyLoadedDexApplication read(
-      StringResource proguardMap, ExecutorService executorService) throws IOException {
+      MainDexClassesReadOrIgnoredWitness mainDexClassesReadOrIgnoredWitness,
+      StringResource proguardMap,
+      ExecutorService executorService)
+      throws IOException {
     return read(
+        mainDexClassesReadOrIgnoredWitness,
         proguardMap,
         executorService,
         ProgramClassCollection.defaultConflictResolver(options.reporter));
   }
 
   public final LazyLoadedDexApplication read(
+      MainDexClassesReadOrIgnoredWitness mainDexClassesReadOrIgnoredWitness,
       StringResource proguardMap,
       ExecutorService executorService,
       ProgramClassConflictResolver resolver)
@@ -146,7 +167,6 @@ public class ApplicationReader {
       //     about class descriptor.
       // TODO: try and preload less classes.
       readProguardMap(proguardMap, builder, executorService, futures);
-      readMainDexList(builder, executorService, futures);
       ClassReader classReader = new ClassReader(executorService, futures);
       JarClassFileReader jcf = classReader.readSources();
       ThreadUtils.awaitFutures(futures);
@@ -165,6 +185,38 @@ public class ApplicationReader {
       timing.end();
     }
     return builder.build();
+  }
+
+  public MainDexClasses readMainDexClasses(DexApplication app) {
+    MainDexClasses.Builder builder = MainDexClasses.builder();
+    if (inputApp.hasMainDexList()) {
+      for (StringResource resource : inputApp.getMainDexListResources()) {
+        addToMainDexClasses(app, builder, MainDexListParser.parseList(resource, itemFactory));
+      }
+      addToMainDexClasses(
+          app,
+          builder,
+          inputApp.getMainDexClasses().stream()
+              .map(clazz -> itemFactory.createType(DescriptorUtils.javaTypeToDescriptor(clazz)))
+              .collect(Collectors.toList()));
+    }
+    return builder.build();
+  }
+
+  private void addToMainDexClasses(
+      DexApplication app, MainDexClasses.Builder builder, Iterable<DexType> types) {
+    for (DexType type : types) {
+      DexProgramClass clazz = app.programDefinitionFor(type);
+      if (clazz != null) {
+        builder.add(clazz);
+      } else if (!options.ignoreMainDexMissingClasses) {
+        options.reporter.warning(
+            new StringDiagnostic(
+                "Application does not contain `"
+                    + type.toSourceString()
+                    + "` as referenced in main-dex-list."));
+      }
+    }
   }
 
   private static void dumpInputToFile(AndroidApp app, Path output, InternalOptions options) {
@@ -218,23 +270,6 @@ public class ApplicationReader {
                 throw new CompilationError("Failure to read proguard map file", e, map.getOrigin());
               }
             }));
-  }
-
-  private void readMainDexList(DexApplication.Builder<?> builder, ExecutorService executorService,
-      List<Future<?>> futures) {
-    if (inputApp.hasMainDexList()) {
-      futures.add(executorService.submit(() -> {
-        for (StringResource resource : inputApp.getMainDexListResources()) {
-          builder.addToMainDexList(MainDexList.parseList(resource, itemFactory));
-        }
-
-        builder.addToMainDexList(
-            inputApp.getMainDexClasses()
-                .stream()
-                .map(clazz -> itemFactory.createType(DescriptorUtils.javaTypeToDescriptor(clazz)))
-                .collect(Collectors.toList()));
-      }));
-    }
   }
 
   private final class ClassReader {

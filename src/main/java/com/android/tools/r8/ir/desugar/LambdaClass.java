@@ -167,7 +167,7 @@ public final class LambdaClass {
             synthesizeVirtualMethods(mainMethod),
             appView.dexItemFactory().getSkipNameValidationForTesting(),
             LambdaClass::computeChecksumForSynthesizedClass);
-    appView.appInfo().addSynthesizedClass(clazz);
+    appView.appInfo().addSynthesizedClass(clazz, false);
 
     // The method addSynthesizedFrom() may be called concurrently. To avoid a Concurrent-
     // ModificationException we must use synchronization.

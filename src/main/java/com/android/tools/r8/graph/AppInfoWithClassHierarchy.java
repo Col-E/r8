@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
 import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
@@ -46,15 +47,19 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   public static AppInfoWithClassHierarchy createInitialAppInfoWithClassHierarchy(
-      DexApplication application) {
+      DexApplication application, MainDexClasses mainDexClasses) {
     return new AppInfoWithClassHierarchy(
-        application, SyntheticItems.createInitialSyntheticItems().commit(application));
+        application,
+        mainDexClasses,
+        SyntheticItems.createInitialSyntheticItems().commit(application));
   }
 
   // For AppInfoWithLiveness.
   protected AppInfoWithClassHierarchy(
-      DexApplication application, SyntheticItems.CommittedItems committedItems) {
-    super(application, committedItems);
+      DexApplication application,
+      MainDexClasses mainDexClasses,
+      SyntheticItems.CommittedItems committedItems) {
+    super(application, mainDexClasses, committedItems);
   }
 
   // For desugaring.
@@ -69,7 +74,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
 
   public AppInfoWithClassHierarchy rebuild(Function<DexApplication, DexApplication> fn) {
     DexApplication application = fn.apply(app());
-    return new AppInfoWithClassHierarchy(application, getSyntheticItems().commit(application));
+    return new AppInfoWithClassHierarchy(
+        application, getMainDexClasses(), getSyntheticItems().commit(application));
   }
 
   @Override

@@ -108,7 +108,7 @@ public class EnumUnboxer implements PostOptimization {
   private final Map<DexType, ProgramMethodSet> enumsUnboxingCandidates;
   private final Map<DexType, Set<DexField>> requiredEnumInstanceFieldData =
       new ConcurrentHashMap<>();
-  private final Set<DexType> enumsToUnboxWithPackageRequirement = Sets.newIdentityHashSet();
+  private final Set<DexProgramClass> enumsToUnboxWithPackageRequirement = Sets.newIdentityHashSet();
 
   private EnumUnboxingRewriter enumUnboxerRewriter;
 
@@ -440,17 +440,17 @@ public class EnumUnboxer implements PostOptimization {
     }
     Map<DexType, DexType> newMethodLocationMap = new IdentityHashMap<>();
     Map<String, DexProgramClass> packageToClassMap = new HashMap<>();
-    for (DexType toUnbox : enumsToUnboxWithPackageRequirement) {
-      String packageDescriptor = toUnbox.getPackageDescriptor();
+    for (DexProgramClass toUnbox : enumsToUnboxWithPackageRequirement) {
+      String packageDescriptor = toUnbox.getType().getPackageDescriptor();
       DexProgramClass syntheticClass = packageToClassMap.get(packageDescriptor);
       if (syntheticClass == null) {
         syntheticClass = synthesizeUtilityClassInPackage(packageDescriptor, appBuilder);
         packageToClassMap.put(packageDescriptor, syntheticClass);
       }
-      if (appView.appInfo().isInMainDexList(toUnbox)) {
-        appBuilder.addToMainDexList(syntheticClass.type);
+      if (appView.appInfo().getMainDexClasses().contains(toUnbox)) {
+        appView.appInfo().getMainDexClasses().add(syntheticClass);
       }
-      newMethodLocationMap.put(toUnbox, syntheticClass.type);
+      newMethodLocationMap.put(toUnbox.getType(), syntheticClass.getType());
     }
     enumsToUnboxWithPackageRequirement.clear();
     return newMethodLocationMap;
@@ -488,8 +488,8 @@ public class EnumUnboxer implements PostOptimization {
             DexEncodedMethod.EMPTY_ARRAY,
             factory.getSkipNameValidationForTesting(),
             DexProgramClass::checksumFromType);
-    appBuilder.addSynthesizedClass(syntheticClass, false);
-    appView.appInfo().addSynthesizedClass(syntheticClass);
+    appBuilder.addSynthesizedClass(syntheticClass);
+    appView.appInfo().addSynthesizedClass(syntheticClass, false);
     return syntheticClass;
   }
 
@@ -559,7 +559,7 @@ public class EnumUnboxer implements PostOptimization {
       if (classConstraint == Constraint.NEVER) {
         markEnumAsUnboxable(Reason.ACCESSIBILITY, enumClass);
       } else if (classConstraint == Constraint.PACKAGE) {
-        enumsToUnboxWithPackageRequirement.add(toUnbox);
+        enumsToUnboxWithPackageRequirement.add(enumClass);
       }
     }
   }
@@ -1242,9 +1242,7 @@ public class EnumUnboxer implements PostOptimization {
                   });
           clazz.getMethodCollection().removeMethods(methodsToRemove);
         } else {
-          clazz
-              .getMethodCollection()
-              .replaceMethods(encodedMethod -> fixupEncodedMethod(encodedMethod));
+          clazz.getMethodCollection().replaceMethods(this::fixupEncodedMethod);
           fixupFields(clazz.staticFields(), clazz::setStaticField);
           fixupFields(clazz.instanceFields(), clazz::setInstanceField);
         }

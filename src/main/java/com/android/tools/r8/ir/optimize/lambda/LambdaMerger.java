@@ -367,8 +367,10 @@ public final class LambdaMerger {
     // Add synthesized lambda group classes to the builder.
     for (Entry<LambdaGroup, DexProgramClass> entry : lambdaGroupsClasses.entrySet()) {
       DexProgramClass synthesizedClass = entry.getValue();
-      appView.appInfo().addSynthesizedClass(synthesizedClass);
-      builder.addSynthesizedClass(synthesizedClass, entry.getKey().shouldAddToMainDex(appView));
+      appView
+          .appInfo()
+          .addSynthesizedClass(synthesizedClass, entry.getKey().shouldAddToMainDex(appView));
+      builder.addSynthesizedClass(synthesizedClass);
       // Eventually, we need to process synthesized methods in the lambda group.
       // Otherwise, abstract SynthesizedCode will be flown to Enqueuer.
       // But that process should not see the holder. Otherwise, lambda calls in the main dispatch

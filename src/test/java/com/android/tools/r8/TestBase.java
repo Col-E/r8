@@ -19,6 +19,7 @@ import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.ApplicationReader.MainDexClassesIgnoredWitness;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -44,6 +45,7 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerFactory;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -638,7 +640,8 @@ public class TestBase {
       throws Exception {
     assert options.programConsumer == null;
     options.programConsumer = DexIndexedConsumer.emptyConsumer();
-    return new ApplicationReader(app, options, Timing.empty()).read();
+    return new ApplicationReader(app, options, Timing.empty())
+        .read(new MainDexClassesIgnoredWitness());
   }
 
   protected static AppView<AppInfo> computeAppView(AndroidApp app) throws Exception {
@@ -650,7 +653,8 @@ public class TestBase {
   protected static AppInfoWithClassHierarchy computeAppInfoWithClassHierarchy(AndroidApp app)
       throws Exception {
     return AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
-        readApplicationForDexOutput(app, new InternalOptions()));
+        readApplicationForDexOutput(app, new InternalOptions()),
+        MainDexClasses.createEmptyMainDexClasses());
   }
 
   protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithSubtyping(AndroidApp app)

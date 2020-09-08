@@ -44,6 +44,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -189,7 +190,7 @@ public class ApplicationWriter {
           options.getDexFilePerClassFileConsumer().combineSyntheticClassesWithPrimaryClass());
     } else if (!options.canUseMultidex()
         && options.mainDexKeepRules.isEmpty()
-        && appView.appInfo().app().mainDexList.isEmpty()
+        && appView.appInfo().getMainDexClasses().isEmpty()
         && options.enableMainDexListCheck) {
       distributor = new VirtualFile.MonoDexDistributor(this, options);
     } else {
@@ -354,7 +355,7 @@ public class ApplicationWriter {
     }
     if (options.mainDexListConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(
-          options.reporter, options.mainDexListConsumer, writeMainDexList(application, namingLens));
+          options.reporter, options.mainDexListConsumer, writeMainDexList(appView, namingLens));
       ExceptionUtils.withFinishedResourceHandler(options.reporter, options.mainDexListConsumer);
     }
 
@@ -613,9 +614,11 @@ public class ApplicationWriter {
         .replace('.', '/') + ".class";
   }
 
-  private static String writeMainDexList(DexApplication application, NamingLens namingLens) {
+  private static String writeMainDexList(AppView<?> appView, NamingLens namingLens) {
+    MainDexClasses mainDexClasses = appView.appInfo().getMainDexClasses();
     StringBuilder builder = new StringBuilder();
-    List<DexType> list = new ArrayList<>(application.mainDexList);
+    List<DexType> list = new ArrayList<>(mainDexClasses.size());
+    mainDexClasses.forEach(list::add);
     list.sort(DexType::slowCompareTo);
     list.forEach(
         type -> builder.append(mapMainDexListName(type, namingLens)).append('\n'));

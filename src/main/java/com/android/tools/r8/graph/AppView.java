@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.optimize.library.LibraryMemberOptimizer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.LibraryModeledPredicate;
+import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
@@ -129,8 +130,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public static AppView<AppInfoWithClassHierarchy> createForR8(DexApplication application) {
+    return createForR8(application, MainDexClasses.createEmptyMainDexClasses());
+  }
+
+  public static AppView<AppInfoWithClassHierarchy> createForR8(
+      DexApplication application, MainDexClasses mainDexClasses) {
     AppInfoWithClassHierarchy appInfo =
-        AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(application);
+        AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
+            application, mainDexClasses);
     return new AppView<>(
         appInfo, WholeProgramOptimizations.ON, defaultPrefixRewritingMapper(appInfo));
   }
