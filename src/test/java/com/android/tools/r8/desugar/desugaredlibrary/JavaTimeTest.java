@@ -171,7 +171,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
       ToolHelper.runL8(l8Builder.build());
 
       // Run on the JVM with desuagred library on classpath.
-      TestRunResult result =
+      TestRunResult<?> result =
           testForJvm()
               .addProgramFiles(jar)
               .addRunClasspathFiles(desugaredLib)
