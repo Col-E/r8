@@ -877,6 +877,10 @@ public class EnumUnboxer implements PostOptimization {
         if (singleTarget == factory.javaLangSystemMethods.identityHashCode) {
           return Reason.ELIGIBLE;
         }
+        if (singleTarget == factory.stringMembers.valueOf) {
+          requiredEnumInstanceFieldData(enumClass.type, factory.enumMembers.nameField);
+          return Reason.ELIGIBLE;
+        }
         if (singleTarget == factory.objectMembers.getClass
             && (!invokeMethod.hasOutValue() || !invokeMethod.outValue().hasAnyUsers())) {
           // This is a hidden null check.

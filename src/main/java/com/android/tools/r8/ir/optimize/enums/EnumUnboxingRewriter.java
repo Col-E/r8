@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.ArrayAccess;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -205,15 +206,26 @@ public class EnumUnboxingRewriter {
             continue;
           }
         } else if (invokedMethod == factory.javaLangSystemMethods.identityHashCode) {
-          assert invokeStatic.inValues().size() == 1;
+          assert invokeStatic.arguments().size() == 1;
           Value argument = invokeStatic.getArgument(0);
           DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
           if (enumType != null) {
             invokeStatic.outValue().replaceUsers(argument);
             iterator.removeOrReplaceByDebugLocalRead();
           }
+        } else if (invokedMethod == factory.stringMembers.valueOf) {
+          assert invokeStatic.arguments().size() == 1;
+          Value argument = invokeStatic.getArgument(0);
+          DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
+          if (enumType != null) {
+            DexMethod stringValueOfMethod = computeStringValueOfUtilityMethod(enumType);
+            iterator.replaceCurrentInstruction(
+                new InvokeStatic(
+                    stringValueOfMethod, invokeStatic.outValue(), invokeStatic.arguments()));
+            continue;
+          }
         } else if (invokedMethod == factory.objectsMethods.requireNonNull) {
-          assert invokeStatic.inValues().size() == 1;
+          assert invokeStatic.arguments().size() == 1;
           Value argument = invokeStatic.getArgument(0);
           DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
           if (enumType != null) {
@@ -221,7 +233,7 @@ public class EnumUnboxingRewriter {
                 iterator, invokeStatic, zeroCheckMethod, m -> synthesizeZeroCheckMethod());
           }
         } else if (invokedMethod == factory.objectsMethods.requireNonNullWithMessage) {
-          assert invokeStatic.inValues().size() == 2;
+          assert invokeStatic.arguments().size() == 2;
           Value argument = invokeStatic.getArgument(0);
           DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
           if (enumType != null) {
@@ -407,7 +419,24 @@ public class EnumUnboxingRewriter {
             factory.createProto(field.type, factory.intType),
             methodName);
     utilityMethods.computeIfAbsent(
-        fieldMethod, m -> synthesizeInstanceFieldMethod(m, enumType, field));
+        fieldMethod, m -> synthesizeInstanceFieldMethod(m, enumType, field, null));
+    return fieldMethod;
+  }
+
+  private DexMethod computeStringValueOfUtilityMethod(DexType enumType) {
+    // TODO(b/167994636): remove duplication between instance field name read and this method.
+    assert enumsToUnbox.containsEnum(enumType);
+    String methodName = "string$valueOf$" + compatibleName(enumType);
+    DexMethod fieldMethod =
+        factory.createMethod(
+            factory.enumUnboxingUtilityType,
+            factory.createProto(factory.stringType, factory.intType),
+            methodName);
+    AbstractValue nullString =
+        appView.abstractValueFactory().createSingleStringValue(factory.createString("null"));
+    utilityMethods.computeIfAbsent(
+        fieldMethod,
+        m -> synthesizeInstanceFieldMethod(m, enumType, factory.enumMembers.nameField, nullString));
     return fieldMethod;
   }
 
@@ -489,7 +518,7 @@ public class EnumUnboxingRewriter {
   }
 
   private DexEncodedMethod synthesizeInstanceFieldMethod(
-      DexMethod method, DexType enumType, DexField field) {
+      DexMethod method, DexType enumType, DexField field, AbstractValue nullValue) {
     assert method.proto.returnType == field.type;
     assert unboxedEnumsInstanceFieldData.getInstanceFieldData(enumType, field).isMapping();
     CfCode cfCode =
@@ -500,7 +529,8 @@ public class EnumUnboxingRewriter {
                 enumsToUnbox.getEnumValueInfoMap(enumType),
                 unboxedEnumsInstanceFieldData
                     .getInstanceFieldData(enumType, field)
-                    .asEnumFieldMappingData())
+                    .asEnumFieldMappingData(),
+                nullValue)
             .generateCfCode();
     return synthesizeUtilityMethod(cfCode, method, false);
   }

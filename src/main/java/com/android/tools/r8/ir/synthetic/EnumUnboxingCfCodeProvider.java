@@ -66,17 +66,20 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
     private final DexType returnType;
     private final EnumValueInfoMap enumValueInfoMap;
     private final EnumInstanceFieldMappingData fieldDataMap;
+    private final AbstractValue nullValue;
 
     public EnumUnboxingInstanceFieldCfCodeProvider(
         AppView<?> appView,
         DexType holder,
         DexType returnType,
         EnumValueInfoMap enumValueInfoMap,
-        EnumInstanceFieldMappingData fieldDataMap) {
+        EnumInstanceFieldMappingData fieldDataMap,
+        AbstractValue nullValue) {
       super(appView, holder);
       this.returnType = returnType;
       this.enumValueInfoMap = enumValueInfoMap;
       this.fieldDataMap = fieldDataMap;
+      this.nullValue = nullValue;
     }
 
     @Override
@@ -113,9 +116,15 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
             }
           });
 
-      // throw null;
-      instructions.add(new CfConstNull());
-      instructions.add(new CfThrow());
+      if (nullValue != null) {
+        // return "null"
+        addCfInstructionsForAbstractValue(instructions, nullValue, returnType);
+        instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
+      } else {
+        // throw null;
+        instructions.add(new CfConstNull());
+        instructions.add(new CfThrow());
+      }
 
       return standardCfCodeFromInstructions(instructions);
     }
