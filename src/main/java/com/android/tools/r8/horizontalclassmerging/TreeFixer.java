@@ -23,12 +23,10 @@ import java.util.Map;
 
 /**
  * The tree fixer traverses all program classes and finds and fixes references to old classes which
- * have been remapped to new classes by the class merger (stored in {@link
- * TreeFixer#mergedClasses}). While doing so, all updated changes are tracked in {@link
- * TreeFixer#lensBuilder}.
+ * have been remapped to new classes by the class merger. While doing so, all updated changes are
+ * tracked in {@link TreeFixer#lensBuilder}.
  */
 class TreeFixer {
-  private final Map<DexType, DexType> mergedClasses;
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
   private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
@@ -37,9 +35,7 @@ class TreeFixer {
   public TreeFixer(
       AppView<AppInfoWithLiveness> appView,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
-      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
-      Map<DexType, DexType> mergedClasses) {
-    this.mergedClasses = mergedClasses;
+      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder) {
     this.lensBuilder = lensBuilder;
     this.fieldAccessChangesBuilder = fieldAccessChangesBuilder;
     this.appView = appView;
@@ -48,12 +44,12 @@ class TreeFixer {
   HorizontalClassMergerGraphLens fixupTypeReferences() {
     // Globally substitute merged class types in protos and holders.
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      clazz.superType = mergedClasses.getOrDefault(clazz.superType, clazz.superType);
+      clazz.superType = lensBuilder.lookupType(clazz.superType);
       clazz.getMethodCollection().replaceMethods(this::fixupMethod);
       fixupFields(clazz.staticFields(), clazz::setStaticField);
       fixupFields(clazz.instanceFields(), clazz::setInstanceField);
     }
-    HorizontalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
+    HorizontalClassMergerGraphLens lens = lensBuilder.build(appView);
 
     fieldAccessChangesBuilder.build(this::fixupMethod).modify(appView);
 
@@ -134,8 +130,10 @@ class TreeFixer {
       return type.replaceBaseType(fixed, appView.dexItemFactory());
     }
     if (type.isClassType()) {
-      while (mergedClasses.containsKey(type)) {
-        type = mergedClasses.get(type);
+      while (true) {
+        DexType mapped = lensBuilder.lookupType(type);
+        if (mapped == type) break;
+        type = mapped;
       }
     }
     return type;

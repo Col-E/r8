@@ -23,6 +23,7 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -42,56 +43,33 @@ public class ClassMerger {
   private final DexItemFactory dexItemFactory;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
   private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
-  private final Map<DexType, DexType> mergedClasses;
 
   private final Reference2IntMap<DexType> classIdentifiers = new Reference2IntOpenHashMap<>();
-  private final Map<DexProto, ConstructorMerger.Builder> constructorMergers =
-      new IdentityHashMap<>();
-  private final Map<Wrapper<DexMethod>, VirtualMethodMerger.Builder> virtualMethodMergers =
-      new LinkedHashMap<>();
+  private final Collection<VirtualMethodMerger> virtualMethodMergers;
+  private final Collection<ConstructorMerger> constructorMergers;
   private final DexField classIdField;
 
-  ClassMerger(
+  private ClassMerger(
       AppView<AppInfoWithLiveness> appView,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       DexProgramClass target,
       Collection<DexProgramClass> toMergeGroup,
-      Map<DexType, DexType> mergedClasses) {
+      DexField classIdField,
+      Collection<VirtualMethodMerger> virtualMethodMergers,
+      Collection<ConstructorMerger> constructorMergers) {
     this.appView = appView;
     this.lensBuilder = lensBuilder;
     this.fieldAccessChangesBuilder = fieldAccessChangesBuilder;
     this.target = target;
     this.toMergeGroup = toMergeGroup;
-    this.mergedClasses = mergedClasses;
+    this.classIdField = classIdField;
+    this.virtualMethodMergers = virtualMethodMergers;
+    this.constructorMergers = constructorMergers;
 
     this.dexItemFactory = appView.dexItemFactory();
 
-    // TODO(b/165498187): ensure the name for the field is fresh
-    classIdField =
-        dexItemFactory.createField(target.type, dexItemFactory.intType, CLASS_ID_FIELD_NAME);
-
     buildClassIdentifierMap();
-  }
-
-  Wrapper<DexMethod> bySignature(DexMethod method) {
-    return MethodSignatureEquivalence.get().wrap(method);
-  }
-
-  void addConstructor(DexEncodedMethod method) {
-    assert method.isInstanceInitializer();
-    constructorMergers
-        .computeIfAbsent(method.proto(), ignore -> new ConstructorMerger.Builder())
-        .add(method);
-  }
-
-  void addVirtualMethod(ProgramMethod method) {
-    assert method.getDefinition().isNonPrivateVirtualMethod();
-    virtualMethodMergers
-        .computeIfAbsent(
-            MethodSignatureEquivalence.get().wrap(method.getReference()),
-            ignore -> new VirtualMethodMerger.Builder())
-        .add(method);
   }
 
   void buildClassIdentifierMap() {
@@ -107,18 +85,13 @@ public class ClassMerger {
           DexEncodedMethod definition = method.getDefinition();
           assert !definition.isClassInitializer();
 
-          if (definition.isInstanceInitializer()) {
-            addConstructor(definition);
-          } else {
-            // TODO(b/166427795): Ensure that overriding relationships are not changed.
+          if (!definition.isInstanceInitializer()) {
             DexMethod newMethod = renameMethod(method);
-            // TODO(b/165000217): Add all methods to `target` in one go using addVirtualMethods().
+            // TODO(b/165000217): Add all methods to `target` in one go using addDirectMethods().
             target.addDirectMethod(definition.toTypeSubstitutedMethod(newMethod));
             lensBuilder.moveMethod(definition.getReference(), newMethod);
           }
         });
-
-    toMerge.forEachProgramVirtualMethod(this::addVirtualMethod);
 
     // Clear the members of the class to be merged since they have now been moved to the target.
     toMerge.setVirtualMethods(null);
@@ -142,39 +115,15 @@ public class ClassMerger {
   }
 
   void mergeConstructors() {
-    for (ConstructorMerger.Builder builder : constructorMergers.values()) {
-      ConstructorMerger constructorMerger = builder.build(appView, target, classIdField);
-      constructorMerger.merge(lensBuilder, fieldAccessChangesBuilder, classIdentifiers);
-    }
-  }
-
-  void mergeVirtualMethods() {
-    for (VirtualMethodMerger.Builder builder : virtualMethodMergers.values()) {
-      VirtualMethodMerger merger = builder.build(appView, target, classIdField, mergedClasses);
+    for (ConstructorMerger merger : constructorMergers) {
       merger.merge(lensBuilder, fieldAccessChangesBuilder, classIdentifiers);
     }
   }
 
-  /**
-   * To ensure constructor merging happens correctly, add all of the target constructors methods to
-   * constructor mergers.
-   */
-  void addTargetVirtualMethods() {
-    target.forEachProgramVirtualMethod(this::addVirtualMethod);
-  }
-
-  /**
-   * To ensure constructor merging happens correctly, add all of the target constructors methods to
-   * constructor mergers.
-   */
-  void addTargetConstructors() {
-    target.forEachProgramDirectMethod(
-        programMethod -> {
-          DexEncodedMethod method = programMethod.getDefinition();
-          if (method.isInstanceInitializer()) {
-            addConstructor(method);
-          }
-        });
+  void mergeVirtualMethods() {
+    for (VirtualMethodMerger merger : virtualMethodMergers) {
+      merger.merge(lensBuilder, fieldAccessChangesBuilder, classIdentifiers);
+    }
   }
 
   void appendClassIdField() {
@@ -189,16 +138,102 @@ public class ClassMerger {
   }
 
   public void mergeGroup() {
-    addTargetConstructors();
-    addTargetVirtualMethods();
-
     appendClassIdField();
 
     for (DexProgramClass clazz : toMergeGroup) {
       merge(clazz);
+      lensBuilder.mapType(clazz.type, target.type);
     }
 
     mergeConstructors();
     mergeVirtualMethods();
+  }
+
+  public static class Builder {
+    private final DexProgramClass target;
+    private final Collection<DexProgramClass> toMergeGroup = new ArrayList<>();
+    private final Map<DexProto, ConstructorMerger.Builder> constructorMergerBuilders =
+        new IdentityHashMap<>();
+    private final Map<Wrapper<DexMethod>, VirtualMethodMerger.Builder> virtualMethodMergerBuilders =
+        new LinkedHashMap<>();
+
+    public Builder(DexProgramClass target) {
+      this.target = target;
+      setupForMethodMerging(target);
+    }
+
+    public Builder mergeClass(DexProgramClass toMerge) {
+      setupForMethodMerging(toMerge);
+      toMergeGroup.add(toMerge);
+      return this;
+    }
+
+    public Builder addClassesToMerge(Collection<DexProgramClass> toMerge) {
+      toMerge.forEach(this::mergeClass);
+      return this;
+    }
+
+    void setupForMethodMerging(DexProgramClass toMerge) {
+      toMerge.forEachProgramDirectMethod(
+          method -> {
+            DexEncodedMethod definition = method.getDefinition();
+            assert !definition.isClassInitializer();
+
+            if (definition.isInstanceInitializer()) {
+              addConstructor(method);
+            }
+          });
+
+      toMerge.forEachProgramVirtualMethod(this::addVirtualMethod);
+    }
+
+    void addConstructor(ProgramMethod method) {
+      assert method.getDefinition().isInstanceInitializer();
+      constructorMergerBuilders
+          .computeIfAbsent(
+              method.getDefinition().getProto(), ignore -> new ConstructorMerger.Builder())
+          .add(method.getDefinition());
+    }
+
+    void addVirtualMethod(ProgramMethod method) {
+      assert method.getDefinition().isNonPrivateVirtualMethod();
+      virtualMethodMergerBuilders
+          .computeIfAbsent(
+              MethodSignatureEquivalence.get().wrap(method.getReference()),
+              ignore -> new VirtualMethodMerger.Builder())
+          .add(method);
+    }
+
+    public ClassMerger build(
+        AppView<AppInfoWithLiveness> appView,
+        HorizontalClassMergerGraphLens.Builder lensBuilder,
+        FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder) {
+      DexItemFactory dexItemFactory = appView.dexItemFactory();
+      // TODO(b/165498187): ensure the name for the field is fresh
+      DexField classIdField =
+          dexItemFactory.createField(target.type, dexItemFactory.intType, CLASS_ID_FIELD_NAME);
+
+      Collection<VirtualMethodMerger> virtualMethodMergers =
+          new ArrayList<>(virtualMethodMergerBuilders.size());
+      for (VirtualMethodMerger.Builder builder : virtualMethodMergerBuilders.values()) {
+        virtualMethodMergers.add(builder.build(appView, target, classIdField));
+      }
+
+      Collection<ConstructorMerger> constructorMergers =
+          new ArrayList<>(constructorMergerBuilders.size());
+      for (ConstructorMerger.Builder builder : constructorMergerBuilders.values()) {
+        constructorMergers.add(builder.build(appView, target, classIdField));
+      }
+
+      return new ClassMerger(
+          appView,
+          lensBuilder,
+          fieldAccessChangesBuilder,
+          target,
+          toMergeGroup,
+          classIdField,
+          virtualMethodMergers,
+          constructorMergers);
+    }
   }
 }

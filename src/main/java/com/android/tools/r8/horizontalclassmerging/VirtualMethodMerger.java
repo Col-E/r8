@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -24,7 +23,6 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
 
 public class VirtualMethodMerger {
   private final DexProgramClass target;
@@ -32,20 +30,20 @@ public class VirtualMethodMerger {
   private final Collection<ProgramMethod> methods;
   private final DexField classIdField;
   private final AppView<AppInfoWithLiveness> appView;
-  private final Map<DexType, DexType> mergedClasses;
+  private final DexMethod superMethod;
 
   public VirtualMethodMerger(
       AppView<AppInfoWithLiveness> appView,
       DexProgramClass target,
       Collection<ProgramMethod> methods,
       DexField classIdField,
-      Map<DexType, DexType> mergedClasses) {
+      DexMethod superMethod) {
     this.dexItemFactory = appView.dexItemFactory();
     this.target = target;
     this.classIdField = classIdField;
     this.methods = methods;
     this.appView = appView;
-    this.mergedClasses = mergedClasses;
+    this.superMethod = superMethod;
   }
 
   public static class Builder {
@@ -56,12 +54,26 @@ public class VirtualMethodMerger {
       return this;
     }
 
+    /** Get the super method handle if this method overrides a parent method. */
+    private DexMethod superMethod(AppView<AppInfoWithLiveness> appView, DexProgramClass target) {
+      // TODO(b/167981556): Correctly detect super methods defined on interfaces.
+      DexMethod template = methods.iterator().next().getReference();
+      SingleResolutionResult resolutionResult =
+          appView
+              .withLiveness()
+              .appInfo()
+              .resolveMethodOnClass(template, target.superType)
+              .asSingleResolution();
+      if (resolutionResult == null) {
+        return null;
+      }
+      return resolutionResult.getResolvedMethod().method;
+    }
+
     public VirtualMethodMerger build(
-        AppView<AppInfoWithLiveness> appView,
-        DexProgramClass target,
-        DexField classIdField,
-        Map<DexType, DexType> mergedClasses) {
-      return new VirtualMethodMerger(appView, target, methods, classIdField, mergedClasses);
+        AppView<AppInfoWithLiveness> appView, DexProgramClass target, DexField classIdField) {
+      DexMethod superMethod = superMethod(appView, target);
+      return new VirtualMethodMerger(appView, target, methods, classIdField, superMethod);
     }
   }
 
@@ -94,27 +106,6 @@ public class VirtualMethodMerger {
     return methods.iterator().next().getDefinition().getAccessFlags();
   }
 
-  private DexMethod superMethod() {
-    // TODO(b/167664411): remove all super type remapping by running this before any classes have
-    // been mapped.
-    DexMethod template = methods.iterator().next().getReference();
-    // If the parent was already merged into another class, look for the method on the old class.
-    DexType superType = mergedClasses.getOrDefault(target.superType, target.superType);
-    SingleResolutionResult resolutionResult =
-        appView
-            .withLiveness()
-            .appInfo()
-            .resolveMethodOnClass(template, superType)
-            .asSingleResolution();
-    if (resolutionResult == null) {
-      return null;
-    }
-    // Make sure that the parent method reference is on the original class if the original class
-    // was merged into another class. This ensures that the method reference is correctly fixed.
-    DexMethod maybeMovedSuperMethod = resolutionResult.getResolvedMethod().method;
-    return dexItemFactory.createMethod(
-        target.superType, maybeMovedSuperMethod.proto, maybeMovedSuperMethod.name);
-  }
 
   /**
    * If there is only a single method that does not override anything then it is safe to just move
@@ -138,7 +129,6 @@ public class VirtualMethodMerger {
       Reference2IntMap classIdentifiers) {
 
     assert !methods.isEmpty();
-    DexMethod superMethod = superMethod();
 
     // Handle trivial merges.
     if (superMethod == null && methods.size() == 1) {

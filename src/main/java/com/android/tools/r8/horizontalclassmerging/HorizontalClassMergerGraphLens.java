@@ -83,10 +83,10 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   }
 
   public static class Builder {
-    protected final BiMap<DexField, DexField> fieldMap = HashBiMap.create();
-    protected final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
-    protected final Map<DexMethod, Set<DexMethod>> completeInverseMethodMap =
-        new IdentityHashMap<>();
+    private final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
+    private final BiMap<DexField, DexField> fieldMap = HashBiMap.create();
+    private final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
+    private final Map<DexMethod, Set<DexMethod>> completeInverseMethodMap = new IdentityHashMap<>();
 
     private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
     private final Map<DexMethod, DexMethod> extraOriginalMethodSignatures = new IdentityHashMap<>();
@@ -95,16 +95,15 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
 
     Builder() {}
 
-    public HorizontalClassMergerGraphLens build(
-        AppView<?> appView, Map<DexType, DexType> mergedClasses) {
-      if (mergedClasses.isEmpty()) {
+    public HorizontalClassMergerGraphLens build(AppView<?> appView) {
+      if (typeMap.isEmpty()) {
         return null;
       } else {
         BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
         return new HorizontalClassMergerGraphLens(
             appView,
             constructorIds,
-            mergedClasses,
+            typeMap,
             fieldMap,
             methodMap,
             originalFieldSignatures,
@@ -112,6 +111,15 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
             extraOriginalMethodSignatures,
             appView.graphLens());
       }
+    }
+
+    public DexType lookupType(DexType type) {
+      return typeMap.getOrDefault(type, type);
+    }
+
+    public Builder mapType(DexType from, DexType to) {
+      typeMap.put(from, to);
+      return this;
     }
 
     /** Bidirectional mapping from one method to another. */
