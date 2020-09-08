@@ -51,6 +51,9 @@ public class ProguardConfigurationParser {
   private final Reporter reporter;
   private final boolean allowTestOptions;
 
+  public static final String FLATTEN_PACKAGE_HIERARCHY = "flattenpackagehierarchy";
+  public static final String REPACKAGE_CLASSES = "repackageclasses";
+
   private static final List<String> IGNORED_SINGLE_ARG_OPTIONS = ImmutableList.of(
       "protomapping",
       "target",

@@ -69,8 +69,7 @@ public class YouTubeV1419TreeShakeJarVerificationTest extends YouTubeCompilation
           new ProtoApplicationStats(dexItemFactory, compileResult.inspector(), original);
       ProtoApplicationStats baseline =
           new ProtoApplicationStats(
-              dexItemFactory,
-              new CodeInspector(getReleaseApk(), getReleaseProguardMap().toString()));
+              dexItemFactory, new CodeInspector(getReleaseApk(), getReleaseProguardMap()));
       System.out.println(actual.getStats(baseline));
     }
 

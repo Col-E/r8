@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -67,6 +68,15 @@ public class MainDexClasses {
 
   public boolean isEmpty() {
     return mainDexClasses.isEmpty();
+  }
+
+  public MainDexClasses rewrittenWithLens(GraphLens lens) {
+    MainDexClasses rewrittenMainDexClasses = createEmptyMainDexClasses();
+    for (DexType mainDexClass : mainDexClasses) {
+      DexType rewrittenMainDexClass = lens.lookupType(mainDexClass);
+      rewrittenMainDexClasses.mainDexClasses.add(rewrittenMainDexClass);
+    }
+    return rewrittenMainDexClasses;
   }
 
   public int size() {

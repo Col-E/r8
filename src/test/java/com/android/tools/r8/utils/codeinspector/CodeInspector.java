@@ -77,8 +77,12 @@ public class CodeInspector {
     this(Paths.get(path));
   }
 
-  public CodeInspector(Path file, String mappingFile) throws IOException {
-    this(Collections.singletonList(file), mappingFile, null);
+  public CodeInspector(Path file, String proguardMapContent) throws IOException {
+    this(AndroidApp.builder().addProgramFile(file).build(), proguardMapContent);
+  }
+
+  public CodeInspector(Path file, Path mappingFile) throws IOException {
+    this(Collections.singletonList(file), mappingFile.toString(), null);
   }
 
   public CodeInspector(Path file) throws IOException {

@@ -369,7 +369,7 @@ public class DexSplitterTests {
 
     // Ensure that the Class1 is actually in the correct split. Note that Class2 would have been
     // shaken away.
-    CodeInspector inspector = new CodeInspector(base, proguardMap.toString());
+    CodeInspector inspector = new CodeInspector(base, proguardMap);
     ClassSubject subject = inspector.clazz("dexsplitsample.Class1");
     assertTrue(subject.isPresent());
     assertTrue(subject.isRenamed());

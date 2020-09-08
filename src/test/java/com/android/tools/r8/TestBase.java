@@ -1603,6 +1603,10 @@ public class TestBase {
     return AndroidApiLevel.O;
   }
 
+  public static AndroidApiLevel apiLevelWithNativeMultiDexSupport() {
+    return AndroidApiLevel.L;
+  }
+
   public Path compileToZip(
       TestParameters parameters, Collection<Class<?>> classPath, Class<?>... compilationUnit)
       throws Exception {

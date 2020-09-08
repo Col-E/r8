@@ -220,12 +220,7 @@ public abstract class TreeShakingTest extends TestBase {
         Assert.assertEquals(resultInput.toString(), resultOutput.toString());
       }
       if (inspection != null) {
-        CodeInspector inspector =
-            new CodeInspector(
-                out,
-                minify.isMinify()
-                    ? proguardMap.toString()
-                    : null);
+        CodeInspector inspector = new CodeInspector(out, minify.isMinify() ? proguardMap : null);
         inspection.accept(inspector);
       }
       return;
@@ -252,9 +247,7 @@ public abstract class TreeShakingTest extends TestBase {
 
       if (dexComparator != null) {
         CodeInspector ref = new CodeInspector(Paths.get(originalDex));
-        CodeInspector inspector = new CodeInspector(out,
-            minify.isMinify() ? proguardMap.toString()
-                : null);
+        CodeInspector inspector = new CodeInspector(out, minify.isMinify() ? proguardMap : null);
         dexComparator.accept(ref, inspector);
       }
     } else {
@@ -265,8 +258,7 @@ public abstract class TreeShakingTest extends TestBase {
     }
 
     if (inspection != null) {
-      CodeInspector inspector =
-          new CodeInspector(out, minify.isMinify() ? proguardMap.toString() : null);
+      CodeInspector inspector = new CodeInspector(out, minify.isMinify() ? proguardMap : null);
       inspection.accept(inspector);
     }
   }

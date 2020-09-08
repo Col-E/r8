@@ -162,10 +162,10 @@ public class JSR45Tests {
         annotationElement[0].value.asDexValueString().value.toSourceString());
   }
 
-  private String getGeneratedProguardMap() throws IOException {
+  private Path getGeneratedProguardMap() throws IOException {
     Path mapFile = Paths.get(tmpOutputDir.getRoot().getCanonicalPath(), DEFAULT_MAP_FILENAME);
     if (Files.exists(mapFile)) {
-      return mapFile.toAbsolutePath().toString();
+      return mapFile.toAbsolutePath();
     }
     return null;
   }

@@ -990,8 +990,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     DexDefinitionSupplier definitionSupplier = application.getDefinitionsSupplier(committedItems);
     return new AppInfoWithLiveness(
         application,
-        // TODO(b/167939768): Rewrite the main dex classes.
-        getMainDexClasses(),
+        getMainDexClasses().rewrittenWithLens(lens),
         committedItems,
         deadProtoTypes,
         missingTypes,
