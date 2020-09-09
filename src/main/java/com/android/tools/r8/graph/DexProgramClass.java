@@ -269,7 +269,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     assert getEnclosingMethodAttribute() == null;
     assert getInnerClasses().isEmpty();
-    if (hasAnnotations()) {
+    if (hasClassOrMemberAnnotations()) {
       mixedItems.setAnnotationsDirectoryForClass(this, new DexAnnotationDirectory(this));
     }
   }
@@ -363,7 +363,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     return hasMethods() || hasFields();
   }
 
-  public boolean hasAnnotations() {
+  /** Determine if the class or any of its methods/fields has any attributes. */
+  public boolean hasClassOrMemberAnnotations() {
     return !annotations().isEmpty()
         || hasAnnotations(methodCollection)
         || hasAnnotations(staticFields)

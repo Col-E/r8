@@ -6,7 +6,9 @@ package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoFields;
+import com.android.tools.r8.horizontalclassmerging.policies.NoInnerClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.NoRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoStaticClassInitializer;
@@ -40,6 +42,8 @@ public class HorizontalClassMerger {
             new NoFields(),
             // TODO(b/166071504): Allow merging of classes that implement interfaces.
             new NoInterfaces(),
+            new NoAnnotations(),
+            new NoInnerClasses(),
             new NoStaticClassInitializer(),
             new NoRuntimeTypeChecks(classMergingEnqueuerExtension),
             new NotEntryPoint(appView.dexItemFactory()),

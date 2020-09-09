@@ -1270,7 +1270,7 @@ public class FileWriter {
 
 
     public int getOffsetForAnnotationsDirectory(DexProgramClass clazz) {
-      if (!clazz.hasAnnotations()) {
+      if (!clazz.hasClassOrMemberAnnotations()) {
         return Constants.NO_OFFSET;
       }
       int offset = annotationDirectories.getInt(clazzToAnnotationDirectory.get(clazz));

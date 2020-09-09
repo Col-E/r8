@@ -168,7 +168,7 @@ final public class ResourceShrinker {
         processMethod(method);
       }
 
-      if (classDef.hasAnnotations()) {
+      if (classDef.hasClassOrMemberAnnotations()) {
         processAnnotations(classDef);
       }
     }
