@@ -11,65 +11,66 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import org.hamcrest.Matcher;
 
 /** Checking container for checking the same properties of multiple run results. */
-public class TestRunResultCollection extends TestRunResult<TestRunResultCollection> {
+public abstract class TestRunResultCollection<
+        C extends Enum<C>, RR extends TestRunResultCollection<C, RR>>
+    extends TestRunResult<RR> {
 
-  public static TestRunResultCollection create(List<Pair<String, TestRunResult<?>>> runs) {
-    assert !runs.isEmpty();
-    return new TestRunResultCollection(runs);
-  }
+  private final List<Pair<C, TestRunResult<?>>> runs;
 
-  private final List<Pair<String, TestRunResult<?>>> runs;
-
-  public TestRunResultCollection(List<Pair<String, TestRunResult<?>>> runs) {
+  public TestRunResultCollection(List<Pair<C, TestRunResult<?>>> runs) {
     this.runs = runs;
   }
 
-  @Override
-  TestRunResultCollection self() {
-    return this;
-  }
-
-  private TestRunResultCollection forEach(Consumer<TestRunResult<?>> fn) {
+  private RR forEach(Consumer<TestRunResult<?>> fn) {
     runs.forEach(r -> fn.accept(r.getSecond()));
     return self();
   }
 
   @Override
-  public TestRunResultCollection assertSuccess() {
+  public RR assertSuccess() {
     return forEach(TestRunResult::assertSuccess);
   }
 
   @Override
-  public TestRunResultCollection assertFailure() {
+  public RR assertFailure() {
     return forEach(TestRunResult::assertFailure);
   }
 
   @Override
-  public TestRunResultCollection assertStdoutMatches(Matcher<String> matcher) {
+  public RR assertStdoutMatches(Matcher<String> matcher) {
     return forEach(r -> r.assertStdoutMatches(matcher));
   }
 
   @Override
-  public TestRunResultCollection assertStderrMatches(Matcher<String> matcher) {
+  public RR assertStderrMatches(Matcher<String> matcher) {
     return forEach(r -> r.assertStderrMatches(matcher));
   }
 
   @Override
-  public <E extends Throwable> TestRunResultCollection inspect(
-      ThrowingConsumer<CodeInspector, E> consumer) throws IOException, ExecutionException, E {
-    for (Pair<String, TestRunResult<?>> run : runs) {
-      run.getSecond().inspect(consumer);
+  public <E extends Throwable> RR inspect(ThrowingConsumer<CodeInspector, E> consumer)
+      throws IOException, ExecutionException, E {
+    return inspect(c -> true, consumer);
+  }
+
+  public <E extends Throwable> RR inspect(
+      Predicate<C> filter, ThrowingConsumer<CodeInspector, E> consumer)
+      throws IOException, ExecutionException, E {
+    for (Pair<C, TestRunResult<?>> run : runs) {
+      if (filter.test(run.getFirst())) {
+        run.getSecond().inspect(consumer);
+      }
     }
     return self();
   }
 
   @Override
-  public TestRunResultCollection disassemble() throws IOException, ExecutionException {
-    for (Pair<String, TestRunResult<?>> run : runs) {
-      String name = run.getFirst();
+  public RR disassemble() throws IOException, ExecutionException {
+    for (Pair<C, TestRunResult<?>> run : runs) {
+      String name = run.getFirst().name();
       System.out.println(name + " " + Strings.repeat("=", 80 - name.length() - 1));
       run.getSecond().disassemble();
     }

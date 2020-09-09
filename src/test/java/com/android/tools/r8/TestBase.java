@@ -220,28 +220,28 @@ public class TestBase {
     return testForRuntime(parameters.getRuntime(), parameters.getApiLevel());
   }
 
-  public TestBuilder<? extends TestRunResult<?>, ?> testForDesugaring(TestParameters parameters) {
+  public TestBuilder<DesugarTestRunResult, ?> testForDesugaring(TestParameters parameters) {
     return testForDesugaring(
         parameters.getRuntime().getBackend(), parameters.getApiLevel(), o -> {});
   }
 
-  public TestBuilder<? extends TestRunResult<?>, ?> testForDesugaring(
+  public TestBuilder<DesugarTestRunResult, ?> testForDesugaring(
       TestParameters parameters, Consumer<InternalOptions> optionsModification) {
     return testForDesugaring(
         parameters.getRuntime().getBackend(), parameters.getApiLevel(), optionsModification);
   }
 
-  private TestBuilder<? extends TestRunResult<?>, ?> testForDesugaring(
+  private TestBuilder<DesugarTestRunResult, ?> testForDesugaring(
       Backend backend, AndroidApiLevel apiLevel, Consumer<InternalOptions> optionsModification) {
     assert apiLevel != null : "No API level. Add .withAllApiLevelsAlsoForCf() to test parameters?";
     TestState state = new TestState(temp);
-    List<Pair<String, TestBuilder<? extends TestRunResult<?>, ?>>> builders;
+    List<Pair<DesugarTestConfiguration, TestBuilder<? extends TestRunResult<?>, ?>>> builders;
     if (backend == Backend.CF) {
       builders =
           ImmutableList.of(
-              new Pair<>("JAVAC", JvmTestBuilder.create(state)),
+              new Pair<>(DesugarTestConfiguration.JAVAC, JvmTestBuilder.create(state)),
               new Pair<>(
-                  "D8/CF",
+                  DesugarTestConfiguration.D8_CF,
                   D8TestBuilder.create(state, Backend.CF)
                       .setMinApi(apiLevel)
                       .addOptionsModification(optionsModification)));
@@ -250,16 +250,16 @@ public class TestBase {
       builders =
           ImmutableList.of(
               new Pair<>(
-                  "D8/DEX",
+                  DesugarTestConfiguration.D8_DEX,
                   D8TestBuilder.create(state, Backend.DEX)
                       .setMinApi(apiLevel)
                       .addOptionsModification(optionsModification)),
               new Pair<>(
-                  "D8/DEX o D8/CF",
+                  DesugarTestConfiguration.D8_CF_D8_DEX,
                   IntermediateCfD8TestBuilder.create(state, apiLevel)
                       .addOptionsModification(optionsModification)));
     }
-    return TestBuilderCollection.create(state, builders);
+    return DesugarTestBuilder.create(state, builders);
   }
 
   public ProguardTestBuilder testForProguard() {

@@ -6,49 +6,28 @@ package com.android.tools.r8;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.Pair;
-import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 /** Abstraction to allow setup and execution of multiple test builders. */
-public class TestBuilderCollection
-    extends TestBuilder<TestRunResultCollection, TestBuilderCollection> {
+public abstract class TestBuilderCollection<
+        C extends Enum<C>,
+        RR extends TestRunResultCollection<C, RR>,
+        T extends TestBuilderCollection<C, RR, T>>
+    extends TestBuilder<RR, T> {
 
-  public static TestBuilderCollection create(
-      TestState state,
-      List<Pair<String, TestBuilder<? extends TestRunResult<?>, ?>>> testBuilders) {
-    return new TestBuilderCollection(state, testBuilders);
-  }
+  final List<Pair<C, TestBuilder<? extends TestRunResult<?>, ?>>> builders;
 
-  private final List<Pair<String, TestBuilder<? extends TestRunResult<?>, ?>>> builders;
-
-  private TestBuilderCollection(
-      TestState state, List<Pair<String, TestBuilder<? extends TestRunResult<?>, ?>>> builders) {
+  TestBuilderCollection(
+      TestState state, List<Pair<C, TestBuilder<? extends TestRunResult<?>, ?>>> builders) {
     super(state);
     assert !builders.isEmpty();
     this.builders = builders;
   }
 
-  @Override
-  TestBuilderCollection self() {
-    return this;
-  }
-
-  @Override
-  public TestRunResultCollection run(TestRuntime runtime, String mainClass, String... args)
-      throws CompilationFailedException, ExecutionException, IOException {
-    List<Pair<String, TestRunResult<?>>> runs = new ArrayList<>(builders.size());
-    for (Pair<String, TestBuilder<? extends TestRunResult<?>, ?>> builder : builders) {
-      runs.add(new Pair<>(builder.getFirst(), builder.getSecond().run(runtime, mainClass, args)));
-    }
-    return TestRunResultCollection.create(runs);
-  }
-
-  private TestBuilderCollection forEach(Consumer<TestBuilder<? extends TestRunResult<?>, ?>> fn) {
+  private T forEach(Consumer<TestBuilder<? extends TestRunResult<?>, ?>> fn) {
     builders.forEach(b -> fn.accept(b.getSecond()));
     return self();
   }
@@ -59,42 +38,42 @@ public class TestBuilderCollection
   }
 
   @Override
-  public TestBuilderCollection addProgramFiles(Collection<Path> files) {
+  public T addProgramFiles(Collection<Path> files) {
     return forEach(b -> b.addProgramFiles(files));
   }
 
   @Override
-  public TestBuilderCollection addProgramClassFileData(Collection<byte[]> classes) {
+  public T addProgramClassFileData(Collection<byte[]> classes) {
     return forEach(b -> b.addProgramClassFileData(classes));
   }
 
   @Override
-  public TestBuilderCollection addProgramDexFileData(Collection<byte[]> data) {
+  public T addProgramDexFileData(Collection<byte[]> data) {
     return forEach(b -> b.addProgramDexFileData(data));
   }
 
   @Override
-  public TestBuilderCollection addLibraryFiles(Collection<Path> files) {
+  public T addLibraryFiles(Collection<Path> files) {
     return forEach(b -> b.addLibraryFiles(files));
   }
 
   @Override
-  public TestBuilderCollection addLibraryClasses(Collection<Class<?>> classes) {
+  public T addLibraryClasses(Collection<Class<?>> classes) {
     return forEach(b -> b.addLibraryClasses(classes));
   }
 
   @Override
-  public TestBuilderCollection addClasspathClasses(Collection<Class<?>> classes) {
+  public T addClasspathClasses(Collection<Class<?>> classes) {
     return forEach(b -> b.addClasspathClasses(classes));
   }
 
   @Override
-  public TestBuilderCollection addClasspathFiles(Collection<Path> files) {
+  public T addClasspathFiles(Collection<Path> files) {
     return forEach(b -> b.addClasspathFiles(files));
   }
 
   @Override
-  public TestBuilderCollection addRunClasspathFiles(Collection<Path> files) {
+  public T addRunClasspathFiles(Collection<Path> files) {
     return forEach(b -> b.addRunClasspathFiles(files));
   }
 }
