@@ -28,7 +28,6 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
-import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
@@ -442,12 +441,6 @@ public class DexItemFactory {
   public final DexString nestConstructorDescriptor =
       createString("L" + NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME + ";");
   public final DexType nestConstructorType = createStaticallyKnownType(nestConstructorDescriptor);
-
-  public final DexString enumUnboxingUtilityDescriptor =
-      createString(
-          "Lcom/android/tools/r8/" + EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_CLASS_NAME + ";");
-  public final DexType enumUnboxingUtilityType =
-      createStaticallyKnownType(enumUnboxingUtilityDescriptor);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);

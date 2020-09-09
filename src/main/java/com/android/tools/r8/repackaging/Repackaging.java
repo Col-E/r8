@@ -63,7 +63,7 @@ public class Repackaging {
     // For each package, find the set of classes that can be repackaged, and move them to the
     // desired namespace.
     Map<DexType, DexType> mappings = new IdentityHashMap<>();
-    for (ProgramPackage pkg : ProgramPackageCollection.create(appView)) {
+    for (ProgramPackage pkg : ProgramPackageCollection.createWithAllProgramClasses(appView)) {
       Iterable<DexProgramClass> classesToRepackage =
           computeClassesToRepackage(pkg, executorService);
       String newPackageDescriptor = getNewPackageDescriptor(pkg);

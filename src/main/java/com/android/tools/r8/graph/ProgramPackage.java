@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.Set;
@@ -18,9 +19,9 @@ public class ProgramPackage implements Iterable<DexProgramClass> {
     this.packageDescriptor = packageDescriptor;
   }
 
-  public void add(DexProgramClass clazz) {
+  public boolean add(DexProgramClass clazz) {
     assert clazz.getType().getPackageDescriptor().equals(packageDescriptor);
-    classes.add(clazz);
+    return classes.add(clazz);
   }
 
   public String getLastPackageName() {
@@ -41,6 +42,10 @@ public class ProgramPackage implements Iterable<DexProgramClass> {
 
   public void forEachMethod(Consumer<ProgramMethod> consumer) {
     forEach(clazz -> clazz.forEachProgramMethod(consumer));
+  }
+
+  public Set<DexProgramClass> classesInPackage() {
+    return ImmutableSet.copyOf(classes);
   }
 
   @Override

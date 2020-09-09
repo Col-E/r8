@@ -57,7 +57,6 @@ import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.Uninstant
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector.UnusedArgumentsGraphLens;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingCfMethods;
-import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumValueInfoMapCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
@@ -314,13 +313,7 @@ public class R8 {
       InterfaceMethodRewriter.checkForAssumedLibraryTypes(appView.appInfo(), options);
       BackportedMethodRewriter.registerAssumedLibraryTypes(options);
       if (options.enableEnumUnboxing) {
-        if (appView.definitionFor(options.itemFactory.enumUnboxingUtilityType) != null) {
-          // The enum unboxing utility class can be created only during cf to dex compilation.
-          // If this is true, we are recompiling the dex application with R8 (compilation-steps).
-          options.enableEnumUnboxing = false;
-        } else {
-          EnumUnboxingCfMethods.registerSynthesizedCodeReferences(options.itemFactory);
-        }
+        EnumUnboxingCfMethods.registerSynthesizedCodeReferences(options.itemFactory);
       }
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
@@ -411,12 +404,6 @@ public class R8 {
 
           TreePruner pruner = new TreePruner(appViewWithLiveness);
           DirectMappedDexApplication prunedApp = pruner.run();
-
-          if (options.enableEnumUnboxing) {
-            DexProgramClass utilityClass =
-                EnumUnboxingRewriter.synthesizeEmptyEnumUnboxingUtilityClass(appView);
-            prunedApp = prunedApp.builder().addProgramClass(utilityClass).build();
-          }
 
           // Recompute the subtyping information.
           Set<DexType> removedClasses = pruner.getRemovedClasses();

@@ -16,15 +16,27 @@ public class ProgramPackageCollection implements Iterable<ProgramPackage> {
     this.packages = packages;
   }
 
-  public static ProgramPackageCollection create(AppView<?> appView) {
-    Map<String, ProgramPackage> packages = new HashMap<>();
+  public static ProgramPackageCollection createWithAllProgramClasses(AppView<?> appView) {
     assert !appView.appInfo().getSyntheticItems().hasPendingSyntheticClasses();
+    ProgramPackageCollection programPackages = new ProgramPackageCollection(new HashMap<>());
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      packages
-          .computeIfAbsent(clazz.getType().getPackageDescriptor(), ProgramPackage::new)
-          .add(clazz);
+      programPackages.addProgramClass(clazz);
     }
-    return new ProgramPackageCollection(packages);
+    return programPackages;
+  }
+
+  public static ProgramPackageCollection createEmpty() {
+    return new ProgramPackageCollection(new HashMap<>());
+  }
+
+  public boolean addProgramClass(DexProgramClass clazz) {
+    return packages
+        .computeIfAbsent(clazz.getType().getPackageDescriptor(), ProgramPackage::new)
+        .add(clazz);
+  }
+
+  public boolean isEmpty() {
+    return packages.isEmpty();
   }
 
   @Override

@@ -99,11 +99,7 @@ public class L8 {
           });
       assert !options.cfToCfDesugar;
       if (shrink) {
-        AndroidApp r8CommandInputApp = r8Command.getInputApp();
-        InternalOptions r8CommandInternalOptions = r8Command.getInternalOptions();
-        // TODO(b/167843161): Disable temporarily enum unboxing in L8 due to naming issues.
-        r8CommandInternalOptions.enableEnumUnboxing = false;
-        R8.runForTesting(r8CommandInputApp, r8CommandInternalOptions);
+        R8.run(r8Command, executorService);
       } else if (d8Command != null) {
         D8.run(d8Command, executorService);
       }

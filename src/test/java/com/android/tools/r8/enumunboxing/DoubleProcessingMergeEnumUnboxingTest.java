@@ -11,7 +11,7 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.enumunboxing.examplelib1.JavaLibrary1;
 import com.android.tools.r8.enumunboxing.examplelib2.JavaLibrary2;
-import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
+import com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -97,7 +97,7 @@ public class DoubleProcessingMergeEnumUnboxingTest extends EnumUnboxingTestBase 
             .anyMatch(
                 c ->
                     c.getOriginalName()
-                        .contains(EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_CLASS_NAME)));
+                        .contains(UnboxedEnumMemberRelocator.ENUM_UNBOXING_UTILITY_CLASS_SUFFIX)));
   }
 
   static class App {

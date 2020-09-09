@@ -4,14 +4,10 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ClassAccessFlags;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -26,7 +22,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
@@ -35,6 +30,7 @@ import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
@@ -74,7 +70,6 @@ import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
-import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -88,8 +83,6 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,7 +101,8 @@ public class EnumUnboxer implements PostOptimization {
   private final Map<DexType, ProgramMethodSet> enumsUnboxingCandidates;
   private final Map<DexType, Set<DexField>> requiredEnumInstanceFieldData =
       new ConcurrentHashMap<>();
-  private final Set<DexProgramClass> enumsToUnboxWithPackageRequirement = Sets.newIdentityHashSet();
+  private final ProgramPackageCollection enumsToUnboxWithPackageRequirement =
+      ProgramPackageCollection.createEmpty();
 
   private EnumUnboxingRewriter enumUnboxerRewriter;
 
@@ -384,13 +378,28 @@ public class EnumUnboxer implements PostOptimization {
       return;
     }
     ImmutableSet<DexType> enumsToUnbox = ImmutableSet.copyOf(this.enumsUnboxingCandidates.keySet());
+    ImmutableSet.Builder<DexProgramClass> enumClassesToUnboxBuilder = ImmutableSet.builder();
+    for (DexType toUnbox : enumsToUnbox) {
+      DexProgramClass enumClass = appView.definitionFor(toUnbox).asProgramClass();
+      assert enumClass != null;
+      enumClassesToUnboxBuilder.add(enumClass);
+    }
+    ImmutableSet<DexProgramClass> enumClassesToUnbox = enumClassesToUnboxBuilder.build();
     // Update keep info on any of the enum methods of the removed classes.
-    updateKeepInfo(enumsToUnbox);
-    enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox, enumInstanceFieldDataMap);
+    updateKeepInfo(enumClassesToUnbox);
     DirectMappedDexApplication.Builder appBuilder = appView.appInfo().app().asDirect().builder();
-    Map<DexType, DexType> newMethodLocation = synthesizeUnboxedEnumsMethodsLocations(appBuilder);
-    NestedGraphLens enumUnboxingLens =
-        new TreeFixer(enumsToUnbox).fixupTypeReferences(newMethodLocation);
+    UnboxedEnumMemberRelocator relocator =
+        UnboxedEnumMemberRelocator.builder(appView)
+            .synthesizeEnumUnboxingUtilityClasses(
+                enumClassesToUnbox, enumsToUnboxWithPackageRequirement, appBuilder)
+            .build();
+    enumUnboxerRewriter =
+        new EnumUnboxingRewriter(
+            appView,
+            enumsToUnbox,
+            enumInstanceFieldDataMap,
+            relocator.getDefaultEnumUnboxingUtility());
+    NestedGraphLens enumUnboxingLens = new TreeFixer(enumsToUnbox, relocator).fixupTypeReferences();
     appView.setUnboxedEnums(enumUnboxerRewriter.getEnumsToUnbox());
     GraphLens previousLens = appView.graphLens();
     appView.rewriteWithLensAndApplication(enumUnboxingLens, appBuilder.build());
@@ -430,84 +439,20 @@ public class EnumUnboxer implements PostOptimization {
     postBuilder.rewrittenWithLens(appView, previousLens);
   }
 
-  // Some enums may have methods which require to stay in the current package for accessibility,
-  // in this case we create another class than the enum unboxing utility class to host these
-  // methods.
-  private Map<DexType, DexType> synthesizeUnboxedEnumsMethodsLocations(
-      DirectMappedDexApplication.Builder appBuilder) {
-    if (enumsToUnboxWithPackageRequirement.isEmpty()) {
-      return Collections.emptyMap();
-    }
-    Map<DexType, DexType> newMethodLocationMap = new IdentityHashMap<>();
-    Map<String, DexProgramClass> packageToClassMap = new HashMap<>();
-    for (DexProgramClass toUnbox : enumsToUnboxWithPackageRequirement) {
-      String packageDescriptor = toUnbox.getType().getPackageDescriptor();
-      DexProgramClass syntheticClass = packageToClassMap.get(packageDescriptor);
-      if (syntheticClass == null) {
-        syntheticClass = synthesizeUtilityClassInPackage(packageDescriptor, appBuilder);
-        packageToClassMap.put(packageDescriptor, syntheticClass);
-      }
-      if (appView.appInfo().getMainDexClasses().contains(toUnbox)) {
-        appView.appInfo().getMainDexClasses().add(syntheticClass);
-      }
-      newMethodLocationMap.put(toUnbox.getType(), syntheticClass.getType());
-    }
-    enumsToUnboxWithPackageRequirement.clear();
-    return newMethodLocationMap;
-  }
-
-  private DexProgramClass synthesizeUtilityClassInPackage(
-      String packageDescriptor, DirectMappedDexApplication.Builder appBuilder) {
-    DexType type =
-        factory.createType(
-            "L"
-                + packageDescriptor
-                + "/"
-                + EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_CLASS_NAME
-                + ";");
-    if (type == factory.enumUnboxingUtilityType) {
-      return appView.definitionFor(type).asProgramClass();
-    }
-    DexProgramClass syntheticClass =
-        new DexProgramClass(
-            type,
-            null,
-            new SynthesizedOrigin("enum unboxing", EnumUnboxer.class),
-            ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC),
-            factory.objectType,
-            DexTypeList.empty(),
-            null,
-            null,
-            Collections.emptyList(),
-            null,
-            Collections.emptyList(),
-            DexAnnotationSet.empty(),
-            DexEncodedField.EMPTY_ARRAY,
-            DexEncodedField.EMPTY_ARRAY,
-            DexEncodedMethod.EMPTY_ARRAY,
-            DexEncodedMethod.EMPTY_ARRAY,
-            factory.getSkipNameValidationForTesting(),
-            DexProgramClass::checksumFromType);
-    appBuilder.addSynthesizedClass(syntheticClass);
-    appView.appInfo().addSynthesizedClass(syntheticClass, false);
-    return syntheticClass;
-  }
-
-  private void updateKeepInfo(Set<DexType> enumsToUnbox) {
+  private void updateKeepInfo(Set<DexProgramClass> enumsToUnbox) {
     appView
         .appInfo()
         .getKeepInfo()
         .mutate(
             keepInfo -> {
-              for (DexType type : enumsToUnbox) {
-                DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
-                assert !keepInfo.getClassInfo(clazz).isPinned();
-                clazz.forEachProgramMethod(
+              for (DexProgramClass enumToUnbox : enumsToUnbox) {
+                assert !keepInfo.getClassInfo(enumToUnbox).isPinned();
+                enumToUnbox.forEachProgramMethod(
                     method -> {
                       keepInfo.unsafeAllowMinificationOfMethod(method);
                       keepInfo.unsafeUnpinMethod(method);
                     });
-                clazz.forEachProgramField(
+                enumToUnbox.forEachProgramField(
                     field -> {
                       keepInfo.unsafeAllowMinificationOfField(field);
                       keepInfo.unsafeUnpinField(field);
@@ -559,7 +504,7 @@ public class EnumUnboxer implements PostOptimization {
       if (classConstraint == Constraint.NEVER) {
         markEnumAsUnboxable(Reason.ACCESSIBILITY, enumClass);
       } else if (classConstraint == Constraint.PACKAGE) {
-        enumsToUnboxWithPackageRequirement.add(enumClass);
+        enumsToUnboxWithPackageRequirement.addProgramClass(enumClass);
       }
     }
   }
@@ -1212,12 +1157,14 @@ public class EnumUnboxer implements PostOptimization {
         new IdentityHashMap<>();
     private final EnumUnboxingLens.Builder lensBuilder = EnumUnboxingLens.builder();
     private final Set<DexType> enumsToUnbox;
+    private final UnboxedEnumMemberRelocator relocator;
 
-    private TreeFixer(Set<DexType> enumsToUnbox) {
+    private TreeFixer(Set<DexType> enumsToUnbox, UnboxedEnumMemberRelocator relocator) {
       this.enumsToUnbox = enumsToUnbox;
+      this.relocator = relocator;
     }
 
-    private NestedGraphLens fixupTypeReferences(Map<DexType, DexType> newMethodLocation) {
+    private NestedGraphLens fixupTypeReferences() {
       assert enumUnboxerRewriter != null;
       // Fix all methods and fields using enums to unbox.
       for (DexProgramClass clazz : appView.appInfo().classes()) {
@@ -1231,9 +1178,7 @@ public class EnumUnboxer implements PostOptimization {
                     if (m.isInitializer()) {
                       clearEnumToUnboxMethod(m);
                     } else {
-                      DexType newHolder =
-                          newMethodLocation.getOrDefault(
-                              clazz.type, factory.enumUnboxingUtilityType);
+                      DexType newHolder = relocator.getNewMemberLocationFor(clazz.type);
                       List<DexEncodedMethod> movedMethods =
                           unboxedEnumsMethods.computeIfAbsent(newHolder, k -> new ArrayList<>());
                       movedMethods.add(fixupEncodedMethodToUtility(m, newHolder));
@@ -1250,9 +1195,6 @@ public class EnumUnboxer implements PostOptimization {
       for (DexType toUnbox : enumsToUnbox) {
         lensBuilder.map(toUnbox, factory.intType);
       }
-      DexProgramClass utilityClass =
-          appView.definitionForProgramType(factory.enumUnboxingUtilityType);
-      assert utilityClass != null : "Should have been synthesized upfront";
       unboxedEnumsMethods.forEach(
           (newHolderType, movedMethods) -> {
             DexProgramClass newHolderClass = appView.definitionFor(newHolderType).asProgramClass();
@@ -1325,7 +1267,8 @@ public class EnumUnboxer implements PostOptimization {
           newMethod =
               factory.createMethod(
                   newMethod.holder,
-                  factory.appendTypeToProto(newMethod.proto, factory.enumUnboxingUtilityType),
+                  factory.appendTypeToProto(
+                      newMethod.proto, relocator.getDefaultEnumUnboxingUtility()),
                   newMethod.name);
         }
       } else {

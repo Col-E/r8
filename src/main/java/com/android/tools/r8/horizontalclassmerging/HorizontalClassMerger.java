@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.policies.NoFields;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
-import com.android.tools.r8.horizontalclassmerging.policies.NoInternalUtilityClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoStaticClassInitializer;
 import com.android.tools.r8.horizontalclassmerging.policies.NotEntryPoint;
@@ -42,7 +41,6 @@ public class HorizontalClassMerger {
             new NoStaticClassInitializer(),
             new NoRuntimeTypeChecks(classMergingEnqueuerExtension),
             new NotEntryPoint(appView.dexItemFactory()),
-            new NoInternalUtilityClasses(appView.dexItemFactory()),
             new SameParentClass()
             // TODO: add policies
             );

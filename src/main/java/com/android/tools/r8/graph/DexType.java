@@ -11,7 +11,7 @@ import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.DISPATCH_C
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX;
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
-import static com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_CLASS_NAME;
+import static com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator.ENUM_UNBOXING_UTILITY_CLASS_SUFFIX;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
@@ -308,7 +308,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   private static boolean isSynthesizedTypeThatCouldBeDuplicated(String name) {
     // Any entry that is removed from here must be added to OLD_SYNTHESIZED_NAMES to ensure that
     // newer releases can be used to merge previous builds.
-    return name.contains(ENUM_UNBOXING_UTILITY_CLASS_NAME) // Global singleton.
+    return name.contains(ENUM_UNBOXING_UTILITY_CLASS_SUFFIX) // Shared among enums.
         || name.contains(LAMBDA_CLASS_NAME_PREFIX) // Could collide.
         || name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
         || name.contains(DISPATCH_CLASS_NAME_SUFFIX) // Shared on reference.
