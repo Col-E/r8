@@ -13,6 +13,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ExtractMarker;
 import com.android.tools.r8.FeatureSplit;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -131,12 +132,11 @@ public class R8FeatureSplitTest extends SplitterTestBase {
         .setMinApi(parameters.getApiLevel())
         .addFeatureSplit(
             builder ->
-                splitWithNonJavaFile(
-                    builder, feature1Path, temp, nonJavaFiles, true, FeatureClass.class))
+                splitWithNonJavaFile(builder, feature1Path, temp, nonJavaFiles, FeatureClass.class))
         .addFeatureSplit(
             builder ->
                 splitWithNonJavaFile(
-                    builder, feature2Path, temp, nonJavaFiles, true, FeatureClass2.class))
+                    builder, feature2Path, temp, nonJavaFiles, FeatureClass2.class))
         .addKeepAllClassesRule()
         .compile()
         .writeToZip(basePath);
@@ -158,32 +158,23 @@ public class R8FeatureSplitTest extends SplitterTestBase {
 
   @Test
   public void testAdaptResourceContentInSplits() throws IOException, CompilationFailedException {
-    Path basePath = temp.newFile("base.zip").toPath();
-    Path feature1Path = temp.newFile("feature1.zip").toPath();
-    Path feature2Path = temp.newFile("feature2.zip").toPath();
     // Make the content of the data resource be class names
     Collection<Pair<String, String>> nonJavaFiles =
         ImmutableList.of(
             new Pair<>(FeatureClass.class.getName(), FeatureClass.class.getName()),
             new Pair<>(FeatureClass2.class.getName(), FeatureClass2.class.getName()));
 
-    testForR8(parameters.getBackend())
-        .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
-        .setMinApi(parameters.getApiLevel())
-        .addFeatureSplit(
-            builder ->
-                splitWithNonJavaFile(
-                    builder, feature1Path, temp, nonJavaFiles, false, FeatureClass.class))
-        .addFeatureSplit(
-            builder ->
-                splitWithNonJavaFile(
-                    builder, feature2Path, temp, nonJavaFiles, false, FeatureClass2.class))
-        .addKeepClassRulesWithAllowObfuscation(
-            BaseClass.class, FeatureClass.class, FeatureClass2.class)
-        .addKeepRules("-adaptresourcefilecontents")
-        .compile()
-        .writeToZip(basePath);
-    for (Path feature : ImmutableList.of(feature1Path, feature2Path)) {
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
+            .setMinApi(parameters.getApiLevel())
+            .addFeatureSplitWithResources(nonJavaFiles, FeatureClass.class)
+            .addFeatureSplitWithResources(nonJavaFiles, FeatureClass2.class)
+            .addKeepClassRulesWithAllowObfuscation(
+                BaseClass.class, FeatureClass.class, FeatureClass2.class)
+            .addKeepRules("-adaptresourcefilecontents")
+            .compile();
+    for (Path feature : compileResult.getFeatures()) {
       ZipFile zipFile = new ZipFile(feature.toFile());
       for (Pair<String, String> nonJavaFile : nonJavaFiles) {
         ZipEntry entry = zipFile.getEntry(nonJavaFile.getFirst());
@@ -192,7 +183,7 @@ public class R8FeatureSplitTest extends SplitterTestBase {
         assertNotEquals(content, nonJavaFile.getSecond());
       }
     }
-    ZipFile zipFile = new ZipFile(basePath.toFile());
+    ZipFile zipFile = new ZipFile(compileResult.writeToZip().toFile());
     for (Pair<String, String> nonJavaFile : nonJavaFiles) {
       ZipEntry entry = zipFile.getEntry(nonJavaFile.getFirst());
       assertNull(entry);
@@ -259,20 +250,17 @@ public class R8FeatureSplitTest extends SplitterTestBase {
 
 
     public CompiledWithFeature invoke() throws IOException, CompilationFailedException {
-      basePath = temp.newFile("base.zip").toPath();
-      feature1Path = temp.newFile("feature1.zip").toPath();
-      feature2Path = temp.newFile("feature2.zip").toPath();
-
-      testForR8(parameters.getBackend())
-          .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
-          .setMinApi(parameters.getApiLevel())
-          .addFeatureSplit(
-              builder -> simpleSplitProvider(builder, feature1Path, temp, FeatureClass.class))
-          .addFeatureSplit(
-              builder -> simpleSplitProvider(builder, feature2Path, temp, FeatureClass2.class))
-          .addKeepAllClassesRule()
-          .compile()
-          .writeToZip(basePath);
+      R8TestCompileResult compileResult =
+          testForR8(parameters.getBackend())
+              .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
+              .setMinApi(parameters.getApiLevel())
+              .addFeatureSplit(FeatureClass.class)
+              .addFeatureSplit(FeatureClass2.class)
+              .addKeepAllClassesRule()
+              .compile();
+      basePath = compileResult.writeToZip();
+      feature1Path = compileResult.getFeature(0);
+      feature2Path = compileResult.getFeature(1);
       return this;
     }
   }

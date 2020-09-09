@@ -71,6 +71,10 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
     return features.get(index);
   }
 
+  public List<Path> getFeatures() {
+    return features;
+  }
+
   @Override
   public String getStdout() {
     return state.getStdout();
@@ -130,6 +134,10 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   @Override
   public R8TestRunResult createRunResult(TestRuntime runtime, ProcessResult result) {
     return new R8TestRunResult(app, runtime, result, proguardMap, this::graphInspector);
+  }
+
+  public R8TestCompileResult addFeatureSplitsToRunClasspathFiles() {
+    return addRunClasspathFiles(features);
   }
 
   public R8TestRunResult runFeature(TestRuntime runtime, Class<?> mainFeatureClass)

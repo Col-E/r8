@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.dexsplitter.SplitterTestBase.simpleSplitProvider;
+import static com.android.tools.r8.dexsplitter.SplitterTestBase.splitWithNonJavaFile;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.R8Command.Builder;
@@ -24,6 +25,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Pair;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -625,6 +627,16 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     Path path = getState().getNewTempFile("feature.zip");
     builder.addFeatureSplit(
         builder -> simpleSplitProvider(builder, path, getState().getTempFolder(), classes));
+    features.add(path);
+    return self();
+  }
+
+  public T addFeatureSplitWithResources(
+      Collection<Pair<String, String>> nonJavaFiles, Class<?>... classes) throws IOException {
+    Path path = getState().getNewTempFolder().resolve("feature.zip");
+    builder.addFeatureSplit(
+        builder ->
+            splitWithNonJavaFile(builder, path, getState().getTempFolder(), nonJavaFiles, classes));
     features.add(path);
     return self();
   }

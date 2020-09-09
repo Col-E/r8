@@ -1,6 +1,5 @@
 package com.android.tools.r8.dexsplitter;
 
-import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
 import static org.junit.Assume.assumeTrue;
 
@@ -19,7 +18,6 @@ import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dexsplitter.DexSplitter.Options;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.ZipUtils;
@@ -35,7 +33,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -53,7 +50,7 @@ public class SplitterTestBase extends TestBase {
       Path outputPath,
       TemporaryFolder temp,
       Collection<Class<?>> classes) {
-    addConsumers(builder, outputPath, temp, null, true, classes);
+    addConsumers(builder, outputPath, temp, null, classes);
     return builder.build();
   }
 
@@ -62,9 +59,7 @@ public class SplitterTestBase extends TestBase {
       Path outputPath,
       TemporaryFolder temp,
       Collection<Pair<String, String>> nonJavaResources,
-      boolean ensureClassesInOutput,
       Collection<Class<?>> classes) {
-    List<String> classNames = classes.stream().map(Class::getName).collect(Collectors.toList());
     Path featureJar;
     try {
       featureJar = temp.newFolder().toPath().resolve("feature.jar");
@@ -109,26 +104,18 @@ public class SplitterTestBase extends TestBase {
                   ByteDataView data,
                   Set<String> descriptors,
                   DiagnosticsHandler handler) {
-                if (ensureClassesInOutput) {
-                  for (String descriptor : descriptors) {
-                    assertTrue(
-                        classNames.contains(DescriptorUtils.descriptorToJavaType(descriptor)));
-                  }
-                }
                 super.accept(fileIndex, data, descriptors, handler);
               }
             });
   }
 
-  static FeatureSplit splitWithNonJavaFile(
+  public static FeatureSplit splitWithNonJavaFile(
       FeatureSplit.Builder builder,
       Path outputPath,
       TemporaryFolder temp,
       Collection<Pair<String, String>> nonJavaFiles,
-      boolean ensureClassesInOutput,
       Class<?>... classes) {
-    addConsumers(
-        builder, outputPath, temp, nonJavaFiles, ensureClassesInOutput, Arrays.asList(classes));
+    addConsumers(builder, outputPath, temp, nonJavaFiles, Arrays.asList(classes));
     return builder.build();
   }
 

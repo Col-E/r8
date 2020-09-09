@@ -5,8 +5,11 @@
 package com.android.tools.r8.dexsplitter;
 
 import static com.android.tools.r8.rewrite.ServiceLoaderRewritingTest.getServiceLoaderLoads;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.R8TestRunResult;
@@ -103,45 +106,31 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
 
   @Test
   public void testR8AllLoaded() throws Exception {
-    Path base = temp.newFile("base.zip").toPath();
-    Path feature1Path = temp.newFile("feature1.zip").toPath();
-    Path feature2Path = temp.newFile("feature2.zip").toPath();
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(Base.class, I.class)
             .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(Base.class)
-            .addFeatureSplit(
-                builder ->
-                    splitWithNonJavaFile(
-                        builder,
-                        feature1Path,
-                        temp,
-                        ImmutableList.of(
-                            new Pair<>(
-                                "META-INF/services/" + I.class.getTypeName(),
-                                StringUtils.lines(Feature1I.class.getTypeName()))),
-                        true,
-                        Feature1I.class))
-            .addFeatureSplit(
-                builder ->
-                    splitWithNonJavaFile(
-                        builder,
-                        feature2Path,
-                        temp,
-                        ImmutableList.of(
-                            new Pair<>(
-                                "META-INF/services/" + I.class.getTypeName(),
-                                StringUtils.lines(Feature2I.class.getTypeName()))),
-                        true,
-                        Feature2I.class))
+            .addFeatureSplitWithResources(
+                ImmutableList.of(
+                    new Pair<>(
+                        "META-INF/services/" + I.class.getTypeName(),
+                        StringUtils.lines(Feature1I.class.getTypeName()))),
+                Feature1I.class)
+            .addFeatureSplitWithResources(
+                ImmutableList.of(
+                    new Pair<>(
+                        "META-INF/services/" + I.class.getTypeName(),
+                        StringUtils.lines(Feature2I.class.getTypeName()))),
+                Feature2I.class)
             .compile()
             .inspect(
-                inspector -> {
-                  assertEquals(1, getServiceLoaderLoads(inspector, Base.class));
-                })
-            .writeToZip(base)
-            .addRunClasspathFiles(feature1Path, feature2Path)
+                baseInspector -> assertEquals(1, getServiceLoaderLoads(baseInspector, Base.class)),
+                feature1Inspector ->
+                    assertThat(feature1Inspector.clazz(Feature1I.class), isPresent()),
+                feature2Inspector ->
+                    assertThat(feature2Inspector.clazz(Feature2I.class), isPresent()))
+            .addFeatureSplitsToRunClasspathFiles()
             .run(parameters.getRuntime(), Base.class);
     // TODO(b/160888348): This is failing on 7.0
     if (parameters.getRuntime().isDex()
@@ -154,39 +143,29 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
 
   @Test
   public void testR8WithServiceFileInSeparateFeature() throws Exception {
-    Path base = temp.newFile("base.zip").toPath();
-    Path feature1Path = temp.newFile("feature1.zip").toPath();
-    Path feature2Path = temp.newFile("feature2.zip").toPath();
-    Path feature3Path = temp.newFile("feature3.zip").toPath();
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(Base.class, I.class)
             .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(Base.class)
-            .addFeatureSplit(
-                builder -> simpleSplitProvider(builder, feature1Path, temp, Feature1I.class))
-            .addFeatureSplit(
-                builder -> simpleSplitProvider(builder, feature2Path, temp, Feature2I.class))
-            .addFeatureSplit(
-                builder ->
-                    splitWithNonJavaFile(
-                        builder,
-                        feature3Path,
-                        temp,
-                        ImmutableList.of(
-                            new Pair<>(
-                                "META-INF/services/" + I.class.getTypeName(),
-                                StringUtils.lines(
-                                    Feature1I.class.getTypeName(), Feature2I.class.getTypeName()))),
-                        true,
-                        Feature3Dummy.class))
+            .addFeatureSplit(Feature1I.class)
+            .addFeatureSplit(Feature2I.class)
+            .addFeatureSplitWithResources(
+                ImmutableList.of(
+                    new Pair<>(
+                        "META-INF/services/" + I.class.getTypeName(),
+                        StringUtils.lines(
+                            Feature1I.class.getTypeName(), Feature2I.class.getTypeName()))),
+                Feature3Dummy.class)
             .compile()
             .inspect(
-                inspector -> {
-                  assertEquals(1, getServiceLoaderLoads(inspector, Base.class));
-                })
-            .writeToZip(base)
-            .addRunClasspathFiles(feature1Path, feature2Path, feature3Path)
+                baseInspector -> assertEquals(1, getServiceLoaderLoads(baseInspector, Base.class)),
+                feature1Inspector ->
+                    assertThat(feature1Inspector.clazz(Feature1I.class), isPresent()),
+                feature2Inspector ->
+                    assertThat(feature2Inspector.clazz(Feature2I.class), isPresent()),
+                feature3Inspector -> assertTrue(feature3Inspector.allClasses().isEmpty()))
+            .addFeatureSplitsToRunClasspathFiles()
             .run(parameters.getRuntime(), Base.class);
     // TODO(b/160888348): This is failing on 7.0
     if (parameters.getRuntime().isDex()
@@ -199,44 +178,28 @@ public class R8FeatureSplitServiceLoaderTest extends SplitterTestBase {
 
   @Test
   public void testR8OnlyFeature2() throws Exception {
-    Path base = temp.newFile("base.zip").toPath();
-    Path feature1Path = temp.newFile("feature1.zip").toPath();
-    Path feature2Path = temp.newFile("feature2.zip").toPath();
     testForR8(parameters.getBackend())
         .addProgramClasses(Base.class, I.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Base.class)
-        .addFeatureSplit(
-            builder ->
-                splitWithNonJavaFile(
-                    builder,
-                    feature1Path,
-                    temp,
-                    ImmutableList.of(
-                        new Pair<>(
-                            "META-INF/services/" + I.class.getTypeName(),
-                            StringUtils.lines(Feature1I.class.getTypeName()))),
-                    true,
-                    Feature1I.class))
-        .addFeatureSplit(
-            builder ->
-                splitWithNonJavaFile(
-                    builder,
-                    feature2Path,
-                    temp,
-                    ImmutableList.of(
-                        new Pair<>(
-                            "META-INF/services/" + I.class.getTypeName(),
-                            StringUtils.lines(Feature2I.class.getTypeName()))),
-                    true,
-                    Feature2I.class))
+        .addFeatureSplitWithResources(
+            ImmutableList.of(
+                new Pair<>(
+                    "META-INF/services/" + I.class.getTypeName(),
+                    StringUtils.lines(Feature1I.class.getTypeName()))),
+            Feature1I.class)
+        .addFeatureSplitWithResources(
+            ImmutableList.of(
+                new Pair<>(
+                    "META-INF/services/" + I.class.getTypeName(),
+                    StringUtils.lines(Feature2I.class.getTypeName()))),
+            Feature2I.class)
         .compile()
         .inspect(
-            inspector -> {
-              assertEquals(1, getServiceLoaderLoads(inspector, Base.class));
-            })
-        .writeToZip(base)
-        .addRunClasspathFiles(feature2Path)
+            baseInspector -> assertEquals(1, getServiceLoaderLoads(baseInspector, Base.class)),
+            feature1Inspector -> assertThat(feature1Inspector.clazz(Feature1I.class), isPresent()),
+            feature2Inspector -> assertThat(feature2Inspector.clazz(Feature2I.class), isPresent()))
+        .apply(compileResult -> compileResult.addRunClasspathFiles(compileResult.getFeature(1)))
         .run(parameters.getRuntime(), Base.class)
         // TODO(b/160889305): This should work.
         .assertFailureWithErrorThatMatches(containsString("java.lang.ClassNotFoundException"));
