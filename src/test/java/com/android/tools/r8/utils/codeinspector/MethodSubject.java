@@ -25,6 +25,8 @@ public abstract class MethodSubject extends MemberSubject {
 
   public abstract boolean isBridge();
 
+  public abstract boolean isSynchronized();
+
   public abstract boolean isInstanceInitializer();
 
   public abstract boolean isClassInitializer();

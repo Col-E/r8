@@ -122,6 +122,11 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
+  public boolean isSynchronized() {
+    return dexMethod.accessFlags.isSynchronized();
+  }
+
+  @Override
   public boolean isInstanceInitializer() {
     return dexMethod.isInstanceInitializer();
   }

@@ -74,6 +74,11 @@ public class AbsentMethodSubject extends MethodSubject {
   }
 
   @Override
+  public boolean isSynchronized() {
+    throw new Unreachable("Cannot determine if an absent method is synchronized");
+  }
+
+  @Override
   public boolean isInstanceInitializer() {
     throw new Unreachable("Cannot determine if an absent method is an instance initializer");
   }

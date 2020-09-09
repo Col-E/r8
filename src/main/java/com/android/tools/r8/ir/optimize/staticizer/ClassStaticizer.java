@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -38,7 +37,6 @@ import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -132,23 +130,28 @@ public final class ClassStaticizer {
                 DexType type = field.field.type;
                 if (singletonFields.put(type, field) != null) {
                   // There is already candidate singleton field found.
-                  notEligible.add(type);
+                  markNotEligible(type, notEligible);
                 }
               }
 
               // Don't allow fields with this candidate types.
               for (DexEncodedField field : cls.instanceFields()) {
-                notEligible.add(field.field.type);
+                markNotEligible(field.field.type, notEligible);
               }
 
               // Don't allow methods that take a value of this type.
               for (DexEncodedMethod method : cls.methods()) {
-                DexProto proto = method.method.proto;
-                notEligible.addAll(Arrays.asList(proto.parameters.values));
+                for (DexType parameter : method.getProto().parameters.values) {
+                  markNotEligible(parameter, notEligible);
+                }
+                if (method.isSynchronized()) {
+                  markNotEligible(cls.type, notEligible);
+                }
               }
 
               // High-level limitations on what classes we consider eligible.
-              if (cls.isInterface() // Must not be an interface or an abstract class.
+              if (cls.isInterface()
+                  // Must not be an interface or an abstract class.
                   || cls.accessFlags.isAbstract()
                   // Don't support candidates with instance fields
                   || cls.instanceFields().size() > 0
@@ -159,7 +162,7 @@ public final class ClassStaticizer {
                   // Staticizing classes implementing interfaces is more
                   // difficult, so don't support it until we really need it.
                   || !cls.interfaces.isEmpty()) {
-                notEligible.add(cls.type);
+                markNotEligible(cls.type, notEligible);
               }
             });
 
@@ -178,6 +181,12 @@ public final class ClassStaticizer {
         }
       }
     });
+  }
+
+  private void markNotEligible(DexType type, Set<DexType> notEligible) {
+    if (type.isClassType()) {
+      notEligible.add(type);
+    }
   }
 
   private boolean isPinned(DexClass clazz, DexEncodedField singletonField) {
