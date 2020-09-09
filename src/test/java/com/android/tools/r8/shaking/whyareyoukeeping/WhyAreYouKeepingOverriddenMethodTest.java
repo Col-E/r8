@@ -9,7 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.Reference;
@@ -53,7 +53,7 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
             "-whyareyoukeeping class **.*$" + targetClass.getSimpleName() + " { void gone(); }")
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .minification(minification)
         .setMinApi(AndroidApiLevel.B)
         // Redirect the compilers stdout to intercept the '-whyareyoukeeping' output
@@ -71,7 +71,7 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
         .addKeepMainRule(main)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .minification(minification)
         .setMinApi(AndroidApiLevel.B)
         .setKeptGraphConsumer(graphConsumer)
@@ -114,7 +114,7 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
     testViaConsumer(TestMain2.class, Itf.class, Impl.class);
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class Base {
     @NeverInline
     public void gone() {
@@ -137,7 +137,7 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface Itf {
     void gone();
   }

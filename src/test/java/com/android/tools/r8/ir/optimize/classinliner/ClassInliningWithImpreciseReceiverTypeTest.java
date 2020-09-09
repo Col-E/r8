@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -33,7 +33,7 @@ public class ClassInliningWithImpreciseReceiverTypeTest extends TestBase {
         .addInnerClasses(ClassInliningWithImpreciseReceiverTypeTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
@@ -51,7 +51,7 @@ public class ClassInliningWithImpreciseReceiverTypeTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   abstract static class A {
 
     @NeverInline

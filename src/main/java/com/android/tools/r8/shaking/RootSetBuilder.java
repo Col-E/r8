@@ -97,7 +97,9 @@ public class RootSetBuilder {
   private final Set<DexMethod> neverReprocess = Sets.newIdentityHashSet();
   private final PredicateSet<DexType> alwaysClassInline = new PredicateSet<>();
   private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
-  private final Set<DexType> neverMerge = Sets.newIdentityHashSet();
+  private final Set<DexType> noVerticalClassMerging = Sets.newIdentityHashSet();
+  private final Set<DexType> noHorizontalClassMerging = Sets.newIdentityHashSet();
+  private final Set<DexType> noStaticClassMerging = Sets.newIdentityHashSet();
   private final Set<DexReference> neverPropagateValue = Sets.newIdentityHashSet();
   private final Map<DexReference, MutableItemsWithRules> dependentNoShrinking =
       new IdentityHashMap<>();
@@ -240,7 +242,9 @@ public class RootSetBuilder {
         || rule instanceof WhyAreYouNotInliningRule) {
       markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
     } else if (rule instanceof ClassInlineRule
-        || rule instanceof ClassMergingRule
+        || rule instanceof NoVerticalClassMergingRule
+        || rule instanceof NoHorizontalClassMergingRule
+        || rule instanceof NoStaticClassMergingRule
         || rule instanceof ReprocessClassInitializerRule) {
       if (allRulesSatisfied(memberKeepRules, clazz)) {
         markClass(clazz, rule, ifRule);
@@ -318,7 +322,9 @@ public class RootSetBuilder {
           appView,
           subtypingInfo,
           alwaysClassInline,
-          neverMerge,
+          noVerticalClassMerging,
+          noHorizontalClassMerging,
+          noStaticClassMerging,
           alwaysInline,
           bypassClinitforInlining);
     }
@@ -342,7 +348,9 @@ public class RootSetBuilder {
         neverReprocess,
         alwaysClassInline,
         neverClassInline,
-        neverMerge,
+        noVerticalClassMerging,
+        noHorizontalClassMerging,
+        noStaticClassMerging,
         neverPropagateValue,
         mayHaveSideEffects,
         noSideEffects,
@@ -1204,16 +1212,14 @@ public class RootSetBuilder {
           throw new Unreachable();
       }
       context.markAsUsed();
-    } else if (context instanceof ClassMergingRule) {
-      switch (((ClassMergingRule) context).getType()) {
-        case NEVER:
-          if (item.isDexClass()) {
-            neverMerge.add(item.asDexClass().type);
-          }
-          break;
-        default:
-          throw new Unreachable();
-      }
+    } else if (context instanceof NoVerticalClassMergingRule) {
+      noVerticalClassMerging.add(item.asDexClass().type);
+      context.markAsUsed();
+    } else if (context instanceof NoHorizontalClassMergingRule) {
+      noHorizontalClassMerging.add(item.asDexClass().type);
+      context.markAsUsed();
+    } else if (context instanceof NoStaticClassMergingRule) {
+      noStaticClassMerging.add(item.asDexClass().type);
       context.markAsUsed();
     } else if (context instanceof MemberValuePropagationRule) {
       switch (((MemberValuePropagationRule) context).getType()) {
@@ -1734,7 +1740,9 @@ public class RootSetBuilder {
     public final Set<DexMethod> reprocess;
     public final Set<DexMethod> neverReprocess;
     public final PredicateSet<DexType> alwaysClassInline;
-    public final Set<DexType> neverMerge;
+    public final Set<DexType> noVerticalClassMerging;
+    public final Set<DexType> noHorizontalClassMerging;
+    public final Set<DexType> noStaticClassMerging;
     public final Set<DexReference> neverPropagateValue;
     public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
     public final Map<DexReference, ProguardMemberRule> noSideEffects;
@@ -1758,7 +1766,9 @@ public class RootSetBuilder {
         Set<DexMethod> neverReprocess,
         PredicateSet<DexType> alwaysClassInline,
         Set<DexType> neverClassInline,
-        Set<DexType> neverMerge,
+        Set<DexType> noVerticalClassMerging,
+        Set<DexType> noHorizontalClassMerging,
+        Set<DexType> noStaticClassMerging,
         Set<DexReference> neverPropagateValue,
         Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
         Map<DexReference, ProguardMemberRule> noSideEffects,
@@ -1787,7 +1797,9 @@ public class RootSetBuilder {
       this.reprocess = reprocess;
       this.neverReprocess = neverReprocess;
       this.alwaysClassInline = alwaysClassInline;
-      this.neverMerge = neverMerge;
+      this.noVerticalClassMerging = noVerticalClassMerging;
+      this.noHorizontalClassMerging = noHorizontalClassMerging;
+      this.noStaticClassMerging = noStaticClassMerging;
       this.neverPropagateValue = neverPropagateValue;
       this.mayHaveSideEffects = mayHaveSideEffects;
       this.noSideEffects = noSideEffects;
@@ -1859,7 +1871,9 @@ public class RootSetBuilder {
     }
 
     public void pruneDeadItems(DexDefinitionSupplier definitions, Enqueuer enqueuer) {
-      pruneDeadReferences(neverMerge, definitions, enqueuer);
+      pruneDeadReferences(noVerticalClassMerging, definitions, enqueuer);
+      pruneDeadReferences(noHorizontalClassMerging, definitions, enqueuer);
+      pruneDeadReferences(noStaticClassMerging, definitions, enqueuer);
       pruneDeadReferences(alwaysInline, definitions, enqueuer);
       pruneDeadReferences(noSideEffects.keySet(), definitions, enqueuer);
     }

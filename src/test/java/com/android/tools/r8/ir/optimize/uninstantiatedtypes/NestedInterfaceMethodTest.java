@@ -8,7 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -49,7 +49,7 @@ public class NestedInterfaceMethodTest extends TestBase {
             .addInnerClasses(NestedInterfaceMethodTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .addOptionsModification(
                 options -> {
                   options.enableDevirtualization = false;
@@ -82,13 +82,13 @@ public class NestedInterfaceMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface I {
 
     Uninstantiated m();
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface J extends I {}
 
   static class A implements J {

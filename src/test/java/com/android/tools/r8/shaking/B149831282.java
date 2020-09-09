@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
@@ -46,7 +46,7 @@ public class B149831282 extends TestBase {
         .apply(this::addProgramInputs)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -84,7 +84,7 @@ public class B149831282 extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
 
     @NeverInline
@@ -93,7 +93,7 @@ public class B149831282 extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class B extends A {}
 
   @NeverClassInline

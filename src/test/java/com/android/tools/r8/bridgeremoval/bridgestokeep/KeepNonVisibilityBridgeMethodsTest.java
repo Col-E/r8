@@ -54,7 +54,7 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         // TODO(b/120764902): MemberSubject.getOriginalName() is not working without the @NeverMerge
         //  annotation on DataAdapter.Observer.
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableProguardTestOptions()
         .minification(minification)
         .setMinApi(parameters.getApiLevel())

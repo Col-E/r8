@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -45,7 +45,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeVirtualPositiveTest.class)
         .addKeepMainRule(MAIN)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(
@@ -92,7 +92,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
     assertTrue(b_m.streamInstructions().anyMatch(InstructionSubject::isIf));
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   @NeverClassInline
   static class A {
     @NeverInline

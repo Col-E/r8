@@ -12,7 +12,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -144,12 +144,12 @@ public class DefaultWithoutTopTest extends TestBase {
     return transformer(A.class).setImplements(I.class, K.class).transform();
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public interface I {
     void foo();
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public interface J {
     @NeverInline
     default void foo() {

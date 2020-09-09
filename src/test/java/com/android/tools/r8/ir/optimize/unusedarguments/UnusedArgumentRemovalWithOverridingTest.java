@@ -10,7 +10,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -48,7 +48,7 @@ public class UnusedArgumentRemovalWithOverridingTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .minification(minification)
         .setMinApi(parameters.getRuntime())
         .compile()
@@ -75,7 +75,7 @@ public class UnusedArgumentRemovalWithOverridingTest extends TestBase {
   }
 
   @NeverClassInline
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
 
     @NeverInline

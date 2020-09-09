@@ -45,6 +45,8 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.shaking.NoStaticClassMergingRule;
+import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.shaking.ProguardClassNameList;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -1053,8 +1055,19 @@ public class TestBase {
         + keepMainProguardConfiguration(clazz);
   }
 
-  public static String neverMergeRule() {
-    return "-nevermerge @com.android.tools.r8.NeverMerge class *";
+  @Deprecated
+  private static String matchInterfaceRule(String name, Class matchInterface) {
+    return "-" + name + " @" + matchInterface.getTypeName() + " class *";
+  }
+
+  @Deprecated
+  public static String noVerticalClassMergingRule() {
+    return matchInterfaceRule(NoVerticalClassMergingRule.RULE_NAME, NoVerticalClassMerging.class);
+  }
+
+  @Deprecated
+  public static String noStaticClassMergingRule() {
+    return matchInterfaceRule(NoStaticClassMergingRule.RULE_NAME, NoStaticClassMerging.class);
   }
 
   /**

@@ -10,8 +10,8 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -81,7 +81,7 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
   }
 
   private static final Class<?>[] LIBRARY_CLASSES = {
-    NeverMerge.class, LibraryBase.class, LibrarySubclass.class
+    NoVerticalClassMerging.class, LibraryBase.class, LibrarySubclass.class
   };
 
   private static final Class<?>[] PROGRAM_CLASSES = {

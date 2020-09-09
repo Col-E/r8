@@ -5,8 +5,8 @@ package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
@@ -51,7 +51,7 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
         .addKeepRuntimeVisibleAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
         .allowDiagnosticInfoMessages()
         .setMinApi(parameters.getApiLevel())
@@ -83,7 +83,7 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
     MyEnumArray[] myEnumArray();
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   @Retention(RetentionPolicy.RUNTIME)
   @interface ClassAnnotation {}
 

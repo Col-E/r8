@@ -10,7 +10,7 @@ import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.naming.testclasses.Greeting;
 import com.android.tools.r8.utils.StringUtils;
@@ -27,7 +27,7 @@ public class B128656974 extends TestBase {
     testForR8(Backend.DEX)
         .addProgramClasses(Greeting.class, Greeting.getGreetingBase(), TestClassSub.class, main)
         .enableNeverClassInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(main)
         .addKeepRules(
             "-keepclassmembernames class "
@@ -74,7 +74,7 @@ public class B128656974 extends TestBase {
     Class<?> main = TestClassMainForMethod.class;
     testForR8(Backend.DEX)
         .addProgramClasses(TestClassBase.class, TestClassSub2.class, main)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepMainRule(main)
@@ -92,7 +92,7 @@ public class B128656974 extends TestBase {
             });
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class TestClassBase {
     @NeverInline
     void foo() {

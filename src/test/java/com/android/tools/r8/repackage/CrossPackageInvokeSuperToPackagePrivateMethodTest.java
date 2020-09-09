@@ -10,7 +10,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBuilder;
@@ -53,7 +53,7 @@ public class CrossPackageInvokeSuperToPackagePrivateMethodTest extends TestBase 
         .apply(this::addProgramClasses)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -112,7 +112,7 @@ public class CrossPackageInvokeSuperToPackagePrivateMethodTest extends TestBase 
   }
 
   @NeverClassInline
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class A {
 
     @NeverInline
@@ -122,7 +122,7 @@ public class CrossPackageInvokeSuperToPackagePrivateMethodTest extends TestBase 
   }
 
   @NeverClassInline
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class B extends A {
 
     @NeverInline

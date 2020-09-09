@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.devirtualize;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -46,7 +46,7 @@ public class DevirtualizerNonNullRewritingTest extends TestBase {
         .addInnerClasses(DevirtualizerNonNullRewritingTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
@@ -78,14 +78,14 @@ public class DevirtualizerNonNullRewritingTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface Interface {
 
     @NeverInline
     void method();
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
 
     @NeverInline

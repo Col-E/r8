@@ -9,7 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -48,7 +48,7 @@ public class ClassInlinerWithSimpleSuperTypeTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.enableClassInlining = enableClassInlining)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyCandidateIsClassInlined)
@@ -83,10 +83,10 @@ public class ClassInlinerWithSimpleSuperTypeTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {}
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class B extends A {}
 
   static class C extends B {

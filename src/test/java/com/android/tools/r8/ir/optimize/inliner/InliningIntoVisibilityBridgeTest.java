@@ -51,7 +51,7 @@ public class InliningIntoVisibilityBridgeTest extends TestBase {
                 neverInline
                     ? ("-neverinline class " + getClassA().getTypeName() + " { method(); }")
                     : "")
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .enableProguardTestOptions()
             .compile()
             .run(TestClass.class)

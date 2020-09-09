@@ -43,7 +43,7 @@ public class MemberRebindingBridgeRemovalTest extends TestBase {
             MemberRebindingBridgeRemovalTest.class, MemberRebindingBridgeRemovalTestClasses.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspect)

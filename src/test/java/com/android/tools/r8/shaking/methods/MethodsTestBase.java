@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.shaking.methods;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -30,7 +30,7 @@ public abstract class MethodsTestBase extends TestBase {
       List<String> keepRules, BiConsumer<CodeInspector, Shrinker> inspector, String expected)
       throws Throwable {
     testForR8(Backend.DEX)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addProgramClasses(getClasses())
         .addKeepRules(keepRules)
         .compile()
@@ -43,7 +43,7 @@ public abstract class MethodsTestBase extends TestBase {
       List<String> keepRules, BiConsumer<CodeInspector, Shrinker> inspector, String expected)
       throws Throwable {
     testForR8Compat(Backend.DEX)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addProgramClasses(getClasses())
         .addKeepRules(keepRules)
         .compile()
@@ -57,7 +57,7 @@ public abstract class MethodsTestBase extends TestBase {
       throws Throwable {
     testForProguard()
         .addProgramClasses(getClasses())
-        .addProgramClasses(NeverMerge.class)
+        .addProgramClasses(NoVerticalClassMerging.class)
         .addKeepRules(keepRules)
         .compile()
         .inspect(i -> inspector.accept(i, Shrinker.Proguard))

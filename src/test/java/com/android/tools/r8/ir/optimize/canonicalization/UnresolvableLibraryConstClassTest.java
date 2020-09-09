@@ -8,7 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -26,9 +26,8 @@ import org.junit.runners.Parameterized;
 class LibraryClass {
 }
 
-@NeverMerge
-class ProgramClass1 extends LibraryClass {
-}
+@NoVerticalClassMerging
+class ProgramClass1 extends LibraryClass {}
 
 class ProgramSubClass extends ProgramClass1 {
 }
@@ -114,7 +113,7 @@ public class UnresolvableLibraryConstClassTest extends TestBase {
         .addProgramClasses(ProgramClass1.class, ProgramClass2.class, ProgramSubClass.class, MAIN)
         .addKeepMainRule(MAIN)
         .noMinification()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
         .setMinApi(parameters.getRuntime())
         .compile()

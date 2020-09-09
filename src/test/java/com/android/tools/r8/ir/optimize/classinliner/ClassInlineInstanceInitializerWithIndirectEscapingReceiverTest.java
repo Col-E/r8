@@ -8,8 +8,8 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -39,7 +39,7 @@ public class ClassInlineInstanceInitializerWithIndirectEscapingReceiverTest exte
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -59,7 +59,7 @@ public class ClassInlineInstanceInitializerWithIndirectEscapingReceiverTest exte
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class CandidateBase {
 
     CandidateBase() {

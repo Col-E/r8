@@ -5,7 +5,7 @@ package com.android.tools.r8.shaking.desugar;
 
 import static org.hamcrest.CoreMatchers.containsString;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
@@ -17,7 +17,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-@NeverMerge
+@NoVerticalClassMerging
 interface I {
   static void foo() {
     System.out.println("static::foo");
@@ -61,7 +61,7 @@ public class KeepRuleWarningTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class, C.class, MAIN)
         .setMinApi(parameters.getApiLevel())
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { <methods>; }")
         .compile()
@@ -75,7 +75,7 @@ public class KeepRuleWarningTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class, C.class, MAIN)
         .setMinApi(parameters.getApiLevel())
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { *(); }")
         .compile()
@@ -89,7 +89,7 @@ public class KeepRuleWarningTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class, C.class, MAIN)
         .setMinApi(parameters.getApiLevel())
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { *** f*(); }")
         .compile()
@@ -103,7 +103,7 @@ public class KeepRuleWarningTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class, C.class, MAIN)
         .setMinApi(parameters.getApiLevel())
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { static void foo(); }")
         .allowDiagnosticWarningMessages()

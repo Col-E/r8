@@ -8,7 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.shaking.fields.FieldsTestBase;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -17,17 +17,17 @@ import java.util.Collection;
 import java.util.Set;
 import org.junit.Test;
 
-@NeverMerge
+@NoVerticalClassMerging
 class Super {
   public int f1;
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 class Sub extends Super {
   public int f2;
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 class SubSub extends Sub {
   public int f3;
 }

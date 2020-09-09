@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.unusedarguments;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -32,7 +32,7 @@ public class UnusedArgumentsInMethodThatImplementsInterfaceMethodOnSubTest exten
     testForR8(parameters.getBackend())
         .addInnerClasses(UnusedArgumentsInMethodThatImplementsInterfaceMethodOnSubTest.class)
         .addKeepMainRule(TestClass.class)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello from A", "Hello from C");
@@ -52,7 +52,7 @@ public class UnusedArgumentsInMethodThatImplementsInterfaceMethodOnSubTest exten
     void method(Object o);
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
 
     public void method(Object unused) {

@@ -9,7 +9,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -41,7 +41,7 @@ public class BuilderWithInheritanceTest extends TestBase {
             .addInnerClasses(BuilderWithInheritanceTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput("42")
@@ -70,7 +70,7 @@ public class BuilderWithInheritanceTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class BuilderBase {
 
     protected int f;

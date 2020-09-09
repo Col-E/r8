@@ -248,7 +248,7 @@ public class StaticClassMerger {
   }
 
   private MergeGroup getMergeGroup(DexProgramClass clazz) {
-    if (appView.appInfo().neverMerge.contains(clazz.type)) {
+    if (appView.appInfo().getNoStaticClassMergingSet().contains(clazz.type)) {
       return MergeGroup.DONT_MERGE;
     }
     if (clazz.staticFields().size() + clazz.getMethodCollection().size() == 0) {

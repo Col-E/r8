@@ -10,7 +10,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -50,7 +50,8 @@ public class R8SplitterInlineToFeature extends SplitterTestBase {
   public void testInlining() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     Consumer<R8FullTestBuilder> configurator =
-        r8FullTestBuilder -> r8FullTestBuilder.enableMergeAnnotations().noMinification();
+        r8FullTestBuilder ->
+            r8FullTestBuilder.enableNoVerticalClassMergingAnnotations().noMinification();
     ThrowingConsumer<R8TestCompileResult, Exception> ensureInlined =
         r8TestCompileResult -> {
           // Ensure that isEarly from BaseUtilClass is inlined into the feature
@@ -70,7 +71,7 @@ public class R8SplitterInlineToFeature extends SplitterTestBase {
     assertEquals(processResult.stdout, StringUtils.lines("42"));
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public abstract static class BaseSuperClass implements RunInterface {
     @Override
     public void run() {

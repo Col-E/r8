@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.callsites;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -36,7 +36,7 @@ public class PropagationFromSiblingTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.enableUnusedInterfaceRemoval = false)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -66,7 +66,7 @@ public class PropagationFromSiblingTest extends TestBase {
 
   interface J extends I {}
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A implements I {
 
     @NeverInline

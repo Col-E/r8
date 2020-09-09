@@ -163,8 +163,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public final PredicateSet<DexType> alwaysClassInline;
   /** All types that *must* never be inlined due to a configuration directive (testing only). */
   public final Set<DexType> neverClassInline;
-  /** All types that *must* never be merged due to a configuration directive (testing only). */
-  public final Set<DexType> neverMerge;
+
+  private final Set<DexType> noVerticalClassMerging;
+  private final Set<DexType> noHorizontalClassMerging;
+  private final Set<DexType> noStaticClassMerging;
+
   /** Set of const-class references. */
   public final Set<DexType> constClassReferences;
   /**
@@ -230,7 +233,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> neverReprocess,
       PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverClassInline,
-      Set<DexType> neverMerge,
+      Set<DexType> noVerticalClassMerging,
+      Set<DexType> noHorizontalClassMerging,
+      Set<DexType> noStaticClassMerging,
       Set<DexReference> neverPropagateValue,
       Object2BooleanMap<DexReference> identifierNameStrings,
       Set<DexType> prunedTypes,
@@ -271,7 +276,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.neverReprocess = neverReprocess;
     this.alwaysClassInline = alwaysClassInline;
     this.neverClassInline = neverClassInline;
-    this.neverMerge = neverMerge;
+    this.noVerticalClassMerging = noVerticalClassMerging;
+    this.noHorizontalClassMerging = noHorizontalClassMerging;
+    this.noStaticClassMerging = noStaticClassMerging;
     this.neverPropagateValue = neverPropagateValue;
     this.identifierNameStrings = identifierNameStrings;
     this.prunedTypes = prunedTypes;
@@ -315,7 +322,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> neverReprocess,
       PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverClassInline,
-      Set<DexType> neverMerge,
+      Set<DexType> noVerticalClassMerging,
+      Set<DexType> noHorizontalClassMerging,
+      Set<DexType> noStaticClassMerging,
       Set<DexReference> neverPropagateValue,
       Object2BooleanMap<DexReference> identifierNameStrings,
       Set<DexType> prunedTypes,
@@ -359,7 +368,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.neverReprocess = neverReprocess;
     this.alwaysClassInline = alwaysClassInline;
     this.neverClassInline = neverClassInline;
-    this.neverMerge = neverMerge;
+    this.noVerticalClassMerging = noVerticalClassMerging;
+    this.noHorizontalClassMerging = noHorizontalClassMerging;
+    this.noStaticClassMerging = noStaticClassMerging;
     this.neverPropagateValue = neverPropagateValue;
     this.identifierNameStrings = identifierNameStrings;
     this.prunedTypes = prunedTypes;
@@ -404,7 +415,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.neverReprocess,
         previous.alwaysClassInline,
         previous.neverClassInline,
-        previous.neverMerge,
+        previous.noVerticalClassMerging,
+        previous.noHorizontalClassMerging,
+        previous.noStaticClassMerging,
         previous.neverPropagateValue,
         previous.identifierNameStrings,
         previous.prunedTypes,
@@ -455,7 +468,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.neverReprocess,
         previous.alwaysClassInline,
         previous.neverClassInline,
-        previous.neverMerge,
+        previous.noVerticalClassMerging,
+        previous.noHorizontalClassMerging,
+        previous.noStaticClassMerging,
         previous.neverPropagateValue,
         previous.identifierNameStrings,
         removedClasses == null
@@ -545,7 +560,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.neverReprocess = previous.neverReprocess;
     this.alwaysClassInline = previous.alwaysClassInline;
     this.neverClassInline = previous.neverClassInline;
-    this.neverMerge = previous.neverMerge;
+    this.noVerticalClassMerging = previous.noVerticalClassMerging;
+    this.noHorizontalClassMerging = previous.noHorizontalClassMerging;
+    this.noStaticClassMerging = previous.noStaticClassMerging;
     this.neverPropagateValue = previous.neverPropagateValue;
     this.identifierNameStrings = previous.identifierNameStrings;
     this.prunedTypes = previous.prunedTypes;
@@ -1028,7 +1045,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteMethods(neverReprocess),
         alwaysClassInline.rewriteItems(lens::lookupType),
         lens.rewriteTypes(neverClassInline),
-        lens.rewriteTypes(neverMerge),
+        lens.rewriteTypes(noVerticalClassMerging),
+        lens.rewriteTypes(noHorizontalClassMerging),
+        lens.rewriteTypes(noStaticClassMerging),
         lens.rewriteReferences(neverPropagateValue),
         lens.rewriteReferenceKeys(identifierNameStrings),
         // Don't rewrite pruned types - the removed types are identified by their original name.
@@ -1401,5 +1420,29 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             },
             this)
         .shouldBreak();
+  }
+
+  /**
+   * All types that *must* never be merged vertically due to a configuration directive (testing
+   * only).
+   */
+  public Set<DexType> getNoVerticalClassMergingSet() {
+    return noVerticalClassMerging;
+  }
+
+  /**
+   * All types that *must* never be merged horizontally due to a configuration directive (testing
+   * only).
+   */
+  public Set<DexType> getNoHorizontalClassMergingSet() {
+    return noHorizontalClassMerging;
+  }
+
+  /**
+   * All types that *must* never be merged by the static class merger due to a configuration
+   * directive (testing only).
+   */
+  public Set<DexType> getNoStaticClassMergingSet() {
+    return noStaticClassMerging;
   }
 }

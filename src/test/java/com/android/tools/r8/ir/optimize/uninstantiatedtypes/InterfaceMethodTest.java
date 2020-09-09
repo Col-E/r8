@@ -8,7 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
@@ -47,7 +47,7 @@ public class InterfaceMethodTest extends TestBase {
             .addInnerClasses(InterfaceMethodTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
@@ -76,7 +76,7 @@ public class InterfaceMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface I {
 
     Uninstantiated m();

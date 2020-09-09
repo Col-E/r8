@@ -12,7 +12,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -85,7 +85,7 @@ public class DefaultMethodAsOverrideWithLambdaTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(DefaultMethodAsOverrideWithLambdaTest.class)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
@@ -94,7 +94,7 @@ public class DefaultMethodAsOverrideWithLambdaTest extends TestBase {
   }
 
   @FunctionalInterface
-  @NeverMerge
+  @NoVerticalClassMerging
   public interface I {
     void foo();
 
@@ -103,7 +103,7 @@ public class DefaultMethodAsOverrideWithLambdaTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public interface J extends I {
 
     @Override

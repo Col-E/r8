@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize.inliner.interfacemethods;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -42,7 +42,7 @@ public class InlineDefaultInterfaceMethodTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .setMinApi(parameters.getApiLevel())
             .enableNeverClassInliningAnnotations()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .noMinification()
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
@@ -59,7 +59,7 @@ public class InlineDefaultInterfaceMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface I {
 
     default void hello() {

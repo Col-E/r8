@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.optimize.inliner;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -39,14 +39,14 @@ public class DoubleInliningInvokeSuperTest extends TestBase {
         .addKeepRules("-keepclassmembers class * { void fooCaller(...); }")
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
 
   @NeverClassInline
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
     int x;
     @NeverInline
@@ -57,7 +57,7 @@ public class DoubleInliningInvokeSuperTest extends TestBase {
   }
 
   @NeverClassInline
-  @NeverMerge
+  @NoVerticalClassMerging
   static class B extends A {
     // B#foo is invoked twice by other wrappers in the same class.
     @Override

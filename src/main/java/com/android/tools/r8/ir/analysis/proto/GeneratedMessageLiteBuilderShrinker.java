@@ -264,11 +264,19 @@ public class GeneratedMessageLiteBuilderShrinker {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       SubtypingInfo subtypingInfo,
       PredicateSet<DexType> alwaysClassInline,
-      Set<DexType> neverMerge,
+      Set<DexType> neverMergeClassVertically,
+      Set<DexType> neverMergeClassHorizontally,
+      Set<DexType> neverMergeStaticClassHorizontally,
       Set<DexMethod> alwaysInline,
       Set<DexMethod> bypassClinitforInlining) {
     new RootSetExtension(
-            appView, alwaysClassInline, neverMerge, alwaysInline, bypassClinitforInlining)
+            appView,
+            alwaysClassInline,
+            neverMergeClassVertically,
+            neverMergeClassHorizontally,
+            neverMergeStaticClassHorizontally,
+            alwaysInline,
+            bypassClinitforInlining)
         .extend(subtypingInfo);
   }
 
@@ -383,7 +391,9 @@ public class GeneratedMessageLiteBuilderShrinker {
     private final ProtoReferences references;
 
     private final PredicateSet<DexType> alwaysClassInline;
-    private final Set<DexType> neverMerge;
+    private final Set<DexType> neverMergeClassVertically;
+    private final Set<DexType> neverMergeClassHorizontally;
+    private final Set<DexType> neverMergeStaticClassHorizontally;
 
     private final Set<DexMethod> alwaysInline;
     private final Set<DexMethod> bypassClinitforInlining;
@@ -391,13 +401,17 @@ public class GeneratedMessageLiteBuilderShrinker {
     RootSetExtension(
         AppView<? extends AppInfoWithClassHierarchy> appView,
         PredicateSet<DexType> alwaysClassInline,
-        Set<DexType> neverMerge,
+        Set<DexType> neverMergeClassVertically,
+        Set<DexType> neverMergeClassHorizontally,
+        Set<DexType> neverMergeStaticClassHorizontally,
         Set<DexMethod> alwaysInline,
         Set<DexMethod> bypassClinitforInlining) {
       this.appView = appView;
       this.references = appView.protoShrinker().references;
       this.alwaysClassInline = alwaysClassInline;
-      this.neverMerge = neverMerge;
+      this.neverMergeClassVertically = neverMergeClassVertically;
+      this.neverMergeClassHorizontally = neverMergeClassHorizontally;
+      this.neverMergeStaticClassHorizontally = neverMergeStaticClassHorizontally;
       this.alwaysInline = alwaysInline;
       this.bypassClinitforInlining = bypassClinitforInlining;
     }
@@ -451,14 +465,20 @@ public class GeneratedMessageLiteBuilderShrinker {
       // For consistency, never merge the GeneratedMessageLite builders. These will only have a
       // unique subtype if the application has a single proto message, which mostly happens during
       // testing.
-      neverMerge.add(references.generatedMessageLiteBuilderType);
-      neverMerge.add(references.generatedMessageLiteExtendableBuilderType);
+      neverMergeClass(references.generatedMessageLiteBuilderType);
+      neverMergeClass(references.generatedMessageLiteExtendableBuilderType);
     }
 
     private void neverMergeMessageLite() {
       // MessageLite is used in several signatures that we use for recognizing methods, so don't
       // allow it to me merged.
-      neverMerge.add(references.messageLiteType);
+      neverMergeClass(references.messageLiteType);
+    }
+
+    private void neverMergeClass(DexType type) {
+      neverMergeClassVertically.add(type);
+      neverMergeClassHorizontally.add(type);
+      neverMergeStaticClassHorizontally.add(type);
     }
   }
 }

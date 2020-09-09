@@ -10,7 +10,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -45,7 +45,7 @@ public class ReservedFieldNameInInterfacesWithCommonSubClassTest extends TestBas
     CodeInspector inspector =
         testForR8(Backend.DEX)
             .addProgramClasses(TestClass.class, A.class, B.class, I.class, J.class)
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
                 reserveName
@@ -85,22 +85,22 @@ public class ReservedFieldNameInInterfacesWithCommonSubClassTest extends TestBas
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface I {
 
     String f1 = System.currentTimeMillis() >= 0 ? "Hello " : null;
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface J {
 
     String a = System.currentTimeMillis() >= 0 ? "world!" : null;
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A implements I {}
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class B extends A implements J {
 
     @Override

@@ -11,7 +11,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -53,7 +53,7 @@ public class EffectivelyFinalStaticFieldsTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(
@@ -147,7 +147,7 @@ public class EffectivelyFinalStaticFieldsTest extends TestBase {
   }
 
   @NeverClassInline
-  @NeverMerge
+  @NoVerticalClassMerging
   static class StaticFieldWithInitialization_Z {
     static boolean alwaysFalse;
     @NeverInline

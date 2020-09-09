@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -43,7 +43,7 @@ public class DefaultInterfaceIssue143628636Test extends TestBase {
     testForR8(parameters.getBackend())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addInnerClasses(DefaultInterfaceIssue143628636Test.class)
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(I.class)
@@ -52,7 +52,7 @@ public class DefaultInterfaceIssue143628636Test extends TestBase {
         .assertSuccessWithOutputLines("2", "5");
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   @NeverClassInline
   public interface A {
 
@@ -76,7 +76,7 @@ public class DefaultInterfaceIssue143628636Test extends TestBase {
 
   // Make sure this class and the call to h() are never eliminated. It is the *partial* info
   // propagated from h() to f() that results in incorrect call-site optimization info.
-  @NeverMerge
+  @NoVerticalClassMerging
   @NeverClassInline
   public static class B implements A {
     public final int x;
@@ -99,7 +99,7 @@ public class DefaultInterfaceIssue143628636Test extends TestBase {
 
   // Make sure this class and the call to h() are never eliminated. It is the *missing* info
   // propagated from h() to f() that results in incorrect call-site optimization info.
-  @NeverMerge
+  @NoVerticalClassMerging
   @NeverClassInline
   public static class C implements I {
     public final I i;

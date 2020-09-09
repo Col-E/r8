@@ -8,7 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -43,7 +43,7 @@ public class KeptBridgeHoistingTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keep class " + B.class.getTypeName() + " { java.lang.String bridge(...); }")
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -69,7 +69,7 @@ public class KeptBridgeHoistingTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
 
     @NeverInline

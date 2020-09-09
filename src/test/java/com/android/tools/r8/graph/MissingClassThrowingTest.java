@@ -8,7 +8,7 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoStaticClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -23,10 +23,10 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class MissingClassThrowingTest extends TestBase {
 
-  @NeverMerge
+  @NoStaticClassMerging
   public static class MissingException extends Exception {}
 
-  @NeverMerge
+  @NoStaticClassMerging
   public static class Program {
 
     public static final String EXPECTED_OUTPUT = "Hello world!";
@@ -72,11 +72,9 @@ public class MissingClassThrowingTest extends TestBase {
         .noMinification()
         .noTreeShaking()
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoStaticClassMergingAnnotations()
         .debug()
-        .addKeepRules(
-            "-keep class ** { *; }",
-            "-keepattributes *")
+        .addKeepRules("-keep class ** { *; }", "-keepattributes *")
         .compile()
         .addRunClasspathClasses(MissingException.class)
         .run(parameters.getRuntime(), Program.class)

@@ -9,7 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.shaking.methods.MethodsTestBase;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -20,17 +20,17 @@ import java.util.Collection;
 import java.util.Set;
 import org.junit.Test;
 
-@NeverMerge
+@NoVerticalClassMerging
 abstract class Super {
   public abstract void m1();
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 abstract class Sub extends Super {
   public abstract void m2();
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 class SubSub extends Sub {
   public void m1() {}
 

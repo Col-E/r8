@@ -11,7 +11,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.KeepUnusedArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -50,7 +50,7 @@ public class ClassInliningOracleTest extends TestBase {
                     enableInvokeSuperToInvokeVirtualRewriting)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableUnusedArgumentAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -78,7 +78,7 @@ public class ClassInliningOracleTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class HelperBase {
 
     @NeverInline

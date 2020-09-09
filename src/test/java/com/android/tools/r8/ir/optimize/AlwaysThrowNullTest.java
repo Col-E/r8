@@ -11,8 +11,8 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
@@ -31,7 +31,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 class AlwaysThrowNullTestClass {
-  @NeverMerge
+  @NoVerticalClassMerging
   static class Base {
     Object dead;
 
@@ -239,7 +239,7 @@ public class AlwaysThrowNullTest extends TestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(MAIN)
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(MAIN)

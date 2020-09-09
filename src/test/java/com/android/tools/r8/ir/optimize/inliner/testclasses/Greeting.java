@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.ir.optimize.inliner.testclasses;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 
-@NeverMerge
+@NoVerticalClassMerging
 public class Greeting extends GreetingBase {
 
   public static Class<?> getGreetingBase() {
@@ -14,7 +14,7 @@ public class Greeting extends GreetingBase {
   }
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 class GreetingBase {
 
   protected String greeting;

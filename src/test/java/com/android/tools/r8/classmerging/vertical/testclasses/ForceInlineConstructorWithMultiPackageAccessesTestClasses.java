@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.classmerging.vertical.testclasses;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 
 public class ForceInlineConstructorWithMultiPackageAccessesTestClasses {
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class A {
 
     protected A() {}

@@ -8,7 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoStaticClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -53,7 +53,7 @@ public class HorizontalClassMergerSynchronizedMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(HorizontalClassMergerSynchronizedMethodTest.class)
         .addKeepMainRule(Main.class)
-        .enableMergeAnnotations()
+        .enableNoStaticClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
@@ -83,7 +83,7 @@ public class HorizontalClassMergerSynchronizedMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoStaticClassMerging
   public static class LockThree {
 
     static synchronized void acquire(I c) {

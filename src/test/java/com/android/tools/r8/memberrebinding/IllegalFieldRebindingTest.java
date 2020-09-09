@@ -49,7 +49,7 @@ public class IllegalFieldRebindingTest extends TestBase {
             .addInnerClasses(IllegalFieldRebindingTest.class)
             .addInnerClasses(IllegalFieldRebindingTestClasses.class)
             .addKeepMainRule(TestClass.class)
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
@@ -81,7 +81,7 @@ public class IllegalFieldRebindingTest extends TestBase {
             .addInnerClasses(IllegalFieldRebindingTest.class)
             .addInnerClasses(IllegalFieldRebindingTestClasses.class)
             .addKeepMainRule(OtherTestClass.class)
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .run(OtherTestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

@@ -5,7 +5,7 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -44,7 +44,7 @@ public class IntersectionLambdaTest extends TestBase {
   public void testR8() throws IOException, CompilationFailedException, ExecutionException {
     testForR8(parameters.getBackend())
         .addInnerClasses(IntersectionLambdaTest.class)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
@@ -52,7 +52,7 @@ public class IntersectionLambdaTest extends TestBase {
   }
 
   @FunctionalInterface
-  @NeverMerge
+  @NoVerticalClassMerging
   public interface I {
     void foo();
   }

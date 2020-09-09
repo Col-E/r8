@@ -9,7 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
@@ -28,7 +28,7 @@ public class ClassesDistuingishedByIndirectInstanceOfInterfaceCheckCast
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
@@ -42,7 +42,7 @@ public class ClassesDistuingishedByIndirectInstanceOfInterfaceCheckCast
   }
 
   @NeverClassInline
-  @NeverMerge
+  @NoVerticalClassMerging
   public interface I {
     void bar();
   }

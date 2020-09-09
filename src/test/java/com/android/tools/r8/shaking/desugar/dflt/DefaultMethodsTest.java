@@ -10,7 +10,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.shaking.methods.MethodsTestBase.Shrinker;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -26,32 +26,32 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import org.junit.Test;
 
-@NeverMerge
+@NoVerticalClassMerging
 interface SuperIface {
   default void m1() {}
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 interface SubIface extends SuperIface {
   default void m2() {}
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 interface SubSubIface extends SubIface {
   default void m3() {}
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 class Impl implements SubSubIface {
   void m4() {}
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 class SubImpl extends Impl {
   void m5() {}
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 class SubSubImpl extends SubImpl {
   void m6() {}
 }
@@ -111,7 +111,7 @@ public class DefaultMethodsTest extends TestBase {
       throws Throwable {
     testForR8(Backend.DEX)
         .setMinApi(AndroidApiLevel.L)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addProgramClasses(getClasses())
         .addKeepRules(keepRules)
         .compile()
@@ -125,7 +125,7 @@ public class DefaultMethodsTest extends TestBase {
       throws Throwable {
     testForR8Compat(Backend.DEX)
         .setMinApi(AndroidApiLevel.L)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addProgramClasses(getClasses())
         .addKeepRules(keepRules)
         .compile()

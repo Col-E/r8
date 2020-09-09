@@ -5,9 +5,10 @@
 package com.android.tools.r8.repackage.testclasses.repackagetest;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoStaticClassMerging;
+import com.android.tools.r8.NoVerticalClassMerging;
 
-@NeverMerge
+@NoStaticClassMerging
 public class AccessPackagePrivateMethodOnKeptClassIndirect {
 
   @NeverInline
@@ -15,7 +16,7 @@ public class AccessPackagePrivateMethodOnKeptClassIndirect {
     Helper.test();
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class Helper {
 
     @NeverInline

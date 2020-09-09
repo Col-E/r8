@@ -9,7 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -43,7 +43,7 @@ public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(AssumenosideeffectsPropagationWithoutMatchingDefinitionTest.class)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules(
@@ -76,7 +76,7 @@ public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends
     void debug(String tag, String message);
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class BaseImplementer implements LoggerInterface {
     @Override
     public void debug(String message) {

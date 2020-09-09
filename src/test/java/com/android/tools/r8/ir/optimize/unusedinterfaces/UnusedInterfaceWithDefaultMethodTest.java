@@ -9,7 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -40,7 +40,7 @@ public class UnusedInterfaceWithDefaultMethodTest extends TestBase {
         .addInnerClasses(UnusedInterfaceWithDefaultMethodTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -78,13 +78,13 @@ public class UnusedInterfaceWithDefaultMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface I {
 
     void m();
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface J extends I {
 
     @NeverInline

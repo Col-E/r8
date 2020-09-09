@@ -9,7 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotR
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -45,7 +45,7 @@ public class KeepClassMembersRuleOnIndirectlyInstantiatedClassTest extends TestB
             "  java.lang.String greeting;",
             "}")
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::verifyFieldIsPresent)
@@ -82,7 +82,7 @@ public class KeepClassMembersRuleOnIndirectlyInstantiatedClassTest extends TestB
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
 
     public String greeting;

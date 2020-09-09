@@ -5,7 +5,7 @@
 package com.android.tools.r8.shaking.annotations;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -54,7 +54,7 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keepattributes *Annotation*", "-dontobfuscate")
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
@@ -83,7 +83,7 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface Interface {
 
     @NeverInline

@@ -7,7 +7,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -17,7 +17,7 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
 import org.junit.Test;
 
-@NeverMerge
+@NoVerticalClassMerging
 interface I {
   default void m() {
     System.out.println("I::m");
@@ -45,7 +45,7 @@ public class BridgeInliningTest extends TestBase {
     testForR8(Backend.DEX)
         .addProgramClasses(I.class, C.class, MAIN)
         .setMinApi(AndroidApiLevel.L)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { m(); }")
         .run(MAIN)

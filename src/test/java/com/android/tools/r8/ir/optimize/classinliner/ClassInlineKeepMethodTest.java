@@ -10,7 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -32,7 +32,7 @@ public class ClassInlineKeepMethodTest extends TestBase {
   private final TestParameters parameters;
   private static final String EXPECTED_OUTPUT = "Hello world";
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class ShouldBeKept {
 
     @NeverInline
@@ -61,15 +61,16 @@ public class ClassInlineKeepMethodTest extends TestBase {
   @Test
   public void testIsKeptWithName()
       throws ExecutionException, CompilationFailedException, IOException {
-    CodeInspector inspector = testForR8(parameters.getBackend())
-        .addInnerClasses(ClassInlineKeepMethodTest.class)
-        .addKeepMainRule(Keeper.class)
-        .addKeepClassAndMembersRules(ShouldBeKept.class)
-        .enableInliningAnnotations()
-        .enableMergeAnnotations()
-        .run(parameters.getRuntime(), Keeper.class)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT)
-        .inspector();
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addInnerClasses(ClassInlineKeepMethodTest.class)
+            .addKeepMainRule(Keeper.class)
+            .addKeepClassAndMembersRules(ShouldBeKept.class)
+            .enableInliningAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
+            .run(parameters.getRuntime(), Keeper.class)
+            .assertSuccessWithOutput(EXPECTED_OUTPUT)
+            .inspector();
     ClassSubject clazz = inspector.clazz(Keeper.class);
     assertThat(clazz, isPresent());
     MethodSubject main = clazz.uniqueMethodWithName("main");

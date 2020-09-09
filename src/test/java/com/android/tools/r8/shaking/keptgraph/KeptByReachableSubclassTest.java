@@ -7,7 +7,7 @@ import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
@@ -44,7 +44,7 @@ public class KeptByReachableSubclassTest extends TestBase {
     GraphInspector inspector =
         testForR8(parameters.getBackend())
             .enableGraphInspector()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .enableInliningAnnotations()
             .addProgramClasses(CLASS, A.class, B.class)
             .addKeepMainRule(CLASS)
@@ -72,7 +72,7 @@ public class KeptByReachableSubclassTest extends TestBase {
   }
 
   // Base class, A.foo never resolved to at runtime.
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class A {
 
     @NeverInline
@@ -82,7 +82,7 @@ public class KeptByReachableSubclassTest extends TestBase {
   }
 
   // Actual and only instantiated type.
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class B extends A {
 
     @NeverInline

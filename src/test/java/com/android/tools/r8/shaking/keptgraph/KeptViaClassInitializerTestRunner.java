@@ -12,7 +12,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -37,7 +36,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class KeptViaClassInitializerTestRunner extends TestBase {
 
-  @NeverMerge
   @NeverClassInline
   public static class A {
 
@@ -47,7 +45,6 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
     }
   }
 
-  @NeverMerge
   @NeverClassInline
   public enum T {
     A(A::new);

@@ -9,8 +9,8 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -52,7 +52,7 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
             .addProgramClasses(
                 TestClass.class, A.class, B.class, C.class, I.class, J.class, K.class)
             .enableMemberValuePropagationAnnotations()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
                 reserveName
@@ -140,31 +140,31 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
 
     @NeverPropagateValue String f1 = "He";
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class B extends A {
 
     @NeverPropagateValue String f2 = "l";
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface I {
 
     String f3 = System.currentTimeMillis() >= 0 ? "lo" : null;
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface J extends I {
 
     String f4 = System.currentTimeMillis() >= 0 ? " " : null;
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface K {
 
     String f5 = System.currentTimeMillis() >= 0 ? "world" : null;

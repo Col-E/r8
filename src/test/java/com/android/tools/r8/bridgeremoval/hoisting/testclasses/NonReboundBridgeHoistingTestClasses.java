@@ -5,7 +5,7 @@
 package com.android.tools.r8.bridgeremoval.hoisting.testclasses;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 
 public class NonReboundBridgeHoistingTestClasses {
 
@@ -13,7 +13,7 @@ public class NonReboundBridgeHoistingTestClasses {
     return A.class;
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
 
     @NeverInline
@@ -22,6 +22,6 @@ public class NonReboundBridgeHoistingTestClasses {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class B extends A {}
 }

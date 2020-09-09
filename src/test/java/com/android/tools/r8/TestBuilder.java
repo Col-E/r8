@@ -174,7 +174,9 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
         KeepUnusedArguments.class,
         NeverClassInline.class,
         NeverInline.class,
-        NeverMerge.class,
+        NoVerticalClassMerging.class,
+        NoHorizontalClassMerging.class,
+        NoStaticClassMerging.class,
         NeverPropagateValue.class);
   }
 

@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.inliner.testclasses;
 
 import com.android.tools.r8.ForceInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 
 public class InliningIntoVisibilityBridgeTestClasses {
 
@@ -13,7 +13,7 @@ public class InliningIntoVisibilityBridgeTestClasses {
     return InliningIntoVisibilityBridgeTestClassA.class;
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class InliningIntoVisibilityBridgeTestClassA {
 
     @ForceInline
@@ -22,7 +22,7 @@ public class InliningIntoVisibilityBridgeTestClasses {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class InliningIntoVisibilityBridgeTestClassB
       extends InliningIntoVisibilityBridgeTestClassA {}
 }

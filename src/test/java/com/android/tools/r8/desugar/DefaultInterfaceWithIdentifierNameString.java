@@ -10,7 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -70,7 +70,7 @@ public class DefaultInterfaceWithIdentifierNameString extends TestBase {
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .compile()
         .inspect(this::inspect)
@@ -86,7 +86,7 @@ public class DefaultInterfaceWithIdentifierNameString extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface I {
     @NeverInline
     static I newInstance() throws Exception {

@@ -15,6 +15,9 @@ import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.kotlin.TestKotlinClass;
+import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
+import com.android.tools.r8.shaking.NoStaticClassMergingRule;
+import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -130,7 +133,9 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
             .addKeepRules(
                 StringUtils.lines(
                     "-neverclassinline class **." + targetClassName,
-                    "-nevermerge class **." + targetClassName,
+                    "-" + NoVerticalClassMergingRule.RULE_NAME + " class **." + targetClassName,
+                    "-" + NoHorizontalClassMergingRule.RULE_NAME + " class **." + targetClassName,
+                    "-" + NoStaticClassMergingRule.RULE_NAME + " class **." + targetClassName,
                     "-neverinline class **." + targetClassName + " { <methods>; }"))
             .allowDiagnosticWarningMessages()
             .minification(minification)

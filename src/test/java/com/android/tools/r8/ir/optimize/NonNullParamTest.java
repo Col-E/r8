@@ -226,7 +226,7 @@ public class NonNullParamTest extends TestBase {
                     .addOptionsModification(this::disableDevirtualization)
                     .enableInliningAnnotations()
                     .enableNeverClassInliningAnnotations()
-                    .enableMergeAnnotations());
+                    .enableNoVerticalClassMergingAnnotations());
 
     ClassSubject mainSubject = inspector.clazz(NonNullParamAfterInvokeInterface.class);
     assertThat(mainSubject, isPresent());

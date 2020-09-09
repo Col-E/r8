@@ -13,7 +13,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -56,7 +56,8 @@ public class DexSplitterInlineRegression extends SplitterTestBase {
           assertThat(clazz.uniqueMethodWithName("getFromFeature"), not(isPresent()));
         };
     Consumer<R8FullTestBuilder> configurator =
-        r8FullTestBuilder -> r8FullTestBuilder.enableMergeAnnotations().noMinification();
+        r8FullTestBuilder ->
+            r8FullTestBuilder.enableNoVerticalClassMergingAnnotations().noMinification();
     ProcessResult processResult =
         testDexSplitter(
             parameters,
@@ -75,7 +76,8 @@ public class DexSplitterInlineRegression extends SplitterTestBase {
   public void testOnR8Splitter() throws IOException, CompilationFailedException {
     assumeTrue(parameters.isDexRuntime());
     Consumer<R8FullTestBuilder> configurator =
-        r8FullTestBuilder -> r8FullTestBuilder.enableMergeAnnotations().noMinification();
+        r8FullTestBuilder ->
+            r8FullTestBuilder.enableNoVerticalClassMergingAnnotations().noMinification();
     ProcessResult processResult =
         testR8Splitter(
             parameters,
@@ -89,7 +91,7 @@ public class DexSplitterInlineRegression extends SplitterTestBase {
     assertEquals(processResult.stdout, StringUtils.lines("42"));
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public abstract static class BaseSuperClass implements RunInterface {
     @Override
     public void run() {

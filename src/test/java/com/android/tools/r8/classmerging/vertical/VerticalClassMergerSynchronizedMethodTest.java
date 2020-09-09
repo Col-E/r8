@@ -8,7 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -53,7 +53,7 @@ public class VerticalClassMergerSynchronizedMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(VerticalClassMergerSynchronizedMethodTest.class)
         .addKeepMainRule(Main.class)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput("Hello World!")
@@ -73,7 +73,7 @@ public class VerticalClassMergerSynchronizedMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class LockTwo extends LockOne {
 
     static synchronized void acquire(I c) {
@@ -83,7 +83,7 @@ public class VerticalClassMergerSynchronizedMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class LockThree {
 
     static synchronized void acquire(I c) {

@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.callsites;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -32,10 +32,11 @@ public class HashCodeTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(HashCodeTest.class)
         .addKeepMainRule(MAIN)
-        .enableMergeAnnotations()
-        .addOptionsModification(o -> {
-          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
-        })
+        .enableNoVerticalClassMergingAnnotations()
+        .addOptionsModification(
+            o -> {
+              o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+            })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("10");
@@ -55,7 +56,7 @@ public class HashCodeTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
     @Override
     public int hashCode() {
@@ -63,7 +64,7 @@ public class HashCodeTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class B extends A {
     @Override
     public int hashCode() {

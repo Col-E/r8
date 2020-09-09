@@ -10,8 +10,8 @@ import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -33,7 +33,7 @@ public class FieldMinificationCollisionTest extends TestBase {
             .enableMemberValuePropagationAnnotations()
             .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
@@ -54,7 +54,7 @@ public class FieldMinificationCollisionTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
 
     @NeverPropagateValue public String f1;
@@ -64,7 +64,7 @@ public class FieldMinificationCollisionTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class B extends A {
 
     @NeverPropagateValue public String f2;

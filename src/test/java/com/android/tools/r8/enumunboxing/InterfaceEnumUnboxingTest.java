@@ -6,7 +6,7 @@ package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
@@ -55,7 +55,7 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
             .addKeepMainRules(SUCCESSES)
             .addKeepMainRules(FAILURES)
             .noMinification()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .addKeepRules(enumKeepRules.getKeepRules())
@@ -106,7 +106,7 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
       C
     }
 
-    @NeverMerge
+    @NoVerticalClassMerging
     interface Itf {}
   }
 
@@ -124,7 +124,7 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
       C
     }
 
-    @NeverMerge
+    @NoVerticalClassMerging
     interface Itf {
       @NeverInline
       default int ordinal() {
@@ -153,7 +153,7 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
       }
     }
 
-    @NeverMerge
+    @NoVerticalClassMerging
     interface Itf {
       @NeverInline
       default int method() {
@@ -176,7 +176,7 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
       C
     }
 
-    @NeverMerge
+    @NoVerticalClassMerging
     interface Itf {
       @NeverInline
       default int method() {
@@ -205,7 +205,7 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
       }
     }
 
-    @NeverMerge
+    @NoVerticalClassMerging
     interface Itf {
       int method();
     }
@@ -225,7 +225,7 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
       C
     }
 
-    @NeverMerge
+    @NoVerticalClassMerging
     interface Itf {
       @NeverInline
       default int method() {
@@ -259,7 +259,7 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
       }
     }
 
-    @NeverMerge
+    @NoVerticalClassMerging
     interface Itf {
       @NeverInline
       default int method() {

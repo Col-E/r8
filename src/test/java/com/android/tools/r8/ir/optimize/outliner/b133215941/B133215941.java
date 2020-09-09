@@ -10,7 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -63,7 +63,7 @@ public class B133215941 extends TestBase {
     testForR8(parameters.getBackend())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableSideEffectAnnotations()
         .addInnerClasses(B133215941.class)
         .addKeepMainRule(TestClass.class)
@@ -84,12 +84,12 @@ public class B133215941 extends TestBase {
         .assertSuccessWithOutput(expectedOutput);
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public interface Iface {
     void ifaceMethod();
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class TestClassSuper {
     @AssumeMayHaveSideEffects
     @NeverInline

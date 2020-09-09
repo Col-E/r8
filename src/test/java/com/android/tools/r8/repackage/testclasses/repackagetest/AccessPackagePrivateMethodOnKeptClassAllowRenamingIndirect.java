@@ -5,9 +5,9 @@
 package com.android.tools.r8.repackage.testclasses.repackagetest;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoStaticClassMerging;
 
-@NeverMerge
+@NoStaticClassMerging
 public class AccessPackagePrivateMethodOnKeptClassAllowRenamingIndirect {
 
   @NeverInline
@@ -15,7 +15,7 @@ public class AccessPackagePrivateMethodOnKeptClassAllowRenamingIndirect {
     Helper.test();
   }
 
-  @NeverMerge
+  @NoStaticClassMerging
   public static class Helper {
 
     @NeverInline

@@ -12,7 +12,7 @@ import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -57,7 +57,7 @@ public class VerticalClassMergerSuperCallInStaticTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED)
@@ -82,7 +82,7 @@ public class VerticalClassMergerSuperCallInStaticTest extends TestBase {
         .transform();
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class Base {
 
     public void collect() {

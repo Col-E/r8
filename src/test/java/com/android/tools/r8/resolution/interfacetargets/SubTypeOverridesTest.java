@@ -12,7 +12,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -87,7 +87,7 @@ public class SubTypeOverridesTest extends TestBase {
   public void testR8() throws IOException, CompilationFailedException, ExecutionException {
     testForR8(parameters.getBackend())
         .addInnerClasses(SubTypeOverridesTest.class)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
@@ -96,7 +96,7 @@ public class SubTypeOverridesTest extends TestBase {
         .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public interface I {
 
     void foo();

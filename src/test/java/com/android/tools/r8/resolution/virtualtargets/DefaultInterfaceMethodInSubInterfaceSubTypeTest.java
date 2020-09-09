@@ -12,7 +12,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -83,18 +83,18 @@ public class DefaultInterfaceMethodInSubInterfaceSubTypeTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public interface I {
     void foo();
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public interface J extends I {
     @Override
     @NeverInline
@@ -103,7 +103,7 @@ public class DefaultInterfaceMethodInSubInterfaceSubTypeTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public abstract static class A implements I {}
 
   @NeverClassInline

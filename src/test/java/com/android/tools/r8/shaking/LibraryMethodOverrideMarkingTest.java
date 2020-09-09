@@ -8,7 +8,7 @@ import static com.google.common.base.Predicates.alwaysTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -41,7 +41,7 @@ public class LibraryMethodOverrideMarkingTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(
             options -> options.testing.enqueuerInspector = this::verifyLibraryOverrideInformation)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile();
   }
@@ -69,7 +69,7 @@ public class LibraryMethodOverrideMarkingTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
 
     @Override
@@ -78,7 +78,7 @@ public class LibraryMethodOverrideMarkingTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class B extends A {
 
     @Override

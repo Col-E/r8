@@ -9,7 +9,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -42,7 +42,7 @@ public class LibraryMethodOverrideTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.enableTreeShakingOfLibraryMethodOverrides = true)
         .enableNeverClassInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyOutput)
@@ -95,7 +95,7 @@ public class LibraryMethodOverrideTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class EscapesIndirectly {
 
     @Override
@@ -106,7 +106,7 @@ public class LibraryMethodOverrideTest extends TestBase {
 
   static class EscapesIndirectlySub extends EscapesIndirectly {}
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class EscapesIndirectlyWithOverride {
 
     @Override

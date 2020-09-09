@@ -6,7 +6,7 @@ package com.android.tools.r8.shaking.keptgraph;
 import static com.android.tools.r8.references.Reference.methodFromMethod;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -22,7 +22,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class KeptByTwoMethods extends TestBase {
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class A {
 
     @NeverInline
@@ -31,7 +31,7 @@ public class KeptByTwoMethods extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class B extends A {
     // Intermediate to A.
   }
@@ -72,7 +72,7 @@ public class KeptByTwoMethods extends TestBase {
     GraphInspector inspector =
         testForR8(parameters.getBackend())
             .enableGraphInspector()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .enableInliningAnnotations()
             .addKeepMainRule(TestClass.class)
             .addProgramClasses(TestClass.class, A.class, B.class)

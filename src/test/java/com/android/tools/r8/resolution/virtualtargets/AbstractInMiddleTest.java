@@ -12,7 +12,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -83,7 +83,7 @@ public class AbstractInMiddleTest extends TestBase {
   public void testR8() throws IOException, CompilationFailedException, ExecutionException {
     testForR8(parameters.getBackend())
         .addInnerClasses(AbstractInMiddleTest.class)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .addKeepMainRule(Main.class)
@@ -92,7 +92,7 @@ public class AbstractInMiddleTest extends TestBase {
         .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   @NeverClassInline
   public static class A {
 
@@ -102,14 +102,14 @@ public class AbstractInMiddleTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public abstract static class B extends A {
 
     @Override
     public abstract void foo();
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   @NeverClassInline
   public static class C extends B {
 

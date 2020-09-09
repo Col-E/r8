@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.shaking.fields;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -25,7 +25,7 @@ public abstract class FieldsTestBase extends TestBase {
       String expected)
       throws Throwable {
     testForR8(Backend.DEX)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addProgramClasses(getClasses())
         .addKeepRules(keepRules)
         .compile()
@@ -41,7 +41,7 @@ public abstract class FieldsTestBase extends TestBase {
       throws Throwable {
     testForProguard()
         .addProgramClasses(getClasses())
-        .addProgramClasses(NeverMerge.class)
+        .addProgramClasses(NoVerticalClassMerging.class)
         .addKeepRules(keepRules)
         .compile()
         .inspect(inspector)

@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.nonnull;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 
-@NeverMerge
+@NoVerticalClassMerging
 public interface NonNullParamInterface {
   int sum(NotPinnedClass arg1, NotPinnedClass arg2);
 }

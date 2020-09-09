@@ -12,7 +12,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -70,7 +70,7 @@ public class MissingClassesJoinTest extends TestBase {
               .addKeepAllClassesRule()
               .addOptionsModification(options -> options.testing.allowTypeErrors = allowTypeErrors)
               .allowDiagnosticWarningMessages()
-              .enableMergeAnnotations()
+              .enableNoVerticalClassMergingAnnotations()
               .setMinApi(parameters.getApiLevel())
               .compileWithExpectedDiagnostics(
                   diagnostics -> {
@@ -133,7 +133,7 @@ public class MissingClassesJoinTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   abstract static class A {}
 
   static class ASub1 extends A {}

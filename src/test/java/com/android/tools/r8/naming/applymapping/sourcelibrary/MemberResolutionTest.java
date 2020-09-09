@@ -8,8 +8,8 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -27,7 +27,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 // AbstractChecker -> X:
-@NeverMerge
+@NoVerticalClassMerging
 abstract class AbstractChecker {
   // String tag -> p
   @NeverPropagateValue private String tag = "PrivateInitialTag_AbstractChecker";
@@ -123,7 +123,7 @@ public class MemberResolutionTest extends TestBase {
             .addKeepMainRule(MemberResolutionTestMain.class)
             .addKeepRules("-applymapping " + mapPath)
             .enableMemberValuePropagationAnnotations()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .addOptionsModification(options -> options.enableInlining = false)
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MemberResolutionTestMain.class)

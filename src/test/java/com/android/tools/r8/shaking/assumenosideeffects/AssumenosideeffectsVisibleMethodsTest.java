@@ -6,7 +6,7 @@ package com.android.tools.r8.shaking.assumenosideeffects;
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -157,7 +157,7 @@ public class AssumenosideeffectsVisibleMethodsTest extends TestBase {
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRule())
         .noMinification()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -178,7 +178,7 @@ public class AssumenosideeffectsVisibleMethodsTest extends TestBase {
   }
 
   @NeverClassInline
-  @NeverMerge
+  @NoVerticalClassMerging
   static class ProgramBase extends LibraryBase {
     @NeverInline
     @Override

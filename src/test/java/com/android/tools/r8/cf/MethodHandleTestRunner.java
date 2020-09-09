@@ -177,7 +177,7 @@ public class MethodHandleTestRunner extends TestBase {
       builder.addProguardConfiguration(
           Arrays.asList(
               keepMainProguardConfiguration(MethodHandleTest.class),
-              neverMergeRule(),
+              noVerticalClassMergingRule(),
               // Prevent the second argument of C.svic(), C.sjic(), I.sjic() and I.svic() from
               // being removed although they are never used unused. This is needed since these
               // methods are accessed reflectively.

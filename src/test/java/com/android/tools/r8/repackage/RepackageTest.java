@@ -129,7 +129,7 @@ public class RepackageTest extends TestBase {
             options ->
                 options.testing.enableExperimentalRepackaging = enableExperimentalRepackaging)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoStaticClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

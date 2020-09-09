@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -44,7 +44,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeInterfacePositiveTest.class)
         .addKeepMainRule(MAIN)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(
@@ -97,8 +97,9 @@ public class InvokeInterfacePositiveTest extends TestBase {
     assertTrue(b_m.streamInstructions().anyMatch(InstructionSubject::isIf));
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class Base {}
+
   static class Sub1 extends Base {}
   static class Sub2 extends Base {}
 

@@ -5,7 +5,7 @@
 package com.android.tools.r8.memberrebinding;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -48,7 +48,7 @@ public class MemberRebindingConflictTest extends TestBase {
         .addInnerClasses(MemberRebindingConflictTestClasses.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -65,7 +65,7 @@ public class MemberRebindingConflictTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
 
     @NeverInline
@@ -74,7 +74,7 @@ public class MemberRebindingConflictTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class B extends A {
 
     // public synthetic void foo() { super.foo(); }

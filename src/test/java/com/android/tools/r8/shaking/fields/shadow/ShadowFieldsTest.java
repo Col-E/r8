@@ -7,7 +7,7 @@ package com.android.tools.r8.shaking.fields.shadow;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.shaking.fields.FieldsTestBase;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -16,17 +16,17 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import org.junit.Test;
 
-@NeverMerge
+@NoVerticalClassMerging
 class Super {
   public int f1;
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 class Sub extends Super {
   public int f1;
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 class SubSub extends Sub {
   public int f1;
 }

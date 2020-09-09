@@ -8,7 +8,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoStaticClassMerging;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
@@ -50,7 +51,8 @@ public class VoidReturnTypeRewritingTest extends TestBase {
             .addInnerClasses(VoidReturnTypeRewritingTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
+            .enableNoStaticClassMergingAnnotations()
             .addKeepRules("-dontobfuscate")
             .addOptionsModification(options -> options.enableClassInlining = false)
             .run(TestClass.class)
@@ -102,13 +104,14 @@ public class VoidReturnTypeRewritingTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoStaticClassMerging
+  @NoVerticalClassMerging
   static class Uninstantiated {}
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class SubUninstantiated extends Uninstantiated {}
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class Factory {
 
     @NeverInline
@@ -124,7 +127,7 @@ public class VoidReturnTypeRewritingTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class SubFactory extends Factory {
 
     @Override
@@ -135,7 +138,7 @@ public class VoidReturnTypeRewritingTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class SubSubFactory extends SubFactory {
 
     @Override

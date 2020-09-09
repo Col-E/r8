@@ -9,7 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -48,7 +48,7 @@ public class CheckDiscardedOverriddenMethodTest extends TestBase {
               "-checkdiscard class **.*$" + targetClass.getSimpleName() + " { void gone(); }")
           .enableNeverClassInliningAnnotations()
           .enableInliningAnnotations()
-          .enableMergeAnnotations()
+          .enableNoVerticalClassMergingAnnotations()
           .minification(minification)
           .setMinApi(parameters.getRuntime())
           // Asserting that -checkdiscard is not giving any information out on an un-removed
@@ -70,7 +70,7 @@ public class CheckDiscardedOverriddenMethodTest extends TestBase {
     test(TestMain2.class, Itf.class);
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class Base {
     @NeverInline
     void gone() {
@@ -93,7 +93,7 @@ public class CheckDiscardedOverriddenMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface Itf {
     void gone();
   }

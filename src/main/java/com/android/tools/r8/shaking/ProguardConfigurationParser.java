@@ -469,8 +469,18 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
-        if (acceptString("nevermerge")) {
-          ClassMergingRule rule = parseClassMergingRule(ClassMergingRule.Type.NEVER, optionStart);
+        if (acceptString(NoVerticalClassMergingRule.RULE_NAME)) {
+          ProguardConfigurationRule rule = parseNoVerticalClassMergingRule(optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
+        if (acceptString(NoHorizontalClassMergingRule.RULE_NAME)) {
+          ProguardConfigurationRule rule = parseNoHorizontalClassMergingRule(optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
+        if (acceptString(NoStaticClassMergingRule.RULE_NAME)) {
+          ProguardConfigurationRule rule = parseNoStaticClassMergingRule(optionStart);
           configurationBuilder.addRule(rule);
           return true;
         }
@@ -741,10 +751,32 @@ public class ProguardConfigurationParser {
       return keepRuleBuilder.build();
     }
 
-    private ClassMergingRule parseClassMergingRule(ClassMergingRule.Type type, Position start)
+    private NoVerticalClassMergingRule parseNoVerticalClassMergingRule(Position start)
         throws ProguardRuleParserException {
-      ClassMergingRule.Builder keepRuleBuilder =
-          ClassMergingRule.builder().setOrigin(origin).setStart(start).setType(type);
+      NoVerticalClassMergingRule.Builder keepRuleBuilder =
+          NoVerticalClassMergingRule.builder().setOrigin(origin).setStart(start);
+      parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
+      return keepRuleBuilder.build();
+    }
+
+    private NoHorizontalClassMergingRule parseNoHorizontalClassMergingRule(Position start)
+        throws ProguardRuleParserException {
+      NoHorizontalClassMergingRule.Builder keepRuleBuilder =
+          NoHorizontalClassMergingRule.builder().setOrigin(origin).setStart(start);
+      parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
+      return keepRuleBuilder.build();
+    }
+
+    private NoStaticClassMergingRule parseNoStaticClassMergingRule(Position start)
+        throws ProguardRuleParserException {
+      NoStaticClassMergingRule.Builder keepRuleBuilder =
+          NoStaticClassMergingRule.builder().setOrigin(origin).setStart(start);
       parseClassSpec(keepRuleBuilder, false);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));

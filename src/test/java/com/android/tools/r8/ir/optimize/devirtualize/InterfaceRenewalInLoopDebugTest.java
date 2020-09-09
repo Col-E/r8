@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.devirtualize;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,7 +11,7 @@ interface TestInterface {
   void foo();
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 class OneUniqueImplementer implements TestInterface {
   String boo;
 

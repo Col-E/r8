@@ -42,6 +42,7 @@ public class ForceInlineTest extends TestBase {
     return testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, A.class, B.class, C.class)
         .addKeepRules(proguardConfiguration)
+        .enableNoStaticClassMergingAnnotations()
         .enableProguardTestOptions()
         .compile()
         .inspector();
@@ -53,7 +54,6 @@ public class ForceInlineTest extends TestBase {
         runTest(
             ImmutableList.of(
                 "-keep class **.Main { *; }",
-                "-nevermerge @com.android.tools.r8.NeverMerge class *",
                 "-neverinline class *{ @com.android.tools.r8.NeverInline <methods>;}",
                 "-dontobfuscate"));
 
@@ -84,7 +84,6 @@ public class ForceInlineTest extends TestBase {
                 "-neverinline class **.A { method(); }",
                 "-neverinline class **.B { method(); }",
                 "-keep class **.Main { *; }",
-                "-nevermerge @com.android.tools.r8.NeverMerge class *",
                 "-neverinline class *{ @com.android.tools.r8.NeverInline <methods>;}",
                 "-dontobfuscate"));
 
@@ -112,7 +111,6 @@ public class ForceInlineTest extends TestBase {
                 "-forceinline class **.A { int m(int, int); }",
                 "-forceinline class **.B { int m(int, int); }",
                 "-keep class **.Main { *; }",
-                "-nevermerge @com.android.tools.r8.NeverMerge class *",
                 "-neverinline class *{ @com.android.tools.r8.NeverInline <methods>;}",
                 "-dontobfuscate"));
 
@@ -130,7 +128,6 @@ public class ForceInlineTest extends TestBase {
           ImmutableList.of(
               "-forceinline class **.A { int x(); }",
               "-keep class **.Main { *; }",
-              "-nevermerge @com.android.tools.r8.NeverMerge class *",
               "-dontobfuscate"));
       fail("Force inline of non-inlinable method succeeded");
     } catch (Throwable t) {

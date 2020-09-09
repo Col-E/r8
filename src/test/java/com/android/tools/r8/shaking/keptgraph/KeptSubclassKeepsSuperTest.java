@@ -7,8 +7,8 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
@@ -47,7 +47,7 @@ public class KeptSubclassKeepsSuperTest extends TestBase {
             .enableGraphInspector()
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .enableNeverClassInliningAnnotations()
             .addProgramClasses(CLASS, Foo.class, Bar.class)
             .addKeepMainRule(CLASS)
@@ -66,7 +66,7 @@ public class KeptSubclassKeepsSuperTest extends TestBase {
     barClass.assertPresent().assertKeptBy(fooClass);
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public abstract static class Bar {}
 
   @NeverClassInline

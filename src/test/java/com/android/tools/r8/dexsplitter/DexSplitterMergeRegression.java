@@ -13,7 +13,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -60,7 +60,7 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
     Consumer<R8FullTestBuilder> configurator =
         r8FullTestBuilder ->
             r8FullTestBuilder
-                .enableMergeAnnotations()
+                .enableNoVerticalClassMergingAnnotations()
                 .enableInliningAnnotations()
                 .noMinification()
                 .addOptionsModification(o -> o.testing.deterministicSortingBasedOnDexType = true);
@@ -82,7 +82,8 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
   public void testOnR8Splitter() throws IOException, CompilationFailedException {
     assumeTrue(parameters.isDexRuntime());
     Consumer<R8FullTestBuilder> configurator =
-        r8FullTestBuilder -> r8FullTestBuilder.enableMergeAnnotations().noMinification();
+        r8FullTestBuilder ->
+            r8FullTestBuilder.enableNoVerticalClassMergingAnnotations().noMinification();
     ProcessResult processResult =
         testR8Splitter(
             parameters,
@@ -96,7 +97,7 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
     assertTrue(processResult.stdout.equals(StringUtils.lines("42", "foobar")));
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class BaseClass implements RunInterface {
 
     @Override

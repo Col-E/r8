@@ -5,7 +5,7 @@
 package com.android.tools.r8.desugaring.interfacemethods;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -23,7 +23,7 @@ public class InvokeSuperInDefaultInterfaceMethodTest extends TestBase {
         .addInnerClasses(InvokeSuperInDefaultInterfaceMethodTest.class)
         .addKeepMainRule(TestClass.class)
         .enableNeverClassInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(AndroidApiLevel.M)
         .run(TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
@@ -37,7 +37,7 @@ public class InvokeSuperInDefaultInterfaceMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface I {
 
     default void m() {
@@ -45,7 +45,7 @@ public class InvokeSuperInDefaultInterfaceMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface J extends I {
 
     @Override
@@ -55,7 +55,7 @@ public class InvokeSuperInDefaultInterfaceMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface K extends I {
 
     // Intentionally does not override I.m().

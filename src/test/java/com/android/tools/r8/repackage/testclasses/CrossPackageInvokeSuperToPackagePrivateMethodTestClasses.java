@@ -6,13 +6,13 @@ package com.android.tools.r8.repackage.testclasses;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.repackage.CrossPackageInvokeSuperToPackagePrivateMethodTest;
 
 public class CrossPackageInvokeSuperToPackagePrivateMethodTestClasses {
 
   @NeverClassInline
-  @NeverMerge
+  @NoVerticalClassMerging
   public static class C extends CrossPackageInvokeSuperToPackagePrivateMethodTest.B {
 
     @NeverInline

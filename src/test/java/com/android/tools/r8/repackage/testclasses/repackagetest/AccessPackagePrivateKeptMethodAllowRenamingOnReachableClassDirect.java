@@ -5,9 +5,9 @@
 package com.android.tools.r8.repackage.testclasses.repackagetest;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoStaticClassMerging;
 
-@NeverMerge
+@NoStaticClassMerging
 public class AccessPackagePrivateKeptMethodAllowRenamingOnReachableClassDirect {
 
   @NeverInline

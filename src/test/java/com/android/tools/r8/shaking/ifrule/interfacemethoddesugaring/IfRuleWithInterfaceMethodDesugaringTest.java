@@ -9,14 +9,13 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
 import static org.hamcrest.CoreMatchers.allOf;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -67,7 +66,7 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
             .allowUnusedProguardConfigurationRules()
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .run(parameters.getRuntime(), TestClass.class)
@@ -104,7 +103,7 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
   }
 
   @NeverClassInline
-  @NeverMerge
+  @NoVerticalClassMerging
   interface Interface {
 
     @NeverInline

@@ -1,40 +1,32 @@
-// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
+
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class ClassMergingRule extends ProguardConfigurationRule {
+public class NoHorizontalClassMergingRule extends ProguardConfigurationRule {
 
-  public enum Type {
-    NEVER
-  }
+  public static final String RULE_NAME = "nohorizontalclassmerging";
 
-  public static class Builder extends ProguardConfigurationRule.Builder<ClassMergingRule, Builder> {
+  public static class Builder
+      extends ProguardConfigurationRule.Builder<NoHorizontalClassMergingRule, Builder> {
 
     private Builder() {
       super();
     }
 
-    Type type;
-
     @Override
-    public Builder self() {
-      return this;
-    }
-
-    public Builder setType(Type type) {
-      this.type = type;
+    public NoHorizontalClassMergingRule.Builder self() {
       return this;
     }
 
     @Override
-    public ClassMergingRule build() {
-      return new ClassMergingRule(
+    public NoHorizontalClassMergingRule build() {
+      return new NoHorizontalClassMergingRule(
           origin,
           getPosition(),
           source,
@@ -47,14 +39,11 @@ public class ClassMergingRule extends ProguardConfigurationRule {
           buildInheritanceAnnotations(),
           inheritanceClassName,
           inheritanceIsExtends,
-          memberRules,
-          type);
+          memberRules);
     }
   }
 
-  private final Type type;
-
-  private ClassMergingRule(
+  private NoHorizontalClassMergingRule(
       Origin origin,
       Position position,
       String source,
@@ -67,8 +56,7 @@ public class ClassMergingRule extends ProguardConfigurationRule {
       List<ProguardTypeMatcher> inheritanceAnnotations,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
-      List<ProguardMemberRule> memberRules,
-      Type type) {
+      List<ProguardMemberRule> memberRules) {
     super(
         origin,
         position,
@@ -83,23 +71,14 @@ public class ClassMergingRule extends ProguardConfigurationRule {
         inheritanceClassName,
         inheritanceIsExtends,
         memberRules);
-    this.type = type;
   }
 
   public static Builder builder() {
     return new Builder();
   }
 
-  public Type getType() {
-    return type;
-  }
-
   @Override
   String typeString() {
-    switch (type) {
-      case NEVER:
-        return "nevermerge";
-    }
-    throw new Unreachable("Unknown class merging type " + type);
+    return RULE_NAME;
   }
 }

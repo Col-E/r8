@@ -8,7 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.shaking.methods.MethodsTestBase;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -17,19 +17,19 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import org.junit.Test;
 
-@NeverMerge
+@NoVerticalClassMerging
 class Super {
   public void m1() {}
   private void m2() {}
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 class Sub extends Super {
   public void m1() {}
   private void m2() {}
 }
 
-@NeverMerge
+@NoVerticalClassMerging
 class SubSub extends Sub {
   public void m1() {}
   public void m2() {}

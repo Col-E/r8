@@ -8,7 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -39,7 +39,7 @@ public class EventuallyNonTargetedMethodTest extends TestBase {
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .addInnerClasses(EventuallyNonTargetedMethodTest.class)
         .addKeepMainRule(Main.class)
@@ -56,7 +56,7 @@ public class EventuallyNonTargetedMethodTest extends TestBase {
     assertThat(classSubject.uniqueMethodWithName("foo"), isPresent());
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   private static class A {
     @NeverInline
     public void foo() {
@@ -64,7 +64,7 @@ public class EventuallyNonTargetedMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   @NeverClassInline
   private static class B extends A {
     // No override of foo, but B::foo will be the only target.

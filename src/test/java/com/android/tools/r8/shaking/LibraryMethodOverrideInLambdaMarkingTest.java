@@ -6,7 +6,7 @@ package com.android.tools.r8.shaking;
 
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -43,7 +43,7 @@ public class LibraryMethodOverrideInLambdaMarkingTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(
             options -> options.testing.enqueuerInspector = this::verifyLibraryOverrideInformation)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("null", "null");
@@ -88,14 +88,14 @@ public class LibraryMethodOverrideInLambdaMarkingTest extends TestBase {
   }
 
   @FunctionalInterface
-  @NeverMerge
+  @NoVerticalClassMerging
   interface I {
 
     Iterator<Object> iterator();
   }
 
   @FunctionalInterface
-  @NeverMerge
+  @NoVerticalClassMerging
   interface J extends Iterable<Object> {
 
     @Override

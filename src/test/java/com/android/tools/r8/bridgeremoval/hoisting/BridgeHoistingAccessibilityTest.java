@@ -8,7 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -72,7 +72,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
                 .transform())
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -113,7 +113,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class B extends BridgeHoistingAccessibilityTestClasses.A {
 
     // This bridge cannot be hoisted to A, since it would then become inaccessible to the call site
@@ -136,7 +136,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class BWithRangedInvoke extends AWithRangedInvoke {
 
     // This bridge cannot be hoisted to A, since it would then become inaccessible to the call site

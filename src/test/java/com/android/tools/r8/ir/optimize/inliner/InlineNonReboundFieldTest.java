@@ -28,7 +28,7 @@ public class InlineNonReboundFieldTest extends TestBase {
                 TestClass.class, Greeter.class, Greeting.class, Greeting.getGreetingBase())
             .addKeepMainRule(TestClass.class)
             .enableNeverClassInliningAnnotations()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

@@ -10,7 +10,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.naming.retrace.StackTrace;
@@ -47,7 +47,7 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
         .addKeepAttributeSourceFile()
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -77,7 +77,7 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
             });
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class Parent {
     Parent() {
       if (System.currentTimeMillis() >= 0) {

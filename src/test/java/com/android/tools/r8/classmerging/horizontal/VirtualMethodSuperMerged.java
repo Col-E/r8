@@ -10,7 +10,7 @@ import static org.hamcrest.core.IsNot.not;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
@@ -28,7 +28,7 @@ public class VirtualMethodSuperMerged extends HorizontalClassMergingTestBase {
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("foo", "parent b", "parent b", "x", "parent b")
@@ -57,7 +57,7 @@ public class VirtualMethodSuperMerged extends HorizontalClassMergingTestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   @NeverClassInline
   public static class ParentB {
     @NeverInline

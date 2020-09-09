@@ -13,7 +13,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -89,7 +89,7 @@ public class TargetInDefaultMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(TargetInDefaultMethodTest.class)
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
@@ -97,7 +97,7 @@ public class TargetInDefaultMethodTest extends TestBase {
         .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public interface I {
     @NeverInline
     default void foo() {
@@ -105,7 +105,7 @@ public class TargetInDefaultMethodTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public abstract static class A implements I {}
 
   @NeverClassInline

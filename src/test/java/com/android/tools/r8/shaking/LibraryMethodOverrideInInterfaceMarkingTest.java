@@ -6,7 +6,7 @@ package com.android.tools.r8.shaking;
 
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -40,7 +40,7 @@ public class LibraryMethodOverrideInInterfaceMarkingTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(
             options -> options.testing.enqueuerInspector = this::verifyLibraryOverrideInformation)
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("true", "true");
@@ -79,7 +79,7 @@ public class LibraryMethodOverrideInInterfaceMarkingTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   abstract static class A extends AbstractList<Object> {
 
     @Override
@@ -98,13 +98,13 @@ public class LibraryMethodOverrideInInterfaceMarkingTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface I {
 
     boolean isEmpty();
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class B extends A implements I {
     // Intentionally empty.
   }

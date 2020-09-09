@@ -6,7 +6,7 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.naming.testclasses.Greeting;
 import com.android.tools.r8.utils.StringUtils;
@@ -25,7 +25,7 @@ public class InterfaceFieldMinificationTest extends TestBase {
         .addKeepRules("-keep,allowobfuscation class " + Tag.class.getTypeName() + " { <fields>; }")
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .run(TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
@@ -50,7 +50,7 @@ public class InterfaceFieldMinificationTest extends TestBase {
     }
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   public interface Tag {
 
     String TAG = "Greeter";

@@ -10,8 +10,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeFalse;
 
-import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -48,7 +48,7 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
         testForR8(Backend.DEX)
             .addProgramClasses(TestClass.class, A.class, B.class, I.class, J.class)
             .enableMemberValuePropagationAnnotations()
-            .enableMergeAnnotations()
+            .enableNoVerticalClassMergingAnnotations()
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
                 reserveName
@@ -105,7 +105,7 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
         .addLibraryClasses(I.class, J.class)
         .addLibraryFiles(runtimeJar(Backend.DEX))
         .enableMemberValuePropagationAnnotations()
-        .enableMergeAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(TestClass.class)
         .compile()
         .addRunClasspathFiles(
@@ -126,19 +126,19 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
     assertEquals(expectedNameForF2, f2FieldSubject.getFinalName());
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface I {
 
     String f1 = System.currentTimeMillis() >= 0 ? "Hello" : null;
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   interface J extends I {
 
     String a = System.currentTimeMillis() >= 0 ? "world!" : null;
   }
 
-  @NeverMerge
+  @NoVerticalClassMerging
   static class A {
 
     @NeverPropagateValue String f2 = " ";
