@@ -370,7 +370,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean shouldBackportMethods() {
-    return !hasConsumer() || isGeneratingDex();
+    return !hasConsumer() || isGeneratingDex() || cfToCfDesugar;
   }
 
   public boolean shouldKeepStackMapTable() {

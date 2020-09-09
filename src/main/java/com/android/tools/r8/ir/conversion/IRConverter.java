@@ -237,7 +237,7 @@ public class IRConverter {
       this.desugaredLibraryAPIConverter =
           new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS);
       this.backportedMethodRewriter =
-          options.testing.forceLibBackportsInL8CfToCf
+          options.cfToCfDesugar || options.testing.forceLibBackportsInL8CfToCf
               ? new BackportedMethodRewriter(appView, this)
               : null;
       this.twrCloseResourceRewriter = null;

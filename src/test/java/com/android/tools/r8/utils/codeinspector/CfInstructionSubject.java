@@ -351,7 +351,6 @@ public class CfInstructionSubject implements InstructionSubject {
     return instruction instanceof CfArrayStore;
   }
 
-
   @Override
   public int size() {
     // TODO(b/122302789): CfInstruction#getSize()
