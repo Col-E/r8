@@ -49,7 +49,7 @@ public class Retrace {
 
   public static final String USAGE_MESSAGE =
       StringUtils.lines(
-          "Usage: retrace <proguard-map> <stacktrace-file> [--regex <regexp>, --verbose, --info]",
+          "Usage: retrace <proguard-map> [stack-trace-file] [--regex <regexp>, --verbose, --info]",
           "  where <proguard-map> is an r8 generated mapping file.");
 
   private static Builder parseArguments(String[] args, DiagnosticsHandler diagnosticsHandler) {
