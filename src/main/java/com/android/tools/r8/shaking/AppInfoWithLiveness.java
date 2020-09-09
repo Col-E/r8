@@ -430,11 +430,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private AppInfoWithLiveness(
       AppInfoWithLiveness previous,
       DirectMappedDexApplication application,
-      Collection<DexType> removedClasses,
+      Set<DexType> removedClasses,
       Collection<DexReference> additionalPinnedItems) {
     this(
         application,
-        previous.getMainDexClasses(),
+        previous.getMainDexClasses().withoutPrunedClasses(removedClasses),
         previous.getSyntheticItems().commit(application),
         previous.deadProtoTypes,
         previous.missingTypes,
@@ -973,7 +973,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    */
   public AppInfoWithLiveness prunedCopyFrom(
       DirectMappedDexApplication application,
-      Collection<DexType> removedClasses,
+      Set<DexType> removedClasses,
       Collection<DexReference> additionalPinnedItems) {
     assert checkIfObsolete();
     if (!removedClasses.isEmpty()) {

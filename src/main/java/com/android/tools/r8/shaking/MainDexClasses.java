@@ -83,6 +83,16 @@ public class MainDexClasses {
     return mainDexClasses.size();
   }
 
+  public MainDexClasses withoutPrunedClasses(Set<DexType> prunedClasses) {
+    MainDexClasses mainDexClassesAfterPruning = createEmptyMainDexClasses();
+    for (DexType mainDexClass : mainDexClasses) {
+      if (!prunedClasses.contains(mainDexClass)) {
+        mainDexClassesAfterPruning.mainDexClasses.add(mainDexClass);
+      }
+    }
+    return mainDexClassesAfterPruning;
+  }
+
   public static class Builder {
 
     private final Set<DexType> mainDexClasses = Sets.newIdentityHashSet();
