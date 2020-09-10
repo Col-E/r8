@@ -97,8 +97,8 @@ public class DesugarToClassFileBackport extends TestBase {
     testForDesugaring(parameters)
         .addInnerClasses(DesugarToClassFileBackport.class)
         .run(parameters.getRuntime(), TestClass.class)
-        .inspect(c -> c != DesugarTestConfiguration.JAVAC, this::checkBackportedIfRequired)
-        .inspect(c -> c == DesugarTestConfiguration.JAVAC, this::checkBackportingNotRequired)
+        .inspectIf(DesugarTestConfiguration::isNotDesugared, this::checkBackportingNotRequired)
+        .inspectIf(DesugarTestConfiguration::isDesugared, this::checkBackportedIfRequired)
         .assertSuccessWithOutputLines("3", "true");
   }
 

@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import java.io.IOException;
 import java.util.List;
@@ -53,10 +54,19 @@ public abstract class TestRunResultCollection<
   @Override
   public <E extends Throwable> RR inspect(ThrowingConsumer<CodeInspector, E> consumer)
       throws IOException, ExecutionException, E {
-    return inspect(c -> true, consumer);
+    return inspectIf(Predicates.alwaysTrue(), consumer);
   }
 
-  public <E extends Throwable> RR inspect(
+  public RR applyIf(Predicate<C> filter, Consumer<TestRunResult<?>> fn) {
+    for (Pair<C, TestRunResult<?>> run : runs) {
+      if (filter.test(run.getFirst())) {
+        fn.accept(run.getSecond());
+      }
+    }
+    return self();
+  }
+
+  public <E extends Throwable> RR inspectIf(
       Predicate<C> filter, ThrowingConsumer<CodeInspector, E> consumer)
       throws IOException, ExecutionException, E {
     for (Pair<C, TestRunResult<?>> run : runs) {

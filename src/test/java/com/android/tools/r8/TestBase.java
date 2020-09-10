@@ -79,6 +79,7 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.base.Predicates;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableList;
@@ -108,6 +109,7 @@ import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.jar.JarOutputStream;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -225,44 +227,76 @@ public class TestBase {
 
   public TestBuilder<DesugarTestRunResult, ?> testForDesugaring(TestParameters parameters) {
     return testForDesugaring(
-        parameters.getRuntime().getBackend(), parameters.getApiLevel(), o -> {});
+        parameters.getRuntime().getBackend(),
+        parameters.getApiLevel(),
+        o -> {},
+        Predicates.alwaysTrue());
   }
 
   public TestBuilder<DesugarTestRunResult, ?> testForDesugaring(
       TestParameters parameters, Consumer<InternalOptions> optionsModification) {
     return testForDesugaring(
-        parameters.getRuntime().getBackend(), parameters.getApiLevel(), optionsModification);
+        parameters.getRuntime().getBackend(),
+        parameters.getApiLevel(),
+        optionsModification,
+        Predicates.alwaysTrue());
+  }
+
+  @Deprecated
+  // This is not supposed to be used for tests. It is here for debugging where filtering to run
+  // only some (typically one) test configuration is helpful.
+  public TestBuilder<DesugarTestRunResult, ?> testForDesugaring(
+      TestParameters parameters,
+      Consumer<InternalOptions> optionsModification,
+      Predicate<DesugarTestConfiguration> filter) {
+    return testForDesugaring(
+        parameters.getRuntime().getBackend(),
+        parameters.getApiLevel(),
+        optionsModification,
+        filter);
   }
 
   private TestBuilder<DesugarTestRunResult, ?> testForDesugaring(
-      Backend backend, AndroidApiLevel apiLevel, Consumer<InternalOptions> optionsModification) {
+      Backend backend,
+      AndroidApiLevel apiLevel,
+      Consumer<InternalOptions> optionsModification,
+      Predicate<DesugarTestConfiguration> filter) {
     assert apiLevel != null : "No API level. Add .withAllApiLevelsAlsoForCf() to test parameters?";
     TestState state = new TestState(temp);
-    List<Pair<DesugarTestConfiguration, TestBuilder<? extends TestRunResult<?>, ?>>> builders;
+    ImmutableList.Builder<
+            Pair<DesugarTestConfiguration, TestBuilder<? extends TestRunResult<?>, ?>>>
+        builders = ImmutableList.builder();
     if (backend == Backend.CF) {
-      builders =
-          ImmutableList.of(
-              new Pair<>(DesugarTestConfiguration.JAVAC, JvmTestBuilder.create(state)),
-              new Pair<>(
-                  DesugarTestConfiguration.D8_CF,
-                  D8TestBuilder.create(state, Backend.CF)
-                      .setMinApi(apiLevel)
-                      .addOptionsModification(optionsModification)));
+      if (filter.test(DesugarTestConfiguration.JAVAC)) {
+        builders.add(new Pair<>(DesugarTestConfiguration.JAVAC, JvmTestBuilder.create(state)));
+      }
+      if (filter.test(DesugarTestConfiguration.D8_CF)) {
+        builders.add(
+            new Pair<>(
+                DesugarTestConfiguration.D8_CF,
+                D8TestBuilder.create(state, Backend.CF)
+                    .setMinApi(apiLevel)
+                    .addOptionsModification(optionsModification)));
+      }
     } else {
       assert backend == Backend.DEX;
-      builders =
-          ImmutableList.of(
-              new Pair<>(
-                  DesugarTestConfiguration.D8_DEX,
-                  D8TestBuilder.create(state, Backend.DEX)
-                      .setMinApi(apiLevel)
-                      .addOptionsModification(optionsModification)),
-              new Pair<>(
-                  DesugarTestConfiguration.D8_CF_D8_DEX,
-                  IntermediateCfD8TestBuilder.create(state, apiLevel)
-                      .addOptionsModification(optionsModification)));
+      if (filter.test(DesugarTestConfiguration.D8_DEX)) {
+        builders.add(
+            new Pair<>(
+                DesugarTestConfiguration.D8_DEX,
+                D8TestBuilder.create(state, Backend.DEX)
+                    .setMinApi(apiLevel)
+                    .addOptionsModification(optionsModification)));
+      }
+      if (filter.test(DesugarTestConfiguration.D8_CF_D8_DEX)) {
+        builders.add(
+            new Pair<>(
+                DesugarTestConfiguration.D8_CF_D8_DEX,
+                IntermediateCfD8TestBuilder.create(state, apiLevel)
+                    .addOptionsModification(optionsModification)));
+      }
     }
-    return DesugarTestBuilder.create(state, builders);
+    return DesugarTestBuilder.create(state, builders.build());
   }
 
   public ProguardTestBuilder testForProguard() {
