@@ -124,24 +124,40 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
 
     /** Bidirectional mapping from one method to another. */
     public Builder moveMethod(DexMethod from, DexMethod to) {
+      if (from == to) {
+        return this;
+      }
+
       mapMethod(from, to);
       recordOriginalSignature(from, to);
       return this;
     }
 
     public Builder recordOriginalSignature(DexMethod from, DexMethod to) {
+      if (from == to) {
+        return this;
+      }
+
       originalMethodSignatures.forcePut(to, originalMethodSignatures.getOrDefault(from, from));
       return this;
     }
 
     /** Unidirectional mapping from one method to another. */
     public Builder recordExtraOriginalSignature(DexMethod from, DexMethod to) {
+      if (from == to) {
+        return this;
+      }
+
       extraOriginalMethodSignatures.put(to, extraOriginalMethodSignatures.getOrDefault(from, from));
       return this;
     }
 
     /** Unidirectional mapping from one method to another. */
     public Builder mapMethod(DexMethod from, DexMethod to) {
+      if (from == to) {
+        return this;
+      }
+
       for (DexMethod existingFrom :
           completeInverseMethodMap.getOrDefault(from, Collections.emptySet())) {
         methodMap.put(existingFrom, to);
@@ -151,8 +167,10 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
             .getOrDefault(existingFrom, Collections.emptySet())
             .isEmpty();
       }
+
       methodMap.put(from, to);
       completeInverseMethodMap.computeIfAbsent(to, ignore -> new HashSet<>()).add(from);
+
       return this;
     }
 

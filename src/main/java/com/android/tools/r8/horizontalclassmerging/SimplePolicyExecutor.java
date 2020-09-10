@@ -7,6 +7,7 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.graph.DexProgramClass;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.stream.Collectors;
 
 /**
@@ -20,8 +21,8 @@ public class SimplePolicyExecutor extends PolicyExecutor {
   }
 
   // TODO(b/165506334): if performing mutable operation ensure that linked lists are used
-  private Collection<Collection<DexProgramClass>> applySingleClassPolicy(
-      SingleClassPolicy policy, Collection<Collection<DexProgramClass>> groups) {
+  private LinkedList<Collection<DexProgramClass>> applySingleClassPolicy(
+      SingleClassPolicy policy, LinkedList<Collection<DexProgramClass>> groups) {
     Iterator<Collection<DexProgramClass>> i = groups.iterator();
     while (i.hasNext()) {
       Collection<DexProgramClass> group = i.next();
@@ -39,28 +40,36 @@ public class SimplePolicyExecutor extends PolicyExecutor {
     return groups;
   }
 
-  private Collection<Collection<DexProgramClass>> applyMultiClassPolicy(
-      MultiClassPolicy policy, Collection<Collection<DexProgramClass>> groups) {
+  private LinkedList<Collection<DexProgramClass>> applyMultiClassPolicy(
+      MultiClassPolicy policy, LinkedList<Collection<DexProgramClass>> groups) {
     // For each group apply the multi class policy and add all the new groups together.
     return groups.stream()
         .flatMap(group -> policy.apply(group).stream())
-        .collect(Collectors.toList());
+        .collect(Collectors.toCollection(LinkedList::new));
   }
 
   @Override
   public Collection<Collection<DexProgramClass>> run(
-      Collection<Collection<DexProgramClass>> groups) {
+      Collection<Collection<DexProgramClass>> inputGroups) {
+    LinkedList<Collection<DexProgramClass>> linkedGroups;
+
+    if (inputGroups instanceof LinkedList) {
+      linkedGroups = (LinkedList) inputGroups;
+    } else {
+      linkedGroups = new LinkedList<>(inputGroups);
+    }
+
     for (Policy policy : policies) {
       if (policy instanceof SingleClassPolicy) {
-        groups = applySingleClassPolicy((SingleClassPolicy) policy, groups);
+        linkedGroups = applySingleClassPolicy((SingleClassPolicy) policy, linkedGroups);
       } else if (policy instanceof MultiClassPolicy) {
-        groups = applyMultiClassPolicy((MultiClassPolicy) policy, groups);
+        linkedGroups = applyMultiClassPolicy((MultiClassPolicy) policy, linkedGroups);
       }
 
       // Any policy should not return any trivial groups.
-      assert groups.stream().allMatch(group -> group.size() >= 2);
+      assert linkedGroups.stream().allMatch(group -> group.size() >= 2);
     }
 
-    return groups;
+    return linkedGroups;
   }
 }

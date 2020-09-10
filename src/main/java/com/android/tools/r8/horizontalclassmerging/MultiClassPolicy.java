@@ -5,6 +5,7 @@
 package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.graph.DexProgramClass;
+import java.util.ArrayList;
 import java.util.Collection;
 
 public abstract class MultiClassPolicy extends Policy {
@@ -13,6 +14,7 @@ public abstract class MultiClassPolicy extends Policy {
    * Remove all groups containing no or only a single class, as there is no point in merging these.
    */
   protected void removeTrivialGroups(Collection<Collection<DexProgramClass>> groups) {
+    assert !(groups instanceof ArrayList);
     groups.removeIf(group -> group.size() < 2);
   }
 
