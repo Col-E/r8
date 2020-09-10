@@ -23,6 +23,8 @@ public abstract class InitClassLens {
     return false;
   }
 
+  public abstract InitClassLens rewrittenWithLens(GraphLens lens);
+
   public static class Builder {
 
     private final Map<DexType, DexField> mapping = new ConcurrentHashMap<>();

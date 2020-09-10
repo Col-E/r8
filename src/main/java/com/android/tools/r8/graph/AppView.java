@@ -361,6 +361,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return initClassLens;
   }
 
+  public boolean hasInitClassLens() {
+    return initClassLens != null;
+  }
+
   public void setInitClassLens(InitClassLens initClassLens) {
     this.initClassLens = initClassLens;
   }
@@ -532,5 +536,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     assert changed;
     assert application.verifyWithLens(lens);
     appView.setAppInfo(appView.appInfo().rewrittenWithLens(application, lens));
+    if (appView.hasInitClassLens()) {
+      appView.setInitClassLens(appView.initClassLens().rewrittenWithLens(lens));
+    }
   }
 }

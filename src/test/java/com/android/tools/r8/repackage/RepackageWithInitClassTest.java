@@ -7,13 +7,12 @@ package com.android.tools.r8.repackage;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.repackage.testclasses.repackagetest.TestClass;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -24,9 +23,9 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RepackageAfterCollisionWithPackagePrivateSignatureTest extends TestBase {
+public class RepackageWithInitClassTest extends TestBase {
 
-  private static final String REPACKAGE_DIR = "foo";
+  private static final String REPACKAGE_PACKAGE = "foo";
 
   private final String flattenPackageHierarchyOrRepackageClasses;
   private final TestParameters parameters;
@@ -38,22 +37,25 @@ public class RepackageAfterCollisionWithPackagePrivateSignatureTest extends Test
         getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public RepackageAfterCollisionWithPackagePrivateSignatureTest(
+  public RepackageWithInitClassTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
     this.flattenPackageHierarchyOrRepackageClasses = flattenPackageHierarchyOrRepackageClasses;
     this.parameters = parameters;
   }
 
   @Test
-  public void testR8() throws Exception {
+  public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(RepackageAfterCollisionWithPackagePrivateSignatureTest.class)
-        .addKeepClassAndMembersRules(TestClass.class)
-        .addKeepRules(
-            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_DIR + "\"")
+        .addInnerClasses(getClass())
         .addClassObfuscationDictionary("a")
-        .addOptionsModification(options -> options.testing.enableExperimentalRepackaging = true)
-        .enableInliningAnnotations()
+        .addKeepMainRule(TestClass.class)
+        .addKeepRules(
+            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_PACKAGE + "\"")
+        .addOptionsModification(
+            options -> {
+              assert !options.testing.enableExperimentalRepackaging;
+              options.testing.enableExperimentalRepackaging = true;
+            })
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -62,38 +64,35 @@ public class RepackageAfterCollisionWithPackagePrivateSignatureTest extends Test
   }
 
   private void inspect(CodeInspector inspector) {
-    ClassSubject repackageClassSubject = inspector.clazz(RepackageCandidate.class);
-    assertThat(repackageClassSubject, isPresent());
+    ClassSubject repackagedClassSubject = inspector.clazz(StaticMemberValuePropagation.class);
+    assertThat(repackagedClassSubject, isPresent());
+
+    // Verify that a $r8$clinit field was synthesized.
+    String clinitFieldName = inspector.getFactory().objectMembers.clinitField.name.toSourceString();
+    assertThat(repackagedClassSubject.uniqueFieldWithName(clinitFieldName), isPresent());
+    assertThat(repackagedClassSubject.uniqueFieldWithName("GREETING"), not(isPresent()));
+
+    // Verify that the class was repackaged.
     assertEquals(
         flattenPackageHierarchyOrRepackageClasses.equals(FLATTEN_PACKAGE_HIERARCHY)
-            ? REPACKAGE_DIR + ".a"
-            : REPACKAGE_DIR,
-        repackageClassSubject.getDexProgramClass().getType().getPackageName());
+            ? REPACKAGE_PACKAGE + ".a"
+            : REPACKAGE_PACKAGE,
+        repackagedClassSubject.getDexProgramClass().getType().getPackageName());
   }
 
-  public static class TestClass {
+  static class TestClass {
 
     public static void main(String[] args) {
-      RepackageCandidate.foo(0);
-      RepackageCandidate.foo((int) System.currentTimeMillis(), 0);
-    }
-
-    static void restrictToCurrentPackage() {
-      System.out.print("Hello");
+      System.out.println(StaticMemberValuePropagation.GREETING);
     }
   }
 
-  public static class RepackageCandidate {
+  public static class StaticMemberValuePropagation {
 
-    public static void foo(int unused) {
-      TestClass.restrictToCurrentPackage();
-    }
+    public static String GREETING = " world!";
 
-    @NeverInline
-    public static void foo(int used, int unused) {
-      if (used >= 0) {
-        System.out.println(" world!");
-      }
+    static {
+      System.out.print("Hello");
     }
   }
 }

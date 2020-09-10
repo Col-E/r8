@@ -790,7 +790,7 @@ public class RedundantFieldLoadElimination {
 
     public void putNonFinalStaticField(DexField field, FieldValue value) {
       ensureCapacityForNewElement();
-      assert nonFinalStaticFieldValues == null || !nonFinalStaticFieldValues.containsKey(field);
+      assert finalStaticFieldValues == null || !nonFinalStaticFieldValues.containsKey(field);
       if (nonFinalStaticFieldValues == null) {
         nonFinalStaticFieldValues = new LinkedHashMap<>();
       }

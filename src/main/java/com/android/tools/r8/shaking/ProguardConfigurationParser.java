@@ -302,9 +302,9 @@ public class ProguardConfigurationParser {
         parseClassFilter(configurationBuilder::addDontWarnPattern);
       } else if (acceptString("dontnote")) {
         parseClassFilter(configurationBuilder::addDontNotePattern);
-      } else if (acceptString("repackageclasses")) {
+      } else if (acceptString(REPACKAGE_CLASSES)) {
         if (configurationBuilder.getPackageObfuscationMode() == PackageObfuscationMode.FLATTEN) {
-          warnOverridingOptions("repackageclasses", "flattenpackagehierarchy", optionStart);
+          warnOverridingOptions(REPACKAGE_CLASSES, FLATTEN_PACKAGE_HIERARCHY, optionStart);
         }
         skipWhitespace();
         char quote = acceptQuoteIfPresent();
@@ -318,9 +318,9 @@ public class ProguardConfigurationParser {
             configurationBuilder.setPackagePrefix(parsePackageNameOrEmptyString());
           }
         }
-      } else if (acceptString("flattenpackagehierarchy")) {
+      } else if (acceptString(FLATTEN_PACKAGE_HIERARCHY)) {
         if (configurationBuilder.getPackageObfuscationMode() == PackageObfuscationMode.REPACKAGE) {
-          warnOverridingOptions("repackageclasses", "flattenpackagehierarchy", optionStart);
+          warnOverridingOptions(REPACKAGE_CLASSES, FLATTEN_PACKAGE_HIERARCHY, optionStart);
           skipWhitespace();
           if (isOptionalArgumentGiven()) {
             skipSingleArgument();

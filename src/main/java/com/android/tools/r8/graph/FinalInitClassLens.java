@@ -28,4 +28,16 @@ public class FinalInitClassLens extends InitClassLens {
   public boolean isFinal() {
     return true;
   }
+
+  @Override
+  public InitClassLens rewrittenWithLens(GraphLens lens) {
+    InitClassLens.Builder builder = InitClassLens.builder();
+    mapping.forEach(
+        (type, field) -> {
+          DexType rewrittenType = lens.lookupType(type);
+          DexField rewrittenField = lens.lookupField(field);
+          builder.map(rewrittenType, rewrittenField);
+        });
+    return builder.build();
+  }
 }

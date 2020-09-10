@@ -191,7 +191,7 @@ public class FoundClassSubject extends ClassSubject {
   public FieldSubject uniqueFieldWithName(String name) {
     FieldSubject fieldSubject = null;
     for (FoundFieldSubject candidate : allFields()) {
-      if (candidate.getOriginalName().equals(name)) {
+      if (candidate.getOriginalName(false).equals(name)) {
         assert fieldSubject == null;
         fieldSubject = candidate;
       }

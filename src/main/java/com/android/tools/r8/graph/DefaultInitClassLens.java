@@ -20,4 +20,9 @@ public class DefaultInitClassLens extends InitClassLens {
   public DexField getInitClassField(DexType type) {
     throw new Unreachable("Unexpected InitClass instruction for `" + type.toSourceString() + "`");
   }
+
+  @Override
+  public InitClassLens rewrittenWithLens(GraphLens lens) {
+    return this;
+  }
 }
