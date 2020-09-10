@@ -16,9 +16,6 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
-import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 class EnumUnboxingCandidateAnalysis {
 
@@ -30,7 +27,8 @@ class EnumUnboxingCandidateAnalysis {
   private final AppView<AppInfoWithLiveness> appView;
   private final EnumUnboxer enumUnboxer;
   private final DexItemFactory factory;
-  private Map<DexType, ProgramMethodSet> enumToUnboxCandidates = new ConcurrentHashMap<>();
+  private EnumUnboxingCandidateInfoCollection enumToUnboxCandidates =
+      new EnumUnboxingCandidateInfoCollection();
 
   EnumUnboxingCandidateAnalysis(AppView<AppInfoWithLiveness> appView, EnumUnboxer enumUnboxer) {
     this.appView = appView;
@@ -38,16 +36,16 @@ class EnumUnboxingCandidateAnalysis {
     factory = appView.dexItemFactory();
   }
 
-  Map<DexType, ProgramMethodSet> findCandidates() {
+  EnumUnboxingCandidateInfoCollection findCandidates() {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (isEnumUnboxingCandidate(clazz)) {
-        enumToUnboxCandidates.put(clazz.type, ProgramMethodSet.createConcurrent());
+        enumToUnboxCandidates.addCandidate(clazz);
       }
     }
     removeEnumsInAnnotations();
     removePinnedCandidates();
     if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
-      enumToUnboxCandidates.remove(appView.protoShrinker().references.methodToInvokeType);
+      enumToUnboxCandidates.removeCandidate(appView.protoShrinker().references.methodToInvokeType);
     }
     return enumToUnboxCandidates;
   }
@@ -114,9 +112,9 @@ class EnumUnboxingCandidateAnalysis {
       assert method.parameters().isEmpty()
           || appView.options().testing.allowInjectedAnnotationMethods;
       DexType valueType = method.returnType().toBaseType(appView.dexItemFactory());
-      if (enumToUnboxCandidates.containsKey(valueType)) {
+      if (enumToUnboxCandidates.isCandidate(valueType)) {
         enumUnboxer.reportFailure(valueType, Reason.ANNOTATION);
-        enumToUnboxCandidates.remove(valueType);
+        enumToUnboxCandidates.removeCandidate(valueType);
       }
     }
   }
@@ -146,9 +144,9 @@ class EnumUnboxingCandidateAnalysis {
   }
 
   private void removePinnedCandidate(DexType type) {
-    if (enumToUnboxCandidates.containsKey(type)) {
+    if (enumToUnboxCandidates.isCandidate(type)) {
       enumUnboxer.reportFailure(type, Reason.PINNED);
-      enumToUnboxCandidates.remove(type);
+      enumToUnboxCandidates.removeCandidate(type);
     }
   }
 }

@@ -48,6 +48,10 @@ public interface DexDefinitionSupplier {
     return DexProgramClass.asProgramClassOrNull(definitionFor(type, context));
   }
 
+  default DexProgramClass programDefinitionFor(DexType type, ProgramMethod context) {
+    return programDefinitionFor(type, context.getHolder());
+  }
+
   default <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
       DexClass definitionForHolder(DexEncodedMember<D, R> member, ProgramMethod context) {
     return definitionForHolder(member.toReference(), context.getHolder());
