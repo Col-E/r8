@@ -2262,8 +2262,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
     LiveIntervalsUse firstUseWithLowerLimit = null;
     boolean hasUsesBeforeFirstUseWithLowerLimit = false;
+    int highestRegisterNumber = registerNumber + spilled.requiredRegisters() - 1;
     for (LiveIntervalsUse use : spilled.getUses()) {
-      if (registerNumber > use.getLimit()) {
+      if (highestRegisterNumber > use.getLimit()) {
         firstUseWithLowerLimit = use;
         break;
       } else {
