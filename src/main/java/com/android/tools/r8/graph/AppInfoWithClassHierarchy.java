@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.utils.TraversalContinuation.BREAK;
 import static com.android.tools.r8.utils.TraversalContinuation.CONTINUE;
 
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.ArrayCloneMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.ClassNotFoundResult;
@@ -47,24 +48,32 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   public static AppInfoWithClassHierarchy createInitialAppInfoWithClassHierarchy(
-      DexApplication application, MainDexClasses mainDexClasses) {
+      DexApplication application,
+      ClassToFeatureSplitMap classToFeatureSplitMap,
+      MainDexClasses mainDexClasses) {
     return new AppInfoWithClassHierarchy(
         application,
+        classToFeatureSplitMap,
         mainDexClasses,
         SyntheticItems.createInitialSyntheticItems().commit(application));
   }
 
+  private final ClassToFeatureSplitMap classToFeatureSplitMap;
+
   // For AppInfoWithLiveness.
   protected AppInfoWithClassHierarchy(
       DexApplication application,
+      ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexClasses mainDexClasses,
       SyntheticItems.CommittedItems committedItems) {
     super(application, mainDexClasses, committedItems);
+    this.classToFeatureSplitMap = classToFeatureSplitMap;
   }
 
   // For desugaring.
   private AppInfoWithClassHierarchy(CreateDesugaringViewOnAppInfo witness, AppInfo appInfo) {
     super(witness, appInfo);
+    this.classToFeatureSplitMap = ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap();
   }
 
   public static AppInfoWithClassHierarchy createForDesugaring(AppInfo appInfo) {
@@ -75,7 +84,14 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public AppInfoWithClassHierarchy rebuild(Function<DexApplication, DexApplication> fn) {
     DexApplication application = fn.apply(app());
     return new AppInfoWithClassHierarchy(
-        application, getMainDexClasses(), getSyntheticItems().commit(application));
+        application,
+        getClassToFeatureSplitMap(),
+        getMainDexClasses(),
+        getSyntheticItems().commit(application));
+  }
+
+  public ClassToFeatureSplitMap getClassToFeatureSplitMap() {
+    return classToFeatureSplitMap;
   }
 
   @Override

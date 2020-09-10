@@ -169,7 +169,8 @@ public class NewInstance extends Instruction {
     }
 
     // Verify that the instruction does not lead to an IllegalAccessError.
-    if (AccessControl.isClassAccessible(definition, context, appView).isPossiblyFalse()) {
+    if (AccessControl.isClassAccessible(definition, context, appViewWithLiveness)
+        .isPossiblyFalse()) {
       return true;
     }
 

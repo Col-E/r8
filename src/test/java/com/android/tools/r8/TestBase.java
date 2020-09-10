@@ -20,6 +20,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
@@ -654,6 +655,7 @@ public class TestBase {
       throws Exception {
     return AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
         readApplicationForDexOutput(app, new InternalOptions()),
+        ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
         MainDexClasses.createEmptyMainDexClasses());
   }
 

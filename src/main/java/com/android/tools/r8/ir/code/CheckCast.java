@@ -108,6 +108,7 @@ public class CheckCast extends Instruction {
     if (type.isPrimitiveType()) {
       return true;
     }
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
     DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (baseType.isClassType()) {
       DexClass definition = appView.definitionFor(baseType);
@@ -116,11 +117,11 @@ public class CheckCast extends Instruction {
         return true;
       }
       // Check that the class is accessible.
-      if (AccessControl.isClassAccessible(definition, context, appView).isPossiblyFalse()) {
+      if (AccessControl.isClassAccessible(definition, context, appViewWithLiveness)
+          .isPossiblyFalse()) {
         return true;
       }
     }
-    AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
     TypeElement castType = TypeElement.fromDexType(type, definitelyNotNull(), appView);
     if (object()
         .getDynamicUpperBoundType(appViewWithLiveness)

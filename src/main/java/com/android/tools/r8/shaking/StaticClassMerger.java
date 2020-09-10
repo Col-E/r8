@@ -5,7 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.FeatureSplit;
-import com.android.tools.r8.features.FeatureSplitConfiguration;
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -243,8 +243,8 @@ public class StaticClassMerger {
     return null;
   }
 
-  private FeatureSplitConfiguration getFeatureSplitConfiguration() {
-    return appView.options().featureSplitConfiguration;
+  private ClassToFeatureSplitMap getClassToFeatureSplitMap() {
+    return appView.appInfo().getClassToFeatureSplitMap();
   }
 
   private MergeGroup getMergeGroup(DexProgramClass clazz) {
@@ -303,13 +303,8 @@ public class StaticClassMerger {
   }
 
   private MergeKey getMergeKey(DexProgramClass clazz, MergeGroup mergeGroup) {
-    FeatureSplitConfiguration featureSplitConfiguration = getFeatureSplitConfiguration();
-    FeatureSplit featureSplit =
-        featureSplitConfiguration != null
-            ? featureSplitConfiguration.getFeatureSplit(clazz)
-            : FeatureSplit.BASE;
     return new MergeKey(
-        featureSplit,
+        getClassToFeatureSplitMap().getFeatureSplit(clazz),
         mergeGroup,
         mayMergeAcrossPackageBoundaries(clazz)
             ? MergeKey.GLOBAL
@@ -452,8 +447,7 @@ public class StaticClassMerger {
     assert targetClass.accessFlags.isAtLeastAsVisibleAs(sourceClass.accessFlags);
     assert sourceClass.instanceFields().isEmpty();
     assert targetClass.instanceFields().isEmpty();
-    assert getFeatureSplitConfiguration() == null
-        || getFeatureSplitConfiguration().inSameFeatureOrBothInBase(sourceClass, targetClass);
+    assert getClassToFeatureSplitMap().isInSameFeatureOrBothInBase(sourceClass, targetClass);
 
     numberOfMergedClasses++;
 

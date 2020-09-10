@@ -196,8 +196,7 @@ public class ReflectionOptimizer {
     // Don't allow the instantiated class to be in a feature, if it is, we can get a
     // NoClassDefFoundError from dalvik/art.
     if (baseClazz.isProgramClass()
-        && appView.options().featureSplitConfiguration != null
-        && appView.options().featureSplitConfiguration.isInFeature(baseClazz.asProgramClass())) {
+        && appView.appInfo().getClassToFeatureSplitMap().isInFeature(baseClazz.asProgramClass())) {
       return null;
     }
     // Make sure the (base) type is visible.

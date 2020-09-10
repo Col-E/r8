@@ -1302,6 +1302,9 @@ public class CodeRewriter {
       return;
     }
 
+    assert appView.appInfo().hasLiveness();
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+
     if (!appView.options().testing.enableCheckCastAndInstanceOfRemoval) {
       return;
     }
@@ -1337,7 +1340,8 @@ public class CodeRewriter {
       if (current.isCheckCast()) {
         boolean hasPhiUsers = current.outValue().hasPhiUsers();
         RemoveCheckCastInstructionIfTrivialResult removeResult =
-            removeCheckCastInstructionIfTrivial(current.asCheckCast(), it, code, affectedValues);
+            removeCheckCastInstructionIfTrivial(
+                appViewWithLiveness, current.asCheckCast(), it, code, affectedValues);
         if (removeResult != RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS) {
           assert removeResult == RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW;
           needToRemoveTrivialPhis |= hasPhiUsers;
@@ -1346,7 +1350,8 @@ public class CodeRewriter {
         }
       } else if (current.isInstanceOf()) {
         boolean hasPhiUsers = current.outValue().hasPhiUsers();
-        if (removeInstanceOfInstructionIfTrivial(current.asInstanceOf(), it, code)) {
+        if (removeInstanceOfInstructionIfTrivial(
+            appViewWithLiveness, current.asInstanceOf(), it, code)) {
           needToRemoveTrivialPhis |= hasPhiUsers;
         }
       }
@@ -1368,7 +1373,11 @@ public class CodeRewriter {
 
   // Returns true if the given check-cast instruction was removed.
   private RemoveCheckCastInstructionIfTrivialResult removeCheckCastInstructionIfTrivial(
-      CheckCast checkCast, InstructionListIterator it, IRCode code, Set<Value> affectedValues) {
+      AppView<AppInfoWithLiveness> appViewWithLiveness,
+      CheckCast checkCast,
+      InstructionListIterator it,
+      IRCode code,
+      Set<Value> affectedValues) {
     Value inValue = checkCast.object();
     Value outValue = checkCast.outValue();
     DexType castType = checkCast.getType();
@@ -1380,7 +1389,7 @@ public class CodeRewriter {
     if (baseCastType.isClassType()) {
       DexClass baseCastClass = appView.definitionFor(baseCastType);
       if (baseCastClass == null
-          || AccessControl.isClassAccessible(baseCastClass, code.context(), appView)
+          || AccessControl.isClassAccessible(baseCastClass, code.context(), appViewWithLiveness)
               .isPossiblyFalse()) {
         return RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS;
       }
@@ -1436,7 +1445,10 @@ public class CodeRewriter {
 
   // Returns true if the given instance-of instruction was removed.
   private boolean removeInstanceOfInstructionIfTrivial(
-      InstanceOf instanceOf, InstructionListIterator it, IRCode code) {
+      AppView<AppInfoWithLiveness> appViewWithLiveness,
+      InstanceOf instanceOf,
+      InstructionListIterator it,
+      IRCode code) {
     ProgramMethod context = code.context();
 
     // If the instance-of type is not accessible in the current context, we should not remove the
@@ -1445,7 +1457,8 @@ public class CodeRewriter {
     if (instanceOfBaseType.isClassType()) {
       DexClass instanceOfClass = appView.definitionFor(instanceOfBaseType);
       if (instanceOfClass == null
-          || AccessControl.isClassAccessible(instanceOfClass, context, appView).isPossiblyFalse()) {
+          || AccessControl.isClassAccessible(instanceOfClass, context, appViewWithLiveness)
+              .isPossiblyFalse()) {
         return false;
       }
     }

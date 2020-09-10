@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
@@ -352,7 +353,9 @@ public class PrintUses {
         new ApplicationReader(inputApp, options, new Timing("PrintUses")).read().toDirect();
     appInfo =
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
-            application, MainDexClasses.createEmptyMainDexClasses());
+            application,
+            ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
+            MainDexClasses.createEmptyMainDexClasses());
   }
 
   private void analyze() {

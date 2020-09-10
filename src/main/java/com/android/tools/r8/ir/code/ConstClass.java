@@ -114,13 +114,16 @@ public class ConstClass extends ConstInstruction {
       return true;
     }
 
+    assert appView.appInfo().hasLiveness();
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+
     DexClass clazz = appView.definitionFor(baseType);
     // * Check that the class and its super types are present.
     if (clazz == null || !clazz.isResolvable(appView)) {
       return true;
     }
     // * Check that the class is accessible.
-    if (AccessControl.isClassAccessible(clazz, context, appView).isPossiblyFalse()) {
+    if (AccessControl.isClassAccessible(clazz, context, appViewWithLiveness).isPossiblyFalse()) {
       return true;
     }
     return false;

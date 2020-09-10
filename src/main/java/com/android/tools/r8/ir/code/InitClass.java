@@ -94,13 +94,17 @@ public class InitClass extends Instruction {
 
   @Override
   public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
+    // We only use InitClass instructions in R8.
+    assert appView.enableWholeProgramOptimizations();
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
     DexClass definition = appView.definitionFor(clazz);
     // * Check that the class is present.
     if (definition == null) {
       return true;
     }
     // * Check that the class is accessible.
-    if (AccessControl.isClassAccessible(definition, context, appView).isPossiblyFalse()) {
+    if (AccessControl.isClassAccessible(definition, context, appViewWithLiveness)
+        .isPossiblyFalse()) {
       return true;
     }
     if (clazz.classInitializationMayHaveSideEffects(

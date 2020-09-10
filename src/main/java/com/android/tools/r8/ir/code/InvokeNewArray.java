@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
 
 public class InvokeNewArray extends Invoke {
@@ -160,6 +161,9 @@ public class InvokeNewArray extends Invoke {
       return true;
     }
 
+    assert appView.appInfo().hasLiveness();
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+
     // Check if the type is guaranteed to be present.
     DexClass clazz = appView.definitionFor(baseType);
     if (clazz == null) {
@@ -173,7 +177,7 @@ public class InvokeNewArray extends Invoke {
     }
 
     // Check if the type is guaranteed to be accessible.
-    if (AccessControl.isClassAccessible(clazz, context, appView).isPossiblyFalse()) {
+    if (AccessControl.isClassAccessible(clazz, context, appViewWithLiveness).isPossiblyFalse()) {
       return true;
     }
 

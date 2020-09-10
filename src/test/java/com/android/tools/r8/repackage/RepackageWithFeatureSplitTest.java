@@ -68,7 +68,7 @@ public class RepackageWithFeatureSplitTest extends TestBase {
   }
 
   private void inspectBase(CodeInspector inspector) {
-    assertEquals(4, inspector.allClasses().size());
+    assertEquals(3, inspector.allClasses().size());
 
     // The base classes added here.
     assertThat(inspector.clazz(BaseClass.class), isPresent());
@@ -76,14 +76,12 @@ public class RepackageWithFeatureSplitTest extends TestBase {
     // The feature split runtime.
     assertThat(inspector.clazz(RunInterface.class), isPresent());
     assertThat(inspector.clazz(SplitRunner.class), isPresent());
-
-    // TODO(b/168089304): Should be in the feature.
-    assertThat(inspector.clazz(FeatureClass.class), isPresent());
   }
 
   private void inspectFeature(CodeInspector inspector) {
-    assertEquals(1, inspector.allClasses().size());
+    assertEquals(2, inspector.allClasses().size());
     assertThat(inspector.clazz(FeatureMain.class), isPresent());
+    assertThat(inspector.clazz(FeatureClass.class), isPresent());
   }
 
   public static class BaseClass {

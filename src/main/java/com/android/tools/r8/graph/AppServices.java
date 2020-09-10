@@ -12,7 +12,9 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
@@ -71,8 +73,10 @@ public class AppServices {
     return builder.build();
   }
 
-  public boolean hasServiceImplementationsInFeature(DexType serviceType) {
-    if (appView.options().featureSplitConfiguration == null) {
+  public boolean hasServiceImplementationsInFeature(
+      AppView<AppInfoWithLiveness> appView, DexType serviceType) {
+    ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
+    if (classToFeatureSplitMap.isEmpty()) {
       return false;
     }
     Map<FeatureSplit, List<DexType>> featureImplementations = services.get(serviceType);
@@ -89,12 +93,12 @@ public class AppServices {
     }
     // Check if service is defined feature
     DexProgramClass serviceClass = appView.definitionForProgramType(serviceType);
-    if (appView.options().featureSplitConfiguration.isInFeature(serviceClass)) {
+    if (classToFeatureSplitMap.isInFeature(serviceClass)) {
       return true;
     }
     for (DexType dexType : featureImplementations.get(FeatureSplit.BASE)) {
       DexProgramClass implementationClass = appView.definitionForProgramType(dexType);
-      if (appView.options().featureSplitConfiguration.isInFeature(implementationClass)) {
+      if (classToFeatureSplitMap.isInFeature(implementationClass)) {
         return true;
       }
     }

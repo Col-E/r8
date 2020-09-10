@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
@@ -135,9 +136,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public static AppView<AppInfoWithClassHierarchy> createForR8(
       DexApplication application, MainDexClasses mainDexClasses) {
+    ClassToFeatureSplitMap classToFeatureSplitMap =
+        ClassToFeatureSplitMap.createInitialClassToFeatureSplitMap(application.options);
     AppInfoWithClassHierarchy appInfo =
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
-            application, mainDexClasses);
+            application, classToFeatureSplitMap, mainDexClasses);
     return new AppView<>(
         appInfo, WholeProgramOptimizations.ON, defaultPrefixRewritingMapper(appInfo));
   }

@@ -7,6 +7,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.asProgramMethodOrNull;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult.isOverriding;
 
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -199,6 +200,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   // TODO(zerny): Clean up the constructors so we have just one.
   AppInfoWithLiveness(
       DirectMappedDexApplication application,
+      ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexClasses mainDexClasses,
       SyntheticItems.CommittedItems syntheticItems,
       Set<DexType> deadProtoTypes,
@@ -243,7 +245,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       EnumValueInfoMapCollection enumValueInfoMaps,
       Set<DexType> constClassReferences,
       Map<DexType, Visibility> initClassReferences) {
-    super(application, mainDexClasses, syntheticItems);
+    super(application, classToFeatureSplitMap, mainDexClasses, syntheticItems);
     this.deadProtoTypes = deadProtoTypes;
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
@@ -334,6 +336,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Map<DexType, Visibility> initClassReferences) {
     super(
         appInfoWithClassHierarchy.app(),
+        appInfoWithClassHierarchy.getClassToFeatureSplitMap(),
         appInfoWithClassHierarchy.getMainDexClasses(),
         appInfoWithClassHierarchy.getSyntheticItems().commit(appInfoWithClassHierarchy.app()));
     this.deadProtoTypes = deadProtoTypes;
@@ -434,6 +437,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Collection<DexReference> additionalPinnedItems) {
     this(
         application,
+        previous.getClassToFeatureSplitMap().withoutPrunedClasses(removedClasses),
         previous.getMainDexClasses().withoutPrunedClasses(removedClasses),
         previous.getSyntheticItems().commit(application),
         previous.deadProtoTypes,
@@ -526,6 +530,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       EnumValueInfoMapCollection enumValueInfoMaps) {
     super(
         previous.app(),
+        previous.getClassToFeatureSplitMap(),
         previous.getMainDexClasses(),
         previous.getSyntheticItems().commit(previous.app()));
     this.deadProtoTypes = previous.deadProtoTypes;
@@ -1007,6 +1012,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     DexDefinitionSupplier definitionSupplier = application.getDefinitionsSupplier(committedItems);
     return new AppInfoWithLiveness(
         application,
+        getClassToFeatureSplitMap().rewrittenWithLens(lens),
         getMainDexClasses().rewrittenWithLens(lens),
         committedItems,
         deadProtoTypes,

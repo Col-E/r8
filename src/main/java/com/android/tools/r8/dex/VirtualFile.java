@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.InternalCompilerError;
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
@@ -438,14 +439,20 @@ public class VirtualFile {
     }
 
     protected Map<FeatureSplit, Set<DexProgramClass>> removeFeatureSplitClassesGetMapping() {
-      if (options.featureSplitConfiguration == null) {
+      assert appView.appInfo().hasClassHierarchy() == appView.enableWholeProgramOptimizations();
+      if (!appView.appInfo().hasClassHierarchy()) {
+        return ImmutableMap.of();
+      }
+
+      ClassToFeatureSplitMap classToFeatureSplitMap =
+          appView.appInfo().withClassHierarchy().getClassToFeatureSplitMap();
+      if (classToFeatureSplitMap.isEmpty()) {
         return ImmutableMap.of();
       }
 
       // Pull out the classes that should go into feature splits.
       Map<FeatureSplit, Set<DexProgramClass>> featureSplitClasses =
-          options.featureSplitConfiguration.getFeatureSplitClasses(
-              classes, appView.appInfo().app().getProguardMap());
+          classToFeatureSplitMap.getFeatureSplitClasses(classes);
       if (featureSplitClasses.size() > 0) {
         for (Set<DexProgramClass> featureClasses : featureSplitClasses.values()) {
           classes.removeAll(featureClasses);

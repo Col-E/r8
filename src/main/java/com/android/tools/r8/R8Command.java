@@ -551,7 +551,7 @@ public final class R8Command extends BaseCompilerCommand {
               : getDesugaringState();
 
       FeatureSplitConfiguration featureSplitConfiguration =
-          !featureSplits.isEmpty() ? new FeatureSplitConfiguration(featureSplits, reporter) : null;
+          !featureSplits.isEmpty() ? new FeatureSplitConfiguration(featureSplits) : null;
 
       R8Command command =
           new R8Command(

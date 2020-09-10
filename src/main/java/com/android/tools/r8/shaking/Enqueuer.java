@@ -3020,6 +3020,7 @@ public class Enqueuer {
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             app,
+            appInfo.getClassToFeatureSplitMap(),
             appInfo.getMainDexClasses(),
             appInfo.getSyntheticItems().commit(app),
             deadProtoTypes,

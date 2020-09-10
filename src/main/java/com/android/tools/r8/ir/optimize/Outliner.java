@@ -1284,8 +1284,7 @@ public class Outliner {
         code -> {
           ProgramMethod context = code.context();
           assert !context.getDefinition().getCode().isOutlineCode();
-          if (appView.options().featureSplitConfiguration != null
-              && appView.options().featureSplitConfiguration.isInFeature(context.getHolder())) {
+          if (appView.appInfo().getClassToFeatureSplitMap().isInFeature(context.getHolder())) {
             return;
           }
           for (BasicBlock block : code.blocks) {
@@ -1304,8 +1303,7 @@ public class Outliner {
   public void identifyOutlineSites(IRCode code) {
     ProgramMethod context = code.context();
     assert !context.getDefinition().getCode().isOutlineCode();
-    assert appView.options().featureSplitConfiguration == null
-        || !appView.options().featureSplitConfiguration.isInFeature(context.getHolder());
+    assert !appView.appInfo().getClassToFeatureSplitMap().isInFeature(context.getHolder());
     for (BasicBlock block : code.blocks) {
       new OutlineSiteIdentifier(context, block).process();
     }

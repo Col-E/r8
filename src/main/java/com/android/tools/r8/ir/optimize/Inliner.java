@@ -997,8 +997,8 @@ public class Inliner implements PostOptimization {
               AccessControl.isMethodAccessible(
                   singleTarget.getDefinition(),
                   singleTarget.getHolder().asDexClass(),
-                  context.getHolder(),
-                  appView.withClassHierarchy().appInfo());
+                  context,
+                  appView);
           if (!methodAccessible.isTrue()) {
             continue;
           }

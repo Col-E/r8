@@ -87,9 +87,7 @@ public class SingleConstClassValue extends SingleConstValue {
       DexClass clazz = appView.definitionFor(type);
       return clazz != null
           && clazz.isResolvable(appView)
-          && AccessControl.isClassAccessible(
-                  clazz, context.getHolder(), appView.options().featureSplitConfiguration)
-              .isTrue();
+          && AccessControl.isClassAccessible(clazz, context, appView).isTrue();
     }
     assert baseType.isPrimitiveType();
     return true;

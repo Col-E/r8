@@ -74,9 +74,9 @@ public class ServiceLoaderRewriter {
 
   private AtomicReference<DexProgramClass> synthesizedClass = new AtomicReference<>();
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
 
-  public ServiceLoaderRewriter(AppView<? extends AppInfoWithLiveness> appView) {
+  public ServiceLoaderRewriter(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 
@@ -133,7 +133,9 @@ public class ServiceLoaderRewriter {
       }
 
       // Check that we are not service loading anything from a feature into base.
-      if (appView.appServices().hasServiceImplementationsInFeature(constClass.getValue())) {
+      if (appView
+          .appServices()
+          .hasServiceImplementationsInFeature(appView, constClass.getValue())) {
         continue;
       }
 

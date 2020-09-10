@@ -7,6 +7,7 @@ import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.addMonitorEn
 import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.collectAllMonitorEnterValues;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -151,17 +152,16 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
-    InternalOptions options = appView.options();
-    if (options.featureSplitConfiguration != null
-        && !options.featureSplitConfiguration.inSameFeatureOrBothInBase(singleTarget, method)) {
+    ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
+    if (!classToFeatureSplitMap.isInSameFeatureOrBothInBase(singleTarget, method)) {
       // Still allow inlining if we inline from the base into a feature.
-      if (!options.featureSplitConfiguration.isInBase(singleTarget.getHolder())) {
+      if (!classToFeatureSplitMap.isInBase(singleTarget.getHolder())) {
         whyAreYouNotInliningReporter.reportInliningAcrossFeatureSplit();
         return false;
       }
     }
 
-    Set<Reason> validInliningReasons = options.testing.validInliningReasons;
+    Set<Reason> validInliningReasons = appView.options().testing.validInliningReasons;
     if (validInliningReasons != null && !validInliningReasons.contains(reason)) {
       whyAreYouNotInliningReporter.reportInvalidInliningReason(reason, validInliningReasons);
       return false;

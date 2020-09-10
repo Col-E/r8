@@ -32,7 +32,10 @@ import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -472,7 +475,7 @@ public class AndroidApp {
               dumpFeatureSplitFileNames(options.featureSplitConfiguration),
               nextDexIndex,
               out,
-              options.featureSplitConfiguration);
+              options);
       nextDexIndex = dumpClasspathResources(nextDexIndex, out);
       nextDexIndex = dumpLibraryResources(nextDexIndex, out);
     } catch (IOException | ResourceException e) {
@@ -534,12 +537,16 @@ public class AndroidApp {
       Map<FeatureSplit, String> featureSplitArchiveNames,
       int nextDexIndex,
       ZipOutputStream out,
-      FeatureSplitConfiguration featureSplitConfiguration)
+      InternalOptions options)
       throws IOException, ResourceException {
     Map<FeatureSplit, ByteArrayOutputStream> featureSplitArchiveByteStreams =
         new IdentityHashMap<>();
     Map<FeatureSplit, ZipOutputStream> featureSplitArchiveOutputStreams = new IdentityHashMap<>();
     try {
+      DexItemFactory dexItemFactory = options.dexItemFactory();
+      FeatureSplitConfiguration featureSplitConfiguration = options.featureSplitConfiguration;
+      ClassToFeatureSplitMap classToFeatureSplitMap =
+          ClassToFeatureSplitMap.createInitialClassToFeatureSplitMap(options);
       if (featureSplitConfiguration != null) {
         for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
           ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream();
@@ -567,9 +574,8 @@ public class AndroidApp {
                       nextDexIndex,
                       classDescriptor -> {
                         if (featureSplitConfiguration != null) {
-                          FeatureSplit featureSplit =
-                              featureSplitConfiguration.getFeatureSplitFromClassDescriptor(
-                                  classDescriptor);
+                          DexType type = dexItemFactory.createType(classDescriptor);
+                          FeatureSplit featureSplit = classToFeatureSplitMap.getFeatureSplit(type);
                           if (featureSplit != null) {
                             return featureSplitArchiveOutputStreams.get(featureSplit);
                           }
