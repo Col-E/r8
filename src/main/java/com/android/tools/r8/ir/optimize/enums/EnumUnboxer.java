@@ -8,7 +8,6 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClass.FieldSetter;
@@ -379,11 +378,7 @@ public class EnumUnboxer {
                 enumClassesToUnbox, enumsToUnboxWithPackageRequirement, appBuilder)
             .build();
     enumUnboxerRewriter =
-        new EnumUnboxingRewriter(
-            appView,
-            enumsToUnbox,
-            enumInstanceFieldDataMap,
-            relocator.getDefaultEnumUnboxingUtility());
+        new EnumUnboxingRewriter(appView, enumsToUnbox, enumInstanceFieldDataMap, relocator);
     NestedGraphLens enumUnboxingLens = new TreeFixer(enumsToUnbox, relocator).fixupTypeReferences();
     appView.setUnboxedEnums(enumUnboxerRewriter.getEnumsToUnbox());
     GraphLens previousLens = appView.graphLens();
@@ -1070,11 +1065,10 @@ public class EnumUnboxer {
     return Sets.newIdentityHashSet();
   }
 
-  public void synthesizeUtilityMethods(
-      Builder<?> builder, IRConverter converter, ExecutorService executorService)
+  public void synthesizeUtilityMethods(IRConverter converter, ExecutorService executorService)
       throws ExecutionException {
     if (enumUnboxerRewriter != null) {
-      enumUnboxerRewriter.synthesizeEnumUnboxingUtilityMethods(builder, converter, executorService);
+      enumUnboxerRewriter.synthesizeEnumUnboxingUtilityMethods(converter, executorService);
     }
   }
 

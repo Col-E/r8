@@ -13,12 +13,10 @@ import java.util.function.Function;
 public class DexField extends DexMember<DexEncodedField, DexField> {
 
   public final DexType type;
-  public final DexString name;
 
   DexField(DexType holder, DexType type, DexString name, boolean skipNameValidationForTesting) {
-    super(holder);
+    super(holder, name);
     this.type = type;
-    this.name = name;
     if (!skipNameValidationForTesting && !name.isValidFieldName()) {
       throw new CompilationError(
           "Field name '" + name.toString() + "' cannot be represented in dex format.");

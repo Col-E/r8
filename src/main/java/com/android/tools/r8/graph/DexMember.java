@@ -7,10 +7,13 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
     extends DexReference implements PresortedComparable<R> {
 
   public final DexType holder;
+  public final DexString name;
 
-  public DexMember(DexType holder) {
+  public DexMember(DexType holder, DexString name) {
     assert holder != null;
     this.holder = holder;
+    assert name != null;
+    this.name = name;
   }
 
   public DexEncodedMember<?, ?> lookupOnClass(DexClass clazz) {

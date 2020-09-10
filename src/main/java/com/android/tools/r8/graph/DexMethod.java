@@ -18,12 +18,10 @@ import java.util.function.Function;
 public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   public final DexProto proto;
-  public final DexString name;
 
   DexMethod(DexType holder, DexProto proto, DexString name, boolean skipNameValidationForTesting) {
-    super(holder);
+    super(holder, name);
     this.proto = proto;
-    this.name = name;
     if (!skipNameValidationForTesting && !name.isValidMethodName()) {
       throw new CompilationError(
           "Method name '" + name + "' in class '" + holder.toSourceString() +

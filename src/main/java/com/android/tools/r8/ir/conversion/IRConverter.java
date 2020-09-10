@@ -459,10 +459,10 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeEnumUnboxingUtilityMethods(
-      Builder<?> builder, ExecutorService executorService) throws ExecutionException {
+  private void synthesizeEnumUnboxingUtilityMethods(ExecutorService executorService)
+      throws ExecutionException {
     if (enumUnboxer != null) {
-      enumUnboxer.synthesizeUtilityMethods(builder, this, executorService);
+      enumUnboxer.synthesizeUtilityMethods(this, executorService);
     }
   }
 
@@ -807,7 +807,7 @@ public class IRConverter {
     synthesizeJava8UtilityClass(builder, executorService);
     synthesizeRetargetClass(builder, executorService);
     handleSynthesizedClassMapping(appView, builder);
-    synthesizeEnumUnboxingUtilityMethods(builder, executorService);
+    synthesizeEnumUnboxingUtilityMethods(executorService);
 
     printPhase("Lambda merging finalization");
     // TODO(b/127694949): Adapt to PostOptimization.
