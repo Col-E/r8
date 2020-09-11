@@ -7,27 +7,17 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexApplication.Builder;
-import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -45,7 +35,6 @@ import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
-import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -54,13 +43,13 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
@@ -72,18 +61,13 @@ public final class BackportedMethodRewriter {
   public static final String UTILITY_CLASS_NAME_PREFIX = "$r8$backportedMethods$utility";
 
   private final AppView<?> appView;
-  private final IRConverter converter;
-  private final DexItemFactory factory;
   private final RewritableMethods rewritableMethods;
   private final boolean enabled;
 
-  private final Set<DexType> holders = Sets.newConcurrentHashSet();
-  private final Map<DexMethod, MethodProvider> methodProviders = new ConcurrentHashMap<>();
+  private final Queue<ProgramMethod> synthesizedMethods = new ConcurrentLinkedQueue<>();
 
-  public BackportedMethodRewriter(AppView<?> appView, IRConverter converter) {
+  public BackportedMethodRewriter(AppView<?> appView) {
     this.appView = appView;
-    this.converter = converter;
-    this.factory = appView.dexItemFactory();
     this.rewritableMethods = new RewritableMethods(appView.options(), appView);
     // Disable rewriting if there are no methods to rewrite or if the API level is higher than
     // the highest known API level when the compiler is built. This ensures that when this is used
@@ -128,7 +112,6 @@ public final class BackportedMethodRewriter {
     if (!enabled) {
       return; // Nothing to do!
     }
-
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
@@ -143,17 +126,11 @@ public final class BackportedMethodRewriter {
         continue;
       }
 
-      MethodProvider provider = getMethodProviderOrNull(invoke.getInvokedMethod());
-      if (provider == null) {
-        continue;
-      }
-
-      provider.rewriteInvoke(invoke, iterator, code, appView, affectedValues);
-
-      if (provider.requiresGenerationOfCode()) {
-        DexMethod newMethod = provider.provideMethod(appView);
-        methodProviders.putIfAbsent(newMethod, provider);
-        holders.add(code.method().holder());
+      DexMethod invokedMethod = invoke.getInvokedMethod();
+      MethodProvider provider = getMethodProviderOrNull(invokedMethod);
+      if (provider != null) {
+        provider.rewriteInvoke(
+            invoke, iterator, code, appView, affectedValues, synthesizedMethods::add);
       }
     }
     if (!affectedValues.isEmpty()) {
@@ -161,125 +138,15 @@ public final class BackportedMethodRewriter {
     }
   }
 
-  private Collection<DexProgramClass> findSynthesizedFrom(Builder<?> builder, DexType holder) {
-    for (DexProgramClass synthesizedClass : builder.getSynthesizedClasses()) {
-      if (holder == synthesizedClass.getType()) {
-        return synthesizedClass.getSynthesizedFrom();
-      }
-    }
-    return null;
-  }
-
-  public static boolean hasRewrittenMethodPrefix(DexType clazz) {
-    return clazz.descriptor.toString().contains(UTILITY_CLASS_NAME_PREFIX);
-  }
-
-  public void synthesizeUtilityClasses(Builder<?> builder, ExecutorService executorService)
+  public void processSynthesizedClasses(IRConverter converter, ExecutorService executor)
       throws ExecutionException {
-    if (!enabled) {
-      return;
-    }
-    if (holders.isEmpty()) {
-      return;
-    }
-    // Compute referencing classes ignoring references in-between utility classes.
-    Set<DexProgramClass> referencingClasses = Sets.newConcurrentHashSet();
-    for (DexType holder : holders) {
-      DexClass definitionFor = appView.definitionFor(holder);
-      if (definitionFor == null) {
-        Collection<DexProgramClass> synthesizedFrom = findSynthesizedFrom(builder, holder);
-        assert synthesizedFrom != null;
-        referencingClasses.addAll(synthesizedFrom);
-      } else {
-        referencingClasses.add(definitionFor.asProgramClass());
+    while (!synthesizedMethods.isEmpty()) {
+      List<ProgramMethod> methods = new ArrayList<>(synthesizedMethods);
+      synthesizedMethods.clear();
+      for (ProgramMethod method : methods) {
+        converter.optimizeSynthesizedClass(method.getHolder(), executor);
       }
     }
-
-    MethodAccessFlags flags =
-        MethodAccessFlags.fromSharedAccessFlags(
-            Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false);
-    ClassAccessFlags classAccessFlags =
-        ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
-    // Generate the utility classes in a loop since utility classes can require the
-    // the creation of other utility classes.
-    // Function multiplyExact(long, int) calls multiplyExact(long, long) for example.
-    while (!methodProviders.isEmpty()) {
-      DexMethod method = methodProviders.keySet().iterator().next();
-      MethodProvider provider = methodProviders.remove(method);
-      assert provider.requiresGenerationOfCode();
-      // The utility class could have been synthesized, e.g., running R8 then D8,
-      // or if already processed in this while loop.
-      if (appView.definitionFor(method.holder) != null) {
-        continue;
-      }
-      Code code = provider.generateTemplateMethod(appView.options(), method);
-      DexEncodedMethod dexEncodedMethod =
-          new DexEncodedMethod(
-              method,
-              flags,
-              DexAnnotationSet.empty(),
-              ParameterAnnotationsList.empty(),
-              code,
-              true);
-      boolean addToMainDexClasses =
-          appView.appInfo().getMainDexClasses().containsAnyOf(referencingClasses);
-      DexProgramClass utilityClass =
-          synthesizeClassWithUniqueMethod(
-              builder,
-              classAccessFlags,
-              method.holder,
-              dexEncodedMethod,
-              "java8 methods utility class",
-              addToMainDexClasses,
-              appView);
-      // The following may add elements to methodsProviders.
-      converter.optimizeSynthesizedClass(utilityClass, executorService);
-    }
-  }
-
-  static DexProgramClass synthesizeClassWithUniqueMethod(
-      Builder<?> builder,
-      ClassAccessFlags accessFlags,
-      DexType type,
-      DexEncodedMethod uniqueMethod,
-      String origin,
-      boolean addToMainDexClasses,
-      AppView<?> appView) {
-    DexItemFactory factory = appView.dexItemFactory();
-    DexProgramClass newClass =
-        new DexProgramClass(
-            type,
-            null,
-            new SynthesizedOrigin(origin, BackportedMethodRewriter.class),
-            accessFlags,
-            factory.objectType,
-            DexTypeList.empty(),
-            null,
-            null,
-            Collections.emptyList(),
-            null,
-            Collections.emptyList(),
-            DexAnnotationSet.empty(),
-            DexEncodedField.EMPTY_ARRAY,
-            DexEncodedField.EMPTY_ARRAY,
-            uniqueMethod.isStatic()
-                ? new DexEncodedMethod[] {uniqueMethod}
-                : DexEncodedMethod.EMPTY_ARRAY,
-            uniqueMethod.isStatic()
-                ? DexEncodedMethod.EMPTY_ARRAY
-                : new DexEncodedMethod[] {uniqueMethod},
-            factory.getSkipNameValidationForTesting(),
-            getChecksumSupplier(uniqueMethod, appView));
-    appView.appInfo().addSynthesizedClass(newClass, addToMainDexClasses);
-    builder.addSynthesizedClass(newClass);
-    return newClass;
-  }
-
-  private static ChecksumSupplier getChecksumSupplier(DexEncodedMethod method, AppView<?> appView) {
-    if (!appView.options().encodeChecksums) {
-      return DexProgramClass::invalidChecksumRequest;
-    }
-    return c -> method.method.hashCode();
   }
 
   private MethodProvider getMethodProviderOrNull(DexMethod method) {
@@ -1433,13 +1300,8 @@ public final class BackportedMethodRewriter {
         InstructionListIterator iterator,
         IRCode code,
         AppView<?> appView,
-        Set<Value> affectedValues);
-
-    public abstract DexMethod provideMethod(AppView<?> appView);
-
-    public abstract Code generateTemplateMethod(InternalOptions options, DexMethod method);
-
-    public abstract boolean requiresGenerationOfCode();
+        Set<Value> affectedValues,
+        Consumer<ProgramMethod> registerSynthesizedMethod);
   }
 
   private static final class InvokeRewriter extends MethodProvider {
@@ -1457,24 +1319,10 @@ public final class BackportedMethodRewriter {
         InstructionListIterator iterator,
         IRCode code,
         AppView<?> appView,
-        Set<Value> affectedValues) {
+        Set<Value> affectedValues,
+        Consumer<ProgramMethod> registerSynthesizedMethod) {
       rewriter.rewrite(invoke, iterator, appView.dexItemFactory(), affectedValues);
       assert code.isConsistentSSA();
-    }
-
-    @Override
-    public boolean requiresGenerationOfCode() {
-      return false;
-    }
-
-    @Override
-    public DexMethod provideMethod(AppView<?> appView) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public Code generateTemplateMethod(InternalOptions options, DexMethod method) {
-      throw new Unreachable();
     }
   }
 
@@ -1482,7 +1330,6 @@ public final class BackportedMethodRewriter {
 
     private final TemplateMethodFactory factory;
     private final String methodName;
-    DexMethod generatedMethod;
 
     MethodGenerator(DexMethod method, TemplateMethodFactory factory) {
       this(method, factory, method.name.toString());
@@ -1500,43 +1347,38 @@ public final class BackportedMethodRewriter {
         InstructionListIterator iterator,
         IRCode code,
         AppView<?> appView,
-        Set<Value> affectedValues) {
+        Set<Value> affectedValues,
+        Consumer<ProgramMethod> registerSynthesizedMethod) {
+      ProgramMethod method =
+          appView
+              .getSyntheticItems()
+              .createMethod(
+                  code.context().getHolder(),
+                  appView.dexItemFactory(),
+                  builder ->
+                      builder
+                          .setProto(getProto(appView.dexItemFactory()))
+                          .setAccessFlags(
+                              MethodAccessFlags.fromSharedAccessFlags(
+                                  Constants.ACC_PUBLIC
+                                      | Constants.ACC_STATIC
+                                      | Constants.ACC_SYNTHETIC,
+                                  false))
+                          .setCode(
+                              methodSig -> generateTemplateMethod(appView.options(), methodSig)));
+
       iterator.replaceCurrentInstruction(
-          new InvokeStatic(provideMethod(appView), invoke.outValue(), invoke.inValues()));
+          new InvokeStatic(method.getReference(), invoke.outValue(), invoke.inValues()));
+
+      registerSynthesizedMethod.accept(method);
     }
 
-    @Override
-    public DexMethod provideMethod(AppView<?> appView) {
-      if (generatedMethod != null) {
-        return generatedMethod;
-      }
-      DexItemFactory factory = appView.dexItemFactory();
-      String unqualifiedName = method.holder.getName();
-      // Avoid duplicate class names between core lib dex file and program dex files.
-      String descriptor =
-          "L"
-              + appView.options().synthesizedClassPrefix
-              + UTILITY_CLASS_NAME_PREFIX
-              + '$'
-              + unqualifiedName
-              + '$'
-              + method.proto.parameters.size()
-              + '$'
-              + methodName
-              + ';';
-      DexType type = factory.createType(descriptor);
-      generatedMethod = factory.createMethod(type, method.proto, method.name);
-      return generatedMethod;
+    public DexProto getProto(DexItemFactory itemFactory) {
+      return method.proto;
     }
 
-    @Override
     public Code generateTemplateMethod(InternalOptions options, DexMethod method) {
       return factory.create(options, method);
-    }
-
-    @Override
-    public boolean requiresGenerationOfCode() {
-      return true;
     }
   }
 
@@ -1554,16 +1396,8 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public DexMethod provideMethod(AppView<?> appView) {
-      if (generatedMethod != null) {
-        return generatedMethod;
-      }
-      super.provideMethod(appView);
-      assert generatedMethod != null;
-      DexProto newProto = appView.dexItemFactory().prependTypeToProto(receiverType, method.proto);
-      generatedMethod =
-          appView.dexItemFactory().createMethod(generatedMethod.holder, newProto, method.name);
-      return generatedMethod;
+    public DexProto getProto(DexItemFactory itemFactory) {
+      return itemFactory.prependTypeToProto(receiverType, super.getProto(itemFactory));
     }
   }
 

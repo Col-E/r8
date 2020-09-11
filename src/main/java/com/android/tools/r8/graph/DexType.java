@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.google.common.base.Predicates;
@@ -291,6 +292,9 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return
     // Hygienic suffix.
     name.contains(COMPANION_CLASS_NAME_SUFFIX)
+        // New and hygienic synthesis infrastructure.
+        || name.contains(SyntheticItems.INTERNAL_SYNTHETIC_CLASS_SEPARATOR)
+        || name.contains(SyntheticItems.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR)
         // Only generated in core lib.
         || name.contains(EMULATE_LIBRARY_CLASS_NAME_SUFFIX)
         || name.contains(TYPE_WRAPPER_SUFFIX)

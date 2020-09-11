@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
+import com.google.common.hash.Hasher;
 
 public class DexProto extends IndexedDexItem implements PresortedComparable<DexProto> {
 
@@ -96,5 +97,12 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
     builder.append(")");
     builder.append(lens.lookupDescriptor(returnType));
     return builder.toString();
+  }
+
+  public void hashSyntheticContent(Hasher hasher) {
+    hasher.putInt(returnType.hashCode());
+    for (DexType param : parameters.values) {
+      hasher.putInt(param.hashCode());
+    }
   }
 }

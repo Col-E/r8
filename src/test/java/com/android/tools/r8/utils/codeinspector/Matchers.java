@@ -107,7 +107,7 @@ public class Matchers {
 
       @Override
       public void describeTo(final Description description) {
-        description.appendText(" present");
+        description.appendText("present");
       }
 
       @Override

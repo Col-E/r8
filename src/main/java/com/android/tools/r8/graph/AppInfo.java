@@ -3,12 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy.CreateDesugaringViewOnAppInfo;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.synthesis.CommittedItems;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collection;
@@ -31,30 +32,28 @@ public class AppInfo implements DexDefinitionSupplier {
   public static AppInfo createInitialAppInfo(
       DexApplication application, MainDexClasses mainDexClasses) {
     return new AppInfo(
-        application,
-        mainDexClasses,
-        SyntheticItems.createInitialSyntheticItems(),
-        new BooleanBox());
+        SyntheticItems.createInitialSyntheticItems().commit(application), mainDexClasses);
   }
 
-  public AppInfo(
-      DexApplication application,
-      MainDexClasses mainDexClasses,
-      SyntheticItems.CommittedItems committedItems) {
-    this(application, mainDexClasses, committedItems.toSyntheticItems(), new BooleanBox());
+  public AppInfo(CommittedItems committedItems, MainDexClasses mainDexClasses) {
+    this(
+        committedItems.getApplication(),
+        committedItems.toSyntheticItems(),
+        mainDexClasses,
+        new BooleanBox());
   }
 
   // For desugaring.
   // This is a view onto the app info and is the only place the pending synthetics are shared.
-  AppInfo(CreateDesugaringViewOnAppInfo witness, AppInfo appInfo) {
-    this(appInfo.app, appInfo.mainDexClasses, appInfo.syntheticItems, appInfo.obsolete);
+  AppInfo(AppInfoWithClassHierarchy.CreateDesugaringViewOnAppInfo witness, AppInfo appInfo) {
+    this(appInfo.app, appInfo.syntheticItems, appInfo.mainDexClasses, appInfo.obsolete);
     assert witness != null;
   }
 
   private AppInfo(
       DexApplication application,
-      MainDexClasses mainDexClasses,
       SyntheticItems syntheticItems,
+      MainDexClasses mainDexClasses,
       BooleanBox obsolete) {
     this.app = application;
     this.dexItemFactory = application.dexItemFactory;
@@ -105,7 +104,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   public void addSynthesizedClass(DexProgramClass clazz, boolean addToMainDexClasses) {
     assert checkIfObsolete();
-    syntheticItems.addSyntheticClass(clazz);
+    syntheticItems.addLegacySyntheticClass(clazz);
     if (addToMainDexClasses && !mainDexClasses.isEmpty()) {
       mainDexClasses.add(clazz);
     }

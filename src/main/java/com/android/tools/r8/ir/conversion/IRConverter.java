@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
-import static com.android.tools.r8.graph.DexAnnotation.readAnnotationSynthesizedClassMap;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
 
@@ -13,7 +12,6 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -90,7 +88,6 @@ import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
-import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -105,22 +102,16 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ListMultimap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -238,7 +229,7 @@ public class IRConverter {
           new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS);
       this.backportedMethodRewriter =
           options.cfToCfDesugar || options.testing.forceLibBackportsInL8CfToCf
-              ? new BackportedMethodRewriter(appView, this)
+              ? new BackportedMethodRewriter(appView)
               : null;
       this.twrCloseResourceRewriter = null;
       this.lambdaMerger = null;
@@ -276,7 +267,7 @@ public class IRConverter {
         ((options.desugarState == DesugarState.ON) && enableTwrCloseResourceDesugaring())
             ? new TwrCloseResourceRewriter(appView, this)
             : null;
-    this.backportedMethodRewriter = new BackportedMethodRewriter(appView, this);
+    this.backportedMethodRewriter = new BackportedMethodRewriter(appView);
     this.desugaredLibraryRetargeter =
         options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()
             ? null
@@ -445,10 +436,10 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeJava8UtilityClass(
-      Builder<?> builder, ExecutorService executorService) throws ExecutionException {
+  private void processSynthesizedJava8UtilityClasses(ExecutorService executorService)
+      throws ExecutionException {
     if (backportedMethodRewriter != null) {
-      backportedMethodRewriter.synthesizeUtilityClasses(builder, executorService);
+      backportedMethodRewriter.processSynthesizedClasses(this, executorService);
     }
   }
 
@@ -489,96 +480,19 @@ public class IRConverter {
     synthesizeLambdaClasses(builder, executor);
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
     synthesizeTwrCloseResourceUtilityClass(builder, executor);
-    synthesizeJava8UtilityClass(builder, executor);
+    processSynthesizedJava8UtilityClasses(executor);
     synthesizeRetargetClass(builder, executor);
 
     processCovariantReturnTypeAnnotations(builder);
     generateDesugaredLibraryAPIWrappers(builder, executor);
 
-    handleSynthesizedClassMapping(appView, builder);
     timing.end();
 
     DexApplication app = builder.build();
     appView.setAppInfo(
         new AppInfo(
-            app,
-            appView.appInfo().getMainDexClasses(),
-            appView.appInfo().getSyntheticItems().commit(app)));
-  }
-
-  private void handleSynthesizedClassMapping(AppView<?> appView, Builder<?> builder) {
-    if (options.intermediate) {
-      updateSynthesizedClassMapping(builder);
-    }
-
-    updateMainDexListWithSynthesizedClassMap(appView, builder);
-
-    if (!options.intermediate) {
-      clearSynthesizedClassMapping(builder);
-    }
-  }
-
-  private void updateMainDexListWithSynthesizedClassMap(AppView<?> appView, Builder<?> builder) {
-    MainDexClasses mainDexClasses = appView.appInfo().getMainDexClasses();
-    if (mainDexClasses.isEmpty()) {
-      return;
-    }
-    Map<DexType, DexProgramClass> programClasses =
-        builder.getProgramClasses().stream()
-            .collect(Collectors.toMap(programClass -> programClass.type, Function.identity()));
-    List<DexProgramClass> newMainDexClasses = new ArrayList<>();
-    mainDexClasses.forEach(
-        mainDexClass -> {
-          DexProgramClass definition = programClasses.get(mainDexClass);
-          if (definition == null) {
-            return;
-          }
-          Iterable<DexType> syntheticTypes =
-              readAnnotationSynthesizedClassMap(definition, appView.dexItemFactory());
-          for (DexType syntheticType : syntheticTypes) {
-            DexProgramClass syntheticClass = programClasses.get(syntheticType);
-            if (syntheticClass != null) {
-              newMainDexClasses.add(syntheticClass);
-            }
-          }
-        });
-    mainDexClasses.addAll(newMainDexClasses);
-  }
-
-  private void clearSynthesizedClassMapping(Builder<?> builder) {
-    for (DexProgramClass clazz : builder.getProgramClasses()) {
-      clazz.setAnnotations(
-          clazz.annotations().getWithout(builder.dexItemFactory.annotationSynthesizedClassMap));
-    }
-  }
-
-  private void updateSynthesizedClassMapping(Builder<?> builder) {
-    ListMultimap<DexProgramClass, DexProgramClass> originalToSynthesized =
-        ArrayListMultimap.create();
-    for (DexProgramClass synthesized : builder.getSynthesizedClasses()) {
-      for (DexProgramClass original : synthesized.getSynthesizedFrom()) {
-        originalToSynthesized.put(original, synthesized);
-      }
-    }
-
-    for (Map.Entry<DexProgramClass, Collection<DexProgramClass>> entry :
-        originalToSynthesized.asMap().entrySet()) {
-      DexProgramClass original = entry.getKey();
-      // Use a tree set to make sure that we have an ordering on the types.
-      // These types are put in an array in annotations in the output and we
-      // need a consistent ordering on them.
-      TreeSet<DexType> synthesized = new TreeSet<>(DexType::slowCompareTo);
-      entry.getValue()
-          .stream()
-          .map(dexProgramClass -> dexProgramClass.type)
-          .forEach(synthesized::add);
-      synthesized.addAll(readAnnotationSynthesizedClassMap(original, builder.dexItemFactory));
-
-      DexAnnotation updatedAnnotation =
-          DexAnnotation.createAnnotationSynthesizedClassMap(synthesized, builder.dexItemFactory);
-
-      original.setAnnotations(original.annotations().getWithAddedOrReplaced(updatedAnnotation));
-    }
+            appView.appInfo().getSyntheticItems().commit(app),
+            appView.appInfo().getMainDexClasses()));
   }
 
   private void convertMethods(DexProgramClass clazz) {
@@ -675,16 +589,9 @@ public class IRConverter {
         executorService);
   }
 
-  public DexApplication optimize() throws ExecutionException {
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    try {
-      return optimize(executor);
-    } finally {
-      executor.shutdown();
-    }
-  }
-
-  public DexApplication optimize(ExecutorService executorService) throws ExecutionException {
+  public DexApplication optimize(
+      AppView<AppInfoWithLiveness> appView, ExecutorService executorService)
+      throws ExecutionException {
     DexApplication application = appView.appInfo().app();
 
     computeReachabilitySensitivity(application);
@@ -804,9 +711,8 @@ public class IRConverter {
 
     printPhase("Utility classes synthesis");
     synthesizeTwrCloseResourceUtilityClass(builder, executorService);
-    synthesizeJava8UtilityClass(builder, executorService);
+    processSynthesizedJava8UtilityClasses(executorService);
     synthesizeRetargetClass(builder, executorService);
-    handleSynthesizedClassMapping(appView, builder);
     synthesizeEnumUnboxingUtilityMethods(executorService);
 
     printPhase("Lambda merging finalization");
@@ -885,12 +791,18 @@ public class IRConverter {
 
     // Assure that no more optimization feedback left after post processing.
     assert feedback.noUpdatesLeft();
-
-    // Check if what we've added to the application builder as synthesized classes are same as
-    // what we've added and used through AppInfo.
-    assert appView.appInfo().synthesizedClasses().containsAll(builder.getSynthesizedClasses())
-        && builder.getSynthesizedClasses().containsAll(appView.appInfo().synthesizedClasses());
+    assert checkLegacySyntheticsAreInBuilder(appView, builder);
     return builder.build();
+  }
+
+  private boolean checkLegacySyntheticsAreInBuilder(
+      AppView<AppInfoWithLiveness> appView, Builder<?> builder) {
+    Collection<DexProgramClass> inAppInfo =
+        appView.appInfo().getSyntheticItems().getLegacyPendingClasses();
+    Collection<DexProgramClass> inBuilder = builder.getSynthesizedClasses();
+    assert inAppInfo.containsAll(inBuilder);
+    assert inBuilder.containsAll(inAppInfo);
+    return true;
   }
 
   private void waveStart(ProgramMethodSet wave) {

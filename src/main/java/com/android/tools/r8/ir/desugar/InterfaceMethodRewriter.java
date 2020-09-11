@@ -239,11 +239,11 @@ public final class InterfaceMethodRewriter {
         if (instruction.isInvokeStatic()) {
           InvokeStatic invokeStatic = instruction.asInvokeStatic();
           DexMethod method = invokeStatic.getInvokedMethod();
-          DexClass clazz = appInfo.definitionFor(method.holder);
-          if (BackportedMethodRewriter.hasRewrittenMethodPrefix(method.holder)) {
+          if (appView.getSyntheticItems().isPendingSynthetic(method.holder)) {
             // We did not create this code yet, but it will not require rewriting.
             continue;
           }
+          DexClass clazz = appInfo.definitionFor(method.holder);
           if (clazz == null) {
             // NOTE: leave unchanged those calls to undefined targets. This may lead to runtime
             // exception but we can not report it as error since it can also be the intended

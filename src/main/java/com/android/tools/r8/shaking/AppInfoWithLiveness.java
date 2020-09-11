@@ -41,14 +41,13 @@ import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
-import com.android.tools.r8.graph.SyntheticItems;
-import com.android.tools.r8.graph.SyntheticItems.CommittedItems;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
+import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -199,10 +198,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   // TODO(zerny): Clean up the constructors so we have just one.
   AppInfoWithLiveness(
-      DirectMappedDexApplication application,
+      CommittedItems syntheticItems,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexClasses mainDexClasses,
-      SyntheticItems.CommittedItems syntheticItems,
       Set<DexType> deadProtoTypes,
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,
@@ -245,7 +243,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       EnumValueInfoMapCollection enumValueInfoMaps,
       Set<DexType> constClassReferences,
       Map<DexType, Visibility> initClassReferences) {
-    super(application, classToFeatureSplitMap, mainDexClasses, syntheticItems);
+    super(syntheticItems, classToFeatureSplitMap, mainDexClasses);
     this.deadProtoTypes = deadProtoTypes;
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
@@ -335,10 +333,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> constClassReferences,
       Map<DexType, Visibility> initClassReferences) {
     super(
-        appInfoWithClassHierarchy.app(),
+        appInfoWithClassHierarchy.getSyntheticItems().commit(appInfoWithClassHierarchy.app()),
         appInfoWithClassHierarchy.getClassToFeatureSplitMap(),
-        appInfoWithClassHierarchy.getMainDexClasses(),
-        appInfoWithClassHierarchy.getSyntheticItems().commit(appInfoWithClassHierarchy.app()));
+        appInfoWithClassHierarchy.getMainDexClasses());
     this.deadProtoTypes = deadProtoTypes;
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
@@ -383,12 +380,16 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.initClassReferences = initClassReferences;
   }
 
-  private AppInfoWithLiveness(AppInfoWithLiveness previous) {
+  private AppInfoWithLiveness(
+      AppInfoWithLiveness previous, CommittedItems committedItems, Set<DexType> removedTypes) {
     this(
-        previous,
+        committedItems,
+        previous.getClassToFeatureSplitMap(),
+        previous.getMainDexClasses(),
         previous.deadProtoTypes,
         previous.missingTypes,
-        previous.liveTypes,
+        CollectionUtils.mergeSets(
+            Sets.difference(previous.liveTypes, removedTypes), committedItems.getCommittedTypes()),
         previous.instantiatedAppServices,
         previous.targetedMethods,
         previous.failedResolutionTargets,
@@ -436,13 +437,14 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> removedClasses,
       Collection<DexReference> additionalPinnedItems) {
     this(
-        application,
+        previous.getSyntheticItems().commitPrunedClasses(application, removedClasses),
         previous.getClassToFeatureSplitMap().withoutPrunedClasses(removedClasses),
         previous.getMainDexClasses().withoutPrunedClasses(removedClasses),
-        previous.getSyntheticItems().commit(application),
         previous.deadProtoTypes,
         previous.missingTypes,
-        previous.liveTypes,
+        removedClasses == null
+            ? previous.liveTypes
+            : Sets.difference(previous.liveTypes, removedClasses),
         previous.instantiatedAppServices,
         previous.targetedMethods,
         previous.failedResolutionTargets,
@@ -529,10 +531,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       EnumValueInfoMapCollection enumValueInfoMaps) {
     super(
-        previous.app(),
+        previous.getSyntheticItems().commit(previous.app()),
         previous.getClassToFeatureSplitMap(),
-        previous.getMainDexClasses(),
-        previous.getSyntheticItems().commit(previous.app()));
+        previous.getMainDexClasses());
     this.deadProtoTypes = previous.deadProtoTypes;
     this.missingTypes = previous.missingTypes;
     this.liveTypes = previous.liveTypes;
@@ -592,8 +593,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             || InterfaceMethodRewriter.isCompanionClassType(type)
             || InterfaceMethodRewriter.hasDispatchClassSuffix(type)
             || InterfaceMethodRewriter.isEmulatedLibraryClassType(type)
-            || type.toDescriptorString().startsWith("L$r8$backportedMethods$")
-            || type.toDescriptorString().startsWith("Lj$/$r8$backportedMethods$")
             || type.toDescriptorString().startsWith("Lj$/$r8$retargetLibraryMember$")
             || TwrCloseResourceRewriter.isUtilityClassDescriptor(type)
             // TODO(b/150736225): Not sure how to remove these.
@@ -988,6 +987,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return new AppInfoWithLiveness(this, application, removedClasses, additionalPinnedItems);
   }
 
+  public AppInfoWithLiveness rebuildWithLiveness(
+      CommittedItems committedItems, Set<DexType> removedTypes) {
+    return new AppInfoWithLiveness(this, committedItems, removedTypes);
+  }
+
   public AppInfoWithLiveness rewrittenWithLens(
       DirectMappedDexApplication application, NestedGraphLens lens) {
     assert checkIfObsolete();
@@ -1008,13 +1012,12 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             .map(FieldResolutionResult::getResolvedField)
             .collect(Collectors.toList()));
 
-    CommittedItems committedItems = getSyntheticItems().commit(application, lens);
+    CommittedItems committedItems = getSyntheticItems().commitRewrittenWithLens(application, lens);
     DexDefinitionSupplier definitionSupplier = application.getDefinitionsSupplier(committedItems);
     return new AppInfoWithLiveness(
-        application,
+        committedItems,
         getClassToFeatureSplitMap().rewrittenWithLens(lens),
         getMainDexClasses().rewrittenWithLens(lens),
-        committedItems,
         deadProtoTypes,
         missingTypes,
         lens.rewriteTypes(liveTypes),

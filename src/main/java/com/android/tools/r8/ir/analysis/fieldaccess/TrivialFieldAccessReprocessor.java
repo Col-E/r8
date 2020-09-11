@@ -107,7 +107,10 @@ public class TrivialFieldAccessReprocessor {
   private void enqueueMethodsForReprocessing(
       AppInfoWithLiveness appInfo, ExecutorService executorService) throws ExecutionException {
     ThreadUtils.processItems(appInfo.classes(), this::processClass, executorService);
-    ThreadUtils.processItems(appInfo.synthesizedClasses(), this::processClass, executorService);
+    ThreadUtils.processItems(
+        appInfo.getSyntheticItems().getPendingSyntheticClasses(),
+        this::processClass,
+        executorService);
     postMethodProcessorBuilder.put(methodsToReprocess);
   }
 
@@ -145,7 +148,8 @@ public class TrivialFieldAccessReprocessor {
 
   private static boolean verifyNoConstantFieldsOnSynthesizedClasses(
       AppView<AppInfoWithLiveness> appView) {
-    for (DexProgramClass clazz : appView.appInfo().synthesizedClasses()) {
+    for (DexProgramClass clazz :
+        appView.appInfo().getSyntheticItems().getPendingSyntheticClasses()) {
       for (DexEncodedField field : clazz.fields()) {
         assert field.getOptimizationInfo().getAbstractValue().isUnknown();
       }

@@ -9,15 +9,19 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -27,6 +31,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.Maps;
@@ -83,6 +88,49 @@ public class DesugaredLibraryRetargeter {
                 + type.getName()
                 + " because the class is missing.");
     appView.options().reporter.warning(warning);
+  }
+
+  private static void synthesizeClassWithUniqueMethod(
+      Builder<?> builder,
+      ClassAccessFlags accessFlags,
+      DexType type,
+      DexEncodedMethod uniqueMethod,
+      String origin,
+      AppView<?> appView) {
+    DexItemFactory factory = appView.dexItemFactory();
+    DexProgramClass newClass =
+        new DexProgramClass(
+            type,
+            null,
+            new SynthesizedOrigin(origin, BackportedMethodRewriter.class),
+            accessFlags,
+            factory.objectType,
+            DexTypeList.empty(),
+            null,
+            null,
+            Collections.emptyList(),
+            null,
+            Collections.emptyList(),
+            DexAnnotationSet.empty(),
+            DexEncodedField.EMPTY_ARRAY,
+            DexEncodedField.EMPTY_ARRAY,
+            uniqueMethod.isStatic()
+                ? new DexEncodedMethod[] {uniqueMethod}
+                : DexEncodedMethod.EMPTY_ARRAY,
+            uniqueMethod.isStatic()
+                ? DexEncodedMethod.EMPTY_ARRAY
+                : new DexEncodedMethod[] {uniqueMethod},
+            factory.getSkipNameValidationForTesting(),
+            getChecksumSupplier(uniqueMethod, appView));
+    appView.appInfo().addSynthesizedClass(newClass, false);
+    builder.addSynthesizedClass(newClass);
+  }
+
+  private static ChecksumSupplier getChecksumSupplier(DexEncodedMethod method, AppView<?> appView) {
+    if (!appView.options().encodeChecksums) {
+      return DexProgramClass::invalidChecksumRequest;
+    }
+    return c -> method.method.hashCode();
   }
 
   // Used by the ListOfBackportedMethods utility.
@@ -363,25 +411,23 @@ public class DesugaredLibraryRetargeter {
         DexType interfaceType = dispatchInterfaceTypeFor(emulatedDispatchMethod);
         DexEncodedMethod itfMethod =
             generateInterfaceDispatchMethod(emulatedDispatchMethod, interfaceType);
-        BackportedMethodRewriter.synthesizeClassWithUniqueMethod(
+        synthesizeClassWithUniqueMethod(
             builder,
             itfAccessFlags,
             interfaceType,
             itfMethod,
             "desugared library dispatch interface",
-            false,
             appView);
         // Dispatch holder.
         DexType holderType = dispatchHolderTypeFor(emulatedDispatchMethod);
         DexEncodedMethod dispatchMethod =
             generateHolderDispatchMethod(emulatedDispatchMethod, holderType, itfMethod.method);
-        BackportedMethodRewriter.synthesizeClassWithUniqueMethod(
+        synthesizeClassWithUniqueMethod(
             builder,
             holderAccessFlags,
             holderType,
             dispatchMethod,
             "desugared library dispatch class",
-            false,
             appView);
       }
     }

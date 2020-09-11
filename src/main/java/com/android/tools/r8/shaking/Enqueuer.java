@@ -2885,7 +2885,7 @@ public class Enqueuer {
 
     // Now all additions are computed, the application is atomically extended with those additions.
     appInfo =
-        appInfo.rebuild(
+        appInfo.rebuildWithClassHierarchy(
             app -> {
               Builder appBuilder = app.asDirect().builder();
               additions.amendApplication(appBuilder);
@@ -3019,10 +3019,9 @@ public class Enqueuer {
 
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
-            app,
+            appInfo.getSyntheticItems().commit(app),
             appInfo.getClassToFeatureSplitMap(),
             appInfo.getMainDexClasses(),
-            appInfo.getSyntheticItems().commit(app),
             deadProtoTypes,
             mode.isFinalTreeShaking()
                 ? Sets.union(initialMissingTypes, missingTypes)

@@ -55,6 +55,7 @@ public class ObjectToOffsetMapping {
       Collection<DexCallSite> callSites,
       Collection<DexMethodHandle> methodHandles) {
     assert appInfo != null;
+    assert graphLens != null;
     assert classes != null;
     assert protos != null;
     assert types != null;
@@ -251,11 +252,11 @@ public class ObjectToOffsetMapping {
   }
 
   public int getOffsetFor(DexField field) {
-    return getOffsetFor(field, fields);
+    return getOffsetFor(graphLens.lookupField(field), fields);
   }
 
   public int getOffsetFor(DexMethod method) {
-    return getOffsetFor(method, methods);
+    return getOffsetFor(graphLens.lookupMethod(method), methods);
   }
 
   public int getOffsetFor(DexString string) {
@@ -263,7 +264,7 @@ public class ObjectToOffsetMapping {
   }
 
   public int getOffsetFor(DexType type) {
-    return getOffsetFor(type, types);
+    return getOffsetFor(graphLens.lookupType(type), types);
   }
 
   public int getOffsetFor(DexCallSite callSite) {

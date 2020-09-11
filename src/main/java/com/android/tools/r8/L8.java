@@ -11,7 +11,6 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
@@ -22,6 +21,7 @@ import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.L8TreePruner;
+import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -136,15 +136,17 @@ public class L8 {
 
       new IRConverter(appView, timing).convert(appView, executor);
 
+      SyntheticFinalization.Result result =
+          appView.getSyntheticItems().computeFinalSynthetics(appView);
+      if (result != null) {
+        appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexClasses()));
+      }
+
       NamingLens namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
       new GenericSignatureRewriter(appView, namingLens).run(appView.appInfo().classes(), executor);
 
       new CfApplicationWriter(
-              appView,
-              options.getMarker(Tool.L8),
-              GraphLens.getIdentityLens(),
-              namingLens,
-              null)
+              appView, options.getMarker(Tool.L8), appView.graphLens(), namingLens, null)
           .write(options.getClassFileConsumer());
       options.printWarnings();
     } catch (ExecutionException e) {

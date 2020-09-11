@@ -10,6 +10,7 @@ import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.synthesis.SyntheticDefinitionsProvider;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;

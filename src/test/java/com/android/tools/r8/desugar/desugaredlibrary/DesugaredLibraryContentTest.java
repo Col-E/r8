@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 
@@ -84,7 +85,7 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
   }
 
   private void assertCorrect(CodeInspector inspector) {
-    inspector.allClasses().forEach(clazz -> assertTrue(clazz.getOriginalName().startsWith("j$.")));
+    inspector.allClasses().forEach(clazz -> assertThat(clazz.getOriginalName(), startsWith("j$.")));
     assertThat(inspector.clazz("j$.time.Clock"), isPresent());
     // Above N the following classes are removed instead of being desugared.
     if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel()) {

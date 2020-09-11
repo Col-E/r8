@@ -73,11 +73,13 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
+import com.google.common.hash.Hasher;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -266,6 +268,41 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     assert accessFlags != null;
     assert code == null || !shouldNotHaveCode();
     assert parameterAnnotationsList != null;
+  }
+
+  public void hashSyntheticContent(Hasher hasher) {
+    // Method holder does not contribute to the synthetic hash (it is freely chosen).
+    // Method name does not contribute to the synthetic hash (it is freely chosen).
+    method.proto.hashSyntheticContent(hasher);
+    hasher.putInt(accessFlags.getAsCfAccessFlags());
+    assert annotations().isEmpty();
+    assert parameterAnnotationsList.isEmpty();
+    assert code != null;
+    // TODO(b/158159959): Implement a more precise hashing on code objects.
+    if (code.isCfCode()) {
+      CfCode cfCode = code.asCfCode();
+      hasher.putInt(cfCode.instructions.size());
+      for (CfInstruction instruction : cfCode.instructions) {
+        hasher.putInt(instruction.getClass().hashCode());
+      }
+    } else {
+      assert code.isDexCode();
+      hasher.putInt(code.hashCode());
+    }
+  }
+
+  public boolean isSyntheticContentEqual(DexEncodedMethod other) {
+    return syntheticCompareTo(other) == 0;
+  }
+
+  public int syntheticCompareTo(DexEncodedMethod other) {
+    assert annotations().isEmpty();
+    assert parameterAnnotationsList.isEmpty();
+    return Comparator.comparing(DexEncodedMethod::proto, DexProto::slowCompareTo)
+        .thenComparingInt(m -> m.accessFlags.getAsCfAccessFlags())
+        // TODO(b/158159959): Implement structural compareTo on code.
+        .thenComparing(m -> m.getCode().toString())
+        .compare(this, other);
   }
 
   public DexType getHolderType() {

@@ -102,6 +102,7 @@ import com.android.tools.r8.shaking.TreePrunerConfiguration;
 import com.android.tools.r8.shaking.VerticalClassMerger;
 import com.android.tools.r8.shaking.VerticalClassMergerGraphLens;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
+import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -601,8 +602,9 @@ public class R8 {
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
         IRConverter converter = new IRConverter(appView, timing, printer, mainDexTracingResult);
-        DexApplication application = converter.optimize(executorService).asDirect();
-        appView.setAppInfo(appView.appInfo().rebuild(previous -> application));
+        DexApplication application =
+            converter.optimize(appViewWithLiveness, executorService).asDirect();
+        appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(previous -> application));
       } finally {
         timing.end();
       }
@@ -805,6 +807,24 @@ public class R8 {
         }
       }
 
+      // Add automatic main dex classes to an eventual manual list of classes.
+      if (!options.mainDexKeepRules.isEmpty()) {
+        appView.appInfo().getMainDexClasses().addAll(mainDexTracingResult);
+      }
+
+      SyntheticFinalization.Result result =
+          appView.getSyntheticItems().computeFinalSynthetics(appView);
+      if (result != null) {
+        if (appView.appInfo().hasLiveness()) {
+          appViewWithLiveness.setAppInfo(
+              appViewWithLiveness
+                  .appInfo()
+                  .rebuildWithLiveness(result.commit, result.removedSyntheticClasses));
+        } else {
+          appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(result.commit));
+        }
+      }
+
       // Perform minification.
       NamingLens namingLens;
       if (options.getProguardConfiguration().hasApplyMappingFile()) {
@@ -856,11 +876,6 @@ public class R8 {
         // possible to remove visibility bridges that have been synthesized by R8, but we currently
         // do not have this information.
         assert !options.isShrinking();
-      }
-
-      // Add automatic main dex classes to an eventual manual list of classes.
-      if (!options.mainDexKeepRules.isEmpty()) {
-        appView.appInfo().getMainDexClasses().addAll(mainDexTracingResult);
       }
 
       // Validity checks.

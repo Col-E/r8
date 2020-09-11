@@ -96,7 +96,7 @@ public class AbsentClassSubject extends ClassSubject {
 
   @Override
   public String getOriginalName() {
-    return null;
+    return reference.getTypeName();
   }
 
   @Override
