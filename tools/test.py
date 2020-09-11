@@ -138,6 +138,9 @@ def ParseOptions():
   result.add_option('--worktree',
       default=False, action='store_true',
       help='Tests are run in worktree and should not use gradle user home.')
+  result.add_option('--horizontal-class-merging', '--horizontal_class_merging',
+      help='Enable horizontal class merging.',
+      default=False, action='store_true')
   result.add_option('--runtimes',
       default=None,
       help='Test parameter runtimes to use, separated by : (eg, none:jdk9).'
