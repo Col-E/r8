@@ -48,6 +48,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 
 public final class BackportedMethods {
@@ -133,7 +134,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 0),
             new CfIf(If.Type.EQ, ValueType.INT, label2),
             new CfConstNumber(1, ValueType.INT),
@@ -146,7 +147,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(-1, ValueType.INT),
             label3,
             new CfFrame(
@@ -156,7 +157,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label4),
         ImmutableList.of(),
@@ -183,14 +185,15 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.intType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(1237, ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.intType)}),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label3),
         ImmutableList.of(),
@@ -331,7 +334,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             new CfStore(ValueType.INT, 4),
             label5,
@@ -360,7 +363,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 4),
             new CfLoad(ValueType.INT, 5),
             new CfIfCmp(If.Type.GE, ValueType.INT, label12),
@@ -409,7 +412,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfIinc(4, 1),
             new CfGoto(label6),
             label12,
@@ -422,7 +425,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 2),
             new CfLoad(ValueType.INT, 3),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
@@ -533,7 +536,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.throwableType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 182,
@@ -582,9 +585,10 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.throwableType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(
-                    FrameType.initialized(
-                        options.itemFactory.createType("Ljava/lang/Exception;")))),
+                new ArrayDeque<>(
+                    Arrays.asList(
+                        FrameType.initialized(
+                            options.itemFactory.createType("Ljava/lang/Exception;"))))),
             new CfStore(ValueType.OBJECT, 2),
             label6,
             new CfNew(options.itemFactory.createType("Ljava/lang/AssertionError;")),
@@ -650,7 +654,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.throwableType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.throwableType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.throwableType)))),
             new CfStore(ValueType.OBJECT, 2),
             label8,
             new CfNew(options.itemFactory.createType("Ljava/lang/AssertionError;")),
@@ -716,10 +721,11 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.throwableType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(
-                    FrameType.initialized(
-                        options.itemFactory.createType(
-                            "Ljava/lang/reflect/InvocationTargetException;")))),
+                new ArrayDeque<>(
+                    Arrays.asList(
+                        FrameType.initialized(
+                            options.itemFactory.createType(
+                                "Ljava/lang/reflect/InvocationTargetException;"))))),
             new CfStore(ValueType.OBJECT, 2),
             label10,
             new CfLoad(ValueType.OBJECT, 2),
@@ -739,7 +745,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.throwableType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfGoto(label16),
             label12,
             new CfFrame(
@@ -749,7 +755,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.throwableType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.throwableType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.throwableType)))),
             new CfStore(ValueType.OBJECT, 2),
             label13,
             new CfLoad(ValueType.OBJECT, 0),
@@ -765,7 +772,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.throwableType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 2),
             label15,
             new CfFrame(
@@ -776,7 +783,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.throwableType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.throwableType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.throwableType)))),
             new CfThrow(),
             label16,
             new CfFrame(
@@ -786,7 +794,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.throwableType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfReturnVoid(),
             label17),
         ImmutableList.of(
@@ -881,7 +889,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 4),
             new CfLoad(ValueType.INT, 3),
             new CfIfCmp(If.Type.GE, ValueType.INT, label5),
@@ -920,7 +928,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/ArrayList;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
@@ -1040,7 +1048,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 4),
             new CfLoad(ValueType.INT, 3),
             new CfIfCmp(If.Type.GE, ValueType.INT, label8),
@@ -1158,7 +1166,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfIinc(4, 1),
             new CfGoto(label2),
             label8,
@@ -1170,7 +1178,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("[Ljava/util/Map$Entry;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/HashMap;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
@@ -1234,7 +1242,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 4),
             new CfLoad(ValueType.INT, 3),
             new CfIfCmp(If.Type.GE, ValueType.INT, label6),
@@ -1319,7 +1327,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfIinc(4, 1),
             new CfGoto(label2),
             label6,
@@ -1330,7 +1338,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/HashSet;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
@@ -1402,7 +1410,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("Ljava/util/ArrayList;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/Iterator;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
@@ -1452,7 +1460,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("Ljava/util/Collection;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/ArrayList;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
@@ -1533,7 +1541,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/HashMap;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/Iterator;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
@@ -1611,7 +1619,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/Map;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/HashMap;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
@@ -1682,7 +1690,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/HashSet;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/Iterator;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
@@ -1732,7 +1740,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("Ljava/util/Collection;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/HashSet;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 184,
@@ -1910,14 +1918,15 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.doubleType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.doubleType)}),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label3),
         ImmutableList.of(),
@@ -1962,14 +1971,15 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.floatType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.floatType)}),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label3),
         ImmutableList.of(),
@@ -2001,7 +2011,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 0),
             new CfLoad(ValueType.INT, 1),
             new CfIfCmp(If.Type.GE, ValueType.INT, label2),
@@ -2015,7 +2025,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(1, ValueType.INT),
             label3,
             new CfFrame(
@@ -2025,7 +2035,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label4),
         ImmutableList.of(),
@@ -2188,7 +2199,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.INT, 1),
             new CfInvoke(
@@ -2292,7 +2303,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 2),
             new CfNumberConversion(NumericType.LONG, NumericType.INT),
             new CfReturn(ValueType.INT),
@@ -2509,7 +2520,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(1, ValueType.LONG),
             new CfReturn(ValueType.LONG),
             label6,
@@ -2520,7 +2531,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(0, ValueType.LONG),
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
@@ -2538,7 +2549,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(1, ValueType.INT),
             new CfLogicalBinop(CfLogicalBinop.Opcode.Ushr, NumericType.LONG),
@@ -2584,7 +2595,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.longType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.longType)))),
             new CfConstNumber(0, ValueType.INT),
             label14,
             new CfFrame(
@@ -2598,9 +2610,10 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(
-                    FrameType.initialized(options.itemFactory.longType),
-                    FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(
+                        FrameType.initialized(options.itemFactory.longType),
+                        FrameType.initialized(options.itemFactory.intType)))),
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
             new CfReturn(ValueType.LONG),
@@ -2721,7 +2734,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 1),
             new CfConstNumber(2, ValueType.INT),
             new CfIfCmp(If.Type.LT, ValueType.INT, label4),
@@ -2737,7 +2750,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.createType("Ljava/lang/NumberFormatException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstString(options.itemFactory.createString("illegal radix: ")),
@@ -2776,7 +2789,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(-1, ValueType.LONG),
             new CfLoad(ValueType.INT, 1),
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
@@ -2819,7 +2832,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label8,
             new CfFrame(
@@ -2831,7 +2844,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfStore(ValueType.INT, 5),
             label9,
             new CfConstNumber(0, ValueType.LONG),
@@ -2852,7 +2866,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 8),
             new CfLoad(ValueType.INT, 2),
             new CfIfCmp(If.Type.GE, ValueType.INT, label20),
@@ -2910,7 +2924,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 6),
             new CfConstNumber(0, ValueType.LONG),
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
@@ -2954,7 +2968,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.createType("Ljava/lang/NumberFormatException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfConstString(options.itemFactory.createString("Too large for unsigned long: ")),
@@ -2990,7 +3004,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 6),
             new CfLoad(ValueType.INT, 1),
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
@@ -3014,7 +3028,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 6),
             new CfReturn(ValueType.LONG),
             label21),
@@ -3077,7 +3091,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 0),
             new CfLoad(ValueType.LONG, 2),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
@@ -3090,7 +3104,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(0, ValueType.LONG),
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
@@ -3108,7 +3122,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(1, ValueType.INT),
             new CfLogicalBinop(CfLogicalBinop.Opcode.Ushr, NumericType.LONG),
@@ -3154,7 +3168,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.longType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.longType)))),
             new CfConstNumber(0, ValueType.LONG),
             label14,
             new CfFrame(
@@ -3168,9 +3183,10 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(
-                    FrameType.initialized(options.itemFactory.longType),
-                    FrameType.initialized(options.itemFactory.longType))),
+                new ArrayDeque<>(
+                    Arrays.asList(
+                        FrameType.initialized(options.itemFactory.longType),
+                        FrameType.initialized(options.itemFactory.longType)))),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
             new CfReturn(ValueType.LONG),
             label15),
@@ -3255,7 +3271,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(0, ValueType.LONG),
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
@@ -3282,7 +3298,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 2),
             new CfConstNumber(2, ValueType.INT),
             new CfIfCmp(If.Type.LT, ValueType.INT, label5),
@@ -3297,7 +3313,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(10, ValueType.INT),
             new CfStore(ValueType.INT, 2),
             label6,
@@ -3308,7 +3324,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(64, ValueType.INT),
             new CfNewArray(options.itemFactory.charArrayType),
             new CfStore(ValueType.OBJECT, 3),
@@ -3351,7 +3367,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 3),
             new CfIinc(4, -1),
             new CfLoad(ValueType.INT, 4),
@@ -3393,7 +3409,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.charArrayType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 2),
             new CfConstNumber(1, ValueType.INT),
             new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.INT),
@@ -3420,7 +3436,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.charArrayType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 0),
             new CfLoad(ValueType.INT, 2),
             new CfNumberConversion(NumericType.INT, NumericType.LONG),
@@ -3446,7 +3462,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 0),
             new CfLoad(ValueType.LONG, 5),
             new CfLoad(ValueType.INT, 2),
@@ -3487,7 +3503,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(0, ValueType.LONG),
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
@@ -3530,7 +3546,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.charArrayType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.stringType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.OBJECT, 3),
@@ -3598,7 +3614,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
@@ -3652,7 +3668,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label3,
             new CfFrame(
@@ -3663,7 +3679,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfLoad(ValueType.LONG, 0),
             new CfLoad(ValueType.LONG, 4),
             new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
@@ -3681,7 +3698,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfConstNumber(0, ValueType.INT),
             label5,
             new CfFrame(
@@ -3692,9 +3710,10 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(
-                    FrameType.initialized(options.itemFactory.intType),
-                    FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(
+                        FrameType.initialized(options.itemFactory.intType),
+                        FrameType.initialized(options.itemFactory.intType)))),
             new CfLogicalBinop(CfLogicalBinop.Opcode.Or, NumericType.INT),
             new CfIf(If.Type.EQ, ValueType.INT, label7),
             label6,
@@ -3709,7 +3728,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
@@ -3755,7 +3774,7 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.intType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 0),
             new CfConstNumber(1, ValueType.INT),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
@@ -3796,7 +3815,7 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.longType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(1, ValueType.LONG),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.LONG),
@@ -3849,7 +3868,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(1, ValueType.INT),
             new CfLoad(ValueType.INT, 0),
             new CfLoad(ValueType.INT, 1),
@@ -3876,7 +3895,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 2),
             label7,
             new CfFrame(
@@ -3889,7 +3908,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label8),
         ImmutableList.of(),
@@ -3941,7 +3961,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(1, ValueType.LONG),
             new CfLoad(ValueType.LONG, 0),
             new CfLoad(ValueType.LONG, 2),
@@ -3970,7 +3990,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 4),
             label7,
             new CfFrame(
@@ -3983,7 +4003,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.longType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.longType)))),
             new CfReturn(ValueType.LONG),
             label8),
         ImmutableList.of(),
@@ -4052,7 +4073,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(1, ValueType.INT),
             new CfLoad(ValueType.INT, 0),
             new CfLoad(ValueType.INT, 1),
@@ -4076,7 +4097,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 2),
             new CfLoad(ValueType.INT, 1),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
@@ -4090,7 +4111,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label7),
         ImmutableList.of(),
@@ -4133,7 +4155,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(1, ValueType.LONG),
             new CfLoad(ValueType.LONG, 0),
             new CfLoad(ValueType.LONG, 2),
@@ -4159,7 +4181,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 4),
             new CfLoad(ValueType.LONG, 2),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
@@ -4173,7 +4195,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.longType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.longType)))),
             new CfReturn(ValueType.LONG),
             label7),
         ImmutableList.of(),
@@ -4239,7 +4262,7 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.intType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 0),
             new CfConstNumber(1, ValueType.INT),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
@@ -4280,7 +4303,7 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.longType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 0),
             new CfConstNumber(1, ValueType.LONG),
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
@@ -4332,7 +4355,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
@@ -4438,7 +4461,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 4),
             new CfConstNumber(64, ValueType.INT),
             new CfIfCmp(If.Type.LT, ValueType.INT, label15),
@@ -4457,7 +4480,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label9,
             new CfFrame(
@@ -4468,7 +4491,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfLoad(ValueType.LONG, 2),
             new CfConstNumber(-9223372036854775808L, ValueType.LONG),
             new CfCmp(Cmp.Bias.NONE, NumericType.LONG),
@@ -4484,7 +4508,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfConstNumber(0, ValueType.INT),
             label11,
             new CfFrame(
@@ -4495,9 +4520,10 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList(
-                    FrameType.initialized(options.itemFactory.intType),
-                    FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(
+                        FrameType.initialized(options.itemFactory.intType),
+                        FrameType.initialized(options.itemFactory.intType)))),
             new CfLogicalBinop(CfLogicalBinop.Opcode.Or, NumericType.INT),
             new CfIf(If.Type.EQ, ValueType.INT, label15),
             label12,
@@ -4526,7 +4552,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 5),
             new CfReturn(ValueType.LONG),
             label15,
@@ -4538,7 +4564,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
@@ -4736,7 +4762,7 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.intType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 0),
             new CfNeg(NumericType.INT),
             new CfReturn(ValueType.INT),
@@ -4776,7 +4802,7 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.longType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.LONG, 0),
             new CfNeg(NumericType.LONG),
             new CfReturn(ValueType.LONG),
@@ -4879,7 +4905,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
@@ -4933,7 +4959,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label3,
             new CfFrame(
@@ -4944,7 +4970,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfLoad(ValueType.LONG, 0),
             new CfLoad(ValueType.LONG, 4),
             new CfLogicalBinop(CfLogicalBinop.Opcode.Xor, NumericType.LONG),
@@ -4962,7 +4989,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfConstNumber(0, ValueType.INT),
             label5,
             new CfFrame(
@@ -4973,9 +5001,10 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList(
-                    FrameType.initialized(options.itemFactory.intType),
-                    FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(
+                        FrameType.initialized(options.itemFactory.intType),
+                        FrameType.initialized(options.itemFactory.intType)))),
             new CfLogicalBinop(CfLogicalBinop.Opcode.Or, NumericType.INT),
             new CfIf(If.Type.EQ, ValueType.INT, label7),
             label6,
@@ -4990,7 +5019,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.longType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.createType("Ljava/lang/ArithmeticException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
@@ -5046,7 +5075,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.longType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 2),
             new CfReturn(ValueType.INT),
             label4),
@@ -5086,7 +5115,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.createType("Ljava/lang/IndexOutOfBoundsException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfNew(options.itemFactory.stringBuilderType),
@@ -5195,7 +5224,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 0),
             new CfReturn(ValueType.INT),
             label3),
@@ -5231,7 +5260,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.createType("Ljava/lang/IndexOutOfBoundsException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfNew(options.itemFactory.stringBuilderType),
@@ -5322,7 +5351,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 0),
             new CfReturn(ValueType.INT),
             label3),
@@ -5354,7 +5383,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.createType("Ljava/lang/IndexOutOfBoundsException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfNew(options.itemFactory.stringBuilderType),
@@ -5426,7 +5455,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 0),
             new CfReturn(ValueType.INT),
             label3),
@@ -5460,7 +5489,7 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/Comparator;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 2),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
@@ -5484,7 +5513,8 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/Comparator;"))
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label3),
         ImmutableList.of(),
@@ -5551,7 +5581,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfIf(If.Type.NE, ValueType.OBJECT, label2),
             new CfConstNumber(0, ValueType.INT),
@@ -5564,7 +5594,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.booleanArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label6),
@@ -5597,7 +5627,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label5,
             new CfFrame(
@@ -5607,7 +5637,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label6,
             new CfFrame(
@@ -5617,7 +5648,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.byteArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label10),
@@ -5650,7 +5681,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label9,
             new CfFrame(
@@ -5660,7 +5691,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label10,
             new CfFrame(
@@ -5670,7 +5702,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.charArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label14),
@@ -5703,7 +5735,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label13,
             new CfFrame(
@@ -5713,7 +5745,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label14,
             new CfFrame(
@@ -5723,7 +5756,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.doubleArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label18),
@@ -5756,7 +5789,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label17,
             new CfFrame(
@@ -5766,7 +5799,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label18,
             new CfFrame(
@@ -5776,7 +5810,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.floatArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label22),
@@ -5809,7 +5843,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label21,
             new CfFrame(
@@ -5819,7 +5853,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label22,
             new CfFrame(
@@ -5829,7 +5864,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.intArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label26),
@@ -5862,7 +5897,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label25,
             new CfFrame(
@@ -5872,7 +5907,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label26,
             new CfFrame(
@@ -5882,7 +5918,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.longArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label30),
@@ -5915,7 +5951,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label29,
             new CfFrame(
@@ -5925,7 +5961,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label30,
             new CfFrame(
@@ -5935,7 +5972,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.shortArrayType),
             new CfIf(If.Type.EQ, ValueType.INT, label34),
@@ -5968,7 +6005,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label33,
             new CfFrame(
@@ -5978,7 +6015,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label34,
             new CfFrame(
@@ -5988,7 +6026,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInstanceOf(options.itemFactory.createType("[Ljava/lang/Object;")),
             new CfIf(If.Type.EQ, ValueType.INT, label38),
@@ -6021,7 +6059,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label37,
             new CfFrame(
@@ -6031,7 +6069,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label38,
             new CfFrame(
@@ -6041,7 +6080,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
@@ -6094,7 +6133,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(1, ValueType.INT),
             new CfGoto(label3),
             label2,
@@ -6105,7 +6144,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label3,
             new CfFrame(
@@ -6115,7 +6154,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label4),
         ImmutableList.of(),
@@ -6142,7 +6182,7 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
@@ -6156,7 +6196,8 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label3),
         ImmutableList.of(),
@@ -6183,14 +6224,15 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label3),
         ImmutableList.of(),
@@ -6217,14 +6259,15 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label3),
         ImmutableList.of(),
@@ -6254,7 +6297,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 1),
             new CfConstString(options.itemFactory.createString("defaultObj")),
             new CfInvoke(
@@ -6298,7 +6341,7 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/function/Supplier;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 1),
             new CfConstString(options.itemFactory.createString("supplier")),
             new CfInvoke(
@@ -6374,7 +6417,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.stringType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfReturn(ValueType.OBJECT),
             label3),
@@ -6432,7 +6475,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.stringType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
@@ -6449,7 +6492,8 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType),
                       FrameType.initialized(options.itemFactory.stringType)
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.stringType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.stringType)))),
             new CfReturn(ValueType.OBJECT),
             label3),
         ImmutableList.of(),
@@ -6506,7 +6550,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("Ljava/util/function/Consumer;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
@@ -6525,7 +6569,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("Ljava/util/function/Consumer;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfReturnVoid(),
             label4),
         ImmutableList.of(),
@@ -6584,7 +6628,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("Ljava/util/function/DoubleConsumer;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
@@ -6604,7 +6648,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("Ljava/util/function/DoubleConsumer;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfReturnVoid(),
             label4),
         ImmutableList.of(),
@@ -6663,7 +6707,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("Ljava/util/function/IntConsumer;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
@@ -6683,7 +6727,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("Ljava/util/function/IntConsumer;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfReturnVoid(),
             label4),
         ImmutableList.of(),
@@ -6742,7 +6786,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("Ljava/util/function/LongConsumer;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 185,
@@ -6762,7 +6806,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("Ljava/util/function/LongConsumer;")),
                       FrameType.initialized(options.itemFactory.createType("Ljava/lang/Runnable;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfReturnVoid(),
             label4),
         ImmutableList.of(),
@@ -6798,7 +6842,7 @@ public final class BackportedMethods {
                     new FrameType[] {
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/Optional;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
@@ -6807,7 +6851,8 @@ public final class BackportedMethods {
                     new FrameType[] {
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/Optional;"))
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label3),
         ImmutableList.of(),
@@ -6844,7 +6889,7 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/OptionalDouble;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
@@ -6854,7 +6899,8 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/OptionalDouble;"))
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label3),
         ImmutableList.of(),
@@ -6891,7 +6937,7 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/OptionalInt;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
@@ -6901,7 +6947,8 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/OptionalInt;"))
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label3),
         ImmutableList.of(),
@@ -6938,7 +6985,7 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/OptionalLong;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(0, ValueType.INT),
             label2,
             new CfFrame(
@@ -6948,7 +6995,8 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/OptionalLong;"))
                     }),
-                Arrays.asList(FrameType.initialized(options.itemFactory.intType))),
+                new ArrayDeque<>(
+                    Arrays.asList(FrameType.initialized(options.itemFactory.intType)))),
             new CfReturn(ValueType.INT),
             label3),
         ImmutableList.of(),
@@ -7000,7 +7048,7 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/function/Supplier;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 1),
             new CfInvoke(
                 185,
@@ -7074,7 +7122,7 @@ public final class BackportedMethods {
                     new FrameType[] {
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/Optional;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfInvoke(
                 184,
                 options.itemFactory.createMethod(
@@ -7136,7 +7184,7 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/OptionalDouble;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfInvoke(
                 184,
                 options.itemFactory.createMethod(
@@ -7198,7 +7246,7 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/OptionalInt;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfInvoke(
                 184,
                 options.itemFactory.createMethod(
@@ -7260,7 +7308,7 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("Ljava/util/OptionalLong;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfInvoke(
                 184,
                 options.itemFactory.createMethod(
@@ -7379,7 +7427,7 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 184,
@@ -7395,9 +7443,10 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
-                Arrays.asList(
-                    FrameType.initialized(
-                        options.itemFactory.createType("Ljava/util/stream/Stream;")))),
+                new ArrayDeque<>(
+                    Arrays.asList(
+                        FrameType.initialized(
+                            options.itemFactory.createType("Ljava/util/stream/Stream;"))))),
             new CfReturn(ValueType.OBJECT),
             label3),
         ImmutableList.of(),
@@ -7442,7 +7491,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 1),
             new CfLoad(ValueType.INT, 2),
             new CfIfCmp(If.Type.GE, ValueType.INT, label8),
@@ -7482,7 +7531,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 1),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
@@ -7502,7 +7551,7 @@ public final class BackportedMethods {
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0},
                     new FrameType[] {FrameType.initialized(options.itemFactory.stringType)}),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstNumber(1, ValueType.INT),
             new CfReturn(ValueType.INT),
             label9),
@@ -7551,7 +7600,7 @@ public final class BackportedMethods {
                       FrameType.initialized(
                           options.itemFactory.createType("[Ljava/lang/CharSequence;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
@@ -7595,7 +7644,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.stringBuilderType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 3),
             new CfLoad(ValueType.OBJECT, 1),
             new CfArrayLength(),
@@ -7641,7 +7690,7 @@ public final class BackportedMethods {
                           options.itemFactory.createType("[Ljava/lang/CharSequence;")),
                       FrameType.initialized(options.itemFactory.stringBuilderType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 182,
@@ -7695,7 +7744,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.charSequenceType),
                       FrameType.initialized(options.itemFactory.createType("Ljava/lang/Iterable;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
@@ -7758,7 +7807,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.stringBuilderType),
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/Iterator;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
                 185,
@@ -7813,7 +7862,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.stringBuilderType),
                       FrameType.initialized(options.itemFactory.createType("Ljava/util/Iterator;"))
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 2),
             new CfInvoke(
                 182,
@@ -7905,7 +7954,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
                 182,
@@ -7929,7 +7978,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfConstString(options.itemFactory.createString("")),
             new CfReturn(ValueType.OBJECT),
             label5,
@@ -7941,7 +7990,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 1),
             new CfConstNumber(1, ValueType.INT),
             new CfIfCmp(If.Type.NE, ValueType.INT, label7),
@@ -7957,7 +8006,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.INT, 2),
@@ -7986,7 +8035,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.stringBuilderType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 4),
             new CfLoad(ValueType.INT, 1),
             new CfIfCmp(If.Type.GE, ValueType.INT, label12),
@@ -8015,7 +8064,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.stringBuilderType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 3),
             new CfInvoke(
                 182,
@@ -8074,7 +8123,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 1),
             new CfLoad(ValueType.INT, 2),
             new CfIfCmp(If.Type.GE, ValueType.INT, label8),
@@ -8113,7 +8162,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 1),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
@@ -8137,7 +8186,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 2),
             new CfLoad(ValueType.INT, 1),
             new CfIfCmp(If.Type.LE, ValueType.INT, label14),
@@ -8178,7 +8227,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 2),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
@@ -8202,7 +8251,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.INT, 1),
             new CfLoad(ValueType.INT, 2),
@@ -8260,7 +8309,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 1),
             new CfLoad(ValueType.INT, 2),
             new CfIfCmp(If.Type.GE, ValueType.INT, label8),
@@ -8299,7 +8348,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 1),
             new CfLoad(ValueType.INT, 3),
             new CfInvoke(
@@ -8323,7 +8372,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfLoad(ValueType.INT, 1),
             new CfLoad(ValueType.INT, 2),
@@ -8376,7 +8425,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 1),
             new CfIf(If.Type.LE, ValueType.INT, label7),
             label2,
@@ -8415,7 +8464,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 1),
             new CfLoad(ValueType.INT, 2),
             new CfInvoke(
@@ -8438,7 +8487,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.intType)
                     }),
-                Arrays.asList()),
+                new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 0),
             new CfConstNumber(0, ValueType.INT),
             new CfLoad(ValueType.INT, 1),

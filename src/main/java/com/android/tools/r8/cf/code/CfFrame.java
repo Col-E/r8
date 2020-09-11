@@ -28,7 +28,6 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.List;
 import java.util.Objects;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -333,11 +332,6 @@ public class CfFrame extends CfInstruction {
 
   private final Int2ReferenceSortedMap<FrameType> locals;
   private final Deque<FrameType> stack;
-
-  // TODO(mkroghj): Temporary constructor to satisfy compilation of CfCode generated code.
-  public CfFrame(Int2ReferenceSortedMap<FrameType> locals, List<FrameType> stack) {
-    this(locals, new ArrayDeque<>(stack));
-  }
 
   public CfFrame(Int2ReferenceSortedMap<FrameType> locals, Deque<FrameType> stack) {
     assert locals.values().stream().allMatch(Objects::nonNull);

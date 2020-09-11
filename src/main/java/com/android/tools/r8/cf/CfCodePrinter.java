@@ -202,6 +202,10 @@ public class CfCodePrinter extends CfPrinter {
     return r8Type("DexItemFactory", "graph");
   }
 
+  private String arrayDequeType() {
+    return type("ArrayDeque", ImmutableList.of("java", "util"));
+  }
+
   private String arraysType() {
     return type("Arrays", ImmutableList.of("java", "util"));
   }
@@ -464,7 +468,7 @@ public class CfCodePrinter extends CfPrinter {
             + "[] { "
             + values
             + " })",
-        arraysType() + ".asList(" + stack + ")");
+        "new " + arrayDequeType() + "<>(" + arraysType() + ".asList(" + stack + "))");
   }
 
   private String frameTypeType(FrameType frameType) {

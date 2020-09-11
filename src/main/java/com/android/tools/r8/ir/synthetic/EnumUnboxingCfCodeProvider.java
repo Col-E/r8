@@ -33,8 +33,8 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
+import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
@@ -112,7 +112,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
               addCfInstructionsForAbstractValue(instructions, value, returnType);
               instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
               instructions.add(dest);
-              instructions.add(new CfFrame(locals, ImmutableList.of()));
+              instructions.add(new CfFrame(locals, ImmutableDeque.of()));
             }
           });
 
@@ -176,7 +176,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
           new CfInvoke(Opcodes.INVOKESPECIAL, factory.npeMethods.initWithMessage, false));
       instructions.add(new CfThrow());
       instructions.add(nullDest);
-      instructions.add(new CfFrame(locals, ImmutableList.of()));
+      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
 
       // if (s.equals("A")) { return 1;}
       // if (s.equals("B")) { return 2;}
@@ -192,7 +192,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
             instructions.add(new CfConstNumber(enumValueInfo.convertToInt(), ValueType.INT));
             instructions.add(new CfReturn(ValueType.INT));
             instructions.add(dest);
-            instructions.add(new CfFrame(locals, ImmutableList.of()));
+            instructions.add(new CfFrame(locals, ImmutableDeque.of()));
           });
 
       // throw new IllegalArgumentException("No enum constant com.x.MyEnum." + s);
@@ -255,7 +255,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       instructions.add(nullDest);
       instructions.add(
           new CfFrame(
-              ImmutableInt2ReferenceSortedMap.<FrameType>builder().build(), ImmutableList.of()));
+              ImmutableInt2ReferenceSortedMap.<FrameType>builder().build(), ImmutableDeque.of()));
       instructions.add(new CfFieldInstruction(Opcodes.GETSTATIC, utilityField, utilityField));
       instructions.add(new CfReturn(ValueType.OBJECT));
       return standardCfCodeFromInstructions(instructions);

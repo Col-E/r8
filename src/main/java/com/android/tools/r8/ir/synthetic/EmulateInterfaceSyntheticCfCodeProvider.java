@@ -22,8 +22,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
@@ -81,7 +81,7 @@ public class EmulateInterfaceSyntheticCfCodeProvider extends SyntheticCfCodeProv
     for (Pair<DexType, DexMethod> dispatch : extraDispatchCases) {
       // Type check basic block.
       instructions.add(labels[nextLabel++]);
-      instructions.add(new CfFrame(locals, ImmutableList.of()));
+      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
       instructions.add(new CfLoad(ValueType.fromDexType(interfaceType), 0));
       instructions.add(new CfInstanceOf(dispatch.getFirst()));
       instructions.add(new CfIf(If.Type.EQ, ValueType.INT, labels[nextLabel]));
@@ -96,7 +96,7 @@ public class EmulateInterfaceSyntheticCfCodeProvider extends SyntheticCfCodeProv
 
     // Branch with companion call.
     instructions.add(labels[nextLabel]);
-    instructions.add(new CfFrame(locals, ImmutableList.of()));
+    instructions.add(new CfFrame(locals, ImmutableDeque.of()));
     instructions.add(new CfLoad(ValueType.fromDexType(interfaceType), 0));
     loadExtraParameters(instructions);
     instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, companionMethod, false));
