@@ -12,6 +12,7 @@ import com.android.tools.r8.references.ClassReference;
 import java.util.List;
 import java.util.function.Consumer;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
+import org.junit.rules.TemporaryFolder;
 
 public class AbsentClassSubject extends ClassSubject {
 
@@ -190,7 +191,12 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
-  public void disassembleUsingJavap(boolean verbose) throws Exception {
+  public String disassembleUsingJavap(boolean verbose) throws Exception {
     throw new Unreachable("Cannot disassembly an absent class");
+  }
+
+  @Override
+  public String asmify(TemporaryFolder tempFolder, boolean debug) throws Exception {
+    throw new Unreachable("Cannot asmify an absent class");
   }
 }

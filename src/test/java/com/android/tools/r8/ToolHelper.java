@@ -121,6 +121,9 @@ public class ToolHelper {
   public static final String JAVA_CLASSES_DIR = BUILD_DIR + "classes/java/";
   public static final String JDK_11_TESTS_CLASSES_DIR = JAVA_CLASSES_DIR + "jdk11Tests/";
 
+  public static final String ASM_JAR = BUILD_DIR + "deps/asm-8.0.jar";
+  public static final String ASM_UTIL_JAR = BUILD_DIR + "deps/asm-util-8.0.jar";
+
   public static final Path API_SAMPLE_JAR = Paths.get("tests", "r8_api_usage_sample.jar");
 
   public static final String LINE_SEPARATOR = StringUtils.LINE_SEPARATOR;

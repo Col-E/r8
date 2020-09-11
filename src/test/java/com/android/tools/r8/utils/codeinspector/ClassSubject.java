@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
+import org.junit.rules.TemporaryFolder;
 
 public abstract class ClassSubject extends Subject {
 
@@ -217,5 +218,7 @@ public abstract class ClassSubject extends Subject {
 
   public abstract ClassNamingForNameMapper getNaming();
 
-  public abstract void disassembleUsingJavap(boolean verbose) throws Exception;
+  public abstract String disassembleUsingJavap(boolean verbose) throws Exception;
+
+  public abstract String asmify(TemporaryFolder tempFolder, boolean debug) throws Exception;
 }

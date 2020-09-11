@@ -30,10 +30,14 @@ import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ZipUtils;
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
+import org.junit.rules.TemporaryFolder;
 
 public class FoundClassSubject extends ClassSubject {
 
@@ -424,7 +428,7 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
-  public void disassembleUsingJavap(boolean verbose) throws Exception {
+  public String disassembleUsingJavap(boolean verbose) throws Exception {
     assert dexClass.origin != null;
     List<String> command = new ArrayList<>();
     command.add(
@@ -442,5 +446,34 @@ public class FoundClassSubject extends ClassSubject {
     ProcessResult processResult = ToolHelper.runProcess(new ProcessBuilder(command));
     assert processResult.exitCode == 0;
     System.out.println(processResult.stdout);
+    return processResult.stdout;
+  }
+
+  @Override
+  public String asmify(TemporaryFolder tempFolder, boolean debug) throws Exception {
+    assert dexClass.origin != null;
+    List<String> parts = dexClass.origin.parts();
+    assert parts.size() == 2;
+    String directory = parts.get(0);
+    String fileName = parts.get(1);
+    if (directory.endsWith(".jar") || directory.endsWith(".zip")) {
+      File tempOut = tempFolder.newFolder();
+      ZipUtils.unzip(directory, tempOut);
+      directory = tempOut.getAbsolutePath();
+    }
+    List<String> command = new ArrayList<>();
+    command.add(
+        CfRuntime.getCheckedInJdk9().getJavaHome().resolve("bin").resolve("java").toString());
+    command.add("-cp");
+    command.add(ToolHelper.ASM_JAR + ":" + ToolHelper.ASM_UTIL_JAR);
+    command.add("org.objectweb.asm.util.ASMifier");
+    if (!debug) {
+      command.add("-debug");
+    }
+    command.add(Paths.get(directory, fileName).toString());
+    ProcessResult processResult = ToolHelper.runProcess(new ProcessBuilder(command));
+    assert processResult.exitCode == 0;
+    System.out.println(processResult.stdout);
+    return processResult.stdout;
   }
 }
