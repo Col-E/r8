@@ -26,13 +26,7 @@ public class SimplePolicyExecutor extends PolicyExecutor {
     Iterator<Collection<DexProgramClass>> i = groups.iterator();
     while (i.hasNext()) {
       Collection<DexProgramClass> group = i.next();
-      Iterator<DexProgramClass> j = group.iterator();
-      while (j.hasNext()) {
-        DexProgramClass clazz = j.next();
-        if (!policy.canMerge(clazz)) {
-          j.remove();
-        }
-      }
+      group.removeIf(clazz -> !policy.canMerge(clazz));
       if (group.size() < 2) {
         i.remove();
       }
@@ -54,7 +48,7 @@ public class SimplePolicyExecutor extends PolicyExecutor {
     LinkedList<Collection<DexProgramClass>> linkedGroups;
 
     if (inputGroups instanceof LinkedList) {
-      linkedGroups = (LinkedList) inputGroups;
+      linkedGroups = (LinkedList<Collection<DexProgramClass>>) inputGroups;
     } else {
       linkedGroups = new LinkedList<>(inputGroups);
     }
