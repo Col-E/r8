@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexClass.FieldSetter;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -18,11 +17,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexValue.DexValueInt;
-import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.FieldResolutionResult;
@@ -31,9 +26,6 @@ import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -49,7 +41,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.MemberType;
@@ -69,18 +60,14 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationIn
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -379,11 +366,20 @@ public class EnumUnboxer {
             .build();
     enumUnboxerRewriter =
         new EnumUnboxingRewriter(appView, enumsToUnbox, enumInstanceFieldDataMap, relocator);
-    NestedGraphLens enumUnboxingLens = new TreeFixer(enumsToUnbox, relocator).fixupTypeReferences();
+    NestedGraphLens enumUnboxingLens =
+        new EnumUnboxingTreeFixer(appView, enumsToUnbox, relocator, enumUnboxerRewriter)
+            .fixupTypeReferences();
     appView.setUnboxedEnums(enumUnboxerRewriter.getEnumsToUnbox());
     GraphLens previousLens = appView.graphLens();
     appView.rewriteWithLensAndApplication(enumUnboxingLens, appBuilder.build());
-    // Update optimization info.
+    updateOptimizationInfos(executorService, feedback);
+    postBuilder.put(dependencies);
+    postBuilder.rewrittenWithLens(appView, previousLens);
+  }
+
+  private void updateOptimizationInfos(
+      ExecutorService executorService, OptimizationFeedbackDelayed feedback)
+      throws ExecutionException {
     feedback.fixupOptimizationInfos(
         appView,
         executorService,
@@ -415,8 +411,6 @@ public class EnumUnboxer {
             }
           }
         });
-    postBuilder.put(dependencies);
-    postBuilder.rewrittenWithLens(appView, previousLens);
   }
 
   private void updateKeepInfo(Set<DexProgramClass> enumsToUnbox) {
@@ -1108,306 +1102,5 @@ public class EnumUnboxer {
     DYNAMIC_TYPE,
     ENUM_METHOD_CALLED_WITH_NULL_RECEIVER,
     OTHER_UNSUPPORTED_INSTRUCTION;
-  }
-
-  private class TreeFixer {
-
-    private final Map<DexType, List<DexEncodedMethod>> unboxedEnumsMethods =
-        new IdentityHashMap<>();
-    private final EnumUnboxingLens.Builder lensBuilder = EnumUnboxingLens.builder();
-    private final Set<DexType> enumsToUnbox;
-    private final UnboxedEnumMemberRelocator relocator;
-
-    private TreeFixer(Set<DexType> enumsToUnbox, UnboxedEnumMemberRelocator relocator) {
-      this.enumsToUnbox = enumsToUnbox;
-      this.relocator = relocator;
-    }
-
-    private NestedGraphLens fixupTypeReferences() {
-      assert enumUnboxerRewriter != null;
-      // Fix all methods and fields using enums to unbox.
-      for (DexProgramClass clazz : appView.appInfo().classes()) {
-        if (enumsToUnbox.contains(clazz.type)) {
-          // Clear the initializers and move the static methods to the new location.
-          Set<DexEncodedMethod> methodsToRemove = Sets.newIdentityHashSet();
-          clazz
-              .methods()
-              .forEach(
-                  m -> {
-                    if (m.isInitializer()) {
-                      clearEnumToUnboxMethod(m);
-                    } else {
-                      DexType newHolder = relocator.getNewMemberLocationFor(clazz.type);
-                      List<DexEncodedMethod> movedMethods =
-                          unboxedEnumsMethods.computeIfAbsent(newHolder, k -> new ArrayList<>());
-                      movedMethods.add(fixupEncodedMethodToUtility(m, newHolder));
-                      methodsToRemove.add(m);
-                    }
-                  });
-          clazz.getMethodCollection().removeMethods(methodsToRemove);
-        } else {
-          clazz.getMethodCollection().replaceMethods(this::fixupEncodedMethod);
-          fixupFields(clazz.staticFields(), clazz::setStaticField);
-          fixupFields(clazz.instanceFields(), clazz::setInstanceField);
-        }
-      }
-      for (DexType toUnbox : enumsToUnbox) {
-        lensBuilder.map(toUnbox, factory.intType);
-      }
-      unboxedEnumsMethods.forEach(
-          (newHolderType, movedMethods) -> {
-            DexProgramClass newHolderClass = appView.definitionFor(newHolderType).asProgramClass();
-            newHolderClass.addDirectMethods(movedMethods);
-          });
-      return lensBuilder.build(factory, appView.graphLens(), enumsToUnbox);
-    }
-
-    private void clearEnumToUnboxMethod(DexEncodedMethod enumMethod) {
-      // The compiler may have references to the enum methods, but such methods will be removed
-      // and they cannot be reprocessed since their rewriting through the lensCodeRewriter/
-      // enumUnboxerRewriter will generate invalid code.
-      // To work around this problem we clear such methods, i.e., we replace the code object by
-      // an empty throwing code object, so reprocessing won't take time and will be valid.
-      enumMethod.setCode(enumMethod.buildEmptyThrowingCode(appView.options()), appView);
-    }
-
-    private DexEncodedMethod fixupEncodedMethodToUtility(
-        DexEncodedMethod encodedMethod, DexType newHolder) {
-      DexMethod method = encodedMethod.method;
-      DexString newMethodName =
-          factory.createString(
-              enumUnboxerRewriter.compatibleName(method.holder)
-                  + "$"
-                  + (encodedMethod.isStatic() ? "s" : "v")
-                  + "$"
-                  + method.name.toString());
-      DexProto proto =
-          encodedMethod.isStatic() ? method.proto : factory.prependHolderToProto(method);
-      DexMethod newMethod = factory.createMethod(newHolder, fixupProto(proto), newMethodName);
-      assert appView.definitionFor(encodedMethod.holder()).lookupMethod(newMethod) == null;
-      lensBuilder.move(method, encodedMethod.isStatic(), newMethod, true);
-      encodedMethod.accessFlags.promoteToPublic();
-      encodedMethod.accessFlags.promoteToStatic();
-      encodedMethod.clearAnnotations();
-      encodedMethod.clearParameterAnnotations();
-      return encodedMethod.toTypeSubstitutedMethod(newMethod);
-    }
-
-    private DexEncodedMethod fixupEncodedMethod(DexEncodedMethod encodedMethod) {
-      DexProto newProto = fixupProto(encodedMethod.proto());
-      if (newProto == encodedMethod.proto()) {
-        return encodedMethod;
-      }
-      assert !encodedMethod.isClassInitializer();
-      // We add the $enumunboxing$ suffix to make sure we do not create a library override.
-      String newMethodName =
-          encodedMethod.getName().toString()
-              + (encodedMethod.isNonPrivateVirtualMethod() ? "$enumunboxing$" : "");
-      DexMethod newMethod = factory.createMethod(encodedMethod.holder(), newProto, newMethodName);
-      newMethod = ensureUniqueMethod(encodedMethod, newMethod);
-      int numberOfExtraNullParameters = newMethod.getArity() - encodedMethod.method.getArity();
-      boolean isStatic = encodedMethod.isStatic();
-      lensBuilder.move(
-          encodedMethod.method, isStatic, newMethod, isStatic, numberOfExtraNullParameters);
-      DexEncodedMethod newEncodedMethod = encodedMethod.toTypeSubstitutedMethod(newMethod);
-      assert !encodedMethod.isLibraryMethodOverride().isTrue()
-          : "Enum unboxing is changing the signature of a library override in a non unboxed class.";
-      if (newEncodedMethod.isNonPrivateVirtualMethod()) {
-        newEncodedMethod.setLibraryMethodOverride(OptionalBool.FALSE);
-      }
-      return newEncodedMethod;
-    }
-
-    private DexMethod ensureUniqueMethod(DexEncodedMethod encodedMethod, DexMethod newMethod) {
-      DexClass holder = appView.definitionFor(encodedMethod.holder());
-      assert holder != null;
-      if (encodedMethod.isInstanceInitializer()) {
-        while (holder.lookupMethod(newMethod) != null) {
-          newMethod =
-              factory.createMethod(
-                  newMethod.holder,
-                  factory.appendTypeToProto(
-                      newMethod.proto, relocator.getDefaultEnumUnboxingUtility()),
-                  newMethod.name);
-        }
-      } else {
-        int index = 0;
-        while (holder.lookupMethod(newMethod) != null) {
-          newMethod =
-              factory.createMethod(
-                  newMethod.holder,
-                  newMethod.proto,
-                  encodedMethod.getName().toString() + "$enumunboxing$" + index++);
-        }
-      }
-      return newMethod;
-    }
-
-    private void fixupFields(List<DexEncodedField> fields, FieldSetter setter) {
-      if (fields == null) {
-        return;
-      }
-      for (int i = 0; i < fields.size(); i++) {
-        DexEncodedField encodedField = fields.get(i);
-        DexField field = encodedField.field;
-        DexType newType = fixupType(field.type);
-        if (newType != field.type) {
-          DexField newField = factory.createField(field.holder, newType, field.name);
-          lensBuilder.move(field, newField);
-          DexEncodedField newEncodedField = encodedField.toTypeSubstitutedField(newField);
-          setter.setField(i, newEncodedField);
-          if (encodedField.isStatic() && encodedField.hasExplicitStaticValue()) {
-            assert encodedField.getStaticValue() == DexValueNull.NULL;
-            newEncodedField.setStaticValue(DexValueInt.DEFAULT);
-            // TODO(b/150593449): Support conversion from DexValueEnum to DexValueInt.
-          }
-        }
-      }
-    }
-
-    private DexProto fixupProto(DexProto proto) {
-      DexType returnType = fixupType(proto.returnType);
-      DexType[] arguments = fixupTypes(proto.parameters.values);
-      return factory.createProto(returnType, arguments);
-    }
-
-    private DexType fixupType(DexType type) {
-      if (type.isArrayType()) {
-        DexType base = type.toBaseType(factory);
-        DexType fixed = fixupType(base);
-        if (base == fixed) {
-          return type;
-        }
-        return type.replaceBaseType(fixed, factory);
-      }
-      if (type.isClassType() && enumsToUnbox.contains(type)) {
-        DexType intType = factory.intType;
-        lensBuilder.map(type, intType);
-        return intType;
-      }
-      return type;
-    }
-
-    private DexType[] fixupTypes(DexType[] types) {
-      DexType[] result = new DexType[types.length];
-      for (int i = 0; i < result.length; i++) {
-        result[i] = fixupType(types[i]);
-      }
-      return result;
-    }
-  }
-
-  private static class EnumUnboxingLens extends NestedGraphLens {
-
-    private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod;
-    private final Set<DexType> unboxedEnums;
-
-    EnumUnboxingLens(
-        Map<DexType, DexType> typeMap,
-        Map<DexMethod, DexMethod> methodMap,
-        Map<DexField, DexField> fieldMap,
-        BiMap<DexField, DexField> originalFieldSignatures,
-        BiMap<DexMethod, DexMethod> originalMethodSignatures,
-        GraphLens previousLens,
-        DexItemFactory dexItemFactory,
-        Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod,
-        Set<DexType> unboxedEnums) {
-      super(
-          typeMap,
-          methodMap,
-          fieldMap,
-          originalFieldSignatures,
-          originalMethodSignatures,
-          previousLens,
-          dexItemFactory);
-      this.prototypeChangesPerMethod = prototypeChangesPerMethod;
-      this.unboxedEnums = unboxedEnums;
-    }
-
-    @Override
-    protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
-        RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
-      // During the second IR processing enum unboxing is the only optimization rewriting
-      // prototype description, if this does not hold, remove the assertion and merge
-      // the two prototype changes.
-      assert prototypeChanges.isEmpty();
-      return prototypeChangesPerMethod.getOrDefault(method, RewrittenPrototypeDescription.none());
-    }
-
-    @Override
-    protected Invoke.Type mapInvocationType(
-        DexMethod newMethod, DexMethod originalMethod, Invoke.Type type) {
-      if (unboxedEnums.contains(originalMethod.holder)) {
-        // Methods moved from unboxed enums to the utility class are either static or statified.
-        assert newMethod != originalMethod;
-        return Invoke.Type.STATIC;
-      }
-      return type;
-    }
-
-    public static Builder builder() {
-      return new Builder();
-    }
-
-    private static class Builder extends NestedGraphLens.Builder {
-
-      private Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
-          new IdentityHashMap<>();
-
-      public void move(DexMethod from, boolean fromStatic, DexMethod to, boolean toStatic) {
-        move(from, fromStatic, to, toStatic, 0);
-      }
-
-      public void move(
-          DexMethod from,
-          boolean fromStatic,
-          DexMethod to,
-          boolean toStatic,
-          int numberOfExtraNullParameters) {
-        super.move(from, to);
-        int offsetDiff = 0;
-        int toOffset = BooleanUtils.intValue(!toStatic);
-        ArgumentInfoCollection.Builder builder = ArgumentInfoCollection.builder();
-        if (fromStatic != toStatic) {
-          assert toStatic;
-          offsetDiff = 1;
-          builder.addArgumentInfo(
-              0, new RewrittenTypeInfo(from.holder, to.proto.parameters.values[0]));
-        }
-        for (int i = 0; i < from.proto.parameters.size(); i++) {
-          DexType fromType = from.proto.parameters.values[i];
-          DexType toType = to.proto.parameters.values[i + offsetDiff];
-          if (fromType != toType) {
-            builder.addArgumentInfo(
-                i + offsetDiff + toOffset, new RewrittenTypeInfo(fromType, toType));
-          }
-        }
-        RewrittenTypeInfo returnInfo =
-            from.proto.returnType == to.proto.returnType
-                ? null
-                : new RewrittenTypeInfo(from.proto.returnType, to.proto.returnType);
-        prototypeChangesPerMethod.put(
-            to,
-            RewrittenPrototypeDescription.createForRewrittenTypes(returnInfo, builder.build())
-                .withExtraUnusedNullParameters(numberOfExtraNullParameters));
-      }
-
-      public EnumUnboxingLens build(
-          DexItemFactory dexItemFactory, GraphLens previousLens, Set<DexType> unboxedEnums) {
-        if (typeMap.isEmpty() && methodMap.isEmpty() && fieldMap.isEmpty()) {
-          return null;
-        }
-        return new EnumUnboxingLens(
-            typeMap,
-            methodMap,
-            fieldMap,
-            originalFieldSignatures,
-            originalMethodSignatures,
-            previousLens,
-            dexItemFactory,
-            ImmutableMap.copyOf(prototypeChangesPerMethod),
-            ImmutableSet.copyOf(unboxedEnums));
-      }
-    }
   }
 }
