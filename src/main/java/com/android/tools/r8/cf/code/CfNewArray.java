@@ -123,4 +123,17 @@ public class CfNewArray extends CfInstruction {
       InliningConstraints inliningConstraints, DexProgramClass context) {
     return inliningConstraints.forNewArrayEmpty(type, context);
   }
+
+  @Override
+  public void evaluate(
+      CfFrameVerificationHelper frameBuilder,
+      DexType context,
+      DexType returnType,
+      DexItemFactory factory,
+      InitClassLens initClassLens) {
+    // ..., count →
+    // ..., arrayref
+    assert type.isArrayType();
+    frameBuilder.popAndDiscard(factory.intType).push(type);
+  }
 }

@@ -310,12 +310,7 @@ public class CfFrontendExamplesTest extends TestBase {
             .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
             .setOutput(outputJar, OutputMode.ClassFile)
             .build();
-    ToolHelper.runR8(
-        command,
-        options -> {
-          options.skipIR = true;
-          options.testing.readInputStackMaps = true;
-        });
+    ToolHelper.runR8(command, options -> options.skipIR = true);
     ArchiveClassFileProvider expected = new ArchiveClassFileProvider(inputJar);
     ArchiveClassFileProvider actual = new ArchiveClassFileProvider(outputJar);
     assertEquals(getSortedDescriptorList(expected), getSortedDescriptorList(actual));

@@ -7,12 +7,15 @@ import static org.objectweb.asm.Opcodes.F_NEW;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.CfCodeStackMapValidatingException;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.code.MemberType;
+import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -20,7 +23,10 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 import org.objectweb.asm.MethodVisitor;
@@ -34,8 +40,8 @@ public class CfFrame extends CfInstruction {
       return new InitializedType(type);
     }
 
-    public static FrameType uninitializedNew(CfLabel label) {
-      return new UninitializedNew(label);
+    public static FrameType uninitializedNew(CfLabel label, DexType typeToInitialize) {
+      return new UninitializedNew(label, typeToInitialize);
     }
 
     public static FrameType uninitializedThis() {
@@ -44,6 +50,14 @@ public class CfFrame extends CfInstruction {
 
     public static FrameType top() {
       return Top.SINGLETON;
+    }
+
+    public static FrameType oneWord() {
+      return OneWord.SINGLETON;
+    }
+
+    public static FrameType twoWord() {
+      return TwoWord.SINGLETON;
     }
 
     abstract Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens);
@@ -72,11 +86,54 @@ public class CfFrame extends CfInstruction {
       return null;
     }
 
+    public DexType getUninitializedNewType() {
+      return null;
+    }
+
     public boolean isTop() {
       return false;
     }
 
+    public boolean isOneWord() {
+      return false;
+    }
+
+    public boolean isTwoWord() {
+      return false;
+    }
+
     private FrameType() {}
+
+    public static FrameType fromMemberType(MemberType memberType, DexItemFactory factory) {
+      switch (memberType) {
+        case OBJECT:
+          return FrameType.initialized(factory.objectType);
+        case BOOLEAN_OR_BYTE:
+          return FrameType.initialized(factory.intType);
+        case CHAR:
+          return FrameType.initialized(factory.intType);
+        case SHORT:
+          return FrameType.initialized(factory.intType);
+        case INT:
+          return FrameType.initialized(factory.intType);
+        case FLOAT:
+          return FrameType.initialized(factory.floatType);
+        case LONG:
+          return FrameType.initialized(factory.longType);
+        case DOUBLE:
+          return FrameType.initialized(factory.doubleType);
+        case INT_OR_FLOAT:
+          return FrameType.oneWord();
+        case LONG_OR_DOUBLE:
+          return FrameType.twoWord();
+        default:
+          throw new Unreachable("Unexpected MemberType: " + memberType);
+      }
+    }
+
+    public static FrameType fromNumericType(NumericType numericType, DexItemFactory factory) {
+      return FrameType.initialized(numericType.dexTypeFor(factory));
+    }
   }
 
   @Override
@@ -100,7 +157,7 @@ public class CfFrame extends CfInstruction {
 
     @Override
     public String toString() {
-      return type.toString();
+      return "Initialized(" + type.toString() + ")";
     }
 
     @Override
@@ -163,9 +220,11 @@ public class CfFrame extends CfInstruction {
 
   private static class UninitializedNew extends FrameType {
     private final CfLabel label;
+    private final DexType type;
 
-    private UninitializedNew(CfLabel label) {
+    private UninitializedNew(CfLabel label, DexType type) {
       this.label = label;
+      this.type = type;
     }
 
     @Override
@@ -187,9 +246,15 @@ public class CfFrame extends CfInstruction {
     public CfLabel getUninitializedLabel() {
       return label;
     }
+
+    @Override
+    public DexType getUninitializedNewType() {
+      return type;
+    }
   }
 
   private static class UninitializedThis extends FrameType {
+
     private UninitializedThis() {}
 
     @Override
@@ -208,10 +273,60 @@ public class CfFrame extends CfInstruction {
     }
   }
 
-  private final Int2ReferenceSortedMap<FrameType> locals;
-  private final List<FrameType> stack;
+  private static class OneWord extends FrameType {
 
+    private static final OneWord SINGLETON = new OneWord();
+
+    @Override
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      throw new Unreachable("Should only be used for verification");
+    }
+
+    @Override
+    public boolean isOneWord() {
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return "oneword";
+    }
+  }
+
+  private static class TwoWord extends FrameType {
+
+    private static final TwoWord SINGLETON = new TwoWord();
+
+    @Override
+    Object getTypeOpcode(GraphLens graphLens, NamingLens namingLens) {
+      throw new Unreachable("Should only be used for verification");
+    }
+
+    @Override
+    public boolean isWide() {
+      return true;
+    }
+
+    @Override
+    public boolean isTwoWord() {
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return "twoword";
+    }
+  }
+
+  private final Int2ReferenceSortedMap<FrameType> locals;
+  private final Deque<FrameType> stack;
+
+  // TODO(mkroghj): Temporary constructor to satisfy compilation of CfCode generated code.
   public CfFrame(Int2ReferenceSortedMap<FrameType> locals, List<FrameType> stack) {
+    this(locals, new ArrayDeque<>(stack));
+  }
+
+  public CfFrame(Int2ReferenceSortedMap<FrameType> locals, Deque<FrameType> stack) {
     assert locals.values().stream().allMatch(Objects::nonNull);
     assert stack.stream().allMatch(Objects::nonNull);
     this.locals = locals;
@@ -222,7 +337,7 @@ public class CfFrame extends CfInstruction {
     return locals;
   }
 
-  public List<FrameType> getStack() {
+  public Deque<FrameType> getStack() {
     return stack;
   }
 
@@ -252,8 +367,9 @@ public class CfFrame extends CfInstruction {
       return null;
     }
     Object[] stackTypes = new Object[stackCount];
-    for (int i = 0; i < stackCount; i++) {
-      stackTypes[i] = stack.get(i).getTypeOpcode(graphLens, namingLens);
+    int index = 0;
+    for (FrameType frameType : stack) {
+      stackTypes[index++] = frameType.getTypeOpcode(graphLens, namingLens);
     }
     return stackTypes;
   }
@@ -305,7 +421,6 @@ public class CfFrame extends CfInstruction {
 
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
-    // TODO(mathiasr): Verify stack map frames before building IR.
     code.setStateFromFrame(this);
   }
 
@@ -318,5 +433,47 @@ public class CfFrame extends CfInstruction {
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexProgramClass context) {
     return ConstraintWithTarget.ALWAYS;
+  }
+
+  @Override
+  public void evaluate(
+      CfFrameVerificationHelper frameBuilder,
+      DexType context,
+      DexType returnType,
+      DexItemFactory factory,
+      InitClassLens initClassLens) {
+    frameBuilder.verifyFrameAndSet(this);
+  }
+
+  public CfFrame markInstantiated(FrameType uninitializedType, DexType initType) {
+    if (uninitializedType.isInitialized()) {
+      throw CfCodeStackMapValidatingException.error(
+          "Cannot instantiate already instantiated type " + uninitializedType);
+    }
+    Int2ReferenceSortedMap<FrameType> newLocals = new Int2ReferenceAVLTreeMap<>();
+    for (int var : locals.keySet()) {
+      newLocals.put(var, getInitializedFrameType(uninitializedType, locals.get(var), initType));
+    }
+    Deque<FrameType> newStack = new ArrayDeque<>();
+    for (FrameType frameType : stack) {
+      newStack.addLast(getInitializedFrameType(uninitializedType, frameType, initType));
+    }
+    return new CfFrame(newLocals, newStack);
+  }
+
+  private FrameType getInitializedFrameType(FrameType unInit, FrameType other, DexType newType) {
+    assert !unInit.isInitialized();
+    if (other.isInitialized()) {
+      return other;
+    }
+    if (unInit.isUninitializedThis() && other.isUninitializedThis()) {
+      return FrameType.initialized(newType);
+    }
+    if (unInit.isUninitializedNew()
+        && other.isUninitializedNew()
+        && unInit.getUninitializedLabel() == other.getUninitializedLabel()) {
+      return FrameType.initialized(newType);
+    }
+    return other;
   }
 }

@@ -233,11 +233,15 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
   }
 
   private boolean wasSet(int flag) {
-    return (originalFlags & flag) != 0;
+    return isSet(originalFlags, flag);
   }
 
   protected boolean isSet(int flag) {
-    return (modifiedFlags & flag) != 0;
+    return isSet(modifiedFlags, flag);
+  }
+
+  public static boolean isSet(int flag, int flags) {
+    return (flags & flag) != 0;
   }
 
   protected void set(int flag) {

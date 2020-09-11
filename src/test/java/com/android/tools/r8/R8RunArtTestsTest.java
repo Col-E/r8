@@ -1193,6 +1193,7 @@ public abstract class R8RunArtTestsTest {
   private static Map<String, Consumer<InternalOptions>> configurations =
       ImmutableMap.of(
           // Has a new-instance instruction that attempts to instantiate an interface.
+          "162-method-resolution", options -> options.testing.disableStackMapVerification = true,
           "435-new-instance", options -> options.testing.allowTypeErrors = true);
 
   private static List<String> failuresToTriage = ImmutableList.of(
@@ -1790,7 +1791,7 @@ public abstract class R8RunArtTestsTest {
           builder
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.getDefault()));
         }
-        D8.run(builder.build());
+          ToolHelper.runD8(builder, compilationOptions::accept);
         break;
       }
       case R8:
