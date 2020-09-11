@@ -38,7 +38,7 @@ public class CfCodeStackMapValidatingException extends RuntimeException {
   public static CfCodeDiagnostics noFramesForMethodWithJumps(
       Origin origin, DexMethod method, AppView<?> appView) {
     StringBuilder sb =
-        new StringBuilder("Expected stack map table the method has non-linear control flow.");
+        new StringBuilder("Expected stack map table for method with non-linear control flow.");
     if (appView.enableWholeProgramOptimizations()) {
       sb.append(" In later version of R8, the method may be assumed not reachable.");
     }
