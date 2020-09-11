@@ -30,6 +30,14 @@ public class DexEncodedAnnotation extends DexItem {
     }
   }
 
+  public DexAnnotationElement getElement(int i) {
+    return elements[i];
+  }
+
+  public int getNumberOfElements() {
+    return elements.length;
+  }
+
   @Override
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     // Should never be called.

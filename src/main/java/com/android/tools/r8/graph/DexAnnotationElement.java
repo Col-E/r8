@@ -17,6 +17,10 @@ public class DexAnnotationElement extends DexItem {
     this.value = value;
   }
 
+  public DexValue getValue() {
+    return value;
+  }
+
   @Override
   public int hashCode() {
     return name.hashCode() + value.hashCode() * 3;

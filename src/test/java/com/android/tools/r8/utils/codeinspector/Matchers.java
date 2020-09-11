@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import static org.hamcrest.CoreMatchers.not;
+
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexClass;
@@ -659,5 +661,12 @@ public class Matchers {
     public String toString() {
       return getClassName() + "." + getMethodName() + "(" + filename + ":" + originalPosition + ")";
     }
+  }
+
+  public static <T> Matcher<T> notIf(Matcher<T> matcher, boolean condition) {
+    if (condition) {
+      return not(matcher);
+    }
+    return matcher;
   }
 }
