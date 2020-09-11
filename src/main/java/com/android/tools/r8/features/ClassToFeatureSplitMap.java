@@ -114,6 +114,10 @@ public class ClassToFeatureSplitMap {
     classToFeatureSplitMap.forEach(
         (type, featureSplit) -> {
           DexType rewrittenType = lens.lookupType(type);
+          if (rewrittenType.isIntType()) {
+            // The type was removed by enum unboxing.
+            return;
+          }
           FeatureSplit existing =
               rewrittenClassToFeatureSplitMap.classToFeatureSplitMap.put(
                   rewrittenType, featureSplit);
