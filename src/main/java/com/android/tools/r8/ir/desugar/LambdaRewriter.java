@@ -7,11 +7,13 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -31,8 +33,6 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -63,7 +63,7 @@ public class LambdaRewriter {
 
   final DexString instanceFieldName;
 
-  final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
+  final LambdaRewriterLens.Builder lensBuilder = LambdaRewriterLens.builder();
 
   // Maps call sites seen so far to inferred lambda descriptor. It is intended
   // to help avoid re-matching call sites we already seen. Note that same call
@@ -160,6 +160,7 @@ public class LambdaRewriter {
       appView.appInfo().addSynthesizedClass(synthesizedClass, lambdaClass.addToMainDexList.get());
       builder.addSynthesizedClass(synthesizedClass);
     }
+    fixup();
     optimizeSynthesizedClasses(converter, executorService);
   }
 
@@ -345,34 +346,78 @@ public class LambdaRewriter {
     return knownLambdaClasses;
   }
 
-  public NestedGraphLens buildMappingLens(AppView<?> appView) {
-    if (originalMethodSignatures.isEmpty()) {
+  public NestedGraphLens fixup() {
+    LambdaRewriterLens lens = lensBuilder.build(appView.graphLens(), appView.dexItemFactory());
+    if (lens == null) {
       return null;
     }
-    return new LambdaRewriterLens(
-        originalMethodSignatures, appView.graphLens(), appView.dexItemFactory());
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      EnclosingMethodAttribute enclosingMethod = clazz.getEnclosingMethodAttribute();
+      if (enclosingMethod != null) {
+        DexMethod mappedEnclosingMethod = lens.lookupMethod(enclosingMethod.getEnclosingMethod());
+        if (mappedEnclosingMethod != null
+            && mappedEnclosingMethod != enclosingMethod.getEnclosingMethod()) {
+          clazz.setEnclosingMethodAttribute(new EnclosingMethodAttribute(mappedEnclosingMethod));
+        }
+      }
+    }
+    ;
+    // Return lens without method map (but still retaining originalMethodSignatures), as the
+    // generated lambdas classes are generated with the an invoke to the new method, so no
+    // code rewriting is required.
+    return lens.withoutMethodMap();
   }
 
   static class LambdaRewriterLens extends NestedGraphLens {
 
-    public LambdaRewriterLens(
+    LambdaRewriterLens(
+        Map<DexType, DexType> typeMap,
+        Map<DexMethod, DexMethod> methodMap,
+        Map<DexField, DexField> fieldMap,
+        BiMap<DexField, DexField> originalFieldSignatures,
         BiMap<DexMethod, DexMethod> originalMethodSignatures,
-        GraphLens graphLens,
-        DexItemFactory factory) {
+        GraphLens previousLens,
+        DexItemFactory dexItemFactory) {
       super(
-          ImmutableMap.of(),
-          ImmutableMap.of(),
-          ImmutableMap.of(),
-          null,
+          typeMap,
+          methodMap,
+          fieldMap,
+          originalFieldSignatures,
           originalMethodSignatures,
-          graphLens,
-          factory);
+          previousLens,
+          dexItemFactory);
     }
 
     @Override
     protected boolean isLegitimateToHaveEmptyMappings() {
       return true;
     }
+
+    private LambdaRewriterLens withoutMethodMap() {
+      methodMap.clear();
+      return this;
+    }
+
+    public static LambdaRewriterLens.Builder builder() {
+      return new LambdaRewriterLens.Builder();
+    }
+
+    public static class Builder extends NestedGraphLens.Builder {
+      public LambdaRewriterLens build(GraphLens previousLens, DexItemFactory dexItemFactory) {
+        if (typeMap.isEmpty() && methodMap.isEmpty() && fieldMap.isEmpty()) {
+          return null;
+        }
+        assert typeMap.isEmpty();
+        assert fieldMap.isEmpty();
+        return new LambdaRewriterLens(
+            typeMap,
+            methodMap,
+            fieldMap,
+            originalFieldSignatures,
+            originalMethodSignatures,
+            previousLens,
+            dexItemFactory);
+      }
+    }
   }
 }
-

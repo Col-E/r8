@@ -5,22 +5,22 @@
 package com.android.tools.r8.desugar;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.D8TestRunResult;
+import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.nio.file.Path;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,6 +28,14 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class DesugarLambdaWithAnonymousClass extends TestBase {
+
+  private List<String> EXPECTED_JAVAC_RESULT =
+      ImmutableList.of("Hello from inside lambda$test$0", "Hello from inside lambda$testStatic$1");
+
+  private List<String> EXPECTED_DESUGARED_RESULT =
+      ImmutableList.of(
+          "Hello from inside lambda$test$0$DesugarLambdaWithAnonymousClass$TestClass",
+          "Hello from inside lambda$testStatic$1");
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -73,111 +81,55 @@ public class DesugarLambdaWithAnonymousClass extends TestBase {
     assertEquals(2, counter.getCount());
   }
 
-  // TODO(158752316): There should be no use of this check.
-  private void checkEnclosingMethodWrong(CodeInspector inspector) {
-    Counter counter = new Counter();
-    inspector.forAllClasses(
-        clazz -> {
-          if (clazz.getFinalName().endsWith("$TestClass$1")
-              || clazz.getFinalName().endsWith("$TestClass$2")) {
-            counter.increment();
-            assertTrue(clazz.isAnonymousClass());
-            DexMethod enclosingMethod = clazz.getFinalEnclosingMethod();
-            ClassSubject testClassSubject =
-                inspector.clazz(DesugarLambdaWithAnonymousClass.TestClass.class);
-            assertEquals(
-                testClassSubject, inspector.clazz(enclosingMethod.holder.toSourceString()));
-            if (enclosingMethod.name.toString().contains("Static")) {
-              assertThat(
-                  testClassSubject.uniqueMethodWithName(enclosingMethod.name.toString()),
-                  isPresent());
-            } else {
-              assertThat(
-                  testClassSubject.uniqueMethodWithName(enclosingMethod.name.toString()),
-                  not(isPresent()));
-            }
-          }
-        });
-    assertEquals(2, counter.getCount());
-  }
-
-  private void checkArtResult(D8TestRunResult result) {
-    // TODO(158752316): This should neither return null nor fail.
-    if (parameters.getRuntime().asDex().getVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)
-        || parameters.getRuntime().asDex().getVm().getVersion().isNewerThan(Version.V6_0_1)) {
-      result.assertSuccessWithOutputLines(
-          "Hello from inside <null>", "Hello from inside lambda$testStatic$1");
-    } else {
-      result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
-    }
-  }
-
   @BeforeClass
   public static void checkExpectedJavacNames() throws Exception {
     CodeInspector inspector =
         new CodeInspector(
-            ToolHelper.getClassFilesForInnerClasses(DesugarLambdaWithLocalClass.class));
-    String outer = DesugarLambdaWithLocalClass.class.getTypeName();
+            ToolHelper.getClassFilesForInnerClasses(DesugarLambdaWithAnonymousClass.class));
+    String outer = DesugarLambdaWithAnonymousClass.class.getTypeName();
     ClassSubject testClass = inspector.clazz(outer + "$TestClass");
     assertThat(testClass, isPresent());
     assertThat(testClass.uniqueMethodWithName("lambda$test$0"), isPresent());
     assertThat(testClass.uniqueMethodWithName("lambda$testStatic$1"), isPresent());
-    assertThat(inspector.clazz(outer + "$TestClass$1MyConsumerImpl"), isPresent());
-    assertThat(inspector.clazz(outer + "$TestClass$2MyConsumerImpl"), isPresent());
+    assertThat(inspector.clazz(outer + "$TestClass$1"), isPresent());
+    assertThat(inspector.clazz(outer + "$TestClass$2"), isPresent());
   }
 
   @Test
-  public void testDefault() throws Exception {
-    if (parameters.getRuntime().isCf()) {
-      // Run on the JVM.
-      testForJvm()
+  public void testDesugar() throws Exception {
+    testForDesugaring(parameters)
+        .addInnerClasses(DesugarLambdaWithAnonymousClass.class)
+        .run(parameters.getRuntime(), TestClass.class)
+        .inspect(this::checkEnclosingMethod)
+        .applyIf(
+            DesugarTestConfiguration::isNotDesugared,
+            r -> r.assertSuccessWithOutputLines(EXPECTED_JAVAC_RESULT))
+        .applyIf(
+            DesugarTestConfiguration::isDesugared,
+            r -> r.assertSuccessWithOutputLines(EXPECTED_DESUGARED_RESULT));
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    try {
+      testForR8(parameters.getBackend())
+          // TODO(b/158752316, b/157700141): Disable inlining to keep the synthetic lambda methods.
+          .addOptionsModification(options -> options.enableInlining = false)
           .addInnerClasses(DesugarLambdaWithAnonymousClass.class)
-          .run(parameters.getRuntime(), TestClass.class)
+          .setMinApi(parameters.getApiLevel())
+          .addKeepRules("-keep class * { *; }")
+          // Keeping the synthetic lambda methods is currently not supported - they are
+          // forcefully unpinned. The following rule has no effect. See b/b/157700141.
+          .addKeepRules("-keep class **.*$TestClass { synthetic *; }")
+          .addKeepAttributes("InnerClasses", "EnclosingMethod")
+          .compile()
           .inspect(this::checkEnclosingMethod)
-          .assertSuccessWithOutputLines(
-              "Hello from inside lambda$test$0", "Hello from inside lambda$testStatic$1");
-    } else {
-      assert parameters.getRuntime().isDex();
-      // Run on Art.
-      checkArtResult(
-          testForD8()
-              .addInnerClasses(DesugarLambdaWithAnonymousClass.class)
-              .setMinApi(parameters.getApiLevel())
-              .compile()
-              .inspect(this::checkEnclosingMethodWrong)
-              .run(parameters.getRuntime(), TestClass.class));
-    }
-  }
-
-  @Test
-  public void testCfToCf() throws Exception {
-    // Use D8 to desugar with Java classfile output.
-    Path jar =
-        testForD8(Backend.CF)
-            .addInnerClasses(DesugarLambdaWithAnonymousClass.class)
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspect(this::checkEnclosingMethodWrong)
-            .writeToZip();
-
-    if (parameters.getRuntime().isCf()) {
-      // Run on the JVM.
-      testForJvm()
-          .addProgramFiles(jar)
           .run(parameters.getRuntime(), TestClass.class)
-          // TODO(158752316): This should not fail.
-          .assertFailureWithErrorThatThrows(InternalError.class);
-    } else {
-      assert parameters.getRuntime().isDex();
-      // Compile to DEX without desugaring and run on Art.
-      checkArtResult(
-          testForD8()
-              .addProgramFiles(jar)
-              .setMinApi(parameters.getApiLevel())
-              .disableDesugaring()
-              .compile()
-              .inspect(this::checkEnclosingMethodWrong)
-              .run(parameters.getRuntime(), TestClass.class));
+          .assertSuccessWithOutputLines(
+              parameters.isCfRuntime() ? EXPECTED_JAVAC_RESULT : EXPECTED_DESUGARED_RESULT);
+      assertFalse(parameters.isDexRuntime());
+    } catch (AssertionError e) {
+      assertTrue(parameters.isDexRuntime());
     }
   }
 

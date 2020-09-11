@@ -2743,7 +2743,7 @@ public class Enqueuer {
   }
 
   public NestedGraphLens buildGraphLens(AppView<?> appView) {
-    return lambdaRewriter != null ? lambdaRewriter.buildMappingLens(appView) : null;
+    return lambdaRewriter != null ? lambdaRewriter.fixup() : null;
   }
 
   private void keepClassWithRules(DexProgramClass clazz, Set<ProguardKeepRuleBase> rules) {

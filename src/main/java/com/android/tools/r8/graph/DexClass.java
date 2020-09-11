@@ -723,6 +723,10 @@ public abstract class DexClass extends DexDefinition {
     return enclosingMethod;
   }
 
+  public void setEnclosingMethodAttribute(EnclosingMethodAttribute enclosingMethod) {
+    this.enclosingMethod = enclosingMethod;
+  }
+
   public void clearEnclosingMethodAttribute() {
     enclosingMethod = null;
   }
