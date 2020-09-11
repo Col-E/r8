@@ -50,6 +50,21 @@ public class ImmutableInt2ReferenceSortedMap<V> extends Int2ReferenceSortedMaps.
   }
 
   @Override
+  public V get(int k) {
+    return sortedMap.get(k);
+  }
+
+  @Override
+  public V get(Object ok) {
+    return sortedMap.get(ok);
+  }
+
+  @Override
+  public V getOrDefault(Object key, V defaultValue) {
+    return sortedMap.getOrDefault(key, defaultValue);
+  }
+
+  @Override
   public int size() {
     return sortedMap.size();
   }

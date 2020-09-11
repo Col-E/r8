@@ -267,6 +267,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
       NamingLens namingLens,
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
+    assert verifyFrames(method.getDefinition(), appView, null, false);
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     GraphLens graphLens = appView.graphLens();
     InitClassLens initClassLens = appView.initClassLens();
