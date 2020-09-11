@@ -300,6 +300,13 @@ public class IfRuleEvaluator {
       if (neverInlineRuleForCondition != null) {
         rootSetBuilder.runPerRule(executorService, futures, neverInlineRuleForCondition, null);
       }
+
+      // Prevent horizontal class merging of any -if rule members.
+      NoHorizontalClassMergingRule noHorizontalClassMergingRule =
+          materializedRule.noHorizontalClassMergingRuleForCondition(dexItemFactory);
+      if (noHorizontalClassMergingRule != null) {
+        rootSetBuilder.runPerRule(executorService, futures, noHorizontalClassMergingRule, null);
+      }
     }
 
     // Keep whatever is required by the -if rule.

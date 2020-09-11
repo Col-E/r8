@@ -92,8 +92,9 @@ public abstract class ProguardClassSpecification {
       return inheritanceIsExtends;
     }
 
-    public void setInheritanceIsExtends(boolean inheritanceIsExtends) {
+    public B setInheritanceIsExtends(boolean inheritanceIsExtends) {
       this.inheritanceIsExtends = inheritanceIsExtends;
+      return self();
     }
 
     public boolean hasInheritanceClassName() {
@@ -104,13 +105,15 @@ public abstract class ProguardClassSpecification {
       return inheritanceClassName;
     }
 
-    public void setInheritanceClassName(ProguardTypeMatcher inheritanceClassName) {
+    public B setInheritanceClassName(ProguardTypeMatcher inheritanceClassName) {
       this.inheritanceClassName = inheritanceClassName;
+      return self();
     }
 
-    public void addInheritanceAnnotations(List<ProguardTypeMatcher> inheritanceAnnotations) {
+    public B addInheritanceAnnotations(List<ProguardTypeMatcher> inheritanceAnnotations) {
       assert inheritanceAnnotations != null;
       this.inheritanceAnnotations.addAll(inheritanceAnnotations);
+      return self();
     }
 
     public List<ProguardTypeMatcher> buildInheritanceAnnotations() {
@@ -139,33 +142,38 @@ public abstract class ProguardClassSpecification {
       return classTypeNegated;
     }
 
-    public void setClassTypeNegated(boolean classTypeNegated) {
+    public B setClassTypeNegated(boolean classTypeNegated) {
       this.classTypeNegated = classTypeNegated;
+      return self();
     }
 
     public ProguardAccessFlags getClassAccessFlags() {
       return classAccessFlags;
     }
 
-    public void setClassAccessFlags(ProguardAccessFlags flags) {
+    public B setClassAccessFlags(ProguardAccessFlags flags) {
       classAccessFlags = flags;
+      return self();
     }
 
     public ProguardAccessFlags getNegatedClassAccessFlags() {
       return negatedClassAccessFlags;
     }
 
-    public void setNegatedClassAccessFlags(ProguardAccessFlags flags) {
+    public B setNegatedClassAccessFlags(ProguardAccessFlags flags) {
       negatedClassAccessFlags = flags;
+      return self();
     }
 
-    public void addClassAnnotation(ProguardTypeMatcher classAnnotation) {
+    public B addClassAnnotation(ProguardTypeMatcher classAnnotation) {
       classAnnotations.add(classAnnotation);
+      return self();
     }
 
-    public void addClassAnnotations(List<ProguardTypeMatcher> classAnnotations) {
+    public B addClassAnnotations(List<ProguardTypeMatcher> classAnnotations) {
       assert classAnnotations != null;
       this.classAnnotations.addAll(classAnnotations);
+      return self();
     }
 
     public List<ProguardTypeMatcher> buildClassAnnotations() {

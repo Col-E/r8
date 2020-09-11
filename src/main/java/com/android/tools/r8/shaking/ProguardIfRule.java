@@ -15,11 +15,19 @@ import java.util.stream.Collectors;
 
 public class ProguardIfRule extends ProguardKeepRuleBase {
 
-  private static final Origin neverInlineOrigin =
+  private static final Origin NEVER_INLINE_ORIGIN =
       new Origin(Origin.root()) {
         @Override
         public String part() {
           return "<SYNTHETIC_NEVER_INLINE_RULE>";
+        }
+      };
+
+  private static final Origin NO_HORIZONTAL_CLASS_MERGING_ORIGIN =
+      new Origin(Origin.root()) {
+        @Override
+        public String part() {
+          return "<SYNTHETIC_NO_HORIZONTAL_CLASS_MERGING_RULE>";
         }
       };
 
@@ -156,7 +164,7 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
 
   protected ClassInlineRule neverClassInlineRuleForCondition(DexItemFactory dexItemFactory) {
     return new ClassInlineRule(
-        neverInlineOrigin,
+        NEVER_INLINE_ORIGIN,
         Position.UNKNOWN,
         null,
         ProguardTypeMatcher.materializeList(getClassAnnotations(), dexItemFactory),
@@ -201,7 +209,7 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
       return null;
     }
     return new InlineRule(
-        neverInlineOrigin,
+        NEVER_INLINE_ORIGIN,
         Position.UNKNOWN,
         null,
         ProguardTypeMatcher.materializeList(getClassAnnotations(), dexItemFactory),
@@ -220,6 +228,37 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
             .map(memberRule -> memberRule.materialize(dexItemFactory))
             .collect(Collectors.toList()),
         InlineRule.Type.NEVER);
+  }
+
+  protected NoHorizontalClassMergingRule noHorizontalClassMergingRuleForCondition(
+      DexItemFactory dexItemFactory) {
+    List<ProguardMemberRule> memberRules = null;
+    if (getMemberRules() != null) {
+      memberRules =
+          getMemberRules().stream()
+              .filter(rule -> rule.getRuleType().includesMethods())
+              .map(memberRule -> memberRule.materialize(dexItemFactory))
+              .collect(Collectors.toList());
+    }
+
+    return NoHorizontalClassMergingRule.builder()
+        .setOrigin(NO_HORIZONTAL_CLASS_MERGING_ORIGIN)
+        .addClassAnnotations(
+            ProguardTypeMatcher.materializeList(getClassAnnotations(), dexItemFactory))
+        .setClassAccessFlags(getClassAccessFlags())
+        .setNegatedClassAccessFlags(getNegatedClassAccessFlags())
+        .setClassType(getClassType())
+        .setClassTypeNegated(getClassTypeNegated())
+        .setClassNames(getClassNames().materialize(dexItemFactory))
+        .addInheritanceAnnotations(
+            ProguardTypeMatcher.materializeList(getInheritanceAnnotations(), dexItemFactory))
+        .setInheritanceClassName(
+            getInheritanceClassName() == null
+                ? null
+                : getInheritanceClassName().materialize(dexItemFactory))
+        .setInheritanceIsExtends(getInheritanceIsExtends())
+        .setMemberRules(memberRules)
+        .build();
   }
 
   @Override
