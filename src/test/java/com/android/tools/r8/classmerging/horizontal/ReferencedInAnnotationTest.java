@@ -48,15 +48,16 @@ public class ReferencedInAnnotationTest extends HorizontalClassMergingTestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    // B should have been merged into A.
-    assertThat(inspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
+    // TestClass and A should still be present.
+    ClassSubject testClassSubject = inspector.clazz(TestClass.class);
+    assertThat(testClassSubject, isPresent());
 
-    // A and TestClass should still be present.
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
-    ClassSubject testClassSubject = inspector.clazz(TestClass.class);
-    assertThat(testClassSubject, isPresent());
+    // B should have been merged into A if horizontal class merging is enabled.
+    ClassSubject bClassSubject = inspector.clazz(B.class);
+    assertThat(bClassSubject, notIf(isPresent(), enableHorizontalClassMerging));
 
     // The annotation on TestClass should now refer to A instead of B.
     AnnotationSubject annotationSubject =
@@ -70,7 +71,11 @@ public class ReferencedInAnnotationTest extends HorizontalClassMergingTestBase {
     assertTrue(annotationElementValue.isDexValueType());
 
     DexType annotationElementValueType = annotationElementValue.asDexValueType().getValue();
-    assertEquals(aClassSubject.getDexProgramClass().getType(), annotationElementValueType);
+    assertEquals(
+        (enableHorizontalClassMerging ? aClassSubject : bClassSubject)
+            .getDexProgramClass()
+            .getType(),
+        annotationElementValueType);
   }
 
   @Annotation(B.class)
