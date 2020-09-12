@@ -59,6 +59,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -529,14 +530,13 @@ public class CfBuilder {
 
   private void addFrame(BasicBlock block) {
     List<TypeInfo> stack = registerAllocator.getTypesAtBlockEntry(block).stack;
-    Deque<FrameType> stackTypes;
+    List<FrameType> stackTypes;
     if (block.entry().isMoveException()) {
       assert stack.isEmpty();
       StackValue exception = (StackValue) block.entry().outValue();
-      stackTypes = new ArrayDeque<>();
-      stackTypes.add(getFrameType(block, exception.getTypeInfo()));
+      stackTypes = Collections.singletonList(getFrameType(block, exception.getTypeInfo()));
     } else {
-      stackTypes = new ArrayDeque<>(stack.size());
+      stackTypes = new ArrayList<>(stack.size());
       for (TypeInfo typeInfo : stack) {
         stackTypes.add(getFrameType(block, typeInfo));
       }
@@ -577,11 +577,8 @@ public class CfBuilder {
     FrameType res;
     Instruction definition;
     if (typeInfo instanceof NewInstanceInfo) {
-      NewInstanceInfo newInstanceInfo = (NewInstanceInfo) typeInfo;
-      definition = newInstanceInfo.newInstance;
-      res =
-          FrameType.uninitializedNew(
-              newInstanceLabels.get(definition), newInstanceInfo.getDexType());
+      definition = ((NewInstanceInfo) typeInfo).newInstance;
+      res = FrameType.uninitializedNew(newInstanceLabels.get(definition));
     } else if (typeInfo instanceof ThisInstanceInfo) {
       definition = ((ThisInstanceInfo) typeInfo).thisArgument;
       res = FrameType.uninitializedThis();

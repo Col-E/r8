@@ -130,19 +130,4 @@ public class CfInvokeDynamic extends CfInstruction {
       InliningConstraints inliningConstraints, DexProgramClass context) {
     return inliningConstraints.forInvokeCustom();
   }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexType context,
-      DexType returnType,
-      DexItemFactory factory,
-      InitClassLens initClassLens) {
-    // ..., [arg1, [arg2 ...]] →
-    // ...
-    frameBuilder.popAndDiscard(callSite.methodProto.parameters.values);
-    if (callSite.methodProto.returnType != factory.voidType) {
-      frameBuilder.push(callSite.methodProto.returnType);
-    }
-  }
 }

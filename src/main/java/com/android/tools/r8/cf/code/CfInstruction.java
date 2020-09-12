@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -146,14 +145,6 @@ public abstract class CfInstruction {
     return false;
   }
 
-  public CfThrow asThrow() {
-    return null;
-  }
-
-  public boolean isThrow() {
-    return false;
-  }
-
   public CfDexItemBasedConstString asDexItemBasedConstString() {
     return null;
   }
@@ -164,10 +155,6 @@ public abstract class CfInstruction {
 
   /** Return true if this instruction is CfReturn or CfReturnVoid. */
   public boolean isReturn() {
-    return false;
-  }
-
-  public boolean isReturnVoid() {
     return false;
   }
 
@@ -196,11 +183,4 @@ public abstract class CfInstruction {
 
   public abstract ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexProgramClass context);
-
-  public abstract void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexType context,
-      DexType returnType,
-      DexItemFactory factory,
-      InitClassLens initClassLens);
 }

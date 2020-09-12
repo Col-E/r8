@@ -4,11 +4,9 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -101,43 +99,5 @@ public class CfStore extends CfInstruction {
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexProgramClass context) {
     return inliningConstraints.forStore();
-  }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexType context,
-      DexType returnType,
-      DexItemFactory factory,
-      InitClassLens initClassLens) {
-    // ..., ref →
-    // ...
-    FrameType pop = frameBuilder.pop();
-    switch (type) {
-      case OBJECT:
-        frameBuilder.verifyIsAssignable(pop, factory.objectType);
-        frameBuilder.storeLocal(var, pop);
-        return;
-      case INT:
-        frameBuilder.verifyIsAssignable(pop, factory.intType);
-        frameBuilder.storeLocal(var, FrameType.initialized(factory.intType));
-        return;
-      case FLOAT:
-        frameBuilder.verifyIsAssignable(pop, factory.floatType);
-        frameBuilder.storeLocal(var, FrameType.initialized(factory.floatType));
-        return;
-      case LONG:
-        frameBuilder.verifyIsAssignable(pop, factory.longType);
-        frameBuilder.storeLocal(var, FrameType.initialized(factory.longType));
-        frameBuilder.storeLocal(var + 1, FrameType.initialized(factory.longType));
-        return;
-      case DOUBLE:
-        frameBuilder.verifyIsAssignable(pop, factory.doubleType);
-        frameBuilder.storeLocal(var, FrameType.initialized(factory.doubleType));
-        frameBuilder.storeLocal(var + 1, FrameType.initialized(factory.doubleType));
-        return;
-      default:
-        throw new Unreachable("Unexpected type " + type);
-    }
   }
 }

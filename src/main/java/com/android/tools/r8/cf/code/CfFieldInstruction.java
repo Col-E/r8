@@ -152,37 +152,4 @@ public class CfFieldInstruction extends CfInstruction {
         throw new Unreachable("Unexpected opcode " + opcode);
     }
   }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexType context,
-      DexType returnType,
-      DexItemFactory factory,
-      InitClassLens initClassLens) {
-    switch (opcode) {
-      case Opcodes.GETFIELD:
-        // ..., objectref →
-        // ..., value
-        frameBuilder.popAndDiscard(field.holder).push(field.type);
-        return;
-      case Opcodes.GETSTATIC:
-        // ..., →
-        // ..., value
-        frameBuilder.push(field.type);
-        return;
-      case Opcodes.PUTFIELD:
-        // ..., objectref, value →
-        // ...,
-        frameBuilder.popAndDiscard(field.holder, field.type);
-        return;
-      case Opcodes.PUTSTATIC:
-        // ..., value →
-        // ...
-        frameBuilder.pop(field.type);
-        return;
-      default:
-        throw new Unreachable("Unexpected opcode " + opcode);
-    }
-  }
 }

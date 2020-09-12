@@ -7,7 +7,6 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -147,17 +146,5 @@ public class CfConstNumber extends CfInstruction {
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexProgramClass context) {
     return inliningConstraints.forConstInstruction();
-  }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexType context,
-      DexType returnType,
-      DexItemFactory factory,
-      InitClassLens initClassLens) {
-    // ... →
-    // ..., value
-    frameBuilder.push(type.toPrimitiveType().toDexType(factory));
   }
 }
