@@ -75,7 +75,7 @@ public class RepackageAfterCollisionWithPackagePrivateSignatureTest extends Test
 
     public static void main(String[] args) {
       RepackageCandidate.foo(0);
-      RepackageCandidate.foo((int) System.currentTimeMillis(), 0);
+      RepackageCandidate.foo(System.currentTimeMillis(), 0);
     }
 
     static void restrictToCurrentPackage() {
@@ -85,12 +85,12 @@ public class RepackageAfterCollisionWithPackagePrivateSignatureTest extends Test
 
   public static class RepackageCandidate {
 
-    public static void foo(int unused) {
+    public static void foo(long unused) {
       TestClass.restrictToCurrentPackage();
     }
 
     @NeverInline
-    public static void foo(int used, int unused) {
+    public static void foo(long used, int unused) {
       if (used >= 0) {
         System.out.println(" world!");
       }
