@@ -282,6 +282,7 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     return assertDiagnosticThatMatches(getInfos(), "info", matcher);
   }
 
+  @Override
   public TestDiagnosticMessages assertWarningThatMatches(Matcher<Diagnostic> matcher) {
     return assertDiagnosticThatMatches(getWarnings(), "warning", matcher);
   }

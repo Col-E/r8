@@ -81,4 +81,19 @@ public class CfMultiANewArray extends CfInstruction {
       InliningConstraints inliningConstraints, DexProgramClass context) {
     return inliningConstraints.forInvokeMultiNewArray(type, context);
   }
+
+  @Override
+  public void evaluate(
+      CfFrameVerificationHelper frameBuilder,
+      DexType context,
+      DexType returnType,
+      DexItemFactory factory,
+      InitClassLens initClassLens) {
+    // ..., count1, [count2, ...] →
+    // ..., arrayref
+    for (int i = 0; i < dimensions; i++) {
+      frameBuilder.pop(factory.intType);
+    }
+    frameBuilder.push(type);
+  }
 }

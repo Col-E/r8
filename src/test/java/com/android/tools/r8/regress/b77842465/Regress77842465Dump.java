@@ -23,7 +23,7 @@ public class Regress77842465Dump implements Opcodes {
     MethodVisitor mv;
 
     cw.visit(
-        V1_7, ACC_PUBLIC + ACC_FINAL + ACC_SUPER, CLASS_INTERNAL, null, "java/lang/Object", null);
+        V1_6, ACC_PUBLIC + ACC_FINAL + ACC_SUPER, CLASS_INTERNAL, null, "java/lang/Object", null);
 
     {
       fv = cw.visitField(0, "b", "I", null, null);

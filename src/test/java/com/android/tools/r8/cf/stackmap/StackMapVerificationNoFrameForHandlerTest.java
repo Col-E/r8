@@ -1,0 +1,266 @@
+// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.cf.stackmap;
+
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.SingleTestRunResult;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestBuilder;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.BooleanUtils;
+import java.util.List;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+
+@RunWith(Parameterized.class)
+public class StackMapVerificationNoFrameForHandlerTest extends TestBase {
+
+  private final TestParameters parameters;
+  private final boolean includeFrameInHandler;
+  private final String EXPECTED_OUTPUT = "Hello World!";
+  private final String EXPECTED_VERIFY_ERROR =
+      "Expected stack map table for method with non-linear control flow";
+
+  @Parameters(name = "{0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+  }
+
+  public StackMapVerificationNoFrameForHandlerTest(
+      TestParameters parameters, boolean includeFrameInHandler) {
+    this.parameters = parameters;
+    this.includeFrameInHandler = includeFrameInHandler;
+  }
+
+  @Test
+  public void testRuntime() throws Exception {
+    TestBuilder<? extends SingleTestRunResult<?>, ?> builder =
+        testForRuntime(parameters)
+            .addProgramClassFileData(
+                includeFrameInHandler
+                    ? MainDump.dump()
+                    : transformer(MainDump.dump(), Reference.classFromClass(Main.class))
+                        .stripFrames("main")
+                        .transform());
+    if (includeFrameInHandler) {
+      builder
+          .run(parameters.getRuntime(), Main.class)
+          .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+    } else if (parameters.isCfRuntime()) {
+      builder
+          .run(parameters.getRuntime(), Main.class)
+          .assertFailureWithErrorThatMatches(
+              containsString("java.lang.VerifyError: Expecting a stackmap frame at branch target"));
+    } else {
+      assertTrue(parameters.isDexRuntime());
+      CompilationFailedException compilationFailedException =
+          assertThrows(
+              CompilationFailedException.class,
+              () -> {
+                builder.run(parameters.getRuntime(), Main.class);
+              });
+      assertThat(
+          compilationFailedException.getCause().getMessage(),
+          containsString(EXPECTED_VERIFY_ERROR));
+    }
+  }
+
+  @Test
+  public void testHandlerR8() throws Exception {
+    R8FullTestBuilder builder =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(
+                includeFrameInHandler
+                    ? MainDump.dump()
+                    : transformer(MainDump.dump(), Reference.classFromClass(Main.class))
+                        .stripFrames("main")
+                        .transform())
+            .addKeepMainRule(Main.class)
+            .setMinApi(parameters.getApiLevel());
+    if (includeFrameInHandler) {
+      builder
+          .run(parameters.getRuntime(), Main.class)
+          .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+    } else {
+      assertThrows(
+          CompilationFailedException.class,
+          () -> {
+            builder.compileWithExpectedDiagnostics(
+                diagnostics -> {
+                  diagnostics.assertOnlyErrors();
+                  diagnostics.assertErrorsMatch(
+                      diagnosticMessage(containsString(EXPECTED_VERIFY_ERROR)));
+                });
+          });
+    }
+  }
+
+  public static class Main {
+
+    public static void main(String[] args) {
+      try {
+        getThrowable(new Throwable());
+      } catch (Throwable e) {
+      }
+      System.out.println("Hello World!");
+    }
+
+    public static Throwable getThrowable(Throwable throwable) {
+      if (System.currentTimeMillis() > 0) {
+        return new RuntimeException(throwable);
+      } else {
+        throw new ClassCastException();
+      }
+    }
+  }
+
+  /**
+   * The dump is mostly the code obtained from the Main class above, however, some instructions are
+   * removed to have the frames being the same with linear flow:
+   *
+   * <pre>
+   * try {
+   * getThrowable(new Throwable());
+   * pop
+   * goto lbl3
+   * } catch (Throwable e) {
+   *   astore(1);
+   *   goto lbl3
+   * }
+   * lbl3
+   * System.out.println("Hello World!");
+   * </pre>
+   *
+   * becomes:
+   *
+   * <pre>
+   * try {
+   * getThrowable(new Throwable());
+   * } catch (Throwable e) {
+   *   pop;
+   * }
+   * lbl3
+   * System.out.println("Hello World!");
+   * </pre>
+   */
+  public static class MainDump implements Opcodes {
+
+    public static byte[] dump() {
+
+      ClassWriter classWriter = new ClassWriter(0);
+      MethodVisitor methodVisitor;
+
+      classWriter.visit(
+          V1_8,
+          ACC_PUBLIC | ACC_SUPER,
+          "com/android/tools/r8/cf/stackmap/StackMapVerificationNoFrameForHandlerTest$Main",
+          null,
+          "java/lang/Object",
+          null);
+
+      classWriter.visitInnerClass(
+          "com/android/tools/r8/cf/stackmap/StackMapVerificationNoFrameForHandlerTest$Main",
+          "com/android/tools/r8/cf/stackmap/StackMapVerificationNoFrameForHandlerTest",
+          "Main",
+          ACC_PUBLIC | ACC_STATIC);
+
+      {
+        methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
+        methodVisitor.visitCode();
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        methodVisitor.visitInsn(RETURN);
+        methodVisitor.visitMaxs(1, 1);
+        methodVisitor.visitEnd();
+      }
+      {
+        methodVisitor =
+            classWriter.visitMethod(
+                ACC_PUBLIC | ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
+        methodVisitor.visitCode();
+        Label label0 = new Label();
+        Label label1 = new Label();
+        Label label2 = new Label();
+        methodVisitor.visitTryCatchBlock(label0, label1, label2, "java/lang/Throwable");
+        methodVisitor.visitLabel(label0);
+        methodVisitor.visitTypeInsn(NEW, "java/lang/Throwable");
+        methodVisitor.visitInsn(DUP);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Throwable", "<init>", "()V", false);
+        methodVisitor.visitMethodInsn(
+            INVOKESTATIC,
+            "com/android/tools/r8/cf/stackmap/StackMapVerificationNoFrameForHandlerTest$Main",
+            "getThrowable",
+            "(Ljava/lang/Throwable;)Ljava/lang/Throwable;",
+            false);
+        methodVisitor.visitLabel(label1);
+        methodVisitor.visitLabel(label2);
+        methodVisitor.visitFrame(Opcodes.F_SAME1, 0, null, 1, new Object[] {"java/lang/Throwable"});
+        methodVisitor.visitInsn(POP);
+        Label label3 = new Label();
+        methodVisitor.visitLabel(label3);
+        methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+        methodVisitor.visitLdcInsn("Hello World!");
+        methodVisitor.visitMethodInsn(
+            INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
+        methodVisitor.visitInsn(RETURN);
+        methodVisitor.visitMaxs(2, 2);
+        methodVisitor.visitEnd();
+      }
+      {
+        methodVisitor =
+            classWriter.visitMethod(
+                ACC_PUBLIC | ACC_STATIC,
+                "getThrowable",
+                "(Ljava/lang/Throwable;)Ljava/lang/Throwable;",
+                null,
+                null);
+        methodVisitor.visitCode();
+        methodVisitor.visitMethodInsn(
+            INVOKESTATIC, "java/lang/System", "currentTimeMillis", "()J", false);
+        methodVisitor.visitInsn(LCONST_0);
+        methodVisitor.visitInsn(LCMP);
+        Label label0 = new Label();
+        methodVisitor.visitJumpInsn(IFLE, label0);
+        methodVisitor.visitTypeInsn(NEW, "java/lang/RuntimeException");
+        methodVisitor.visitInsn(DUP);
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitMethodInsn(
+            INVOKESPECIAL,
+            "java/lang/RuntimeException",
+            "<init>",
+            "(Ljava/lang/Throwable;)V",
+            false);
+        methodVisitor.visitInsn(ARETURN);
+        methodVisitor.visitLabel(label0);
+        methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+        methodVisitor.visitTypeInsn(NEW, "java/lang/ClassCastException");
+        methodVisitor.visitInsn(DUP);
+        methodVisitor.visitMethodInsn(
+            INVOKESPECIAL, "java/lang/ClassCastException", "<init>", "()V", false);
+        methodVisitor.visitInsn(ATHROW);
+        methodVisitor.visitMaxs(4, 1);
+        methodVisitor.visitEnd();
+      }
+      classWriter.visitEnd();
+
+      return classWriter.toByteArray();
+    }
+  }
+}

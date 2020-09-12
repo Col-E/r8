@@ -627,7 +627,7 @@ public class ClassFileTransformer {
     void visitTryCatchBlock(Label start, Label end, Label handler, String type);
   }
 
-  private MethodVisitor redirectVistiTryCatchBlock(
+  private MethodVisitor redirectVisitTryCatchBlock(
       MethodVisitor visitor, VisitTryCatchBlockCallback callback) {
     return new MethodVisitor(ASM7, visitor) {
       @Override
@@ -649,7 +649,7 @@ public class ClassFileTransformer {
                   end,
                   handler,
                   type,
-                  redirectVistiTryCatchBlock(this, super::visitTryCatchBlock));
+                  redirectVisitTryCatchBlock(this, super::visitTryCatchBlock));
             } else {
               super.visitTryCatchBlock(start, end, handler, type);
             }
@@ -681,6 +681,20 @@ public class ClassFileTransformer {
               transform.visitLdcInsn(value, redirectVisitLdcInsn(this, super::visitLdcInsn));
             } else {
               super.visitLdcInsn(value);
+            }
+          }
+        });
+  }
+
+  public ClassFileTransformer stripFrames(String methodName) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+
+          @Override
+          public void visitFrame(
+              int type, int numLocal, Object[] local, int numStack, Object[] stack) {
+            if (!getContext().method.getMethodName().equals(methodName)) {
+              super.visitFrame(type, numLocal, local, numStack, stack);
             }
           }
         });

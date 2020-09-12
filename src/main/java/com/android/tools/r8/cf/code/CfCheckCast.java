@@ -76,4 +76,16 @@ public class CfCheckCast extends CfInstruction {
       InliningConstraints inliningConstraints, DexProgramClass context) {
     return inliningConstraints.forCheckCast(type, context);
   }
+
+  @Override
+  public void evaluate(
+      CfFrameVerificationHelper frameBuilder,
+      DexType context,
+      DexType returnType,
+      DexItemFactory factory,
+      InitClassLens initClassLens) {
+    // ..., objectref →
+    // ..., objectref
+    frameBuilder.popAndDiscard(factory.objectType).push(type);
+  }
 }

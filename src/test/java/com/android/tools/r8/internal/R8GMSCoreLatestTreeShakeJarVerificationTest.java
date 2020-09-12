@@ -39,6 +39,7 @@ public class R8GMSCoreLatestTreeShakeJarVerificationTest
             GMSCORE_LATEST_MAX_SIZE,
             additionalProguardConfiguration,
             options -> {
+              options.testing.disableStackMapVerification = true;
               options.testing.methodProcessingIdConsumer =
                   (method, methodProcessingId) ->
                       assertTrue(
@@ -58,6 +59,7 @@ public class R8GMSCoreLatestTreeShakeJarVerificationTest
             GMSCORE_LATEST_MAX_SIZE,
             additionalProguardConfiguration,
             options -> {
+              options.testing.disableStackMapVerification = true;
               options.testing.methodProcessingIdConsumer =
                   (method, methodProcessingId) -> {
                     String key = method.toSourceString();

@@ -99,4 +99,16 @@ public class CfConstClass extends CfInstruction {
       InliningConstraints inliningConstraints, DexProgramClass context) {
     return inliningConstraints.forConstClass(type, context);
   }
+
+  @Override
+  public void evaluate(
+      CfFrameVerificationHelper frameBuilder,
+      DexType context,
+      DexType returnType,
+      DexItemFactory factory,
+      InitClassLens initClassLens) {
+    // ... →
+    // ..., value
+    frameBuilder.push(factory.classType);
+  }
 }

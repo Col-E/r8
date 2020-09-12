@@ -4,6 +4,8 @@
 package com.android.tools.r8.internal;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
+import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 public class YouTubeProguardJarVerificationTest extends YouTubeCompilationBase {
@@ -14,11 +16,23 @@ public class YouTubeProguardJarVerificationTest extends YouTubeCompilationBase {
 
   @Test
   public void buildDebugFromProguardJar() throws Exception {
-    runR8AndCheckVerification(CompilationMode.DEBUG, PG_JAR);
+    runAndCheckVerification(
+        CompilerUnderTest.R8,
+        CompilationMode.DEBUG,
+        base + APK,
+        null,
+        options -> options.testing.disableStackMapVerification = true,
+        ImmutableList.of(base + PG_JAR));
   }
 
   @Test
   public void buildReleaseFromProguardJar() throws Exception {
-    runR8AndCheckVerification(CompilationMode.RELEASE, PG_JAR);
+    runAndCheckVerification(
+        CompilerUnderTest.R8,
+        CompilationMode.RELEASE,
+        base + APK,
+        null,
+        options -> options.testing.disableStackMapVerification = true,
+        ImmutableList.of(base + PG_JAR));
   }
 }

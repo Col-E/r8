@@ -232,7 +232,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
         && proto == dexItemFactory.deserializeLambdaMethodProto;
   }
 
-  public boolean isInstanceInitializer(DexDefinitionSupplier definitions) {
-    return definitions.dexItemFactory().isConstructor(this);
+  public boolean isInstanceInitializer(DexItemFactory factory) {
+    return factory.isConstructor(this);
   }
 }

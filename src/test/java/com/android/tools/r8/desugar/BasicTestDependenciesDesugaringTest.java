@@ -69,7 +69,7 @@ public class BasicTestDependenciesDesugaringTest {
   private Path toCompile;
   private List<Path> classpath;
 
-  public  BasicTestDependenciesDesugaringTest(String name, String toCompile, String classpath) {
+  public BasicTestDependenciesDesugaringTest(String name, String toCompile, String classpath) {
     this.name = name;
     this.toCompile = Paths.get(toCompile);
     this.classpath = Arrays.asList(classpath.split(CLASSPATH_SEPARATOR)).stream()
@@ -87,7 +87,10 @@ public class BasicTestDependenciesDesugaringTest {
             .addProgramFiles(toCompile)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
             .setMinApiLevel(AndroidApiLevel.K.getLevel()),
-        options -> options.interfaceMethodDesugaring = OffOrAuto.Auto);
+        options -> {
+          options.interfaceMethodDesugaring = OffOrAuto.Auto;
+          options.testing.disableStackMapVerification = name.equals("espresso-core-3.0.0.jar");
+        });
   }
 
   @Test
@@ -101,6 +104,9 @@ public class BasicTestDependenciesDesugaringTest {
             .addProgramFiles(toCompile)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
             .setMinApiLevel(AndroidApiLevel.K.getLevel()),
-        options -> options.interfaceMethodDesugaring = OffOrAuto.Off);
+        options -> {
+          options.interfaceMethodDesugaring = OffOrAuto.Off;
+          options.testing.disableStackMapVerification = name.equals("espresso-core-3.0.0.jar");
+        });
   }
 }
