@@ -292,7 +292,11 @@ public class CfSourceCode implements SourceCode {
   // This is the only instruction that differ in throwing between DEX and CF. If we find more
   // consider rewriting CfInstruction.canThrow to take in options.
   private boolean canThrowHelper(CfInstruction instruction) {
-    if (internalOutputMode.isGeneratingClassFiles()
+    return canThrowHelper(instruction, internalOutputMode.isGeneratingClassFiles());
+  }
+
+  public static boolean canThrowHelper(CfInstruction instruction, boolean isGeneratingClassFiles) {
+    if (isGeneratingClassFiles
         && (instruction.isConstString() || instruction.isDexItemBasedConstString())) {
       return false;
     }
@@ -605,8 +609,9 @@ public class CfSourceCode implements SourceCode {
     for (Int2ReferenceMap.Entry<FrameType> entry : frameLocals.int2ReferenceEntrySet()) {
       locals[entry.getIntKey()] = convertUninitialized(entry.getValue());
     }
-    for (int i = 0; i < stack.length; i++) {
-      stack[i] = convertUninitialized(frame.getStack().get(i));
+    int index = 0;
+    for (FrameType frameType : frame.getStack()) {
+      stack[index++] = convertUninitialized(frameType);
     }
     state.setStateFromFrame(
         locals, stack, getCanonicalDebugPositionAtOffset(currentInstructionIndex));

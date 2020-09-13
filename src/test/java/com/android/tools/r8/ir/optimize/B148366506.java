@@ -49,7 +49,7 @@ public class B148366506 extends TestBase implements Opcodes {
     MethodVisitor methodVisitor;
 
     classWriter.visit(
-        V1_7,
+        V1_6,
         ACC_PUBLIC | ACC_SUPER,
         "d/b/c/e/e/a/b/a",
         null,

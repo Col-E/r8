@@ -12,7 +12,6 @@ import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.cfmethodgeneration.MethodGenerationBase;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -69,22 +68,16 @@ public class GenerateBackportMethods extends MethodGenerationBase {
     return METHOD_TEMPLATE_CLASSES;
   }
 
-  private static void setReadInputStackMap(InternalOptions options) {
-    options.testing.readInputStackMaps = true;
-  }
-
   @Test
   public void testBackportsGenerated() throws Exception {
     ArrayList<Class<?>> sorted = new ArrayList<>(getMethodTemplateClasses());
     sorted.sort(Comparator.comparing(Class::getTypeName));
     assertEquals("Classes should be listed in sorted order", sorted, getMethodTemplateClasses());
     assertEquals(
-        FileUtils.readTextFile(getGeneratedFile(), StandardCharsets.UTF_8),
-        generateMethods(GenerateBackportMethods::setReadInputStackMap));
+        FileUtils.readTextFile(getGeneratedFile(), StandardCharsets.UTF_8), generateMethods());
   }
 
   public static void main(String[] args) throws Exception {
-    new GenerateBackportMethods(null)
-        .generateMethodsAndWriteThemToFile(GenerateBackportMethods::setReadInputStackMap);
+    new GenerateBackportMethods(null).generateMethodsAndWriteThemToFile();
   }
 }

@@ -157,8 +157,6 @@ public class RelocatorCommand {
     options.dataResourceConsumer = consumer.getDataResourceConsumer();
     // Set debug to ensure that we are writing all information to the application writer.
     options.debug = true;
-    // We need to read stack maps since we are not processing anything.
-    options.testing.readInputStackMaps = true;
     return options;
   }
 

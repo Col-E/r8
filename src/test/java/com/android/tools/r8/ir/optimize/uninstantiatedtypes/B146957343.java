@@ -52,7 +52,6 @@ public class B146957343 extends TestBase implements Opcodes {
         .addOptionsModification(
             options -> options.enableUninstantiatedTypeOptimizationForInterfaces = true)
         .compile()
-        .disassemble()
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class);
   }

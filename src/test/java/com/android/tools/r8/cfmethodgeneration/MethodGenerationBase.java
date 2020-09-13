@@ -28,7 +28,6 @@ import java.nio.file.Paths;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TreeSet;
-import java.util.function.Consumer;
 
 public abstract class MethodGenerationBase extends TestBase {
 
@@ -75,18 +74,17 @@ public abstract class MethodGenerationBase extends TestBase {
   }
 
   // Running this method will regenerate / overwrite the content of the generated class.
-  protected void generateMethodsAndWriteThemToFile(Consumer<InternalOptions> optionsConsumer)
-      throws IOException {
-    FileUtils.writeToFile(getGeneratedFile(), null, generateMethods(optionsConsumer).getBytes());
+  protected void generateMethodsAndWriteThemToFile() throws IOException {
+    FileUtils.writeToFile(getGeneratedFile(), null, generateMethods().getBytes());
   }
 
   // Running this method generate the content of the generated class but does not overwrite it.
-  protected String generateMethods(Consumer<InternalOptions> optionsConsumer) throws IOException {
+  protected String generateMethods() throws IOException {
     CfCodePrinter codePrinter = new CfCodePrinter();
 
     File tempFile = File.createTempFile("output-", ".java");
 
-    readMethodTemplatesInto(codePrinter, optionsConsumer);
+    readMethodTemplatesInto(codePrinter);
     generateRawOutput(codePrinter, tempFile.toPath());
     String result = formatRawOutput(tempFile.toPath());
 
@@ -94,10 +92,8 @@ public abstract class MethodGenerationBase extends TestBase {
     return result;
   }
 
-  private void readMethodTemplatesInto(
-      CfCodePrinter codePrinter, Consumer<InternalOptions> optionsConsumer) throws IOException {
+  private void readMethodTemplatesInto(CfCodePrinter codePrinter) throws IOException {
     InternalOptions options = new InternalOptions();
-    optionsConsumer.accept(options);
     JarClassFileReader reader =
         new JarClassFileReader(
             new JarApplicationReader(options),

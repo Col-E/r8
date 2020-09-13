@@ -54,8 +54,7 @@ public class WhyAreYouKeepingAllTest extends TestBase {
         .assertStdoutThatMatches(containsString("referenced in keep rule"))
         // TODO(b/124655065): We should always know the reason for keeping.
         // It is OK if this starts failing while the kept-graph API is incomplete, in which case
-        // replace
-        // the 'not(containsString(' by just 'containsString('.
+        // replace the 'not(containsString(' by just 'containsString('.
         .assertStdoutThatMatches(not(containsString("kept for unknown reasons")));
   }
 }

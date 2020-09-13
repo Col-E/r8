@@ -481,14 +481,12 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     runR8Test(
         builder -> {
           builder.addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions);
-          builder.addOptionsModification(options -> options.testing.readInputStackMaps = true);
         },
         inspector -> checkAssertionCodeEnabled(inspector, true),
         allAssertionsExpectedLines());
     runR8Test(
         builder -> {
           builder.addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions);
-          builder.addOptionsModification(options -> options.testing.readInputStackMaps = true);
         },
         inspector -> checkAssertionCodeEnabled(inspector, true),
         allAssertionsExpectedLines(),

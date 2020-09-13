@@ -166,7 +166,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
     if (instructionMayHaveSideEffects(appView, context)) {
       return DeadInstructionResult.notDead();
     }
-    if (!getInvokedMethod().isInstanceInitializer(appView)) {
+    if (!getInvokedMethod().isInstanceInitializer(appView.dexItemFactory())) {
       return DeadInstructionResult.deadIfOutValueIsDead();
     }
     // Super-constructor calls cannot be removed.
