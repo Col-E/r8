@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -72,17 +71,5 @@ public class CfNew extends CfInstruction {
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexProgramClass context) {
     return inliningConstraints.forNewInstance(type, context);
-  }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexType context,
-      DexType returnType,
-      DexItemFactory factory,
-      InitClassLens initClassLens) {
-    // ... →
-    // ..., objectref
-    frameBuilder.push(FrameType.uninitializedNew(new CfLabel(), type));
   }
 }

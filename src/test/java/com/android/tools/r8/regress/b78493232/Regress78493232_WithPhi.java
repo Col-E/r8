@@ -65,7 +65,6 @@ public class Regress78493232_WithPhi extends AsmTestBase {
             .addProgramClasses(CLASSES)
             .addProgramClassFileData(CLASS_BYTES)
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(options -> options.testing.readInputStackMaps = false)
             .run(parameters.getRuntime(), MAIN);
     checkResult(result);
   }
@@ -89,7 +88,6 @@ public class Regress78493232_WithPhi extends AsmTestBase {
             .treeShaking(treeShake)
             .noMinification()
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(options -> options.testing.readInputStackMaps = false)
             .addKeepMainRule(MAIN)
             .run(parameters.getRuntime(), MAIN);
     checkResult(result);

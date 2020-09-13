@@ -1257,12 +1257,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableForceNestBasedAccessDesugaringForTest = false;
     public boolean verifyKeptGraphInfo = false;
 
-    public boolean readInputStackMaps = true;
-    public boolean disableStackMapVerification = false;
-
     // Force each call of application read to dump its inputs to a file, which is subsequently
     // deleted. Useful to check that our dump functionality does not cause compilation failure.
     public boolean dumpAll = false;
+
+    public boolean readInputStackMaps = false;
 
     // Option for testing outlining with interface array arguments, see b/132420510.
     public boolean allowOutlinerInterfaceArrayArguments = false;

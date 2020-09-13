@@ -188,7 +188,6 @@ public class DesugaredLibraryTestBase extends TestBase {
       stringBuilder.append(string);
     }
 
-    @Override
     public void finished(DiagnosticsHandler handler) {
       assert stringBuilder != null;
       assert result == null;

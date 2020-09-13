@@ -305,29 +305,6 @@ public class CfInvoke extends CfInstruction {
     return inliningConstraints.forInvoke(target, type, context);
   }
 
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexType context,
-      DexType returnType,
-      DexItemFactory factory,
-      InitClassLens initClassLens) {
-    // ..., objectref, [arg1, [arg2 ...]] →
-    // ... [ returnType ]
-    // OR, for static method calls:
-    // ..., [arg1, [arg2 ...]] →
-    // ...
-    frameBuilder.popAndDiscard(this.method.proto.parameters.values);
-    if (opcode == Opcodes.INVOKESPECIAL && method.isInstanceInitializer(factory)) {
-      frameBuilder.popAndInitialize(context, method.holder);
-    } else if (opcode != Opcodes.INVOKESTATIC) {
-      frameBuilder.pop(method.holder);
-    }
-    if (this.method.proto.returnType != factory.voidType) {
-      frameBuilder.push(this.method.proto.returnType);
-    }
-  }
-
   private static boolean noNeedToUseGraphLens(
       DexMethod method, Invoke.Type type, GraphLens graphLens) {
     assert graphLens.lookupMethod(method, null, type).getType() == type;

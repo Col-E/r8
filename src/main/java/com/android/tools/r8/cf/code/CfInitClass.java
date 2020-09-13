@@ -85,16 +85,4 @@ public class CfInitClass extends CfInstruction {
       InliningConstraints inliningConstraints, DexProgramClass context) {
     return inliningConstraints.forInitClass(clazz, context);
   }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexType context,
-      DexType returnType,
-      DexItemFactory factory,
-      InitClassLens initClassLens) {
-    // ..., →
-    // ..., value
-    frameBuilder.push(clazz);
-  }
 }

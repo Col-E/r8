@@ -93,24 +93,15 @@ public class L8 {
       ExceptionUtils.withD8CompilationHandler(
           options.reporter,
           () -> {
-            // TODO(b/164396438): Remove when stack map tables are fixed.
-            options.testing.readInputStackMaps = false;
             options.cfToCfDesugar = true;
             desugar(app, options, executorService);
             options.cfToCfDesugar = false;
           });
       assert !options.cfToCfDesugar;
       if (shrink) {
-        AndroidApp r8CommandInputApp = r8Command.getInputApp();
-        InternalOptions r8CommandInternalOptions = r8Command.getInternalOptions();
-        // TODO(b/164396438): Remove when stack map tables are fixed.
-        r8CommandInternalOptions.testing.readInputStackMaps = false;
-        R8.runForTesting(r8CommandInputApp, r8CommandInternalOptions);
+        R8.run(r8Command, executorService);
       } else if (d8Command != null) {
-        InternalOptions d8InternalOptions = d8Command.getInternalOptions();
-        // TODO(b/164396438): Remove when stack map tables are fixed.
-        d8InternalOptions.testing.readInputStackMaps = false;
-        D8.runForTesting(d8Command.getInputApp(), d8InternalOptions);
+        D8.run(d8Command, executorService);
       }
     } finally {
       executorService.shutdown();

@@ -91,6 +91,7 @@ public class PassThroughTest extends TestBase {
             internalOptions -> {
               internalOptions.testing.cfByteCodePassThrough =
                   method -> !method.name.toString().equals("<init>");
+              internalOptions.testing.readInputStackMaps = true;
             })
         .compile()
         .writeToZip(outputJar)
