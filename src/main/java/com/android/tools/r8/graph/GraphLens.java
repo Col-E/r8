@@ -534,6 +534,7 @@ public abstract class GraphLens {
 
     protected abstract FieldLookupResult internalDescribeLookupField(FieldLookupResult previous);
 
+    @Override
     public final boolean isIdentityLens() {
       return false;
     }
