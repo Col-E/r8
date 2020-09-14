@@ -4,21 +4,12 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.origin.Origin;
-
-public class DexClassAndMethod implements LookupTarget {
-
-  private final DexClass holder;
-  private final DexEncodedMethod method;
+public class DexClassAndMethod extends DexClassAndMember<DexEncodedMethod, DexMethod>
+    implements LookupTarget {
 
   DexClassAndMethod(DexClass holder, DexEncodedMethod method) {
-    assert holder != null;
-    assert method != null;
-    assert holder.type == method.holder();
+    super(holder, method);
     assert holder.isProgramClass() == (this instanceof ProgramMethod);
-    this.holder = holder;
-    this.method = method;
   }
 
   public static DexClassAndMethod create(DexClass holder, DexEncodedMethod method) {
@@ -33,16 +24,6 @@ public class DexClassAndMethod implements LookupTarget {
   }
 
   @Override
-  public boolean equals(Object object) {
-    throw new Unreachable("Unsupported attempt at comparing Class and DexClassAndMethod");
-  }
-
-  @Override
-  public int hashCode() {
-    throw new Unreachable("Unsupported attempt at computing the hashcode of DexClassAndMethod");
-  }
-
-  @Override
   public boolean isMethodTarget() {
     return true;
   }
@@ -50,26 +31,6 @@ public class DexClassAndMethod implements LookupTarget {
   @Override
   public DexClassAndMethod asMethodTarget() {
     return this;
-  }
-
-  public DexClass getHolder() {
-    return holder;
-  }
-
-  public DexType getHolderType() {
-    return holder.type;
-  }
-
-  public DexEncodedMethod getDefinition() {
-    return method;
-  }
-
-  public DexMethod getReference() {
-    return method.method;
-  }
-
-  public Origin getOrigin() {
-    return holder.origin;
   }
 
   public boolean isClasspathMethod() {
@@ -86,14 +47,5 @@ public class DexClassAndMethod implements LookupTarget {
 
   public ProgramMethod asProgramMethod() {
     return null;
-  }
-
-  public String toSourceString() {
-    return method.method.toSourceString();
-  }
-
-  @Override
-  public String toString() {
-    return toSourceString();
   }
 }

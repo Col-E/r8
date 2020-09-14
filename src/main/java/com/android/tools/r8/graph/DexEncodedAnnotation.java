@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.utils.ArrayUtils;
 import java.util.Arrays;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class DexEncodedAnnotation extends DexItem {
@@ -27,6 +28,12 @@ public class DexEncodedAnnotation extends DexItem {
     type.collectIndexedItems(indexedItems);
     for (DexAnnotationElement element : elements) {
       element.collectIndexedItems(indexedItems);
+    }
+  }
+
+  public void forEachElement(Consumer<DexAnnotationElement> consumer) {
+    for (DexAnnotationElement element : elements) {
+      consumer.accept(element);
     }
   }
 

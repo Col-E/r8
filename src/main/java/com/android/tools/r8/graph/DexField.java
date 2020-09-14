@@ -23,6 +23,10 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
     }
   }
 
+  public DexType getType() {
+    return type;
+  }
+
   @Override
   public DexEncodedField lookupOnClass(DexClass clazz) {
     return clazz != null ? clazz.lookupField(this) : null;

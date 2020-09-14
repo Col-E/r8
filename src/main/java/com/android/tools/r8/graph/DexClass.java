@@ -562,7 +562,11 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public DexType getType() {
-    return this.type;
+    return type;
+  }
+
+  public DexType getSuperType() {
+    return superType;
   }
 
   public boolean hasClassInitializer() {
@@ -815,6 +819,11 @@ public abstract class DexClass extends DexDefinition {
       return type;
     }
     return null;
+  }
+
+  public void forEachNestMember(Consumer<DexType> consumer) {
+    assert isNestHost();
+    getNestMembersClassAttributes().forEach(member -> consumer.accept(member.getNestMember()));
   }
 
   public NestHostClassAttribute getNestHostClassAttribute() {

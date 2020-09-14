@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
 import com.google.common.hash.Hasher;
+import java.util.function.Consumer;
 
 public class DexProto extends IndexedDexItem implements PresortedComparable<DexProto> {
 
@@ -19,6 +20,11 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
     this.shorty = shorty;
     this.returnType = returnType;
     this.parameters = parameters;
+  }
+
+  public void forEachType(Consumer<DexType> consumer) {
+    consumer.accept(returnType);
+    parameters.forEach(consumer);
   }
 
   public DexType getParameter(int index) {

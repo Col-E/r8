@@ -24,6 +24,7 @@ import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.EncodedValueUtils;
 import java.util.Arrays;
+import java.util.function.Consumer;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Type;
 
@@ -1381,6 +1382,12 @@ public abstract class DexValue extends DexItem {
       this.values = values;
     }
 
+    public void forEachElement(Consumer<DexValue> consumer) {
+      for (DexValue value : values) {
+        consumer.accept(value);
+      }
+    }
+
     public DexValue[] getValues() {
       return values;
     }
@@ -1472,6 +1479,10 @@ public abstract class DexValue extends DexItem {
 
     public DexValueAnnotation(DexEncodedAnnotation value) {
       this.value = value;
+    }
+
+    public DexEncodedAnnotation getValue() {
+      return value;
     }
 
     @Override

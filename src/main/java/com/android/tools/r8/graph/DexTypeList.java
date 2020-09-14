@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
 import java.util.Arrays;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class DexTypeList extends DexItem {
@@ -32,6 +33,12 @@ public class DexTypeList extends DexItem {
 
   public boolean contains(DexType type) {
     return ArrayUtils.contains(values, type);
+  }
+
+  public void forEach(Consumer<DexType> consumer) {
+    for (DexType value : values) {
+      consumer.accept(value);
+    }
   }
 
   @Override

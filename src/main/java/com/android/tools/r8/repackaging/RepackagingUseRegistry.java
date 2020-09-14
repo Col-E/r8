@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MemberResolutionResult;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMember;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SuccessfulMemberResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -23,13 +23,13 @@ public class RepackagingUseRegistry extends UseRegistry {
 
   private final AppInfoWithLiveness appInfo;
   private final RepackagingConstraintGraph constraintGraph;
-  private final ProgramMethod context;
+  private final ProgramDefinition context;
   private final RepackagingConstraintGraph.Node node;
 
   public RepackagingUseRegistry(
       AppView<AppInfoWithLiveness> appView,
       RepackagingConstraintGraph constraintGraph,
-      ProgramMethod context) {
+      ProgramDefinition context) {
     super(appView.dexItemFactory());
     this.appInfo = appView.appInfo();
     this.constraintGraph = constraintGraph;
@@ -43,7 +43,7 @@ public class RepackagingUseRegistry extends UseRegistry {
       return true;
     }
     if (accessFlags.isProtected()
-        && !appInfo.isSubtype(context.getHolderType(), referencedClass.getType())) {
+        && !appInfo.isSubtype(context.getContextType(), referencedClass.getType())) {
       return true;
     }
     return false;
@@ -55,13 +55,27 @@ public class RepackagingUseRegistry extends UseRegistry {
       return true;
     }
     if (accessFlags.isProtected()
-        && !appInfo.isSubtype(context.getHolderType(), member.getHolderType())) {
+        && !appInfo.isSubtype(context.getContextType(), member.getHolderType())) {
       return true;
     }
     return false;
   }
 
-  private void registerMemberAccess(MemberResolutionResult<?, ?> resolutionResult) {
+  public void registerFieldAccess(DexField field) {
+    registerMemberAccess(appInfo.resolveField(field));
+  }
+
+  public void registerMethodReference(DexMethod method) {
+    registerMemberAccess(appInfo.unsafeResolveMethodDueToDexFormat(method));
+  }
+
+  public void registerNullableMethodReference(DexMethod method) {
+    if (method != null) {
+      registerMethodReference(method);
+    }
+  }
+
+  public void registerMemberAccess(MemberResolutionResult<?, ?> resolutionResult) {
     SuccessfulMemberResolutionResult<?, ?> successfulResolutionResult =
         resolutionResult.asSuccessfulMemberResolutionResult();
     if (successfulResolutionResult == null) {
@@ -92,7 +106,7 @@ public class RepackagingUseRegistry extends UseRegistry {
       registerTypeAccess(type.toBaseType(appInfo.dexItemFactory()));
       return;
     }
-    if (type.isPrimitiveType()) {
+    if (type.isPrimitiveType() || type.isVoidType()) {
       return;
     }
     assert type.isClassType();
@@ -147,12 +161,12 @@ public class RepackagingUseRegistry extends UseRegistry {
 
   @Override
   public void registerInstanceFieldRead(DexField field) {
-    registerMemberAccess(appInfo.resolveField(field));
+    registerFieldAccess(field);
   }
 
   @Override
   public void registerInstanceFieldWrite(DexField field) {
-    registerMemberAccess(appInfo.resolveField(field));
+    registerFieldAccess(field);
   }
 
   @Override
@@ -162,17 +176,23 @@ public class RepackagingUseRegistry extends UseRegistry {
 
   @Override
   public void registerStaticFieldRead(DexField field) {
-    registerMemberAccess(appInfo.resolveField(field));
+    registerFieldAccess(field);
   }
 
   @Override
   public void registerStaticFieldWrite(DexField field) {
-    registerMemberAccess(appInfo.resolveField(field));
+    registerFieldAccess(field);
   }
 
   @Override
   public void registerTypeReference(DexType type) {
     registerTypeAccess(type);
+  }
+
+  public void registerNullableTypeReference(DexType type) {
+    if (type != null) {
+      registerTypeReference(type);
+    }
   }
 
   @Override

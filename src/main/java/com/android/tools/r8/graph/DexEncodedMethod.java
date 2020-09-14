@@ -775,6 +775,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return builder.toString();
   }
 
+  public ParameterAnnotationsList getParameterAnnotations() {
+    return parameterAnnotationsList;
+  }
+
   public void clearParameterAnnotations() {
     parameterAnnotationsList = ParameterAnnotationsList.empty();
   }

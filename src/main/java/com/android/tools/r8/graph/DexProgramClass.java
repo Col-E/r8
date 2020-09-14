@@ -29,7 +29,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public class DexProgramClass extends DexClass implements Supplier<DexProgramClass> {
+public class DexProgramClass extends DexClass
+    implements ProgramDefinition, Supplier<DexProgramClass> {
 
   @FunctionalInterface
   public interface ChecksumSupplier {
@@ -488,6 +489,16 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
   @Override
   public DexProgramClass get() {
+    return this;
+  }
+
+  @Override
+  public DexType getContextType() {
+    return getType();
+  }
+
+  @Override
+  public DexProgramClass getDefinition() {
     return this;
   }
 

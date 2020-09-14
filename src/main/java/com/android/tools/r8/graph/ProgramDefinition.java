@@ -4,11 +4,9 @@
 
 package com.android.tools.r8.graph;
 
-public interface ProgramMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
-    extends ProgramDefinition {
+public interface ProgramDefinition {
 
-  @Override
-  D getDefinition();
+  DexType getContextType();
 
-  DexType getHolderType();
+  DexDefinition getDefinition();
 }

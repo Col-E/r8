@@ -261,6 +261,11 @@ public abstract class TestShrinkerBuilder<
     return addKeepRules("-keepattributes " + String.join(",", attributes));
   }
 
+  public T addKeepAttributeInnerClassesAndEnclosingMethod() {
+    return addKeepAttributes(
+        ProguardKeepAttributes.INNER_CLASSES, ProguardKeepAttributes.ENCLOSING_METHOD);
+  }
+
   public T addKeepAttributeLineNumberTable() {
     return addKeepAttributes(ProguardKeepAttributes.LINE_NUMBER_TABLE);
   }
@@ -271,6 +276,10 @@ public abstract class TestShrinkerBuilder<
 
   public T addKeepRuntimeVisibleAnnotations() {
     return addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS);
+  }
+
+  public T addKeepRuntimeVisibleParameterAnnotations() {
+    return addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS);
   }
 
   public T addKeepAllAttributes() {

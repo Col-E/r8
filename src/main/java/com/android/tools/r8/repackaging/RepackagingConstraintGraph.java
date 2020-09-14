@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ProgramPackage;
@@ -68,7 +69,7 @@ public class RepackagingConstraintGraph {
   }
 
   private Node createNode(DexDefinition definition) {
-    Node node = new Node(definition);
+    Node node = new Node();
     nodes.put(definition, node);
     return node;
   }
@@ -89,23 +90,65 @@ public class RepackagingConstraintGraph {
   }
 
   private void registerReferencesFromClass(DexProgramClass clazz) {
-    // TODO(b/165783399): Trace the references to the immediate super types.
-    // TODO(b/165783399): Maybe trace the references in the nest host and/or members.
-    // TODO(b/165783399): Maybe trace the references to the inner classes.
-    // TODO(b/165783399): Maybe trace the references in @kotlin.Metadata.
+    RepackagingUseRegistry registry = new RepackagingUseRegistry(appView, this, clazz);
+
+    // Trace the references to the immediate super types.
+    registry.registerTypeReference(clazz.getSuperType());
+    clazz.interfaces.forEach(registry::registerTypeReference);
+
+    // Trace the references from the class annotations.
+    new RepackagingAnnotationTracer(appView, registry).trace(clazz.annotations());
+
+    // Trace the references in the nest host and/or members.
+    if (clazz.isInANest()) {
+      if (clazz.isNestHost()) {
+        clazz.forEachNestMember(registry::registerTypeReference);
+      } else {
+        assert clazz.isNestMember();
+        registry.registerTypeReference(clazz.getNestHost());
+      }
+    }
+
+    // Trace the references to the inner and outer classes.
+    clazz
+        .getInnerClasses()
+        .forEach(
+            innerClassAttribute -> {
+              registry.registerNullableTypeReference(innerClassAttribute.getInner());
+              registry.registerNullableTypeReference(innerClassAttribute.getOuter());
+            });
+
+    // Trace the references from the enclosing method attribute.
+    EnclosingMethodAttribute attr = clazz.getEnclosingMethodAttribute();
+    registry.registerNullableTypeReference(attr.getEnclosingClass());
+    registry.registerNullableMethodReference(attr.getEnclosingMethod());
   }
 
   private void registerReferencesFromField(ProgramField field) {
-    // TODO(b/165783399): Trace the type of the field.
-    // TODO(b/165783399): Trace the references in the field annotations.
+    RepackagingUseRegistry registry = new RepackagingUseRegistry(appView, this, field);
+
+    // Trace the type of the field.
+    registry.registerTypeReference(field.getReference().getType());
+
+    // Trace the references in the field annotations.
+    new RepackagingAnnotationTracer(appView, registry).trace(field.getDefinition().annotations());
   }
 
   private void registerReferencesFromMethod(ProgramMethod method) {
-    // TODO(b/165783399): Trace the type references in the method signature.
-    // TODO(b/165783399): Trace the references in the method and method parameter annotations.
     DexEncodedMethod definition = method.getDefinition();
+    RepackagingUseRegistry registry = new RepackagingUseRegistry(appView, this, method);
+
+    // Trace the type references in the method signature.
+    definition.getProto().forEachType(registry::registerTypeReference);
+
+    // Trace the references in the method and method parameter annotations.
+    RepackagingAnnotationTracer annotationTracer =
+        new RepackagingAnnotationTracer(appView, registry);
+    annotationTracer.trace(definition.annotations());
+    annotationTracer.trace(definition.getParameterAnnotations());
+
+    // Trace the references from the code.
     if (definition.hasCode()) {
-      RepackagingUseRegistry registry = new RepackagingUseRegistry(appView, this, method);
       definition.getCode().registerCodeReferences(method, registry);
     }
   }
@@ -127,13 +170,7 @@ public class RepackagingConstraintGraph {
 
   static class Node {
 
-    private final DexDefinition definition;
-
     private final Set<Node> neighbors = Sets.newConcurrentHashSet();
-
-    private Node(DexDefinition definition) {
-      this.definition = definition;
-    }
 
     public void addNeighbor(Node neighbor) {
       neighbors.add(neighbor);

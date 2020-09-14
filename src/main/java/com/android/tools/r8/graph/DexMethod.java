@@ -29,6 +29,10 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     }
   }
 
+  public DexType getHolderType() {
+    return holder;
+  }
+
   public DexString getName() {
     return name;
   }

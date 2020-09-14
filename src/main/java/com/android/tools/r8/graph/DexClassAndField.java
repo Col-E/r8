@@ -4,21 +4,11 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.origin.Origin;
-
-public class DexClassAndField {
-
-  private final DexClass holder;
-  private final DexEncodedField field;
+public class DexClassAndField extends DexClassAndMember<DexEncodedField, DexField> {
 
   DexClassAndField(DexClass holder, DexEncodedField field) {
-    assert holder != null;
-    assert field != null;
-    assert holder.type == field.holder();
+    super(holder, field);
     assert holder.isProgramClass() == (this instanceof ProgramField);
-    this.holder = holder;
-    this.field = field;
   }
 
   public static DexClassAndField create(DexClass holder, DexEncodedField field) {
@@ -29,50 +19,11 @@ public class DexClassAndField {
     }
   }
 
-  public DexClass getHolder() {
-    return holder;
-  }
-
-  public DexType getHolderType() {
-    return holder.type;
-  }
-
-  public DexEncodedField getDefinition() {
-    return field;
-  }
-
-  public DexField getReference() {
-    return field.field;
-  }
-
-  public Origin getOrigin() {
-    return holder.origin;
-  }
-
   public boolean isProgramField() {
     return false;
   }
 
   public ProgramField asProgramField() {
     return null;
-  }
-
-  public String toSourceString() {
-    return getReference().toSourceString();
-  }
-
-  @Override
-  public String toString() {
-    return toSourceString();
-  }
-
-  @Override
-  public boolean equals(Object object) {
-    throw new Unreachable("Unsupported attempt at comparing Class and DexClassAndField");
-  }
-
-  @Override
-  public int hashCode() {
-    throw new Unreachable("Unsupported attempt at computing the hashcode of DexClassAndField");
   }
 }
