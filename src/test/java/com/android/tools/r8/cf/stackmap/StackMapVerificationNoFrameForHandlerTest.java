@@ -6,15 +6,11 @@ package com.android.tools.r8.cf.stackmap;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.R8FullTestBuilder;
-import com.android.tools.r8.SingleTestRunResult;
+import com.android.tools.r8.JvmTestRunResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestBuilder;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -36,6 +32,8 @@ public class StackMapVerificationNoFrameForHandlerTest extends TestBase {
   private final String EXPECTED_OUTPUT = "Hello World!";
   private final String EXPECTED_VERIFY_ERROR =
       "Expected stack map table for method with non-linear control flow";
+  private final String EXPECTED_JVM_ERROR =
+      "java.lang.VerifyError: Expecting a stackmap frame at branch target";
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {
@@ -50,65 +48,63 @@ public class StackMapVerificationNoFrameForHandlerTest extends TestBase {
   }
 
   @Test
-  public void testRuntime() throws Exception {
-    TestBuilder<? extends SingleTestRunResult<?>, ?> builder =
-        testForRuntime(parameters)
-            .addProgramClassFileData(
-                includeFrameInHandler
-                    ? MainDump.dump()
-                    : transformer(MainDump.dump(), Reference.classFromClass(Main.class))
-                        .stripFrames("main")
-                        .transform());
-    if (includeFrameInHandler) {
-      builder
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
-    } else if (parameters.isCfRuntime()) {
-      builder
-          .run(parameters.getRuntime(), Main.class)
-          .assertFailureWithErrorThatMatches(
-              containsString("java.lang.VerifyError: Expecting a stackmap frame at branch target"));
-    } else {
-      assertTrue(parameters.isDexRuntime());
-      CompilationFailedException compilationFailedException =
-          assertThrows(
-              CompilationFailedException.class,
-              () -> {
-                builder.run(parameters.getRuntime(), Main.class);
-              });
-      assertThat(
-          compilationFailedException.getCause().getMessage(),
-          containsString(EXPECTED_VERIFY_ERROR));
-    }
-  }
-
-  @Test
-  public void testHandlerR8() throws Exception {
-    R8FullTestBuilder builder =
-        testForR8(parameters.getBackend())
+  public void testJvm() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
+    JvmTestRunResult mainResult =
+        testForJvm()
             .addProgramClassFileData(
                 includeFrameInHandler
                     ? MainDump.dump()
                     : transformer(MainDump.dump(), Reference.classFromClass(Main.class))
                         .stripFrames("main")
                         .transform())
-            .addKeepMainRule(Main.class)
-            .setMinApi(parameters.getApiLevel());
+            .run(parameters.getRuntime(), Main.class);
     if (includeFrameInHandler) {
-      builder
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+      mainResult.assertSuccessWithOutputLines(EXPECTED_OUTPUT);
     } else {
-      assertThrows(
-          CompilationFailedException.class,
-          () -> {
-            builder.compileWithExpectedDiagnostics(
-                diagnostics -> {
-                  diagnostics.assertOnlyErrors();
-                  diagnostics.assertErrorsMatch(
-                      diagnosticMessage(containsString(EXPECTED_VERIFY_ERROR)));
-                });
-          });
+      mainResult.assertFailureWithErrorThatMatches(containsString(EXPECTED_JVM_ERROR));
+    }
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    testForD8()
+        .addProgramClassFileData(
+            includeFrameInHandler
+                ? MainDump.dump()
+                : transformer(MainDump.dump(), Reference.classFromClass(Main.class))
+                    .stripFrames("main")
+                    .transform())
+        .setMinApi(parameters.getApiLevel())
+        .compileWithExpectedDiagnostics(this::verifyWarningsRegardingStackMap)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+  }
+
+  @Test
+  public void testHandlerR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(
+            includeFrameInHandler
+                ? MainDump.dump()
+                : transformer(MainDump.dump(), Reference.classFromClass(Main.class))
+                    .stripFrames("main")
+                    .transform())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .allowDiagnosticWarningMessages(!includeFrameInHandler)
+        .compileWithExpectedDiagnostics(this::verifyWarningsRegardingStackMap)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
+  }
+
+  private void verifyWarningsRegardingStackMap(TestDiagnosticMessages diagnostics) {
+    if (includeFrameInHandler) {
+      diagnostics.assertNoMessages();
+    } else {
+      diagnostics.assertOnlyWarnings();
+      diagnostics.assertWarningsMatch(diagnosticMessage(containsString(EXPECTED_VERIFY_ERROR)));
     }
   }
 
