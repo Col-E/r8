@@ -42,6 +42,64 @@ import java.util.function.Supplier;
 public abstract class GraphLens {
 
   /**
+   * Intermediate result of a field lookup that stores the actual non-rebound reference and the
+   * rebound reference that points to the definition of the field.
+   */
+  public static class FieldLookupResult {
+
+    private final DexField reference;
+    private final DexField reboundReference;
+
+    private FieldLookupResult(DexField reference, DexField reboundReference) {
+      this.reference = reference;
+      this.reboundReference = reboundReference;
+    }
+
+    public DexField getReference() {
+      return reference;
+    }
+
+    public DexField getRewrittenReference(Map<DexField, DexField> rewritings) {
+      return rewritings.getOrDefault(reference, reference);
+    }
+
+    public DexField getReboundReference() {
+      return reboundReference;
+    }
+
+    public static Builder builder(GraphLens lens) {
+      return new Builder(lens);
+    }
+
+    public static class Builder {
+
+      private GraphLens lens;
+      private DexField reference;
+      private DexField reboundReference;
+
+      private Builder(GraphLens lens) {
+        this.lens = lens;
+      }
+
+      public Builder setReference(DexField reference) {
+        this.reference = reference;
+        return this;
+      }
+
+      public Builder setReboundReference(DexField reboundReference) {
+        this.reboundReference = reboundReference;
+        return this;
+      }
+
+      public FieldLookupResult build() {
+        // All non-identity graph lenses should set the rebound reference.
+        assert lens.isIdentityLens() || reboundReference != null;
+        return new FieldLookupResult(reference, reboundReference);
+      }
+    }
+  }
+
+  /**
    * Result of a method lookup in a GraphLens.
    *
    * <p>This provides the new target and invoke type to use, along with a description of the
@@ -215,7 +273,20 @@ public abstract class GraphLens {
   public abstract RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
       DexMethod method);
 
-  public abstract DexField lookupField(DexField field);
+  /** Lookup a rebound or non-rebound field reference using the current graph lens. */
+  public DexField lookupField(DexField field) {
+    // Lookup the field using the graph lens and return the (non-rebound) reference from the lookup
+    // result.
+    return internalLookupField(field, FieldLookupResult::getReference);
+  }
+
+  protected abstract DexField internalLookupField(
+      DexField reference, LookupFieldContinuation continuation);
+
+  interface LookupFieldContinuation {
+
+    DexField lookupField(FieldLookupResult previous);
+  }
 
   public DexMethod lookupGetFieldForMethod(DexField field, DexMethod context) {
     return null;
@@ -455,6 +526,14 @@ public abstract class GraphLens {
     }
 
     @Override
+    protected final DexField internalLookupField(
+        DexField reference, LookupFieldContinuation continuation) {
+      return previousLens.internalLookupField(
+          reference, previous -> continuation.lookupField(internalDescribeLookupField(previous)));
+    }
+
+    protected abstract FieldLookupResult internalDescribeLookupField(FieldLookupResult previous);
+
     public final boolean isIdentityLens() {
       return false;
     }
@@ -532,8 +611,12 @@ public abstract class GraphLens {
     }
 
     @Override
-    public DexField lookupField(DexField field) {
-      return field;
+    protected DexField internalLookupField(
+        DexField reference, LookupFieldContinuation continuation) {
+      // Passes the field reference back to the next graph lens. The identity lens intentionally
+      // does not set the rebound field reference, since it does not know what that is.
+      return continuation.lookupField(
+          FieldLookupResult.builder(this).setReference(reference).build());
     }
 
     @Override
@@ -599,8 +682,8 @@ public abstract class GraphLens {
     }
 
     @Override
-    public DexField lookupField(DexField field) {
-      return getIdentityLens().lookupField(field);
+    protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
+      return previous;
     }
 
     @Override
@@ -810,9 +893,13 @@ public abstract class GraphLens {
     }
 
     @Override
-    public DexField lookupField(DexField field) {
-      DexField previous = getPrevious().lookupField(field);
-      return fieldMap.getOrDefault(previous, previous);
+    protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
+      DexField rewrittenReference = previous.getRewrittenReference(fieldMap);
+      return FieldLookupResult.builder(this)
+          .setReference(rewrittenReference)
+          // TODO(b/168282032): This should set the rebound reference.
+          .setReboundReference(rewrittenReference)
+          .build();
     }
 
     @Override

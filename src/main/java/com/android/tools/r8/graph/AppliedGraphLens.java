@@ -134,8 +134,8 @@ public class AppliedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexField lookupField(DexField field) {
-    return field;
+  protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
+    return previous;
   }
 
   @Override

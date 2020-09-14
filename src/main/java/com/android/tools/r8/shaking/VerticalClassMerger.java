@@ -1769,6 +1769,12 @@ public class VerticalClassMerger {
     }
 
     @Override
+    protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
+      // This is unreachable since we override the implementation of lookupField() above.
+      throw new Unreachable();
+    }
+
+    @Override
     public boolean isContextFreeForMethods() {
       return true;
     }
