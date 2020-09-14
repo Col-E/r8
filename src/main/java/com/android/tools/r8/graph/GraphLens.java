@@ -145,6 +145,12 @@ public abstract class GraphLens {
     return new Builder();
   }
 
+  /**
+   * Intentionally private. All graph lenses except for {@link IdentityGraphLens} should inherit
+   * from {@link NonIdentityGraphLens}.
+   */
+  private GraphLens() {}
+
   public abstract DexType getOriginalType(DexType type);
 
   public abstract DexField getOriginalFieldSignature(DexField field);
@@ -254,8 +260,12 @@ public abstract class GraphLens {
     return true;
   }
 
-  public final boolean isIdentityLens() {
-    return this == getIdentityLens();
+  public abstract boolean isIdentityLens();
+
+  public abstract boolean isNonIdentityLens();
+
+  public NonIdentityGraphLens asNonIdentityLens() {
+    return null;
   }
 
   public boolean isInterfaceProcessorLens() {
@@ -263,14 +273,6 @@ public abstract class GraphLens {
   }
 
   public InterfaceProcessorNestedGraphLens asInterfaceProcessorLens() {
-    return null;
-  }
-
-  public boolean isGraphLensWithPrevious() {
-    return false;
-  }
-
-  public GraphLensWithPrevious asGraphLensWithPrevious() {
     return null;
   }
 
@@ -432,7 +434,43 @@ public abstract class GraphLens {
     return true;
   }
 
-  private static class IdentityGraphLens extends GraphLens {
+  public abstract static class NonIdentityGraphLens extends GraphLens {
+
+    private GraphLens previousLens;
+
+    public NonIdentityGraphLens(GraphLens previousLens) {
+      this.previousLens = previousLens;
+    }
+
+    public final GraphLens getPrevious() {
+      return previousLens;
+    }
+
+    public final <T> T withAlternativeParentLens(GraphLens lens, Supplier<T> action) {
+      GraphLens oldParent = getPrevious();
+      previousLens = lens;
+      T result = action.get();
+      previousLens = oldParent;
+      return result;
+    }
+
+    @Override
+    public final boolean isIdentityLens() {
+      return false;
+    }
+
+    @Override
+    public final boolean isNonIdentityLens() {
+      return true;
+    }
+
+    @Override
+    public final NonIdentityGraphLens asNonIdentityLens() {
+      return this;
+    }
+  }
+
+  private static final class IdentityGraphLens extends GraphLens {
 
     private static IdentityGraphLens INSTANCE = new IdentityGraphLens();
 
@@ -440,6 +478,16 @@ public abstract class GraphLens {
 
     private static IdentityGraphLens getInstance() {
       return INSTANCE;
+    }
+
+    @Override
+    public boolean isIdentityLens() {
+      return true;
+    }
+
+    @Override
+    public boolean isNonIdentityLens() {
+      return false;
     }
 
     @Override
@@ -501,66 +549,64 @@ public abstract class GraphLens {
 
   // This lens clears all code rewriting (lookup methods mimics identity lens behavior) but still
   // relies on the previous lens for names (getRenamed/Original methods).
-  public static class ClearCodeRewritingGraphLens extends IdentityGraphLens
-      implements GraphLensWithPrevious {
-
-    private final GraphLens previous;
+  public static class ClearCodeRewritingGraphLens extends NonIdentityGraphLens {
 
     public ClearCodeRewritingGraphLens(GraphLens previous) {
-      this.previous = previous;
-    }
-
-    @Override
-    public boolean isGraphLensWithPrevious() {
-      return true;
-    }
-
-    @Override
-    public GraphLensWithPrevious asGraphLensWithPrevious() {
-      return this;
-    }
-
-    @Override
-    public GraphLens getPrevious() {
-      return previous;
+      super(previous);
     }
 
     @Override
     public DexType getOriginalType(DexType type) {
-      return previous.getOriginalType(type);
+      return getPrevious().getOriginalType(type);
     }
 
     @Override
     public DexField getOriginalFieldSignature(DexField field) {
-      return previous.getOriginalFieldSignature(field);
+      return getPrevious().getOriginalFieldSignature(field);
     }
 
     @Override
     public DexMethod getOriginalMethodSignature(DexMethod method) {
-      return previous.getOriginalMethodSignature(method);
+      return getPrevious().getOriginalMethodSignature(method);
     }
 
     @Override
     public DexField getRenamedFieldSignature(DexField originalField) {
-      return previous.getRenamedFieldSignature(originalField);
+      return getPrevious().getRenamedFieldSignature(originalField);
     }
 
     @Override
     public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
       return this != applied
-          ? previous.getRenamedMethodSignature(originalMethod, applied)
+          ? getPrevious().getRenamedMethodSignature(originalMethod, applied)
           : originalMethod;
     }
 
     @Override
     public DexType lookupType(DexType type) {
-      return previous.lookupType(type);
+      return getPrevious().lookupType(type);
     }
-  }
 
-  public interface GraphLensWithPrevious {
+    @Override
+    public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+      return getIdentityLens().lookupMethod(method, context, type);
+    }
 
-    GraphLens getPrevious();
+    @Override
+    public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
+        DexMethod method) {
+      return getIdentityLens().lookupPrototypeChangesForMethodDefinition(method);
+    }
+
+    @Override
+    public DexField lookupField(DexField field) {
+      return getIdentityLens().lookupField(field);
+    }
+
+    @Override
+    public boolean isContextFreeForMethods() {
+      return getIdentityLens().isContextFreeForMethods();
+    }
   }
 
   /**
@@ -573,9 +619,8 @@ public abstract class GraphLens {
    * #mapInvocationType(DexMethod, DexMethod, Type)} if the default name mapping applies, and only
    * invocation type might need to change.
    */
-  public static class NestedGraphLens extends GraphLens implements GraphLensWithPrevious {
+  public static class NestedGraphLens extends NonIdentityGraphLens {
 
-    protected GraphLens previousLens;
     protected final DexItemFactory dexItemFactory;
 
     protected final Map<DexType, DexType> typeMap;
@@ -602,6 +647,7 @@ public abstract class GraphLens {
         BiMap<DexMethod, DexMethod> originalMethodSignatures,
         GraphLens previousLens,
         DexItemFactory dexItemFactory) {
+      super(previousLens);
       assert !typeMap.isEmpty()
           || !methodMap.isEmpty()
           || !fieldMap.isEmpty()
@@ -611,36 +657,12 @@ public abstract class GraphLens {
       this.fieldMap = fieldMap;
       this.originalFieldSignatures = originalFieldSignatures;
       this.originalMethodSignatures = originalMethodSignatures;
-      this.previousLens = previousLens;
       this.dexItemFactory = dexItemFactory;
     }
 
     @Override
-    public GraphLens getPrevious() {
-      return previousLens;
-    }
-
-    public <T> T withAlternativeParentLens(GraphLens lens, Supplier<T> action) {
-      GraphLens oldParent = previousLens;
-      previousLens = lens;
-      T result = action.get();
-      previousLens = oldParent;
-      return result;
-    }
-
-    @Override
-    public boolean isGraphLensWithPrevious() {
-      return true;
-    }
-
-    @Override
-    public NestedGraphLens asGraphLensWithPrevious() {
-      return this;
-    }
-
-    @Override
     public DexType getOriginalType(DexType type) {
-      return previousLens.getOriginalType(type);
+      return getPrevious().getOriginalType(type);
     }
 
     @Override
@@ -649,7 +671,7 @@ public abstract class GraphLens {
           originalFieldSignatures != null
               ? originalFieldSignatures.getOrDefault(field, field)
               : field;
-      return previousLens.getOriginalFieldSignature(originalField);
+      return getPrevious().getOriginalFieldSignature(originalField);
     }
 
     @Override
@@ -658,12 +680,12 @@ public abstract class GraphLens {
           originalMethodSignatures != null
               ? originalMethodSignatures.getOrDefault(method, method)
               : method;
-      return previousLens.getOriginalMethodSignature(originalMethod);
+      return getPrevious().getOriginalMethodSignature(originalMethod);
     }
 
     @Override
     public DexField getRenamedFieldSignature(DexField originalField) {
-      DexField renamedField = previousLens.getRenamedFieldSignature(originalField);
+      DexField renamedField = getPrevious().getRenamedFieldSignature(originalField);
       return originalFieldSignatures != null
           ? originalFieldSignatures.inverse().getOrDefault(renamedField, renamedField)
           : renamedField;
@@ -674,7 +696,7 @@ public abstract class GraphLens {
       if (this == applied) {
         return originalMethod;
       }
-      DexMethod renamedMethod = previousLens.getRenamedMethodSignature(originalMethod, applied);
+      DexMethod renamedMethod = getPrevious().getRenamedMethodSignature(originalMethod, applied);
       return originalMethodSignatures != null
           ? originalMethodSignatures.inverse().getOrDefault(renamedMethod, renamedMethod)
           : renamedMethod;
@@ -699,14 +721,14 @@ public abstract class GraphLens {
           return result;
         }
       }
-      DexType previous = previousLens.lookupType(type);
+      DexType previous = getPrevious().lookupType(type);
       return typeMap != null ? typeMap.getOrDefault(previous, previous) : previous;
     }
 
     @Override
     public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
       DexMethod previousContext = internalGetPreviousMethodSignature(context);
-      GraphLensLookupResult lookup = previousLens.lookupMethod(method, previousContext, type);
+      GraphLensLookupResult lookup = getPrevious().lookupMethod(method, previousContext, type);
       DexMethod newMethod = methodMap.get(lookup.getMethod());
       if (newMethod == null) {
         return lookup;
@@ -724,7 +746,7 @@ public abstract class GraphLens {
         DexMethod method) {
       DexMethod previous = internalGetPreviousMethodSignature(method);
       RewrittenPrototypeDescription lookup =
-          previousLens.lookupPrototypeChangesForMethodDefinition(previous);
+          getPrevious().lookupPrototypeChangesForMethodDefinition(previous);
       return internalDescribePrototypeChanges(lookup, method);
     }
 
@@ -741,12 +763,12 @@ public abstract class GraphLens {
 
     @Override
     public DexMethod lookupGetFieldForMethod(DexField field, DexMethod context) {
-      return previousLens.lookupGetFieldForMethod(field, context);
+      return getPrevious().lookupGetFieldForMethod(field, context);
     }
 
     @Override
     public DexMethod lookupPutFieldForMethod(DexField field, DexMethod context) {
-      return previousLens.lookupPutFieldForMethod(field, context);
+      return getPrevious().lookupPutFieldForMethod(field, context);
     }
 
     /**
@@ -789,18 +811,18 @@ public abstract class GraphLens {
 
     @Override
     public DexField lookupField(DexField field) {
-      DexField previous = previousLens.lookupField(field);
+      DexField previous = getPrevious().lookupField(field);
       return fieldMap.getOrDefault(previous, previous);
     }
 
     @Override
     public boolean isContextFreeForMethods() {
-      return previousLens.isContextFreeForMethods();
+      return getPrevious().isContextFreeForMethods();
     }
 
     @Override
     public boolean verifyIsContextFreeForMethod(DexMethod method) {
-      assert previousLens.verifyIsContextFreeForMethod(method);
+      assert getPrevious().verifyIsContextFreeForMethod(method);
       return true;
     }
 
@@ -821,7 +843,7 @@ public abstract class GraphLens {
         builder.append(entry.getKey().toSourceString()).append(" -> ");
         builder.append(entry.getValue().toSourceString()).append(System.lineSeparator());
       }
-      builder.append(previousLens.toString());
+      builder.append(getPrevious().toString());
       return builder.toString();
     }
   }

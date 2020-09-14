@@ -36,7 +36,7 @@ public class RepackagingLens extends NestedGraphLens {
   @Override
   public DexType getOriginalType(DexType type) {
     DexType previous = originalTypes.getOrDefault(type, type);
-    return previousLens.getOriginalType(previous);
+    return getPrevious().getOriginalType(previous);
   }
 
   public static class Builder {

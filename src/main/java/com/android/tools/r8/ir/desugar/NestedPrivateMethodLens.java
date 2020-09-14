@@ -61,13 +61,13 @@ public class NestedPrivateMethodLens extends NestedGraphLens {
 
   @Override
   public DexMethod lookupGetFieldForMethod(DexField field, DexMethod context) {
-    assert previousLens.lookupGetFieldForMethod(field, context) == null;
+    assert getPrevious().lookupGetFieldForMethod(field, context) == null;
     return lookupFieldForMethod(field, context, getFieldMap);
   }
 
   @Override
   public DexMethod lookupPutFieldForMethod(DexField field, DexMethod context) {
-    assert previousLens.lookupPutFieldForMethod(field, context) == null;
+    assert getPrevious().lookupPutFieldForMethod(field, context) == null;
     return lookupFieldForMethod(field, context, putFieldMap);
   }
 
@@ -78,7 +78,7 @@ public class NestedPrivateMethodLens extends NestedGraphLens {
 
   @Override
   public boolean verifyIsContextFreeForMethod(DexMethod method) {
-    assert !methodMap.containsKey(previousLens.lookupMethod(method));
+    assert !methodMap.containsKey(getPrevious().lookupMethod(method));
     return true;
   }
 
@@ -112,7 +112,7 @@ public class NestedPrivateMethodLens extends NestedGraphLens {
   @Override
   public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Invoke.Type type) {
     assert originalMethodSignatures == null;
-    GraphLensLookupResult lookup = previousLens.lookupMethod(method, context, type);
+    GraphLensLookupResult lookup = getPrevious().lookupMethod(method, context, type);
     DexMethod bridge = methodMap.get(lookup.getMethod());
     if (bridge == null) {
       return lookup;

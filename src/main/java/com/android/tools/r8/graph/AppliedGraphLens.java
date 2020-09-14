@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.utils.MapUtils;
 import com.google.common.collect.BiMap;
@@ -18,7 +19,7 @@ import java.util.Map;
  *
  * <p>The mappings from the original program to the generated program are kept, though.
  */
-public class AppliedGraphLens extends GraphLens {
+public class AppliedGraphLens extends NonIdentityGraphLens {
 
   private final AppView<?> appView;
 
@@ -32,6 +33,7 @@ public class AppliedGraphLens extends GraphLens {
   private final Map<DexMethod, DexMethod> extraOriginalMethodSignatures = new IdentityHashMap<>();
 
   public AppliedGraphLens(AppView<? extends AppInfoWithClassHierarchy> appView) {
+    super(GraphLens.getIdentityLens());
     this.appView = appView;
 
     for (DexProgramClass clazz : appView.appInfo().classes()) {

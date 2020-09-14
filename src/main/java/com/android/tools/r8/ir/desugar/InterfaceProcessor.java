@@ -415,8 +415,8 @@ public final class InterfaceProcessor {
       if (lens.isIdentityLens()) {
         return null;
       }
-      if (lens.isGraphLensWithPrevious()) {
-        return find(lens.asGraphLensWithPrevious().getPrevious());
+      if (lens.isNonIdentityLens()) {
+        return find(lens.asNonIdentityLens().getPrevious());
       }
       assert false;
       return null;
@@ -452,7 +452,7 @@ public final class InterfaceProcessor {
                 ? originalMethodSignatures.getOrDefault(method, method)
                 : method;
       }
-      return previousLens.getOriginalMethodSignature(originalMethod);
+      return getPrevious().getOriginalMethodSignature(originalMethod);
     }
 
     @Override

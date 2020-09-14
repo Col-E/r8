@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
+import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
@@ -1693,12 +1694,13 @@ public class VerticalClassMerger {
     return AbortReason.UNSAFE_INLINING;
   }
 
-  private class SingleTypeMapperGraphLens extends GraphLens {
+  private class SingleTypeMapperGraphLens extends NonIdentityGraphLens {
 
     private final DexType source;
     private final DexProgramClass target;
 
     public SingleTypeMapperGraphLens(DexType source, DexProgramClass target) {
+      super(GraphLens.getIdentityLens());
       this.source = source;
       this.target = target;
     }

@@ -54,7 +54,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
     if (originalConstructor == null) {
       return super.getOriginalMethodSignature(method);
     }
-    return previousLens.getOriginalMethodSignature(originalConstructor);
+    return getPrevious().getOriginalMethodSignature(originalConstructor);
   }
 
   public HorizontallyMergedClasses getHorizontallyMergedClasses() {
