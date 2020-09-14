@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -33,6 +34,16 @@ public class CfConstNull extends CfInstruction {
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
     visitor.visitInsn(Opcodes.ACONST_NULL);
+  }
+
+  @Override
+  public int getCompareToId() {
+    return Opcodes.ACONST_NULL;
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 
   @Override

@@ -3,7 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
+import static com.android.tools.r8.utils.ComparatorUtils.listComparator;
+
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -18,11 +21,14 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.ComparatorUtils;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import java.util.Comparator;
 import java.util.List;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 public class CfSwitch extends CfInstruction {
 
@@ -40,6 +46,20 @@ public class CfSwitch extends CfInstruction {
     this.targets = targets;
     assert kind != Kind.LOOKUP || keys.length == targets.size();
     assert kind != Kind.TABLE || keys.length == 1;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return kind == Kind.LOOKUP ? Opcodes.LOOKUPSWITCH : Opcodes.TABLESWITCH;
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    assert kind == ((CfSwitch) other).kind;
+    return Comparator.comparing(CfSwitch::getDefaultTarget, helper::compareLabels)
+        .thenComparing(insn -> insn.keys, ComparatorUtils::compareIntArray)
+        .thenComparing(CfSwitch::getSwitchTargets, listComparator(helper::compareLabels))
+        .compare(this, (CfSwitch) other);
   }
 
   public Kind getKind() {

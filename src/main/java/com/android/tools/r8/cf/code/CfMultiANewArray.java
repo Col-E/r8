@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -20,7 +21,9 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.Comparator;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 public class CfMultiANewArray extends CfInstruction {
 
@@ -38,6 +41,18 @@ public class CfMultiANewArray extends CfInstruction {
 
   public int getDimensions() {
     return dimensions;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return Opcodes.MULTIANEWARRAY;
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    return Comparator.comparingInt(CfMultiANewArray::getDimensions)
+        .thenComparing(CfMultiANewArray::getType, DexType::slowCompareTo)
+        .compare(this, ((CfMultiANewArray) other));
   }
 
   @Override

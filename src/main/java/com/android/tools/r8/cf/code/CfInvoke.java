@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -49,6 +50,18 @@ public class CfInvoke extends CfInstruction {
     this.opcode = opcode;
     this.method = method;
     this.itf = itf;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return getOpcode();
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    CfInvoke otherInvoke = other.asInvoke();
+    int itfDiff = Boolean.compare(itf, otherInvoke.itf);
+    return itfDiff != 0 ? itfDiff : method.slowCompareTo(otherInvoke.method);
   }
 
   public DexMethod getMethod() {

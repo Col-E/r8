@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -33,6 +34,16 @@ public class CfCheckCast extends CfInstruction {
 
   public DexType getType() {
     return type;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return Opcodes.CHECKCAST;
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    return type.slowCompareTo(((CfCheckCast) other).type);
   }
 
   @Override

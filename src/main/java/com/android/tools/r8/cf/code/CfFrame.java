@@ -8,6 +8,7 @@ import static org.objectweb.asm.Opcodes.F_NEW;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCodeStackMapValidatingException;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -144,6 +145,18 @@ public class CfFrame extends CfInstruction {
   @Override
   public CfFrame asFrame() {
     return this;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return CfCompareHelper.FRAME_COMPARE_ID;
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    // The frame should be determined by the code so it should for equal iff the code is equal.
+    // Thus we just require the frame to be in place.
+    return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 
   private static class InitializedType extends FrameType {

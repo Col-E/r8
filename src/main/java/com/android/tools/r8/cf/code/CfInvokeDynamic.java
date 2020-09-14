@@ -5,6 +5,7 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 public class CfInvokeDynamic extends CfInstruction {
@@ -37,6 +39,16 @@ public class CfInvokeDynamic extends CfInstruction {
 
   public CfInvokeDynamic(DexCallSite callSite) {
     this.callSite = callSite;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return Opcodes.INVOKEDYNAMIC;
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    return callSite.compareTo(((CfInvokeDynamic) other).callSite);
   }
 
   @Override

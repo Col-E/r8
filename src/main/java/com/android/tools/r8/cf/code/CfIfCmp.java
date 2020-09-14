@@ -5,6 +5,7 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -34,6 +35,19 @@ public class CfIfCmp extends CfInstruction {
     this.kind = kind;
     this.type = type;
     this.target = target;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return getOpcode();
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    CfIfCmp otherIf = (CfIfCmp) other;
+    assert kind == otherIf.kind;
+    assert type == otherIf.type;
+    return helper.compareLabels(target, otherIf.target);
   }
 
   public Type getKind() {

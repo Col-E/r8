@@ -47,10 +47,13 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +62,7 @@ import java.util.function.BiPredicate;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-public class CfCode extends Code {
+public class CfCode extends Code implements Comparable<CfCode> {
 
   public static class LocalVariableInfo {
 
@@ -99,6 +102,14 @@ public class CfCode extends Code {
 
     public CfLabel getEnd() {
       return end;
+    }
+
+    public int compareTo(LocalVariableInfo other, CfCompareHelper helper) {
+      return Comparator.comparingInt(LocalVariableInfo::getIndex)
+          .thenComparing(LocalVariableInfo::getStart, helper::compareLabels)
+          .thenComparing(LocalVariableInfo::getEnd, helper::compareLabels)
+          .thenComparing(LocalVariableInfo::getLocal)
+          .compare(this, other);
     }
 
     @Override
@@ -193,6 +204,41 @@ public class CfCode extends Code {
   @Override
   public CfCode asCfCode() {
     return this;
+  }
+
+  @Override
+  public int compareTo(CfCode o) {
+    // Fast path by checking sizes.
+    int sizeDiff =
+        Comparator.comparingInt((CfCode c) -> c.instructions.size())
+            .thenComparingInt(c -> c.tryCatchRanges.size())
+            .thenComparingInt(c -> localVariables.size())
+            .compare(this, o);
+    if (sizeDiff != 0) {
+      return sizeDiff;
+    }
+    // In the slow case, compute label maps and compare collections in full.
+    Reference2IntMap<CfLabel> labels1 = getLabelOrdering(instructions);
+    Reference2IntMap<CfLabel> labels2 = getLabelOrdering(o.instructions);
+    int labelDiff = labels1.size() - labels2.size();
+    if (labelDiff != 0) {
+      return labelDiff;
+    }
+    CfCompareHelper helper = new CfCompareHelper(labels1, labels2);
+    return Comparator.comparing((CfCode c) -> c.instructions, helper.instructionComparator())
+        .thenComparing(c -> c.tryCatchRanges, helper.tryCatchRangesComparator())
+        .thenComparing(c -> c.localVariables, helper.localVariablesComparator())
+        .compare(this, o);
+  }
+
+  private static Reference2IntMap<CfLabel> getLabelOrdering(List<CfInstruction> instructions) {
+    Reference2IntMap<CfLabel> ordering = new Reference2IntOpenHashMap<>();
+    for (CfInstruction instruction : instructions) {
+      if (instruction.isLabel()) {
+        ordering.put(instruction.asLabel(), ordering.size());
+      }
+    }
+    return ordering;
   }
 
   private boolean shouldAddParameterNames(DexEncodedMethod method, AppView<?> appView) {

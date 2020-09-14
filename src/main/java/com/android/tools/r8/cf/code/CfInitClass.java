@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -38,6 +39,16 @@ public class CfInitClass extends CfInstruction {
 
   public int getOpcode() {
     return OPCODE;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return CfCompareHelper.CONST_CLASS_COMPARE_ID;
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    return clazz.slowCompareTo(((CfInitClass) other).clazz);
   }
 
   @Override

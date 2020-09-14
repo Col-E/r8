@@ -8,9 +8,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-/**
- * A common interface for {@link DexType}, {@link DexField}, and {@link DexMethod}.
- */
+/** A common interface for {@link DexType}, {@link DexField}, and {@link DexMethod}. */
 public abstract class DexReference extends IndexedDexItem {
 
   public abstract <T> T apply(
@@ -61,5 +59,31 @@ public abstract class DexReference extends IndexedDexItem {
 
   public DexMethod asDexMethod() {
     return null;
+  }
+
+  private int referenceTypeOrder() {
+    if (isDexType()) {
+      return 1;
+    }
+    if (isDexField()) {
+      return 2;
+    }
+    assert isDexMethod();
+    return 3;
+  }
+
+  public int referenceCompareTo(DexReference o) {
+    int typeDiff = referenceTypeOrder() - o.referenceTypeOrder();
+    if (typeDiff != 0) {
+      return typeDiff;
+    }
+    if (isDexType()) {
+      return asDexType().slowCompareTo(o.asDexType());
+    }
+    if (isDexField()) {
+      return asDexField().slowCompareTo(o.asDexField());
+    }
+    assert isDexMethod();
+    return asDexMethod().slowCompareTo(o.asDexMethod());
   }
 }

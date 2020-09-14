@@ -298,11 +298,17 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public int syntheticCompareTo(DexEncodedMethod other) {
     assert annotations().isEmpty();
     assert parameterAnnotationsList.isEmpty();
-    return Comparator.comparing(DexEncodedMethod::proto, DexProto::slowCompareTo)
-        .thenComparingInt(m -> m.accessFlags.getAsCfAccessFlags())
-        // TODO(b/158159959): Implement structural compareTo on code.
-        .thenComparing(m -> m.getCode().toString())
-        .compare(this, other);
+    Comparator<DexEncodedMethod> comparator =
+        Comparator.comparing(DexEncodedMethod::proto, DexProto::slowCompareTo)
+            .thenComparingInt(m -> m.accessFlags.getAsCfAccessFlags());
+    if (code.isCfCode() && other.getCode().isCfCode()) {
+      comparator = comparator.thenComparing(m -> m.getCode().asCfCode());
+    } else {
+      assert code.isDexCode() && other.getCode().isDexCode();
+      // TODO(b/158159959): Implement structural compareTo on DEX code.
+      comparator = comparator.thenComparing(m -> getCode().toString());
+    }
+    return comparator.compare(this, other);
   }
 
   public DexType getHolderType() {

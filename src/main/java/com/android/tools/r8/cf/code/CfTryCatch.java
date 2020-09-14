@@ -3,11 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.conversion.CfBuilder;
+import com.android.tools.r8.utils.ComparatorUtils;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class CfTryCatch {
@@ -42,5 +45,13 @@ public class CfTryCatch {
       targets.add(builder.getLabel(block));
     }
     return new CfTryCatch(start, end, guards, targets);
+  }
+
+  public int compareTo(CfTryCatch other, CfCompareHelper helper) {
+    return Comparator.comparing((CfTryCatch c) -> c.start, helper::compareLabels)
+        .thenComparing(c -> c.end, helper::compareLabels)
+        .thenComparing(c -> c.guards, ComparatorUtils.listComparator(DexType::slowCompareTo))
+        .thenComparing(c -> c.targets, ComparatorUtils.listComparator(helper::compareLabels))
+        .compare(this, other);
   }
 }

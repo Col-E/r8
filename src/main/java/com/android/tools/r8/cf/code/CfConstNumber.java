@@ -5,6 +5,7 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -19,6 +20,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import java.util.Comparator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -30,6 +32,18 @@ public class CfConstNumber extends CfInstruction {
   public CfConstNumber(long value, ValueType type) {
     this.value = value;
     this.type = type;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return CfCompareHelper.CONST_NUMBER_COMPARE_ID;
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    return Comparator.comparing(CfConstNumber::getRawValue)
+        .thenComparing(CfConstNumber::getType)
+        .compare(this, (CfConstNumber) other);
   }
 
   public ValueType getType() {

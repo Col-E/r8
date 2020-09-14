@@ -9,8 +9,9 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import java.util.Comparator;
 
-public class DebugLocalInfo {
+public class DebugLocalInfo implements Comparable<DebugLocalInfo> {
 
   public enum PrintLevel {
     NONE,
@@ -28,6 +29,14 @@ public class DebugLocalInfo {
     this.name = name;
     this.type = type;
     this.signature = signature;
+  }
+
+  @Override
+  public int compareTo(DebugLocalInfo other) {
+    return Comparator.comparing((DebugLocalInfo info) -> info.name, DexString::slowCompareTo)
+        .thenComparing(info -> info.type, DexType::slowCompareTo)
+        .thenComparing(info -> info.signature, Comparator.nullsFirst(DexString::slowCompareTo))
+        .compare(this, other);
   }
 
   public static boolean localsInfoMapsEqual(

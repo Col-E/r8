@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -32,6 +33,16 @@ public class CfStore extends CfInstruction {
   public CfStore(ValueType type, int var) {
     this.var = var;
     this.type = type;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return getStoreType();
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    return Integer.compare(var, other.asStore().var);
   }
 
   private int getStoreType() {

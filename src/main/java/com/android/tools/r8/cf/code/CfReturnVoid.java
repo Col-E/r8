@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -25,6 +26,16 @@ public class CfReturnVoid extends CfInstruction {
   @Override
   public boolean isJump() {
     return true;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return Opcodes.RETURN;
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 
   @Override

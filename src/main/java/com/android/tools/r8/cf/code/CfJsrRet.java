@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.CfCodeStackMapValidatingException;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -32,6 +33,16 @@ public class CfJsrRet extends CfInstruction {
 
   public CfJsrRet(int local) {
     this.local = local;
+  }
+
+  @Override
+  public int getCompareToId() {
+    throw error();
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    throw error();
   }
 
   @Override

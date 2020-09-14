@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -39,6 +40,16 @@ public class CfCmp extends CfInstruction {
     assert type == NumericType.LONG || bias != Cmp.Bias.NONE;
     this.bias = bias;
     this.type = type;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return getAsmOpcode();
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 
   public Bias getBias() {

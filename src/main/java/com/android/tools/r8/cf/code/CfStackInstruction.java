@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -78,6 +79,16 @@ public class CfStackInstruction extends CfInstruction {
 
   public CfStackInstruction(Opcode opcode) {
     this.opcode = opcode;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return opcode.opcode;
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 
   @Override

@@ -5,6 +5,7 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -22,6 +23,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import java.util.Comparator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -44,6 +46,18 @@ public class CfFieldInstruction extends CfInstruction {
 
   public int getOpcode() {
     return opcode;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return opcode;
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    return Comparator.comparing(CfFieldInstruction::getField, DexField::slowCompareTo)
+        .thenComparing(field -> field.declaringField, DexField::slowCompareTo)
+        .compare(this, (CfFieldInstruction) other);
   }
 
   @Override

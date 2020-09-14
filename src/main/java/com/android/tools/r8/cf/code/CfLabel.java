@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -29,6 +30,16 @@ public class CfLabel extends CfInstruction {
       label = new Label();
     }
     return label;
+  }
+
+  @Override
+  public int getCompareToId() {
+    return CfCompareHelper.LABEL_COMPARE_ID;
+  }
+
+  @Override
+  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+    return helper.compareLabels(this, other.asLabel());
   }
 
   @Override
