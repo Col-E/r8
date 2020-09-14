@@ -15,6 +15,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoStaticClassInitializer;
 import com.android.tools.r8.horizontalclassmerging.policies.NotEntryPoint;
 import com.android.tools.r8.horizontalclassmerging.policies.NotMatchedByNoHorizontalClassMerging;
+import com.android.tools.r8.horizontalclassmerging.policies.PreventMergeIntoMainDex;
 import com.android.tools.r8.horizontalclassmerging.policies.RespectPackageBoundaries;
 import com.android.tools.r8.horizontalclassmerging.policies.SameParentClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -34,7 +35,7 @@ public class HorizontalClassMerger {
 
   public HorizontalClassMerger(
       AppView<AppInfoWithLiveness> appView,
-      MainDexTracingResult mainDexClasses,
+      MainDexTracingResult mainDexTracingResult,
       ClassMergingEnqueuerExtension classMergingEnqueuerExtension) {
     this.appView = appView;
 
@@ -50,6 +51,7 @@ public class HorizontalClassMerger {
             new NoKeepRules(appView),
             new NoRuntimeTypeChecks(classMergingEnqueuerExtension),
             new NotEntryPoint(appView.dexItemFactory()),
+            new PreventMergeIntoMainDex(appView, mainDexTracingResult),
             new SameParentClass(),
             new RespectPackageBoundaries(appView)
             // TODO: add policies

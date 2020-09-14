@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -90,6 +91,14 @@ public class MainDexTracingResult {
 
   public Set<DexType> getClasses() {
     return classes;
+  }
+
+  public boolean contains(DexProgramClass clazz) {
+    return contains(clazz.type);
+  }
+
+  public boolean contains(DexType type) {
+    return getClasses().contains(type);
   }
 
   private void collectTypesMatching(
