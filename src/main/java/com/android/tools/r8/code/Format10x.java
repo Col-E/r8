@@ -33,16 +33,6 @@ abstract class Format10x extends Base1Format {
   }
 
   @Override
-  public int hashCode() {
-    return getClass().hashCode();
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    return (other != null) && (this.getClass() == other.getClass());
-  }
-
-  @Override
   public String toString(ClassNameMapper naming) {
     return formatString(null);
   }

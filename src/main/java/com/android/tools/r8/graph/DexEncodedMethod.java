@@ -303,10 +303,14 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
             .thenComparingInt(m -> m.accessFlags.getAsCfAccessFlags());
     if (code.isCfCode() && other.getCode().isCfCode()) {
       comparator = comparator.thenComparing(m -> m.getCode().asCfCode());
+    } else if (code.isDexCode() && other.getCode().isDexCode()) {
+      comparator = comparator.thenComparing(m -> getCode().asDexCode());
     } else {
-      assert code.isDexCode() && other.getCode().isDexCode();
-      // TODO(b/158159959): Implement structural compareTo on DEX code.
-      comparator = comparator.thenComparing(m -> getCode().toString());
+      throw new Unreachable(
+          "Unexpected attempt to compare incompatible synthetic objects: "
+              + code
+              + " and "
+              + other.getCode());
     }
     return comparator.compare(this, other);
   }

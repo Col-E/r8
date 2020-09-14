@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.ComparatorUtils;
 import java.nio.ShortBuffer;
 
 abstract class Format12x extends Base1Format {
@@ -46,13 +47,11 @@ abstract class Format12x extends Base1Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || this.getClass() != other.getClass()) {
-      return false;
-    }
+  final int internalCompareTo(Instruction other) {
     Format12x o = (Format12x) other;
-    return o.A == A && o.B == B;
+    return ComparatorUtils.compareInts(A, o.A, B, o.B);
   }
+
 
   @Override
   public String toString(ClassNameMapper naming) {

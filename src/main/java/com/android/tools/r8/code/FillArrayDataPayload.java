@@ -9,9 +9,11 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.ShortBuffer;
 import java.util.Arrays;
+import java.util.Comparator;
 
 public class FillArrayDataPayload extends Nop {
 
@@ -60,13 +62,11 @@ public class FillArrayDataPayload extends Nop {
   }
 
   @Override
-  public boolean equals(Object other) {
-    if (!super.equals(other)) {
-      return false;
-    }
-    FillArrayDataPayload that = (FillArrayDataPayload) other;
-    return size == that.size && element_width == that.element_width
-        && Arrays.equals(data, that.data);
+  final int internalCompareTo(Instruction other) {
+    return Comparator.comparingInt((FillArrayDataPayload i) -> i.element_width)
+        .thenComparingLong(i -> i.size)
+        .thenComparing(i -> i.data, ComparatorUtils::compareShortArray)
+        .compare(this, (FillArrayDataPayload) other);
   }
 
   @Override

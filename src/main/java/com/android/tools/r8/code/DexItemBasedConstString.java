@@ -63,6 +63,16 @@ public class DexItemBasedConstString extends Format21c<DexReference> {
   }
 
   @Override
+  int getCompareToId() {
+    return DexCompareHelper.DEX_ITEM_CONST_STRING_COMPARE_ID;
+  }
+
+  @Override
+  int internalCompareBBBB(Format21c<?> other) {
+    return BBBB.referenceCompareTo(((DexItemBasedConstString) other).BBBB);
+  }
+
+  @Override
   public DexItemBasedConstString asDexItemBasedConstString() {
     return this;
   }

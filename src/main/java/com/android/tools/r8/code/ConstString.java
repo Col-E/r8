@@ -34,6 +34,11 @@ public class ConstString extends Format21c<DexString> {
   }
 
   @Override
+  int internalCompareBBBB(Format21c<?> other) {
+    return BBBB.slowCompareTo((DexString) other.BBBB);
+  }
+
+  @Override
   public void collectIndexedItems(
       IndexedItemCollection indexedItems,
       ProgramMethod context,

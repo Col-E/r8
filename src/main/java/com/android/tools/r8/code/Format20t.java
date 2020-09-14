@@ -43,11 +43,8 @@ abstract class Format20t extends Base2Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || this.getClass() != other.getClass()) {
-      return false;
-    }
-    return ((Format20t) other).AAAA == AAAA;
+  final int internalCompareTo(Instruction other) {
+    return Short.compare(AAAA, ((Format20t) other).AAAA);
   }
 
   @Override

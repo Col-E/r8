@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
+import java.util.Comparator;
 
 abstract class Format51l extends Base5Format {
 
@@ -47,12 +48,10 @@ abstract class Format51l extends Base5Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || this.getClass() != other.getClass()) {
-      return false;
-    }
-    Format51l o = (Format51l) other;
-    return o.AA == AA && o.BBBBBBBBBBBBBBBB == BBBBBBBBBBBBBBBB;
+  final int internalCompareTo(Instruction other) {
+    return Comparator.comparingInt((Format51l i) -> i.AA)
+        .thenComparingLong(i -> i.BBBBBBBBBBBBBBBB)
+        .compare(this, (Format51l) other);
   }
 
   @Override

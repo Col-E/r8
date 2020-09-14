@@ -21,7 +21,7 @@ import com.android.tools.r8.utils.StringUtils;
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
 
-public abstract class Instruction {
+public abstract class Instruction implements Comparable<Instruction> {
   public static final Instruction[] EMPTY_ARRAY = {};
 
   public final static int[] NO_TARGETS = null;
@@ -282,10 +282,28 @@ public abstract class Instruction {
   }
 
   @Override
-  public abstract boolean equals(Object obj);
+  public final boolean equals(Object other) {
+    return other instanceof Instruction && compareTo((Instruction) other) == 0;
+  }
 
   @Override
   public abstract int hashCode();
+
+  int getCompareToId() {
+    return getOpcode();
+  }
+
+  // Abstract compare-to called only if the opcode/compare-id of the instruction matches.
+  abstract int internalCompareTo(Instruction other);
+
+  @Override
+  public final int compareTo(Instruction other) {
+    if (this == other) {
+      return 0;
+    }
+    int opcodeDiff = Integer.compare(getCompareToId(), other.getCompareToId());
+    return opcodeDiff != 0 ? opcodeDiff : internalCompareTo(other);
+  }
 
   public abstract String getName();
 

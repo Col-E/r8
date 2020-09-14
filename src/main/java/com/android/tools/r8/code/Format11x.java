@@ -43,11 +43,8 @@ abstract class Format11x extends Base1Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || (this.getClass() != other.getClass())) {
-      return false;
-    }
-    return ((Format11x) other).AA == AA;
+  final int internalCompareTo(Instruction other) {
+    return Short.compare(AA, ((Format11x) other).AA);
   }
 
   @Override

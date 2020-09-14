@@ -33,6 +33,16 @@ public class ReturnVoid extends Format10x {
   }
 
   @Override
+  final int internalCompareTo(Instruction other) {
+    return DexCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
+  }
+
+  @Override
+  public int hashCode() {
+    return NAME.hashCode();
+  }
+
+  @Override
   public int[] getTargets() {
     return EXIT_TARGET;
   }

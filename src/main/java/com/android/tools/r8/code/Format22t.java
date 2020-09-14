@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.ComparatorUtils;
 import java.nio.ShortBuffer;
 
 public abstract class Format22t extends Base2Format {
@@ -55,12 +56,9 @@ public abstract class Format22t extends Base2Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || this.getClass() != other.getClass()) {
-      return false;
-    }
+  final int internalCompareTo(Instruction other) {
     Format22t o = (Format22t) other;
-    return o.A == A && o.B == B && o.CCCC == CCCC;
+    return ComparatorUtils.compareInts(A, o.A, B, o.B, CCCC, o.CCCC);
   }
 
   public abstract Type getType();

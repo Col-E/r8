@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.ComparatorUtils;
 import java.nio.ShortBuffer;
 
 abstract class Format31i extends Base3Format {
@@ -47,12 +48,9 @@ abstract class Format31i extends Base3Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || (this.getClass() != other.getClass())) {
-      return false;
-    }
+  final int internalCompareTo(Instruction other) {
     Format31i o = (Format31i) other;
-    return o.AA == AA && o.BBBBBBBB == BBBBBBBB;
+    return ComparatorUtils.compareInts(AA, o.AA, BBBBBBBB, o.BBBBBBBB);
   }
 
   @Override

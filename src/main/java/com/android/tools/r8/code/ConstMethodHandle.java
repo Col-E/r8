@@ -51,6 +51,11 @@ public class ConstMethodHandle extends Format21c<DexMethodHandle> {
   }
 
   @Override
+  int internalCompareBBBB(Format21c<?> other) {
+    return BBBB.slowCompareTo((DexMethodHandle) other.BBBB);
+  }
+
+  @Override
   public String toString(ClassNameMapper naming) {
     return formatString("v" + AA + ", \"" + BBBB.toString() + "\"");
   }

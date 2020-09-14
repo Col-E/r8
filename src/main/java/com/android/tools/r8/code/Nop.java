@@ -31,9 +31,16 @@ public class Nop extends Format10x {
     }
   }
 
+  // Notice that this must be overridden by the "Nop" subtypes!
+  @Override
+  int internalCompareTo(Instruction other) {
+    return DexCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
+  }
+
+  // Notice that this must be overridden by the "Nop" subtypes!
   @Override
   public int hashCode() {
-    return NAME.hashCode() * 7 + super.hashCode();
+    return NAME.hashCode() * 7;
   }
 
   @Override

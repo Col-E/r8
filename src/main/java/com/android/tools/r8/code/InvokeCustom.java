@@ -44,6 +44,11 @@ public class InvokeCustom extends Format35c<DexCallSite> {
   }
 
   @Override
+  int internalCompareBBBB(Format35c<?> other) {
+    return BBBB.compareTo((DexCallSite) other.BBBB);
+  }
+
+  @Override
   public void collectIndexedItems(
       IndexedItemCollection indexedItems,
       ProgramMethod context,

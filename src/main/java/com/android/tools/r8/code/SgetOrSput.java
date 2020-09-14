@@ -33,4 +33,9 @@ abstract class SgetOrSput extends Format21c<DexField> {
   public final DexField getField() {
     return BBBB;
   }
+
+  @Override
+  int internalCompareBBBB(Format21c<?> other) {
+    return BBBB.slowCompareTo((DexField) other.BBBB);
+  }
 }

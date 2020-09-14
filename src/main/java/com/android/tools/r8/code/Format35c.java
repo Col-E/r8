@@ -6,6 +6,7 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.ComparatorUtils;
 import java.util.function.BiPredicate;
 
 public abstract class Format35c<T extends IndexedDexItem> extends Base3Format {
@@ -55,14 +56,20 @@ public abstract class Format35c<T extends IndexedDexItem> extends Base3Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || (this.getClass() != other.getClass())) {
-      return false;
-    }
-    Format35c o = (Format35c) other;
-    return o.A == A && o.C == C && o.D == D && o.E == E && o.F == F && o.G == G
-        && o.BBBB.equals(BBBB);
+  final int internalCompareTo(Instruction other) {
+    Format35c<?> o = (Format35c<?>) other;
+    int diff =
+        ComparatorUtils.compareInts(
+            A, o.A,
+            C, o.C,
+            D, o.D,
+            E, o.E,
+            F, o.F,
+            G, o.G);
+    return diff != 0 ? diff : internalCompareBBBB(o);
   }
+
+  abstract int internalCompareBBBB(Format35c<?> other);
 
   private void appendRegisterArguments(StringBuilder builder, String separator) {
     builder.append("{ ");

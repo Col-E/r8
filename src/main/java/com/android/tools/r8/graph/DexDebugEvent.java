@@ -8,9 +8,14 @@ import com.android.tools.r8.dex.DebugBytecodeWriter;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.ir.code.Position;
+import java.util.Comparator;
 import java.util.Objects;
 
-abstract public class DexDebugEvent extends DexItem {
+public abstract class DexDebugEvent extends DexItem implements Comparable<DexDebugEvent> {
+
+  // Compare ID(s) for virtual debug events.
+  private static final int DBG_SET_INLINE_FRAME_COMPARE_ID = Constants.DBG_LAST_SPECIAL + 1;
+
   public static final DexDebugEvent[] EMPTY_ARRAY = {};
 
   public void collectIndexedItems(IndexedItemCollection collection, GraphLens graphLens) {
@@ -30,7 +35,22 @@ abstract public class DexDebugEvent extends DexItem {
   abstract public int hashCode();
 
   @Override
-  abstract public boolean equals(Object other);
+  public final boolean equals(Object other) {
+    return other instanceof DexDebugEvent && compareTo((DexDebugEvent) other) == 0;
+  }
+
+  abstract int getCompareToId();
+
+  abstract int internalCompareTo(DexDebugEvent other);
+
+  @Override
+  public final int compareTo(DexDebugEvent other) {
+    if (this == other) {
+      return 0;
+    }
+    int diff = Integer.compare(getCompareToId(), other.getCompareToId());
+    return diff != 0 ? diff : internalCompareTo(other);
+  }
 
   public abstract void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping);
 
@@ -77,9 +97,13 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public boolean equals(Object other) {
-      return (other instanceof AdvancePC)
-          && (delta == ((AdvancePC) other).delta);
+    int getCompareToId() {
+      return Constants.DBG_ADVANCE_PC;
+    }
+
+    @Override
+    int internalCompareTo(DexDebugEvent other) {
+      return Integer.compare(delta, ((AdvancePC) other).delta);
     }
   }
 
@@ -110,8 +134,14 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public boolean equals(Object other) {
-      return other instanceof SetPrologueEnd;
+    int getCompareToId() {
+      return Constants.DBG_SET_PROLOGUE_END;
+    }
+
+    @Override
+    int internalCompareTo(DexDebugEvent other) {
+      assert other instanceof SetPrologueEnd;
+      return 0;
     }
   }
 
@@ -142,8 +172,14 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public boolean equals(Object other) {
-      return other instanceof SetEpilogueBegin;
+    int getCompareToId() {
+      return Constants.DBG_SET_EPILOGUE_BEGIN;
+    }
+
+    @Override
+    int internalCompareTo(DexDebugEvent other) {
+      assert other instanceof SetEpilogueBegin;
+      return 0;
     }
   }
 
@@ -178,9 +214,13 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public boolean equals(Object other) {
-      return (other instanceof AdvanceLine)
-          && (delta == ((AdvanceLine) other).delta);
+    int getCompareToId() {
+      return Constants.DBG_ADVANCE_LINE;
+    }
+
+    @Override
+    int internalCompareTo(DexDebugEvent other) {
+      return Integer.compare(delta, ((AdvanceLine) other).delta);
     }
   }
 
@@ -253,21 +293,17 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public boolean equals(Object other) {
-      if (!(other instanceof StartLocal)) {
-        return false;
-      }
-      StartLocal o = (StartLocal) other;
-      if (registerNum != o.registerNum) {
-        return false;
-      }
-      if (!Objects.equals(name, o.name)) {
-        return false;
-      }
-      if (!Objects.equals(type, o.type)) {
-        return false;
-      }
-      return Objects.equals(signature, o.signature);
+    int getCompareToId() {
+      return Constants.DBG_START_LOCAL;
+    }
+
+    @Override
+    int internalCompareTo(DexDebugEvent other) {
+      return Comparator.comparingInt((StartLocal e) -> e.registerNum)
+          .thenComparing(e -> e.name, DexString::slowCompareTo)
+          .thenComparing(e -> e.type, DexType::slowCompareTo)
+          .thenComparing(e -> e.signature, Comparator.nullsFirst(DexString::slowCompareTo))
+          .compare(this, (StartLocal) other);
     }
   }
 
@@ -302,9 +338,13 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public boolean equals(Object other) {
-      return (other instanceof EndLocal)
-          && (registerNum == ((EndLocal) other).registerNum);
+    int getCompareToId() {
+      return Constants.DBG_END_LOCAL;
+    }
+
+    @Override
+    int internalCompareTo(DexDebugEvent other) {
+      return Integer.compare(registerNum, ((EndLocal) other).registerNum);
     }
   }
 
@@ -339,9 +379,13 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public boolean equals(Object other) {
-      return (other instanceof RestartLocal)
-          && (registerNum == ((RestartLocal) other).registerNum);
+    int getCompareToId() {
+      return Constants.DBG_RESTART_LOCAL;
+    }
+
+    @Override
+    int internalCompareTo(DexDebugEvent other) {
+      return Integer.compare(registerNum, ((RestartLocal) other).registerNum);
     }
   }
 
@@ -381,9 +425,13 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public boolean equals(Object other) {
-      return (other instanceof SetFile)
-          && fileName.equals(((SetFile) other).fileName);
+    int getCompareToId() {
+      return Constants.DBG_SET_FILE;
+    }
+
+    @Override
+    int internalCompareTo(DexDebugEvent other) {
+      return fileName.slowCompareTo(((SetFile) other).fileName);
     }
   }
 
@@ -419,12 +467,15 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public boolean equals(Object other) {
-      if (!(other instanceof SetInlineFrame)) {
-        return false;
-      }
-      SetInlineFrame o = (SetInlineFrame) other;
-      return callee == o.callee && Objects.equals(caller, o.caller);
+    int getCompareToId() {
+      return DBG_SET_INLINE_FRAME_COMPARE_ID;
+    }
+
+    @Override
+    int internalCompareTo(DexDebugEvent other) {
+      return Comparator.comparing((SetInlineFrame e) -> e.callee, DexMethod::slowCompareTo)
+          .thenComparing(e -> e.caller, Comparator.nullsFirst(Position::compareTo))
+          .compare(this, (SetInlineFrame) other);
     }
 
     @Override
@@ -484,9 +535,13 @@ abstract public class DexDebugEvent extends DexItem {
     }
 
     @Override
-    public boolean equals(Object other) {
-      return (other instanceof Default)
-          && (value == ((Default) other).value);
+    int getCompareToId() {
+      return Constants.DBG_FIRST_SPECIAL;
+    }
+
+    @Override
+    int internalCompareTo(DexDebugEvent other) {
+      return Integer.compare(value, ((Default) other).value);
     }
   }
 }

@@ -43,11 +43,8 @@ abstract class Format10t extends Base1Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || (this.getClass() != other.getClass())) {
-      return false;
-    }
-    return ((Format10t) other).AA == AA;
+  final int internalCompareTo(Instruction other) {
+    return Byte.compare(AA, ((Format10t) other).AA);
   }
 
   @Override

@@ -8,9 +8,11 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.ShortBuffer;
 import java.util.Arrays;
+import java.util.Comparator;
 
 public class SparseSwitchPayload extends SwitchPayload {
 
@@ -62,13 +64,11 @@ public class SparseSwitchPayload extends SwitchPayload {
   }
 
   @Override
-  public boolean equals(Object other) {
-    if (!super.equals(other)) {
-      return false;
-    }
-    SparseSwitchPayload that = (SparseSwitchPayload) other;
-    return size == that.size && Arrays.equals(keys, that.keys) && Arrays
-        .equals(targets, that.targets);
+  final int internalCompareTo(Instruction other) {
+    return Comparator.comparingInt((SparseSwitchPayload i) -> i.size)
+        .thenComparing(i -> i.keys, ComparatorUtils::compareIntArray)
+        .thenComparing(i -> i.targets, ComparatorUtils::compareIntArray)
+        .compare(this, (SparseSwitchPayload) other);
   }
 
   @Override

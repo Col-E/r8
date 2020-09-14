@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
+import java.util.Comparator;
 
 public class DexInitClass extends Base2Format {
 
@@ -71,6 +72,11 @@ public class DexInitClass extends Base2Format {
     throw new Unreachable();
   }
 
+  @Override
+  int getCompareToId() {
+    return DexCompareHelper.INIT_CLASS_COMPARE_ID;
+  }
+
   private int getOpcode(DexField field) {
     FieldMemberType type = FieldMemberType.fromDexType(field.type);
     switch (type) {
@@ -121,12 +127,10 @@ public class DexInitClass extends Base2Format {
   }
 
   @Override
-  public boolean equals(Object other) {
-    if (other == null || getClass() != other.getClass()) {
-      return false;
-    }
-    DexInitClass initClass = (DexInitClass) other;
-    return dest == initClass.dest && clazz == initClass.clazz;
+  final int internalCompareTo(Instruction other) {
+    return Comparator.comparingInt((DexInitClass i) -> i.dest)
+        .thenComparing(i -> i.clazz, DexType::slowCompareTo)
+        .compare(this, (DexInitClass) other);
   }
 
   @Override

@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.ShortBuffer;
 
@@ -49,12 +50,9 @@ abstract class Format21s extends Base2Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || this.getClass() != other.getClass()) {
-      return false;
-    }
+  final int internalCompareTo(Instruction other) {
     Format21s o = (Format21s) other;
-    return o.AA == AA && o.BBBB == BBBB;
+    return ComparatorUtils.compareInts(AA, o.AA, BBBB, o.BBBB);
   }
 
   @Override

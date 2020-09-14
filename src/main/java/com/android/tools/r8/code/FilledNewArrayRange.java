@@ -43,6 +43,11 @@ public class FilledNewArrayRange extends Format3rc<DexType> {
   }
 
   @Override
+  int internalCompareBBBB(Format3rc<?> other) {
+    return BBBB.slowCompareTo((DexType) other.BBBB);
+  }
+
+  @Override
   public void collectIndexedItems(
       IndexedItemCollection indexedItems,
       ProgramMethod context,

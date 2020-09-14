@@ -8,9 +8,10 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.google.common.annotations.VisibleForTesting;
+import java.util.Comparator;
 import java.util.Objects;
 
-public class Position {
+public class Position implements Comparable<Position> {
 
   // A no-position marker. Not having a position means the position is implicitly defined by the
   // context, e.g., the marker does not materialize anything concrete.
@@ -114,18 +115,7 @@ public class Position {
 
   @Override
   public boolean equals(Object other) {
-    if (this == other) {
-      return true;
-    }
-    if (other instanceof Position) {
-      Position o = (Position) other;
-      return line == o.line
-          && file == o.file
-          && method == o.method
-          && synthetic == o.synthetic
-          && Objects.equals(callerPosition, o.callerPosition);
-    }
-    return false;
+    return other instanceof Position && compareTo((Position) other) == 0;
   }
 
   @Override
@@ -136,6 +126,19 @@ public class Position {
     result = 31 * result + Objects.hashCode(method);
     result = 31 * result + Objects.hashCode(callerPosition);
     return result;
+  }
+
+  @Override
+  public int compareTo(Position o) {
+    if (this == o) {
+      return 0;
+    }
+    return Comparator.comparingInt((Position p) -> p.line)
+        .thenComparing(p -> p.file, DexString::slowCompareTo)
+        .thenComparing(p -> p.synthetic)
+        .thenComparing(p -> p.method, DexMethod::slowCompareTo)
+        .thenComparing(p -> p.callerPosition, Comparator.nullsFirst(Position::compareTo))
+        .compare(this, o);
   }
 
   private String toString(boolean forceMethod) {

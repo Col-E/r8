@@ -14,32 +14,38 @@ public class ComparatorUtils {
 
   public static <T> Comparator<List<T>> listComparator(Comparator<T> comparator) {
     return (List<T> xs, List<T> ys) -> {
-      int sizeDiff = Integer.compare(xs.size(), ys.size());
-      if (sizeDiff != 0) {
-        return sizeDiff;
+      int diff = Integer.compare(xs.size(), ys.size());
+      for (int i = 0; i < xs.size() && diff == 0; i++) {
+        diff = comparator.compare(xs.get(i), ys.get(i));
       }
-      for (int i = 0; i < xs.size(); i++) {
-        int elementDiff = comparator.compare(xs.get(i), ys.get(i));
-        if (elementDiff != 0) {
-          return elementDiff;
-        }
-      }
-      return 0;
+      return diff;
     };
   }
 
+  // Compare pair-wise integers in sequenced order, i.e., (A1, A2), (B1, B2), (C1, C2), ...
+  public static int compareInts(int... ints) {
+    assert ints.length % 2 == 0;
+    int diff = 0;
+    for (int i = 0; i < ints.length && diff == 0; ) {
+      diff = Integer.compare(ints[i++], ints[i++]);
+    }
+    return diff;
+  }
+
   public static int compareIntArray(int[] xs, int[] ys) {
-    int sizeDiff = Integer.compare(xs.length, ys.length);
-    if (sizeDiff != 0) {
-      return sizeDiff;
+    int diff = Integer.compare(xs.length, ys.length);
+    for (int i = 0; i < xs.length && diff == 0; i++) {
+      diff = Integer.compare(xs[i], ys[i]);
     }
-    for (int i = 0; i < xs.length; i++) {
-      int elementDiff = Integer.compare(xs[i], ys[i]);
-      if (elementDiff != 0) {
-        return elementDiff;
-      }
+    return diff;
+  }
+
+  public static int compareShortArray(short[] xs, short[] ys) {
+    int diff = Integer.compare(xs.length, ys.length);
+    for (int i = 0; i < xs.length && diff == 0; i++) {
+      diff = Short.compare(xs[i], ys[i]);
     }
-    return 0;
+    return diff;
   }
 
   public static <T extends Comparable<T>> Comparator<T[]> arrayComparator() {
@@ -48,17 +54,11 @@ public class ComparatorUtils {
 
   public static <T> Comparator<T[]> arrayComparator(Comparator<T> comparator) {
     return (T[] xs, T[] ys) -> {
-      int sizeDiff = Integer.compare(xs.length, ys.length);
-      if (sizeDiff != 0) {
-        return sizeDiff;
+      int diff = Integer.compare(xs.length, ys.length);
+      for (int i = 0; i < xs.length && diff == 0; i++) {
+        diff = comparator.compare(xs[i], ys[i]);
       }
-      for (int i = 0; i < xs.length; i++) {
-        int elementDiff = comparator.compare(xs[i], ys[i]);
-        if (elementDiff != 0) {
-          return elementDiff;
-        }
-      }
-      return 0;
+      return diff;
     };
   }
 }

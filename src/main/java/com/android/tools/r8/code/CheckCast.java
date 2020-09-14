@@ -42,6 +42,11 @@ public class CheckCast extends Format21c<DexType> {
   }
 
   @Override
+  int internalCompareBBBB(Format21c<?> other) {
+    return BBBB.slowCompareTo((DexType) other.BBBB);
+  }
+
+  @Override
   public void collectIndexedItems(
       IndexedItemCollection indexedItems,
       ProgramMethod context,

@@ -42,11 +42,8 @@ abstract class Format30t extends Base3Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || (this.getClass() != other.getClass())) {
-      return false;
-    }
-    return ((Format30t) other).AAAAAAAA == AAAAAAAA;
+  final int internalCompareTo(Instruction other) {
+    return Integer.compare(AAAAAAAA, ((Format30t) other).AAAAAAAA);
   }
 
   @Override

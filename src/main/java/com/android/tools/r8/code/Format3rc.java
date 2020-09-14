@@ -6,6 +6,7 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.ComparatorUtils;
 import java.util.function.BiPredicate;
 
 public abstract class Format3rc<T extends IndexedDexItem> extends Base3Format {
@@ -40,13 +41,13 @@ public abstract class Format3rc<T extends IndexedDexItem> extends Base3Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || (this.getClass() != other.getClass())) {
-      return false;
-    }
+  final int internalCompareTo(Instruction other) {
     Format3rc<?> o = (Format3rc<?>) other;
-    return o.AA == AA && o.CCCC == CCCC && o.BBBB.equals(BBBB);
+    int diff = ComparatorUtils.compareInts(AA, o.AA, CCCC, o.CCCC);
+    return diff != 0 ? diff : internalCompareBBBB(o);
   }
+
+  abstract int internalCompareBBBB(Format3rc<?> other);
 
   private void appendRegisterRange(StringBuilder builder) {
     int firstRegister = CCCC;

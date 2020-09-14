@@ -27,6 +27,11 @@ public class ConstClass extends Format21c<DexType> {
   }
 
   @Override
+  int internalCompareBBBB(Format21c<?> other) {
+    return BBBB.slowCompareTo((DexType) other.BBBB);
+  }
+
+  @Override
   public String getName() {
     return NAME;
   }

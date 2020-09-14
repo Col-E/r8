@@ -48,13 +48,13 @@ abstract class Format21c<T extends IndexedDexItem> extends Base2Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || this.getClass() != other.getClass()) {
-      return false;
-    }
+  final int internalCompareTo(Instruction other) {
     Format21c<?> o = (Format21c<?>) other;
-    return o.AA == AA && o.BBBB.equals(BBBB);
+    int aaDiff = Short.compare(AA, o.AA);
+    return aaDiff != 0 ? aaDiff : internalCompareBBBB(o);
   }
+
+  abstract int internalCompareBBBB(Format21c<?> other);
 
   @Override
   public String toString(ClassNameMapper naming) {

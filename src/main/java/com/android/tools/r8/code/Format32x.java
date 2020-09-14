@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.ComparatorUtils;
 import java.nio.ShortBuffer;
 
 abstract class Format32x extends Base3Format {
@@ -50,12 +51,9 @@ abstract class Format32x extends Base3Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || (this.getClass() != other.getClass())) {
-      return false;
-    }
+  final int internalCompareTo(Instruction other) {
     Format32x o = (Format32x) other;
-    return o.AAAA == AAAA && o.BBBB == BBBB;
+    return ComparatorUtils.compareInts(AAAA, o.AAAA, BBBB, o.BBBB);
   }
 
   @Override

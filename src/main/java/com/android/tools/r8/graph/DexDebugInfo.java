@@ -5,10 +5,12 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.utils.ComparatorUtils;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
-public class DexDebugInfo extends CachedHashValueDexItem {
+public class DexDebugInfo extends CachedHashValueDexItem implements Comparable<DexDebugInfo> {
 
   public final int startLine;
   public final DexString[] parameters;
@@ -40,18 +42,19 @@ public class DexDebugInfo extends CachedHashValueDexItem {
   }
 
   @Override
-  public boolean computeEquals(Object other) {
-    if (other instanceof DexDebugInfo) {
-      DexDebugInfo o = (DexDebugInfo) other;
-      if (startLine != o.startLine) {
-        return false;
-      }
-      if (!Arrays.equals(parameters, o.parameters)) {
-        return false;
-      }
-      return Arrays.equals(events, o.events);
+  public final boolean computeEquals(Object other) {
+    return other instanceof DexDebugInfo && compareTo((DexDebugInfo) other) == 0;
+  }
+
+  @Override
+  public final int compareTo(DexDebugInfo other) {
+    if (this == other) {
+      return 0;
     }
-    return false;
+    return Comparator.comparingInt((DexDebugInfo i) -> i.startLine)
+        .thenComparing(i -> i.parameters, ComparatorUtils.arrayComparator(DexString::slowCompareTo))
+        .thenComparing(i -> i.events, ComparatorUtils.arrayComparator())
+        .compare(this, other);
   }
 
   public void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens) {

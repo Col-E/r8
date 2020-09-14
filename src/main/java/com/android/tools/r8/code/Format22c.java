@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.ComparatorUtils;
 import java.util.function.BiPredicate;
 
 public abstract class Format22c<T extends DexReference> extends Base2Format {
@@ -37,12 +38,10 @@ public abstract class Format22c<T extends DexReference> extends Base2Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || this.getClass() != other.getClass()) {
-      return false;
-    }
-    Format22c<?> o = (Format22c<?>) other;
-    return o.A == A && o.B == B && o.CCCC.equals(CCCC);
+  final int internalCompareTo(Instruction other) {
+    Format22c<? extends DexReference> o = (Format22c<? extends DexReference>) other;
+    int diff = ComparatorUtils.compareInts(A, o.A, B, o.B);
+    return diff != 0 ? diff : CCCC.referenceCompareTo(o.CCCC);
   }
 
   @Override

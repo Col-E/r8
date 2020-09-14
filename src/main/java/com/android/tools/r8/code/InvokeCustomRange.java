@@ -44,6 +44,11 @@ public class InvokeCustomRange extends Format3rc<DexCallSite> {
   }
 
   @Override
+  int internalCompareBBBB(Format3rc<?> other) {
+    return BBBB.compareTo((DexCallSite) other.BBBB);
+  }
+
+  @Override
   public void collectIndexedItems(
       IndexedItemCollection indexedItems,
       ProgramMethod context,

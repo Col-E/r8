@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import java.nio.ShortBuffer;
+import java.util.Comparator;
 import java.util.function.BiPredicate;
 
 /** Format4rcc for instructions of size 4, with a range of registers and 2 constant pool index. */
@@ -69,12 +70,12 @@ public abstract class Format4rcc extends Base4Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || (this.getClass() != other.getClass())) {
-      return false;
-    }
-    Format4rcc o = (Format4rcc) other;
-    return o.AA == AA && o.CCCC == CCCC && o.BBBB.equals(BBBB) && o.HHHH.equals(HHHH);
+  final int internalCompareTo(Instruction other) {
+    return Comparator.comparingInt((Format4rcc i) -> i.AA)
+        .thenComparingInt(i -> i.CCCC)
+        .thenComparing(i -> i.BBBB, DexMethod::slowCompareTo)
+        .thenComparing(i -> i.HHHH, DexProto::slowCompareTo)
+        .compare(this, (Format4rcc) other);
   }
 
   @Override

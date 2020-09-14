@@ -51,12 +51,10 @@ abstract class Format31c extends Base3Format {
   }
 
   @Override
-  public final boolean equals(Object other) {
-    if (other == null || (this.getClass() != other.getClass())) {
-      return false;
-    }
+  final int internalCompareTo(Instruction other) {
     Format31c o = (Format31c) other;
-    return o.AA == AA && o.BBBBBBBB.equals(BBBBBBBB);
+    int diff = Short.compare(AA, o.AA);
+    return diff != 0 ? diff : BBBBBBBB.slowCompareTo(o.BBBBBBBB);
   }
 
   @Override
