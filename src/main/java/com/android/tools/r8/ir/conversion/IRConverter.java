@@ -592,6 +592,9 @@ public class IRConverter {
   public DexApplication optimize(
       AppView<AppInfoWithLiveness> appView, ExecutorService executorService)
       throws ExecutionException {
+    // Lambda rewriting happens in the enqueuer.
+    assert lambdaRewriter == null;
+
     DexApplication application = appView.appInfo().app();
 
     computeReachabilitySensitivity(application);
@@ -701,9 +704,6 @@ public class IRConverter {
     // Build a new application with jumbo string info.
     Builder<?> builder = appView.appInfo().app().builder();
     builder.setHighestSortingString(highestSortingString);
-
-    printPhase("Lambda class synthesis");
-    synthesizeLambdaClasses(builder, executorService);
 
     printPhase("Interface method desugaring");
     desugarInterfaceMethods(builder, IncludeAllResources, executorService);
