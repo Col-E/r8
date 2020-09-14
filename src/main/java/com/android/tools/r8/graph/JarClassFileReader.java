@@ -239,7 +239,8 @@ public class JarClassFileReader {
                       "Malformed inner-class attribute:",
                       "\touterTypeInternal: " + outerName,
                       "\tinnerTypeInternal: " + name,
-                      "\tinnerName: " + innerName)));
+                      "\tinnerName: " + innerName),
+                  origin));
         }
       }
       innerClasses.add(
