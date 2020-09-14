@@ -210,8 +210,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** *(...); }")
             .compile()
             .graphInspector();
-    // TODO(b/159418523): It appears that the insertion in never-inline causes additional retention.
-    assertRetainedClassesEqual(referenceInspector, ifThenKeepClassMembersInspector, false, true);
+    assertRetainedClassesEqual(referenceInspector, ifThenKeepClassMembersInspector, false, false);
 
     GraphInspector ifThenKeepClassesWithMembersInspector =
         testForR8(Backend.CF)
@@ -228,9 +227,8 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** *(...); }")
             .compile()
             .graphInspector();
-    // TODO(b/159418523): It appears that the insertion in never-inline causes additional retention.
     assertRetainedClassesEqual(
-        referenceInspector, ifThenKeepClassesWithMembersInspector, false, true);
+        referenceInspector, ifThenKeepClassesWithMembersInspector, false, false);
 
     GraphInspector ifHasMemberThenKeepClassInspector =
         testForR8(Backend.CF)
@@ -249,9 +247,8 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** <2>(...); }")
             .compile()
             .graphInspector();
-    // TODO(b/159418523): It appears that the insertion in never-inline causes additional retention.
-    //  Also, here neither is a subset of the other. That also appears wrong.
-    assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector, true, true);
+    // TODO(b/159418523): Should the reference be equal to the result with the conditional rule?
+    assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector, true, false);
   }
 
   private void assertRetainedClassesEqual(
