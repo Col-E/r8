@@ -182,7 +182,7 @@ public abstract class AbstractAccessContexts {
       }
     }
 
-    public Map<DexField, ProgramMethodSet> getAccessesWithContexts() {
+    Map<DexField, ProgramMethodSet> getAccessesWithContexts() {
       return accessesWithContexts;
     }
 

@@ -522,48 +522,34 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public void rewriteWithLens(NestedGraphLens lens) {
     if (lens != null) {
-      rewriteWithLens(
-          lens, appInfo().app().asDirect(), withLiveness(), GraphLens.getIdentityLens());
+      rewriteWithLens(lens, appInfo().app().asDirect(), withLiveness());
     }
+  }
+
+  public void rewriteWithApplication(DirectMappedDexApplication application) {
+    assert application != null;
+    rewriteWithLens(null, application, withLiveness());
   }
 
   public void rewriteWithLensAndApplication(
       NestedGraphLens lens, DirectMappedDexApplication application) {
-    rewriteWithLens(lens, application, withLiveness(), GraphLens.getIdentityLens());
-  }
-
-  public void rewriteWithLensAndApplication(
-      NestedGraphLens lens,
-      DirectMappedDexApplication application,
-      GraphLens replacementParentLens) {
     assert lens != null;
     assert application != null;
-    rewriteWithLens(lens, application, withLiveness(), replacementParentLens);
+    rewriteWithLens(lens, application, withLiveness());
   }
 
   private static void rewriteWithLens(
       NestedGraphLens lens,
       DirectMappedDexApplication application,
-      AppView<AppInfoWithLiveness> appView,
-      GraphLens replacementParentLens) {
-    if (lens == null) {
-      return;
+      AppView<AppInfoWithLiveness> appView) {
+    if (lens != null) {
+      boolean changed = appView.setGraphLens(lens);
+      assert changed;
+      assert application.verifyWithLens(lens);
     }
-
-    boolean changed = appView.setGraphLens(lens);
-    assert changed;
-    assert application.verifyWithLens(lens);
-
-    // The application has already been rewritten with all of lens' parent lenses. Therefore, we
-    // temporarily replace the parent lens with the given lens to avoid the overhead of traversing
-    // the entire lens chain upon each lookup during the rewriting.
-    lens.withAlternativeParentLens(
-        replacementParentLens,
-        () -> {
-          appView.setAppInfo(appView.appInfo().rewrittenWithLens(application, lens));
-          if (appView.hasInitClassLens()) {
-            appView.setInitClassLens(appView.initClassLens().rewrittenWithLens(lens));
-          }
-        });
+    appView.setAppInfo(appView.appInfo().rewrittenWithLens(application, lens));
+    if (appView.hasInitClassLens()) {
+      appView.setInitClassLens(appView.initClassLens().rewrittenWithLens(lens));
+    }
   }
 }

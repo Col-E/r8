@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.synthesis.SyntheticFinalization.Result;
 import com.google.common.collect.ImmutableList;
@@ -233,8 +233,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         nextSyntheticId);
   }
 
-  public CommittedItems commitRewrittenWithLens(
-      DexApplication application, NonIdentityGraphLens lens) {
+  public CommittedItems commitRewrittenWithLens(DexApplication application, NestedGraphLens lens) {
     // Rewrite the previously committed synthetic types.
     ImmutableSet<DexType> rewrittenLegacyTypes = lens.rewriteTypes(this.legacySyntheticTypes);
     ImmutableMap.Builder<DexType, SyntheticReference> rewrittenItems = ImmutableMap.builder();

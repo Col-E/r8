@@ -31,7 +31,7 @@ import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.InstantiatedSubTypeInfo;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.LookupTarget;
@@ -993,9 +993,17 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   public AppInfoWithLiveness rewrittenWithLens(
-      DirectMappedDexApplication application, NonIdentityGraphLens lens) {
+      DirectMappedDexApplication application, NestedGraphLens lens) {
     assert checkIfObsolete();
+    // The application has already been rewritten with all of lens' parent lenses. Therefore, we
+    // temporarily replace lens' parent lens with an identity lens to avoid the overhead of
+    // traversing the entire lens chain upon each lookup during the rewriting.
+    return lens.withAlternativeParentLens(
+        GraphLens.getIdentityLens(), () -> createRewrittenAppInfoWithLiveness(application, lens));
+  }
 
+  private AppInfoWithLiveness createRewrittenAppInfoWithLiveness(
+      DirectMappedDexApplication application, NestedGraphLens lens) {
     // Switchmap classes should never be affected by renaming.
     assert lens.assertDefinitionsNotModified(
         switchMaps.keySet().stream()

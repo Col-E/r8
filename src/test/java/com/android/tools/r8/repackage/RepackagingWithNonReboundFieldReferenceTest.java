@@ -7,13 +7,14 @@ package com.android.tools.r8.repackage;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.repackage.RepackageWithMainDexListTest.TestClass;
 import com.android.tools.r8.repackage.testclasses.RepackagingWithNonReboundFieldReferenceTestClasses;
 import com.android.tools.r8.repackage.testclasses.RepackagingWithNonReboundFieldReferenceTestClasses.B;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -26,50 +27,45 @@ public class RepackagingWithNonReboundFieldReferenceTest extends TestBase {
 
   private static final String REPACKAGE_DIR = "foo";
 
-  private final boolean alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding;
   private final String flattenPackageHierarchyOrRepackageClasses;
   private final TestParameters parameters;
 
-  @Parameters(name = "{2}, reuse FieldAccessInfoCollection: {0}, kind: {1}")
+  @Parameters(name = "{1}, kind: {0}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(),
         ImmutableList.of(FLATTEN_PACKAGE_HIERARCHY, REPACKAGE_CLASSES),
         getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public RepackagingWithNonReboundFieldReferenceTest(
-      boolean alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding,
-      String flattenPackageHierarchyOrRepackageClasses,
-      TestParameters parameters) {
-    this.alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding =
-        alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding;
+      String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
     this.flattenPackageHierarchyOrRepackageClasses = flattenPackageHierarchyOrRepackageClasses;
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
-    testForR8(parameters.getBackend())
-        .addInnerClasses(getClass(), RepackagingWithNonReboundFieldReferenceTestClasses.class)
-        .addKeepMainRule(TestClass.class)
-        .addKeepRules(
-            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_DIR + "\"")
-        .addOptionsModification(
-            options -> {
-              assertTrue(
-                  options.testing.alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding);
-              options.testing.alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding =
-                  alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding;
-              assertFalse(options.testing.enableExperimentalRepackaging);
-              options.testing.enableExperimentalRepackaging = true;
-            })
-        .enableMemberValuePropagationAnnotations()
-        .enableNoVerticalClassMergingAnnotations()
-        .setMinApi(parameters.getApiLevel())
-        .compile()
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello world!");
+    try {
+      testForR8(parameters.getBackend())
+          .addInnerClasses(getClass(), RepackagingWithNonReboundFieldReferenceTestClasses.class)
+          .addKeepMainRule(TestClass.class)
+          .addKeepRules(
+              "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_DIR + "\"")
+          .addOptionsModification(
+              options -> {
+                assertFalse(options.testing.enableExperimentalRepackaging);
+                options.testing.enableExperimentalRepackaging = true;
+              })
+          .enableMemberValuePropagationAnnotations()
+          .enableNoVerticalClassMergingAnnotations()
+          .setMinApi(parameters.getApiLevel())
+          .compile();
+
+      // TODO(b/168282032): Support lens rewriting of non-rebound references in the writer.
+      fail();
+    } catch (CompilationFailedException exception) {
+      // Ignore.
+    }
   }
 
   static class TestClass {

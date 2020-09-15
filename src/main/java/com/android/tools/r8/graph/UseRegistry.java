@@ -17,10 +17,6 @@ public abstract class UseRegistry {
     this.factory = factory;
   }
 
-  public final void accept(ProgramMethod method) {
-    method.registerCodeReferences(this);
-  }
-
   public abstract void registerInitClass(DexType type);
 
   public abstract void registerInvokeVirtual(DexMethod method);
