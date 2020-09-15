@@ -120,8 +120,10 @@ public class RepackagingConstraintGraph {
 
     // Trace the references from the enclosing method attribute.
     EnclosingMethodAttribute attr = clazz.getEnclosingMethodAttribute();
-    registry.registerNullableTypeReference(attr.getEnclosingClass());
-    registry.registerNullableMethodReference(attr.getEnclosingMethod());
+    if (attr != null) {
+      registry.registerNullableTypeReference(attr.getEnclosingClass());
+      registry.registerNullableMethodReference(attr.getEnclosingMethod());
+    }
   }
 
   private void registerReferencesFromField(ProgramField field) {
