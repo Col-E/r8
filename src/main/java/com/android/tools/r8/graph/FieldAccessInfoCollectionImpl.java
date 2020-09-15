@@ -9,11 +9,20 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class FieldAccessInfoCollectionImpl
     implements FieldAccessInfoCollection<FieldAccessInfoImpl> {
 
-  private Map<DexField, FieldAccessInfoImpl> infos = new IdentityHashMap<>();
+  private final Map<DexField, FieldAccessInfoImpl> infos;
+
+  public FieldAccessInfoCollectionImpl() {
+    this(new IdentityHashMap<>());
+  }
+
+  public FieldAccessInfoCollectionImpl(Map<DexField, FieldAccessInfoImpl> infos) {
+    this.infos = infos;
+  }
 
   @Override
   public void destroyAccessContexts() {
@@ -23,6 +32,11 @@ public class FieldAccessInfoCollectionImpl
   @Override
   public void flattenAccessContexts() {
     infos.values().forEach(FieldAccessInfoImpl::flattenAccessContexts);
+  }
+
+  public FieldAccessInfoImpl computeIfAbsent(
+      DexField field, Function<DexField, FieldAccessInfoImpl> fn) {
+    return infos.computeIfAbsent(field, fn);
   }
 
   @Override

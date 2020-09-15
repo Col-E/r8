@@ -23,6 +23,10 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
     }
   }
 
+  public DexType getHolderType() {
+    return holder;
+  }
+
   public DexType getType() {
     return type;
   }
@@ -152,5 +156,9 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   @Override
   public String toSourceString() {
     return type.toSourceString() + " " + holder.toSourceString() + "." + name.toSourceString();
+  }
+
+  public DexField withHolder(DexType holder, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createField(holder, type, name);
   }
 }

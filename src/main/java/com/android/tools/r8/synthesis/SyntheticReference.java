@@ -5,7 +5,7 @@ package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
+import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.origin.Origin;
 import java.util.function.Function;
 
@@ -37,5 +37,5 @@ abstract class SyntheticReference {
 
   abstract DexType getHolder();
 
-  abstract SyntheticReference rewrite(NestedGraphLens lens);
+  abstract SyntheticReference rewrite(NonIdentityGraphLens lens);
 }

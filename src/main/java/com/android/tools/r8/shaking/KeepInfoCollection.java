@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
+import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.KeepFieldInfo.Joiner;
@@ -162,7 +162,7 @@ public abstract class KeepInfoCollection {
   @Deprecated
   public abstract void forEachPinnedField(Consumer<DexField> consumer);
 
-  public abstract KeepInfoCollection rewrite(NestedGraphLens lens, InternalOptions options);
+  public abstract KeepInfoCollection rewrite(NonIdentityGraphLens lens, InternalOptions options);
 
   public abstract KeepInfoCollection mutate(Consumer<MutableKeepInfoCollection> mutator);
 
@@ -198,7 +198,7 @@ public abstract class KeepInfoCollection {
     }
 
     @Override
-    public KeepInfoCollection rewrite(NestedGraphLens lens, InternalOptions options) {
+    public KeepInfoCollection rewrite(NonIdentityGraphLens lens, InternalOptions options) {
       Map<DexType, KeepClassInfo> newClassInfo = new IdentityHashMap<>(keepClassInfo.size());
       keepClassInfo.forEach(
           (type, info) -> {

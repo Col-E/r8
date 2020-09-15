@@ -7,6 +7,7 @@ import com.android.tools.r8.horizontalclassmerging.ClassMerger;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
 import com.android.tools.r8.shaking.KeepInfoCollection;
+import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -21,7 +22,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
 /**
  * A GraphLens implements a virtual view on top of the graph, used to delay global rewrites until
@@ -63,8 +63,16 @@ public abstract class GraphLens {
       return rewritings.getOrDefault(reference, reference);
     }
 
+    public boolean hasReboundReference() {
+      return reboundReference != null;
+    }
+
     public DexField getReboundReference() {
       return reboundReference;
+    }
+
+    public DexField getRewrittenReboundReference(Map<DexField, DexField> rewritings) {
+      return rewritings.getOrDefault(reboundReference, reboundReference);
     }
 
     public static Builder builder(GraphLens lens) {
@@ -199,10 +207,6 @@ public abstract class GraphLens {
     }
   }
 
-  public static Builder builder() {
-    return new Builder();
-  }
-
   /**
    * Intentionally private. All graph lenses except for {@link IdentityGraphLens} should inherit
    * from {@link NonIdentityGraphLens}.
@@ -329,6 +333,10 @@ public abstract class GraphLens {
 
   public boolean hasCodeRewritings() {
     return true;
+  }
+
+  public boolean isAppliedLens() {
+    return false;
   }
 
   public abstract boolean isIdentityLens();
@@ -517,12 +525,11 @@ public abstract class GraphLens {
       return previousLens;
     }
 
-    public final <T> T withAlternativeParentLens(GraphLens lens, Supplier<T> action) {
+    public final void withAlternativeParentLens(GraphLens lens, Action action) {
       GraphLens oldParent = getPrevious();
       previousLens = lens;
-      T result = action.get();
+      action.execute();
       previousLens = oldParent;
-      return result;
     }
 
     @Override
@@ -744,6 +751,10 @@ public abstract class GraphLens {
       this.dexItemFactory = dexItemFactory;
     }
 
+    public static Builder builder() {
+      return new Builder();
+    }
+
     @Override
     public DexType getOriginalType(DexType type) {
       return getPrevious().getOriginalType(type);
@@ -805,7 +816,10 @@ public abstract class GraphLens {
           return result;
         }
       }
-      DexType previous = getPrevious().lookupType(type);
+      return internalDescribeLookupType(getPrevious().lookupType(type));
+    }
+
+    private DexType internalDescribeLookupType(DexType previous) {
       return typeMap != null ? typeMap.getOrDefault(previous, previous) : previous;
     }
 
@@ -895,12 +909,25 @@ public abstract class GraphLens {
 
     @Override
     protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
-      DexField rewrittenReference = previous.getRewrittenReference(fieldMap);
-      return FieldLookupResult.builder(this)
-          .setReference(rewrittenReference)
-          // TODO(b/168282032): This should set the rebound reference.
-          .setReboundReference(rewrittenReference)
-          .build();
+      if (previous.hasReboundReference()) {
+        // Rewrite the rebound reference and then "fixup" the non-rebound reference.
+        DexField rewrittenReboundReference = previous.getRewrittenReboundReference(fieldMap);
+        return FieldLookupResult.builder(this)
+            .setReboundReference(rewrittenReboundReference)
+            .setReference(
+                rewrittenReboundReference.withHolder(
+                    internalDescribeLookupType(previous.getReference().getHolderType()),
+                    dexItemFactory))
+            .build();
+      } else {
+        // TODO(b/168282032): We should always have the rebound reference, so this should become
+        //  unreachable.
+        DexField rewrittenReference = previous.getRewrittenReference(fieldMap);
+        return FieldLookupResult.builder(this)
+            .setReference(rewrittenReference)
+            .setReboundReference(rewrittenReference)
+            .build();
+      }
     }
 
     @Override
