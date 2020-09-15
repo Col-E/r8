@@ -144,11 +144,12 @@ public class SyntheticFinalization {
       DexApplication application,
       InternalOptions options,
       MainDexClasses mainDexClasses) {
-    if (options.intermediate) {
+    boolean includeSynthesizedClassMappingInOutput = options.intermediate && !options.cfToCfDesugar;
+    if (includeSynthesizedClassMappingInOutput) {
       updateSynthesizedClassMapping(application, finalSyntheticClasses);
     }
     updateMainDexListWithSynthesizedClassMap(application, mainDexClasses);
-    if (!options.intermediate) {
+    if (!includeSynthesizedClassMappingInOutput) {
       clearSynthesizedClassMapping(application);
     }
   }
