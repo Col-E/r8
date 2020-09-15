@@ -15,6 +15,7 @@ import static com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator.
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.horizontalclassmerging.SyntheticArgumentClass;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
@@ -313,6 +314,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     // Any entry that is removed from here must be added to OLD_SYNTHESIZED_NAMES to ensure that
     // newer releases can be used to merge previous builds.
     return name.contains(ENUM_UNBOXING_UTILITY_CLASS_SUFFIX) // Shared among enums.
+        || name.contains(SyntheticArgumentClass.SYNTHETIC_CLASS_SUFFIX)
         || name.contains(LAMBDA_CLASS_NAME_PREFIX) // Could collide.
         || name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
         || name.contains(DISPATCH_CLASS_NAME_SUFFIX) // Shared on reference.
@@ -417,6 +419,14 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return dexItemFactory.createType(newDescriptorString);
   }
 
+  public DexType addSuffix(String suffix, DexItemFactory dexItemFactory) {
+    assert isClassType();
+    String descriptorString = toDescriptorString();
+    int endIndex = descriptorString.length() - 1;
+    String newDescriptorString = descriptorString.substring(0, endIndex) + suffix + ";";
+    return dexItemFactory.createType(newDescriptorString);
+  }
+
   public DexType toArrayType(int dimensions, DexItemFactory dexItemFactory) {
     byte[] content = new byte[descriptor.content.length + dimensions];
     Arrays.fill(content, 0, dimensions, (byte) '[');
@@ -426,7 +436,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   }
 
   public DexType toArrayElementType(DexItemFactory dexItemFactory) {
-    assert this.isArrayType();
+    assert isArrayType();
     DexString newDesc =
         dexItemFactory.createString(
             descriptor.size - 1,

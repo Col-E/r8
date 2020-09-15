@@ -537,10 +537,12 @@ public class R8 {
           HorizontalClassMerger merger =
               new HorizontalClassMerger(
                   appViewWithLiveness, mainDexTracingResult, classMergingEnqueuerExtension);
-          HorizontalClassMergerGraphLens lens = merger.run();
+          DirectMappedDexApplication.Builder appBuilder =
+              appView.appInfo().app().asDirect().builder();
+          HorizontalClassMergerGraphLens lens = merger.run(appBuilder);
           if (lens != null) {
             appView.setHorizontallyMergedClasses(lens.getHorizontallyMergedClasses());
-            appView.rewriteWithLens(lens);
+            appView.rewriteWithLensAndApplication(lens, appBuilder.build());
           }
           timing.end();
         }

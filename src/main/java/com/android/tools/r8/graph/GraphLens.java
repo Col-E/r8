@@ -812,17 +812,23 @@ public abstract class GraphLens {
     @Override
     public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
       DexMethod previousContext = internalGetPreviousMethodSignature(context);
-      GraphLensLookupResult lookup = getPrevious().lookupMethod(method, previousContext, type);
-      DexMethod newMethod = methodMap.get(lookup.getMethod());
+      GraphLensLookupResult previousLookup =
+          getPrevious().lookupMethod(method, previousContext, type);
+      return lookupMethod(method, previousLookup);
+    }
+
+    protected GraphLensLookupResult lookupMethod(
+        DexMethod method, GraphLensLookupResult previousLookup) {
+      DexMethod newMethod = methodMap.get(previousLookup.getMethod());
       if (newMethod == null) {
-        return lookup;
+        return previousLookup;
       }
       // TODO(sgjesse): Should we always do interface to virtual mapping? Is it a performance win
       //  that only subclasses which are known to need it actually do it?
       return new GraphLensLookupResult(
           newMethod,
-          mapInvocationType(newMethod, method, lookup.getType()),
-          internalDescribePrototypeChanges(lookup.getPrototypeChanges(), newMethod));
+          mapInvocationType(newMethod, method, previousLookup.getType()),
+          internalDescribePrototypeChanges(previousLookup.getPrototypeChanges(), newMethod));
     }
 
     @Override

@@ -21,10 +21,12 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -72,6 +74,19 @@ public class ClassMerger {
     buildClassIdentifierMap();
   }
 
+  /** Returns an iterable over all classes that should be merged into the target class. */
+  public Iterable<DexProgramClass> getToMergeClasses() {
+    return toMergeGroup;
+  }
+
+  /**
+   * Returns an iterable over both the target class as well as all classes that should be merged
+   * into the target class.
+   */
+  public Iterable<DexProgramClass> getClasses() {
+    return Iterables.concat(Collections.singleton(target), getToMergeClasses());
+  }
+
   void buildClassIdentifierMap() {
     classIdentifiers.put(target.type, 0);
     for (DexProgramClass toMerge : toMergeGroup) {
@@ -114,9 +129,10 @@ public class ClassMerger {
         tryMethod -> target.lookupMethod(tryMethod) == null);
   }
 
-  void mergeConstructors() {
+  void mergeConstructors(SyntheticArgumentClass syntheticArgumentClass) {
     for (ConstructorMerger merger : constructorMergers) {
-      merger.merge(lensBuilder, fieldAccessChangesBuilder, classIdentifiers);
+      merger.merge(
+          lensBuilder, fieldAccessChangesBuilder, classIdentifiers, syntheticArgumentClass);
     }
   }
 
@@ -137,7 +153,7 @@ public class ClassMerger {
     target.appendInstanceField(encodedField);
   }
 
-  public void mergeGroup() {
+  public void mergeGroup(SyntheticArgumentClass syntheticArgumentClass) {
     appendClassIdField();
 
     for (DexProgramClass clazz : toMergeGroup) {
@@ -145,7 +161,7 @@ public class ClassMerger {
       lensBuilder.mapType(clazz.type, target.type);
     }
 
-    mergeConstructors();
+    mergeConstructors(syntheticArgumentClass);
     mergeVirtualMethods();
   }
 

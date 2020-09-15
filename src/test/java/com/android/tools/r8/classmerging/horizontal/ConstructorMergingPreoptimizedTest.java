@@ -13,18 +13,15 @@ import static org.hamcrest.core.IsNot.not;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.classmerging.horizontal.ConstructorMergingTest.A;
-import com.android.tools.r8.classmerging.horizontal.ConstructorMergingTest.B;
-import com.android.tools.r8.classmerging.horizontal.ConstructorMergingTest.Main;
 import com.android.tools.r8.horizontalclassmerging.ClassMerger;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 
-public class MergedConstructorForwardingTest extends HorizontalClassMergingTestBase {
+public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTestBase {
 
-  public MergedConstructorForwardingTest(
+  public ConstructorMergingPreoptimizedTest(
       TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
   }
@@ -40,7 +37,7 @@ public class MergedConstructorForwardingTest extends HorizontalClassMergingTestB
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("42", "13", "21", "39", "print a", "print b")
+        .assertSuccessWithOutputLines("changed", "13", "42", "foo", "7", "print a", "print b")
         .inspect(
             codeInspector -> {
               if (enableHorizontalClassMerging) {
@@ -50,16 +47,19 @@ public class MergedConstructorForwardingTest extends HorizontalClassMergingTestB
                     aClassSubject.uniqueFieldWithName(ClassMerger.CLASS_ID_FIELD_NAME);
                 assertThat(classIdFieldSubject, isPresent());
 
-                ClassSubject synthesizedClass = getSynthesizedArgumentClassSubject(codeInspector);
-
-                MethodSubject firstInitSubject =
-                    aClassSubject.init(synthesizedClass.getFinalName(), "int");
+                MethodSubject firstInitSubject = aClassSubject.init("int");
                 assertThat(firstInitSubject, isPresent());
                 assertThat(
                     firstInitSubject, writesInstanceField(classIdFieldSubject.getFieldReference()));
 
+                ClassSubject syntheticArgumentSubject =
+                    getSynthesizedArgumentClassSubject(codeInspector);
+
                 MethodSubject otherInitSubject =
-                    aClassSubject.init("long", synthesizedClass.getFinalName(), "int");
+                    aClassSubject.init(
+                        aClassSubject.getFinalName(),
+                        syntheticArgumentSubject.getFinalName(),
+                        "int");
                 assertThat(otherInitSubject, isPresent());
                 assertThat(
                     otherInitSubject, writesInstanceField(classIdFieldSubject.getFieldReference()));
@@ -80,12 +80,28 @@ public class MergedConstructorForwardingTest extends HorizontalClassMergingTestB
   }
 
   @NeverClassInline
+  public static class Parent {
+    @NeverInline
+    public void foo() {
+      System.out.println("foo");
+    }
+  }
+
+  @NeverClassInline
+  public static class Changed extends Parent {
+    public Changed() {
+      System.out.println("changed");
+    }
+  }
+
+  @NeverClassInline
   public static class A {
-    public A() {
-      this(42);
+    public A(Parent p) {
+      System.out.println(42);
+      p.foo();
     }
 
-    public A(long x) {
+    public A(int x) {
       System.out.println(x);
     }
 
@@ -97,12 +113,8 @@ public class MergedConstructorForwardingTest extends HorizontalClassMergingTestB
 
   @NeverClassInline
   public static class B {
-    public B() {
-      this(7);
-    }
-
-    public B(long y) {
-      System.out.println(y * 3);
+    public B(Parent p) {
+      System.out.println(7);
     }
 
     @NeverInline
@@ -113,10 +125,10 @@ public class MergedConstructorForwardingTest extends HorizontalClassMergingTestB
 
   public static class Main {
     public static void main(String[] args) {
-      A a = new A();
-      a = new A(13);
-      B b = new B();
-      b = new B(13);
+      Parent p = new Changed();
+      A a = new A(13);
+      a = new A(p);
+      B b = new B(p);
       a.print();
       b.print();
     }

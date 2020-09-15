@@ -6,6 +6,7 @@ package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoFields;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInnerClasses;
@@ -23,6 +24,7 @@ import com.android.tools.r8.shaking.ClassMergingEnqueuerExtension;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -61,7 +63,7 @@ public class HorizontalClassMerger {
   }
 
   // TODO(b/165577835): replace Collection<DexProgramClass> with MergeGroup
-  public HorizontalClassMergerGraphLens run() {
+  public HorizontalClassMergerGraphLens run(DirectMappedDexApplication.Builder appBuilder) {
     Map<FieldMultiset, Collection<DexProgramClass>> classes = new HashMap<>();
 
     // Group classes by same field signature using the hash map.
@@ -71,6 +73,10 @@ public class HorizontalClassMerger {
 
     // Run the policies on all collected classes to produce a final grouping.
     Collection<Collection<DexProgramClass>> groups = policyExecutor.run(classes.values());
+    // If there are no groups, then end horizontal class merging.
+    if (groups.isEmpty()) {
+      return null;
+    }
 
     HorizontalClassMergerGraphLens.Builder lensBuilder =
         new HorizontalClassMergerGraphLens.Builder();
@@ -80,9 +86,13 @@ public class HorizontalClassMerger {
     // Set up a class merger for each group.
     Collection<ClassMerger> classMergers =
         initializeClassMergers(lensBuilder, fieldAccessChangesBuilder, groups);
+    Iterable<DexProgramClass> allMergeClasses =
+        Iterables.concat(Iterables.transform(classMergers, ClassMerger::getClasses));
 
     // Merge the classes.
-    applyClassMergers(classMergers);
+    SyntheticArgumentClass syntheticArgumentClass =
+        new SyntheticArgumentClass.Builder().build(appView, appBuilder, allMergeClasses);
+    applyClassMergers(classMergers, syntheticArgumentClass);
 
     // Generate the class lens.
     return createLens(lensBuilder, fieldAccessChangesBuilder);
@@ -116,9 +126,10 @@ public class HorizontalClassMerger {
   }
 
   /** Merges all class groups using {@link ClassMerger}. */
-  private void applyClassMergers(Collection<ClassMerger> classMergers) {
+  private void applyClassMergers(
+      Collection<ClassMerger> classMergers, SyntheticArgumentClass syntheticArgumentClass) {
     for (ClassMerger merger : classMergers) {
-      merger.mergeGroup();
+      merger.mergeGroup(syntheticArgumentClass);
     }
   }
 

@@ -150,7 +150,8 @@ public class VirtualMethodMerger {
     }
 
     // Use the first of the original methods as the original method for the merged constructor.
-    DexMethod originalMethodReference = methods.iterator().next().getReference();
+    DexMethod originalMethodReference =
+        appView.graphLens().getOriginalMethodSignature(methods.iterator().next().getReference());
 
     DexMethod newMethodReference =
         dexItemFactory.createMethod(

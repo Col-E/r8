@@ -50,12 +50,8 @@ class TreeFixer {
       fixupFields(clazz.instanceFields(), clazz::setInstanceField);
     }
     HorizontalClassMergerGraphLens lens = lensBuilder.build(appView);
-
     fieldAccessChangesBuilder.build(this::fixupMethod).modify(appView);
-
-    if (lens != null) {
-      new AnnotationFixer(lens).run(appView.appInfo().classes());
-    }
+    new AnnotationFixer(lens).run(appView.appInfo().classes());
     return lens;
   }
 

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.ExtraConstantIntParameter;
+import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.Collections;
@@ -67,8 +68,11 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
    */
   @Override
   public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-    Integer constructorId = constructorIds.get(method);
-    GraphLensLookupResult lookup = super.lookupMethod(method, context, type);
+    DexMethod previousContext = internalGetPreviousMethodSignature(context);
+    GraphLensLookupResult previousLookup = previousLens.lookupMethod(method, previousContext, type);
+    Integer constructorId = constructorIds.get(previousLookup.getMethod());
+
+    GraphLensLookupResult lookup = super.lookupMethod(method, previousLookup);
     if (constructorId != null) {
       DexMethod newMethod = lookup.getMethod();
       return new GraphLensLookupResult(
@@ -76,6 +80,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
           mapInvocationType(newMethod, method, lookup.getType()),
           lookup
               .getPrototypeChanges()
+              .withExtraParameter(new ExtraUnusedNullParameter())
               .withExtraParameter(new ExtraConstantIntParameter(constructorId)));
     } else {
       return lookup;
@@ -96,21 +101,19 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
     Builder() {}
 
     public HorizontalClassMergerGraphLens build(AppView<?> appView) {
-      if (typeMap.isEmpty()) {
-        return null;
-      } else {
-        BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
-        return new HorizontalClassMergerGraphLens(
-            appView,
-            constructorIds,
-            typeMap,
-            fieldMap,
-            methodMap,
-            originalFieldSignatures,
-            originalMethodSignatures,
-            extraOriginalMethodSignatures,
-            appView.graphLens());
-      }
+      assert !typeMap.isEmpty();
+
+      BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
+      return new HorizontalClassMergerGraphLens(
+          appView,
+          constructorIds,
+          typeMap,
+          fieldMap,
+          methodMap,
+          originalFieldSignatures,
+          originalMethodSignatures,
+          extraOriginalMethodSignatures,
+          appView.graphLens());
     }
 
     public DexType lookupType(DexType type) {

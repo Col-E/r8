@@ -90,7 +90,7 @@ public class ConstructorMerger {
     return method;
   }
 
-  private DexProto getNewConstructorProto() {
+  private DexProto getNewConstructorProto(SyntheticArgumentClass syntheticArgumentClass) {
     DexEncodedMethod firstConstructor = constructors.stream().findFirst().get();
     DexProto oldProto = firstConstructor.getProto();
 
@@ -100,6 +100,7 @@ public class ConstructorMerger {
 
     List<DexType> parameters = new ArrayList<>();
     Collections.addAll(parameters, oldProto.parameters.values);
+    parameters.add(syntheticArgumentClass.getArgumentClass());
     parameters.add(dexItemFactory.intType);
     // TODO(b/165783587): add synthesised class to prevent constructor merge conflict
     return dexItemFactory.createProto(oldProto.returnType, parameters);
@@ -115,7 +116,8 @@ public class ConstructorMerger {
   void merge(
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
-      Reference2IntMap<DexType> classIdentifiers) {
+      Reference2IntMap<DexType> classIdentifiers,
+      SyntheticArgumentClass syntheticArgumentClass) {
     // Tree map as must be sorted.
     Int2ReferenceSortedMap<DexMethod> typeConstructorClassMap = new Int2ReferenceAVLTreeMap<>();
 
@@ -130,9 +132,10 @@ public class ConstructorMerger {
           classIdentifiers.getInt(constructor.getHolderType()), movedConstructor);
     }
 
-    DexProto newProto = getNewConstructorProto();
+    DexProto newProto = getNewConstructorProto(syntheticArgumentClass);
 
-    DexMethod originalConstructorReference = constructors.iterator().next().method;
+    DexMethod originalConstructorReference =
+        appView.graphLens().getOriginalMethodSignature(constructors.iterator().next().method);
     DexMethod newConstructorReference =
         appView.dexItemFactory().createMethod(target.type, newProto, dexItemFactory.initMethodName);
     ConstructorEntryPointSynthesizedCode synthesizedCode =
