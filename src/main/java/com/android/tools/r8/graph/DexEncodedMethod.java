@@ -304,7 +304,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     if (code.isCfCode() && other.getCode().isCfCode()) {
       comparator = comparator.thenComparing(m -> m.getCode().asCfCode());
     } else if (code.isDexCode() && other.getCode().isDexCode()) {
-      comparator = comparator.thenComparing(m -> getCode().asDexCode());
+      comparator = comparator.thenComparing(m -> m.getCode().asDexCode());
     } else {
       throw new Unreachable(
           "Unexpected attempt to compare incompatible synthetic objects: "

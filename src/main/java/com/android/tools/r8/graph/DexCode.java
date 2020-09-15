@@ -188,7 +188,7 @@ public class DexCode extends Code implements Comparable<DexCode> {
             .thenComparing(c -> c.debugInfo, Comparator.nullsFirst(DexDebugInfo::compareTo))
             .thenComparing((DexCode c) -> c.instructions, arrayComparator())
             .compare(this, other);
-    assert diff == toString().compareTo(other.toString());
+    assert (diff == 0) == (0 == toString().compareTo(other.toString()));
     return diff;
   }
 
