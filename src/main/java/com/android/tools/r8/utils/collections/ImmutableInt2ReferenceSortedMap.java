@@ -13,7 +13,6 @@ import it.unimi.dsi.fastutil.objects.ObjectSortedSet;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.jetbrains.annotations.Nullable;
 
 public class ImmutableInt2ReferenceSortedMap<V> extends Int2ReferenceSortedMaps.EmptySortedMap<V> {
 
@@ -165,7 +164,6 @@ public class ImmutableInt2ReferenceSortedMap<V> extends Int2ReferenceSortedMaps.
     throw new Unreachable("Should not modify an immutable structure");
   }
 
-  @Nullable
   @Override
   public V putIfAbsent(Integer key, V value) {
     throw new Unreachable("Should not modify an immutable structure");
