@@ -85,6 +85,32 @@ public class AssemblyWriter extends DexByteCodeWriter {
       for (DexType value : clazz.interfaces.values) {
         ps.println("# Implements: '" + value.toSourceString() + "'");
       }
+      if (!clazz.getInnerClasses().isEmpty()) {
+        ps.println("# InnerClasses:");
+        for (InnerClassAttribute innerClassAttribute : clazz.getInnerClasses()) {
+          ps.println(
+              "#  Outer: "
+                  + (innerClassAttribute.getOuter() != null
+                      ? innerClassAttribute.getOuter().toSourceString()
+                      : "-")
+                  + ", inner: "
+                  + innerClassAttribute.getInner().toSourceString()
+                  + ", inner name: "
+                  + innerClassAttribute.getInnerName()
+                  + ", access: "
+                  + Integer.toHexString(innerClassAttribute.getAccess()));
+        }
+      }
+      EnclosingMethodAttribute enclosingMethodAttribute = clazz.getEnclosingMethodAttribute();
+      if (enclosingMethodAttribute != null) {
+        ps.println("# EnclosingMethod:");
+        if (enclosingMethodAttribute.getEnclosingClass() != null) {
+          ps.println("#  Class: " + enclosingMethodAttribute.getEnclosingClass().toSourceString());
+        } else {
+          ps.println(
+              "#  Method: " + enclosingMethodAttribute.getEnclosingMethod().toSourceString());
+        }
+      }
     }
     ps.println();
   }
