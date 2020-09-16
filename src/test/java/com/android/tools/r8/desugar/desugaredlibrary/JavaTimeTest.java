@@ -8,19 +8,24 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.PrintUses;
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ThrowingSupplier;
 import com.android.tools.r8.utils.codeinspector.CheckCastInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -29,11 +34,14 @@ import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.android.tools.r8.utils.codeinspector.TryCatchSubject;
 import com.android.tools.r8.utils.codeinspector.TypeSubject;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import kotlin.text.Charsets;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,6 +53,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
+  private final boolean printUsesKeepRules;
   private static final String expectedOutput =
       StringUtils.lines(
           "Caught java.time.format.DateTimeParseException",
@@ -54,9 +63,10 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
           "GMT",
           "Hello, world");
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{2}, shrinkDesugaredLibrary: {0}, printUsesKeepRules {1}")
   public static List<Object[]> data() {
     return buildParameters(
+        BooleanUtils.values(),
         BooleanUtils.values(),
         getTestParameters()
             .withAllRuntimes()
@@ -65,8 +75,10 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
             .build());
   }
 
-  public JavaTimeTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
+  public JavaTimeTest(
+      boolean shrinkDesugaredLibrary, boolean printUsesKeepRules, TestParameters parameters) {
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+    this.printUsesKeepRules = printUsesKeepRules;
     this.parameters = parameters;
   }
 
@@ -121,8 +133,66 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     assertEquals(expectedCatchGuards, foundCatchGuards);
   }
 
+  // Build the desugared library in class file format.
+  private Path buildDesugaredLibraryClassFile() throws Exception {
+    Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs.jar");
+    L8Command.Builder l8Builder =
+        L8Command.builder()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
+            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
+            .setMode(CompilationMode.DEBUG)
+            .addDesugaredLibraryConfiguration(
+                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+            .setMinApiLevel(parameters.getApiLevel().getLevel())
+            .setOutput(desugaredLib, OutputMode.ClassFile);
+    ToolHelper.runL8(l8Builder.build());
+    return desugaredLib;
+  }
+
+  Supplier<Path> desugaredLibraryClassFile =
+      Suppliers.memoize(
+          () -> {
+            try {
+              return buildDesugaredLibraryClassFile();
+            } catch (Exception e) {
+              fail("Unexpected");
+              return null;
+            }
+          });
+
+  private String collectKeepRulesWithPrintUses(
+      Path desugaredProgramClassFile, Path desugaredLibraryClassFile) throws Exception {
+    Path printUsesKeepRules = temp.newFile().toPath();
+    PrintUses.main(
+        "--keeprules",
+        ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+        desugaredLibraryClassFile.toString(),
+        desugaredProgramClassFile.toString(),
+        printUsesKeepRules.toString());
+    return FileUtils.readTextFile(printUsesKeepRules, Charsets.UTF_8);
+  }
+
+  private String desugaredLibraryKeepRules(
+      KeepRuleConsumer keepRuleConsumer, ThrowingSupplier<Path, Exception> programSupplier)
+      throws Exception {
+    String desugaredLibraryKeepRules = null;
+    if (shrinkDesugaredLibrary) {
+      desugaredLibraryKeepRules = keepRuleConsumer.get();
+      if (desugaredLibraryKeepRules != null) {
+        if (printUsesKeepRules) {
+          desugaredLibraryKeepRules =
+              collectKeepRulesWithPrintUses(programSupplier.get(), desugaredLibraryClassFile.get());
+        }
+      }
+    }
+    return desugaredLibraryKeepRules;
+  }
+
   @Test
   public void testTimeD8Cf() throws Exception {
+    Assume.assumeTrue(shrinkDesugaredLibrary || !printUsesKeepRules);
+
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     // Use D8 to desugar with Java classfile output.
     Path jar =
@@ -134,14 +204,17 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
             .inspect(this::checkRewrittenInvokes)
             .writeToZip();
 
-    if (parameters.getRuntime().isDex()) {
+    String desugaredLibraryKeepRules;
+    if (shrinkDesugaredLibrary && !printUsesKeepRules && keepRuleConsumer.get() != null) {
       // Collection keep rules is only implemented in the DEX writer.
-      String desugaredLibraryKeepRules = keepRuleConsumer.get();
-      if (desugaredLibraryKeepRules != null) {
-        assertEquals(0, desugaredLibraryKeepRules.length());
-        desugaredLibraryKeepRules = "-keep class * { *; }";
-      }
+      assertEquals(0, keepRuleConsumer.get().length());
+      desugaredLibraryKeepRules = "-keep class * { *; }";
+    } else {
+      desugaredLibraryKeepRules = desugaredLibraryKeepRules(keepRuleConsumer, () -> jar);
+    }
 
+    // Determine desugared library keep rules.
+    if (parameters.getRuntime().isDex()) {
       // Convert to DEX without desugaring and run.
       testForD8()
           .addProgramFiles(jar)
@@ -156,25 +229,11 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(expectedOutput);
     } else {
-      // Build the desugared library in class file format.
-      Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs.jar");
-      L8Command.Builder l8Builder =
-          L8Command.builder()
-              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-              .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-              .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
-              .setMode(CompilationMode.DEBUG)
-              .addDesugaredLibraryConfiguration(
-                  StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
-              .setMinApiLevel(parameters.getApiLevel().getLevel())
-              .setOutput(desugaredLib, OutputMode.ClassFile);
-      ToolHelper.runL8(l8Builder.build());
-
-      // Run on the JVM with desuagred library on classpath.
+      // Run on the JVM with desugared library on classpath.
       TestRunResult<?> result =
           testForJvm()
               .addProgramFiles(jar)
-              .addRunClasspathFiles(desugaredLib)
+              .addRunClasspathFiles(desugaredLibraryClassFile.get())
               .run(parameters.getRuntime(), TestClass.class);
       if (parameters.getApiLevel().isGreaterThan(AndroidApiLevel.N_MR1)) {
         // java.time is present from O, so the desugared library classes are not loaded.
@@ -190,17 +249,21 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
   @Test
   public void testTimeD8() throws Exception {
     Assume.assumeTrue(parameters.getRuntime().isDex());
+    Assume.assumeTrue(shrinkDesugaredLibrary || !printUsesKeepRules);
+
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addInnerClasses(JavaTimeTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .inspect(this::checkRewrittenInvokes)
+    TestCompileResult<?, ?> result =
+        testForD8()
+            .addInnerClasses(JavaTimeTest.class)
+            .setMinApi(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .compile()
+            .inspect(this::checkRewrittenInvokes);
+    result
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
-            keepRuleConsumer.get(),
+            desugaredLibraryKeepRules(keepRuleConsumer, result::writeToZip),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
@@ -209,19 +272,23 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
   @Test
   public void testTimeR8() throws Exception {
     Assume.assumeTrue(parameters.getRuntime().isDex());
+    Assume.assumeTrue(shrinkDesugaredLibrary || !printUsesKeepRules);
+
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addInnerClasses(JavaTimeTest.class)
-        .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .enableInliningAnnotations()
-        .compile()
-        .inspect(this::checkRewrittenInvokes)
+    TestCompileResult<?, ?> result =
+        testForR8(parameters.getBackend())
+            .addInnerClasses(JavaTimeTest.class)
+            .addKeepMainRule(TestClass.class)
+            .setMinApi(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .enableInliningAnnotations()
+            .compile()
+            .inspect(this::checkRewrittenInvokes);
+    result
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
-            keepRuleConsumer.get(),
+            desugaredLibraryKeepRules(keepRuleConsumer, result::writeToZip),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);

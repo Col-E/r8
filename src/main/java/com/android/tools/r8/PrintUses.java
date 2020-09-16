@@ -34,6 +34,8 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -299,7 +301,7 @@ public class PrintUses {
   }
 
   public static void main(String... args) throws Exception {
-    if (args.length != 3 && args.length != 4) {
+    if (args.length != 3 && args.length != 4 && args.length != 5) {
       System.out.println(USAGE.replace("\n", System.lineSeparator()));
       return;
     }
@@ -324,11 +326,15 @@ public class PrintUses {
     builder.addLibraryFile(rtJar);
     Path r8Jar = Paths.get(args[argumentIndex++]);
     builder.addLibraryFile(r8Jar);
-    Path sampleJar = Paths.get(args[argumentIndex]);
+    Path sampleJar = Paths.get(args[argumentIndex++]);
     builder.addProgramFile(sampleJar);
+    PrintStream output = System.out;
+    if (argumentIndex < args.length) {
+      output = new PrintStream(Files.newOutputStream(Paths.get(args[argumentIndex])));
+    }
     Set<String> descriptors = new HashSet<>(getDescriptors(r8Jar));
     descriptors.removeAll(getDescriptors(sampleJar));
-    Printer printer = printKeep ? new KeepPrinter() : new DefaultPrinter();
+    Printer printer = printKeep ? new KeepPrinter(output) : new DefaultPrinter(output);
     PrintUses printUses = new PrintUses(descriptors, builder.build(), printer, allowObfuscation);
     printUses.analyze();
     printUses.print();
@@ -378,12 +384,18 @@ public class PrintUses {
 
   private abstract static class Printer {
 
+    PrintStream output;
+
+    Printer(PrintStream output) {
+      this.output = output;
+    }
+
     void append(String string) {
-      System.out.print(string);
+      output.print(string);
     }
 
     void appendLine(String string) {
-      System.out.println(string);
+      output.println(string);
     }
 
     void printArguments(DexMethod method) {
@@ -472,6 +484,10 @@ public class PrintUses {
 
   private static class DefaultPrinter extends Printer {
 
+    DefaultPrinter(PrintStream output) {
+      super(output);
+    }
+
     @Override
     public void printConstructorName(DexEncodedMethod encodedMethod) {
       if (encodedMethod.accessFlags.isStatic()) {
@@ -516,6 +532,10 @@ public class PrintUses {
   }
 
   private static class KeepPrinter extends Printer {
+
+    KeepPrinter(PrintStream output) {
+      super(output);
+    }
 
     @Override
     public void printTypeHeader(DexClass dexClass, boolean allowObfuscation) {
