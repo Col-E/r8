@@ -43,8 +43,7 @@ public class PreventMergeIntoMainDex extends MultiClassPolicy {
 
     Collection<Collection<DexProgramClass>> newGroups = new LinkedList<>();
     if (!isTrivial(mainDexMembers)) {
-      // TODO(b/165577835) remove this cast when we introduce MergeGroup.
-      newGroups.add((Collection) mainDexMembers);
+      newGroups.add(mainDexMembers);
     }
     if (!isTrivial(group)) {
       newGroups.add(group);
