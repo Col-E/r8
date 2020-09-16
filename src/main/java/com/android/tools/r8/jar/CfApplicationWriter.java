@@ -163,6 +163,15 @@ public class CfApplicationWriter {
     String sourceDebug = getSourceDebugExtension(clazz.annotations());
     writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, sourceDebug);
     int version = getClassFileVersion(clazz);
+    if (version >= V1_8) {
+      // JDK8 and after ignore ACC_SUPER so unset it.
+      clazz.accessFlags.unsetSuper();
+    } else {
+      // In all other cases set the super bit as D8/R8 do not support targeting pre 1.0.2 JDKs.
+      if (!clazz.accessFlags.isInterface()) {
+        clazz.accessFlags.setSuper();
+      }
+    }
     int access = clazz.accessFlags.getAsCfAccessFlags();
     String desc = namingLens.lookupDescriptor(clazz.type).toString();
     String name = namingLens.lookupInternalName(clazz.type);
