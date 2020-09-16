@@ -19,7 +19,7 @@ import java.util.Map;
  *
  * <p>The mappings from the original program to the generated program are kept, though.
  */
-public class AppliedGraphLens extends NonIdentityGraphLens {
+public final class AppliedGraphLens extends NonIdentityGraphLens {
 
   private final AppView<?> appView;
 
@@ -82,6 +82,11 @@ public class AppliedGraphLens extends NonIdentityGraphLens {
     // Trim original method signatures.
     MapUtils.removeIdentityMappings(originalMethodSignatures);
     MapUtils.removeIdentityMappings(extraOriginalMethodSignatures);
+  }
+
+  @Override
+  public boolean isAppliedLens() {
+    return true;
   }
 
   @Override

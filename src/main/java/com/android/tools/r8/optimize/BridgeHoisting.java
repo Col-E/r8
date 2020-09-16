@@ -379,6 +379,11 @@ public class BridgeHoisting {
     }
 
     @Override
+    public boolean hasCodeRewritings() {
+      return getPrevious().hasCodeRewritings();
+    }
+
+    @Override
     public boolean isLegitimateToHaveEmptyMappings() {
       return true;
     }

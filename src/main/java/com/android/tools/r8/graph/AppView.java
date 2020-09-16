@@ -6,7 +6,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
+import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.graph.classmerging.MergedClasses;
@@ -520,36 +520,54 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return !cfByteCodePassThrough.isEmpty();
   }
 
-  public void rewriteWithLens(NestedGraphLens lens) {
+  public void rewriteWithLens(NonIdentityGraphLens lens) {
     if (lens != null) {
-      rewriteWithLens(lens, appInfo().app().asDirect(), withLiveness());
+      rewriteWithLens(lens, appInfo().app().asDirect(), withLiveness(), lens.getPrevious());
     }
-  }
-
-  public void rewriteWithApplication(DirectMappedDexApplication application) {
-    assert application != null;
-    rewriteWithLens(null, application, withLiveness());
   }
 
   public void rewriteWithLensAndApplication(
-      NestedGraphLens lens, DirectMappedDexApplication application) {
+      NonIdentityGraphLens lens, DirectMappedDexApplication application) {
+    rewriteWithLensAndApplication(lens, application, lens.getPrevious());
+  }
+
+  public void rewriteWithLensAndApplication(
+      NonIdentityGraphLens lens, DirectMappedDexApplication application, GraphLens appliedLens) {
     assert lens != null;
     assert application != null;
-    rewriteWithLens(lens, application, withLiveness());
+    rewriteWithLens(lens, application, withLiveness(), appliedLens);
   }
 
   private static void rewriteWithLens(
-      NestedGraphLens lens,
+      NonIdentityGraphLens lens,
       DirectMappedDexApplication application,
-      AppView<AppInfoWithLiveness> appView) {
-    if (lens != null) {
-      boolean changed = appView.setGraphLens(lens);
-      assert changed;
-      assert application.verifyWithLens(lens);
+      AppView<AppInfoWithLiveness> appView,
+      GraphLens appliedLens) {
+    if (lens == null) {
+      return;
     }
-    appView.setAppInfo(appView.appInfo().rewrittenWithLens(application, lens));
-    if (appView.hasInitClassLens()) {
-      appView.setInitClassLens(appView.initClassLens().rewrittenWithLens(lens));
+
+    boolean changed = appView.setGraphLens(lens);
+    assert changed;
+    assert application.verifyWithLens(lens);
+
+    // The application has already been rewritten with the given applied lens. Therefore, we
+    // temporarily replace that lens with the identity lens to avoid the overhead of traversing
+    // the entire lens chain upon each lookup during the rewriting.
+    NonIdentityGraphLens temporaryRootLens = lens;
+    while (temporaryRootLens.getPrevious() != appliedLens) {
+      GraphLens previousLens = temporaryRootLens.getPrevious();
+      assert previousLens.isNonIdentityLens();
+      temporaryRootLens = previousLens.asNonIdentityLens();
     }
+
+    temporaryRootLens.withAlternativeParentLens(
+        GraphLens.getIdentityLens(),
+        () -> {
+          appView.setAppInfo(appView.appInfo().rewrittenWithLens(application, lens));
+          if (appView.hasInitClassLens()) {
+            appView.setInitClassLens(appView.initClassLens().rewrittenWithLens(lens));
+          }
+        });
   }
 }

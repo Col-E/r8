@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.Builder;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -99,7 +100,7 @@ public class SyntheticFinalization {
     Map<DexType, EquivalenceGroup<SyntheticMethodDefinition>> equivalences =
         computeActualEquivalences(potentialEquivalences, options.itemFactory);
 
-    Builder lensBuilder = GraphLens.builder();
+    Builder lensBuilder = NestedGraphLens.builder();
     List<DexProgramClass> newProgramClasses = new ArrayList<>();
     List<DexProgramClass> finalSyntheticClasses = new ArrayList<>();
     buildLensAndProgram(

@@ -6,7 +6,7 @@ package com.android.tools.r8.synthesis;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
+import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import java.util.function.Function;
 
@@ -40,7 +40,7 @@ class SyntheticMethodReference extends SyntheticReference {
   }
 
   @Override
-  SyntheticReference rewrite(NestedGraphLens lens) {
+  SyntheticReference rewrite(NonIdentityGraphLens lens) {
     SynthesizingContext context = getContext().rewrite(lens);
     DexMethod rewritten = lens.lookupMethod(method);
     return context == getContext() && rewritten == method

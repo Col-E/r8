@@ -4,7 +4,7 @@
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
+import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.origin.Origin;
 
 /**
@@ -29,7 +29,7 @@ class SynthesizingContext {
     this.origin = origin;
   }
 
-  SynthesizingContext rewrite(NestedGraphLens lens) {
+  SynthesizingContext rewrite(NonIdentityGraphLens lens) {
     DexType rewritten = lens.lookupType(type);
     return rewritten == type ? this : new SynthesizingContext(type, origin);
   }

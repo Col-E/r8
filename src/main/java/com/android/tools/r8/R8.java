@@ -74,6 +74,8 @@ import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.optimize.BridgeHoisting;
 import com.android.tools.r8.optimize.ClassAndMemberPublicizer;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
+import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
+import com.android.tools.r8.optimize.MemberRebindingIdentityLensFactory;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.repackaging.Repackaging;
@@ -795,6 +797,10 @@ public class R8 {
         }
       }
 
+      MemberRebindingIdentityLens memberRebindingLens =
+          MemberRebindingIdentityLensFactory.create(appView, executorService);
+      appView.setGraphLens(memberRebindingLens);
+
       // Perform repackaging.
       // TODO(b/165783399): Consider making repacking available without minification.
       if (options.isMinifying() && options.testing.enableExperimentalRepackaging) {
@@ -805,7 +811,13 @@ public class R8 {
         RepackagingLens lens =
             new Repackaging(appView.withLiveness()).run(appBuilder, executorService, timing);
         if (lens != null) {
-          appView.rewriteWithLensAndApplication(lens, appBuilder.build());
+          // Specify to use the member rebinding lens as the parent lens during the rewriting. This
+          // is needed to ensure that the rebound references are available during lens lookups.
+          // TODO(b/168282032): This call-site should not have to think about the parent lens that
+          //  is used for the rewriting. Once the new member rebinding lens replaces the old member
+          //  rebinding analysis it should be possible to clean this up.
+          appView.rewriteWithLensAndApplication(
+              lens, appBuilder.build(), memberRebindingLens.getPrevious());
         }
       }
 
