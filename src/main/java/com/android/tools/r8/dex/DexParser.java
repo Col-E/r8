@@ -859,7 +859,7 @@ public class DexParser {
     int insnsSize = dexReader.getUint();
     short[] code = new short[insnsSize];
     Try[] tries = new Try[triesSize];
-    DexCode.TryHandler[] handlers = null;
+    TryHandler[] handlers = new TryHandler[0];
 
     if (insnsSize != 0) {
       for (int i = 0; i < insnsSize; i++) {

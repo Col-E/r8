@@ -408,7 +408,7 @@ public class FileWriter {
     }
     result += insnSize * 2;
     result += code.tries.length * 8;
-    if ((code.handlers != null) && (code.handlers.length > 0)) {
+    if (code.handlers.length > 0) {
       result = alignSize(4, result);
       result += LebUtils.sizeAsUleb128(code.handlers.length);
       for (TryHandler handler : code.handlers) {

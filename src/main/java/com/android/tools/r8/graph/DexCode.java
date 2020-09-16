@@ -67,6 +67,9 @@ public class DexCode extends Code implements Comparable<DexCode> {
     this.tries = tries;
     this.handlers = handlers;
     this.debugInfo = debugInfo;
+    assert tries != null;
+    assert handlers != null;
+    assert instructions != null;
     hashCode();  // Cache the hash code eagerly.
   }
 
@@ -247,11 +250,9 @@ public class DexCode extends Code implements Comparable<DexCode> {
     for (Instruction insn : instructions) {
       insn.registerUse(registry);
     }
-    if (handlers != null) {
-      for (TryHandler handler : handlers) {
-        for (TypeAddrPair pair : handler.pairs) {
-          registry.registerTypeReference(pair.type);
-        }
+    for (TryHandler handler : handlers) {
+      for (TypeAddrPair pair : handler.pairs) {
+        registry.registerTypeReference(pair.type);
       }
     }
   }
@@ -318,14 +319,12 @@ public class DexCode extends Code implements Comparable<DexCode> {
         builder.append(atry.toString());
         builder.append('\n');
       }
-      if (handlers != null) {
-        builder.append("Handlers (numbers are offsets)\n");
-        for (int handlerIndex = 0; handlerIndex < handlers.length; handlerIndex++) {
-          TryHandler handler = handlers[handlerIndex];
-          builder.append("  ").append(handlerIndex).append(": ");
-          builder.append(handler.toString());
-          builder.append('\n');
-        }
+      builder.append("Handlers (numbers are offsets)\n");
+      for (int handlerIndex = 0; handlerIndex < handlers.length; handlerIndex++) {
+        TryHandler handler = handlers[handlerIndex];
+        builder.append("  ").append(handlerIndex).append(": ");
+        builder.append(handler.toString());
+        builder.append('\n');
       }
     }
     return builder.toString();
@@ -381,13 +380,11 @@ public class DexCode extends Code implements Comparable<DexCode> {
         builder.append(atry.toString());
         builder.append('\n');
       }
-      if (handlers != null) {
         builder.append("Handlers (numbers are offsets)\n");
         for (TryHandler handler : handlers) {
           builder.append(handler.toString());
           builder.append('\n');
         }
-      }
     }
     return builder.toString();
   }
@@ -410,11 +407,9 @@ public class DexCode extends Code implements Comparable<DexCode> {
     if (debugInfo != null) {
       getDebugInfoForWriting().collectIndexedItems(indexedItems, graphLens);
     }
-    if (handlers != null) {
       for (TryHandler handler : handlers) {
         handler.collectIndexedItems(indexedItems, graphLens);
       }
-    }
   }
 
   public DexDebugInfoForWriting getDebugInfoForWriting() {

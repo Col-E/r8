@@ -20,6 +20,7 @@ import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
+import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
@@ -150,14 +151,7 @@ public class JumboStringProcessing extends TestBase {
 
   private DexCode jumboStringProcess(
       DexItemFactory factory, DexString string, Instruction[] instructions) {
-    DexCode code = new DexCode(
-        1,
-        0,
-        0,
-        instructions,
-        new Try[0],
-        null,
-        null);
+    DexCode code = new DexCode(1, 0, 0, instructions, new Try[0], new TryHandler[0], null);
     MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, false);
     DexEncodedMethod method =
         new DexEncodedMethod(

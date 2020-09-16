@@ -194,9 +194,6 @@ public class JumboStringRewriter {
 
   private TryHandler[] rewriteHandlerOffsets() {
     DexCode code = method.getCode().asDexCode();
-    if (code.handlers == null) {
-      return null;
-    }
     TryHandler[] result = new TryHandler[code.handlers.length];
     for (int i = 0; i < code.handlers.length; i++) {
       TryHandler handler = code.handlers[i];
@@ -545,21 +542,19 @@ public class JumboStringRewriter {
       tryRangeStartAndEndTargets.put(start.getOffset(), start);
       tryRangeStartAndEndTargets.put(end.getOffset(), end);
     }
-    if (code.handlers != null) {
-      for (TryHandler handler : code.handlers) {
-        List<Instruction> targets = new ArrayList<>();
-        if (handler.catchAllAddr != NO_HANDLER) {
-          Instruction target = offsetToInstruction.get(handler.catchAllAddr);
-          assert target != null;
-          targets.add(target);
-        }
-        for (TypeAddrPair pair : handler.pairs) {
-          Instruction target = offsetToInstruction.get(pair.addr);
-          assert target != null;
-          targets.add(target);
-        }
-        handlerTargets.put(handler, targets);
+    for (TryHandler handler : code.handlers) {
+      List<Instruction> targets = new ArrayList<>();
+      if (handler.catchAllAddr != NO_HANDLER) {
+        Instruction target = offsetToInstruction.get(handler.catchAllAddr);
+        assert target != null;
+        targets.add(target);
       }
+      for (TypeAddrPair pair : handler.pairs) {
+        Instruction target = offsetToInstruction.get(pair.addr);
+        assert target != null;
+        targets.add(target);
+      }
+      handlerTargets.put(handler, targets);
     }
   }
 
