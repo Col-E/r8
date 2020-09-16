@@ -55,7 +55,7 @@ public class ConstructorMergingOverlapTest extends HorizontalClassMergingTestBas
                 ClassSubject synthesizedClass = getSynthesizedArgumentClassSubject(codeInspector);
 
                 MethodSubject otherInitSubject =
-                    aClassSubject.init(synthesizedClass.getFinalName(), "int");
+                    aClassSubject.init("int", synthesizedClass.getFinalName());
                 assertThat(otherInitSubject, isPresent());
                 assertThat(
                     otherInitSubject, writesInstanceField(classIdFieldSubject.getFieldReference()));

@@ -12,6 +12,7 @@ import static org.hamcrest.core.IsNot.not;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.horizontalclassmerging.ClassMerger;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -35,12 +36,17 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("changed", "13", "42", "foo", "7", "print a", "print b")
+        .assertSuccessWithOutputLines(
+            "changed", "13", "42", "foo", "7", "foo", "print a", "print b")
         .inspect(
             codeInspector -> {
               if (enableHorizontalClassMerging) {
+                ClassSubject changedClassSubject = codeInspector.clazz(Changed.class);
+                assertThat(changedClassSubject, isPresent());
+
                 ClassSubject aClassSubject = codeInspector.clazz(A.class);
                 assertThat(aClassSubject, isPresent());
                 FieldSubject classIdFieldSubject =
@@ -52,14 +58,8 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
                 assertThat(
                     firstInitSubject, writesInstanceField(classIdFieldSubject.getFieldReference()));
 
-                ClassSubject syntheticArgumentSubject =
-                    getSynthesizedArgumentClassSubject(codeInspector);
-
                 MethodSubject otherInitSubject =
-                    aClassSubject.init(
-                        aClassSubject.getFinalName(),
-                        syntheticArgumentSubject.getFinalName(),
-                        "int");
+                    aClassSubject.init(changedClassSubject.getFinalName(), "int");
                 assertThat(otherInitSubject, isPresent());
                 assertThat(
                     otherInitSubject, writesInstanceField(classIdFieldSubject.getFieldReference()));
@@ -80,6 +80,7 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   public static class Parent {
     @NeverInline
     public void foo() {
@@ -88,6 +89,7 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   public static class Changed extends Parent {
     public Changed() {
       System.out.println("changed");
@@ -115,6 +117,7 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
   public static class B {
     public B(Parent p) {
       System.out.println(7);
+      p.foo();
     }
 
     @NeverInline

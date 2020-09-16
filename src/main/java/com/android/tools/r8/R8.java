@@ -532,23 +532,6 @@ public class R8 {
           }
           timing.end();
         }
-        if (options.enableHorizontalClassMerging) {
-          timing.begin("HorizontalClassMerger");
-          HorizontalClassMerger merger =
-              new HorizontalClassMerger(
-                  appViewWithLiveness, mainDexTracingResult, classMergingEnqueuerExtension);
-          DirectMappedDexApplication.Builder appBuilder =
-              appView.appInfo().app().asDirect().builder();
-          HorizontalClassMergerGraphLens lens = merger.run(appBuilder);
-          if (lens != null) {
-            appView.setHorizontallyMergedClasses(lens.getHorizontallyMergedClasses());
-            appView.rewriteWithLensAndApplication(lens, appBuilder.build());
-          }
-          timing.end();
-        }
-
-        // Only required for class merging, clear instance to save memory.
-        classMergingEnqueuerExtension = null;
 
         if (options.enableArgumentRemoval) {
           SubtypingInfo subtypingInfo = appViewWithLiveness.appInfo().computeSubtypingInfo();
@@ -577,6 +560,23 @@ public class R8 {
             timing.end();
           }
         }
+        if (options.enableHorizontalClassMerging) {
+          timing.begin("HorizontalClassMerger");
+          HorizontalClassMerger merger =
+              new HorizontalClassMerger(
+                  appViewWithLiveness, mainDexTracingResult, classMergingEnqueuerExtension);
+          DirectMappedDexApplication.Builder appBuilder =
+              appView.appInfo().app().asDirect().builder();
+          HorizontalClassMergerGraphLens lens = merger.run(appBuilder);
+          if (lens != null) {
+            appView.setHorizontallyMergedClasses(lens.getHorizontallyMergedClasses());
+            appView.rewriteWithLensAndApplication(lens, appBuilder.build());
+          }
+          timing.end();
+        }
+
+        // Only required for class merging, clear instance to save memory.
+        classMergingEnqueuerExtension = null;
       }
 
       // None of the optimizations above should lead to the creation of type lattice elements.

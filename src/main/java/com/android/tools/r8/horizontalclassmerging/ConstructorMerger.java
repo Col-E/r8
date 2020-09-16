@@ -16,6 +16,9 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.ir.conversion.ExtraConstantIntParameter;
+import com.android.tools.r8.ir.conversion.ExtraParameter;
+import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
@@ -23,6 +26,7 @@ import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 public class ConstructorMerger {
@@ -91,7 +95,7 @@ public class ConstructorMerger {
   }
 
   private DexProto getNewConstructorProto(SyntheticArgumentClass syntheticArgumentClass) {
-    DexEncodedMethod firstConstructor = constructors.stream().findFirst().get();
+    DexEncodedMethod firstConstructor = constructors.iterator().next();
     DexProto oldProto = firstConstructor.getProto();
 
     if (isTrivialMerge()) {
@@ -100,10 +104,17 @@ public class ConstructorMerger {
 
     List<DexType> parameters = new ArrayList<>();
     Collections.addAll(parameters, oldProto.parameters.values);
-    parameters.add(syntheticArgumentClass.getArgumentClass());
     parameters.add(dexItemFactory.intType);
+    if (syntheticArgumentClass != null) {
+      parameters.add(syntheticArgumentClass.getArgumentClass());
+    }
     // TODO(b/165783587): add synthesised class to prevent constructor merge conflict
     return dexItemFactory.createProto(oldProto.returnType, parameters);
+  }
+
+  private DexMethod getNewConstructorReference(SyntheticArgumentClass syntheticArgumentClass) {
+    DexProto proto = getNewConstructorProto(syntheticArgumentClass);
+    return appView.dexItemFactory().createMethod(target.type, proto, dexItemFactory.initMethodName);
   }
 
   private MethodAccessFlags getAccessFlags() {
@@ -132,12 +143,15 @@ public class ConstructorMerger {
           classIdentifiers.getInt(constructor.getHolderType()), movedConstructor);
     }
 
-    DexProto newProto = getNewConstructorProto(syntheticArgumentClass);
+    DexMethod newConstructorReference = getNewConstructorReference(null);
+    boolean addExtraNull = target.lookupMethod(newConstructorReference) != null;
+    if (addExtraNull) {
+      newConstructorReference = getNewConstructorReference(syntheticArgumentClass);
+      assert target.lookupMethod(newConstructorReference) == null;
+    }
 
     DexMethod originalConstructorReference =
         appView.graphLens().getOriginalMethodSignature(constructors.iterator().next().method);
-    DexMethod newConstructorReference =
-        appView.dexItemFactory().createMethod(target.type, newProto, dexItemFactory.initMethodName);
     ConstructorEntryPointSynthesizedCode synthesizedCode =
         new ConstructorEntryPointSynthesizedCode(
             typeConstructorClassMap,
@@ -161,10 +175,16 @@ public class ConstructorMerger {
     } else {
       // Map each old constructor to the newly synthesized constructor in the graph lens.
       for (DexEncodedMethod oldConstructor : constructors) {
+        int classIdentifier = classIdentifiers.getInt(oldConstructor.getHolderType());
+
+        List<ExtraParameter> extraParameters = new LinkedList<>();
+        extraParameters.add(new ExtraConstantIntParameter(classIdentifier));
+        if (addExtraNull) {
+          extraParameters.add(new ExtraUnusedNullParameter());
+        }
+
         lensBuilder.mapMergedConstructor(
-            oldConstructor.method,
-            newConstructorReference,
-            classIdentifiers.getInt(oldConstructor.getHolderType()));
+            oldConstructor.method, newConstructorReference, extraParameters);
       }
     }
     // Map the first constructor to the newly synthesized constructor.

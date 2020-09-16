@@ -10,6 +10,8 @@ import static org.hamcrest.core.IsNot.not;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 
 public class ConstructorMergingWithArgumentsTest extends HorizontalClassMergingTestBase {
@@ -32,8 +34,13 @@ public class ConstructorMergingWithArgumentsTest extends HorizontalClassMergingT
         .inspect(
             codeInspector -> {
               if (enableHorizontalClassMerging) {
-                assertThat(codeInspector.clazz(A.class), isPresent());
+                ClassSubject aClassSubject = codeInspector.clazz(A.class);
+
+                assertThat(aClassSubject, isPresent());
                 assertThat(codeInspector.clazz(B.class), not(isPresent()));
+
+                MethodSubject initSubject = aClassSubject.init(String.class.getName(), "int");
+                assertThat(initSubject, isPresent());
                 // TODO(b/165517236): Explicitly check classes have been merged.
               } else {
                 assertThat(codeInspector.clazz(A.class), isPresent());

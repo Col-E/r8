@@ -78,7 +78,9 @@ public class ConstructorEntryPoint extends SyntheticSourceCode {
 
   protected void prepareMultiConstructorInstructions() {
     int typeConstructorCount = typeConstructors.size();
-    int idRegister = getParamRegister(method.getArity() - 1);
+    DexMethod exampleTargetConstructor = typeConstructors.values().iterator().next();
+    // The class id register is always the first synthetic argument.
+    int idRegister = getParamRegister(exampleTargetConstructor.getArity());
 
     addRegisterClassIdAssignment(idRegister);
 
