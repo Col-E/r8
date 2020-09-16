@@ -68,20 +68,19 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
    * constructor. Otherwise return the lookup on the underlying graph lens.
    */
   @Override
-  public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+  public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
     DexMethod previousContext = internalGetPreviousMethodSignature(context);
-    GraphLensLookupResult previousLookup =
-        getPrevious().lookupMethod(method, previousContext, type);
-    List<ExtraParameter> extraParameters = methodExtraParameters.get(previousLookup.getMethod());
+    MethodLookupResult previousLookup = getPrevious().lookupMethod(method, previousContext, type);
+    List<ExtraParameter> extraParameters = methodExtraParameters.get(previousLookup.getReference());
 
-    GraphLensLookupResult lookup = super.lookupMethod(method, previousLookup);
+    MethodLookupResult lookup = super.lookupMethod(method, previousLookup);
     if (extraParameters != null) {
-      DexMethod newMethod = lookup.getMethod();
+      DexMethod newMethod = lookup.getReference();
 
       RewrittenPrototypeDescription prototypeChanges =
           lookup.getPrototypeChanges().withExtraParameters(extraParameters);
 
-      return new GraphLensLookupResult(
+      return new MethodLookupResult(
           newMethod, mapInvocationType(newMethod, method, lookup.getType()), prototypeChanges);
     } else {
       return lookup;

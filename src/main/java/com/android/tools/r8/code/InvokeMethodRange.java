@@ -6,7 +6,7 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
+import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -30,7 +30,7 @@ public abstract class InvokeMethodRange extends Format3rc<DexMethod> {
       GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
     DexMethod rewritten =
-        graphLens.lookupMethod(getMethod(), context.getReference(), getInvokeType()).getMethod();
+        graphLens.lookupMethod(getMethod(), context.getReference(), getInvokeType()).getReference();
     rewritten.collectIndexedItems(indexedItems);
   }
 
@@ -53,10 +53,10 @@ public abstract class InvokeMethodRange extends Format3rc<DexMethod> {
       GraphLens graphLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
-    GraphLensLookupResult lookup =
+    MethodLookupResult lookup =
         graphLens.lookupMethod(getMethod(), context.getReference(), getInvokeType());
     writeFirst(AA, dest, lookup.getType().getDexOpcodeRange());
-    write16BitReference(lookup.getMethod(), dest, mapping);
+    write16BitReference(lookup.getReference(), dest, mapping);
     write16BitValue(CCCC, dest);
   }
 }

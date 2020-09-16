@@ -8,7 +8,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
+import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -52,11 +52,11 @@ public abstract class Format4rcc extends Base4Format {
       GraphLens graphLens,
       ObjectToOffsetMapping mapping,
       LensCodeRewriterUtils rewriter) {
-    GraphLensLookupResult lookup =
+    MethodLookupResult lookup =
         graphLens.lookupMethod(getMethod(), context.getReference(), Type.POLYMORPHIC);
     assert lookup.getType() == Type.POLYMORPHIC;
     writeFirst(AA, dest);
-    write16BitReference(lookup.getMethod(), dest, mapping);
+    write16BitReference(lookup.getReference(), dest, mapping);
     write16BitValue(CCCC, dest);
 
     DexProto rewrittenProto = rewriter.rewriteProto(getProto());
@@ -114,10 +114,10 @@ public abstract class Format4rcc extends Base4Format {
       ProgramMethod context,
       GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
-    GraphLensLookupResult lookup =
+    MethodLookupResult lookup =
         graphLens.lookupMethod(getMethod(), context.getReference(), Type.POLYMORPHIC);
     assert lookup.getType() == Type.POLYMORPHIC;
-    lookup.getMethod().collectIndexedItems(indexedItems);
+    lookup.getReference().collectIndexedItems(indexedItems);
 
     DexProto rewrittenProto = rewriter.rewriteProto(getProto());
     rewrittenProto.collectIndexedItems(indexedItems);

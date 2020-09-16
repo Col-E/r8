@@ -82,7 +82,7 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+  public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
     return getPrevious().lookupMethod(method, context, type);
   }
 

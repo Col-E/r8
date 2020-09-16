@@ -23,7 +23,7 @@ import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
+import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import java.util.ArrayList;
@@ -73,9 +73,9 @@ public class LensCodeRewriterUtils {
     if (methodHandle.isMethodHandle()) {
       DexMethod invokedMethod = methodHandle.asMethod();
       MethodHandleType oldType = methodHandle.type;
-      GraphLensLookupResult lensLookup =
+      MethodLookupResult lensLookup =
           graphLens.lookupMethod(invokedMethod, context.getReference(), oldType.toInvokeType());
-      DexMethod rewrittenTarget = lensLookup.getMethod();
+      DexMethod rewrittenTarget = lensLookup.getReference();
       DexMethod actualTarget;
       MethodHandleType newType;
       if (use == ARGUMENT_TO_LAMBDA_METAFACTORY) {

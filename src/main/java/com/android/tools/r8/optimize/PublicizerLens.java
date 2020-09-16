@@ -40,19 +40,19 @@ final class PublicizerLens extends NestedGraphLens {
   }
 
   @Override
-  public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-    GraphLensLookupResult lookup = getPrevious().lookupMethod(method, context, type);
-    if (lookup.getType() == Type.DIRECT && publicizedMethods.contains(lookup.getMethod())) {
-      assert publicizedMethodIsPresentOnHolder(lookup.getMethod(), context);
-      return new GraphLensLookupResult(
-          lookup.getMethod(), Type.VIRTUAL, lookup.getPrototypeChanges());
+  public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+    MethodLookupResult lookup = getPrevious().lookupMethod(method, context, type);
+    if (lookup.getType() == Type.DIRECT && publicizedMethods.contains(lookup.getReference())) {
+      assert publicizedMethodIsPresentOnHolder(lookup.getReference(), context);
+      return new MethodLookupResult(
+          lookup.getReference(), Type.VIRTUAL, lookup.getPrototypeChanges());
     }
     return lookup;
   }
 
   private boolean publicizedMethodIsPresentOnHolder(DexMethod method, DexMethod context) {
-    GraphLensLookupResult lookup = appView.graphLens().lookupMethod(method, context, Type.VIRTUAL);
-    DexMethod signatureInCurrentWorld = lookup.getMethod();
+    MethodLookupResult lookup = appView.graphLens().lookupMethod(method, context, Type.VIRTUAL);
+    DexMethod signatureInCurrentWorld = lookup.getReference();
     DexClass clazz = appView.definitionFor(signatureInCurrentWorld.holder);
     assert clazz != null;
     DexEncodedMethod actualEncodedTarget = clazz.lookupVirtualMethod(signatureInCurrentWorld);

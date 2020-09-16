@@ -42,7 +42,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
+import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
@@ -214,9 +214,9 @@ public class LensCodeRewriter {
               if (invoke.isInvokeDirect()) {
                 checkInvokeDirect(method.getReference(), invoke.asInvokeDirect());
               }
-              GraphLensLookupResult lensLookup =
+              MethodLookupResult lensLookup =
                   graphLens.lookupMethod(invokedMethod, method.getReference(), invoke.getType());
-              DexMethod actualTarget = lensLookup.getMethod();
+              DexMethod actualTarget = lensLookup.getReference();
               Invoke.Type actualInvokeType = lensLookup.getType();
               if (actualTarget != invokedMethod || invoke.getType() != actualInvokeType) {
                 RewrittenPrototypeDescription prototypeChanges = lensLookup.getPrototypeChanges();

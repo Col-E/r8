@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.GraphLens.GraphLensLookupResult;
+import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
@@ -95,9 +95,9 @@ public class CfInvoke extends CfInstruction {
       NamingLens namingLens,
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
-    GraphLensLookupResult lookup =
+    MethodLookupResult lookup =
         graphLens.lookupMethod(method, context.getReference(), getInvokeType(context));
-    DexMethod rewrittenMethod = lookup.getMethod();
+    DexMethod rewrittenMethod = lookup.getReference();
     String owner = namingLens.lookupInternalName(rewrittenMethod.holder);
     String name = namingLens.lookupName(rewrittenMethod).toString();
     String desc = rewrittenMethod.proto.toDescriptorString(namingLens);
@@ -286,8 +286,8 @@ public class CfInvoke extends CfInstruction {
       case Opcodes.INVOKESTATIC:
         {
           // Static invokes may have changed as a result of horizontal class merging.
-          GraphLensLookupResult lookup = graphLens.lookupMethod(target, null, Type.STATIC);
-          target = lookup.getMethod();
+          MethodLookupResult lookup = graphLens.lookupMethod(target, null, Type.STATIC);
+          target = lookup.getReference();
           type = lookup.getType();
         }
         break;
@@ -305,8 +305,8 @@ public class CfInvoke extends CfInstruction {
           }
 
           // Virtual invokes may have changed to interface invokes as a result of member rebinding.
-          GraphLensLookupResult lookup = graphLens.lookupMethod(target, null, type);
-          target = lookup.getMethod();
+          MethodLookupResult lookup = graphLens.lookupMethod(target, null, type);
+          target = lookup.getReference();
           type = lookup.getType();
         }
         break;
@@ -374,9 +374,8 @@ public class CfInvoke extends CfInstruction {
   }
 
   private DexEncodedMethod lookupMethodOnHolder(AppView<?> appView, DexMethod method) {
-    GraphLensLookupResult lookupResult =
-        appView.graphLens().lookupMethod(method, method, Type.DIRECT);
-    DexMethod rewrittenMethod = lookupResult.getMethod();
+    MethodLookupResult lookupResult = appView.graphLens().lookupMethod(method, method, Type.DIRECT);
+    DexMethod rewrittenMethod = lookupResult.getReference();
     // Directly lookup the program type for holder. This bypasses lookup order as well as looks
     // directly on the application data, which bypasses and indirection or validation.
     DexProgramClass clazz = appView.appInfo().unsafeDirectProgramTypeLookup(rewrittenMethod.holder);

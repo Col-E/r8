@@ -143,7 +143,7 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Invoke.Type type) {
+  public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Invoke.Type type) {
     return GraphLens.getIdentityLens().lookupMethod(method, context, type);
   }
 

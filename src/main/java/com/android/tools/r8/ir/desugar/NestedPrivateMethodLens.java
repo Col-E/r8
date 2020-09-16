@@ -110,10 +110,10 @@ public class NestedPrivateMethodLens extends NestedGraphLens {
   }
 
   @Override
-  public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Invoke.Type type) {
+  public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Invoke.Type type) {
     assert originalMethodSignatures == null;
-    GraphLensLookupResult lookup = getPrevious().lookupMethod(method, context, type);
-    DexMethod bridge = methodMap.get(lookup.getMethod());
+    MethodLookupResult lookup = getPrevious().lookupMethod(method, context, type);
+    DexMethod bridge = methodMap.get(lookup.getReference());
     if (bridge == null) {
       return lookup;
     }
@@ -122,12 +122,12 @@ public class NestedPrivateMethodLens extends NestedGraphLens {
       return lookup;
     }
     if (isConstructorBridge(bridge)) {
-      return new GraphLensLookupResult(
+      return new MethodLookupResult(
           bridge,
           Invoke.Type.DIRECT,
           internalDescribePrototypeChanges(lookup.getPrototypeChanges(), bridge));
     }
-    return new GraphLensLookupResult(bridge, Invoke.Type.STATIC, lookup.getPrototypeChanges());
+    return new MethodLookupResult(bridge, Invoke.Type.STATIC, lookup.getPrototypeChanges());
   }
 
   public static Builder builder() {

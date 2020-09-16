@@ -87,7 +87,7 @@ public abstract class NestBasedAccessDesugaring {
   private DexEncodedMethod lookupOnHolder(
       DexMethod method, DexClassAndMethod context, Invoke.Type invokeType) {
     DexMethod rewritten =
-        appView.graphLens().lookupMethod(method, context.getReference(), invokeType).getMethod();
+        appView.graphLens().lookupMethod(method, context.getReference(), invokeType).getReference();
     return rewritten.lookupOnClass(appView.definitionForHolder(rewritten));
   }
 

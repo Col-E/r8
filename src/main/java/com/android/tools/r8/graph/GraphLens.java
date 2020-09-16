@@ -114,20 +114,20 @@ public abstract class GraphLens {
    * prototype changes that have been made to the target method and the corresponding required
    * changes to the invoke arguments.
    */
-  public static class GraphLensLookupResult {
+  public static class MethodLookupResult {
 
     private final DexMethod method;
     private final Type type;
     private final RewrittenPrototypeDescription prototypeChanges;
 
-    public GraphLensLookupResult(
+    public MethodLookupResult(
         DexMethod method, Type type, RewrittenPrototypeDescription prototypeChanges) {
       this.method = method;
       this.type = type;
       this.prototypeChanges = prototypeChanges;
     }
 
-    public DexMethod getMethod() {
+    public DexMethod getReference() {
       return method;
     }
 
@@ -270,11 +270,10 @@ public abstract class GraphLens {
   // This overload can be used when the graph lens is known to be context insensitive.
   public DexMethod lookupMethod(DexMethod method) {
     assert verifyIsContextFreeForMethod(method);
-    return lookupMethod(method, null, null).getMethod();
+    return lookupMethod(method, null, null).getReference();
   }
 
-  public abstract GraphLensLookupResult lookupMethod(
-      DexMethod method, DexMethod context, Type type);
+  public abstract MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type);
 
   public abstract RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
       DexMethod method);
@@ -646,8 +645,8 @@ public abstract class GraphLens {
     }
 
     @Override
-    public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-      return new GraphLensLookupResult(method, type, RewrittenPrototypeDescription.none());
+    public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+      return new MethodLookupResult(method, type, RewrittenPrototypeDescription.none());
     }
 
     @Override
@@ -717,7 +716,7 @@ public abstract class GraphLens {
     }
 
     @Override
-    public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+    public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
       return getIdentityLens().lookupMethod(method, context, type);
     }
 
@@ -840,22 +839,20 @@ public abstract class GraphLens {
     }
 
     @Override
-    public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+    public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
       DexMethod previousContext = internalGetPreviousMethodSignature(context);
-      GraphLensLookupResult previousLookup =
-          getPrevious().lookupMethod(method, previousContext, type);
+      MethodLookupResult previousLookup = getPrevious().lookupMethod(method, previousContext, type);
       return lookupMethod(method, previousLookup);
     }
 
-    protected GraphLensLookupResult lookupMethod(
-        DexMethod method, GraphLensLookupResult previousLookup) {
-      DexMethod newMethod = methodMap.get(previousLookup.getMethod());
+    protected MethodLookupResult lookupMethod(DexMethod method, MethodLookupResult previousLookup) {
+      DexMethod newMethod = methodMap.get(previousLookup.getReference());
       if (newMethod == null) {
         return previousLookup;
       }
       // TODO(sgjesse): Should we always do interface to virtual mapping? Is it a performance win
       //  that only subclasses which are known to need it actually do it?
-      return new GraphLensLookupResult(
+      return new MethodLookupResult(
           newMethod,
           mapInvocationType(newMethod, method, previousLookup.getType()),
           internalDescribePrototypeChanges(previousLookup.getPrototypeChanges(), newMethod));
