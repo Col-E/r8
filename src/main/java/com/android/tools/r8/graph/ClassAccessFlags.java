@@ -64,7 +64,8 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
   }
 
   public static ClassAccessFlags fromDexAccessFlags(int access) {
-    return new ClassAccessFlags(access & DEX_FLAGS);
+    // Assume that the SUPER flag should be set (behaviour for Java versions > 1.1).
+    return new ClassAccessFlags((access & DEX_FLAGS) | Constants.ACC_SUPER);
   }
 
   public static ClassAccessFlags fromCfAccessFlags(int access) {
@@ -83,10 +84,6 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
 
   @Override
   public int getAsCfAccessFlags() {
-    assert !isInterface() || isAbstract();
-    assert !isInterface() || !isSuper();
-    assert !isInterface() || !isFinal();
-    assert !isInterface() || !isEnum();
     return materialize();
   }
 

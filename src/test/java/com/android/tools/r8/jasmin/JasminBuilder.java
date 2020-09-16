@@ -8,14 +8,12 @@ import static com.android.tools.r8.utils.DescriptorUtils.getPathFromDescriptor;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -455,15 +453,7 @@ public class JasminBuilder {
     file.readJasmin(new StringReader(builder.toString()), builder.name, false);
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     file.write(out);
-    // Jasmin incorrectly sets super on interfaces: https://sourceforge.net/p/jasmin/bugs/5/
-    return TestBase.transformer(out.toByteArray(), Reference.classFromTypeName(file.getClassName()))
-        .setAccessFlags(
-            flags -> {
-              if (flags.isInterface()) {
-                flags.unsetSuper();
-              }
-            })
-        .transform();
+    return out.toByteArray();
   }
 
   public ImmutableList.Builder<byte[]> buildClasses(ImmutableList.Builder<byte[]> builder)

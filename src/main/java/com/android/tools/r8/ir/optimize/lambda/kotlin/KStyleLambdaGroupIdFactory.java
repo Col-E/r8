@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
@@ -28,10 +27,8 @@ final class KStyleLambdaGroupIdFactory extends KotlinLambdaGroupIdFactory {
     assert lambda.getKotlinInfo().isSyntheticClass();
     assert lambda.getKotlinInfo().asSyntheticClass().isKotlinStyleLambda();
 
-    // Ignore ACC_SUPER.
-    ClassAccessFlags copy = lambda.accessFlags.copy();
-    copy.unsetSuper();
-    checkAccessFlags("class access flags", copy, PUBLIC_LAMBDA_CLASS_FLAGS, LAMBDA_CLASS_FLAGS);
+    checkAccessFlags("class access flags", lambda.accessFlags,
+        PUBLIC_LAMBDA_CLASS_FLAGS, LAMBDA_CLASS_FLAGS);
 
     // Class and interface.
     validateSuperclass(kotlin, lambda);
