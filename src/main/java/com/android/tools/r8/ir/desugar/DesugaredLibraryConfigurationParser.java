@@ -19,6 +19,7 @@ import com.google.gson.JsonParser;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class DesugaredLibraryConfigurationParser {
 
@@ -77,6 +78,12 @@ public class DesugaredLibraryConfigurationParser {
   }
 
   public DesugaredLibraryConfiguration parse(StringResource stringResource) {
+    return parse(stringResource, builder -> {});
+  }
+
+  public DesugaredLibraryConfiguration parse(
+      StringResource stringResource,
+      Consumer<DesugaredLibraryConfiguration.Builder> configurationAmender) {
     origin = stringResource.getOrigin();
     assert origin != null;
     configurationBuilder = DesugaredLibraryConfiguration.builder(dexItemFactory, reporter, origin);
@@ -142,6 +149,7 @@ public class DesugaredLibraryConfigurationParser {
       }
       configurationBuilder.setExtraKeepRules(extraKeepRules);
     }
+    configurationAmender.accept(configurationBuilder);
     DesugaredLibraryConfiguration config = configurationBuilder.build();
     configurationBuilder = null;
     origin = null;

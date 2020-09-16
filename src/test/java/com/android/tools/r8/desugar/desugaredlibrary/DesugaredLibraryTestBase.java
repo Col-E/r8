@@ -22,6 +22,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,6 +30,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class DesugaredLibraryTestBase extends TestBase {
 
@@ -69,7 +71,7 @@ public class DesugaredLibraryTestBase extends TestBase {
   }
 
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, String keepRules, boolean shrink) {
-    return buildDesugaredLibrary(apiLevel, keepRules, shrink, ImmutableList.of());
+    return buildDesugaredLibrary(apiLevel, keepRules, shrink, ImmutableList.of(), options -> {});
   }
 
   protected Path buildDesugaredLibrary(
@@ -77,6 +79,16 @@ public class DesugaredLibraryTestBase extends TestBase {
       String keepRules,
       boolean shrink,
       List<Path> additionalProgramFiles) {
+    return buildDesugaredLibrary(
+        apiLevel, keepRules, shrink, additionalProgramFiles, options -> {});
+  }
+
+  protected Path buildDesugaredLibrary(
+      AndroidApiLevel apiLevel,
+      String keepRules,
+      boolean shrink,
+      List<Path> additionalProgramFiles,
+      Consumer<InternalOptions> optionsModifier) {
     // We wrap exceptions in a RuntimeException to call this from a lambda.
     try {
       // If we compile extended library here, it means we use TestNG.
@@ -108,6 +120,7 @@ public class DesugaredLibraryTestBase extends TestBase {
               options.testing.disableL8AnnotationRemoval = true;
               options.testing.forceLibBackportsInL8CfToCf = true;
             }
+            optionsModifier.accept(options);
           });
       if (!extraFiles) {
         assertTrue(
