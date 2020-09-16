@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -52,6 +51,23 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
   }
 
   @Override
+  public MethodLookupResult internalDescribeLookupMethod(
+      MethodLookupResult previous, DexMethod context) {
+    assert previous.getReboundReference() == null;
+    return MethodLookupResult.builder(this)
+        .setReference(previous.getReference())
+        .setReboundReference(getReboundMethodReference(previous.getReference()))
+        .setPrototypeChanges(previous.getPrototypeChanges())
+        .setType(previous.getType())
+        .build();
+  }
+
+  private DexMethod getReboundMethodReference(DexMethod method) {
+    // TODO(b/168282032): Return the rebound method reference.
+    return method;
+  }
+
+  @Override
   public DexType getOriginalType(DexType type) {
     return getPrevious().getOriginalType(type);
   }
@@ -82,8 +98,8 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-    return getPrevious().lookupMethod(method, context, type);
+  protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+    return method;
   }
 
   @Override

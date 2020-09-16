@@ -354,14 +354,20 @@ public class LambdaRewriter {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       EnclosingMethodAttribute enclosingMethod = clazz.getEnclosingMethodAttribute();
       if (enclosingMethod != null) {
-        DexMethod mappedEnclosingMethod = lens.lookupMethod(enclosingMethod.getEnclosingMethod());
-        if (mappedEnclosingMethod != null
-            && mappedEnclosingMethod != enclosingMethod.getEnclosingMethod()) {
-          clazz.setEnclosingMethodAttribute(new EnclosingMethodAttribute(mappedEnclosingMethod));
+        if (enclosingMethod.getEnclosingMethod() != null) {
+          DexMethod mappedEnclosingMethod = lens.lookupMethod(enclosingMethod.getEnclosingMethod());
+          if (mappedEnclosingMethod != enclosingMethod.getEnclosingMethod()) {
+            clazz.setEnclosingMethodAttribute(new EnclosingMethodAttribute(mappedEnclosingMethod));
+          }
+        } else {
+          assert enclosingMethod.getEnclosingClass() != null;
+          DexType mappedEnclosingClass = lens.lookupType(enclosingMethod.getEnclosingClass());
+          if (mappedEnclosingClass != enclosingMethod.getEnclosingClass()) {
+            clazz.setEnclosingMethodAttribute(new EnclosingMethodAttribute(mappedEnclosingClass));
+          }
         }
       }
     }
-    ;
     // Return lens without method map (but still retaining originalMethodSignatures), as the
     // generated lambdas classes are generated with the an invoke to the new method, so no
     // code rewriting is required.

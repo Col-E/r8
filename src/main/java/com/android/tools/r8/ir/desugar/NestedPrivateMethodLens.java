@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
-import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.ImmutableMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -110,24 +110,28 @@ public class NestedPrivateMethodLens extends NestedGraphLens {
   }
 
   @Override
-  public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Invoke.Type type) {
+  public MethodLookupResult internalDescribeLookupMethod(
+      MethodLookupResult previous, DexMethod context) {
     assert originalMethodSignatures == null;
-    MethodLookupResult lookup = getPrevious().lookupMethod(method, context, type);
-    DexMethod bridge = methodMap.get(lookup.getReference());
+    DexMethod bridge = methodMap.get(previous.getReference());
     if (bridge == null) {
-      return lookup;
+      return previous;
     }
     assert context != null : "Guaranteed by isContextFreeForMethod";
     if (bridge.holder == context.holder) {
-      return lookup;
+      return previous;
     }
+    MethodLookupResult.Builder resultBuilder =
+        MethodLookupResult.builder(this).setReference(bridge);
     if (isConstructorBridge(bridge)) {
-      return new MethodLookupResult(
-          bridge,
-          Invoke.Type.DIRECT,
-          internalDescribePrototypeChanges(lookup.getPrototypeChanges(), bridge));
+      resultBuilder
+          .setPrototypeChanges(
+              internalDescribePrototypeChanges(previous.getPrototypeChanges(), bridge))
+          .setType(Type.DIRECT);
+    } else {
+      resultBuilder.setPrototypeChanges(previous.getPrototypeChanges()).setType(Type.STATIC);
     }
-    return new MethodLookupResult(bridge, Invoke.Type.STATIC, lookup.getPrototypeChanges());
+    return resultBuilder.build();
   }
 
   public static Builder builder() {

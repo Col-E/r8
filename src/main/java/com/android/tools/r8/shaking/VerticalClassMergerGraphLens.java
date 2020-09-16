@@ -98,19 +98,16 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
   }
 
   @Override
-  public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-    assert context != null || verifyIsContextFreeForMethod(method);
-    assert context == null || type != null;
-    DexMethod previousContext =
-        originalMethodSignaturesForBridges.containsKey(context)
-            ? originalMethodSignaturesForBridges.get(context)
-            : originalMethodSignatures.getOrDefault(context, context);
-    MethodLookupResult lookup = getPrevious().lookupMethod(method, previousContext, type);
-    if (lookup.getType() == Type.SUPER && !mergedMethods.contains(context)) {
+  public MethodLookupResult internalDescribeLookupMethod(
+      MethodLookupResult previous, DexMethod context) {
+    assert context != null || verifyIsContextFreeForMethod(previous.getReference());
+    assert context == null || previous.getType() != null;
+    if (previous.getType() == Type.SUPER && !mergedMethods.contains(context)) {
       Map<DexMethod, GraphLensLookupResultProvider> virtualToDirectMethodMap =
-          contextualVirtualToDirectMethodMaps.get(context.holder);
+          contextualVirtualToDirectMethodMaps.get(context.getHolderType());
       if (virtualToDirectMethodMap != null) {
-        GraphLensLookupResultProvider result = virtualToDirectMethodMap.get(lookup.getReference());
+        GraphLensLookupResultProvider result =
+            virtualToDirectMethodMap.get(previous.getReference());
         if (result != null) {
           // If the super class A of the enclosing class B (i.e., context.holder())
           // has been merged into B during vertical class merging, and this invoke-super instruction
@@ -118,18 +115,20 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
           // method and moved into B, so that we need to use an invoke-direct instruction instead of
           // invoke-super (or invoke-static, if the method was originally a default interface
           // method).
-          return result.get(lookup.getPrototypeChanges());
+          return result.get(previous.getPrototypeChanges());
         }
       }
     }
-    DexMethod newMethod = methodMap.get(lookup.getReference());
+    DexMethod newMethod = methodMap.get(previous.getReference());
     if (newMethod == null) {
-      return lookup;
+      return previous;
     }
-    return new MethodLookupResult(
-        newMethod,
-        mapInvocationType(newMethod, lookup.getReference(), lookup.getType()),
-        internalDescribePrototypeChanges(lookup.getPrototypeChanges(), newMethod));
+    return MethodLookupResult.builder(this)
+        .setReference(newMethod)
+        .setPrototypeChanges(
+            internalDescribePrototypeChanges(previous.getPrototypeChanges(), newMethod))
+        .setType(mapInvocationType(newMethod, previous.getReference(), previous.getType()))
+        .build();
   }
 
   @Override
@@ -200,7 +199,8 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
               builder.getMethodSignatureAfterClassMerging(rewriting.getReference(), mergedClasses);
           newBuilder.mapVirtualMethodToDirectInType(
               from,
-              prototypeChanges -> new MethodLookupResult(to, rewriting.getType(), prototypeChanges),
+              prototypeChanges ->
+                  new MethodLookupResult(to, null, rewriting.getType(), prototypeChanges),
               context);
         }
       }

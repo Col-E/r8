@@ -6,7 +6,6 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
-import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
 import com.google.common.collect.BiMap;
@@ -138,23 +137,29 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexType internalDescribeLookupClassType(DexType previous) {
-    return renamedTypeNames.getOrDefault(previous, previous);
-  }
-
-  @Override
-  public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Invoke.Type type) {
-    return GraphLens.getIdentityLens().lookupMethod(method, context, type);
-  }
-
-  @Override
   public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(DexMethod method) {
     return GraphLens.getIdentityLens().lookupPrototypeChangesForMethodDefinition(method);
   }
 
   @Override
+  public DexType internalDescribeLookupClassType(DexType previous) {
+    return renamedTypeNames.getOrDefault(previous, previous);
+  }
+
+  @Override
   protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
     return previous;
+  }
+
+  @Override
+  public MethodLookupResult internalDescribeLookupMethod(
+      MethodLookupResult previous, DexMethod context) {
+    return previous;
+  }
+
+  @Override
+  protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+    return method;
   }
 
   @Override

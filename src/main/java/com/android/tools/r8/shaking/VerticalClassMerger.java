@@ -1140,7 +1140,7 @@ public class VerticalClassMerger {
         // resolve to a method on an interface never hit an implementation below that interface.
         deferredRenamings.mapVirtualMethodToDirectInType(
             oldTarget,
-            prototypeChanges -> new MethodLookupResult(newTarget, STATIC, prototypeChanges),
+            prototypeChanges -> new MethodLookupResult(newTarget, null, STATIC, prototypeChanges),
             target.type);
       } else {
         // If we merge class B into class C, and class C contains an invocation super.m(), then it
@@ -1161,7 +1161,8 @@ public class VerticalClassMerger {
           if (resolutionSucceeds) {
             deferredRenamings.mapVirtualMethodToDirectInType(
                 signatureInHolder,
-                prototypeChanges -> new MethodLookupResult(newTarget, DIRECT, prototypeChanges),
+                prototypeChanges ->
+                    new MethodLookupResult(newTarget, null, DIRECT, prototypeChanges),
                 target.type);
           } else {
             break;
@@ -1185,7 +1186,8 @@ public class VerticalClassMerger {
               if (resolutionSucceededBeforeMerge) {
                 deferredRenamings.mapVirtualMethodToDirectInType(
                     signatureInType,
-                    prototypeChanges -> new MethodLookupResult(newTarget, DIRECT, prototypeChanges),
+                    prototypeChanges ->
+                        new MethodLookupResult(newTarget, null, DIRECT, prototypeChanges),
                     target.type);
               }
             }
@@ -1735,6 +1737,11 @@ public class VerticalClassMerger {
     }
 
     @Override
+    protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+      throw new Unreachable();
+    }
+
+    @Override
     public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
       // First look up the method using the existing graph lens (for example, the type will have
       // changed if the method was publicized by ClassAndMemberPublicizer).
@@ -1744,16 +1751,28 @@ public class VerticalClassMerger {
       if (newMethod == null) {
         return lookup;
       }
+      MethodLookupResult.Builder methodLookupResultBuilder =
+          MethodLookupResult.builder(this)
+              .setReference(newMethod)
+              .setPrototypeChanges(lookup.getPrototypeChanges())
+              .setType(lookup.getType());
       if (lookup.getType() == Type.INTERFACE) {
         // If an interface has been merged into a class, invoke-interface needs to be translated
         // to invoke-virtual.
         DexClass clazz = appInfo.definitionFor(newMethod.holder);
         if (clazz != null && !clazz.accessFlags.isInterface()) {
           assert appInfo.definitionFor(method.holder).accessFlags.isInterface();
-          return new MethodLookupResult(newMethod, Type.VIRTUAL, lookup.getPrototypeChanges());
+          methodLookupResultBuilder.setType(Type.VIRTUAL);
         }
       }
-      return new MethodLookupResult(newMethod, lookup.getType(), lookup.getPrototypeChanges());
+      return methodLookupResultBuilder.build();
+    }
+
+    @Override
+    protected MethodLookupResult internalDescribeLookupMethod(
+        MethodLookupResult previous, DexMethod context) {
+      // This is unreachable since we override the implementation of lookupMethod() above.
+      throw new Unreachable();
     }
 
     @Override

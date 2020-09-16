@@ -40,14 +40,17 @@ final class PublicizerLens extends NestedGraphLens {
   }
 
   @Override
-  public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-    MethodLookupResult lookup = getPrevious().lookupMethod(method, context, type);
-    if (lookup.getType() == Type.DIRECT && publicizedMethods.contains(lookup.getReference())) {
-      assert publicizedMethodIsPresentOnHolder(lookup.getReference(), context);
-      return new MethodLookupResult(
-          lookup.getReference(), Type.VIRTUAL, lookup.getPrototypeChanges());
+  public MethodLookupResult internalDescribeLookupMethod(
+      MethodLookupResult previous, DexMethod context) {
+    if (previous.getType() == Type.DIRECT && publicizedMethods.contains(previous.getReference())) {
+      assert publicizedMethodIsPresentOnHolder(previous.getReference(), context);
+      return MethodLookupResult.builder(this)
+          .setReference(previous.getReference())
+          .setPrototypeChanges(previous.getPrototypeChanges())
+          .setType(Type.VIRTUAL)
+          .build();
     }
-    return lookup;
+    return previous;
   }
 
   private boolean publicizedMethodIsPresentOnHolder(DexMethod method, DexMethod context) {

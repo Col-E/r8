@@ -10,8 +10,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -68,23 +66,18 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
    * constructor. Otherwise return the lookup on the underlying graph lens.
    */
   @Override
-  public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-    DexMethod previousContext = internalGetPreviousMethodSignature(context);
-    MethodLookupResult previousLookup = getPrevious().lookupMethod(method, previousContext, type);
-    List<ExtraParameter> extraParameters = methodExtraParameters.get(previousLookup.getReference());
-
-    MethodLookupResult lookup = super.lookupMethod(method, previousLookup);
-    if (extraParameters != null) {
-      DexMethod newMethod = lookup.getReference();
-
-      RewrittenPrototypeDescription prototypeChanges =
-          lookup.getPrototypeChanges().withExtraParameters(extraParameters);
-
-      return new MethodLookupResult(
-          newMethod, mapInvocationType(newMethod, method, lookup.getType()), prototypeChanges);
-    } else {
+  public MethodLookupResult internalDescribeLookupMethod(
+      MethodLookupResult previous, DexMethod context) {
+    List<ExtraParameter> extraParameters = methodExtraParameters.get(previous.getReference());
+    MethodLookupResult lookup = super.internalDescribeLookupMethod(previous, context);
+    if (extraParameters == null) {
       return lookup;
     }
+    return MethodLookupResult.builder(this)
+        .setReference(lookup.getReference())
+        .setPrototypeChanges(lookup.getPrototypeChanges().withExtraParameters(extraParameters))
+        .setType(lookup.getType())
+        .build();
   }
 
   public static class Builder {
