@@ -794,11 +794,6 @@ public class EnumUnboxer {
           addRequiredNameData(enumClass.type);
           return Reason.ELIGIBLE;
         }
-        if (singleTarget == factory.stringBuilderMethods.appendObject
-            || singleTarget == factory.stringBufferMethods.appendObject) {
-          addRequiredNameData(enumClass.type);
-          return Reason.ELIGIBLE;
-        }
         if (singleTarget == factory.objectMembers.getClass
             && (!invokeMethod.hasOutValue() || !invokeMethod.outValue().hasAnyUsers())) {
           // This is a hidden null check.
