@@ -20,6 +20,7 @@ public abstract class FieldSubject extends MemberSubject {
 
   public abstract DexValue getStaticValue();
 
+  @Override
   public abstract boolean isRenamed();
 
   public abstract String getOriginalSignatureAttribute();
