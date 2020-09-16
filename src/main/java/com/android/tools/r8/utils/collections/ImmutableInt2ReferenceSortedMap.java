@@ -30,6 +30,10 @@ public class ImmutableInt2ReferenceSortedMap<V> extends Int2ReferenceSortedMaps.
     return new ImmutableInt2ReferenceSortedMap<>(new Int2ReferenceAVLTreeMap<>(keys, values));
   }
 
+  public static <V> ImmutableInt2ReferenceSortedMap<V> empty() {
+    return new ImmutableInt2ReferenceSortedMap<>(new Int2ReferenceAVLTreeMap<>());
+  }
+
   public static <V> Builder<V> builder() {
     return new Builder<>();
   }

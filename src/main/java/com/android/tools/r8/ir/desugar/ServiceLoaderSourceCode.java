@@ -11,6 +11,8 @@ import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfConstNumber;
+import com.android.tools.r8.cf.code.CfFrame;
+import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
@@ -28,6 +30,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.utils.collections.ImmutableDeque;
+import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
@@ -85,6 +89,9 @@ public class ServiceLoaderSourceCode {
     CfLabel tryCatchHandler = new CfLabel();
     builder.add(
         tryCatchHandler,
+        new CfFrame(
+            ImmutableInt2ReferenceSortedMap.empty(),
+            ImmutableDeque.of(FrameType.initialized(factory.throwableType))),
         new CfStore(ValueType.OBJECT, 0),
         new CfNew(factory.serviceLoaderConfigurationErrorType),
         new CfStackInstruction(CfStackInstruction.Opcode.Dup),
