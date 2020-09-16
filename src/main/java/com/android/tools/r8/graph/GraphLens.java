@@ -22,6 +22,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A GraphLens implements a virtual view on top of the graph, used to delay global rewrites until
@@ -262,6 +263,8 @@ public abstract class GraphLens {
     return holder.lookupProgramMethod(newMethod);
   }
 
+  public abstract DexType lookupClassType(DexType type);
+
   public abstract DexType lookupType(DexType type);
 
   // This overload can be used when the graph lens is known to be context insensitive.
@@ -354,9 +357,9 @@ public abstract class GraphLens {
     return null;
   }
 
-  public GraphLens withCodeRewritingsApplied() {
+  public GraphLens withCodeRewritingsApplied(DexItemFactory dexItemFactory) {
     if (hasCodeRewritings()) {
-      return new ClearCodeRewritingGraphLens(this);
+      return new ClearCodeRewritingGraphLens(dexItemFactory, this);
     }
     return this;
   }
@@ -514,9 +517,13 @@ public abstract class GraphLens {
 
   public abstract static class NonIdentityGraphLens extends GraphLens {
 
+    private final DexItemFactory dexItemFactory;
     private GraphLens previousLens;
 
-    public NonIdentityGraphLens(GraphLens previousLens) {
+    private final Map<DexType, DexType> arrayTypeCache = new ConcurrentHashMap<>();
+
+    public NonIdentityGraphLens(DexItemFactory dexItemFactory, GraphLens previousLens) {
+      this.dexItemFactory = dexItemFactory;
       this.previousLens = previousLens;
     }
 
@@ -532,6 +539,30 @@ public abstract class GraphLens {
     }
 
     @Override
+    public final DexType lookupType(DexType type) {
+      if (type.isPrimitiveType() || type.isVoidType() || type.isNullValueType()) {
+        return type;
+      }
+      if (type.isArrayType()) {
+        DexType result = arrayTypeCache.get(type);
+        if (result == null) {
+          DexType baseType = type.toBaseType(dexItemFactory);
+          DexType newType = lookupType(baseType);
+          result = baseType == newType ? type : type.replaceBaseType(newType, dexItemFactory);
+          arrayTypeCache.put(type, result);
+        }
+        return result;
+      }
+      return lookupClassType(type);
+    }
+
+    @Override
+    public final DexType lookupClassType(DexType type) {
+      assert type.isClassType() : "Expected class type, but was `" + type.toSourceString() + "`";
+      return internalDescribeLookupClassType(getPrevious().lookupClassType(type));
+    }
+
+    @Override
     protected final DexField internalLookupField(
         DexField reference, LookupFieldContinuation continuation) {
       return previousLens.internalLookupField(
@@ -539,6 +570,8 @@ public abstract class GraphLens {
     }
 
     protected abstract FieldLookupResult internalDescribeLookupField(FieldLookupResult previous);
+
+    protected abstract DexType internalDescribeLookupClassType(DexType previous);
 
     @Override
     public final boolean isIdentityLens() {
@@ -607,6 +640,12 @@ public abstract class GraphLens {
     }
 
     @Override
+    public DexType lookupClassType(DexType type) {
+      assert type.isClassType();
+      return type;
+    }
+
+    @Override
     public GraphLensLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
       return new GraphLensLookupResult(method, type, RewrittenPrototypeDescription.none());
     }
@@ -641,8 +680,8 @@ public abstract class GraphLens {
   // relies on the previous lens for names (getRenamed/Original methods).
   public static class ClearCodeRewritingGraphLens extends NonIdentityGraphLens {
 
-    public ClearCodeRewritingGraphLens(GraphLens previous) {
-      super(previous);
+    public ClearCodeRewritingGraphLens(DexItemFactory dexItemFactory, GraphLens previousLens) {
+      super(dexItemFactory, previousLens);
     }
 
     @Override
@@ -673,8 +712,8 @@ public abstract class GraphLens {
     }
 
     @Override
-    public DexType lookupType(DexType type) {
-      return getPrevious().lookupType(type);
+    public final DexType internalDescribeLookupClassType(DexType previous) {
+      return previous;
     }
 
     @Override
@@ -714,7 +753,6 @@ public abstract class GraphLens {
     protected final DexItemFactory dexItemFactory;
 
     protected final Map<DexType, DexType> typeMap;
-    private final Map<DexType, DexType> arrayTypeCache = new IdentityHashMap<>();
     protected final Map<DexMethod, DexMethod> methodMap;
     protected final Map<DexField, DexField> fieldMap;
 
@@ -737,7 +775,7 @@ public abstract class GraphLens {
         BiMap<DexMethod, DexMethod> originalMethodSignatures,
         GraphLens previousLens,
         DexItemFactory dexItemFactory) {
-      super(previousLens);
+      super(dexItemFactory, previousLens);
       assert !typeMap.isEmpty()
           || !methodMap.isEmpty()
           || !fieldMap.isEmpty()
@@ -797,28 +835,7 @@ public abstract class GraphLens {
     }
 
     @Override
-    public DexType lookupType(DexType type) {
-      if (type.isArrayType()) {
-        synchronized (this) {
-          // This block need to be synchronized due to arrayTypeCache.
-          DexType result = arrayTypeCache.get(type);
-          if (result == null) {
-            DexType baseType = type.toBaseType(dexItemFactory);
-            DexType newType = lookupType(baseType);
-            if (baseType == newType) {
-              result = type;
-            } else {
-              result = type.replaceBaseType(newType, dexItemFactory);
-            }
-            arrayTypeCache.put(type, result);
-          }
-          return result;
-        }
-      }
-      return internalDescribeLookupType(getPrevious().lookupType(type));
-    }
-
-    private DexType internalDescribeLookupType(DexType previous) {
+    protected DexType internalDescribeLookupClassType(DexType previous) {
       return typeMap != null ? typeMap.getOrDefault(previous, previous) : previous;
     }
 
@@ -921,7 +938,7 @@ public abstract class GraphLens {
             .setReboundReference(rewrittenReboundReference)
             .setReference(
                 rewrittenReboundReference.withHolder(
-                    internalDescribeLookupType(previous.getReference().getHolderType()),
+                    internalDescribeLookupClassType(previous.getReference().getHolderType()),
                     dexItemFactory))
             .build();
       } else {

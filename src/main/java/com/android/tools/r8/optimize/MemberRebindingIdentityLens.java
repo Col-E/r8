@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
@@ -25,8 +26,10 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
   private final Map<DexField, DexField> nonReboundFieldReferenceToDefinitionMap;
 
   private MemberRebindingIdentityLens(
-      Map<DexField, DexField> nonReboundFieldReferenceToDefinitionMap, GraphLens previousLens) {
-    super(previousLens);
+      Map<DexField, DexField> nonReboundFieldReferenceToDefinitionMap,
+      DexItemFactory dexItemFactory,
+      GraphLens previousLens) {
+    super(dexItemFactory, previousLens);
     assert !previousLens.hasCodeRewritings();
     this.nonReboundFieldReferenceToDefinitionMap = nonReboundFieldReferenceToDefinitionMap;
   }
@@ -74,8 +77,8 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexType lookupType(DexType type) {
-    return getPrevious().lookupType(type);
+  public final DexType internalDescribeLookupClassType(DexType previous) {
+    return previous;
   }
 
   @Override
@@ -109,11 +112,12 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
       nonReboundFieldReferenceToDefinitionMap.put(nonReboundFieldReference, reboundFieldReference);
     }
 
-    MemberRebindingIdentityLens build(GraphLens previousLens) {
+    MemberRebindingIdentityLens build(DexItemFactory dexItemFactory, GraphLens previousLens) {
       // This intentionally does not return null when the maps are empty. In this case there are no
       // non-rebound field or method references, but the member rebinding lens is still needed to
       // populate the rebound reference during field and method lookup.
-      return new MemberRebindingIdentityLens(nonReboundFieldReferenceToDefinitionMap, previousLens);
+      return new MemberRebindingIdentityLens(
+          nonReboundFieldReferenceToDefinitionMap, dexItemFactory, previousLens);
     }
   }
 }

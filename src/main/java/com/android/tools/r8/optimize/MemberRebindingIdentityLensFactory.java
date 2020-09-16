@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AbstractAccessContexts.ConcreteAccessContexts;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
@@ -45,14 +46,16 @@ public class MemberRebindingIdentityLensFactory {
                 && testingOptions.alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding
             ? appView.appInfo().withLiveness().getFieldAccessInfoCollection()
             : createFieldAccessInfoCollectionForMemberRebinding(appView, executorService);
-    return create(fieldAccessInfoCollection, appView.graphLens());
+    return create(fieldAccessInfoCollection, appView.dexItemFactory(), appView.graphLens());
   }
 
   public static MemberRebindingIdentityLens create(
-      FieldAccessInfoCollection<?> fieldAccessInfoCollection, GraphLens previousLens) {
+      FieldAccessInfoCollection<?> fieldAccessInfoCollection,
+      DexItemFactory dexItemFactory,
+      GraphLens previousLens) {
     MemberRebindingIdentityLens.Builder builder = MemberRebindingIdentityLens.builder();
     fieldAccessInfoCollection.forEach(builder::recordNonReboundFieldAccesses);
-    return builder.build(previousLens);
+    return builder.build(dexItemFactory, previousLens);
   }
 
   /**

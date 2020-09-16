@@ -214,7 +214,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public GraphLens clearCodeRewritings() {
-    return graphLens = graphLens.withCodeRewritingsApplied();
+    return graphLens = graphLens.withCodeRewritingsApplied(dexItemFactory());
   }
 
   public AppServices appServices() {

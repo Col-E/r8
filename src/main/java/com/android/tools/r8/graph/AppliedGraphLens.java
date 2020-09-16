@@ -5,12 +5,16 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.utils.MapUtils;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A graph lens that will not lead to any code rewritings in the {@link
@@ -21,9 +25,8 @@ import java.util.Map;
  */
 public final class AppliedGraphLens extends NonIdentityGraphLens {
 
-  private final AppView<?> appView;
-
-  private final BiMap<DexType, DexType> originalTypeNames = HashBiMap.create();
+  private final BidirectionalManyToOneMap<DexType, DexType> renamedTypeNames =
+      new BidirectionalManyToOneMap<>();
   private final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
   private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
 
@@ -33,22 +36,10 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
   private final Map<DexMethod, DexMethod> extraOriginalMethodSignatures = new IdentityHashMap<>();
 
   public AppliedGraphLens(AppView<? extends AppInfoWithClassHierarchy> appView) {
-    super(GraphLens.getIdentityLens());
-    this.appView = appView;
-
+    super(appView.dexItemFactory(), GraphLens.getIdentityLens());
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       // Record original type names.
-      {
-        DexType type = clazz.type;
-        if (appView.verticallyMergedClasses() != null
-            && !appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(type)) {
-          DexType original = appView.graphLens().getOriginalType(type);
-          if (original != type) {
-            DexType existing = originalTypeNames.forcePut(type, original);
-            assert existing == null;
-          }
-        }
-      }
+      recordOriginalTypeNames(clazz, appView);
 
       // Record original field signatures.
       for (DexEncodedField encodedField : clazz.fields()) {
@@ -84,6 +75,29 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
     MapUtils.removeIdentityMappings(extraOriginalMethodSignatures);
   }
 
+  private void recordOriginalTypeNames(
+      DexProgramClass clazz, AppView<? extends AppInfoWithClassHierarchy> appView) {
+    DexType type = clazz.getType();
+    VerticallyMergedClasses verticallyMergedClasses = appView.verticallyMergedClasses();
+    if (verticallyMergedClasses != null && verticallyMergedClasses.hasBeenMergedIntoSubtype(type)) {
+      return;
+    }
+
+    DexType original = appView.graphLens().getOriginalType(type);
+    if (verticallyMergedClasses != null) {
+      List<DexType> sources = verticallyMergedClasses.getSourcesFor(type);
+      if (!sources.isEmpty()) {
+        renamedTypeNames.put(original, type);
+        sources.forEach(source -> renamedTypeNames.put(source, type));
+        return;
+      }
+    }
+
+    if (original != type) {
+      renamedTypeNames.put(original, type);
+    }
+  }
+
   @Override
   public boolean isAppliedLens() {
     return true;
@@ -91,7 +105,11 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
 
   @Override
   public DexType getOriginalType(DexType type) {
-    return originalTypeNames.getOrDefault(type, type);
+    Set<DexType> originalTypeNames = renamedTypeNames.getKeys(type);
+    if (!originalTypeNames.isEmpty()) {
+      return originalTypeNames.iterator().next();
+    }
+    return type;
   }
 
   @Override
@@ -120,12 +138,8 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexType lookupType(DexType type) {
-    if (appView.verticallyMergedClasses() != null
-        && appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(type)) {
-      return lookupType(appView.verticallyMergedClasses().getTargetFor(type));
-    }
-    return originalTypeNames.inverse().getOrDefault(type, type);
+  public DexType internalDescribeLookupClassType(DexType previous) {
+    return renamedTypeNames.getOrDefault(previous, previous);
   }
 
   @Override

@@ -252,6 +252,12 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return descriptor.content[0] == 'D';
   }
 
+  public boolean isNullValueType() {
+    boolean isNullValueType = descriptor.content[0] == 'N';
+    assert !isNullValueType || this == DexItemFactory.nullValueType;
+    return isNullValueType;
+  }
+
   public boolean isArrayType() {
     char firstChar = (char) descriptor.content[0];
     return firstChar == '[';

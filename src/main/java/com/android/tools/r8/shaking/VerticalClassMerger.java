@@ -1700,7 +1700,7 @@ public class VerticalClassMerger {
     private final DexProgramClass target;
 
     public SingleTypeMapperGraphLens(DexType source, DexProgramClass target) {
-      super(GraphLens.getIdentityLens());
+      super(appView.dexItemFactory(), GraphLens.getIdentityLens());
       this.source = source;
       this.target = target;
     }
@@ -1731,8 +1731,8 @@ public class VerticalClassMerger {
     }
 
     @Override
-    public DexType lookupType(DexType type) {
-      return type == source ? target.type : mergedClasses.getOrDefault(type, type);
+    public final DexType internalDescribeLookupClassType(DexType previous) {
+      return previous == source ? target.type : mergedClasses.getOrDefault(previous, previous);
     }
 
     @Override
