@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 
 /**
  * An optimization that merges a method override (B.m()) into the method it overrides (A.m()).
@@ -41,8 +42,8 @@ public class CheckCastAndInstanceOfMethodSpecialization implements Action {
   private final AppView<AppInfoWithLiveness> appView;
   private final IRConverter converter;
 
-  private final ProgramMethodSet candidatesForInstanceOfOptimization =
-      ProgramMethodSet.createSorted();
+  private final SortedProgramMethodSet candidatesForInstanceOfOptimization =
+      SortedProgramMethodSet.create();
 
   public CheckCastAndInstanceOfMethodSpecialization(
       AppView<AppInfoWithLiveness> appView, IRConverter converter) {

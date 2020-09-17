@@ -16,13 +16,14 @@ import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.BiForEachable;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -127,50 +128,71 @@ public class MemberRebindingAnalysis {
     return appView.appInfo().unsafeResolveMethodDueToDexFormat(method).getSingleTarget();
   }
 
+  private void computeMethodRebinding(MethodAccessInfoCollection methodAccessInfoCollection) {
+    // Virtual invokes are on classes, so use class resolution.
+    computeMethodRebinding(
+        methodAccessInfoCollection::forEachVirtualInvoke, this::classLookup, Type.VIRTUAL);
+    // Interface invokes are always on interfaces, so use interface resolution.
+    computeMethodRebinding(
+        methodAccessInfoCollection::forEachInterfaceInvoke, this::interfaceLookup, Type.INTERFACE);
+    // Super invokes can be on both kinds, decide using the holder class.
+    computeMethodRebinding(
+        methodAccessInfoCollection::forEachSuperInvoke, this::anyLookup, Type.SUPER);
+    // Direct invokes (private/constructor) can also be on both kinds.
+    computeMethodRebinding(
+        methodAccessInfoCollection::forEachDirectInvoke, this::anyLookup, Type.DIRECT);
+    // Likewise static invokes.
+    computeMethodRebinding(
+        methodAccessInfoCollection::forEachStaticInvoke, this::anyLookup, Type.STATIC);
+  }
+
   private void computeMethodRebinding(
-      Map<DexMethod, ProgramMethodSet> methodsWithContexts,
+      BiForEachable<DexMethod, ProgramMethodSet> methodsWithContexts,
       Function<DexMethod, DexEncodedMethod> lookupTarget,
       Type invokeType) {
-    for (DexMethod method : methodsWithContexts.keySet()) {
-      // We can safely ignore array types, as the corresponding methods are defined in a library.
-      if (!method.holder.isClassType()) {
-        continue;
-      }
-      DexClass originalClass = appView.definitionFor(method.holder);
-      if (originalClass == null || originalClass.isNotProgramClass()) {
-        continue;
-      }
-      DexEncodedMethod target = lookupTarget.apply(method);
-      // TODO(b/128404854) Rebind to the lowest library class or program class. For now we allow
-      //  searching in library for methods, but this should be done on classpath instead.
-      if (target != null && target.method != method) {
-        DexClass targetClass = appView.definitionFor(target.holder());
-        if (originalClass.isProgramClass()) {
-          // In Java bytecode, it is only possible to target interface methods that are in one of
-          // the immediate super-interfaces via a super-invocation (see IndirectSuperInterfaceTest).
-          // To avoid introducing an IncompatibleClassChangeError at runtime we therefore insert a
-          // bridge method when we are about to rebind to an interface method that is not the
-          // original target.
-          if (needsBridgeForInterfaceMethod(originalClass, targetClass, invokeType)) {
-            target =
-                insertBridgeForInterfaceMethod(
-                    method, target, originalClass.asProgramClass(), targetClass, lookupTarget);
+    methodsWithContexts.forEach(
+        (method, contexts) -> {
+          // We can safely ignore array types, as the corresponding methods are defined in a
+          // library.
+          if (!method.holder.isClassType()) {
+            return;
           }
+          DexClass originalClass = appView.definitionFor(method.holder);
+          if (originalClass == null || originalClass.isNotProgramClass()) {
+            return;
+          }
+          DexEncodedMethod target = lookupTarget.apply(method);
+          // TODO(b/128404854) Rebind to the lowest library class or program class. For now we allow
+          //  searching in library for methods, but this should be done on classpath instead.
+          if (target == null || target.method == method) {
+            return;
+          }
+          DexClass targetClass = appView.definitionFor(target.holder());
+          if (originalClass.isProgramClass()) {
+            // In Java bytecode, it is only possible to target interface methods that are in one of
+            // the immediate super-interfaces via a super-invocation (see
+            // IndirectSuperInterfaceTest).
+            // To avoid introducing an IncompatibleClassChangeError at runtime we therefore insert a
+            // bridge method when we are about to rebind to an interface method that is not the
+            // original target.
+            if (needsBridgeForInterfaceMethod(originalClass, targetClass, invokeType)) {
+              target =
+                  insertBridgeForInterfaceMethod(
+                      method, target, originalClass.asProgramClass(), targetClass, lookupTarget);
+            }
 
-          // If the target class is not public but the targeted method is, we might run into
-          // visibility problems when rebinding.
-          final DexEncodedMethod finalTarget = target;
-          ProgramMethodSet contexts = methodsWithContexts.get(method);
-          if (contexts.stream()
-              .anyMatch(context -> mayNeedBridgeForVisibility(context, finalTarget))) {
-            target =
-                insertBridgeForVisibilityIfNeeded(
-                    method, target, originalClass, targetClass, lookupTarget);
+            // If the target class is not public but the targeted method is, we might run into
+            // visibility problems when rebinding.
+            final DexEncodedMethod finalTarget = target;
+            if (contexts.stream()
+                .anyMatch(context -> mayNeedBridgeForVisibility(context, finalTarget))) {
+              target =
+                  insertBridgeForVisibilityIfNeeded(
+                      method, target, originalClass, targetClass, lookupTarget);
+            }
           }
-        }
-        builder.map(method, lens.lookupMethod(validTargetFor(target.method, method)), invokeType);
-      }
-    }
+          builder.map(method, lens.lookupMethod(validTargetFor(target.method, method)), invokeType);
+        });
   }
 
   private boolean needsBridgeForInterfaceMethod(
@@ -337,16 +359,7 @@ public class MemberRebindingAnalysis {
 
   public GraphLens run() {
     AppInfoWithLiveness appInfo = appView.appInfo();
-    // Virtual invokes are on classes, so use class resolution.
-    computeMethodRebinding(appInfo.virtualInvokes, this::classLookup, Type.VIRTUAL);
-    // Interface invokes are always on interfaces, so use interface resolution.
-    computeMethodRebinding(appInfo.interfaceInvokes, this::interfaceLookup, Type.INTERFACE);
-    // Super invokes can be on both kinds, decide using the holder class.
-    computeMethodRebinding(appInfo.superInvokes, this::anyLookup, Type.SUPER);
-    // Direct invokes (private/constructor) can also be on both kinds.
-    computeMethodRebinding(appInfo.directInvokes, this::anyLookup, Type.DIRECT);
-    // Likewise static invokes.
-    computeMethodRebinding(appInfo.staticInvokes, this::anyLookup, Type.STATIC);
+    computeMethodRebinding(appInfo.getMethodAccessInfoCollection());
     computeFieldRebinding();
     GraphLens lens = builder.build(this.lens);
     appInfo.getFieldAccessInfoCollection().flattenAccessContexts();

@@ -8,7 +8,6 @@ import static com.android.tools.r8.graph.FieldAccessInfoImpl.MISSING_FIELD_ACCES
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
-import static com.android.tools.r8.shaking.EnqueuerUtils.toImmutableSortedMap;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
@@ -61,6 +60,7 @@ import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.LookupLambdaTarget;
 import com.android.tools.r8.graph.LookupTarget;
+import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ProgramField;
@@ -141,6 +141,7 @@ import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -200,13 +201,10 @@ public class Enqueuer {
   private AnnotationRemover.Builder annotationRemoverBuilder;
   private final EnqueuerDefinitionSupplier enqueuerDefinitionSupplier;
 
-  private final Map<DexMethod, ProgramMethodSet> virtualInvokes = new IdentityHashMap<>();
-  private final Map<DexMethod, ProgramMethodSet> interfaceInvokes = new IdentityHashMap<>();
-  private final Map<DexMethod, ProgramMethodSet> superInvokes = new IdentityHashMap<>();
-  private final Map<DexMethod, ProgramMethodSet> directInvokes = new IdentityHashMap<>();
-  private final Map<DexMethod, ProgramMethodSet> staticInvokes = new IdentityHashMap<>();
   private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection =
       new FieldAccessInfoCollectionImpl();
+  private final MethodAccessInfoCollection.Builder methodAccessInfoCollection =
+      MethodAccessInfoCollection.builder();
   private final ObjectAllocationInfoCollectionImpl.Builder objectAllocationInfoCollection;
   private final Set<DexCallSite> callSites = Sets.newIdentityHashSet();
 
@@ -784,11 +782,11 @@ public class Enqueuer {
   //
 
   private boolean registerMethodWithTargetAndContext(
-      Map<DexMethod, ProgramMethodSet> seen, DexMethod method, ProgramMethod context) {
+      BiPredicate<DexMethod, ProgramMethod> registration, DexMethod method, ProgramMethod context) {
     DexType baseHolder = method.holder.toBaseType(appView.dexItemFactory());
     if (baseHolder.isClassType()) {
       markTypeAsLive(baseHolder, clazz -> graphReporter.reportClassReferencedFrom(clazz, context));
-      return seen.computeIfAbsent(method, ignore -> ProgramMethodSet.create()).add(context);
+      return registration.test(method, context);
     }
     return false;
   }
@@ -1078,7 +1076,8 @@ public class Enqueuer {
 
   private void traceInvokeDirect(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
-    if (!registerMethodWithTargetAndContext(directInvokes, invokedMethod, context)) {
+    if (!registerMethodWithTargetAndContext(
+        methodAccessInfoCollection::registerInvokeDirectInContext, invokedMethod, context)) {
       return;
     }
     if (Log.ENABLED) {
@@ -1098,7 +1097,8 @@ public class Enqueuer {
 
   private void traceInvokeInterface(
       DexMethod method, ProgramMethod context, KeepReason keepReason) {
-    if (!registerMethodWithTargetAndContext(interfaceInvokes, method, context)) {
+    if (!registerMethodWithTargetAndContext(
+        methodAccessInfoCollection::registerInvokeInterfaceInContext, method, context)) {
       return;
     }
     if (Log.ENABLED) {
@@ -1137,7 +1137,8 @@ public class Enqueuer {
     if (invokedMethod == dexItemFactory.proxyMethods.newProxyInstance) {
       pendingReflectiveUses.add(context);
     }
-    if (!registerMethodWithTargetAndContext(staticInvokes, invokedMethod, context)) {
+    if (!registerMethodWithTargetAndContext(
+        methodAccessInfoCollection::registerInvokeStaticInContext, invokedMethod, context)) {
       return;
     }
     if (Log.ENABLED) {
@@ -1151,7 +1152,8 @@ public class Enqueuer {
     // We have to revisit super invokes based on the context they are found in. The same
     // method descriptor will hit different targets, depending on the context it is used in.
     DexMethod actualTarget = getInvokeSuperTarget(invokedMethod, context);
-    if (!registerMethodWithTargetAndContext(superInvokes, invokedMethod, context)) {
+    if (!registerMethodWithTargetAndContext(
+        methodAccessInfoCollection::registerInvokeSuperInContext, invokedMethod, context)) {
       return;
     }
     if (Log.ENABLED) {
@@ -1180,7 +1182,8 @@ public class Enqueuer {
       // Revisit the current method to implicitly add -keep rule for items with reflective access.
       pendingReflectiveUses.add(context);
     }
-    if (!registerMethodWithTargetAndContext(virtualInvokes, invokedMethod, context)) {
+    if (!registerMethodWithTargetAndContext(
+        methodAccessInfoCollection::registerInvokeVirtualInContext, invokedMethod, context)) {
       return;
     }
     if (Log.ENABLED) {
@@ -3037,13 +3040,8 @@ public class Enqueuer {
             toSortedDescriptorSet(liveMethods.getItems()),
             // Filter out library fields and pinned fields, because these are read by default.
             fieldAccessInfoCollection,
+            methodAccessInfoCollection.build(),
             objectAllocationInfoCollection.build(appInfo),
-            // TODO(b/132593519): Do we require these sets to be sorted for determinism?
-            toImmutableSortedMap(virtualInvokes, PresortedComparable::slowCompare),
-            toImmutableSortedMap(interfaceInvokes, PresortedComparable::slowCompare),
-            toImmutableSortedMap(superInvokes, PresortedComparable::slowCompare),
-            toImmutableSortedMap(directInvokes, PresortedComparable::slowCompare),
-            toImmutableSortedMap(staticInvokes, PresortedComparable::slowCompare),
             callSites,
             keepInfo,
             rootSet.mayHaveSideEffects,

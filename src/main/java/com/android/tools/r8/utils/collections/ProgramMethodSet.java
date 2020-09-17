@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.utils.collections;
 
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -15,26 +17,34 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class ProgramMethodSet implements Iterable<ProgramMethod> {
 
-  private static final ProgramMethodSet EMPTY = new ProgramMethodSet(ImmutableMap.of());
+  private static final ProgramMethodSet EMPTY = new ProgramMethodSet(ImmutableMap::of);
 
-  private Map<DexMethod, ProgramMethod> backing;
+  private final Map<DexMethod, ProgramMethod> backing;
+  private final Supplier<? extends Map<DexMethod, ProgramMethod>> backingFactory;
 
-  ProgramMethodSet(Map<DexMethod, ProgramMethod> backing) {
+  protected ProgramMethodSet(Supplier<? extends Map<DexMethod, ProgramMethod>> backingFactory) {
+    this(backingFactory, backingFactory.get());
+  }
+
+  protected ProgramMethodSet(
+      Supplier<? extends Map<DexMethod, ProgramMethod>> backingFactory,
+      Map<DexMethod, ProgramMethod> backing) {
     this.backing = backing;
+    this.backingFactory = backingFactory;
   }
 
   public static ProgramMethodSet create() {
-    return new ProgramMethodSet(new IdentityHashMap<>());
+    return new ProgramMethodSet(IdentityHashMap::new);
   }
 
   public static ProgramMethodSet create(int capacity) {
-    return new ProgramMethodSet(new IdentityHashMap<>(capacity));
+    return new ProgramMethodSet(IdentityHashMap::new, new IdentityHashMap<>(capacity));
   }
 
   public static ProgramMethodSet create(ProgramMethod element) {
@@ -44,15 +54,11 @@ public class ProgramMethodSet implements Iterable<ProgramMethod> {
   }
 
   public static ProgramMethodSet createConcurrent() {
-    return new ProgramMethodSet(new ConcurrentHashMap<>());
+    return new ProgramMethodSet(ConcurrentHashMap::new);
   }
 
   public static ProgramMethodSet createLinked() {
-    return new ProgramMethodSet(new LinkedHashMap<>());
-  }
-
-  public static ProgramMethodSet createSorted() {
-    return new ProgramMethodSet(new TreeMap<>(DexMethod::slowCompareTo));
+    return new ProgramMethodSet(LinkedHashMap::new);
   }
 
   public static ProgramMethodSet empty() {
@@ -105,6 +111,18 @@ public class ProgramMethodSet implements Iterable<ProgramMethod> {
 
   public boolean remove(DexEncodedMethod method) {
     return remove(method.getReference());
+  }
+
+  public ProgramMethodSet rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
+    ProgramMethodSet rewritten = new ProgramMethodSet(backingFactory);
+    forEach(
+        method -> {
+          ProgramMethod newMethod = lens.mapProgramMethod(method, definitions);
+          if (newMethod != null) {
+            rewritten.add(newMethod);
+          }
+        });
+    return rewritten;
   }
 
   public int size() {

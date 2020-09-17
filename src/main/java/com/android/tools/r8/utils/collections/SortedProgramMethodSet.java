@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.utils.collections;
 
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.ForEachable;
 import com.android.tools.r8.utils.ForEachableUtils;
@@ -13,11 +15,12 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Supplier;
 
 public class SortedProgramMethodSet extends ProgramMethodSet {
 
-  private SortedProgramMethodSet(TreeMap<DexMethod, ProgramMethod> backing) {
-    super(backing);
+  private SortedProgramMethodSet(Supplier<TreeMap<DexMethod, ProgramMethod>> backingFactory) {
+    super(backingFactory);
   }
 
   public static SortedProgramMethodSet create() {
@@ -32,9 +35,16 @@ public class SortedProgramMethodSet extends ProgramMethodSet {
 
   public static SortedProgramMethodSet create(ForEachable<ProgramMethod> methods) {
     SortedProgramMethodSet result =
-        new SortedProgramMethodSet(new TreeMap<>(DexMethod::slowCompareTo));
+        new SortedProgramMethodSet(() -> new TreeMap<>(DexMethod::slowCompareTo));
     methods.forEach(result::add);
     return result;
+  }
+
+  @Override
+  public SortedProgramMethodSet rewrittenWithLens(
+      DexDefinitionSupplier definitions, GraphLens lens) {
+    return create(
+        consumer -> forEach(method -> consumer.accept(lens.mapProgramMethod(method, definitions))));
   }
 
   @Override
