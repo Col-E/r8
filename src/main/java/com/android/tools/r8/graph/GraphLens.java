@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
-
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.horizontalclassmerging.ClassMerger;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -314,8 +312,8 @@ public abstract class GraphLens {
   public ProgramMethod mapProgramMethod(
       ProgramMethod oldMethod, DexDefinitionSupplier definitions) {
     DexMethod newMethod = getRenamedMethodSignature(oldMethod.getReference());
-    DexProgramClass holder = asProgramClassOrNull(definitions.definitionForHolder(newMethod));
-    return newMethod.lookupOnProgramClass(holder);
+    DexProgramClass holder = definitions.definitionForHolder(newMethod).asProgramClass();
+    return holder.lookupProgramMethod(newMethod);
   }
 
   public abstract DexType lookupClassType(DexType type);
@@ -964,39 +962,18 @@ public abstract class GraphLens {
     @Override
     public MethodLookupResult internalDescribeLookupMethod(
         MethodLookupResult previous, DexMethod context) {
-      if (previous.hasReboundReference()) {
-        // TODO(sgjesse): Should we always do interface to virtual mapping? Is it a performance win
-        //  that only subclasses which are known to need it actually do it?
-        DexMethod rewrittenReboundReference = previous.getRewrittenReboundReference(methodMap);
-        return MethodLookupResult.builder(this)
-            .setReboundReference(rewrittenReboundReference)
-            .setReference(
-                rewrittenReboundReference.withHolder(
-                    internalDescribeLookupClassType(previous.getReference().getHolderType()),
-                    dexItemFactory))
-            .setPrototypeChanges(
-                internalDescribePrototypeChanges(
-                    previous.getPrototypeChanges(), rewrittenReboundReference))
-            .setType(
-                mapInvocationType(
-                    rewrittenReboundReference, previous.getReference(), previous.getType()))
-            .build();
-      } else {
-        // TODO(b/168282032): We should always have the rebound reference, so this should become
-        //  unreachable.
-        DexMethod newMethod = methodMap.get(previous.getReference());
-        if (newMethod == null) {
-          return previous;
-        }
-        // TODO(sgjesse): Should we always do interface to virtual mapping? Is it a performance win
-        //  that only subclasses which are known to need it actually do it?
-        return MethodLookupResult.builder(this)
-            .setReference(newMethod)
-            .setPrototypeChanges(
-                internalDescribePrototypeChanges(previous.getPrototypeChanges(), newMethod))
-            .setType(mapInvocationType(newMethod, previous.getReference(), previous.getType()))
-            .build();
+      DexMethod newMethod = methodMap.get(previous.getReference());
+      if (newMethod == null) {
+        return previous;
       }
+      // TODO(sgjesse): Should we always do interface to virtual mapping? Is it a performance win
+      //  that only subclasses which are known to need it actually do it?
+      return MethodLookupResult.builder(this)
+          .setReference(newMethod)
+          .setPrototypeChanges(
+              internalDescribePrototypeChanges(previous.getPrototypeChanges(), newMethod))
+          .setType(mapInvocationType(newMethod, previous.getReference(), previous.getType()))
+          .build();
     }
 
     @Override

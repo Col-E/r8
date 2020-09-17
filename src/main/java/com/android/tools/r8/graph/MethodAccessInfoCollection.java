@@ -4,17 +4,11 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.google.common.collect.Sets;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 public class MethodAccessInfoCollection {
 
@@ -37,22 +31,8 @@ public class MethodAccessInfoCollection {
     this.virtualInvokes = virtualInvokes;
   }
 
-  public static ConcurrentBuilder concurrentBuilder() {
-    return new ConcurrentBuilder();
-  }
-
-  // TODO(b/132593519): We should not need sorted maps with the new member rebinding analysis.
-  public static SortedBuilder sortedBuilder() {
-    return new SortedBuilder();
-  }
-
-  public void forEachMethodReference(Consumer<DexMethod> method) {
-    Set<DexMethod> seen = Sets.newIdentityHashSet();
-    directInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
-    interfaceInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
-    staticInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
-    superInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
-    virtualInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
+  public static Builder builder() {
+    return new Builder();
   }
 
   public void forEachDirectInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
@@ -98,41 +78,19 @@ public class MethodAccessInfoCollection {
         });
   }
 
-  public abstract static class Builder<T extends Map<DexMethod, ProgramMethodSet>> {
+  public static class Builder {
 
-    private final T directInvokes;
-    private final T interfaceInvokes;
-    private final T staticInvokes;
-    private final T superInvokes;
-    private final T virtualInvokes;
-
-    private Builder(Supplier<T> factory) {
-      directInvokes = factory.get();
-      interfaceInvokes = factory.get();
-      staticInvokes = factory.get();
-      superInvokes = factory.get();
-      virtualInvokes = factory.get();
-    }
-
-    public T getDirectInvokes() {
-      return directInvokes;
-    }
-
-    public T getInterfaceInvokes() {
-      return interfaceInvokes;
-    }
-
-    public T getStaticInvokes() {
-      return staticInvokes;
-    }
-
-    public T getSuperInvokes() {
-      return superInvokes;
-    }
-
-    public T getVirtualInvokes() {
-      return virtualInvokes;
-    }
+    // TODO(b/132593519): We should not need sorted maps with the new member rebinding analysis.
+    private final Map<DexMethod, ProgramMethodSet> directInvokes =
+        new TreeMap<>(DexMethod::slowCompareTo);
+    private final Map<DexMethod, ProgramMethodSet> interfaceInvokes =
+        new TreeMap<>(DexMethod::slowCompareTo);
+    private final Map<DexMethod, ProgramMethodSet> staticInvokes =
+        new TreeMap<>(DexMethod::slowCompareTo);
+    private final Map<DexMethod, ProgramMethodSet> superInvokes =
+        new TreeMap<>(DexMethod::slowCompareTo);
+    private final Map<DexMethod, ProgramMethodSet> virtualInvokes =
+        new TreeMap<>(DexMethod::slowCompareTo);
 
     public boolean registerInvokeDirectInContext(DexMethod invokedMethod, ProgramMethod context) {
       return registerInvokeMethodInContext(invokedMethod, context, directInvokes);
@@ -165,21 +123,6 @@ public class MethodAccessInfoCollection {
     public MethodAccessInfoCollection build() {
       return new MethodAccessInfoCollection(
           directInvokes, interfaceInvokes, staticInvokes, superInvokes, virtualInvokes);
-    }
-  }
-
-  public static class ConcurrentBuilder
-      extends Builder<ConcurrentHashMap<DexMethod, ProgramMethodSet>> {
-
-    private ConcurrentBuilder() {
-      super(ConcurrentHashMap::new);
-    }
-  }
-
-  public static class SortedBuilder extends Builder<TreeMap<DexMethod, ProgramMethodSet>> {
-
-    private SortedBuilder() {
-      super(() -> new TreeMap<>(DexMethod::slowCompareTo));
     }
   }
 }

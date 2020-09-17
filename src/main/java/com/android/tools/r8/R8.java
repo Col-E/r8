@@ -797,18 +797,6 @@ public class R8 {
         }
       }
 
-      // Remove unneeded visibility bridges that have been inserted for member rebinding.
-      // This can only be done if we have AppInfoWithLiveness.
-      if (appView.appInfo().hasLiveness()) {
-        new VisibilityBridgeRemover(appView.withLiveness()).run();
-      } else {
-        // If we don't have AppInfoWithLiveness here, it must be because we are not shrinking. When
-        // we are not shrinking, we can't move visibility bridges. In principle, though, it would be
-        // possible to remove visibility bridges that have been synthesized by R8, but we currently
-        // do not have this information.
-        assert !options.isShrinking();
-      }
-
       MemberRebindingIdentityLens memberRebindingLens =
           MemberRebindingIdentityLensFactory.create(appView, executorService);
       appView.setGraphLens(memberRebindingLens);
@@ -890,6 +878,18 @@ public class R8 {
         System.out.println("Finished compilation with method filter: ");
         options.methodsFilter.forEach(m -> System.out.println("  - " + m));
         return;
+      }
+
+      // Remove unneeded visibility bridges that have been inserted for member rebinding.
+      // This can only be done if we have AppInfoWithLiveness.
+      if (appView.appInfo().hasLiveness()) {
+        new VisibilityBridgeRemover(appView.withLiveness()).run();
+      } else {
+        // If we don't have AppInfoWithLiveness here, it must be because we are not shrinking. When
+        // we are not shrinking, we can't move visibility bridges. In principle, though, it would be
+        // possible to remove visibility bridges that have been synthesized by R8, but we currently
+        // do not have this information.
+        assert !options.isShrinking();
       }
 
       // Validity checks.

@@ -20,6 +20,5 @@ public class RepackagingWithNonReboundMethodReferenceTestClasses {
     }
   }
 
-  @NeverClassInline
   public static class B extends A {}
 }
