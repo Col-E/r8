@@ -93,7 +93,8 @@ public class ConstString extends Format21c<DexString> {
     if (index != (index & 0xffff)) {
       throw new InternalCompilerError("String-index overflow.");
     }
-    super.write(dest, context, graphLens, mapping, rewriter);
+    writeFirst(AA, dest);
+    write16BitReference(BBBB, dest, mapping);
   }
 
   @Override

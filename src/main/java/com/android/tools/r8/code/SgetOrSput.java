@@ -6,8 +6,10 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import java.nio.ShortBuffer;
 
 abstract class SgetOrSput extends Format21c<DexField> {
 
@@ -27,6 +29,18 @@ abstract class SgetOrSput extends Format21c<DexField> {
       LensCodeRewriterUtils rewriter) {
     DexField rewritten = graphLens.lookupField(getField());
     rewritten.collectIndexedItems(indexedItems);
+  }
+
+  @Override
+  public void write(
+      ShortBuffer dest,
+      ProgramMethod context,
+      GraphLens graphLens,
+      ObjectToOffsetMapping mapping,
+      LensCodeRewriterUtils rewriter) {
+    DexField rewritten = graphLens.lookupField(getField());
+    writeFirst(AA, dest);
+    write16BitReference(rewritten, dest, mapping);
   }
 
   @Override

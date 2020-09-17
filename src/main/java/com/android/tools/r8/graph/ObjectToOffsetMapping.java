@@ -252,11 +252,11 @@ public class ObjectToOffsetMapping {
   }
 
   public int getOffsetFor(DexField field) {
-    return getOffsetFor(graphLens.lookupField(field), fields);
+    return getOffsetFor(field, fields);
   }
 
   public int getOffsetFor(DexMethod method) {
-    return getOffsetFor(graphLens.lookupMethod(method), methods);
+    return getOffsetFor(method, methods);
   }
 
   public int getOffsetFor(DexString string) {
@@ -264,7 +264,7 @@ public class ObjectToOffsetMapping {
   }
 
   public int getOffsetFor(DexType type) {
-    return getOffsetFor(graphLens.lookupType(type), types);
+    return getOffsetFor(type, types);
   }
 
   public int getOffsetFor(DexCallSite callSite) {
