@@ -9,7 +9,6 @@ import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.repackage.testclasses.RepackagingWithNonReboundMethodReferenceTestClasses;
@@ -51,31 +50,26 @@ public class RepackagingWithNonReboundMethodReferenceTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addInnerClasses(getClass(), RepackagingWithNonReboundMethodReferenceTestClasses.class)
-          .addKeepMainRule(TestClass.class)
-          .addKeepRules(
-              "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_DIR + "\"")
-          .addOptionsModification(
-              options -> {
-                assertTrue(options.testing.alwaysUseExistingAccessInfoCollectionsInMemberRebinding);
-                options.testing.alwaysUseExistingAccessInfoCollectionsInMemberRebinding =
-                    alwaysUseExistingAccessInfoCollectionsInMemberRebinding;
-                assertFalse(options.testing.enableExperimentalRepackaging);
-                options.testing.enableExperimentalRepackaging = true;
-              })
-          .enableInliningAnnotations()
-          .enableNeverClassInliningAnnotations()
-          .enableNoVerticalClassMergingAnnotations()
-          .setMinApi(parameters.getApiLevel())
-          .compile();
-
-      // TODO(b/168282032): Support lens rewriting of non-rebound references in the writer.
-      assertTrue(alwaysUseExistingAccessInfoCollectionsInMemberRebinding);
-    } catch (CompilationFailedException exception) {
-      assertFalse(alwaysUseExistingAccessInfoCollectionsInMemberRebinding);
-    }
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass(), RepackagingWithNonReboundMethodReferenceTestClasses.class)
+        .addKeepMainRule(TestClass.class)
+        .addKeepRules(
+            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_DIR + "\"")
+        .addOptionsModification(
+            options -> {
+              assertTrue(options.testing.alwaysUseExistingAccessInfoCollectionsInMemberRebinding);
+              options.testing.alwaysUseExistingAccessInfoCollectionsInMemberRebinding =
+                  alwaysUseExistingAccessInfoCollectionsInMemberRebinding;
+              assertFalse(options.testing.enableExperimentalRepackaging);
+              options.testing.enableExperimentalRepackaging = true;
+            })
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutputLines("Hello world!");
   }
 
   static class TestClass {

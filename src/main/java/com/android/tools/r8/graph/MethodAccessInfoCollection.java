@@ -11,8 +11,10 @@ import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class MethodAccessInfoCollection {
 
@@ -35,8 +37,13 @@ public class MethodAccessInfoCollection {
     this.virtualInvokes = virtualInvokes;
   }
 
-  public static Builder builder() {
-    return new Builder();
+  public static ConcurrentBuilder concurrentBuilder() {
+    return new ConcurrentBuilder();
+  }
+
+  // TODO(b/132593519): We should not need sorted maps with the new member rebinding analysis.
+  public static SortedBuilder sortedBuilder() {
+    return new SortedBuilder();
   }
 
   public void forEachMethodReference(Consumer<DexMethod> method) {
@@ -91,19 +98,41 @@ public class MethodAccessInfoCollection {
         });
   }
 
-  public static class Builder {
+  public abstract static class Builder<T extends Map<DexMethod, ProgramMethodSet>> {
 
-    // TODO(b/132593519): We should not need sorted maps with the new member rebinding analysis.
-    private final Map<DexMethod, ProgramMethodSet> directInvokes =
-        new TreeMap<>(DexMethod::slowCompareTo);
-    private final Map<DexMethod, ProgramMethodSet> interfaceInvokes =
-        new TreeMap<>(DexMethod::slowCompareTo);
-    private final Map<DexMethod, ProgramMethodSet> staticInvokes =
-        new TreeMap<>(DexMethod::slowCompareTo);
-    private final Map<DexMethod, ProgramMethodSet> superInvokes =
-        new TreeMap<>(DexMethod::slowCompareTo);
-    private final Map<DexMethod, ProgramMethodSet> virtualInvokes =
-        new TreeMap<>(DexMethod::slowCompareTo);
+    private final T directInvokes;
+    private final T interfaceInvokes;
+    private final T staticInvokes;
+    private final T superInvokes;
+    private final T virtualInvokes;
+
+    private Builder(Supplier<T> factory) {
+      directInvokes = factory.get();
+      interfaceInvokes = factory.get();
+      staticInvokes = factory.get();
+      superInvokes = factory.get();
+      virtualInvokes = factory.get();
+    }
+
+    public T getDirectInvokes() {
+      return directInvokes;
+    }
+
+    public T getInterfaceInvokes() {
+      return interfaceInvokes;
+    }
+
+    public T getStaticInvokes() {
+      return staticInvokes;
+    }
+
+    public T getSuperInvokes() {
+      return superInvokes;
+    }
+
+    public T getVirtualInvokes() {
+      return virtualInvokes;
+    }
 
     public boolean registerInvokeDirectInContext(DexMethod invokedMethod, ProgramMethod context) {
       return registerInvokeMethodInContext(invokedMethod, context, directInvokes);
@@ -136,6 +165,21 @@ public class MethodAccessInfoCollection {
     public MethodAccessInfoCollection build() {
       return new MethodAccessInfoCollection(
           directInvokes, interfaceInvokes, staticInvokes, superInvokes, virtualInvokes);
+    }
+  }
+
+  public static class ConcurrentBuilder
+      extends Builder<ConcurrentHashMap<DexMethod, ProgramMethodSet>> {
+
+    private ConcurrentBuilder() {
+      super(ConcurrentHashMap::new);
+    }
+  }
+
+  public static class SortedBuilder extends Builder<TreeMap<DexMethod, ProgramMethodSet>> {
+
+    private SortedBuilder() {
+      super(() -> new TreeMap<>(DexMethod::slowCompareTo));
     }
   }
 }

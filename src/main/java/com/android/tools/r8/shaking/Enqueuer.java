@@ -203,8 +203,8 @@ public class Enqueuer {
 
   private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection =
       new FieldAccessInfoCollectionImpl();
-  private final MethodAccessInfoCollection.Builder methodAccessInfoCollection =
-      MethodAccessInfoCollection.builder();
+  private final MethodAccessInfoCollection.SortedBuilder methodAccessInfoCollection =
+      MethodAccessInfoCollection.sortedBuilder();
   private final ObjectAllocationInfoCollectionImpl.Builder objectAllocationInfoCollection;
   private final Set<DexCallSite> callSites = Sets.newIdentityHashSet();
 
