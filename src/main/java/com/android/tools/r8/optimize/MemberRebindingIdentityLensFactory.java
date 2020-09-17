@@ -8,17 +8,15 @@ import com.android.tools.r8.graph.AbstractAccessContexts.ConcreteAccessContexts;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
-import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
@@ -40,22 +38,30 @@ public class MemberRebindingIdentityLensFactory {
   public static MemberRebindingIdentityLens create(
       AppView<? extends AppInfoWithClassHierarchy> appView, ExecutorService executorService)
       throws ExecutionException {
-    TestingOptions testingOptions = appView.options().testing;
-    FieldAccessInfoCollection<?> fieldAccessInfoCollection =
-        appView.appInfo().hasLiveness()
-                && testingOptions.alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding
-            ? appView.appInfo().withLiveness().getFieldAccessInfoCollection()
-            : createFieldAccessInfoCollectionForMemberRebinding(appView, executorService);
-    return create(fieldAccessInfoCollection, appView.dexItemFactory(), appView.graphLens());
+    FieldAccessInfoCollection<?> fieldAccessInfoCollection;
+    MethodAccessInfoCollection methodAccessInfoCollection;
+    if (appView.appInfo().hasLiveness()
+        && appView.options().testing.alwaysUseExistingAccessInfoCollectionsInMemberRebinding) {
+      AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
+      fieldAccessInfoCollection = appInfo.getFieldAccessInfoCollection();
+      methodAccessInfoCollection = appInfo.getMethodAccessInfoCollection();
+    } else {
+      fieldAccessInfoCollection =
+          createFieldAccessInfoCollectionForMemberRebinding(appView, executorService);
+      // TODO(b/168282032): Construct this from tracing.
+      methodAccessInfoCollection = MethodAccessInfoCollection.builder().build();
+    }
+    return create(appView, fieldAccessInfoCollection, methodAccessInfoCollection);
   }
 
   public static MemberRebindingIdentityLens create(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       FieldAccessInfoCollection<?> fieldAccessInfoCollection,
-      DexItemFactory dexItemFactory,
-      GraphLens previousLens) {
-    MemberRebindingIdentityLens.Builder builder = MemberRebindingIdentityLens.builder();
+      MethodAccessInfoCollection methodAccessInfoCollection) {
+    MemberRebindingIdentityLens.Builder builder = MemberRebindingIdentityLens.builder(appView);
     fieldAccessInfoCollection.forEach(builder::recordNonReboundFieldAccesses);
-    return builder.build(dexItemFactory, previousLens);
+    methodAccessInfoCollection.forEachMethodReference(builder::recordMethodAccess);
+    return builder.build();
   }
 
   /**

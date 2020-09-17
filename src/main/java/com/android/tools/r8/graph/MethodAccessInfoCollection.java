@@ -4,11 +4,15 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.google.common.collect.Sets;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class MethodAccessInfoCollection {
 
@@ -33,6 +37,15 @@ public class MethodAccessInfoCollection {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  public void forEachMethodReference(Consumer<DexMethod> method) {
+    Set<DexMethod> seen = Sets.newIdentityHashSet();
+    directInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
+    interfaceInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
+    staticInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
+    superInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
+    virtualInvokes.keySet().forEach(ConsumerUtils.acceptIfNotSeen(method, seen));
   }
 
   public void forEachDirectInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {

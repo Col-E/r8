@@ -26,11 +26,11 @@ public class RepackagingWithNonReboundFieldReferenceTest extends TestBase {
 
   private static final String REPACKAGE_DIR = "foo";
 
-  private final boolean alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding;
+  private final boolean alwaysUseExistingAccessInfoCollectionsInMemberRebinding;
   private final String flattenPackageHierarchyOrRepackageClasses;
   private final TestParameters parameters;
 
-  @Parameters(name = "{2}, reuse FieldAccessInfoCollection: {0}, kind: {1}")
+  @Parameters(name = "{2}, use access info collections: {0}, kind: {1}")
   public static List<Object[]> data() {
     return buildParameters(
         BooleanUtils.values(),
@@ -39,11 +39,11 @@ public class RepackagingWithNonReboundFieldReferenceTest extends TestBase {
   }
 
   public RepackagingWithNonReboundFieldReferenceTest(
-      boolean alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding,
+      boolean alwaysUseExistingAccessInfoCollectionsInMemberRebinding,
       String flattenPackageHierarchyOrRepackageClasses,
       TestParameters parameters) {
-    this.alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding =
-        alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding;
+    this.alwaysUseExistingAccessInfoCollectionsInMemberRebinding =
+        alwaysUseExistingAccessInfoCollectionsInMemberRebinding;
     this.flattenPackageHierarchyOrRepackageClasses = flattenPackageHierarchyOrRepackageClasses;
     this.parameters = parameters;
   }
@@ -57,10 +57,9 @@ public class RepackagingWithNonReboundFieldReferenceTest extends TestBase {
             "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_DIR + "\"")
         .addOptionsModification(
             options -> {
-              assertTrue(
-                  options.testing.alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding);
-              options.testing.alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding =
-                  alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding;
+              assertTrue(options.testing.alwaysUseExistingAccessInfoCollectionsInMemberRebinding);
+              options.testing.alwaysUseExistingAccessInfoCollectionsInMemberRebinding =
+                  alwaysUseExistingAccessInfoCollectionsInMemberRebinding;
               assertFalse(options.testing.enableExperimentalRepackaging);
               options.testing.enableExperimentalRepackaging = true;
             })
