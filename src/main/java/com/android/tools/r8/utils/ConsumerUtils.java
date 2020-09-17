@@ -4,9 +4,18 @@
 
 package com.android.tools.r8.utils;
 
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class ConsumerUtils {
+
+  public static <T> Consumer<T> acceptIfNotSeen(Consumer<T> consumer, Set<T> seen) {
+    return element -> {
+      if (seen.add(element)) {
+        consumer.accept(element);
+      }
+    };
+  }
 
   public static <T> Consumer<T> emptyConsumer() {
     return ignore -> {};

@@ -7,21 +7,23 @@ package com.android.tools.r8.optimize;
 import com.android.tools.r8.graph.AbstractAccessContexts.ConcreteAccessContexts;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
-import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.MethodAccessInfoCollection;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -40,51 +42,88 @@ public class MemberRebindingIdentityLensFactory {
   public static MemberRebindingIdentityLens create(
       AppView<? extends AppInfoWithClassHierarchy> appView, ExecutorService executorService)
       throws ExecutionException {
-    TestingOptions testingOptions = appView.options().testing;
-    FieldAccessInfoCollection<?> fieldAccessInfoCollection =
-        appView.appInfo().hasLiveness()
-                && testingOptions.alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding
-            ? appView.appInfo().withLiveness().getFieldAccessInfoCollection()
-            : createFieldAccessInfoCollectionForMemberRebinding(appView, executorService);
-    return create(fieldAccessInfoCollection, appView.dexItemFactory(), appView.graphLens());
+    FieldAccessInfoCollection<?> fieldAccessInfoCollection;
+    MethodAccessInfoCollection methodAccessInfoCollection;
+    if (appView.appInfo().hasLiveness()
+        && appView.options().testing.alwaysUseExistingAccessInfoCollectionsInMemberRebinding) {
+      AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
+      fieldAccessInfoCollection = appInfo.getFieldAccessInfoCollection();
+      methodAccessInfoCollection = appInfo.getMethodAccessInfoCollection();
+    } else {
+      FieldAccessInfoCollectionImpl mutableFieldAccessInfoCollection =
+          new FieldAccessInfoCollectionImpl(new ConcurrentHashMap<>());
+      MethodAccessInfoCollection.ConcurrentBuilder methodAccessInfoCollectionBuilder =
+          MethodAccessInfoCollection.concurrentBuilder();
+      initializeMemberAccessInfoCollectionsForMemberRebinding(
+          appView,
+          mutableFieldAccessInfoCollection,
+          methodAccessInfoCollectionBuilder,
+          executorService);
+      fieldAccessInfoCollection = mutableFieldAccessInfoCollection;
+      methodAccessInfoCollection = methodAccessInfoCollectionBuilder.build();
+    }
+    return create(appView, fieldAccessInfoCollection, methodAccessInfoCollection);
   }
 
   public static MemberRebindingIdentityLens create(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       FieldAccessInfoCollection<?> fieldAccessInfoCollection,
-      DexItemFactory dexItemFactory,
-      GraphLens previousLens) {
-    MemberRebindingIdentityLens.Builder builder = MemberRebindingIdentityLens.builder();
+      MethodAccessInfoCollection methodAccessInfoCollection) {
+    MemberRebindingIdentityLens.Builder builder = MemberRebindingIdentityLens.builder(appView);
     fieldAccessInfoCollection.forEach(builder::recordNonReboundFieldAccesses);
-    return builder.build(dexItemFactory, previousLens);
+    methodAccessInfoCollection.forEachMethodReference(builder::recordMethodAccess);
+    return builder.build();
   }
 
   /**
    * Applies {@link NonReboundMemberReferencesRegistry} to all code objects to construct a mapping
    * from non-rebound field references to their definition.
    */
-  private static FieldAccessInfoCollection<?> createFieldAccessInfoCollectionForMemberRebinding(
-      AppView<? extends AppInfoWithClassHierarchy> appView, ExecutorService executorService)
+  private static void initializeMemberAccessInfoCollectionsForMemberRebinding(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
+      MethodAccessInfoCollection.ConcurrentBuilder methodAccessInfoCollectionBuilder,
+      ExecutorService executorService)
       throws ExecutionException {
-    NonReboundMemberReferencesRegistry registry = new NonReboundMemberReferencesRegistry(appView);
-    ThreadUtils.processItems(appView.appInfo()::forEachMethod, registry::accept, executorService);
-    return registry.getFieldAccessInfoCollection();
+    Set<DexField> seenFieldReferences = Sets.newConcurrentHashSet();
+    Set<DexMethod> seenMethodReferences = Sets.newConcurrentHashSet();
+    ThreadUtils.processItems(
+        appView.appInfo()::forEachMethod,
+        method ->
+            new NonReboundMemberReferencesRegistry(
+                    appView,
+                    method,
+                    fieldAccessInfoCollection,
+                    methodAccessInfoCollectionBuilder,
+                    seenFieldReferences,
+                    seenMethodReferences)
+                .accept(method),
+        executorService);
   }
 
   private static class NonReboundMemberReferencesRegistry extends UseRegistry {
 
     private final AppInfoWithClassHierarchy appInfo;
-    private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection =
-        new FieldAccessInfoCollectionImpl(new ConcurrentHashMap<>());
-    private final Set<DexField> seenFieldReferences = Sets.newConcurrentHashSet();
-
-    FieldAccessInfoCollection<?> getFieldAccessInfoCollection() {
-      return fieldAccessInfoCollection;
-    }
+    private final ProgramMethod context;
+    private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection;
+    private final MethodAccessInfoCollection.ConcurrentBuilder methodAccessInfoCollectionBuilder;
+    private final Set<DexField> seenFieldReferences;
+    private final Set<DexMethod> seenMethodReferences;
 
     public NonReboundMemberReferencesRegistry(
-        AppView<? extends AppInfoWithClassHierarchy> appView) {
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        ProgramMethod context,
+        FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
+        MethodAccessInfoCollection.ConcurrentBuilder methodAccessInfoCollectionBuilder,
+        Set<DexField> seenFieldReferences,
+        Set<DexMethod> seenMethodReferences) {
       super(appView.dexItemFactory());
       this.appInfo = appView.appInfo();
+      this.context = context;
+      this.fieldAccessInfoCollection = fieldAccessInfoCollection;
+      this.methodAccessInfoCollectionBuilder = methodAccessInfoCollectionBuilder;
+      this.seenFieldReferences = seenFieldReferences;
+      this.seenMethodReferences = seenMethodReferences;
     }
 
     @Override
@@ -137,28 +176,54 @@ public class MemberRebindingIdentityLensFactory {
     }
 
     @Override
-    public void registerInvokeVirtual(DexMethod method) {
-      // Intentionally empty.
-    }
-
-    @Override
     public void registerInvokeDirect(DexMethod method) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void registerInvokeStatic(DexMethod method) {
-      // Intentionally empty.
+      registerInvokeMethod(method, methodAccessInfoCollectionBuilder.getDirectInvokes());
     }
 
     @Override
     public void registerInvokeInterface(DexMethod method) {
-      // Intentionally empty.
+      registerInvokeMethod(method, methodAccessInfoCollectionBuilder.getInterfaceInvokes());
+    }
+
+    @Override
+    public void registerInvokeStatic(DexMethod method) {
+      registerInvokeMethod(method, methodAccessInfoCollectionBuilder.getStaticInvokes());
     }
 
     @Override
     public void registerInvokeSuper(DexMethod method) {
-      // Intentionally empty.
+      registerInvokeMethod(method, methodAccessInfoCollectionBuilder.getSuperInvokes());
+    }
+
+    @Override
+    public void registerInvokeVirtual(DexMethod method) {
+      registerInvokeMethod(method, methodAccessInfoCollectionBuilder.getVirtualInvokes());
+    }
+
+    private void registerInvokeMethod(DexMethod method, Map<DexMethod, ProgramMethodSet> invokes) {
+      if (!seenMethodReferences.add(method)) {
+        return;
+      }
+      if (method.getHolderType().isArrayType()) {
+        return;
+      }
+      DexClass holder = appInfo.definitionFor(method.getHolderType(), context);
+      if (holder == null) {
+        return;
+      }
+      SingleResolutionResult resolutionResult =
+          appInfo.resolveMethodOn(holder, method).asSingleResolution();
+      if (resolutionResult == null) {
+        return;
+      }
+      DexMethod reboundReference = resolutionResult.getResolvedMethod().getReference();
+      if (method == reboundReference) {
+        // For the purpose of member rebinding, we don't care about already rebound references.
+        return;
+      }
+      // For the purpose of member rebinding, we don't care about the access contexts, so we
+      // simply use the empty set.
+      invokes.put(method, ProgramMethodSet.empty());
     }
 
     @Override

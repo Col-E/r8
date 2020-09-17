@@ -1218,7 +1218,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean allowClassInlinerGracefulExit =
         System.getProperty("com.android.tools.r8.disallowClassInlinerGracefulExit") == null;
     public boolean reportUnusedProguardConfigurationRules = false;
-    public boolean alwaysUseExistingFieldAccessInfoCollectionInMemberRebinding = true;
+    public boolean alwaysUseExistingAccessInfoCollectionsInMemberRebinding = true;
     public boolean alwaysUsePessimisticRegisterAllocation = false;
     public boolean enableCheckCastAndInstanceOfRemoval = true;
     public boolean enableDeadSwitchCaseElimination = true;
