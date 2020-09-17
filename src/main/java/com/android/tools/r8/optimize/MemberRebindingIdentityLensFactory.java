@@ -204,6 +204,9 @@ public class MemberRebindingIdentityLensFactory {
       if (!seenMethodReferences.add(method)) {
         return;
       }
+      if (method.getHolderType().isArrayType()) {
+        return;
+      }
       DexClass holder = appInfo.definitionFor(method.getHolderType(), context);
       if (holder == null) {
         return;
