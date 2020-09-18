@@ -87,4 +87,9 @@ public class InstanceFieldTypeInitializationInfo implements InstanceFieldInitial
     return Objects.equals(dynamicLowerBoundType, info.dynamicLowerBoundType)
         && Objects.equals(dynamicUpperBoundType, info.dynamicUpperBoundType);
   }
+
+  @Override
+  public String toString() {
+    return "InstanceFieldTypeInitializationInfo";
+  }
 }

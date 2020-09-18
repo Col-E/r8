@@ -99,6 +99,11 @@ public class RedundantFieldLoadElimination {
       it.removeOrReplaceByDebugLocalRead();
       value.uniquePhiUsers().forEach(Phi::removeTrivialPhi);
     }
+
+    @Override
+    public String toString() {
+      return "ExistingValue(v" + value.getNumber() + ")";
+    }
   }
 
   private class MaterializableValue implements FieldValue {
@@ -361,7 +366,7 @@ public class RedundantFieldLoadElimination {
 
     InstanceFieldInitializationInfoCollection fieldInitializationInfos =
         instanceInitializerInfo.fieldInitializationInfos();
-    fieldInitializationInfos.forEach(
+    fieldInitializationInfos.forEachWithDeterministicOrder(
         appView,
         (field, info) -> {
           if (!appView.appInfo().withLiveness().mayPropagateValueFor(field.field)) {

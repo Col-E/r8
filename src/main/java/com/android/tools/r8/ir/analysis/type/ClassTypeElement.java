@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
@@ -132,7 +133,10 @@ public class ClassTypeElement extends ReferenceTypeElement {
     builder.append(" {");
     Set<DexType> interfaces = getInterfaces();
     if (interfaces != null) {
-      builder.append(interfaces.stream().map(DexType::toString).collect(Collectors.joining(", ")));
+      List<DexType> sortedInterfaces = new ArrayList<>(interfaces);
+      sortedInterfaces.sort(DexType::slowCompareTo);
+      builder.append(
+          sortedInterfaces.stream().map(DexType::toString).collect(Collectors.joining(", ")));
     }
     builder.append("}");
     return builder.toString();

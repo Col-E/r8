@@ -92,6 +92,11 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
         lens.getRenamedMethodSignature(parent));
   }
 
+  @Override
+  public String toString() {
+    return "NonTrivialInstanceInitializerInfo(" + fieldInitializationInfos + ")";
+  }
+
   public static class Builder {
 
     private final InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos;

@@ -43,4 +43,9 @@ public class InstanceFieldArgumentInitializationInfo implements InstanceFieldIni
     // initialization info.
     return this;
   }
+
+  @Override
+  public String toString() {
+    return "InstanceFieldArgumentInitializationInfo(argumentIndex=" + argumentIndex + ")";
+  }
 }

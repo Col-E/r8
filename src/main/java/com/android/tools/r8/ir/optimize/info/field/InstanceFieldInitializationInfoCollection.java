@@ -10,8 +10,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.IdentityHashMap;
-import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.BiConsumer;
 
 /**
@@ -31,6 +30,10 @@ public abstract class InstanceFieldInitializationInfoCollection {
       DexDefinitionSupplier definitions,
       BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer);
 
+  public abstract void forEachWithDeterministicOrder(
+      DexDefinitionSupplier definitions,
+      BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer);
+
   public abstract InstanceFieldInitializationInfo get(DexEncodedField field);
 
   public abstract boolean isEmpty();
@@ -40,7 +43,8 @@ public abstract class InstanceFieldInitializationInfoCollection {
 
   public static class Builder {
 
-    Map<DexField, InstanceFieldInitializationInfo> infos = new IdentityHashMap<>();
+    TreeMap<DexField, InstanceFieldInitializationInfo> infos =
+        new TreeMap<>(DexField::slowCompareTo);
 
     public void recordInitializationInfo(
         DexEncodedField field, InstanceFieldInitializationInfo info) {

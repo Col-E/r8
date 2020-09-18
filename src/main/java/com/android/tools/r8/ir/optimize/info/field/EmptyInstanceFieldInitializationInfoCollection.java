@@ -35,6 +35,13 @@ public class EmptyInstanceFieldInitializationInfoCollection
   }
 
   @Override
+  public void forEachWithDeterministicOrder(
+      DexDefinitionSupplier definitions,
+      BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer) {
+    // Intentionally empty.
+  }
+
+  @Override
   public InstanceFieldInitializationInfo get(DexEncodedField field) {
     return UnknownInstanceFieldInitializationInfo.getInstance();
   }
@@ -48,5 +55,10 @@ public class EmptyInstanceFieldInitializationInfoCollection
   public InstanceFieldInitializationInfoCollection rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     return this;
+  }
+
+  @Override
+  public String toString() {
+    return "EmptyInstanceFieldInitializationInfoCollection";
   }
 }

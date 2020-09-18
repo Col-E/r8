@@ -12,17 +12,20 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.Map;
+import com.android.tools.r8.utils.StringUtils;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeMap;
 import java.util.function.BiConsumer;
 
 /** See {@link InstanceFieldArgumentInitializationInfo}. */
 public class NonTrivialInstanceFieldInitializationInfoCollection
     extends InstanceFieldInitializationInfoCollection {
 
-  private final Map<DexField, InstanceFieldInitializationInfo> infos;
+  private final TreeMap<DexField, InstanceFieldInitializationInfo> infos;
 
   NonTrivialInstanceFieldInitializationInfoCollection(
-      Map<DexField, InstanceFieldInitializationInfo> infos) {
+      TreeMap<DexField, InstanceFieldInitializationInfo> infos) {
     assert !infos.isEmpty();
     assert infos.values().stream().noneMatch(InstanceFieldInitializationInfo::isUnknown);
     this.infos = infos;
@@ -42,6 +45,14 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
             assert false;
           }
         });
+  }
+
+  @Override
+  public void forEachWithDeterministicOrder(
+      DexDefinitionSupplier definitions,
+      BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer) {
+    // We currently use a sorted backing and can therefore simply use forEach().
+    forEach(definitions, consumer);
   }
 
   @Override
@@ -67,5 +78,14 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
           }
         });
     return builder.build();
+  }
+
+  @Override
+  public String toString() {
+    List<String> strings = new ArrayList<>();
+    infos.forEach((field, info) -> strings.add(field.toSourceString() + " -> " + info));
+    return "NonTrivialInstanceFieldInitializationInfoCollection("
+        + StringUtils.join(strings, "; ")
+        + ")";
   }
 }
