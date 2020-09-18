@@ -14,7 +14,7 @@ import java.util.Set;
 public class RetraceUtils {
 
   private static final Set<String> UNKNOWN_SOURCEFILE_NAMES =
-      Sets.newHashSet("", "SourceFile", "Unknown", "Unknown Source");
+      Sets.newHashSet("", "SourceFile", "Unknown", "Unknown Source", "PG");
 
   public static String methodDescriptionFromMethodReference(
       MethodReference methodReference, boolean appendHolder, boolean verbose) {

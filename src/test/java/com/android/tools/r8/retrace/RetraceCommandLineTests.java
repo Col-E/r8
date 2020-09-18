@@ -15,6 +15,7 @@ import com.android.tools.r8.Version;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTraceWithInfo;
 import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
+import com.android.tools.r8.retrace.stacktraces.PGStackTrace;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Charsets;
 import java.io.ByteArrayOutputStream;
@@ -114,6 +115,16 @@ public class RetraceCommandLineTests {
         false,
         StringUtils.joinLines(stackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR,
         "--info");
+  }
+
+  @Test
+  public void testPGStackTrace() throws Exception {
+    PGStackTrace pgStackTrace = new PGStackTrace();
+    runTest(
+        pgStackTrace.mapping(),
+        StringUtils.joinLines(pgStackTrace.obfuscatedStackTrace()),
+        false,
+        StringUtils.joinLines(pgStackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR);
   }
 
   @Test
