@@ -23,14 +23,17 @@ public class RetraceFieldResult extends Result<RetraceFieldResult.Element, Retra
   private final RetraceClassResult.Element classElement;
   private final List<MemberNaming> memberNamings;
   private final String obfuscatedName;
+  private final RetraceApi retracer;
 
   RetraceFieldResult(
       RetraceClassResult.Element classElement,
       List<MemberNaming> memberNamings,
-      String obfuscatedName) {
+      String obfuscatedName,
+      RetraceApi retracer) {
     this.classElement = classElement;
     this.memberNamings = memberNamings;
     this.obfuscatedName = obfuscatedName;
+    this.retracer = retracer;
     assert classElement != null;
     assert memberNamings == null
         || (!memberNamings.isEmpty() && memberNamings.stream().allMatch(Objects::nonNull));

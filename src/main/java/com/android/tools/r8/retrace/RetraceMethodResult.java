@@ -26,15 +26,18 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
   private final String obfuscatedName;
   private final RetraceClassResult.Element classElement;
   private final MappedRangesOfName mappedRanges;
+  private final RetraceApi retracer;
   private Boolean isAmbiguousCached = null;
 
   RetraceMethodResult(
       RetraceClassResult.Element classElement,
       MappedRangesOfName mappedRanges,
-      String obfuscatedName) {
+      String obfuscatedName,
+      RetraceApi retracer) {
     this.classElement = classElement;
     this.mappedRanges = mappedRanges;
     this.obfuscatedName = obfuscatedName;
+    this.retracer = retracer;
     assert classElement != null;
   }
 
@@ -87,7 +90,7 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
       }
     }
     return new RetraceMethodResult(
-        classElement, new MappedRangesOfName(narrowedRanges), obfuscatedName);
+        classElement, new MappedRangesOfName(narrowedRanges), obfuscatedName, retracer);
   }
 
   @Override
@@ -182,7 +185,8 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
     }
 
     public RetraceSourceFileResult retraceSourceFile(String sourceFile) {
-      return RetraceUtils.getSourceFile(classElement, methodReference.getHolderClass(), sourceFile);
+      return RetraceUtils.getSourceFile(
+          classElement, methodReference.getHolderClass(), sourceFile, retraceMethodResult.retracer);
     }
   }
 }

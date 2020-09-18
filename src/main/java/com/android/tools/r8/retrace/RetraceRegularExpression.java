@@ -838,7 +838,8 @@ public class RetraceRegularExpression {
                   : RetraceUtils.getSourceFile(
                       retraceString.getClassContext(),
                       retraceString.context.qualifiedContext,
-                      fileName);
+                      fileName,
+                      retracer);
           retracedStrings.add(
               retraceString
                   .updateContext(context -> context.withSource(sourceFileResult.getFilename()))

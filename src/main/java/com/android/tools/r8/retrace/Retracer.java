@@ -38,7 +38,7 @@ public class Retracer implements RetraceApi {
   @Override
   public RetraceClassResult retrace(ClassReference classReference) {
     return RetraceClassResult.create(
-        classReference, classNameMapper.getClassNaming(classReference.getTypeName()));
+        classReference, classNameMapper.getClassNaming(classReference.getTypeName()), this);
   }
 
   @Override

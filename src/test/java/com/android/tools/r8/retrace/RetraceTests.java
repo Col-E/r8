@@ -24,6 +24,7 @@ import com.android.tools.r8.retrace.stacktraces.CircularReferenceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlineSourceFileContextStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NamedModuleStackTrace;
@@ -171,6 +172,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testUnknownSourceStackTrace() {
     runRetraceTest(new UnknownSourceStackTrace());
+  }
+
+  @Test
+  public void testInlineSourceFileContext() {
+    runRetraceTest(new InlineSourceFileContextStackTrace());
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {

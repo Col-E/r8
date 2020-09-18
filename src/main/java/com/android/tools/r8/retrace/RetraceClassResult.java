@@ -26,15 +26,18 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
 
   private final ClassReference obfuscatedReference;
   private final ClassNamingForNameMapper mapper;
+  private final RetraceApi retracer;
 
-  private RetraceClassResult(ClassReference obfuscatedReference, ClassNamingForNameMapper mapper) {
+  private RetraceClassResult(
+      ClassReference obfuscatedReference, ClassNamingForNameMapper mapper, RetraceApi retracer) {
     this.obfuscatedReference = obfuscatedReference;
     this.mapper = mapper;
+    this.retracer = retracer;
   }
 
   static RetraceClassResult create(
-      ClassReference obfuscatedReference, ClassNamingForNameMapper mapper) {
-    return new RetraceClassResult(obfuscatedReference, mapper);
+      ClassReference obfuscatedReference, ClassNamingForNameMapper mapper, RetraceApi retracer) {
+    return new RetraceClassResult(obfuscatedReference, mapper, retracer);
   }
 
   public RetraceFieldResult lookupField(String fieldName) {
@@ -75,12 +78,12 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
           if (element.mapper != null) {
             mappedRangesForT = lookupFunction.apply(element.mapper, name);
           }
-          elementBox.set(constructor.create(element, mappedRangesForT, name));
+          elementBox.set(constructor.create(element, mappedRangesForT, name, retracer));
         });
     return elementBox.get();
   }
 
-  private boolean hasRetraceResult() {
+  boolean hasRetraceResult() {
     return mapper != null;
   }
 
@@ -101,7 +104,7 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
   }
 
   private interface ResultConstructor<T, R> {
-    R create(Element element, T mappings, String obfuscatedName);
+    R create(Element element, T mappings, String obfuscatedName, RetraceApi retraceApi);
   }
 
   public boolean isAmbiguous() {
@@ -186,7 +189,10 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
         BiFunction<ClassNamingForNameMapper, String, T> lookupFunction,
         ResultConstructor<T, R> constructor) {
       return constructor.create(
-          this, mapper != null ? lookupFunction.apply(mapper, name) : null, name);
+          this,
+          mapper != null ? lookupFunction.apply(mapper, name) : null,
+          name,
+          classResult.retracer);
     }
   }
 }
