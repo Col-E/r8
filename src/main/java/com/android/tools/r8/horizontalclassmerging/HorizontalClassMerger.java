@@ -7,6 +7,7 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.horizontalclassmerging.policies.DontMergeSynchronizedClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoFields;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInnerClasses;
@@ -55,7 +56,8 @@ public class HorizontalClassMerger {
             new NotEntryPoint(appView.dexItemFactory()),
             new PreventMergeIntoMainDex(appView, mainDexTracingResult),
             new SameParentClass(),
-            new RespectPackageBoundaries(appView)
+            new RespectPackageBoundaries(appView),
+            new DontMergeSynchronizedClasses(appView)
             // TODO: add policies
             );
 
