@@ -112,8 +112,6 @@ public class MainKtDump implements Opcodes {
               "(Lkotlin/jvm/functions/Function1<-Ljava/lang/Integer;Lkotlin/Unit;>;I)V",
               null);
       {
-        annotationVisitor0 =
-            methodVisitor.visitAnnotation("Lcom/android/tools/r8/NeverInline;", true);
         annotationVisitor0.visitEnd();
       }
       methodVisitor.visitAnnotableParameterCount(2, false);

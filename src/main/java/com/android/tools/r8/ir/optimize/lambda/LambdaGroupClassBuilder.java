@@ -38,28 +38,26 @@ public abstract class LambdaGroupClassBuilder<T extends LambdaGroup> {
       AppView<? extends AppInfoWithClassHierarchy> appView, OptimizationFeedback feedback) {
     DexType groupClassType = group.getGroupClassType();
     DexType superClassType = getSuperClassType();
-    DexProgramClass programClass =
-        new DexProgramClass(
-            groupClassType,
-            null,
-            new SynthesizedOrigin(origin, getClass()),
-            buildAccessFlags(),
-            superClassType,
-            buildInterfaces(),
-            factory.createString(origin),
-            null,
-            Collections.emptyList(),
-            buildEnclosingMethodAttribute(),
-            buildInnerClasses(),
-            buildAnnotations(),
-            buildStaticFields(appView, feedback),
-            buildInstanceFields(),
-            buildDirectMethods(),
-            buildVirtualMethods(),
-            factory.getSkipNameValidationForTesting(),
-            // The name of the class is based on the hash of the content.
-            DexProgramClass::checksumFromType);
-    return programClass;
+    return new DexProgramClass(
+        groupClassType,
+        null,
+        new SynthesizedOrigin(origin, getClass()),
+        buildAccessFlags(),
+        superClassType,
+        buildInterfaces(),
+        factory.createString(origin),
+        null,
+        Collections.emptyList(),
+        buildEnclosingMethodAttribute(),
+        buildInnerClasses(),
+        buildAnnotations(),
+        buildStaticFields(appView, feedback),
+        buildInstanceFields(),
+        buildDirectMethods(),
+        buildVirtualMethods(),
+        factory.getSkipNameValidationForTesting(),
+        // The name of the class is based on the hash of the content.
+        DexProgramClass::checksumFromType);
   }
 
   protected abstract DexType getSuperClassType();

@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin.lambda.b159688129;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -69,7 +70,7 @@ public class LambdaGroupGCLimitTest extends TestBase {
         .assertSuccessWithOutputLines("3")
         .inspect(
             codeInspector -> {
-              final List<FoundClassSubject> lambdaGroups =
+              List<FoundClassSubject> lambdaGroups =
                   codeInspector.allClasses().stream()
                       .filter(c -> c.getFinalName().contains("LambdaGroup"))
                       .collect(Collectors.toList());
@@ -79,6 +80,7 @@ public class LambdaGroupGCLimitTest extends TestBase {
     ProcessResult processResult =
         ToolHelper.runDex2OatRaw(path, oatFile, parameters.getRuntime().asDex().getVm());
     assertEquals(0, processResult.exitCode);
-    assertThat(processResult.stderr, containsString("Method exceeds compiler instruction limit"));
+    assertThat(
+        processResult.stderr, not(containsString("Method exceeds compiler instruction limit")));
   }
 }

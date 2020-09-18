@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
@@ -22,6 +22,8 @@ final class KotlinLambdaVirtualMethodSourceCode extends SyntheticSourceCode {
   private final DexItemFactory factory;
   private final DexField idField;
   private final List<DexEncodedMethod> implMethods;
+  private final DexMethod fallThroughMethod;
+  private final int keyStart;
 
   KotlinLambdaVirtualMethodSourceCode(
       DexItemFactory factory,
@@ -29,11 +31,15 @@ final class KotlinLambdaVirtualMethodSourceCode extends SyntheticSourceCode {
       DexMethod method,
       DexField idField,
       List<DexEncodedMethod> implMethods,
+      DexMethod fallThroughMethod,
+      int keyStart,
       Position callerPosition) {
     super(groupClass, method, callerPosition);
     this.factory = factory;
     this.idField = idField;
     this.implMethods = implMethods;
+    this.fallThroughMethod = fallThroughMethod;
+    this.keyStart = keyStart;
   }
 
   @Override
@@ -64,17 +70,21 @@ final class KotlinLambdaVirtualMethodSourceCode extends SyntheticSourceCode {
     add(builder -> builder.addSwitch(idRegister, keys, fallthrough[0], offsets),
         builder -> endsSwitch(builder, switchIndex, fallthrough[0], offsets));
 
-    // Fallthrough treated as unreachable.
-    fallthrough[0] = nextInstructionIndex();
-    int nullRegister = nextRegister(ValueType.OBJECT);
-    add(builder -> builder.addNullConst(nullRegister));
-    add(builder -> builder.addThrow(nullRegister), endsBlock);
-
     List<Value> arguments = new ArrayList<>(proto.parameters.values.length + 1);
+
+    fallthrough[0] = nextInstructionIndex();
+    if (fallThroughMethod == null) {
+      // Fallthrough treated as unreachable.
+      int nullRegister = nextRegister(ValueType.OBJECT);
+      add(builder -> builder.addNullConst(nullRegister));
+      add(builder -> builder.addThrow(nullRegister), endsBlock);
+    } else {
+      addMethodCall(fallThroughMethod, arguments, returnsValue, retRegister);
+    }
 
     // Blocks for each lambda id.
     for (int i = 0; i < implMethodCount; i++) {
-      keys[i] = i;
+      keys[i] = keyStart + i;
       DexEncodedMethod impl = implMethods.get(i);
       if (impl == null) {
         // Virtual method is missing in lambda class.
@@ -82,28 +92,31 @@ final class KotlinLambdaVirtualMethodSourceCode extends SyntheticSourceCode {
         continue;
       }
       offsets[i] = nextInstructionIndex();
+      addMethodCall(impl.method, arguments, returnsValue, retRegister);
+    }
+  }
 
-      // Emit fake call on `this` receiver.
-      add(
-          builder -> {
-            if (arguments.isEmpty()) {
-              arguments.add(builder.getReceiverValue());
-              List<Value> argumentValues = builder.getArgumentValues();
-              if (argumentValues != null) {
-                arguments.addAll(builder.getArgumentValues());
-              }
+  private void addMethodCall(
+      DexMethod method, List<Value> arguments, boolean returnsValue, int retRegister) {
+    // Emit fake call on `this` receiver.
+    add(
+        builder -> {
+          if (arguments.isEmpty()) {
+            arguments.add(builder.getReceiverValue());
+            List<Value> argumentValues = builder.getArgumentValues();
+            if (argumentValues != null) {
+              arguments.addAll(builder.getArgumentValues());
             }
-            builder.addInvoke(
-                Type.VIRTUAL, impl.method, impl.method.proto, arguments, false /* isInterface */);
-          });
-
-      // Handle return value if needed.
-      if (returnsValue) {
-        add(builder -> builder.addMoveResult(retRegister));
-        add(builder -> builder.addReturn(retRegister), endsBlock);
-      } else {
-        add(IRBuilder::addReturn, endsBlock);
-      }
+          }
+          builder.addInvoke(
+              Invoke.Type.VIRTUAL, method, method.proto, arguments, false /* isInterface */);
+        });
+    // Handle return value if needed.
+    if (returnsValue) {
+      add(builder -> builder.addMoveResult(retRegister));
+      add(builder -> builder.addReturn(retRegister), endsBlock);
+    } else {
+      add(IRBuilder::addReturn, endsBlock);
     }
   }
 }

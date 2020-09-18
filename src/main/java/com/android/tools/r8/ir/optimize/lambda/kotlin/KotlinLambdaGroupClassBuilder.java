@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -26,11 +27,16 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupClassBuilder;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
+import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.IntBox;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.TriConsumer;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,10 +50,13 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
     extends LambdaGroupClassBuilder<T> implements KotlinLambdaConstants {
 
   final KotlinLambdaGroupId id;
+  final InternalOptions options;
 
-  KotlinLambdaGroupClassBuilder(T group, DexItemFactory factory, String origin) {
+  KotlinLambdaGroupClassBuilder(
+      T group, DexItemFactory factory, InternalOptions options, String origin) {
     super(group, factory, origin);
     this.id = group.id();
+    this.options = options;
   }
 
   abstract SyntheticSourceCode createInstanceInitializerSourceCode(
@@ -107,32 +116,102 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
         boolean isMainMethod =
             id.mainMethodName == methodName && id.mainMethodProto == methodProto;
 
-        // For bridge methods we still use same PUBLIC FINAL as for the main method,
-        // since inlining removes BRIDGE & SYNTHETIC attributes from the bridge methods
-        // anyways and our new method is a product of inlining.
-        MethodAccessFlags accessFlags = MAIN_METHOD_FLAGS.copy();
-
-        DexMethod method = factory.createMethod(group.getGroupClassType(), methodProto, methodName);
-        result.add(
-            new DexEncodedMethod(
-                method,
-                accessFlags,
-                isMainMethod ? id.mainMethodAnnotations : DexAnnotationSet.empty(),
-                isMainMethod ? id.mainMethodParamAnnotations : ParameterAnnotationsList.empty(),
-                new SynthesizedCode(
-                    callerPosition ->
-                        new KotlinLambdaVirtualMethodSourceCode(
-                            factory,
-                            group.getGroupClassType(),
-                            method,
-                            group.getLambdaIdField(factory),
-                            implMethods,
-                            callerPosition)),
-                true));
+        // Merging lambdas can introduce methods with too many instructions for the verifier on
+        // ART to give up statically verifying the method. We therefore split up the implementation
+        // methods and chain them with fallthrough:
+        // function <method>() {
+        //   switch(field.id) {
+        //     case 1:
+        //     case 2:
+        //     ...
+        //     case n:
+        //     default: <method$1>()
+        // }
+        //
+        // function <method$1>() {
+        //     case n + 1:
+        //     case n + 2:
+        //     ...
+        //     case n + m:
+        //     default: throw null
+        // }
+        IntBox counter = new IntBox(0);
+        Box<DexMethod> currentMethodBox =
+            new Box<>(factory.createMethod(group.getGroupClassType(), methodProto, methodName));
+        splitIntoGroupsBasedOnInstructionSize(
+            implMethods,
+            (implMethodsToAdd, methodsSoFar, methodsRemaining) -> {
+              assert currentMethodBox.isSet();
+              // For bridge methods we still use same PUBLIC FINAL as for the main method,
+              // since inlining removes BRIDGE & SYNTHETIC attributes from the bridge methods
+              // anyways and our new method is a product of inlining.
+              MethodAccessFlags accessFlags = MAIN_METHOD_FLAGS.copy();
+              DexMethod method = currentMethodBox.get();
+              DexMethod fallthrough =
+                  methodsRemaining
+                      ? factory.createMethod(
+                          group.getGroupClassType(),
+                          methodProto,
+                          methodName.toString() + "$" + counter.getAndIncrement())
+                      : null;
+              result.add(
+                  new DexEncodedMethod(
+                      method,
+                      accessFlags,
+                      isMainMethod ? id.mainMethodAnnotations : DexAnnotationSet.empty(),
+                      isMainMethod
+                          ? id.mainMethodParamAnnotations
+                          : ParameterAnnotationsList.empty(),
+                      new SynthesizedCode(
+                          callerPosition ->
+                              new KotlinLambdaVirtualMethodSourceCode(
+                                  factory,
+                                  group.getGroupClassType(),
+                                  method,
+                                  group.getLambdaIdField(factory),
+                                  implMethodsToAdd,
+                                  fallthrough,
+                                  methodsSoFar,
+                                  callerPosition)),
+                      true));
+              currentMethodBox.set(fallthrough);
+            });
+        assert !currentMethodBox.isSet();
       }
     }
-
     return result.toArray(DexEncodedMethod.EMPTY_ARRAY);
+  }
+
+  private void splitIntoGroupsBasedOnInstructionSize(
+      List<DexEncodedMethod> implMethods,
+      TriConsumer<List<DexEncodedMethod>, Integer, Boolean> consumer) {
+    List<DexEncodedMethod> methods = new ArrayList<>();
+    // Upper bound in DEX for reading the field for switching on the group id.
+    final int fieldLoadInstructionSize = 10;
+    int verificationSizeLimitInBytes = options.verificationSizeLimitInBytes();
+    int currentInstructionsSize = fieldLoadInstructionSize;
+    int implMethodsCommitted = 0;
+    for (DexEncodedMethod implMethod : implMethods) {
+      int packedSwitchPayloadSize =
+          (int)
+              (IntSwitch.basePackedSize(options.getInternalOutputMode())
+                  + IntSwitch.packedPayloadSize(options.getInternalOutputMode(), methods.size()));
+      Code code = implMethod.getCode();
+      // We only do lambda merging for DEX. If we started doing lambda merging for CF, we would
+      // have to compute a size.
+      assert code.isDexCode();
+      int codeSize = code.asDexCode().codeSizeInBytes();
+      int estimatedMethodSize = currentInstructionsSize + codeSize + packedSwitchPayloadSize;
+      if (methods.size() > 0 && estimatedMethodSize > verificationSizeLimitInBytes) {
+        consumer.accept(methods, implMethodsCommitted, true);
+        currentInstructionsSize = fieldLoadInstructionSize;
+        implMethodsCommitted += methods.size();
+        methods = new ArrayList<>();
+      }
+      methods.add(implMethod);
+      currentInstructionsSize += codeSize;
+    }
+    consumer.accept(methods, implMethodsCommitted, false);
   }
 
   // Build a map of virtual methods with unique name/proto pointing to a list of methods

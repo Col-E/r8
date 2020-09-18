@@ -24,7 +24,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
   protected final static Predicate<IRBuilder> doesNotEndBlock = x -> false;
   protected final static Predicate<IRBuilder> endsBlock = x -> true;
 
-  // TODO(b/146124603): Remove these fields as optimzations (e.g., merging) could invalidate them.
+  // TODO(b/146124603): Remove these fields as optimizations (e.g., merging) could invalidate them.
   protected final DexType receiver;
   protected final DexMethod method;
   protected final DexProto proto;

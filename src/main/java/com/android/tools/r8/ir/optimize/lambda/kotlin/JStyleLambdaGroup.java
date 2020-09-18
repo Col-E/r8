@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.optimize.lambda.LambdaGroup;
 import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.Lists;
 import java.util.List;
@@ -108,8 +109,8 @@ final class JStyleLambdaGroup extends KotlinLambdaGroup {
   }
 
   @Override
-  protected ClassBuilder getBuilder(DexItemFactory factory) {
-    return new ClassBuilder(factory, "java-style lambda group");
+  protected ClassBuilder getBuilder(DexItemFactory factory, InternalOptions options) {
+    return new ClassBuilder(factory, options, "java-style lambda group");
   }
 
   @Override
@@ -183,8 +184,8 @@ final class JStyleLambdaGroup extends KotlinLambdaGroup {
 
   // Specialized class builder.
   private final class ClassBuilder extends KotlinLambdaGroupClassBuilder<JStyleLambdaGroup> {
-    ClassBuilder(DexItemFactory factory, String origin) {
-      super(JStyleLambdaGroup.this, factory, origin);
+    ClassBuilder(DexItemFactory factory, InternalOptions options, String origin) {
+      super(JStyleLambdaGroup.this, factory, options, origin);
     }
 
     @Override

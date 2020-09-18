@@ -167,7 +167,8 @@ public final class LambdaMerger {
         }
       }
 
-      assert invokesToInline.size() > 1;
+      assert invokesToInline.size() > 1
+          || appView.options().testing.verificationSizeLimitInBytesOverride > -1;
 
       inliner.performForcedInlining(method, code, invokesToInline, provider, Timing.empty());
     }

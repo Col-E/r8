@@ -5,9 +5,14 @@
 package com.android.tools.r8.kotlin.lambda.b159688129
 
 fun main() {
-  run ({ arg -> println(arg)}, 3)
+  runSimple { println("Hello1")}
+  runSimple { println("Hello2")}
+  runSimple { println("Hello3")}
+  runSimple { println("Hello4")}
+  runSimple { println("Hello5")}
+  runSimple { println("Hello6")}
 }
 
-fun run(param: Function1<Int, Unit>, arg : Int) {
-  param.invoke(arg)
+fun runSimple(cb: () -> Unit) {
+  cb()
 }

@@ -253,6 +253,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public int callGraphLikelySpuriousCallEdgeThreshold = 50;
 
+  public int verificationSizeLimitInBytes() {
+    if (testing.verificationSizeLimitInBytesOverride > -1) {
+      return testing.verificationSizeLimitInBytesOverride;
+    }
+    // For CF we use the defined limit in the spec. For DEX we use the limit of the static verifier
+    // https://android.googlesource.com/platform/art/+/android10-release/compiler/compiler.cc#48
+    return isGeneratingClassFiles() ? 65534 : 16383;
+  }
+
   // TODO(b/141719453): The inlining limit at least should be consistent with normal inlining.
   public int classInliningInstructionLimit = 10;
   public int classInliningInstructionAllowance = 50;
@@ -1246,6 +1255,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enumUnboxingRewriteJavaCGeneratedMethod = false;
     public boolean assertConsistentRenamingOfSignature = false;
     public boolean allowStaticInterfaceMethodsForPreNApiLevel = false;
+    public int verificationSizeLimitInBytesOverride = -1;
 
     // Flag to allow processing of resources in D8. A data resource consumer still needs to be
     // specified.

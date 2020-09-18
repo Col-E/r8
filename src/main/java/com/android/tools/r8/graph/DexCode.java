@@ -443,6 +443,11 @@ public class DexCode extends Code implements Comparable<DexCode> {
     }
   }
 
+  public int codeSizeInBytes() {
+    Instruction last = instructions[instructions.length - 1];
+    return last.getOffset() + last.getSize();
+  }
+
   public static class Try extends DexItem implements Comparable<Try> {
 
     public static final int NO_INDEX = -1;

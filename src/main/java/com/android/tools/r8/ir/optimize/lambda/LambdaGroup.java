@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.lambda.CodeProcessor.Strategy;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.Lists;
 import com.google.common.io.BaseEncoding;
@@ -148,7 +149,7 @@ public abstract class LambdaGroup {
     int lastUsed = -1;
     int lastSeen = -1;
     for (Entry<DexType, LambdaInfo> entry : lambdas.entrySet()) {
-      Integer index = entry.getValue().id;
+      int index = entry.getValue().id;
       assert lastUsed <= lastSeen && lastSeen < index;
       lastUsed++;
       lastSeen = index;
@@ -184,11 +185,12 @@ public abstract class LambdaGroup {
                     + getGroupSuffix()
                     + createHash(lambdas)
                     + ";");
-    return getBuilder(appView.dexItemFactory()).synthesizeClass(appView, feedback);
+    return getBuilder(appView.dexItemFactory(), appView.options())
+        .synthesizeClass(appView, feedback);
   }
 
   protected abstract LambdaGroupClassBuilder<? extends LambdaGroup> getBuilder(
-      DexItemFactory factory);
+      DexItemFactory factory, InternalOptions options);
 
   private String createHash(List<LambdaInfo> lambdas) {
     try {
