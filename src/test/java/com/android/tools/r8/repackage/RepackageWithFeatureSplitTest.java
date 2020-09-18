@@ -9,10 +9,8 @@ import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
@@ -25,12 +23,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RepackageWithFeatureSplitTest extends TestBase {
-
-  private static final String REPACKAGE_DIR = "foo";
-
-  private final String flattenPackageHierarchyOrRepackageClasses;
-  private final TestParameters parameters;
+public class RepackageWithFeatureSplitTest extends RepackageTestBase {
 
   @Parameters(name = "{1}, kind: {0}")
   public static List<Object[]> data() {
@@ -41,8 +34,7 @@ public class RepackageWithFeatureSplitTest extends TestBase {
 
   public RepackageWithFeatureSplitTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
-    this.flattenPackageHierarchyOrRepackageClasses = flattenPackageHierarchyOrRepackageClasses;
-    this.parameters = parameters;
+    super(flattenPackageHierarchyOrRepackageClasses, parameters);
   }
 
   @Test
@@ -52,13 +44,7 @@ public class RepackageWithFeatureSplitTest extends TestBase {
         .addFeatureSplit(FeatureMain.class, FeatureClass.class)
         .addFeatureSplitRuntime()
         .addKeepFeatureMainRule(FeatureMain.class)
-        .addKeepRules(
-            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_DIR + "\"")
-        .addOptionsModification(
-            options -> {
-              assertFalse(options.testing.enableExperimentalRepackaging);
-              options.testing.enableExperimentalRepackaging = true;
-            })
+        .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

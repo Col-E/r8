@@ -4,13 +4,12 @@
 
 package com.android.tools.r8.repackage;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
+import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.repackage.testclasses.repackagetest.AccessPackagePrivateKeptMethodAllowRenamingOnReachableClassDirect;
@@ -34,7 +33,6 @@ import com.android.tools.r8.repackage.testclasses.repackagetest.ReachableClassWi
 import com.android.tools.r8.repackage.testclasses.repackagetest.ReachableClassWithKeptMethodAllowRenaming;
 import com.android.tools.r8.repackage.testclasses.repackagetest.TestClass;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -46,11 +44,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RepackageTest extends TestBase {
-
-  private static final String FLATTEN_PACKAGE_HIERARCHY = "flattenpackagehierarchy";
-  private static final String REPACKAGE_CLASSES = "repackageclasses";
-  private static final String REPACKAGE_DIR = "foo";
+public class RepackageTest extends RepackageTestBase {
 
   private static final List<String> EXPECTED =
       ImmutableList.of(
@@ -71,9 +65,6 @@ public class RepackageTest extends TestBase {
           "ReachableClass.packagePrivateMethod()");
 
   private final boolean allowAccessModification;
-  private final boolean enableExperimentalRepackaging;
-  private final String flattenPackageHierarchyOrRepackageClasses;
-  private final TestParameters parameters;
 
   @Parameters(name = "{3}, allow access modification: {0}, experimental: {1}, kind: {2}")
   public static List<Object[]> data() {
@@ -89,17 +80,15 @@ public class RepackageTest extends TestBase {
       boolean enableExperimentalRepackaging,
       String flattenPackageHierarchyOrRepackageClasses,
       TestParameters parameters) {
+    super(enableExperimentalRepackaging, flattenPackageHierarchyOrRepackageClasses, parameters);
     this.allowAccessModification = allowAccessModification;
-    this.enableExperimentalRepackaging = enableExperimentalRepackaging;
-    this.flattenPackageHierarchyOrRepackageClasses = flattenPackageHierarchyOrRepackageClasses;
-    this.parameters = parameters;
   }
 
   @Test
   public void testJvm() throws Exception {
     assumeFalse(allowAccessModification);
-    assumeFalse(enableExperimentalRepackaging);
-    assumeTrue(flattenPackageHierarchyOrRepackageClasses.equals(FLATTEN_PACKAGE_HIERARCHY));
+    assumeFalse(isExperimentalRepackaging());
+    assumeTrue(isFlattenPackageHierarchy());
     assumeTrue(parameters.isCfRuntime());
     testForJvm()
         .addTestClasspath()
@@ -113,7 +102,6 @@ public class RepackageTest extends TestBase {
         .addProgramFiles(ToolHelper.getClassFilesForTestPackage(TestClass.class.getPackage()))
         .addKeepMainRule(TestClass.class)
         .addKeepRules(
-            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_DIR + "\"",
             "-keep class " + KeptClass.class.getTypeName(),
             "-keep,allowobfuscation class " + KeptClassAllowRenaming.class.getTypeName(),
             "-keepclassmembers class " + ReachableClassWithKeptMethod.class.getTypeName() + " {",
@@ -125,9 +113,7 @@ public class RepackageTest extends TestBase {
             "  <methods>;",
             "}")
         .allowAccessModification(allowAccessModification)
-        .addOptionsModification(
-            options ->
-                options.testing.enableExperimentalRepackaging = enableExperimentalRepackaging)
+        .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .enableNoStaticClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -139,23 +125,8 @@ public class RepackageTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     forEachClass(
-        (clazz, eligibleForRepackaging) -> {
-          ClassSubject subject = inspector.clazz(clazz);
-          assertThat(subject, isPresent());
-          if (eligibleForRepackaging) {
-            assertEquals(
-                clazz.getTypeName(),
-                flattenPackageHierarchyOrRepackageClasses.equals(FLATTEN_PACKAGE_HIERARCHY)
-                    ? REPACKAGE_DIR + ".a"
-                    : REPACKAGE_DIR,
-                subject.getDexProgramClass().getType().getPackageName());
-          } else {
-            assertEquals(
-                clazz.getTypeName(),
-                RepackageTest.class.getPackage().getName() + ".testclasses.repackagetest",
-                subject.getDexProgramClass().getType().getPackageName());
-          }
-        });
+        (clazz, eligibleForRepackaging) ->
+            assertThat(clazz, isRepackagedIf(inspector, eligibleForRepackaging)));
   }
 
   /**
@@ -167,7 +138,7 @@ public class RepackageTest extends TestBase {
     //  the consumer, since these classes should be repackaged independent of
     //  -allowaccessmodification.
     Consumer<Class<?>> markShouldAlwaysBeEligible =
-        clazz -> consumer.accept(clazz, allowAccessModification || enableExperimentalRepackaging);
+        clazz -> consumer.accept(clazz, allowAccessModification || isExperimentalRepackaging());
     Consumer<Class<?>> markEligibleWithAllowAccessModification =
         clazz -> consumer.accept(clazz, allowAccessModification);
 

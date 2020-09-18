@@ -9,11 +9,9 @@ import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -25,12 +23,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RepackageWithMainDexListTest extends TestBase {
-
-  private static final String REPACKAGE_DIR = "foo";
-
-  private final String flattenPackageHierarchyOrRepackageClasses;
-  private final TestParameters parameters;
+public class RepackageWithMainDexListTest extends RepackageTestBase {
 
   @Parameters(name = "{1}, kind: {0}")
   public static List<Object[]> data() {
@@ -44,8 +37,7 @@ public class RepackageWithMainDexListTest extends TestBase {
 
   public RepackageWithMainDexListTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
-    this.flattenPackageHierarchyOrRepackageClasses = flattenPackageHierarchyOrRepackageClasses;
-    this.parameters = parameters;
+    super(flattenPackageHierarchyOrRepackageClasses, parameters);
   }
 
   @Test
@@ -56,15 +48,9 @@ public class RepackageWithMainDexListTest extends TestBase {
         .addKeepClassRulesWithAllowObfuscation(TestClass.class, OtherTestClass.class)
         .addKeepRules(
             "-keepclassmembers class " + TestClass.class.getTypeName() + " { <methods>; }")
-        .addKeepRules(
-            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_DIR + "\"")
         // Add a class that will be repackaged to the main dex list.
         .addMainDexListClasses(TestClass.class)
-        .addOptionsModification(
-            options -> {
-              assertFalse(options.testing.enableExperimentalRepackaging);
-              options.testing.enableExperimentalRepackaging = true;
-            })
+        .apply(this::configureRepackaging)
         // Debug mode to enable minimal main dex.
         .debug()
         .setMinApi(parameters.getApiLevel())

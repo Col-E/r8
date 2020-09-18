@@ -4,44 +4,22 @@
 
 package com.android.tools.r8.repackage;
 
-import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
-import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.repackage.testclasses.repackagetest.TestClass;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.google.common.collect.ImmutableList;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RepackageAfterCollisionWithPackagePrivateSignatureTest extends TestBase {
-
-  private static final String REPACKAGE_DIR = "foo";
-
-  private final String flattenPackageHierarchyOrRepackageClasses;
-  private final TestParameters parameters;
-
-  @Parameters(name = "{1}, kind: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        ImmutableList.of(FLATTEN_PACKAGE_HIERARCHY, REPACKAGE_CLASSES),
-        getTestParameters().withAllRuntimesAndApiLevels().build());
-  }
+public class RepackageAfterCollisionWithPackagePrivateSignatureTest extends RepackageTestBase {
 
   public RepackageAfterCollisionWithPackagePrivateSignatureTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
-    this.flattenPackageHierarchyOrRepackageClasses = flattenPackageHierarchyOrRepackageClasses;
-    this.parameters = parameters;
+    super(flattenPackageHierarchyOrRepackageClasses, parameters);
   }
 
   @Test
@@ -49,10 +27,8 @@ public class RepackageAfterCollisionWithPackagePrivateSignatureTest extends Test
     testForR8(parameters.getBackend())
         .addInnerClasses(RepackageAfterCollisionWithPackagePrivateSignatureTest.class)
         .addKeepClassAndMembersRules(TestClass.class)
-        .addKeepRules(
-            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_DIR + "\"")
         .addClassObfuscationDictionary("a")
-        .addOptionsModification(options -> options.testing.enableExperimentalRepackaging = true)
+        .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -62,13 +38,7 @@ public class RepackageAfterCollisionWithPackagePrivateSignatureTest extends Test
   }
 
   private void inspect(CodeInspector inspector) {
-    ClassSubject repackageClassSubject = inspector.clazz(RepackageCandidate.class);
-    assertThat(repackageClassSubject, isPresent());
-    assertEquals(
-        flattenPackageHierarchyOrRepackageClasses.equals(FLATTEN_PACKAGE_HIERARCHY)
-            ? REPACKAGE_DIR + ".a"
-            : REPACKAGE_DIR,
-        repackageClassSubject.getDexProgramClass().getType().getPackageName());
+    assertThat(RepackageCandidate.class, isRepackaged(inspector));
   }
 
   public static class TestClass {

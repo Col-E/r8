@@ -6,10 +6,8 @@ package com.android.tools.r8.repackage;
 
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.repackage.testclasses.RepackagingWithNonReboundMethodReferenceTestClasses;
 import com.android.tools.r8.repackage.testclasses.RepackagingWithNonReboundMethodReferenceTestClasses.B;
@@ -22,13 +20,9 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RepackagingWithNonReboundMethodReferenceTest extends TestBase {
-
-  private static final String REPACKAGE_DIR = "foo";
+public class RepackageWithNonReboundMethodReferenceTest extends RepackageTestBase {
 
   private final boolean alwaysUseExistingAccessInfoCollectionsInMemberRebinding;
-  private final String flattenPackageHierarchyOrRepackageClasses;
-  private final TestParameters parameters;
 
   @Parameters(name = "{2}, use access info collections: {0}, kind: {1}")
   public static List<Object[]> data() {
@@ -38,14 +32,13 @@ public class RepackagingWithNonReboundMethodReferenceTest extends TestBase {
         getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public RepackagingWithNonReboundMethodReferenceTest(
+  public RepackageWithNonReboundMethodReferenceTest(
       boolean alwaysUseExistingAccessInfoCollectionsInMemberRebinding,
       String flattenPackageHierarchyOrRepackageClasses,
       TestParameters parameters) {
+    super(flattenPackageHierarchyOrRepackageClasses, parameters);
     this.alwaysUseExistingAccessInfoCollectionsInMemberRebinding =
         alwaysUseExistingAccessInfoCollectionsInMemberRebinding;
-    this.flattenPackageHierarchyOrRepackageClasses = flattenPackageHierarchyOrRepackageClasses;
-    this.parameters = parameters;
   }
 
   @Test
@@ -53,16 +46,13 @@ public class RepackagingWithNonReboundMethodReferenceTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass(), RepackagingWithNonReboundMethodReferenceTestClasses.class)
         .addKeepMainRule(TestClass.class)
-        .addKeepRules(
-            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_DIR + "\"")
         .addOptionsModification(
             options -> {
               assertTrue(options.testing.alwaysUseExistingAccessInfoCollectionsInMemberRebinding);
               options.testing.alwaysUseExistingAccessInfoCollectionsInMemberRebinding =
                   alwaysUseExistingAccessInfoCollectionsInMemberRebinding;
-              assertFalse(options.testing.enableExperimentalRepackaging);
-              options.testing.enableExperimentalRepackaging = true;
             })
+        .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()

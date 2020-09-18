@@ -4,48 +4,29 @@
 
 package com.android.tools.r8.repackage;
 
-import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
-import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.google.common.collect.ImmutableList;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RepackageWithPackagePrivateFieldAnnotationTest extends TestBase {
-
-  private static final String REPACKAGE_PACKAGE = "foo";
-
-  private final String flattenPackageHierarchyOrRepackageClasses;
-  private final TestParameters parameters;
-
-  @Parameters(name = "{1}, kind: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        ImmutableList.of(FLATTEN_PACKAGE_HIERARCHY, REPACKAGE_CLASSES),
-        getTestParameters().withAllRuntimesAndApiLevels().build());
-  }
+public class RepackageWithPackagePrivateFieldAnnotationTest extends RepackageTestBase {
 
   public RepackageWithPackagePrivateFieldAnnotationTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
-    this.flattenPackageHierarchyOrRepackageClasses = flattenPackageHierarchyOrRepackageClasses;
-    this.parameters = parameters;
+    super(flattenPackageHierarchyOrRepackageClasses, parameters);
   }
 
   @Test
@@ -54,14 +35,8 @@ public class RepackageWithPackagePrivateFieldAnnotationTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(NonPublicKeptAnnotation.class)
-        .addKeepRules(
-            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_PACKAGE + "\"")
         .addKeepRuntimeVisibleAnnotations()
-        .addOptionsModification(
-            options -> {
-              assert !options.testing.enableExperimentalRepackaging;
-              options.testing.enableExperimentalRepackaging = true;
-            })
+        .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .setMinApi(parameters.getApiLevel())
