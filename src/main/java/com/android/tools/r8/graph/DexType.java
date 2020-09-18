@@ -474,6 +474,17 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return getPackageOrName(false);
   }
 
+  public String getSimpleName() {
+    assert isClassType();
+    return DescriptorUtils.getSimpleClassNameFromDescriptor(toDescriptorString());
+  }
+
+  public DexType withSimpleName(String newSimpleName, DexItemFactory dexItemFactory) {
+    assert isClassType();
+    return dexItemFactory.createType(
+        DescriptorUtils.replaceSimpleClassNameInDescriptor(toDescriptorString(), newSimpleName));
+  }
+
   /** Get the fully qualified name using '/' in place of '.', aka the "internal type name" in ASM */
   public String getInternalName() {
     assert isClassType() || isArrayType();

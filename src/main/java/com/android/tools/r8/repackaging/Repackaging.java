@@ -4,19 +4,27 @@
 
 package com.android.tools.r8.repackaging;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.graph.ProgramPackageCollection;
+import com.android.tools.r8.graph.SortedProgramPackageCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
-import java.util.IdentityHashMap;
-import java.util.Map;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -60,27 +68,90 @@ public class Repackaging {
       return null;
     }
 
-    // For each package, find the set of classes that can be repackaged, and move them to the
-    // desired namespace.
-    Map<DexType, DexType> mappings = new IdentityHashMap<>();
-    for (ProgramPackage pkg : ProgramPackageCollection.createWithAllProgramClasses(appView)) {
-      Iterable<DexProgramClass> classesToRepackage =
-          computeClassesToRepackage(pkg, executorService);
-      String newPackageDescriptor = getNewPackageDescriptor(pkg);
-      for (DexProgramClass classToRepackage : classesToRepackage) {
-        // TODO(b/165783399): Handle class collisions when different packages are repackaged into
-        //  the same package.
-        DexType newType =
-            classToRepackage.getType().replacePackage(newPackageDescriptor, dexItemFactory);
-        mappings.put(classToRepackage.getType(), newType);
-      }
-      // TODO(b/165783399): Investigate if repackaging can lead to different dynamic dispatch. See,
-      //  for example, CrossPackageInvokeSuperToPackagePrivateMethodTest.
-    }
+    BiMap<DexType, DexType> mappings = HashBiMap.create();
+    Set<String> seenPackageDescriptors = new HashSet<>();
+    ProgramPackageCollection packages =
+        SortedProgramPackageCollection.createWithAllProgramClasses(appView);
+    processPackagesInDesiredLocation(packages, mappings, seenPackageDescriptors);
+    processRemainingPackages(packages, mappings, seenPackageDescriptors, executorService);
+    mappings.entrySet().removeIf(entry -> entry.getKey() == entry.getValue());
     if (mappings.isEmpty()) {
       return null;
     }
     return new RepackagingTreeFixer(appBuilder, appView, mappings).run();
+  }
+
+  private void processPackagesInDesiredLocation(
+      ProgramPackageCollection packages,
+      BiMap<DexType, DexType> mappings,
+      Set<String> seenPackageDescriptors) {
+    // For each package that is already in the desired location, record all the classes from the
+    // package in the mapping for collision detection.
+    Iterator<ProgramPackage> iterator = packages.iterator();
+    while (iterator.hasNext()) {
+      ProgramPackage pkg = iterator.next();
+      String newPackageDescriptor = getNewPackageDescriptor(pkg, seenPackageDescriptors);
+      if (pkg.getPackageDescriptor().equals(newPackageDescriptor)) {
+        for (DexProgramClass alreadyRepackagedClass : pkg) {
+          mappings.put(alreadyRepackagedClass.getType(), alreadyRepackagedClass.getType());
+        }
+        seenPackageDescriptors.add(newPackageDescriptor);
+        iterator.remove();
+      }
+    }
+  }
+
+  private void processRemainingPackages(
+      ProgramPackageCollection packages,
+      BiMap<DexType, DexType> mappings,
+      Set<String> seenPackageDescriptors,
+      ExecutorService executorService)
+      throws ExecutionException {
+    // For each package, find the set of classes that can be repackaged, and move them to the
+    // desired package.
+    for (ProgramPackage pkg : packages) {
+      // Already processed packages should have been removed.
+      String newPackageDescriptor = getNewPackageDescriptor(pkg, seenPackageDescriptors);
+      assert !pkg.getPackageDescriptor().equals(newPackageDescriptor);
+
+      Iterable<DexProgramClass> classesToRepackage =
+          computeClassesToRepackage(pkg, executorService);
+      for (DexProgramClass classToRepackage : classesToRepackage) {
+        processClass(classToRepackage, pkg, newPackageDescriptor, mappings);
+      }
+
+      seenPackageDescriptors.add(newPackageDescriptor);
+      // TODO(b/165783399): Investigate if repackaging can lead to different dynamic dispatch. See,
+      //  for example, CrossPackageInvokeSuperToPackagePrivateMethodTest.
+    }
+  }
+
+  private void processClass(
+      DexProgramClass classToRepackage,
+      ProgramPackage pkg,
+      String newPackageDescriptor,
+      BiMap<DexType, DexType> mappings) {
+    // Check if the class has already been processed.
+    if (mappings.containsKey(classToRepackage.getType())) {
+      return;
+    }
+
+    // Always repackage outer classes first, if any.
+    InnerClassAttribute innerClassAttribute = classToRepackage.getInnerClassAttributeForThisClass();
+    DexProgramClass outerClass = null;
+    if (innerClassAttribute != null) {
+      outerClass = asProgramClassOrNull(appView.definitionFor(innerClassAttribute.getOuter()));
+      if (outerClass != null) {
+        if (pkg.contains(outerClass)) {
+          processClass(outerClass, pkg, newPackageDescriptor, mappings);
+        } else {
+          outerClass = null;
+        }
+      }
+    }
+    mappings.put(
+        classToRepackage.getType(),
+        getRepackagedType(classToRepackage, outerClass, newPackageDescriptor, mappings));
   }
 
   private Iterable<DexProgramClass> computeClassesToRepackage(
@@ -94,13 +165,43 @@ public class Repackaging {
     return constraintGraph.computeClassesToRepackage();
   }
 
-  private String getNewPackageDescriptor(ProgramPackage pkg) {
+  private String getNewPackageDescriptor(ProgramPackage pkg, Set<String> seenPackageDescriptors) {
     String newPackageDescriptor =
         StringUtils.replaceAll(proguardConfiguration.getPackagePrefix(), ".", "/");
-    if (proguardConfiguration.getPackageObfuscationMode().isFlattenPackageHierarchy()) {
-      // TODO(b/165783399): Handle collisions among package names.
-      newPackageDescriptor += "/" + pkg.getLastPackageName();
+    if (proguardConfiguration.getPackageObfuscationMode().isRepackageClasses()) {
+      return newPackageDescriptor;
     }
-    return newPackageDescriptor;
+    newPackageDescriptor += "/" + pkg.getLastPackageName();
+    String finalPackageDescriptor = newPackageDescriptor;
+    for (int i = 1; seenPackageDescriptors.contains(finalPackageDescriptor); i++) {
+      finalPackageDescriptor = newPackageDescriptor + INNER_CLASS_SEPARATOR + i;
+    }
+    return finalPackageDescriptor;
+  }
+
+  private DexType getRepackagedType(
+      DexProgramClass clazz,
+      DexProgramClass outerClass,
+      String newPackageDescriptor,
+      BiMap<DexType, DexType> mappings) {
+    DexType repackagedDexType =
+        clazz.getType().replacePackage(newPackageDescriptor, dexItemFactory);
+    if (outerClass != null) {
+      String simpleName = clazz.getType().getSimpleName();
+      String outerClassSimpleName = outerClass.getType().getSimpleName();
+      if (simpleName.startsWith(outerClassSimpleName + INNER_CLASS_SEPARATOR)) {
+        String newSimpleName =
+            mappings.get(outerClass.getType()).getSimpleName()
+                + simpleName.substring(outerClassSimpleName.length());
+        repackagedDexType = repackagedDexType.withSimpleName(newSimpleName, dexItemFactory);
+      }
+    }
+    DexType finalRepackagedDexType = repackagedDexType;
+    for (int i = 1; mappings.inverse().containsKey(finalRepackagedDexType); i++) {
+      finalRepackagedDexType =
+          repackagedDexType.addSuffix(
+              Character.toString(INNER_CLASS_SEPARATOR) + i, dexItemFactory);
+    }
+    return finalRepackagedDexType;
   }
 }

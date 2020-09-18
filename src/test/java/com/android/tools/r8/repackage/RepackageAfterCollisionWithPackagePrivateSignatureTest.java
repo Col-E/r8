@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.repackage;
 
-
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;

@@ -24,8 +24,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 public abstract class RepackageTestBase extends TestBase {
 
-  protected static final String REPACKAGE_PACKAGE = "foo";
-
   private final boolean enableExperimentalRepackaging;
   private final String flattenPackageHierarchyOrRepackageClasses;
   protected final TestParameters parameters;
@@ -51,12 +49,35 @@ public abstract class RepackageTestBase extends TestBase {
     this.parameters = parameters;
   }
 
+  protected String getRepackagePackage() {
+    return "foo";
+  }
+
   protected Matcher<Class<?>> isRepackaged(CodeInspector inspector) {
-    return isRepackagedIf(inspector, true);
+    return isRepackagedAsExpected(inspector, null, true);
   }
 
   protected Matcher<Class<?>> isRepackagedIf(
       CodeInspector inspector, boolean eligibleForRepackaging) {
+    return isRepackagedAsExpected(inspector, null, eligibleForRepackaging);
+  }
+
+  /**
+   * Checks that the class of interest is repackaged as expected.
+   *
+   * <p>If building with -repackageclasses, it is checked that the given class of interest is
+   * repackaged into "foo" (unless getRepackagePackage() is overridden). In this case, {@param
+   * packageName} is unused.
+   *
+   * <p>If building with -flattenpackagehierarchy, it is checked that the given class is repackaged
+   * into "foo.<packageName>".
+   */
+  protected Matcher<Class<?>> isRepackagedAsExpected(CodeInspector inspector, String packageName) {
+    return isRepackagedAsExpected(inspector, packageName, true);
+  }
+
+  private Matcher<Class<?>> isRepackagedAsExpected(
+      CodeInspector inspector, String packageName, boolean eligibleForRepackaging) {
     return new TypeSafeMatcher<Class<?>>() {
       @Override
       public boolean matchesSafely(Class<?> clazz) {
@@ -64,31 +85,52 @@ public abstract class RepackageTestBase extends TestBase {
         if (!classSubject.isPresent()) {
           return false;
         }
-
-        String expectedPackage;
-        if (eligibleForRepackaging) {
-          List<String> expectedPackageNames = new ArrayList<>();
-          expectedPackageNames.add(REPACKAGE_PACKAGE);
-          if (isFlattenPackageHierarchy()) {
-            expectedPackageNames.add("a");
-          }
-
-          expectedPackage = StringUtils.join(expectedPackageNames, ".");
-        } else {
-          expectedPackage = clazz.getPackage().getName();
-        }
-
-        return classSubject.getDexProgramClass().getType().getPackageName().equals(expectedPackage);
+        return getActualPackage(classSubject).equals(getExpectedPackage(clazz));
       }
 
       @Override
       public void describeTo(Description description) {
-        description.appendText("class to be repackaged");
+        if (eligibleForRepackaging) {
+          description.appendText(
+              "class to be repackaged to '" + getExpectedPackageForEligibleClass() + "'");
+        } else {
+          description.appendText("class to be ineligible for repackaging");
+        }
       }
 
       @Override
       public void describeMismatchSafely(Class<?> clazz, Description description) {
-        description.appendText("class ").appendValue(clazz.getTypeName()).appendText(" was not");
+        ClassSubject classSubject = inspector.clazz(clazz);
+        if (classSubject.isPresent()) {
+          description
+              .appendText("class ")
+              .appendValue(clazz.getTypeName())
+              .appendText(" was not (actual: '" + getActualPackage(classSubject) + "')");
+        } else {
+          description
+              .appendText("class ")
+              .appendValue(clazz.getTypeName())
+              .appendText(" was absent");
+        }
+      }
+
+      private String getActualPackage(ClassSubject classSubject) {
+        return classSubject.getDexProgramClass().getType().getPackageName();
+      }
+
+      private String getExpectedPackage(Class<?> clazz) {
+        return eligibleForRepackaging
+            ? getExpectedPackageForEligibleClass()
+            : clazz.getPackage().getName();
+      }
+
+      private String getExpectedPackageForEligibleClass() {
+        List<String> expectedPackageNames = new ArrayList<>();
+        expectedPackageNames.add(getRepackagePackage());
+        if (isFlattenPackageHierarchy()) {
+          expectedPackageNames.add(packageName != null ? packageName : "a");
+        }
+        return StringUtils.join(expectedPackageNames, ".");
       }
     };
   }
@@ -96,7 +138,7 @@ public abstract class RepackageTestBase extends TestBase {
   protected void configureRepackaging(R8FullTestBuilder testBuilder) {
     testBuilder
         .addKeepRules(
-            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + REPACKAGE_PACKAGE + "\"")
+            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + getRepackagePackage() + "\"")
         .addOptionsModification(
             options -> {
               assertFalse(options.testing.enableExperimentalRepackaging);

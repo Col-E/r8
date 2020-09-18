@@ -9,14 +9,21 @@ import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class ProgramPackage implements Iterable<DexProgramClass> {
 
   private final String packageDescriptor;
-  private final Set<DexProgramClass> classes = Sets.newIdentityHashSet();
+  private final Set<DexProgramClass> classes;
 
   public ProgramPackage(String packageDescriptor) {
+    this(packageDescriptor, Sets::newIdentityHashSet);
+  }
+
+  protected ProgramPackage(
+      String packageDescriptor, Supplier<Set<DexProgramClass>> backingFactory) {
     this.packageDescriptor = packageDescriptor;
+    this.classes = backingFactory.get();
   }
 
   public boolean add(DexProgramClass clazz) {
@@ -24,11 +31,19 @@ public class ProgramPackage implements Iterable<DexProgramClass> {
     return classes.add(clazz);
   }
 
+  public boolean contains(DexProgramClass clazz) {
+    return classes.contains(clazz);
+  }
+
   public String getLastPackageName() {
     int index = packageDescriptor.lastIndexOf('/');
     if (index >= 0) {
       return packageDescriptor.substring(index + 1);
     }
+    return packageDescriptor;
+  }
+
+  public String getPackageDescriptor() {
     return packageDescriptor;
   }
 

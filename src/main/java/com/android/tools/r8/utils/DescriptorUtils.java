@@ -291,6 +291,42 @@ public class DescriptorUtils {
         .replace(DESCRIPTOR_PACKAGE_SEPARATOR, JAVA_PACKAGE_SEPARATOR);
   }
 
+  /**
+   * Get the simple class name from its descriptor.
+   *
+   * @param classDescriptor a class descriptor i.e. "Ljava/lang/Object;"
+   * @return simple class name i.e. "Object"
+   */
+  public static String getSimpleClassNameFromDescriptor(String classDescriptor) {
+    return classDescriptor.substring(
+        getSimpleClassNameIndex(classDescriptor), classDescriptor.length() - 1);
+  }
+
+  /**
+   * Replace the simple class name from its descriptor with a new simple name.
+   *
+   * @param classDescriptor a class descriptor i.e. "Ljava/lang/Object;"
+   * @param newSimpleName a new simple name e.g. "NewObject"
+   * @return updated class descriptor i.e. "Ljava/lang/NewObject;"
+   */
+  public static String replaceSimpleClassNameInDescriptor(
+      String classDescriptor, String newSimpleName) {
+    return "L"
+        + classDescriptor.substring(1, getSimpleClassNameIndex(classDescriptor))
+        + newSimpleName
+        + ";";
+  }
+
+  /**
+   * Finds the index of the simple class name in its descriptor.
+   *
+   * @param classDescriptor a class descriptor i.e. "Ljava/lang/Object;"
+   * @return the index of the simple name i.e. 11.
+   */
+  private static int getSimpleClassNameIndex(String classDescriptor) {
+    return Integer.max(classDescriptor.lastIndexOf("/"), 0) + 1;
+  }
+
    /**
    * Get canonical class name from its descriptor.
    *

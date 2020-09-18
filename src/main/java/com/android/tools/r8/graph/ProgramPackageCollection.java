@@ -10,9 +10,9 @@ import java.util.Map;
 
 public class ProgramPackageCollection implements Iterable<ProgramPackage> {
 
-  private final Map<String, ProgramPackage> packages;
+  protected final Map<String, ProgramPackage> packages;
 
-  private ProgramPackageCollection(Map<String, ProgramPackage> packages) {
+  protected ProgramPackageCollection(Map<String, ProgramPackage> packages) {
     this.packages = packages;
   }
 
