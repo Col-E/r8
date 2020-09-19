@@ -139,7 +139,7 @@ public class Repackaging {
     // Always repackage outer classes first, if any.
     InnerClassAttribute innerClassAttribute = classToRepackage.getInnerClassAttributeForThisClass();
     DexProgramClass outerClass = null;
-    if (innerClassAttribute != null) {
+    if (innerClassAttribute != null && innerClassAttribute.getOuter() != null) {
       outerClass = asProgramClassOrNull(appView.definitionFor(innerClassAttribute.getOuter()));
       if (outerClass != null) {
         if (pkg.contains(outerClass)) {
@@ -171,7 +171,10 @@ public class Repackaging {
     if (proguardConfiguration.getPackageObfuscationMode().isRepackageClasses()) {
       return newPackageDescriptor;
     }
-    newPackageDescriptor += "/" + pkg.getLastPackageName();
+    if (!newPackageDescriptor.isEmpty()) {
+      newPackageDescriptor += "/";
+    }
+    newPackageDescriptor += pkg.getLastPackageName();
     String finalPackageDescriptor = newPackageDescriptor;
     for (int i = 1; seenPackageDescriptors.contains(finalPackageDescriptor); i++) {
       finalPackageDescriptor = newPackageDescriptor + INNER_CLASS_SEPARATOR + i;

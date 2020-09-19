@@ -154,9 +154,9 @@ public class RepackagingTreeFixer {
     List<InnerClassAttribute> newInnerClassAttributes = new ArrayList<>();
     for (InnerClassAttribute innerClassAttribute : innerClassAttributes) {
       DexType innerClassType = innerClassAttribute.getInner();
-      DexType newInnerClassType = fixupType(innerClassType);
+      DexType newInnerClassType = fixupTypeOrNull(innerClassType);
       DexType outerClassType = innerClassAttribute.getOuter();
-      DexType newOuterClassType = fixupType(outerClassType);
+      DexType newOuterClassType = fixupTypeOrNull(outerClassType);
       newInnerClassAttributes.add(
           new InnerClassAttribute(
               innerClassAttribute.getAccess(),
@@ -245,6 +245,10 @@ public class RepackagingTreeFixer {
       changed |= newClass != clazz;
     }
     return changed ? newSynthesizedFrom : synthesizedFrom;
+  }
+
+  private DexType fixupTypeOrNull(DexType type) {
+    return type != null ? fixupType(type) : null;
   }
 
   private DexType fixupType(DexType type) {

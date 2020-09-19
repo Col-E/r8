@@ -415,13 +415,11 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   public DexType replacePackage(String newPackageDescriptor, DexItemFactory dexItemFactory) {
     assert isClassType();
     String descriptorString = toDescriptorString();
-    int lastPackageSeparator = descriptorString.lastIndexOf('/');
-    String newDescriptorString = "L" + newPackageDescriptor + "/";
-    if (lastPackageSeparator >= 0) {
-      newDescriptorString += descriptorString.substring(lastPackageSeparator + 1);
-    } else {
-      newDescriptorString += descriptorString.substring(1);
+    String newDescriptorString = "L";
+    if (!newPackageDescriptor.isEmpty()) {
+      newDescriptorString += newPackageDescriptor + "/";
     }
+    newDescriptorString += DescriptorUtils.getSimpleClassNameFromDescriptor(descriptorString) + ";";
     return dexItemFactory.createType(newDescriptorString);
   }
 

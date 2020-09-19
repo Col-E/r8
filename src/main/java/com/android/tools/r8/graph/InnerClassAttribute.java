@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.function.Consumer;
 import org.objectweb.asm.ClassWriter;
 
 /** Representation of an entry in the Java InnerClasses attribute table. */
@@ -36,6 +37,15 @@ public class InnerClassAttribute {
     this.inner = inner;
     this.outer = outer;
     this.innerName = innerName;
+  }
+
+  public void forEachType(Consumer<DexType> consumer) {
+    if (inner != null) {
+      consumer.accept(inner);
+    }
+    if (outer != null) {
+      consumer.accept(outer);
+    }
   }
 
   public boolean isNamed() {

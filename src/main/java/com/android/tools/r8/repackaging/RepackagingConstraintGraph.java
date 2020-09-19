@@ -110,19 +110,12 @@ public class RepackagingConstraintGraph {
     }
 
     // Trace the references to the inner and outer classes.
-    clazz
-        .getInnerClasses()
-        .forEach(
-            innerClassAttribute -> {
-              registry.registerNullableTypeReference(innerClassAttribute.getInner());
-              registry.registerNullableTypeReference(innerClassAttribute.getOuter());
-            });
+    clazz.getInnerClasses().forEach(registry::registerInnerClassAttribute);
 
     // Trace the references from the enclosing method attribute.
     EnclosingMethodAttribute attr = clazz.getEnclosingMethodAttribute();
     if (attr != null) {
-      registry.registerNullableTypeReference(attr.getEnclosingClass());
-      registry.registerNullableMethodReference(attr.getEnclosingMethod());
+      registry.registerEnclosingMethodAttribute(attr);
     }
   }
 
