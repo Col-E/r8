@@ -206,7 +206,7 @@ public class Enqueuer {
   private final MethodAccessInfoCollection.SortedBuilder methodAccessInfoCollection =
       MethodAccessInfoCollection.sortedBuilder();
   private final ObjectAllocationInfoCollectionImpl.Builder objectAllocationInfoCollection;
-  private final Set<DexCallSite> callSites = Sets.newIdentityHashSet();
+  private final Map<DexCallSite, ProgramMethodSet> callSites = new IdentityHashMap<>();
 
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
 
@@ -881,7 +881,7 @@ public class Enqueuer {
     } else {
       markLambdaAsInstantiated(descriptor, context);
       transitionMethodsForInstantiatedLambda(descriptor);
-      callSites.add(callSite);
+      callSites.computeIfAbsent(callSite, ignore -> ProgramMethodSet.create()).add(context);
     }
 
     // For call sites representing a lambda, we link the targeted method

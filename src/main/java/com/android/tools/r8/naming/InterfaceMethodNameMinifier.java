@@ -441,7 +441,7 @@ class InterfaceMethodNameMinifier {
     // desugared lambdas this is a conservative estimate, as we don't track if the generated
     // lambda classes survive into the output. As multi-interface lambda expressions are rare
     // this is not a big deal.
-    Set<DexCallSite> liveCallSites = appView.appInfo().callSites;
+    Set<DexCallSite> liveCallSites = appView.appInfo().callSites.keySet();
     // If the input program contains a multi-interface lambda expression that implements
     // interface methods with different protos, we need to make sure tha the implemented lambda
     // methods are renamed to the same name.

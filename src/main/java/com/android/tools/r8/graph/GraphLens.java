@@ -8,10 +8,12 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.horizontalclassmerging.ClassMerger;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
@@ -463,6 +465,22 @@ public abstract class GraphLens {
       }
     }
     return true;
+  }
+
+  public Map<DexCallSite, ProgramMethodSet> rewriteCallSites(
+      Map<DexCallSite, ProgramMethodSet> callSites, DexDefinitionSupplier definitions) {
+    Map<DexCallSite, ProgramMethodSet> result = new IdentityHashMap<>();
+    LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(definitions, this);
+    callSites.forEach(
+        (callSite, contexts) -> {
+          for (ProgramMethod context : contexts.rewrittenWithLens(definitions, this)) {
+            DexCallSite rewrittenCallSite = rewriter.rewriteCallSite(callSite, context);
+            result
+                .computeIfAbsent(rewrittenCallSite, ignore -> ProgramMethodSet.create())
+                .add(context);
+          }
+        });
+    return result;
   }
 
   public DexReference rewriteReference(DexReference reference) {

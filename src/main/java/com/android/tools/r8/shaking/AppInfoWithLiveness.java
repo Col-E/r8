@@ -127,7 +127,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * Set of live call sites in the code. Note that if desugaring has taken place call site objects
    * will have been removed from the code.
    */
-  public final Set<DexCallSite> callSites;
+  public final Map<DexCallSite, ProgramMethodSet> callSites;
   /** Collection of keep requirements for the program. */
   private final KeepInfoCollection keepInfo;
   /** All items with assumemayhavesideeffects rule. */
@@ -207,7 +207,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
       MethodAccessInfoCollection methodAccessInfoCollection,
       ObjectAllocationInfoCollectionImpl objectAllocationInfoCollection,
-      Set<DexCallSite> callSites,
+      Map<DexCallSite, ProgramMethodSet> callSites,
       KeepInfoCollection keepInfo,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
       Map<DexReference, ProguardMemberRule> noSideEffects,
@@ -288,12 +288,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
       MethodAccessInfoCollection methodAccessInfoCollection,
       ObjectAllocationInfoCollectionImpl objectAllocationInfoCollection,
-      SortedMap<DexMethod, ProgramMethodSet> virtualInvokes,
-      SortedMap<DexMethod, ProgramMethodSet> interfaceInvokes,
-      SortedMap<DexMethod, ProgramMethodSet> superInvokes,
-      SortedMap<DexMethod, ProgramMethodSet> directInvokes,
-      SortedMap<DexMethod, ProgramMethodSet> staticInvokes,
-      Set<DexCallSite> callSites,
+      Map<DexCallSite, ProgramMethodSet> callSites,
       KeepInfoCollection keepInfo,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
       Map<DexReference, ProguardMemberRule> noSideEffects,
@@ -623,7 +618,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     for (DexProgramClass clazz : classes()) {
       worklist.add(clazz.type);
     }
-    for (DexCallSite callSite : callSites) {
+    for (DexCallSite callSite : callSites.keySet()) {
       for (DexEncodedMethod method : lookupLambdaImplementedMethods(callSite)) {
         worklist.add(method.holder());
       }
@@ -998,9 +993,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         fieldAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         methodAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         objectAllocationInfoCollection.rewrittenWithLens(definitionSupplier, lens),
-        // TODO(sgjesse): Rewrite call sites as well? Right now they are only used by minification
-        //   after second tree shaking.
-        callSites,
+        lens.rewriteCallSites(callSites, definitionSupplier),
         keepInfo.rewrite(lens, application.options),
         lens.rewriteReferenceKeys(mayHaveSideEffects),
         lens.rewriteReferenceKeys(noSideEffects),
@@ -1261,7 +1254,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   static void forEachTypeInHierarchyOfLiveProgramClasses(
       Consumer<DexClass> fn,
       Collection<DexProgramClass> liveProgramClasses,
-      Set<DexCallSite> callSites,
+      Map<DexCallSite, ProgramMethodSet> callSites,
       AppInfoWithClassHierarchy appInfo) {
     Set<DexType> seen = Sets.newIdentityHashSet();
     Deque<DexType> worklist = new ArrayDeque<>();
@@ -1278,7 +1271,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         }
       }
     }
-    for (DexCallSite callSite : callSites) {
+    for (DexCallSite callSite : callSites.keySet()) {
       List<DexType> interfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
       if (interfaces != null) {
         for (DexType iface : interfaces) {
