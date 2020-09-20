@@ -104,7 +104,7 @@ public class SubsumedCatchHandlerTest extends TestBase {
       TryHandler handler = dexCode.handlers[0];
       assertEquals(1, handler.pairs.length);
 
-      DexType guard = handler.pairs[0].type;
+      DexType guard = handler.pairs[0].getType();
       assertEquals("java.lang.Exception", guard.toSourceString());
     } else {
       assert code.isCfCode();

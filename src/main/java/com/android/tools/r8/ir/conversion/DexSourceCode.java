@@ -414,8 +414,8 @@ public class DexSourceCode implements SourceCode {
       Try tryRange, DexItemFactory factory, BiConsumer<DexType, Integer> fn) {
     TryHandler handler = code.handlers[tryRange.handlerIndex];
     for (TypeAddrPair pair : handler.pairs) {
-      fn.accept(pair.type, pair.addr);
-      if (pair.type == factory.throwableType) {
+      fn.accept(pair.getType(), pair.addr);
+      if (pair.getType() == factory.throwableType) {
         return;
       }
     }

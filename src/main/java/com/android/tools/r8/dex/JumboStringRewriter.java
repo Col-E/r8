@@ -206,7 +206,7 @@ public class JumboStringRewriter {
       TypeAddrPair[] newPairs = new TypeAddrPair[handler.pairs.length];
       for (int j = 0; j < handler.pairs.length; j++) {
         TypeAddrPair pair = handler.pairs[j];
-        newPairs[j] = new TypeAddrPair(pair.type, it.next().getOffset());
+        newPairs[j] = new TypeAddrPair(pair.getType(), it.next().getOffset());
       }
       result[i] = new TryHandler(newPairs, catchAllAddr);
     }

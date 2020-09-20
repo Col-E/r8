@@ -38,8 +38,8 @@ class DexTryCatchSubject implements TryCatchSubject {
   @Override
   public boolean isCatching(String exceptionType) {
     for (TypeAddrPair pair : tryHandler.pairs) {
-      if (pair.type.toString().equals(exceptionType)
-        || pair.type.toDescriptorString().equals(exceptionType)) {
+      if (pair.getType().toString().equals(exceptionType)
+          || pair.getType().toDescriptorString().equals(exceptionType)) {
         return true;
       }
     }
@@ -54,7 +54,7 @@ class DexTryCatchSubject implements TryCatchSubject {
   @Override
   public Stream<TypeSubject> streamGuards() {
     return Arrays.stream(tryHandler.pairs)
-        .map(pair -> pair.type)
+        .map(pair -> pair.getType())
         .map(type -> new TypeSubject(inspector, type));
   }
 

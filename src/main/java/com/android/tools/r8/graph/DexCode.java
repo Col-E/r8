@@ -573,7 +573,7 @@ public class DexCode extends Code implements Comparable<DexCode> {
 
     public static class TypeAddrPair extends DexItem implements Comparable<TypeAddrPair> {
 
-      public final DexType type;
+      private final DexType type;
       public final /* offset */ int addr;
 
       public TypeAddrPair(DexType type, int addr) {
@@ -581,8 +581,16 @@ public class DexCode extends Code implements Comparable<DexCode> {
         this.addr = addr;
       }
 
+      public DexType getType() {
+        return type;
+      }
+
+      public DexType getType(GraphLens lens) {
+        return lens.lookupType(type);
+      }
+
       public void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens) {
-        DexType rewritten = graphLens.lookupType(type);
+        DexType rewritten = getType(graphLens);
         rewritten.collectIndexedItems(indexedItems);
       }
 

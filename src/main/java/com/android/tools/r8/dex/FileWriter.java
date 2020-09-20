@@ -42,6 +42,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -100,6 +101,7 @@ public class FileWriter {
   private final MethodToCodeObjectMapping codeMapping;
   private final DexApplication application;
   private final InternalOptions options;
+  private final GraphLens graphLens;
   private final NamingLens namingLens;
   private final DexOutputBuffer dest;
   private final MixedSectionOffsets mixedSectionOffsets;
@@ -118,6 +120,7 @@ public class FileWriter {
     this.codeMapping = codeMapping;
     this.application = application;
     this.options = options;
+    this.graphLens = mapping.getGraphLens();
     this.namingLens = namingLens;
     this.dest = new DexOutputBuffer(provider);
     this.mixedSectionOffsets = new MixedSectionOffsets(options, codeMapping);
@@ -416,8 +419,7 @@ public class FileWriter {
         result += LebUtils
             .sizeAsSleb128(hasCatchAll ? -handler.pairs.length : handler.pairs.length);
         for (TypeAddrPair pair : handler.pairs) {
-
-          result += sizeAsUleb128(mapping.getOffsetFor(pair.type));
+          result += sizeAsUleb128(mapping.getOffsetFor(pair.getType(graphLens)));
           result += sizeAsUleb128(pair.addr);
         }
         if (hasCatchAll) {
@@ -525,9 +527,9 @@ public class FileWriter {
         boolean hasCatchAll = handler.catchAllAddr != TryHandler.NO_HANDLER;
         dest.putSleb128(hasCatchAll ? -handler.pairs.length : handler.pairs.length);
         for (TypeAddrPair pair : handler.pairs) {
-          dest.putUleb128(mapping.getOffsetFor(pair.type));
+          dest.putUleb128(mapping.getOffsetFor(pair.getType(graphLens)));
           dest.putUleb128(pair.addr);
-          desugaredLibraryCodeToKeep.recordClass(pair.type);
+          desugaredLibraryCodeToKeep.recordClass(pair.getType(graphLens));
         }
         if (hasCatchAll) {
           dest.putUleb128(handler.catchAllAddr);
