@@ -7,23 +7,28 @@ package com.android.tools.r8.naming.dexitembasedstring;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.naming.NamingLens;
 
 public abstract class NameComputationInfo<T extends DexReference> {
 
   public final DexString computeNameFor(
-      DexReference reference, DexDefinitionSupplier definitions, NamingLens namingLens) {
+      DexReference reference,
+      DexDefinitionSupplier definitions,
+      GraphLens graphLens,
+      NamingLens namingLens) {
+    DexReference rewritten = graphLens.lookupReference(reference);
     if (needsToComputeName()) {
       if (isFieldNameComputationInfo()) {
         return asFieldNameComputationInfo()
-            .internalComputeNameFor(reference.asDexField(), definitions, namingLens);
+            .internalComputeNameFor(rewritten.asDexField(), definitions, namingLens);
       }
       if (isClassNameComputationInfo()) {
         return asClassNameComputationInfo()
-            .internalComputeNameFor(reference.asDexType(), definitions, namingLens);
+            .internalComputeNameFor(rewritten.asDexType(), definitions, namingLens);
       }
     }
-    return namingLens.lookupName(reference, definitions.dexItemFactory());
+    return namingLens.lookupName(rewritten, definitions.dexItemFactory());
   }
 
   abstract DexString internalComputeNameFor(

@@ -143,7 +143,8 @@ class IdentifierMinifier {
     if (staticValue instanceof DexItemBasedValueString) {
       DexItemBasedValueString cnst = (DexItemBasedValueString) staticValue;
       DexString replacement =
-          cnst.getNameComputationInfo().computeNameFor(cnst.getValue(), appView, lens);
+          cnst.getNameComputationInfo()
+              .computeNameFor(cnst.getValue(), appView, appView.graphLens(), lens);
       encodedField.setStaticValue(new DexValueString(replacement));
     }
   }
@@ -158,7 +159,8 @@ class IdentifierMinifier {
         if (instruction.isDexItemBasedConstString()) {
           DexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
           DexString replacement =
-              cnst.getNameComputationInfo().computeNameFor(cnst.getItem(), appView, lens);
+              cnst.getNameComputationInfo()
+                  .computeNameFor(cnst.getItem(), appView, appView.graphLens(), lens);
           ConstString constString = new ConstString(cnst.AA, replacement);
           constString.setOffset(instruction.getOffset());
           instructions[i] = constString;
@@ -172,7 +174,8 @@ class IdentifierMinifier {
         if (instruction.isDexItemBasedConstString()) {
           CfDexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
           DexString replacement =
-              cnst.getNameComputationInfo().computeNameFor(cnst.getItem(), appView, lens);
+              cnst.getNameComputationInfo()
+                  .computeNameFor(cnst.getItem(), appView, appView.graphLens(), lens);
           instructions.set(i, new CfConstString(replacement));
         }
       }
