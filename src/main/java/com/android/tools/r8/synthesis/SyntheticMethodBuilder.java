@@ -4,12 +4,14 @@
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import java.util.List;
 
 public class SyntheticMethodBuilder {
 
@@ -22,6 +24,7 @@ public class SyntheticMethodBuilder {
   private DexProto proto = null;
   private SyntheticCodeGenerator codeGenerator = null;
   private MethodAccessFlags accessFlags = null;
+  private List<DexAnnotation> annotations = null;
 
   SyntheticMethodBuilder(SyntheticClassBuilder parent, String name) {
     this.parent = parent;
@@ -46,13 +49,30 @@ public class SyntheticMethodBuilder {
   DexEncodedMethod build() {
     boolean isCompilerSynthesized = true;
     DexMethod methodSignature = getMethodSignature();
-    return new DexEncodedMethod(
-        methodSignature,
-        getAccessFlags(),
-        getAnnotations(),
-        getParameterAnnotations(),
-        getCodeObject(methodSignature),
-        isCompilerSynthesized);
+    DexEncodedMethod method =
+        new DexEncodedMethod(
+            methodSignature,
+            getAccessFlags(),
+            getAnnotations(),
+            getParameterAnnotations(),
+            getCodeObject(methodSignature),
+            isCompilerSynthesized);
+    assert isValidSyntheticMethod(method);
+    return method;
+  }
+
+  /**
+   * Predicate for what is a "supported" synthetic method.
+   *
+   * <p>This method is used when identifying synthetic methods in the program input and should be as
+   * narrow as possible.
+   */
+  public static boolean isValidSyntheticMethod(DexEncodedMethod method) {
+    return method.isStatic()
+        && method.isNonAbstractNonNativeMethod()
+        && method.isPublic()
+        && method.annotations().isEmpty()
+        && method.getParameterAnnotations().isEmpty();
   }
 
   private DexMethod getMethodSignature() {
@@ -64,7 +84,9 @@ public class SyntheticMethodBuilder {
   }
 
   private DexAnnotationSet getAnnotations() {
-    return DexAnnotationSet.empty();
+    return annotations == null
+        ? DexAnnotationSet.empty()
+        : new DexAnnotationSet(annotations.toArray(DexAnnotation.EMPTY_ARRAY));
   }
 
   private ParameterAnnotationsList getParameterAnnotations() {

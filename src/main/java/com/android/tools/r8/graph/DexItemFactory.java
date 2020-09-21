@@ -297,6 +297,8 @@ public class DexItemFactory {
 
   public final DexString throwableArrayDescriptor = createString("[Ljava/lang/Throwable;");
 
+  public final DexString valueString = createString("value");
+
   public final DexType booleanType = createStaticallyKnownType(booleanDescriptor);
   public final DexType byteType = createStaticallyKnownType(byteDescriptor);
   public final DexType charType = createStaticallyKnownType(charDescriptor);
@@ -543,6 +545,8 @@ public class DexItemFactory {
   public final DexType annotationSourceDebugExtension =
       createStaticallyKnownType("Ldalvik/annotation/SourceDebugExtension;");
   public final DexType annotationThrows = createStaticallyKnownType("Ldalvik/annotation/Throws;");
+  public final DexType annotationSynthesizedClass =
+      createStaticallyKnownType("Lcom/android/tools/r8/annotations/SynthesizedClass;");
   public final DexType annotationSynthesizedClassMap =
       createStaticallyKnownType("Lcom/android/tools/r8/annotations/SynthesizedClassMap;");
   public final DexType annotationCovariantReturnType =

@@ -111,6 +111,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public ClassReference getFinalReference() {
+    return null;
+  }
+
+  @Override
   public String getFinalName() {
     return null;
   }

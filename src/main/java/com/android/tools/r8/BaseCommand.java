@@ -289,10 +289,10 @@ public abstract class BaseCommand {
     /**
      * Add main-dex classes.
      *
-     * Add classes to keep in the primary dex file (<code>classes.dex</code>).
+     * <p>Add classes to keep in the primary dex file (<code>classes.dex</code>).
      *
-     * NOTE: The name of the classes is specified using the Java fully qualified names format
-     * (e.g. "com.example.MyClass"), and <i>not</i> the format used by the main-dex list file.
+     * <p>NOTE: The name of the classes is specified using the Java fully qualified names format
+     * (e.g. "com.example.MyClass$A"), and <i>not</i> the format used by the main-dex list file.
      */
     public B addMainDexClasses(String... classes) {
       guard(() -> app.addMainDexClasses(classes));

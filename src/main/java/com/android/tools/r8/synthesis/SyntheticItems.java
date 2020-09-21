@@ -4,9 +4,14 @@
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.errors.InternalCompilerError;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -46,7 +51,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   public static final String EXTERNAL_SYNTHETIC_CLASS_SEPARATOR = "-$$ExternalSynthetic";
 
   /** Method prefix when generating synthetic methods in a class. */
-  static final String INTERNAL_SYNTHETIC_METHOD_PREFIX = "m";
+  public static final String INTERNAL_SYNTHETIC_METHOD_PREFIX = "m";
 
   public static boolean verifyNotInternalSynthetic(DexType type) {
     assert !type.toDescriptorString().contains(SyntheticItems.INTERNAL_SYNTHETIC_CLASS_SEPARATOR);
@@ -58,13 +63,15 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   /**
    * Thread safe collection of synthesized classes that are not yet committed to the application.
-   * TODO(b/158159959): Remove legacy support.
+   *
+   * <p>TODO(b/158159959): Remove legacy support.
    */
   private final Map<DexType, DexProgramClass> legacyPendingClasses = new ConcurrentHashMap<>();
 
   /**
-   * Immutable set of synthetic types in the application (eg, committed). TODO(b/158159959): Remove
-   * legacy support.
+   * Immutable set of synthetic types in the application (eg, committed).
+   *
+   * <p>TODO(b/158159959): Remove legacy support.
    */
   private final ImmutableSet<DexType> legacySyntheticTypes;
 
@@ -76,8 +83,9 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   private final ImmutableMap<DexType, SyntheticReference> nonLecacySyntheticItems;
 
   // Only for use from initial AppInfo/AppInfoWithClassHierarchy create functions. */
-  public static SyntheticItems createInitialSyntheticItems() {
-    return new SyntheticItems(0, ImmutableSet.of(), ImmutableMap.of());
+  public static CommittedItems createInitialSyntheticItems(DexApplication application) {
+    return new CommittedItems(
+        0, application, ImmutableSet.of(), ImmutableMap.of(), ImmutableList.of());
   }
 
   // Only for conversion to a mutable synthetic items collection.
@@ -92,10 +100,77 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     this.nextSyntheticId = nextSyntheticId;
     this.legacySyntheticTypes = legacySyntheticTypes;
     this.nonLecacySyntheticItems = nonLecacySyntheticItems;
-    assert nonLecacySyntheticItems.keySet().stream()
-        .noneMatch(
-            t -> t.toDescriptorString().endsWith(getSyntheticDescriptorSuffix(nextSyntheticId)));
     assert Sets.intersection(nonLecacySyntheticItems.keySet(), legacySyntheticTypes).isEmpty();
+  }
+
+  public static void collectSyntheticInputs(AppView<AppInfo> appView) {
+    // Collecting synthetic items must be the very first task after application build.
+    SyntheticItems synthetics = appView.getSyntheticItems();
+    assert synthetics.nextSyntheticId == 0;
+    assert synthetics.nonLecacySyntheticItems.isEmpty();
+    assert !synthetics.hasPendingSyntheticClasses();
+    if (appView.options().intermediate) {
+      // If the compilation is in intermediate mode the synthetics should just be passed through.
+      return;
+    }
+    ImmutableMap.Builder<DexType, SyntheticReference> pending = ImmutableMap.builder();
+    // TODO(b/158159959): Consider identifying synthetics in the input reader to speed this up.
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      DexType annotatedContextType = isSynthesizedMethodsContainer(clazz, appView.dexItemFactory());
+      if (annotatedContextType == null) {
+        continue;
+      }
+      clazz.setAnnotations(DexAnnotationSet.empty());
+      SynthesizingContext context =
+          SynthesizingContext.fromSyntheticInputClass(clazz, annotatedContextType);
+      clazz.forEachProgramMethod(
+          // TODO(b/158159959): Support having multiple methods per class.
+          method -> {
+            method.getDefinition().setAnnotations(DexAnnotationSet.empty());
+            pending.put(clazz.type, new SyntheticMethodDefinition(context, method).toReference());
+          });
+    }
+    pending.putAll(synthetics.nonLecacySyntheticItems);
+    ImmutableMap<DexType, SyntheticReference> nonLegacySyntheticItems = pending.build();
+    if (nonLegacySyntheticItems.isEmpty()) {
+      return;
+    }
+    CommittedItems commit =
+        new CommittedItems(
+            synthetics.nextSyntheticId,
+            appView.appInfo().app(),
+            synthetics.legacySyntheticTypes,
+            nonLegacySyntheticItems,
+            ImmutableList.of());
+    appView.setAppInfo(new AppInfo(commit, appView.appInfo().getMainDexClasses()));
+  }
+
+  private static DexType isSynthesizedMethodsContainer(
+      DexProgramClass clazz, DexItemFactory factory) {
+    ClassAccessFlags flags = clazz.accessFlags;
+    if (!flags.isSynthetic() || flags.isAbstract() || flags.isEnum()) {
+      return null;
+    }
+    DexType contextType =
+        DexAnnotation.getSynthesizedClassAnnotationContextType(clazz.annotations(), factory);
+    if (contextType == null) {
+      return null;
+    }
+    if (clazz.superType != factory.objectType) {
+      return null;
+    }
+    if (!clazz.interfaces.isEmpty()) {
+      return null;
+    }
+    if (clazz.annotations().size() != 1) {
+      return null;
+    }
+    for (DexEncodedMethod method : clazz.methods()) {
+      if (!SyntheticMethodBuilder.isValidSyntheticMethod(method)) {
+        return null;
+      }
+    }
+    return contextType;
   }
 
   // Internal synthetic id creation helpers.
@@ -110,14 +185,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   private static DexType hygienicType(
       DexItemFactory factory, int syntheticId, SynthesizingContext context) {
-    String contextDesc = context.type.toDescriptorString();
-    String prefix = contextDesc.substring(0, contextDesc.length() - 1);
-    String syntheticDesc = prefix + getSyntheticDescriptorSuffix(syntheticId);
-    return factory.createType(syntheticDesc);
-  }
-
-  private static String getSyntheticDescriptorSuffix(int syntheticId) {
-    return INTERNAL_SYNTHETIC_CLASS_SEPARATOR + syntheticId + ";";
+    return context.createHygienicType(syntheticId, factory);
   }
 
   // Predicates and accessors.
@@ -184,7 +252,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     SyntheticReference committedItemContext = nonLecacySyntheticItems.get(context.type);
     return committedItemContext != null
         ? committedItemContext.getContext()
-        : new SynthesizingContext(context.type, context.origin);
+        : SynthesizingContext.fromNonSyntheticInputClass(context);
   }
 
   // Addition and creation of synthetic items.
@@ -201,11 +269,11 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   public ProgramMethod createMethod(
       DexProgramClass context, DexItemFactory factory, Consumer<SyntheticMethodBuilder> fn) {
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
-    // The is to ensure a flat input-type -> synthetic-item mapping.
+    // This is to ensure a flat input-type -> synthetic-item mapping.
     SynthesizingContext outerContext = getSynthesizingContext(context);
-    DexType type = hygienicType(factory, getNextSyntheticId(), outerContext);
-    DexProgramClass clazz =
-        new SyntheticClassBuilder(type, outerContext, factory).addMethod(fn).build();
+    DexType type = outerContext.createHygienicType(getNextSyntheticId(), factory);
+    SyntheticClassBuilder classBuilder = new SyntheticClassBuilder(type, outerContext, factory);
+    DexProgramClass clazz = classBuilder.addMethod(fn).build();
     ProgramMethod method = new ProgramMethod(clazz, clazz.methods().iterator().next());
     addPendingDefinition(new SyntheticMethodDefinition(outerContext, method));
     return method;

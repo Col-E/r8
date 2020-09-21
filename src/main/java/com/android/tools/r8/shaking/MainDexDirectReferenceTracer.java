@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -47,7 +48,10 @@ public class MainDexDirectReferenceTracer {
       assert clazz != null;
       consumer.accept(type);
       // Super and interfaces are live, no need to add them.
-      traceAnnotationsDirectDependencies(clazz.annotations());
+      if (!DexAnnotation.hasSynthesizedClassAnnotation(
+          clazz.annotations(), appInfo.dexItemFactory())) {
+        traceAnnotationsDirectDependencies(clazz.annotations());
+      }
       clazz.forEachField(field -> consumer.accept(field.field.type));
       clazz.forEachProgramMethodMatching(
           definition -> {

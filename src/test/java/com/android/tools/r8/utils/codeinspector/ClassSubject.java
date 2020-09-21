@@ -183,6 +183,8 @@ public abstract class ClassSubject extends Subject {
 
   public abstract String getOriginalBinaryName();
 
+  public abstract ClassReference getFinalReference();
+
   public abstract String getFinalName();
 
   public abstract String getFinalDescriptor();

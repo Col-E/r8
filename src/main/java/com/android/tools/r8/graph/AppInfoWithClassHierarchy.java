@@ -54,7 +54,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       ClassToFeatureSplitMap classToFeatureSplitMap,
       MainDexClasses mainDexClasses) {
     return new AppInfoWithClassHierarchy(
-        SyntheticItems.createInitialSyntheticItems().commit(application),
+        SyntheticItems.createInitialSyntheticItems(application),
         classToFeatureSplitMap,
         mainDexClasses);
   }

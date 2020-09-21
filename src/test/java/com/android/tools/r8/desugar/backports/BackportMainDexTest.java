@@ -5,7 +5,6 @@ package com.android.tools.r8.desugar.backports;
 
 import static com.android.tools.r8.synthesis.SyntheticItems.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -15,19 +14,33 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.GenerateMainDexListRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.backports.AbstractBackportTest.MiniAssert;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -39,6 +52,9 @@ public class BackportMainDexTest extends TestBase {
 
   static final List<Class<?>> CLASSES =
       ImmutableList.of(MiniAssert.class, TestClass.class, User1.class, User2.class);
+
+  static final List<Class<?>> MAIN_DEX_LIST_CLASSES =
+      ImmutableList.of(MiniAssert.class, TestClass.class, User2.class);
 
   static final String SyntheticUnderUser1 =
       User1.class.getTypeName() + EXTERNAL_SYNTHETIC_CLASS_SEPARATOR;
@@ -78,15 +94,50 @@ public class BackportMainDexTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED);
   }
 
+  private GenerateMainDexListRunResult traceMainDex(
+      Collection<Class<?>> classes, Collection<Path> files) throws Exception {
+    return testForMainDexListGenerator()
+        .addProgramClasses(classes)
+        .addProgramFiles(files)
+        .addLibraryFiles(ToolHelper.getFirstSupportedAndroidJar(parameters.getApiLevel()))
+        .addMainDexRules(keepMainProguardConfiguration(TestClass.class))
+        .run();
+  }
+
+  @Test
+  public void testMainDexTracingCf() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    GenerateMainDexListRunResult mainDexListFromCf = traceMainDex(CLASSES, Collections.emptyList());
+    assertEquals(
+        ListUtils.map(MAIN_DEX_LIST_CLASSES, Reference::classFromClass),
+        mainDexListFromCf.getMainDexList());
+  }
+
+  @Test
+  public void testMainDexTracingDex() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    Path out =
+        testForD8()
+            .addProgramClasses(CLASSES)
+            // Setting intermediate will annotate synthetics, which should not cause types in those
+            // to become main-dex included.
+            .setIntermediate(true)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+    GenerateMainDexListRunResult mainDexListFromDex =
+        traceMainDex(Collections.emptyList(), Collections.singleton(out));
+    assertEquals(
+        Streams.concat(
+                MAIN_DEX_LIST_CLASSES.stream().map(Reference::classFromClass),
+                getMainDexExpectedSynthetics().stream().map(MethodReference::getHolderClass))
+            .collect(Collectors.toSet()),
+        ImmutableSet.copyOf(mainDexListFromDex.getMainDexList()));
+  }
+
   @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    Set<String> mainDex1 = runD8();
-    Set<String> mainDex2 = runD8();
-    assertEquals("Expected deterministic main-dex lists", mainDex1, mainDex2);
-  }
-
-  private Set<String> runD8() throws Exception {
     MainDexConsumer mainDexConsumer = new MainDexConsumer();
     testForD8(parameters.getBackend())
         .addProgramClasses(CLASSES)
@@ -94,39 +145,89 @@ public class BackportMainDexTest extends TestBase {
         .addMainDexListClasses(MiniAssert.class, TestClass.class, User2.class)
         .setProgramConsumer(mainDexConsumer)
         .compile()
-        .inspect(
-            inspector -> {
-              // Note: This will change if we group methods in classes, in which case we should
-              // preferable not put non-main-dex referenced methods in the main-dex group.
-              // User1 has two synthetics, one shared with User2 and one for self.
-              assertEquals(
-                  2,
-                  inspector.allClasses().stream()
-                      .filter(c -> c.getFinalName().startsWith(SyntheticUnderUser1))
-                      .count());
-              // User2 has one synthetic as the shared call is placed in User1.
-              assertEquals(
-                  1,
-                  inspector.allClasses().stream()
-                      .filter(c -> c.getFinalName().startsWith(SyntheticUnderUser2))
-                      .count());
-            })
+        .inspect(this::checkExpectedSynthetics)
         .run(parameters.getRuntime(), TestClass.class, getRunArgs())
         .assertSuccessWithOutput(EXPECTED);
     checkMainDex(mainDexConsumer);
-    return mainDexConsumer.mainDexDescriptors;
+  }
+
+  // TODO(b/168584485): This test should be removed once support is dropped.
+  @Test
+  public void testD8MergingWithTraceCf() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    Path out1 =
+        testForD8()
+            .addProgramClasses(User1.class)
+            .addClasspathClasses(CLASSES)
+            .setIntermediate(true)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+
+    Path out2 =
+        testForD8()
+            .addProgramClasses(User2.class)
+            .addClasspathClasses(CLASSES)
+            .setIntermediate(true)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+
+    MainDexConsumer mainDexConsumer = new MainDexConsumer();
+    testForD8(parameters.getBackend())
+        .addProgramClasses(TestClass.class, MiniAssert.class)
+        .addProgramFiles(out1, out2)
+        .setMinApi(parameters.getApiLevel())
+        .addMainDexListClassReferences(
+            traceMainDex(CLASSES, Collections.emptyList()).getMainDexList())
+        .setProgramConsumer(mainDexConsumer)
+        .compile()
+        .inspect(this::checkExpectedSynthetics)
+        .run(parameters.getRuntime(), TestClass.class, getRunArgs())
+        .assertSuccessWithOutput(EXPECTED);
+    checkMainDex(mainDexConsumer);
+  }
+
+  @Test
+  public void testD8MergingWithTraceDex() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    Path out1 =
+        testForD8()
+            .addProgramClasses(User1.class)
+            .addClasspathClasses(CLASSES)
+            .setIntermediate(true)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+
+    Path out2 =
+        testForD8()
+            .addProgramClasses(User2.class)
+            .addClasspathClasses(CLASSES)
+            .setIntermediate(true)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+
+    MainDexConsumer mainDexConsumer = new MainDexConsumer();
+    List<Class<?>> classes = ImmutableList.of(TestClass.class, MiniAssert.class);
+    List<Path> files = ImmutableList.of(out1, out2);
+    GenerateMainDexListRunResult traceResult = traceMainDex(classes, files);
+    testForD8(parameters.getBackend())
+        .addProgramClasses(classes)
+        .addProgramFiles(files)
+        .setMinApi(parameters.getApiLevel())
+        .addMainDexListClassReferences(traceResult.getMainDexList())
+        .setProgramConsumer(mainDexConsumer)
+        .compile()
+        .inspect(this::checkExpectedSynthetics)
+        .run(parameters.getRuntime(), TestClass.class, getRunArgs())
+        .assertSuccessWithOutput(EXPECTED);
+    checkMainDex(mainDexConsumer);
   }
 
   @Test
   public void testR8() throws Exception {
-    Set<String> mainDex1 = runR8();
-    if (parameters.isDexRuntime()) {
-      Set<String> mainDex2 = runR8();
-      assertEquals(mainDex1, mainDex2);
-    }
-  }
-
-  private Set<String> runR8() throws Exception {
     MainDexConsumer mainDexConsumer = parameters.isDexRuntime() ? new MainDexConsumer() : null;
     testForR8(parameters.getBackend())
         .debug() // Use debug mode to force a minimal main dex.
@@ -135,18 +236,17 @@ public class BackportMainDexTest extends TestBase {
         .addProgramClasses(CLASSES)
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(MiniAssert.class)
-        .addMainDexClassRules(MiniAssert.class, TestClass.class)
         .addKeepMethodRules(
             Reference.methodFromMethod(User1.class.getMethod("testBooleanCompare")),
             Reference.methodFromMethod(User1.class.getMethod("testCharacterCompare")))
+        .addMainDexRules(keepMainProguardConfiguration(TestClass.class))
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class, getRunArgs())
-        .assertSuccessWithOutput(EXPECTED);
+        .assertSuccessWithOutput(EXPECTED)
+        .inspect(this::checkExpectedSynthetics);
     if (mainDexConsumer != null) {
       checkMainDex(mainDexConsumer);
-      return mainDexConsumer.mainDexDescriptors;
     }
-    return null;
   }
 
   private void checkMainDex(MainDexConsumer mainDexConsumer) throws Exception {
@@ -160,22 +260,49 @@ public class BackportMainDexTest extends TestBase {
     assertThat(mainDexInspector.clazz(MiniAssert.class), isPresent());
     assertThat(mainDexInspector.clazz(TestClass.class), isPresent());
     assertThat(mainDexInspector.clazz(User2.class), isPresent());
+    assertEquals(getMainDexExpectedSynthetics(), getSyntheticMethods(mainDexInspector));
+  }
 
-    // At least one synthetic class placed under User2 must be included in the main-dex file.
-    assertEquals(
-        1,
-        mainDexInspector.allClasses().stream()
-            .filter(c -> c.getFinalName().startsWith(SyntheticUnderUser2))
-            .count());
+  private Set<MethodReference> getSyntheticMethods(CodeInspector inspector) {
+    Set<ClassReference> nonSyntheticCLasses =
+        CLASSES.stream().map(Reference::classFromClass).collect(Collectors.toSet());
+    Set<MethodReference> methods = new HashSet<>();
+    inspector.allClasses().stream()
+        .filter(c -> !nonSyntheticCLasses.contains(c.getFinalReference()))
+        .forEach(c -> c.allMethods().forEach(m -> methods.add(m.asMethodReference())));
+    return methods;
+  }
 
-    // Minimal main dex should only include one of the User1 synthetics.
-    assertThat(mainDexInspector.clazz(User1.class), not(isPresent()));
-    assertEquals(
-        1,
-        mainDexInspector.allClasses().stream()
-            .filter(c -> c.getFinalName().startsWith(SyntheticUnderUser1))
-            .count());
-    assertThat(mainDexInspector.clazz(SyntheticUnderUser1), not(isPresent()));
+  private void checkExpectedSynthetics(CodeInspector inspector) throws Exception {
+    if (parameters.getApiLevel() == null) {
+      assertEquals(Collections.emptySet(), getSyntheticMethods(inspector));
+    } else {
+      assertEquals(
+          Sets.union(getMainDexExpectedSynthetics(), getNonMainDexExpectedSynthetics()),
+          getSyntheticMethods(inspector));
+    }
+  }
+
+  // Hardcoded set of expected synthetics in a "final" build. This set could change if the
+  // compiler makes any changes to the naming, sorting or grouping of synthetics. It is hard-coded
+  // here to
+  // check that the compiler generates this deterministically for any single run or merge of
+  // intermediates.
+
+  private ImmutableSet<MethodReference> getNonMainDexExpectedSynthetics()
+      throws NoSuchMethodException {
+    return ImmutableSet.of(
+        SyntheticItemsTestUtils.syntheticMethod(
+            User1.class, 1, Boolean.class.getMethod("compare", boolean.class, boolean.class)));
+  }
+
+  private ImmutableSet<MethodReference> getMainDexExpectedSynthetics()
+      throws NoSuchMethodException {
+    return ImmutableSet.of(
+        SyntheticItemsTestUtils.syntheticMethod(
+            User1.class, 0, Character.class.getMethod("compare", char.class, char.class)),
+        SyntheticItemsTestUtils.syntheticMethod(
+            User2.class, 0, Integer.class.getMethod("compare", int.class, int.class)));
   }
 
   static class User1 {

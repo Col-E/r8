@@ -28,6 +28,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
@@ -291,6 +292,11 @@ public class FoundClassSubject extends ClassSubject {
 
   public DexType getOriginalDexType(DexItemFactory dexItemFactory) {
     return dexItemFactory.createType(getOriginalDescriptor());
+  }
+
+  @Override
+  public ClassReference getFinalReference() {
+    return Reference.classFromDescriptor(getFinalDescriptor());
   }
 
   @Override

@@ -5,7 +5,6 @@ package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
@@ -60,7 +59,7 @@ class SyntheticMethodDefinition extends SyntheticDefinition
   // Since methods are sharable they must define an order from which representatives can be found.
   @Override
   public int compareTo(SyntheticMethodDefinition other) {
-    return Comparator.comparing(SyntheticMethodDefinition::getContextType, DexType::slowCompareTo)
+    return Comparator.comparing(SyntheticMethodDefinition::getContext)
         .thenComparing(m -> m.method.getDefinition(), DexEncodedMethod::syntheticCompareTo)
         .compare(this, other);
   }

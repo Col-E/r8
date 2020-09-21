@@ -39,7 +39,7 @@ public class SyntheticClassBuilder {
   SyntheticClassBuilder(DexType type, SynthesizingContext context, DexItemFactory factory) {
     this.factory = factory;
     this.type = type;
-    this.origin = context.origin;
+    this.origin = context.getInputContextOrigin();
     this.superType = factory.objectType;
   }
 

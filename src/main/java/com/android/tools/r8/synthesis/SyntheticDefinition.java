@@ -4,12 +4,10 @@
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.origin.Origin;
 import com.google.common.hash.HashCode;
 
 /**
- * Base type for the defintion of a synthetic item.
+ * Base type for the definition of a synthetic item.
  *
  * <p>This class is internal to the synthetic items collection, thus package-protected.
  */
@@ -24,14 +22,6 @@ abstract class SyntheticDefinition {
 
   SynthesizingContext getContext() {
     return context;
-  }
-
-  DexType getContextType() {
-    return context.type;
-  }
-
-  Origin getContextOrigin() {
-    return context.origin;
   }
 
   abstract DexProgramClass getHolder();

@@ -49,8 +49,12 @@ public class MainDexClasses {
     }
   }
 
+  public boolean contains(DexType type) {
+    return mainDexClasses.contains(type);
+  }
+
   public boolean contains(DexProgramClass clazz) {
-    return mainDexClasses.contains(clazz.getType());
+    return contains(clazz.getType());
   }
 
   public boolean containsAnyOf(Iterable<DexProgramClass> classes) {

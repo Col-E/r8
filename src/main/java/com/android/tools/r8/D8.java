@@ -33,6 +33,7 @@ import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -180,6 +181,7 @@ public final class D8 {
       options.disableGlobalOptimizations();
 
       AppView<AppInfo> appView = readApp(inputApp, options, executor, timing);
+      SyntheticItems.collectSyntheticInputs(appView);
 
       final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 

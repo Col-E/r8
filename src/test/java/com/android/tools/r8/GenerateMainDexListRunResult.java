@@ -4,6 +4,9 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.ListUtils;
 import java.util.List;
 
 public class GenerateMainDexListRunResult
@@ -14,6 +17,16 @@ public class GenerateMainDexListRunResult
   public GenerateMainDexListRunResult(List<String> mainDexList) {
     super(null, null, null);
     this.mainDexList = mainDexList;
+  }
+
+  public List<ClassReference> getMainDexList() {
+    return ListUtils.map(
+        mainDexList,
+        entry -> {
+          assert entry.endsWith(".class");
+          String binaryName = entry.substring(0, entry.length() - ".class".length());
+          return Reference.classFromBinaryName(binaryName);
+        });
   }
 
   @Override

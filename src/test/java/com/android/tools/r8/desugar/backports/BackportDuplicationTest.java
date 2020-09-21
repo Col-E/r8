@@ -4,7 +4,6 @@
 package com.android.tools.r8.desugar.backports;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -13,14 +12,20 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.desugar.backports.AbstractBackportTest.MiniAssert;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
+import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -68,26 +73,86 @@ public class BackportDuplicationTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    List<String> run1 = getClassesAfterD8CompileAndRun();
-    List<String> run2 = getClassesAfterD8CompileAndRun();
-    assertEquals("Non deterministic synthesis", run1, run2);
-  }
-
-  private List<String> getClassesAfterD8CompileAndRun() throws Exception {
-    return testForD8(parameters.getBackend())
+    testForD8(parameters.getBackend())
         .addProgramClasses(CLASSES)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkNoInternalSyntheticNames)
-        .inspect(this::checkExpectedOutput)
-        .inspector()
-        .allClasses()
-        .stream()
-        .filter(c -> !CLASS_TYPE_NAMES.contains(c.getFinalName()))
-        .flatMap(c -> c.allMethods().stream().map(m -> m.asMethodReference().toString()))
-        .sorted()
-        .collect(Collectors.toList());
+        .inspect(this::checkExpectedSynthetics);
+  }
+
+  @Test
+  public void testD8Merging() throws Exception {
+    boolean intermediate = true;
+    runD8Merging(intermediate);
+  }
+
+  @Test
+  public void testD8MergingNonIntermediate() throws Exception {
+    boolean intermediate = false;
+    runD8Merging(intermediate);
+  }
+
+  private void runD8Merging(boolean intermediate) throws Exception {
+    // Compile part 1 of the input (maybe intermediate)
+    Path out1 =
+        testForD8()
+            .addProgramClasses(User1.class)
+            .addClasspathClasses(CLASSES)
+            .setMinApi(parameters.getApiLevel())
+            .setIntermediate(intermediate)
+            .compile()
+            .writeToZip();
+
+    // Compile part 2 of the input (maybe intermediate)
+    Path out2 =
+        testForD8()
+            .addProgramClasses(User2.class)
+            .addClasspathClasses(CLASSES)
+            .setMinApi(parameters.getApiLevel())
+            .setIntermediate(intermediate)
+            .compile()
+            .writeToZip();
+
+    SetView<MethodReference> syntheticsInParts =
+        Sets.union(
+            getSyntheticMethods(new CodeInspector(out1)),
+            getSyntheticMethods(new CodeInspector(out2)));
+
+    // Merge parts as an intermediate artifact.
+    // This will not merge synthetics regardless of the setting of intermediate.
+    Path out3 = temp.newFolder().toPath().resolve("out3.zip");
+    testForD8()
+        .addProgramClasses(MiniAssert.class, TestClass.class)
+        .addProgramFiles(out1, out2)
+        .setMinApi(parameters.getApiLevel())
+        .setIntermediate(true)
+        .compile()
+        .writeToZip(out3)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED)
+        .inspect(this::checkNoInternalSyntheticNames)
+        .inspect(inspector -> assertEquals(syntheticsInParts, getSyntheticMethods(inspector)));
+
+    // Finally do a non-intermediate merge.
+    testForD8()
+        .addProgramFiles(out3)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED)
+        .inspect(this::checkNoInternalSyntheticNames)
+        .inspect(
+            inspector -> {
+              if (intermediate) {
+                // If all previous builds where intermediate then synthetics are merged.
+                checkExpectedSynthetics(inspector);
+              } else {
+                // Otherwise merging non-intermediate artifacts, synthetics will not be identified.
+                // Check that they are exactly as in the part inputs.
+                assertEquals(syntheticsInParts, getSyntheticMethods(inspector));
+              }
+            });
   }
 
   private void checkNoInternalSyntheticNames(CodeInspector inspector) {
@@ -99,24 +164,28 @@ public class BackportDuplicationTest extends TestBase {
         });
   }
 
-  private void checkExpectedOutput(CodeInspector inspector) {
-    // TODO(b/158159959): Once synthetic methods can be grouped in classes this should become 1.
-    int expectedSynthesizedClasses = 3;
-    // Total number of synthetic methods should be 3 ({Boolean,Character,Long}.compare).
-    int expectedSynthesizedMethods = 3;
-    // Desugaring should add exactly one class with one desugared method.
-    assertEquals(expectedSynthesizedClasses, inspector.allClasses().size() - CLASSES.size());
-    assertThat(
-        inspector.allClasses().stream()
-            .map(ClassSubject::getOriginalName)
-            .collect(Collectors.toList()),
-        hasItems(CLASS_TYPE_NAMES.toArray()));
-    List<FoundMethodSubject> methods =
-        inspector.allClasses().stream()
-            .filter(clazz -> !CLASS_TYPE_NAMES.contains(clazz.getOriginalName()))
-            .flatMap(clazz -> clazz.allMethods().stream())
-            .collect(Collectors.toList());
-    assertEquals(expectedSynthesizedMethods, methods.size());
+  private Set<MethodReference> getSyntheticMethods(CodeInspector inspector) {
+    Set<MethodReference> methods = new HashSet<>();
+    inspector.allClasses().stream()
+        .filter(c -> !CLASS_TYPE_NAMES.contains(c.getFinalName()))
+        .forEach(c -> c.allMethods().forEach(m -> methods.add(m.asMethodReference())));
+    return methods;
+  }
+
+  private void checkExpectedSynthetics(CodeInspector inspector) throws Exception {
+    // Hardcoded set of expected synthetics in a "final" build. This set could change if the
+    // compiler makes any changes to the naming, sorting or grouping of synthetics. It is hard-coded
+    // here to check that the compiler generates this deterministically for any single run or merge
+    // of intermediates.
+    Set<MethodReference> expectedSynthetics =
+        ImmutableSet.of(
+            SyntheticItemsTestUtils.syntheticMethod(
+                User1.class, 0, Character.class.getMethod("compare", char.class, char.class)),
+            SyntheticItemsTestUtils.syntheticMethod(
+                User1.class, 1, Boolean.class.getMethod("compare", boolean.class, boolean.class)),
+            SyntheticItemsTestUtils.syntheticMethod(
+                User2.class, 0, Integer.class.getMethod("compare", int.class, int.class)));
+    assertEquals(expectedSynthetics, getSyntheticMethods(inspector));
   }
 
   static class User1 {

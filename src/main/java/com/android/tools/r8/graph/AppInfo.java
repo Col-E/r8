@@ -32,8 +32,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   public static AppInfo createInitialAppInfo(
       DexApplication application, MainDexClasses mainDexClasses) {
-    return new AppInfo(
-        SyntheticItems.createInitialSyntheticItems().commit(application), mainDexClasses);
+    return new AppInfo(SyntheticItems.createInitialSyntheticItems(application), mainDexClasses);
   }
 
   public AppInfo(CommittedItems committedItems, MainDexClasses mainDexClasses) {

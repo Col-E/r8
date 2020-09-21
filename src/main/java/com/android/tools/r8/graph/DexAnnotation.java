@@ -77,6 +77,7 @@ public class DexAnnotation extends DexItem {
     }
     if (annotation == options.itemFactory.dalvikFastNativeAnnotation
         || annotation == options.itemFactory.dalvikCriticalNativeAnnotation
+        || annotation == options.itemFactory.annotationSynthesizedClass
         || annotation == options.itemFactory.annotationSynthesizedClassMap) {
       return true;
     }
@@ -347,7 +348,7 @@ public class DexAnnotation extends DexItem {
         throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
       }
       DexAnnotationElement value = foundAnnotation.annotation.elements[0];
-      if (!value.name.toSourceString().equals("value")) {
+      if (value.name != dexItemFactory.valueString) {
         throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
       }
       DexValueArray existingList = value.value.asDexValueArray();
@@ -373,6 +374,43 @@ public class DexAnnotation extends DexItem {
         + " is annotated with invalid "
         + invalidAnnotation.annotation.type.toString()
         + ": " + invalidAnnotation.toString();
+  }
+
+  public static DexAnnotation createAnnotationSynthesizedClass(
+      DexType synthesizingContext, DexItemFactory dexItemFactory) {
+    DexValueType value = new DexValueType(synthesizingContext);
+    DexAnnotationElement element = new DexAnnotationElement(dexItemFactory.valueString, value);
+    return new DexAnnotation(
+        VISIBILITY_BUILD,
+        new DexEncodedAnnotation(
+            dexItemFactory.annotationSynthesizedClass, new DexAnnotationElement[] {element}));
+  }
+
+  public static boolean hasSynthesizedClassAnnotation(
+      DexAnnotationSet annotations, DexItemFactory factory) {
+    return getSynthesizedClassAnnotationContextType(annotations, factory) != null;
+  }
+
+  public static DexType getSynthesizedClassAnnotationContextType(
+      DexAnnotationSet annotations, DexItemFactory factory) {
+    if (annotations.size() != 1) {
+      return null;
+    }
+    DexAnnotation annotation = annotations.annotations[0];
+    if (annotation.annotation.type != factory.annotationSynthesizedClass) {
+      return null;
+    }
+    if (annotation.annotation.elements.length != 1) {
+      return null;
+    }
+    DexAnnotationElement element = annotation.annotation.elements[0];
+    if (element.name != factory.valueString) {
+      return null;
+    }
+    if (!element.value.isDexValueType()) {
+      return null;
+    }
+    return element.value.asDexValueType().getValue();
   }
 
   public static DexAnnotation createAnnotationSynthesizedClassMap(
