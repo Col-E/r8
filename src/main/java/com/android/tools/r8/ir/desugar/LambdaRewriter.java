@@ -4,9 +4,21 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfInvokeDynamic;
+import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfNew;
+import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStore;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -18,23 +30,21 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -44,6 +54,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
+import org.objectweb.asm.Opcodes;
 
 /**
  * Lambda desugaring rewriter.
@@ -105,41 +117,66 @@ public class LambdaRewriter {
    *
    * <p>NOTE: this method can be called concurrently for several different methods.
    */
-  public void desugarLambdas(IRCode code) {
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
-    ProgramMethod context = code.context();
-    ListIterator<BasicBlock> blocks = code.listIterator();
-    while (blocks.hasNext()) {
-      BasicBlock block = blocks.next();
-      InstructionListIterator instructions = block.listIterator(code);
-      while (instructions.hasNext()) {
-        Instruction instruction = instructions.next();
-        if (instruction.isInvokeCustom()) {
-          InvokeCustom invoke = instruction.asInvokeCustom();
-          LambdaDescriptor descriptor = inferLambdaDescriptor(invoke.getCallSite(), context);
-          if (descriptor == LambdaDescriptor.MATCH_FAILED) {
-            continue;
+  public int desugarLambdas(ProgramMethod method, AppInfoWithClassHierarchy appInfo) {
+    return desugarLambdas(
+        method.getDefinition(),
+        callsite -> {
+          LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callsite, appInfo, method);
+          if (descriptor == null) {
+            return null;
           }
+          return getOrCreateLambdaClass(descriptor, method);
+        });
+  }
 
-          // We have a descriptor, get the lambda class. In D8, we synthesize the lambda classes
-          // during IR processing, and therefore we may need to create it now.
-          LambdaClass lambdaClass =
-              appView.enableWholeProgramOptimizations()
-                  ? getKnownLambdaClass(descriptor, context)
-                  : getOrCreateLambdaClass(descriptor, context);
-          assert lambdaClass != null;
-
-          // We rely on patch performing its work in a way which
-          // keeps both `instructions` and `blocks` iterators in
-          // valid state so that we can continue iteration.
-          patchInstruction(invoke, lambdaClass, code, blocks, instructions, affectedValues);
+  // Same as above, but where lambdas are always known to exist for the call sites.
+  public static int desugarLambdas(
+      DexEncodedMethod method, Function<DexCallSite, LambdaClass> callSites) {
+    CfCode code = method.getCode().asCfCode();
+    List<CfInstruction> instructions = code.instructions;
+    int replaced = 0;
+    int maxTemp = 0;
+    for (int i = 0; i < instructions.size(); i++) {
+      CfInstruction instruction = instructions.get(i);
+      if (instruction instanceof CfInvokeDynamic) {
+        LambdaClass lambdaClass = callSites.apply(((CfInvokeDynamic) instruction).getCallSite());
+        if (lambdaClass == null) {
+          continue;
         }
+        if (lambdaClass.isStateless()) {
+          CfFieldInstruction getStaticLambdaInstance =
+              new CfFieldInstruction(
+                  Opcodes.GETSTATIC, lambdaClass.lambdaField, lambdaClass.lambdaField);
+          instructions.set(i, getStaticLambdaInstance);
+        } else {
+          List<CfInstruction> replacement = new ArrayList<>();
+          int arguments = lambdaClass.descriptor.captures.size();
+          int temp = code.getMaxLocals();
+          for (int j = arguments - 1; j >= 0; j--) {
+            ValueType type = ValueType.fromDexType(lambdaClass.descriptor.captures.values[j]);
+            replacement.add(new CfStore(type, temp));
+            temp += type.requiredRegisters();
+          }
+          maxTemp = Math.max(temp, maxTemp);
+          replacement.add(new CfNew(lambdaClass.type));
+          replacement.add(new CfStackInstruction(Opcode.Dup));
+          for (int j = 0; j < arguments; j++) {
+            ValueType type = ValueType.fromDexType(lambdaClass.descriptor.captures.values[j]);
+            temp -= type.requiredRegisters();
+            replacement.add(new CfLoad(type, temp));
+          }
+          replacement.add(new CfInvoke(Opcodes.INVOKESPECIAL, lambdaClass.constructor, false));
+          instructions.remove(i);
+          instructions.addAll(i, replacement);
+        }
+        ++replaced;
       }
     }
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
+    if (maxTemp > 0) {
+      assert maxTemp > code.getMaxLocals();
+      code.setMaxLocals(maxTemp);
     }
-    assert code.isConsistentSSA();
+    return replaced;
   }
 
   /** Remove lambda deserialization methods. */

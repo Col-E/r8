@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.Inc
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -1066,6 +1067,14 @@ public class IRConverter {
           method.toSourceString(),
           logCode(options, method.getDefinition()));
     }
+    boolean didDesugar = desugar(method);
+    if (Log.ENABLED && didDesugar) {
+      Log.debug(
+          getClass(),
+          "Desugared code for %s:\n%s",
+          method.toSourceString(),
+          logCode(options, method.getDefinition()));
+    }
     if (options.testing.hookInIrConversion != null) {
       options.testing.hookInIrConversion.run();
     }
@@ -1079,6 +1088,21 @@ public class IRConverter {
       return Timing.empty();
     }
     return optimize(code, feedback, methodProcessor, methodProcessingId);
+  }
+
+  private boolean desugar(ProgramMethod method) {
+    if (options.desugarState != DesugarState.ON) {
+      return false;
+    }
+    if (!method.getDefinition().getCode().isCfCode()) {
+      return false;
+    }
+    AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
+    boolean didDesugar = false;
+    if (lambdaRewriter != null) {
+      didDesugar |= lambdaRewriter.desugarLambdas(method, appInfo) > 0;
+    }
+    return didDesugar;
   }
 
   // TODO(b/140766440): Convert all sub steps an implementer of CodeOptimization
@@ -1128,13 +1152,6 @@ public class IRConverter {
     assert !method.isProcessed()
         || !appView.enableWholeProgramOptimizations()
         || !appView.appInfo().withLiveness().neverReprocess.contains(method.method);
-
-    if (!method.isProcessed() && lambdaRewriter != null) {
-      timing.begin("Desugar lambdas");
-      lambdaRewriter.desugarLambdas(code);
-      timing.end();
-      assert code.isConsistentSSA();
-    }
 
     if (lambdaMerger != null) {
       timing.begin("Merge lambdas");

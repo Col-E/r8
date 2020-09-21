@@ -10,15 +10,6 @@ import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflection
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
-import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.cf.code.CfInvokeDynamic;
-import com.android.tools.r8.cf.code.CfLoad;
-import com.android.tools.r8.cf.code.CfNew;
-import com.android.tools.r8.cf.code.CfStackInstruction;
-import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
-import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
@@ -85,7 +76,6 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
@@ -145,7 +135,6 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import org.objectweb.asm.Opcodes;
 
 /**
  * Approximates the runtime dependencies for the given set of roots.
@@ -3190,50 +3179,7 @@ public class Enqueuer {
   private void rewriteLambdaCallSites(
       DexEncodedMethod method, Map<DexCallSite, LambdaClass> callSites) {
     assert !callSites.isEmpty();
-    CfCode code = method.getCode().asCfCode();
-    List<CfInstruction> instructions = code.instructions;
-    int replaced = 0;
-    int maxTemp = 0;
-    for (int i = 0; i < instructions.size(); i++) {
-      CfInstruction instruction = instructions.get(i);
-      if (instruction instanceof CfInvokeDynamic) {
-        LambdaClass lambdaClass = callSites.get(((CfInvokeDynamic) instruction).getCallSite());
-        if (lambdaClass == null) {
-          continue;
-        }
-        if (lambdaClass.isStateless()) {
-          CfFieldInstruction getStaticLambdaInstance =
-              new CfFieldInstruction(
-                  Opcodes.GETSTATIC, lambdaClass.lambdaField, lambdaClass.lambdaField);
-          instructions.set(i, getStaticLambdaInstance);
-        } else {
-          List<CfInstruction> replacement = new ArrayList<>();
-          int arguments = lambdaClass.descriptor.captures.size();
-          int temp = code.getMaxLocals();
-          for (int j = arguments - 1; j >= 0; j--) {
-            ValueType type = ValueType.fromDexType(lambdaClass.descriptor.captures.values[j]);
-            replacement.add(new CfStore(type, temp));
-            temp += type.requiredRegisters();
-          }
-          maxTemp = Math.max(temp, maxTemp);
-          replacement.add(new CfNew(lambdaClass.type));
-          replacement.add(new CfStackInstruction(Opcode.Dup));
-          for (int j = 0; j < arguments; j++) {
-            ValueType type = ValueType.fromDexType(lambdaClass.descriptor.captures.values[j]);
-            temp -= type.requiredRegisters();
-            replacement.add(new CfLoad(type, temp));
-          }
-          replacement.add(new CfInvoke(Opcodes.INVOKESPECIAL, lambdaClass.constructor, false));
-          instructions.remove(i);
-          instructions.addAll(i, replacement);
-        }
-        ++replaced;
-      }
-    }
-    if (maxTemp > 0) {
-      assert maxTemp > code.getMaxLocals();
-      code.setMaxLocals(maxTemp);
-    }
+    int replaced = LambdaRewriter.desugarLambdas(method, callSites::get);
     assert replaced == callSites.size();
   }
 
