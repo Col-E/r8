@@ -1097,9 +1097,9 @@ public class IRConverter {
     if (!method.getDefinition().getCode().isCfCode()) {
       return false;
     }
-    AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     boolean didDesugar = false;
     if (lambdaRewriter != null) {
+      AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
       didDesugar |= lambdaRewriter.desugarLambdas(method, appInfo) > 0;
     }
     return didDesugar;
