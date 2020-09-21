@@ -25,8 +25,4 @@ public class CompatDxHelper {
   public static void ignoreDexInArchive(BaseCommand.Builder builder) {
     builder.setIgnoreDexInArchive(true);
   }
-
-  public static void enableDesugarBackportStatics(D8Command.Builder builder) {
-    builder.enableDesugarBackportStatics();
-  }
 }
