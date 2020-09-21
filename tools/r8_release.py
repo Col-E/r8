@@ -308,6 +308,12 @@ def g4_change(version):
       'g4 change --desc "Update R8 to version %s\n"' % (version),
       shell=True)
 
+def get_cl_id(c4_change_output):
+  startIndex = c4_change_output.find('Change ') + len('Change ')
+  endIndex = c4_change_output.find(' ', startIndex)
+  cl = c4_change_output[startIndex:endIndex]
+  assert cl.isdigit()
+  return cl
 
 def sed(pattern, replace, path):
   with open(path, "r") as sources:
@@ -386,7 +392,11 @@ def prepare_google3(args):
       assert options.version in blaze_result
 
       if not options.no_upload:
-        return g4_change(options.version)
+        change_result = g4_change(options.version)
+        change_result += 'Run \'(g4d ' + args.p4_client \
+                         + ' && tap_presubmit -p all --train -c ' \
+                         + get_cl_id(change_result) + ')\' for running TAP presubmit.'
+        return change_result
 
   return release_google3
 
