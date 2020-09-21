@@ -54,6 +54,10 @@ public class SimplePolicyExecutor extends PolicyExecutor {
     }
 
     for (Policy policy : policies) {
+      if (policy.shouldSkipPolicy()) {
+        continue;
+      }
+
       if (policy instanceof SingleClassPolicy) {
         linkedGroups = applySingleClassPolicy((SingleClassPolicy) policy, linkedGroups);
       } else if (policy instanceof MultiClassPolicy) {

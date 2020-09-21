@@ -8,4 +8,8 @@ package com.android.tools.r8.horizontalclassmerging;
  * The super class of all horizontal class merging policies. Most classes will either implement
  * {@link SingleClassPolicy} or {@link MultiClassPolicy}.
  */
-public abstract class Policy {}
+public abstract class Policy {
+  public boolean shouldSkipPolicy() {
+    return false;
+  }
+}

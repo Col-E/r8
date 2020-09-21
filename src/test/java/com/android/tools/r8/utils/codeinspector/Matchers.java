@@ -299,6 +299,10 @@ public class Matchers {
     return hasVisibility(Visibility.PRIVATE);
   }
 
+  public static <T extends MemberSubject> Matcher<T> isPackagePrivate() {
+    return hasVisibility(Visibility.PACKAGE_PRIVATE);
+  }
+
   public static <T extends MemberSubject> Matcher<T> isPublic() {
     return hasVisibility(Visibility.PUBLIC);
   }

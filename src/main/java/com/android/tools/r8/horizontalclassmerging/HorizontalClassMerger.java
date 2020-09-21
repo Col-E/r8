@@ -17,6 +17,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoStaticClassInitializer;
 import com.android.tools.r8.horizontalclassmerging.policies.NotEntryPoint;
 import com.android.tools.r8.horizontalclassmerging.policies.NotMatchedByNoHorizontalClassMerging;
+import com.android.tools.r8.horizontalclassmerging.policies.PreventChangingVisibility;
 import com.android.tools.r8.horizontalclassmerging.policies.PreventMergeIntoMainDex;
 import com.android.tools.r8.horizontalclassmerging.policies.RespectPackageBoundaries;
 import com.android.tools.r8.horizontalclassmerging.policies.SameFeatureSplit;
@@ -57,6 +58,7 @@ public class HorizontalClassMerger {
             new NotEntryPoint(appView.dexItemFactory()),
             new PreventMergeIntoMainDex(appView, mainDexTracingResult),
             new SameParentClass(),
+            new PreventChangingVisibility(),
             new SameFeatureSplit(appView),
             new RespectPackageBoundaries(appView),
             new DontMergeSynchronizedClasses(appView)
