@@ -223,7 +223,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
   @Override
   InternalOptions getInternalOptions() {
     InternalOptions internal = new InternalOptions(factory, reporter);
-    internal.programConsumer = ClassFileConsumer.emptyConsumer();
+    internal.programConsumer = DexIndexedConsumer.emptyConsumer();
     internal.mainDexKeepRules = mainDexKeepRules;
     internal.mainDexListConsumer = mainDexListConsumer;
     internal.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;

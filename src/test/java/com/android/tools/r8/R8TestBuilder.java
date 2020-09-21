@@ -154,7 +154,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
             features);
     switch (allowedDiagnosticMessages) {
       case ALL:
-        compileResult.assertDiagnosticThatMatches(new IsAnything<>());
+        compileResult.getDiagnosticMessages().assertAllDiagnosticsMatch(new IsAnything<>());
         break;
       case ERROR:
         compileResult.assertOnlyErrors();
