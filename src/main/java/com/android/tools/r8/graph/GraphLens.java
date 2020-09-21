@@ -986,12 +986,16 @@ public abstract class GraphLens {
         // TODO(sgjesse): Should we always do interface to virtual mapping? Is it a performance win
         //  that only subclasses which are known to need it actually do it?
         DexMethod rewrittenReboundReference = previous.getRewrittenReboundReference(methodMap);
-        return MethodLookupResult.builder(this)
-            .setReboundReference(rewrittenReboundReference)
-            .setReference(
+        DexMethod rewrittenReference =
+            previous.getReference() == previous.getReboundReference()
+                ? rewrittenReboundReference
+                : // This assumes that the holder will always be moved in lock-step with the method!
                 rewrittenReboundReference.withHolder(
                     internalDescribeLookupClassType(previous.getReference().getHolderType()),
-                    dexItemFactory))
+                    dexItemFactory);
+        return MethodLookupResult.builder(this)
+            .setReboundReference(rewrittenReboundReference)
+            .setReference(rewrittenReference)
             .setPrototypeChanges(
                 internalDescribePrototypeChanges(
                     previous.getPrototypeChanges(), rewrittenReboundReference))
