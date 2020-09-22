@@ -35,6 +35,7 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.AsmUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
@@ -195,6 +196,7 @@ public class JarClassFileReader {
 
     // DexClass data.
     private int version;
+    private boolean deprecated;
     private DexType type;
     private ClassAccessFlags accessFlags;
     private DexType superType;
@@ -301,6 +303,7 @@ public class JarClassFileReader {
       if (InternalOptions.SUPPORTED_CF_MAJOR_VERSION < getMajorVersion()) {
         throw new CompilationError("Unsupported class file version: " + getMajorVersion(), origin);
       }
+      this.deprecated = AsmUtils.isDeprecated(access);
       accessFlags = ClassAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
       type = application.getTypeFromName(name);
       // Check if constraints from
@@ -449,6 +452,9 @@ public class JarClassFileReader {
       if (clazz.isProgramClass()) {
         DexProgramClass programClass = clazz.asProgramClass();
         programClass.setInitialClassFileVersion(version);
+        if (deprecated) {
+          programClass.setDeprecated();
+        }
       }
       classConsumer.accept(clazz);
     }
@@ -587,7 +593,9 @@ public class JarClassFileReader {
         DexAnnotationSet annotationSet =
             createAnnotationSet(annotations, parent.application.options);
         DexValue staticValue = flags.isStatic() ? getStaticValue(value, dexField.type) : null;
-        DexEncodedField field = new DexEncodedField(dexField, flags, annotationSet, staticValue);
+        DexEncodedField field =
+            new DexEncodedField(
+                dexField, flags, annotationSet, staticValue, AsmUtils.isDeprecated(access));
         if (flags.isStatic()) {
           parent.staticFields.add(field);
         } else {
@@ -662,6 +670,7 @@ public class JarClassFileReader {
     private List<DexValue> parameterFlags = null;
     final DexMethod method;
     final MethodAccessFlags flags;
+    final boolean deprecated;
     Code code = null;
 
     public CreateMethodVisitor(int access, String name, String desc, String signature,
@@ -671,6 +680,7 @@ public class JarClassFileReader {
       this.parent = parent;
       this.method = parent.application.getMethod(parent.type, name, desc);
       this.flags = createMethodAccessFlags(name, access);
+      this.deprecated = AsmUtils.isDeprecated(access);
       parameterCount = DescriptorUtils.getArgumentCount(desc);
       if (exceptions != null && exceptions.length > 0) {
         DexValue[] values = new DexValue[exceptions.length];
@@ -813,7 +823,9 @@ public class JarClassFileReader {
               createAnnotationSet(annotations, options),
               parameterAnnotationsList,
               code,
-              parent.version);
+              parent.version,
+              false,
+              deprecated);
       Wrapper<DexMethod> signature = MethodSignatureEquivalence.get().wrap(method);
       if (parent.methodSignatures.add(signature)) {
         parent.hasReachabilitySensitiveMethod |= isReachabilitySensitive();

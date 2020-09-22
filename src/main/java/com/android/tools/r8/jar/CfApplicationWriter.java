@@ -43,6 +43,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.utils.AsmUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
@@ -173,6 +174,9 @@ public class CfApplicationWriter {
       }
     }
     int access = clazz.accessFlags.getAsCfAccessFlags();
+    if (clazz.isDeprecated()) {
+      access = AsmUtils.withDeprecated(access);
+    }
     String desc = namingLens.lookupDescriptor(clazz.type).toString();
     String name = namingLens.lookupInternalName(clazz.type);
     String signature = getSignature(clazz.annotations());
@@ -326,6 +330,9 @@ public class CfApplicationWriter {
 
   private void writeField(DexEncodedField field, ClassWriter writer) {
     int access = field.accessFlags.getAsCfAccessFlags();
+    if (field.isDeprecated()) {
+      access = AsmUtils.withDeprecated(access);
+    }
     String name = namingLens.lookupName(field.field).toString();
     String desc = namingLens.lookupDescriptor(field.field.type).toString();
     String signature = getSignature(field.annotations());
@@ -343,6 +350,9 @@ public class CfApplicationWriter {
       ImmutableMap<DexString, DexValue> defaults) {
     DexEncodedMethod definition = method.getDefinition();
     int access = definition.getAccessFlags().getAsCfAccessFlags();
+    if (definition.isDeprecated()) {
+      access = AsmUtils.withDeprecated(access);
+    }
     String name = namingLens.lookupName(method.getReference()).toString();
     String desc = definition.descriptor(namingLens);
     String signature = getSignature(definition.annotations());

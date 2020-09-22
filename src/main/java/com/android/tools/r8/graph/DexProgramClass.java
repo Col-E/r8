@@ -45,6 +45,7 @@ public class DexProgramClass extends DexClass
   private final ProgramResource.Kind originKind;
   private final Collection<DexProgramClass> synthesizedFrom;
   private int initialClassFileVersion = -1;
+  private boolean deprecated = false;
   private KotlinClassLevelInfo kotlinInfo = NO_KOTLIN_INFO;
 
   private final ChecksumSupplier checksumSupplier;
@@ -514,6 +515,14 @@ public class DexProgramClass extends DexClass
   public int getInitialClassFileVersion() {
     assert initialClassFileVersion > -1;
     return initialClassFileVersion;
+  }
+
+  public void setDeprecated() {
+    deprecated = true;
+  }
+
+  public boolean isDeprecated() {
+    return deprecated;
   }
 
   /**

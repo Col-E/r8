@@ -139,6 +139,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public final DexMethod method;
   public final MethodAccessFlags accessFlags;
+  public final boolean deprecated;
   public ParameterAnnotationsList parameterAnnotationsList;
   private Code code;
   // TODO(b/128967328): towards finer-grained inlining constraints,
@@ -227,17 +228,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       DexAnnotationSet annotations,
       ParameterAnnotationsList parameterAnnotationsList,
       Code code) {
-    this(method, accessFlags, annotations, parameterAnnotationsList, code, -1);
-  }
-
-  public DexEncodedMethod(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code,
-      int classFileVersion) {
-    this(method, accessFlags, annotations, parameterAnnotationsList, code, classFileVersion, false);
+    this(method, accessFlags, annotations, parameterAnnotationsList, code, -1, false);
   }
 
   public DexEncodedMethod(
@@ -258,9 +249,30 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       Code code,
       int classFileVersion,
       boolean d8R8Synthesized) {
+    this(
+        method,
+        accessFlags,
+        annotations,
+        parameterAnnotationsList,
+        code,
+        classFileVersion,
+        d8R8Synthesized,
+        false);
+  }
+
+  public DexEncodedMethod(
+      DexMethod method,
+      MethodAccessFlags accessFlags,
+      DexAnnotationSet annotations,
+      ParameterAnnotationsList parameterAnnotationsList,
+      Code code,
+      int classFileVersion,
+      boolean d8R8Synthesized,
+      boolean deprecated) {
     super(annotations);
     this.method = method;
     this.accessFlags = accessFlags;
+    this.deprecated = deprecated;
     this.parameterAnnotationsList = parameterAnnotationsList;
     this.code = code;
     this.classFileVersion = classFileVersion;
@@ -268,6 +280,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     assert accessFlags != null;
     assert code == null || !shouldNotHaveCode();
     assert parameterAnnotationsList != null;
+  }
+
+  public boolean isDeprecated() {
+    return deprecated;
   }
 
   public void hashSyntheticContent(Hasher hasher) {

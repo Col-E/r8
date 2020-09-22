@@ -27,6 +27,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   public final DexField field;
   public final FieldAccessFlags accessFlags;
   private DexValue staticValue;
+  private final boolean deprecated;
 
   private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
   private KotlinFieldLevelInfo kotlinMemberInfo = NO_KOTLIN_INFO;
@@ -35,15 +36,29 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       DexField field,
       FieldAccessFlags accessFlags,
       DexAnnotationSet annotations,
-      DexValue staticValue) {
+      DexValue staticValue,
+      boolean deprecated) {
     super(annotations);
     this.field = field;
     this.accessFlags = accessFlags;
     this.staticValue = staticValue;
+    this.deprecated = deprecated;
+  }
+
+  public DexEncodedField(
+      DexField field,
+      FieldAccessFlags accessFlags,
+      DexAnnotationSet annotations,
+      DexValue staticValue) {
+    this(field, accessFlags, annotations, staticValue, false);
   }
 
   public DexType type() {
     return field.type;
+  }
+
+  public boolean isDeprecated() {
+    return deprecated;
   }
 
   public boolean isProgramField(DexDefinitionSupplier definitions) {
