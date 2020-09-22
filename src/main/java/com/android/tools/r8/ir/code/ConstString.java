@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
@@ -177,8 +178,8 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView) {
-    assert super.verifyTypes(appView);
+  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
+    assert super.verifyTypes(appView, verifyTypesHelper);
     TypeElement expectedType = TypeElement.stringClassType(appView, definitelyNotNull());
     assert getOutType().equals(expectedType);
     return true;

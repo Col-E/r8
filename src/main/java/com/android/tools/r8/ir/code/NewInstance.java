@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
+import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -225,7 +226,7 @@ public class NewInstance extends Instruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView) {
+  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
     TypeElement type = getOutType();
     assert type.isClassType();
     assert type.asClassType().getClassType() == clazz || appView.options().testing.allowTypeErrors;

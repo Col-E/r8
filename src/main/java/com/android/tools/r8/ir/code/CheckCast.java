@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -165,8 +166,8 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView) {
-    assert super.verifyTypes(appView);
+  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
+    assert super.verifyTypes(appView, verifyTypesHelper);
 
     TypeElement inType = object().getType();
 

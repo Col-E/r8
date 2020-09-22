@@ -26,14 +26,17 @@ import com.android.tools.r8.ir.code.Throw;
  * that it is dead.
  *
  * <p>Pruning code that does not verify is necessary in order to be able to assert that the types
- * are sound using {@link Instruction#verifyTypes(AppView)}.
+ * are sound using {@link Instruction#verifyTypes(AppView, VerifyTypesHelper)}.
  */
 public class TypeChecker {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final VerifyTypesHelper verifyTypesHelper;
 
-  public TypeChecker(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public TypeChecker(
+      AppView<? extends AppInfoWithClassHierarchy> appView, VerifyTypesHelper verifyTypesHelper) {
     this.appView = appView;
+    this.verifyTypesHelper = verifyTypesHelper;
   }
 
   public boolean check(IRCode code) {
@@ -70,7 +73,7 @@ public class TypeChecker {
     TypeElement valueType = instruction.returnValue().getType();
     TypeElement returnType =
         TypeElement.fromDexType(method.method.proto.returnType, Nullability.maybeNull(), appView);
-    if (isSubtypeOf(valueType, returnType)) {
+    if (verifyTypesHelper.isAssignable(valueType, returnType)) {
       return true;
     }
 
@@ -93,7 +96,7 @@ public class TypeChecker {
     TypeElement valueType = instruction.value().getType();
     TypeElement fieldType =
         TypeElement.fromDexType(instruction.getField().type, valueType.nullability(), appView);
-    if (isSubtypeOf(valueType, fieldType)) {
+    if (verifyTypesHelper.isAssignable(valueType, fieldType)) {
       return true;
     }
 
@@ -112,12 +115,6 @@ public class TypeChecker {
     TypeElement throwableType =
         TypeElement.fromDexType(
             appView.dexItemFactory().throwableType, valueType.nullability(), appView);
-    return isSubtypeOf(valueType, throwableType);
-  }
-
-  private boolean isSubtypeOf(TypeElement expectedSubtype, TypeElement expectedSupertype) {
-    return (expectedSubtype.isNullType() && expectedSupertype.isReferenceType())
-        || expectedSubtype.lessThanOrEqual(expectedSupertype, appView)
-        || expectedSubtype.isBasedOnMissingClass(appView);
+    return verifyTypesHelper.isAssignable(valueType, throwableType);
   }
 }

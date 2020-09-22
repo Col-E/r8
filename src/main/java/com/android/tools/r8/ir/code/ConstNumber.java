@@ -19,6 +19,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
@@ -323,8 +324,8 @@ public class ConstNumber extends ConstInstruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView) {
-    assert super.verifyTypes(appView);
+  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
+    assert super.verifyTypes(appView, verifyTypesHelper);
     assert !isZero() || getOutType().isPrimitiveType() || getOutType().isNullType();
     return true;
   }

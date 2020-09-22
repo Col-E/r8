@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.TypeChecker;
+import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -616,11 +617,12 @@ public class IRCode {
   public boolean verifyTypes(AppView<?> appView) {
     // We can only type check the program if we have subtyping information. Therefore, we do not
     // require that the program type checks in D8.
+    VerifyTypesHelper verifyTypesHelper = VerifyTypesHelper.create(appView);
     if (appView.enableWholeProgramOptimizations()) {
       assert validAssumeInstructions(appView);
-      assert new TypeChecker(appView.withLiveness()).check(this);
+      assert new TypeChecker(appView.withLiveness(), verifyTypesHelper).check(this);
     }
-    assert blocks.stream().allMatch(block -> block.verifyTypes(appView));
+    assert blocks.stream().allMatch(block -> block.verifyTypes(appView, verifyTypesHelper));
     return true;
   }
 

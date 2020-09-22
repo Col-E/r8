@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
@@ -81,8 +82,9 @@ public class BasicBlock {
     return true;
   }
 
-  public boolean verifyTypes(AppView<?> appView) {
-    assert instructions.stream().allMatch(instruction -> instruction.verifyTypes(appView));
+  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
+    assert instructions.stream()
+        .allMatch(instruction -> instruction.verifyTypes(appView, verifyTypesHelper));
     return true;
   }
 

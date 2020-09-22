@@ -9,6 +9,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -124,8 +125,8 @@ public class Move extends Instruction {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView) {
-    super.verifyTypes(appView);
+  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
+    super.verifyTypes(appView, verifyTypesHelper);
     // DebugLocalWrite defines it's own verification of types but should be allowed to call super.
     if (!this.isDebugLocalWrite()) {
       assert src().getType().equals(getOutType());

@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 
 /**
@@ -77,9 +78,9 @@ public class DebugLocalWrite extends Move {
   }
 
   @Override
-  public boolean verifyTypes(AppView<?> appView) {
-    super.verifyTypes(appView);
-    assert src().getType().lessThanOrEqual(getOutType(), appView);
+  public boolean verifyTypes(AppView<?> appView, VerifyTypesHelper verifyTypesHelper) {
+    super.verifyTypes(appView, verifyTypesHelper);
+    assert verifyTypesHelper.isAssignable(src().getType(), getOutType());
     return true;
   }
 }
