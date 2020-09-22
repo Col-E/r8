@@ -7,23 +7,36 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
-import com.android.tools.r8.ByteDataView;
-import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.io.ByteStreams;
 import java.nio.file.Path;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 
+@RunWith(Parameterized.class)
 public class InliningClassVersionTest extends TestBase {
+
+  private final TestParameters parameters;
+  private static final String EXPECTED = "Hello from Inlinee!";
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withCfRuntimes().build();
+  }
+
+  public InliningClassVersionTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   private final int OLD_VERSION = Opcodes.V1_6;
   private final String BASE_DESCRIPTOR = DescriptorUtils.javaTypeToDescriptor(Base.class.getName());
@@ -43,59 +56,44 @@ public class InliningClassVersionTest extends TestBase {
     }
   }
 
-  private static class DowngradeVisitor extends ClassVisitor {
-
-    private final int version;
-
-    DowngradeVisitor(ClassVisitor cv, int version) {
-      super(InternalOptions.ASM_VERSION, cv);
-      this.version = version;
-    }
-
-    @Override
-    public void visit(
-        int version,
-        int access,
-        String name,
-        String signature,
-        String superName,
-        String[] interfaces) {
-      assert version > this.version
-          : "Going from " + version + " to " + this.version + " is not a downgrade";
-      super.visit(this.version, access, name, signature, superName, interfaces);
-    }
-  }
-
-  private static byte[] downgradeClass(byte[] classBytes, int version) {
-    ClassWriter writer = new ClassWriter(0);
-    new ClassReader(classBytes).accept(new DowngradeVisitor(writer, version), 0);
-    return writer.toByteArray();
+  @Test
+  public void testRuntime() throws Exception {
+    testForRuntime(parameters)
+        .addProgramClasses(Inlinee.class)
+        .addProgramClassFileData(downgradeBaseClass())
+        .run(parameters.getRuntime(), Base.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
   public void test() throws Exception {
-    Path inputJar = writeInput();
-    assertEquals(OLD_VERSION, getBaseClassVersion(inputJar));
-    ProcessResult runInput = run(inputJar);
-    assertEquals(0, runInput.exitCode);
-    Path outputJar =
-        testForR8(Backend.CF)
-            .addProgramFiles(inputJar)
-            .addKeepMainRule(Base.class)
-            .enableMemberValuePropagationAnnotations()
-            .compile()
-            .writeToZip();
-    ProcessResult runOutput = run(outputJar);
-    assertEquals(runInput.toString(), runOutput.toString());
+    Path outputJar = temp.newFile("output.jar").toPath();
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Inlinee.class)
+        .addProgramClassFileData(downgradeBaseClass())
+        .addKeepMainRule(Base.class)
+        .enableMemberValuePropagationAnnotations()
+        .compile()
+        .writeToZip(outputJar)
+        .run(parameters.getRuntime(), Base.class)
+        .assertSuccessWithOutputLines(EXPECTED);
     assertNotEquals(
         "Inliner did not upgrade classfile version", OLD_VERSION, getBaseClassVersion(outputJar));
   }
 
-  private int getBaseClassVersion(Path jar) throws Exception {
-    return getClassVersion(jar, BASE_DESCRIPTOR);
+  private byte[] downgradeBaseClass() throws Exception {
+    byte[] transform = transformer(Base.class).setVersion(OLD_VERSION).transform();
+    assertEquals(OLD_VERSION, getClassVersion(transform));
+    return transform;
   }
 
-  private int getClassVersion(Path jar, String descriptor) throws Exception {
+  private int getBaseClassVersion(Path jar) throws Exception {
+    return getClassVersion(
+        ByteStreams.toByteArray(
+            new ArchiveClassFileProvider(jar).getProgramResource(BASE_DESCRIPTOR).getByteStream()));
+  }
+
+  private int getClassVersion(byte[] classFileBytes) {
 
     class ClassVersionReader extends ClassVisitor {
       private int version = -1;
@@ -117,32 +115,9 @@ public class InliningClassVersionTest extends TestBase {
         this.version = version;
       }
     }
-
-    byte[] bytes =
-        ByteStreams.toByteArray(
-            new ArchiveClassFileProvider(jar).getProgramResource(descriptor).getByteStream());
     ClassVersionReader reader = new ClassVersionReader();
-    new ClassReader(bytes).accept(reader, 0);
+    new ClassReader(classFileBytes).accept(reader, 0);
     assert reader.version != -1;
     return reader.version;
-  }
-
-  private Path writeInput() throws Exception {
-    Path inputJar = temp.getRoot().toPath().resolve("input.jar");
-    ClassFileConsumer consumer = new ClassFileConsumer.ArchiveConsumer(inputJar);
-    consumer.accept(
-        ByteDataView.of(downgradeClass(ToolHelper.getClassAsBytes(Base.class), OLD_VERSION)),
-        BASE_DESCRIPTOR,
-        null);
-    consumer.accept(
-        ByteDataView.of(ToolHelper.getClassAsBytes(Inlinee.class)),
-        DescriptorUtils.javaTypeToDescriptor(Inlinee.class.getName()),
-        null);
-    consumer.finished(null);
-    return inputJar;
-  }
-
-  private ProcessResult run(Path jar) throws Exception {
-    return ToolHelper.runJava(jar, Base.class.getName());
   }
 }
