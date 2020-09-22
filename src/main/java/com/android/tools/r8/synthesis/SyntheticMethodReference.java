@@ -45,6 +45,6 @@ class SyntheticMethodReference extends SyntheticReference {
     DexMethod rewritten = lens.lookupMethod(method);
     return context == getContext() && rewritten == method
         ? this
-        : new SyntheticMethodReference(context, method);
+        : new SyntheticMethodReference(context, rewritten);
   }
 }
