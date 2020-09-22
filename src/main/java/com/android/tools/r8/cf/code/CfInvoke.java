@@ -120,7 +120,7 @@ public class CfInvoke extends CfInstruction {
         registry.registerInvokeInterface(method);
         break;
       case STATIC:
-        registry.registerInvokeStatic(method);
+        registry.registerInvokeStatic(method, itf);
         break;
       case SUPER:
         registry.registerInvokeSuper(method);

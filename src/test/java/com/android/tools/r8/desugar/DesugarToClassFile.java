@@ -68,7 +68,7 @@ public class DesugarToClassFile extends TestBase {
       testForJvm()
           .addProgramFiles(jar)
           .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutputLines("Hello, world!", "I::foo");
+          .assertSuccessWithOutputLines("Hello, world!", "I::foo", "J::bar", "42");
     } else {
       assert parameters.getRuntime().isDex();
       // Convert to DEX without desugaring.
@@ -77,7 +77,7 @@ public class DesugarToClassFile extends TestBase {
           .setMinApi(parameters.getApiLevel())
           .disableDesugaring()
           .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutputLines("Hello, world!", "I::foo");
+          .assertSuccessWithOutputLines("Hello, world!", "I::foo", "J::bar", "42");
     }
   }
 
@@ -87,18 +87,41 @@ public class DesugarToClassFile extends TestBase {
     }
   }
 
+  interface J {
+    static void bar() {
+      System.out.println("J::bar");
+    }
+  }
+
   static class A implements I {}
 
   static class TestClass {
 
     public static void main(String[] args) {
+      lambda();
+      defaultInterfaceMethod();
+      staticInterfaceMethod();
+      backport();
+    }
+
+    public static void lambda() {
       Runnable runnable =
           () -> {
             System.out.println("Hello, world!");
           };
       runnable.run();
+    }
 
+    public static void defaultInterfaceMethod() {
       new A().foo();
+    }
+
+    public static void staticInterfaceMethod() {
+      J.bar();
+    }
+
+    public static void backport() {
+      System.out.println(Long.hashCode(42));
     }
   }
 }

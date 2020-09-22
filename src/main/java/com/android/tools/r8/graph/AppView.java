@@ -78,6 +78,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private HorizontallyMergedClasses horizontallyMergedClasses;
   private VerticallyMergedClasses verticallyMergedClasses;
   private EnumValueInfoMapCollection unboxedEnums = EnumValueInfoMapCollection.empty();
+  // TODO(b/169115389): Remove
   private Set<DexMethod> cfByteCodePassThrough = ImmutableSet.of();
 
   private Map<DexClass, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();

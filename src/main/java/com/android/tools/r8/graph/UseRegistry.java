@@ -45,6 +45,10 @@ public abstract class UseRegistry {
     registerInstanceFieldWrite(field);
   }
 
+  public void registerInvokeStatic(DexMethod method, boolean itf) {
+    registerInvokeStatic(method);
+  }
+
   public abstract void registerNewInstance(DexType type);
 
   public abstract void registerStaticFieldRead(DexField field);

@@ -79,6 +79,10 @@ public final class BackportedMethodRewriter {
             && appView.options().minApiLevel <= AndroidApiLevel.LATEST.getLevel();
   }
 
+  public boolean needsDesugaring(DexMethod method) {
+    return rewritableMethods.getProvider(method) != null;
+  }
+
   public static List<DexMethod> generateListOfBackportedMethods(
       AndroidApp androidApp, InternalOptions options, ExecutorService executor) throws IOException {
     List<DexMethod> methods = new ArrayList<>();

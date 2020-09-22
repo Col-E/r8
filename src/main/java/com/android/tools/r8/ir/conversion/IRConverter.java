@@ -45,6 +45,7 @@ import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.Mode;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor;
@@ -524,6 +525,17 @@ public class IRConverter {
       return;
     }
     checkPrefixMerging(method);
+    boolean didDesugar = desugar(method);
+    if (Log.ENABLED && didDesugar) {
+      Log.debug(
+          getClass(),
+          "Desugared code for %s:\n%s",
+          method.toSourceString(),
+          logCode(options, method.getDefinition()));
+    }
+    if (!needsIRConversion(definition.getCode(), method)) {
+      return;
+    }
     if (options.isGeneratingClassFiles()
         || !(options.passthroughDexCode && definition.getCode().isDexCode())) {
       // We do not process in call graph order, so anything could be a leaf.
@@ -535,6 +547,35 @@ public class IRConverter {
     if (!options.isGeneratingClassFiles()) {
       updateHighestSortingStrings(definition);
     }
+  }
+
+  private boolean needsIRConversion(Code code, ProgramMethod method) {
+    if (options.isDesugaredLibraryCompilation()) {
+      // TODO(b/169035524): Create method for evaluating if a code object needs rewriting for
+      // library desugaring.
+      return true;
+    }
+    if (options.desugaredLibraryConfiguration != DesugaredLibraryConfiguration.empty()) {
+      // TODO(b/169035524): Create method for evaluating if a code object needs rewriting for
+      // library desugaring.
+      return true;
+    }
+
+    if (!options.cfToCfDesugar) {
+      return true;
+    }
+    if (method.getHolder().isInANest()) {
+      return true;
+    }
+
+    NeedsIRDesugarUseRegistry useRegistry =
+        new NeedsIRDesugarUseRegistry(appView, backportedMethodRewriter);
+    method.registerCodeReferences(useRegistry);
+
+    if (useRegistry.needsDesugaring()) {
+      return true;
+    }
+    return false;
   }
 
   private void checkPrefixMerging(ProgramMethod method) {
@@ -1064,14 +1105,6 @@ public class IRConverter {
       Log.debug(
           getClass(),
           "Original code for %s:\n%s",
-          method.toSourceString(),
-          logCode(options, method.getDefinition()));
-    }
-    boolean didDesugar = desugar(method);
-    if (Log.ENABLED && didDesugar) {
-      Log.debug(
-          getClass(),
-          "Desugared code for %s:\n%s",
           method.toSourceString(),
           logCode(options, method.getDefinition()));
     }

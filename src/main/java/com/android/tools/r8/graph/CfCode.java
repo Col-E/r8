@@ -242,6 +242,13 @@ public class CfCode extends Code implements Comparable<CfCode> {
   }
 
   private boolean shouldAddParameterNames(DexEncodedMethod method, AppView<?> appView) {
+    // In cf to cf desugar we do pass through of code and don't move around methods.
+    // TODO(b/169115389): Remove when we have a way to determine if we need parameter names per
+    // method.
+    if (appView.options().cfToCfDesugar) {
+      return false;
+    }
+
     // Don't add parameter information if the code already has full debug information.
     // Note: This fast path can cause a method to loose its parameter info, if the debug info turned
     // out to be invalid during IR building.
