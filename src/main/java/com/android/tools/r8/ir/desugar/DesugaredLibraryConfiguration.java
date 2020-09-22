@@ -36,6 +36,20 @@ import java.util.stream.Collectors;
 public class DesugaredLibraryConfiguration {
 
   public static final String FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX = "j$/";
+  public static final DesugaredLibraryConfiguration EMPTY_DESUGARED_LIBRARY_CONFIGURATION =
+      new DesugaredLibraryConfiguration(
+          AndroidApiLevel.B,
+          false,
+          FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
+          null,
+          ImmutableMap.of(),
+          ImmutableMap.of(),
+          ImmutableMap.of(),
+          ImmutableMap.of(),
+          ImmutableMap.of(),
+          ImmutableSet.of(),
+          ImmutableList.of(),
+          ImmutableList.of());
 
   // TODO(b/158632510): should use DexString, DexType, DexMethod or so on when possible.
   private final AndroidApiLevel requiredCompilationAPILevel;
@@ -73,19 +87,7 @@ public class DesugaredLibraryConfiguration {
   }
 
   public static DesugaredLibraryConfiguration empty() {
-    return new DesugaredLibraryConfiguration(
-        AndroidApiLevel.B,
-        false,
-        FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
-        null,
-        ImmutableMap.of(),
-        ImmutableMap.of(),
-        ImmutableMap.of(),
-        ImmutableMap.of(),
-        ImmutableMap.of(),
-        ImmutableSet.of(),
-        ImmutableList.of(),
-        ImmutableList.of());
+    return EMPTY_DESUGARED_LIBRARY_CONFIGURATION;
   }
 
   private DesugaredLibraryConfiguration(

@@ -526,14 +526,6 @@ public class IRConverter {
       return;
     }
     checkPrefixMerging(method);
-    boolean didDesugar = desugar(method);
-    if (Log.ENABLED && didDesugar) {
-      Log.debug(
-          getClass(),
-          "Desugared code for %s:\n%s",
-          method.toSourceString(),
-          logCode(options, method.getDefinition()));
-    }
     if (!needsIRConversion(definition.getCode(), method)) {
       return;
     }
@@ -1106,6 +1098,14 @@ public class IRConverter {
       Log.debug(
           getClass(),
           "Original code for %s:\n%s",
+          method.toSourceString(),
+          logCode(options, method.getDefinition()));
+    }
+    boolean didDesugar = desugar(method);
+    if (Log.ENABLED && didDesugar) {
+      Log.debug(
+          getClass(),
+          "Desugared code for %s:\n%s",
           method.toSourceString(),
           logCode(options, method.getDefinition()));
     }
