@@ -807,8 +807,7 @@ public class R8 {
       appView.setGraphLens(memberRebindingLens);
 
       // Perform repackaging.
-      // TODO(b/165783399): Consider making repacking available without minification.
-      if (options.isMinifying() && options.testing.enableExperimentalRepackaging) {
+      if (options.isRepackagingEnabled() && options.testing.enableExperimentalRepackaging) {
         DirectMappedDexApplication.Builder appBuilder =
             appView.appInfo().app().asDirect().builder();
         // TODO(b/165783399): We need to deal with non-rebound member references in the writer,

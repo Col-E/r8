@@ -33,6 +33,20 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     return new Joiner(this);
   }
 
+  /**
+   * True if a class may be repackaged.
+   *
+   * <p>This method requires knowledge of the global configuration as that can override the concrete
+   * value on a given item.
+   */
+  public boolean isRepackagingAllowed(GlobalKeepInfoConfiguration configuration) {
+    return configuration.isRepackagingEnabled() && internalIsRepackagingAllowed();
+  }
+
+  boolean internalIsRepackagingAllowed() {
+    return internalIsMinificationAllowed();
+  }
+
   @Override
   public boolean isTop() {
     return this.equals(top());

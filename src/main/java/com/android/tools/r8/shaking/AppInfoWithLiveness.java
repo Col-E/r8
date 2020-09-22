@@ -912,6 +912,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return keepInfo.getInfo(reference, this).isAccessModificationAllowed(options());
   }
 
+  public boolean isRepackagingAllowed(DexType type) {
+    return options().isRepackagingEnabled()
+        && keepInfo.getClassInfo(type, this).isRepackagingAllowed(options());
+  }
+
   public boolean isPinned(DexReference reference) {
     assert checkIfObsolete();
     return keepInfo.isPinned(reference, this);

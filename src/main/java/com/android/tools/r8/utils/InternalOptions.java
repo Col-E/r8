@@ -531,6 +531,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return isMinifying();
   }
 
+  @Override
+  public boolean isRepackagingEnabled() {
+    return proguardConfiguration.getPackageObfuscationMode().isSome()
+        && (isShrinking() || isMinifying());
+  }
+
   /**
    * If any non-static class merging is enabled, information about types referred to by instanceOf
    * and check cast instructions needs to be collected.
@@ -1107,6 +1113,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean isRepackageClasses() {
       return this == REPACKAGE;
+    }
+
+    public boolean isSome() {
+      return !isNone();
     }
   }
 
