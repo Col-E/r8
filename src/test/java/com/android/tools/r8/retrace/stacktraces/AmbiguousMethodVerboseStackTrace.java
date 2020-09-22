@@ -8,7 +8,7 @@ import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
 import java.util.List;
 
-public class UnknownMethodVerboseStackTrace implements StackTraceForTest {
+public class AmbiguousMethodVerboseStackTrace implements StackTraceForTest {
 
   @Override
   public List<String> obfuscatedStackTrace() {

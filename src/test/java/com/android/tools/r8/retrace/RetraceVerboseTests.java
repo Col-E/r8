@@ -4,15 +4,18 @@
 
 package com.android.tools.r8.retrace;
 
+import static com.android.tools.r8.retrace.Retrace.DEFAULT_REGULAR_EXPRESSION;
 import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.retrace.stacktraces.AmbiguousMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
-import com.android.tools.r8.retrace.stacktraces.UnknownMethodVerboseStackTrace;
+import com.android.tools.r8.retrace.stacktraces.VerboseUnknownStackTrace;
+import com.android.tools.r8.utils.BooleanUtils;
+import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -21,12 +24,16 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class RetraceVerboseTests extends TestBase {
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+  @Parameters(name = "{0}, use regular expression: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(getTestParameters().withNoneRuntime().build(), BooleanUtils.values());
   }
 
-  public RetraceVerboseTests(TestParameters parameters) {}
+  private final boolean useRegExpParsing;
+
+  public RetraceVerboseTests(TestParameters parameters, boolean useRegExpParsing) {
+    this.useRegExpParsing = useRegExpParsing;
+  }
 
   @Test
   public void testFoundMethod() {
@@ -35,7 +42,12 @@ public class RetraceVerboseTests extends TestBase {
 
   @Test
   public void testUnknownMethod() {
-    runRetraceTest(new UnknownMethodVerboseStackTrace());
+    runRetraceTest(new AmbiguousMethodVerboseStackTrace());
+  }
+
+  @Test
+  public void testVerboseUnknownMethod() {
+    runRetraceTest(new VerboseUnknownStackTrace());
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {
@@ -44,6 +56,7 @@ public class RetraceVerboseTests extends TestBase {
         RetraceCommand.builder(diagnosticsHandler)
             .setProguardMapProducer(stackTraceForTest::mapping)
             .setStackTrace(stackTraceForTest.obfuscatedStackTrace())
+            .setRegularExpression(useRegExpParsing ? DEFAULT_REGULAR_EXPRESSION : null)
             .setVerbose(true)
             .setRetracedStackTraceConsumer(
                 retraced -> assertEquals(stackTraceForTest.retracedStackTrace(), retraced))

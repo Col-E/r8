@@ -19,13 +19,13 @@ public class RetraceUtils {
 
   public static String methodDescriptionFromMethodReference(
       MethodReference methodReference, boolean appendHolder, boolean verbose) {
-    if (!verbose || methodReference.isUnknown()) {
-      return methodReference.getHolderClass().getTypeName() + "." + methodReference.getMethodName();
-    }
     StringBuilder sb = new StringBuilder();
     if (appendHolder) {
       sb.append(methodReference.getHolderClass().getTypeName());
       sb.append(".");
+    }
+    if (!verbose || methodReference.isUnknown()) {
+      return sb.append(methodReference.getMethodName()).toString();
     }
     sb.append(
         methodReference.getReturnType() == null
