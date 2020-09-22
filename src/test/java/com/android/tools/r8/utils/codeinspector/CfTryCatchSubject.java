@@ -31,7 +31,7 @@ class CfTryCatchSubject implements TryCatchSubject {
     int index = 0;
     int startIndex = -1;
     int endIndex = -1;
-    for (CfInstruction instruction : cfCode.instructions) {
+    for (CfInstruction instruction : cfCode.getInstructions()) {
       if (startIndex < 0 && instruction.equals(tryCatch.start)) {
         startIndex = index;
       }

@@ -248,7 +248,9 @@ public class LazyCfCode extends Code {
       Origin origin,
       boolean shouldApplyCodeRewritings) {
     if (!cfCode.verifyFrames(method, appView, origin, shouldApplyCodeRewritings)) {
-      cfCode.instructions.removeIf(CfInstruction::isFrame);
+      ArrayList<CfInstruction> newInstructions = new ArrayList<>(cfCode.getInstructions());
+      newInstructions.removeIf(CfInstruction::isFrame);
+      cfCode.setInstructions(newInstructions);
     }
     return cfCode;
   }

@@ -978,7 +978,7 @@ public class R8 {
   }
 
   private static boolean verifyOriginalMethodInPosition(CfCode code, DexMethod originalMethod) {
-    for (CfInstruction instruction : code.instructions) {
+    for (CfInstruction instruction : code.getInstructions()) {
       if (!instruction.isPosition()) {
         continue;
       }

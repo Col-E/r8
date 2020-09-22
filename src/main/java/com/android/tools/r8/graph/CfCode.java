@@ -126,7 +126,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
 
   private final int maxStack;
   private int maxLocals;
-  public List<CfInstruction> instructions;
+  private List<CfInstruction> instructions;
   private final List<CfTryCatch> tryCatchRanges;
   private final List<LocalVariableInfo> localVariables;
 
@@ -167,6 +167,10 @@ public class CfCode extends Code implements Comparable<CfCode> {
 
   public List<CfInstruction> getInstructions() {
     return Collections.unmodifiableList(instructions);
+  }
+
+  public void setInstructions(List<CfInstruction> instructions) {
+    this.instructions = instructions;
   }
 
   public List<LocalVariableInfo> getLocalVariables() {

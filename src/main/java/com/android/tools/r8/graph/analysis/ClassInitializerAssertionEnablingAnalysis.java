@@ -102,8 +102,8 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
       ImmutableList.of(CfConstNumber.class, CfLogicalBinop.class, CfFieldInstruction.class);
 
   private boolean hasJavacClinitAssertionCode(CfCode code) {
-    for (int i = 0; i < code.instructions.size(); i++) {
-      CfInstruction instruction = code.instructions.get(i);
+    for (int i = 0; i < code.getInstructions().size(); i++) {
+      CfInstruction instruction = code.getInstructions().get(i);
       if (instruction.isInvoke()) {
         // Check for the generated instruction sequence by looking for the call to
         // desiredAssertionStatus() followed by the expected instruction types and finally checking
@@ -132,8 +132,9 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
   private boolean hasKotlincClinitAssertionCode(ProgramMethod method) {
     if (method.getHolderType() == dexItemFactory.kotlin.assertions.type) {
       CfCode code = method.getDefinition().getCode().asCfCode();
-      for (int i = 1; i < code.instructions.size(); i++) {
-        CfInstruction instruction = code.instructions.get(i - 1);
+      List<CfInstruction> instructions = code.getInstructions();
+      for (int i = 1; i < instructions.size(); i++) {
+        CfInstruction instruction = instructions.get(i - 1);
         if (instruction.isInvoke()) {
           // Check for the generated instruction sequence by looking for the call to
           // desiredAssertionStatus() followed by the expected instruction types and finally
@@ -141,8 +142,8 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
           CfInvoke invoke = instruction.asInvoke();
           if (invoke.getOpcode() == Opcodes.INVOKEVIRTUAL
               && invoke.getMethod() == dexItemFactory.classMethods.desiredAssertionStatus) {
-            if (code.instructions.get(i).isFieldInstruction()) {
-              CfFieldInstruction fieldInstruction = code.instructions.get(i).asFieldInstruction();
+            if (instructions.get(i).isFieldInstruction()) {
+              CfFieldInstruction fieldInstruction = instructions.get(i).asFieldInstruction();
               if (fieldInstruction.getOpcode() == Opcodes.PUTSTATIC
                   && fieldInstruction.getField().name == kotlinAssertionsEnabled) {
                 return true;
@@ -164,9 +165,9 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
     int nextExpectedInstructionIndex = 0;
     CfInstruction instruction = null;
     for (int i = fromIndex;
-        i < code.instructions.size() && nextExpectedInstructionIndex < sequence.size();
+        i < code.getInstructions().size() && nextExpectedInstructionIndex < sequence.size();
         i++) {
-      instruction = code.instructions.get(i);
+      instruction = code.getInstructions().get(i);
       if (instruction.isLabel() || instruction.isFrame()) {
         // Just ignore labels and frames.
         continue;
@@ -186,9 +187,9 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
     int nextExpectedInstructionIndex = 0;
     CfInstruction instruction = null;
     for (int i = fromIndex;
-        i < code.instructions.size() && nextExpectedInstructionIndex < sequence.size();
+        i < code.getInstructions().size() && nextExpectedInstructionIndex < sequence.size();
         i++) {
-      instruction = code.instructions.get(i);
+      instruction = code.getInstructions().get(i);
       if (instruction.isStore() || instruction.isLoad()) {
         // Just ignore stores and loads.
         continue;

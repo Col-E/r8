@@ -43,6 +43,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -55,6 +56,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.objectweb.asm.Opcodes;
 
 /**
@@ -133,9 +135,12 @@ public class LambdaRewriter {
   public static int desugarLambdas(
       DexEncodedMethod method, Function<DexCallSite, LambdaClass> callSites) {
     CfCode code = method.getCode().asCfCode();
-    List<CfInstruction> instructions = code.instructions;
+    List<CfInstruction> instructions = code.getInstructions();
+    Supplier<List<CfInstruction>> lazyNewInstructions =
+        Suppliers.memoize(() -> new ArrayList<>(instructions));
     int replaced = 0;
     int maxTemp = 0;
+    int newInstructionsDelta = 0;
     for (int i = 0; i < instructions.size(); i++) {
       CfInstruction instruction = instructions.get(i);
       if (instruction instanceof CfInvokeDynamic) {
@@ -143,11 +148,12 @@ public class LambdaRewriter {
         if (lambdaClass == null) {
           continue;
         }
+        int newInstructionsIndex = i + newInstructionsDelta;
         if (lambdaClass.isStateless()) {
           CfFieldInstruction getStaticLambdaInstance =
               new CfFieldInstruction(
                   Opcodes.GETSTATIC, lambdaClass.lambdaField, lambdaClass.lambdaField);
-          instructions.set(i, getStaticLambdaInstance);
+          lazyNewInstructions.get().set(newInstructionsIndex, getStaticLambdaInstance);
         } else {
           List<CfInstruction> replacement = new ArrayList<>();
           int arguments = lambdaClass.descriptor.captures.size();
@@ -166,8 +172,10 @@ public class LambdaRewriter {
             replacement.add(new CfLoad(type, temp));
           }
           replacement.add(new CfInvoke(Opcodes.INVOKESPECIAL, lambdaClass.constructor, false));
-          instructions.remove(i);
-          instructions.addAll(i, replacement);
+          List<CfInstruction> newInstructions = lazyNewInstructions.get();
+          newInstructions.remove(newInstructionsIndex);
+          newInstructions.addAll(newInstructionsIndex, replacement);
+          newInstructionsDelta += replacement.size() - 1;
         }
         ++replaced;
       }
@@ -175,6 +183,9 @@ public class LambdaRewriter {
     if (maxTemp > 0) {
       assert maxTemp > code.getMaxLocals();
       code.setMaxLocals(maxTemp);
+    }
+    if (replaced > 0) {
+      code.setInstructions(lazyNewInstructions.get());
     }
     return replaced;
   }

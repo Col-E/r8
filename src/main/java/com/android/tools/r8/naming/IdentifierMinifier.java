@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.utils.ThreadUtils;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -168,7 +169,8 @@ class IdentifierMinifier {
       }
     } else {
       assert code.isCfCode();
-      List<CfInstruction> instructions = code.asCfCode().instructions;
+      List<CfInstruction> instructions = code.asCfCode().getInstructions();
+      List<CfInstruction> newInstructions = null;
       for (int i = 0; i < instructions.size(); ++i) {
         CfInstruction instruction = instructions.get(i);
         if (instruction.isDexItemBasedConstString()) {
@@ -176,8 +178,14 @@ class IdentifierMinifier {
           DexString replacement =
               cnst.getNameComputationInfo()
                   .computeNameFor(cnst.getItem(), appView, appView.graphLens(), lens);
-          instructions.set(i, new CfConstString(replacement));
+          if (newInstructions == null) {
+            newInstructions = new ArrayList<>(instructions);
+          }
+          newInstructions.set(i, new CfConstString(replacement));
         }
+      }
+      if (newInstructions != null) {
+        code.asCfCode().setInstructions(newInstructions);
       }
     }
   }

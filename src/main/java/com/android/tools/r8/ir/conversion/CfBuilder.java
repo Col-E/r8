@@ -172,7 +172,7 @@ public class CfBuilder {
     if (appView.options().testing.allowInvokeErrors) {
       return true;
     }
-    for (CfInstruction instruction : code.instructions) {
+    for (CfInstruction instruction : code.getInstructions()) {
       if (instruction instanceof CfInvoke) {
         CfInvoke invoke = (CfInvoke) instruction;
         if (invoke.getMethod().holder.isClassType()) {

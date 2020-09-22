@@ -779,7 +779,7 @@ public class CfSourceCode implements SourceCode {
       return canonicalPositions.getExceptionalExitPosition(
           appView.options().debug,
           () ->
-              code.instructions.stream()
+              code.getInstructions().stream()
                   .filter(insn -> insn instanceof CfPosition)
                   .map(insn -> ((CfPosition) insn).getPosition())
                   .collect(Collectors.toList()),

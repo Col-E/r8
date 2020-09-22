@@ -281,8 +281,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     // TODO(b/158159959): Implement a more precise hashing on code objects.
     if (code.isCfCode()) {
       CfCode cfCode = code.asCfCode();
-      hasher.putInt(cfCode.instructions.size());
-      for (CfInstruction instruction : cfCode.instructions) {
+      hasher.putInt(cfCode.getInstructions().size());
+      for (CfInstruction instruction : cfCode.getInstructions()) {
         hasher.putInt(instruction.getClass().hashCode());
       }
     } else {

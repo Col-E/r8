@@ -64,7 +64,7 @@ public class DesugarToClassFileBackport extends TestBase {
     MethodSubject methodSubject = inspector.clazz(TestClass.class).uniqueMethodWithName("main");
     if (methodSubject.getProgramMethod().getDefinition().getCode().isCfCode()) {
       CfCode code = methodSubject.getProgramMethod().getDefinition().getCode().asCfCode();
-      assertTrue(code.instructions.stream().noneMatch(this::isCfLAdd));
+      assertTrue(code.getInstructions().stream().noneMatch(this::isCfLAdd));
     } else {
       DexCode code = methodSubject.getProgramMethod().getDefinition().getCode().asDexCode();
       assertTrue(Arrays.stream(code.instructions).noneMatch(this::isDexAddLong));
@@ -76,7 +76,7 @@ public class DesugarToClassFileBackport extends TestBase {
     MethodSubject methodSubject = inspector.clazz(TestClass.class).uniqueMethodWithName("main");
     if (methodSubject.getProgramMethod().getDefinition().getCode().isCfCode()) {
       CfCode code = methodSubject.getProgramMethod().getDefinition().getCode().asCfCode();
-      assertTrue(code.instructions.stream().anyMatch(this::isCfLAdd));
+      assertTrue(code.getInstructions().stream().anyMatch(this::isCfLAdd));
     } else {
       DexCode code = methodSubject.getProgramMethod().getDefinition().getCode().asDexCode();
       assertTrue(Arrays.stream(code.instructions).anyMatch(this::isDexAddLong));
