@@ -4,43 +4,41 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.code.InvokeVirtual;
-import com.android.tools.r8.ir.code.Value;
-import java.util.Set;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.FullMethodInvokeRewriter;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.MethodInvokeRewriter;
+import java.util.ListIterator;
+import org.objectweb.asm.Opcodes;
 
 public final class ObjectsMethodRewrites {
 
-  public static void rewriteToArraysHashCode(
-      InvokeMethod invoke,
-      InstructionListIterator iterator,
-      DexItemFactory factory,
-      Set<Value> affectedValues) {
-    DexType arraysType = factory.createType(factory.arraysDescriptor);
-    DexMethod hashCodeMethod =
-        factory.createMethod(arraysType, invoke.getInvokedMethod().proto, "hashCode");
-    InvokeStatic arraysHashCode =
-        new InvokeStatic(hashCodeMethod, invoke.outValue(), invoke.inValues(), false);
-    iterator.replaceCurrentInstruction(arraysHashCode);
+  public static MethodInvokeRewriter rewriteToArraysHashCode() {
+    return (invoke, factory) -> {
+      DexType arraysType = factory.createType(factory.arraysDescriptor);
+      return new CfInvoke(
+          Opcodes.INVOKESTATIC,
+          factory.createMethod(arraysType, invoke.getMethod().proto, "hashCode"),
+          false);
+    };
   }
 
-  public static void rewriteRequireNonNull(
-      InvokeMethod invoke,
-      InstructionListIterator iterator,
-      DexItemFactory factory,
-      Set<Value> affectedValues) {
-    InvokeVirtual getClass =
-        new InvokeVirtual(factory.objectMembers.getClass, null, invoke.inValues());
-    if (invoke.hasOutValue()) {
-      affectedValues.addAll(invoke.outValue().affectedValues());
-      invoke.outValue().replaceUsers(invoke.inValues().get(0));
-      invoke.setOutValue(null);
-    }
-    iterator.replaceCurrentInstruction(getClass);
+  public static MethodInvokeRewriter rewriteRequireNonNull() {
+    return new FullMethodInvokeRewriter() {
+
+      @Override
+      public void rewrite(
+          CfInvoke invoke, ListIterator<CfInstruction> iterator, DexItemFactory factory) {
+        iterator.remove();
+        // requireNonNull returns the operand, so dup top-of-stack, do getClass and pop the class.
+        iterator.add(new CfStackInstruction(Opcode.Dup));
+        iterator.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.objectMembers.getClass, false));
+        iterator.add(new CfStackInstruction(Opcode.Pop));
+      }
+    };
   }
 }

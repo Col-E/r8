@@ -4,28 +4,16 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.ir.code.Cmp;
+import com.android.tools.r8.cf.code.CfCmp;
 import com.android.tools.r8.ir.code.Cmp.Bias;
-import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.NumericType;
-import com.android.tools.r8.ir.code.Value;
-import java.util.List;
-import java.util.Set;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.MethodInvokeRewriter;
 
 public final class LongMethodRewrites {
 
   private LongMethodRewrites() {}
 
-  public static void rewriteCompare(
-      InvokeMethod invoke,
-      InstructionListIterator iterator,
-      DexItemFactory factory,
-      Set<Value> affectedValues) {
-    List<Value> inValues = invoke.inValues();
-    assert inValues.size() == 2;
-    iterator.replaceCurrentInstruction(
-        new Cmp(NumericType.LONG, Bias.NONE, invoke.outValue(), inValues.get(0), inValues.get(1)));
+  public static MethodInvokeRewriter rewriteCompare() {
+    return (invoke, factory) -> new CfCmp(Bias.NONE, NumericType.LONG);
   }
 }
