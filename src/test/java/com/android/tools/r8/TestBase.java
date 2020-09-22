@@ -1482,6 +1482,10 @@ public class TestBase {
     public boolean isAggressive() {
       return this == AGGRESSIVE;
     }
+
+    public static MinifyMode[] withoutNone() {
+      return new MinifyMode[] {JAVA, AGGRESSIVE};
+    }
   }
 
   public static ProgramConsumer emptyConsumer(Backend backend) {

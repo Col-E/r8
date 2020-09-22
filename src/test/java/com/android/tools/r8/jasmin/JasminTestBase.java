@@ -253,6 +253,7 @@ public class JasminTestBase extends TestBase {
     return ToolHelper.runArtRaw(ImmutableList.of(dex.toString(), libraryDex.toString()), main, null);
   }
 
+  @Override
   protected ProcessResult runOnArtRaw(AndroidApp app, String main) throws IOException {
     Path out = temp.getRoot().toPath().resolve("out.zip");
     app.writeToZip(out, OutputMode.DexIndexed);

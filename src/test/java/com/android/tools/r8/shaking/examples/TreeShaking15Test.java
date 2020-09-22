@@ -3,14 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.examples;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.containsString;
+
+import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.TreeShakingTest;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,21 +24,22 @@ import org.junit.runners.Parameterized.Parameters;
 public class TreeShaking15Test extends TreeShakingTest {
 
   @Parameters(name = "mode:{0}-{1} minify:{2}")
-  public static Collection<Object[]> data() {
-    List<Object[]> parameters = new ArrayList<>();
-    for (MinifyMode minify : MinifyMode.values()) {
-      if (minify == MinifyMode.NONE) {
-        continue;
-      }
-      parameters.add(new Object[] {Frontend.JAR, Backend.CF, minify});
-      parameters.add(new Object[] {Frontend.JAR, Backend.DEX, minify});
-      parameters.add(new Object[] {Frontend.DEX, Backend.DEX, minify});
-    }
-    return parameters;
+  public static List<Object[]> data() {
+    return data(MinifyMode.withoutNone());
   }
 
-  public TreeShaking15Test(Frontend frontend, Backend backend, MinifyMode minify) {
-    super("examples/shaking15", "shaking15.Shaking", frontend, backend, minify);
+  public TreeShaking15Test(Frontend frontend, TestParameters parameters, MinifyMode minify) {
+    super(frontend, parameters, minify);
+  }
+
+  @Override
+  protected String getName() {
+    return "examples/shaking15";
+  }
+
+  @Override
+  protected String getMainClass() {
+    return "shaking15.Shaking";
   }
 
   @Test
@@ -44,11 +48,16 @@ public class TreeShaking15Test extends TreeShakingTest {
         TreeShaking15Test::shaking15testDictionary,
         null,
         null,
-        ImmutableList.of("src/test/examples/shaking15/keep-rules.txt"));
+        ImmutableList.of("src/test/examples/shaking15/keep-rules.txt"),
+        null,
+        R8TestBuilder::allowDiagnosticInfoMessages,
+        diagnostics ->
+            diagnostics.assertAllInfosMatch(
+                diagnosticMessage(containsString("Invalid character in dictionary"))));
   }
 
   private static void shaking15testDictionary(CodeInspector inspector) {
-    inspector.forAllClasses((clazz) -> checkClassAndMemberInDictionary(clazz));
+    inspector.forAllClasses(TreeShaking15Test::checkClassAndMemberInDictionary);
   }
 
   private static List<String> names =

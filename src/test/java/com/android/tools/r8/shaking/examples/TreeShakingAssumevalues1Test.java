@@ -3,11 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.examples;
 
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.TreeShakingTest;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
@@ -19,18 +18,23 @@ import org.junit.runners.Parameterized.Parameters;
 public class TreeShakingAssumevalues1Test extends TreeShakingTest {
 
   @Parameters(name = "mode:{0}-{1} minify:{2}")
-  public static Collection<Object[]> data() {
-    List<Object[]> parameters = new ArrayList<>();
-    for (MinifyMode minify : MinifyMode.values()) {
-      parameters.add(new Object[] {Frontend.JAR, Backend.CF, minify});
-      parameters.add(new Object[] {Frontend.JAR, Backend.DEX, minify});
-      parameters.add(new Object[] {Frontend.DEX, Backend.DEX, minify});
-    }
-    return parameters;
+  public static List<Object[]> data() {
+    return defaultTreeShakingParameters();
   }
 
-  public TreeShakingAssumevalues1Test(Frontend frontend, Backend backend, MinifyMode minify) {
-    super("examples/assumevalues1", "assumevalues1.Assumevalues", frontend, backend, minify);
+  public TreeShakingAssumevalues1Test(
+      Frontend frontend, TestParameters parameters, MinifyMode minify) {
+    super(frontend, parameters, minify);
+  }
+
+  @Override
+  protected String getName() {
+    return "examples/assumevalues1";
+  }
+
+  @Override
+  protected String getMainClass() {
+    return "assumevalues1.Assumevalues";
   }
 
   @Test
