@@ -17,8 +17,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class PhiEnumUnboxingTest extends EnumUnboxingTestBase {
 
-  private static final Class<?> ENUM_CLASS = MyEnum.class;
-
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
   private final EnumKeepRules enumKeepRules;
@@ -37,11 +35,10 @@ public class PhiEnumUnboxingTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    Class<?> classToTest = Phi.class;
     R8TestRunResult run =
         testForR8(parameters.getBackend())
-            .addProgramClasses(classToTest, ENUM_CLASS)
-            .addKeepMainRule(classToTest)
+            .addProgramClasses(Phi.class, MyEnum.class)
+            .addKeepMainRule(Phi.class)
             .addKeepRules(enumKeepRules.getKeepRules())
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
@@ -50,8 +47,8 @@ public class PhiEnumUnboxingTest extends EnumUnboxingTestBase {
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspectDiagnosticMessages(
-                m -> assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m))
-            .run(parameters.getRuntime(), classToTest)
+                m -> assertEnumIsUnboxed(MyEnum.class, Phi.class.getSimpleName(), m))
+            .run(parameters.getRuntime(), Phi.class)
             .assertSuccess();
     assertLines2By2Correct(run.getStdOut());
   }
@@ -66,23 +63,54 @@ public class PhiEnumUnboxingTest extends EnumUnboxingTestBase {
   static class Phi {
 
     public static void main(String[] args) {
+      nonNullTest();
+      nullTest();
+    }
+
+    private static void nonNullTest() {
       System.out.println(switchOn(1).ordinal());
       System.out.println(1);
       System.out.println(switchOn(2).ordinal());
       System.out.println(2);
     }
 
-    // Avoid removing the switch entirely.
+    private static void nullTest() {
+      System.out.println(switchOnWithNull(1).ordinal());
+      System.out.println(1);
+      System.out.println(switchOnWithNull(2) == null);
+      System.out.println(true);
+    }
+
     @NeverInline
     static MyEnum switchOn(int i) {
+      MyEnum returnValue;
       switch (i) {
         case 0:
-          return MyEnum.A;
+          returnValue = MyEnum.A;
+          break;
         case 1:
-          return MyEnum.B;
+          returnValue = MyEnum.B;
+          break;
         default:
-          return MyEnum.C;
+          returnValue = MyEnum.C;
       }
+      return returnValue;
+    }
+
+    @NeverInline
+    static MyEnum switchOnWithNull(int i) {
+      MyEnum returnValue;
+      switch (i) {
+        case 0:
+          returnValue = MyEnum.A;
+          break;
+        case 1:
+          returnValue = MyEnum.B;
+          break;
+        default:
+          returnValue = null;
+      }
+      return returnValue;
     }
   }
 }

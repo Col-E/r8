@@ -330,7 +330,8 @@ public class EnumUnboxer {
     }
     for (Phi phi : value.uniquePhiUsers()) {
       for (Value operand : phi.getOperands()) {
-        if (getEnumUnboxingCandidateOrNull(operand.getType()) != enumClass) {
+        if (!operand.getType().isNullType()
+            && getEnumUnboxingCandidateOrNull(operand.getType()) != enumClass) {
           markEnumAsUnboxable(Reason.INVALID_PHI, enumClass);
           return Reason.INVALID_PHI;
         }
