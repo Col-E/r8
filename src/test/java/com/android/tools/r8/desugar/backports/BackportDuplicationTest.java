@@ -7,9 +7,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -158,10 +156,9 @@ public class BackportDuplicationTest extends TestBase {
             });
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testD8FilePerClassFile() throws Exception {
     runD8FilePerMode(OutputMode.DexFilePerClassFile);
-    fail("b/169095082");
   }
 
   @Test

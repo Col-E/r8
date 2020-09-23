@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -96,8 +97,11 @@ public class SyntheticFinalization {
     List<SyntheticMethodDefinition> methodDefinitions =
         lookupSyntheticMethodDefinitions(application);
 
-    Map<HashCode, List<SyntheticMethodDefinition>> potentialEquivalences =
-        computePotentialEquivalences(methodDefinitions);
+    Collection<List<SyntheticMethodDefinition>> potentialEquivalences =
+        // Don't share synthetics in intermediate mode builds.
+        options.intermediate
+            ? ListUtils.map(methodDefinitions, Collections::singletonList)
+            : computePotentialEquivalences(methodDefinitions);
 
     Map<DexType, EquivalenceGroup<SyntheticMethodDefinition>> equivalences =
         computeActualEquivalences(potentialEquivalences, options.itemFactory);
@@ -328,10 +332,10 @@ public class SyntheticFinalization {
 
   private static <T extends SyntheticDefinition & Comparable<T>>
       Map<DexType, EquivalenceGroup<T>> computeActualEquivalences(
-          Map<HashCode, List<T>> potentialEquivalences, DexItemFactory factory) {
+          Collection<List<T>> potentialEquivalences, DexItemFactory factory) {
     Map<DexType, List<EquivalenceGroup<T>>> groupsPerContext = new IdentityHashMap<>();
     potentialEquivalences.forEach(
-        (hash, members) -> {
+        members -> {
           // Get a representative member and add to its group.
           T representative = findDeterministicRepresentative(members);
           List<T> group = new ArrayList<>(members.size());
@@ -391,14 +395,14 @@ public class SyntheticFinalization {
                 + nextContextId));
   }
 
-  private static <T extends SyntheticDefinition>
-      Map<HashCode, List<T>> computePotentialEquivalences(List<T> definitions) {
+  private static <T extends SyntheticDefinition> Collection<List<T>> computePotentialEquivalences(
+      List<T> definitions) {
     Map<HashCode, List<T>> equivalences = new HashMap<>(definitions.size());
     for (T definition : definitions) {
       HashCode hash = definition.computeHash();
       equivalences.computeIfAbsent(hash, k -> new ArrayList<>()).add(definition);
     }
-    return equivalences;
+    return equivalences.values();
   }
 
   private List<SyntheticMethodDefinition> lookupSyntheticMethodDefinitions(

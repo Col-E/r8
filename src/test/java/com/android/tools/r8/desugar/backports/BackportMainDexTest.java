@@ -9,11 +9,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ByteDataView;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.GenerateMainDexListRunResult;
@@ -122,9 +120,6 @@ public class BackportMainDexTest extends TestBase {
     Path out =
         testForD8()
             .addProgramClasses(CLASSES)
-            // Setting intermediate will annotate synthetics, which should not cause types in those
-            // to become main-dex included.
-            .setIntermediate(true)
             .setMinApi(parameters.getApiLevel())
             .compile()
             .writeToZip();
@@ -136,6 +131,24 @@ public class BackportMainDexTest extends TestBase {
                 getMainDexExpectedSynthetics().stream().map(MethodReference::getHolderClass))
             .collect(Collectors.toSet()),
         ImmutableSet.copyOf(mainDexListFromDex.getMainDexList()));
+  }
+
+  @Test
+  public void testMainDexTracingDexIntermediates() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    Path out =
+        testForD8()
+            .addProgramClasses(CLASSES)
+            // Setting intermediate will annotate synthetics, which should not cause types in those
+            // to become main-dex included.
+            .setIntermediate(true)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+    GenerateMainDexListRunResult mainDexListFromDex =
+        traceMainDex(Collections.emptyList(), Collections.singleton(out));
+    // Compiling in intermediate will not share the synthetics so there is one per call site.
+    assertEquals(MAIN_DEX_LIST_CLASSES.size() + 6, mainDexListFromDex.getMainDexList().size());
   }
 
   @Test
@@ -154,10 +167,9 @@ public class BackportMainDexTest extends TestBase {
     checkMainDex(mainDexConsumer);
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testD8FilePerClassFile() throws Exception {
     runD8FilePerMode(OutputMode.DexFilePerClassFile);
-    fail("b/169095082");
   }
 
   @Test
