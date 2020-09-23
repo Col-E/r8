@@ -55,7 +55,7 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
 
   static class A {
     private static String buildClassName(String className) {
-      return com.android.tools.r8.shaking.A.class.getPackage().getName() + "." + className;
+      return A.class.getPackage().getName() + "." + className;
     }
 
     public static void main(String[] args) {
@@ -179,7 +179,7 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
         "Options with file names are not supported");
   }
 
-  class TestProvider implements ProgramResourceProvider, DataResourceProvider {
+  static class TestProvider implements ProgramResourceProvider, DataResourceProvider {
 
     @Override
     public Collection<ProgramResource> getProgramResources() throws ResourceException {

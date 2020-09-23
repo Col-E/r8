@@ -19,6 +19,3 @@
 -keep class com.android.tools.r8.joptsimple.OptionDescriptor {
   java.lang.String argumentDescription();
 }
-
-# We should support reserved names and compute the set based on the tests.
--keep class com.android.tools.r8.shaking.** { *; }
