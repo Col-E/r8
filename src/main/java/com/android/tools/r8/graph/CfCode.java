@@ -64,6 +64,12 @@ import org.objectweb.asm.MethodVisitor;
 
 public class CfCode extends Code implements Comparable<CfCode> {
 
+  public enum StackMapStatus {
+    NOT_VERIFIED,
+    INVALID_OR_NOT_PRESENT,
+    VALID
+  }
+
   public static class LocalVariableInfo {
 
     private final int index;
@@ -129,6 +135,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
   private List<CfInstruction> instructions;
   private final List<CfTryCatch> tryCatchRanges;
   private final List<LocalVariableInfo> localVariables;
+  private StackMapStatus stackMapStatus = StackMapStatus.NOT_VERIFIED;
 
   public CfCode(
       DexType originalHolder,
@@ -155,6 +162,11 @@ public class CfCode extends Code implements Comparable<CfCode> {
 
   public int getMaxLocals() {
     return maxLocals;
+  }
+
+  public StackMapStatus getStackMapStatus() {
+    assert stackMapStatus != StackMapStatus.NOT_VERIFIED;
+    return stackMapStatus;
   }
 
   public void setMaxLocals(int newMaxLocals) {
@@ -371,7 +383,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
 
   @Override
   public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
-    // TODO(b/164396438): Assert that we can validate frames.
+    verifyFramesOrRemove(method.getDefinition(), appView, origin, true);
     return internalBuildPossiblyWithLocals(method, method, appView, null, null, origin, null);
   }
 
@@ -386,9 +398,20 @@ public class CfCode extends Code implements Comparable<CfCode> {
       MethodProcessor methodProcessor) {
     assert valueNumberGenerator != null;
     assert callerPosition != null;
-    // TODO(b/164396438): Assert that we can validate frames.
+    verifyFramesOrRemove(
+        method.getDefinition(), appView, origin, methodProcessor.shouldApplyCodeRewritings(method));
     return internalBuildPossiblyWithLocals(
         context, method, appView, valueNumberGenerator, callerPosition, origin, methodProcessor);
+  }
+
+  private void verifyFramesOrRemove(
+      DexEncodedMethod method,
+      AppView<?> appView,
+      Origin origin,
+      boolean shouldApplyCodeRewritings) {
+    if (!verifyFrames(method, appView, origin, shouldApplyCodeRewritings)) {
+      instructions.removeIf(CfInstruction::isFrame);
+    }
   }
 
   // First build entry. Will either strip locals or build with locals.
@@ -657,9 +680,11 @@ public class CfCode extends Code implements Comparable<CfCode> {
       DexEncodedMethod method, AppView<?> appView, Origin origin, boolean applyProtoTypeChanges) {
     if (!appView.options().testing.readInputStackMaps
         || appView.options().testing.disableStackMapVerification) {
+      stackMapStatus = StackMapStatus.INVALID_OR_NOT_PRESENT;
       return true;
     }
     if (method.hasClassFileVersion() && method.getClassFileVersion() <= V1_6) {
+      stackMapStatus = StackMapStatus.INVALID_OR_NOT_PRESENT;
       return true;
     }
     if (!method.isInstanceInitializer()
@@ -668,6 +693,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
             .getOriginalMethodSignature(method.method)
             .isInstanceInitializer(appView.dexItemFactory())) {
       // We cannot verify instance initializers if they are moved.
+      stackMapStatus = StackMapStatus.INVALID_OR_NOT_PRESENT;
       return true;
     }
     // Build a map from labels to frames.
@@ -767,6 +793,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
             appView);
       }
     }
+    stackMapStatus = StackMapStatus.VALID;
     return true;
   }
 
@@ -775,6 +802,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
     // started enforcing stack maps from 51 in JVM 8. As a consequence, we have different android
     // libraries that has V1_7 code but has no stack maps. To not fail on compilations we only
     // report a warning.
+    stackMapStatus = StackMapStatus.INVALID_OR_NOT_PRESENT;
     appView.options().reporter.warning(diagnostics);
     return false;
   }

@@ -13,8 +13,8 @@ public class CfCodeStackMapValidatingException extends RuntimeException {
     super(message);
   }
 
-  public static CfCodeStackMapValidatingException error(String messsage) {
-    return new CfCodeStackMapValidatingException(messsage);
+  public static CfCodeStackMapValidatingException error(String message) {
+    return new CfCodeStackMapValidatingException(message);
   }
 
   public static CfCodeDiagnostics unexpectedStackMapFrame(

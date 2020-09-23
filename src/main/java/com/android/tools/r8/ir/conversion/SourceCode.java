@@ -5,8 +5,11 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.CatchHandlers;
+import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.ValueTypeConstraint;
 
 /**
  * Abstraction of the input/source code for the IRBuilder.
@@ -22,6 +25,11 @@ public interface SourceCode {
   int instructionOffset(int instructionIndex);
 
   DebugLocalInfo getIncomingLocalAtBlock(int register, int blockOffset);
+
+  default DexType getPhiTypeForBlock(
+      int register, int blockOffset, ValueTypeConstraint constraint, RegisterReadType readType) {
+    return null;
+  }
 
   DebugLocalInfo getIncomingLocal(int register);
 
@@ -71,4 +79,8 @@ public interface SourceCode {
   boolean verifyRegister(int register);
   boolean verifyCurrentInstructionCanThrow();
   boolean verifyLocalInScope(DebugLocalInfo local);
+
+  default boolean hasValidTypesFromStackMap() {
+    return false;
+  }
 }

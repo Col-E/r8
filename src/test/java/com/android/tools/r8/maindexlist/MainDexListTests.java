@@ -53,7 +53,9 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
@@ -912,6 +914,12 @@ public class MainDexListTests extends TestBase {
     @Override
     public DebugLocalInfo getIncomingLocalAtBlock(int register, int blockOffset) {
       return null;
+    }
+
+    @Override
+    public DexType getPhiTypeForBlock(
+        int register, int blockOffset, ValueTypeConstraint constraint, RegisterReadType readType) {
+      throw new Unreachable("Should never generate a phi");
     }
 
     @Override

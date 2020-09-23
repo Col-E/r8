@@ -14,6 +14,7 @@ import static com.android.tools.r8.ir.analysis.type.TypeElement.getLong;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.getNull;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.getSingle;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.getWide;
+import static org.objectweb.asm.Opcodes.V1_8;
 
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.CompilationError;
@@ -97,6 +98,7 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Or;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
+import com.android.tools.r8.ir.code.Phi.StackMapPhi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Return;
@@ -174,10 +176,6 @@ public class IRBuilder {
       default:
         throw new Unreachable("Unexpected member type: " + type);
     }
-  }
-
-  public TypeElement getTypeLattice(DexType type, Nullability nullability) {
-    return TypeElement.fromDexType(type, nullability, appView);
   }
 
   // SSA construction uses a worklist of basic blocks reachable from the entry and their
@@ -415,13 +413,14 @@ public class IRBuilder {
   // Lazily populated list of local values that are referenced without being actually defined.
   private Int2ReferenceMap<List<Value>> uninitializedDebugLocalValues = null;
 
-  private int nextBlockNumber = 0;
-
   // Flag indicating if any instructions have imprecise internal types (eg, int|float member types)
   private List<ImpreciseMemberTypeInstruction> impreciseInstructions = null;
 
   // Flag indicating if any values have imprecise types.
   private boolean hasImpreciseValues = false;
+
+  // Flag indicating incorrect reading of stack map phi types.
+  private boolean hasIncorrectStackMapTypes = false;
 
   // Information about which kinds of instructions that may be present in the IR. This information
   // is sound (i.e., if the IR has a const-string instruction then metadata.mayHaveConstString()
@@ -720,9 +719,13 @@ public class IRBuilder {
       // In DEX we may need to constrain all values and instructions to precise types.
       assert source instanceof DexSourceCode;
       new TypeConstraintResolver(appView, this).resolve(impreciseInstructions, ir);
-    } else {
+    } else if (!canUseStackMapTypes() || hasIncorrectStackMapTypes) {
+      // TODO(b/169137397): We may have ended up generating StackMapPhi's before concluding
+      //  having incorrect stack map types. Figure out a way to clean that up.
       new TypeAnalysis(appView).widening(ir);
     }
+    // TODO(b/169137397): If we have canUseStackMapTypes() && !hasIncorrectStackMapTypes we should
+    //  have that all phi's are stack-map phis.
 
     // Update the IR code if collected call site optimization info has something useful.
     // While aggregation of parameter information at call sites would be more precise than static
@@ -745,6 +748,11 @@ public class IRBuilder {
     source.clear();
     source = null;
     return ir;
+  }
+
+  public boolean canUseStackMapTypes() {
+    // TODO(b/168592290): See if we can get using stack map types to work with R8.
+    return !appView.enableWholeProgramOptimizations() && source.hasValidTypesFromStackMap();
   }
 
   public void constrainType(Value value, ValueTypeConstraint constraint) {
@@ -1123,7 +1131,19 @@ public class IRBuilder {
   public void addArrayGet(MemberType type, int dest, int array, int index) {
     Value in1 = readRegister(array, ValueTypeConstraint.OBJECT);
     Value in2 = readRegister(index, ValueTypeConstraint.INT);
-    TypeElement typeLattice = fromMemberType(type);
+    TypeElement typeLattice;
+    if (type == MemberType.OBJECT && canUseStackMapTypes()) {
+      if (in1.getType().isNullType()) {
+        typeLattice = TypeElement.getNull();
+      } else if (in1.getType().isArrayType()) {
+        typeLattice = in1.getType().asArrayType().getMemberType();
+      } else {
+        assert in1.getType().isBottom() && hasIncorrectStackMapTypes;
+        typeLattice = fromMemberType(type);
+      }
+    } else {
+      typeLattice = fromMemberType(type);
+    }
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ArrayGet instruction = new ArrayGet(type, out, in1, in2);
     assert instruction.instructionTypeCanThrow();
@@ -2164,9 +2184,28 @@ public class IRBuilder {
         value = getUninitializedDebugLocalValue(register, constraint);
       } else {
         DebugLocalInfo local = getIncomingLocalAtBlock(register, block);
-        TypeElement phiType = TypeConstraintResolver.typeForConstraint(constraint);
-        hasImpreciseValues |= !phiType.isPreciseType();
-        Phi phi = new Phi(valueNumberGenerator.next(), block, phiType, local, readType);
+        TypeElement constrainedType = TypeConstraintResolver.typeForConstraint(constraint);
+        hasImpreciseValues |= !constrainedType.isPreciseType();
+        Phi phi = null;
+        if (canUseStackMapTypes() && !hasIncorrectStackMapTypes) {
+          DexType phiTypeForBlock =
+              source.getPhiTypeForBlock(register, offsets.getInt(block), constraint, readType);
+          if (phiTypeForBlock != null) {
+            phi =
+                new StackMapPhi(
+                    valueNumberGenerator.next(),
+                    block,
+                    TypeElement.fromDexType(phiTypeForBlock, Nullability.maybeNull(), appView),
+                    local,
+                    readType);
+          } else {
+            assert method.getDefinition().getClassFileVersion() < V1_8;
+            hasIncorrectStackMapTypes = true;
+          }
+        }
+        if (phi == null) {
+          phi = new Phi(valueNumberGenerator.next(), block, constrainedType, local, readType);
+        }
         if (!block.isSealed()) {
           block.addIncompletePhi(register, phi, readingEdge);
           value = phi;

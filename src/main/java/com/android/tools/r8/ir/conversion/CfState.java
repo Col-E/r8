@@ -17,6 +17,10 @@ public class CfState {
 
     public abstract ValueType getImprecise();
 
+    public boolean isPrecise() {
+      return false;
+    }
+
     private static class Precise extends SlotType {
       private final DexType type;
 
@@ -37,6 +41,11 @@ public class CfState {
       @Override
       public String toString() {
         return "Precise(" + type + ")";
+      }
+
+      @Override
+      public boolean isPrecise() {
+        return true;
       }
     }
 
@@ -90,9 +99,11 @@ public class CfState {
     this.position = position;
   }
 
-  public void setStateFromFrame(DexType[] locals, DexType[] stack, Position position) {
+  public BaseSnapshot setStateFromFrame(DexType[] locals, DexType[] stack, Position position) {
     assert current == null || stackHeight() == stack.length;
-    current = new BaseSnapshot(locals, stack, position);
+    BaseSnapshot newSnapShot = new BaseSnapshot(locals, stack, position);
+    this.current = newSnapShot;
+    return newSnapShot;
   }
 
   public void merge(Snapshot snapshot) {
@@ -233,10 +244,6 @@ public class CfState {
     public final DexType preciseType;
     private final SlotType slotType;
 
-    private Slot(int register, DexType preciseType) {
-      this(register, new SlotType.Precise(preciseType));
-    }
-
     private Slot(int register, SlotType type) {
       this.register = register;
       this.slotType = type;
@@ -249,6 +256,11 @@ public class CfState {
     }
 
     private int stackPosition() {
+      return stackPosition(register);
+    }
+
+    public static int stackPosition(int register) {
+      assert isStackSlot(register);
       assert register >= STACK_OFFSET;
       return register - STACK_OFFSET;
     }
@@ -258,6 +270,18 @@ public class CfState {
       return register < STACK_OFFSET
           ? register + "=" + slotType
           : "s" + (register - STACK_OFFSET) + "=" + slotType;
+    }
+
+    public boolean isStackSlot() {
+      return isStackSlot(register);
+    }
+
+    public static boolean isStackSlot(int register) {
+      return register >= STACK_OFFSET;
+    }
+
+    public boolean isPrecise() {
+      return slotType.isPrecise();
     }
   }
 

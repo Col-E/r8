@@ -123,7 +123,7 @@ public class Phi extends Value implements InstructionOrPhi {
       operands.add(operand);
     }
 
-    if (readType != RegisterReadType.NORMAL) {
+    if (readType == RegisterReadType.DEBUG) {
       for (Value operand : operands) {
         TypeElement type = operand.getType();
         ValueTypeConstraint constraint = TypeConstraintResolver.constraintForType(type);
@@ -397,7 +397,7 @@ public class Phi extends Value implements InstructionOrPhi {
     return operands.indexOf(usedValue) == operands.lastIndexOf(usedValue);
   }
 
-  public DexType computeVerificationType(TypeVerificationHelper helper) {
+  public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
     assert outType().isObject();
     Set<DexType> operandTypes = new HashSet<>(operands.size());
     for (Value operand : operands) {
@@ -446,5 +446,39 @@ public class Phi extends Value implements InstructionOrPhi {
       return result.asReferenceType().asMeetWithNotNull();
     }
     return result;
+  }
+
+  // TODO(b/169120386) This class is added to ensure we do not narrow or widen phi's in D8 when
+  //  having stack map information. It should be removed when we are certain to never widen or
+  //  narrowing phi's in D8.
+  public static class StackMapPhi extends Phi {
+
+    public StackMapPhi(
+        int number,
+        BasicBlock block,
+        TypeElement type,
+        DebugLocalInfo local,
+        RegisterReadType readType) {
+      super(number, block, type, local, readType);
+    }
+
+    @Override
+    public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
+      assert !appView.enableWholeProgramOptimizations();
+      if (type.isPrimitiveType()) {
+        return type.asPrimitiveType().toDexType(appView.dexItemFactory());
+      } else if (type.isArrayType()) {
+        return type.asArrayType().toDexType(appView.dexItemFactory());
+      } else {
+        assert type.isClassType();
+        return type.asClassType().getClassType();
+      }
+    }
+
+    @Override
+    public TypeElement computePhiType(AppView<?> appView) {
+      assert !appView.enableWholeProgramOptimizations();
+      return type;
+    }
   }
 }

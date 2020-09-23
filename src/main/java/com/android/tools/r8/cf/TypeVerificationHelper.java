@@ -311,7 +311,7 @@ public class TypeVerificationHelper {
 
   private DexType computeVerificationType(Value value) {
     return value.isPhi()
-        ? value.asPhi().computeVerificationType(this)
+        ? value.asPhi().computeVerificationType(appView, this)
         : value.definition.computeVerificationType(appView, this);
   }
 

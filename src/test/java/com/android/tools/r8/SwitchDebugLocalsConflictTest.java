@@ -3,7 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static org.junit.Assert.assertTrue;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.containsString;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,11 +36,11 @@ public class SwitchDebugLocalsConflictTest extends TestBase {
         .noDesugaring()
         .compileWithExpectedDiagnostics(
             diagnotics -> {
-              diagnotics.assertOnlyInfos();
-              assertTrue(
-                  diagnotics.getInfos().stream()
-                      .anyMatch(
-                          d -> d.getDiagnosticMessage().contains("invalid locals information")));
+              diagnotics.assertNoErrors();
+              diagnotics.assertInfoThatMatches(
+                  diagnosticMessage(containsString("invalid locals information")));
+              diagnotics.assertAllWarningsMatch(
+                  diagnosticMessage(containsString("Could not find phi type for register 14")));
             });
   }
 

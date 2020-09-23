@@ -4,10 +4,16 @@
 
 package com.android.tools.r8.ir.analysis.type;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertThrows;
+
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -17,29 +23,47 @@ import org.junit.runners.Parameterized.Parameters;
 public class NarrowingWithoutSubtypingTest extends TestBase {
 
   private final TestParameters parameters;
+  private final boolean readStackMap;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{0}, read stack map: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(), BooleanUtils.values());
   }
 
-  public NarrowingWithoutSubtypingTest(TestParameters parameters) {
+  public NarrowingWithoutSubtypingTest(TestParameters parameters, boolean readStackMap) {
     this.parameters = parameters;
+    this.readStackMap = readStackMap;
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void test() throws Exception {
-    testForD8()
-        .addInnerClasses(NarrowingWithoutSubtypingTest.class)
-        .addOptionsModification(
-            options -> {
-              options.testing.enableNarrowingChecksInD8 = true;
-              options.testing.noLocalsTableOnInput = true;
-            })
-        .setMinApi(parameters.getApiLevel())
-        .compile()
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello world!");
+    D8TestBuilder d8TestBuilder =
+        testForD8()
+            .addInnerClasses(NarrowingWithoutSubtypingTest.class)
+            .addOptionsModification(
+                options -> {
+                  options.testing.readInputStackMaps = readStackMap;
+                  options.testing.enableNarrowAndWideningingChecksInD8 = true;
+                  options.testing.noLocalsTableOnInput = true;
+                })
+            .setMinApi(parameters.getApiLevel());
+    if (readStackMap) {
+      d8TestBuilder
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutputLines("Hello world!");
+    } else {
+      // TODO(b/169120386): We should not be narrowing in D8.
+      assertThrows(
+          CompilationFailedException.class,
+          () -> {
+            d8TestBuilder.compileWithExpectedDiagnostics(
+                diagnostics ->
+                    diagnostics.assertAllErrorsMatch(
+                        diagnosticMessage(
+                            containsString("java.lang.AssertionError: During NARROWING"))));
+          });
+    }
   }
 
   static class TestClass {

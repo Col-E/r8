@@ -212,8 +212,7 @@ public class LazyCfCode extends Code {
 
   @Override
   public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
-    return verifyFrames(asCfCode(), method.getDefinition(), appView, origin, true)
-        .buildIR(method, appView, origin);
+    return asCfCode().buildIR(method, appView, origin);
   }
 
   @Override
@@ -225,12 +224,7 @@ public class LazyCfCode extends Code {
       Position callerPosition,
       Origin origin,
       MethodProcessor methodProcessor) {
-    return verifyFrames(
-            asCfCode(),
-            method.getDefinition(),
-            appView,
-            origin,
-            methodProcessor.shouldApplyCodeRewritings(method))
+    return asCfCode()
         .buildInliningIR(
             context,
             method,
@@ -239,20 +233,6 @@ public class LazyCfCode extends Code {
             callerPosition,
             origin,
             methodProcessor);
-  }
-
-  private CfCode verifyFrames(
-      CfCode cfCode,
-      DexEncodedMethod method,
-      AppView<?> appView,
-      Origin origin,
-      boolean shouldApplyCodeRewritings) {
-    if (!cfCode.verifyFrames(method, appView, origin, shouldApplyCodeRewritings)) {
-      ArrayList<CfInstruction> newInstructions = new ArrayList<>(cfCode.getInstructions());
-      newInstructions.removeIf(CfInstruction::isFrame);
-      cfCode.setInstructions(newInstructions);
-    }
-    return cfCode;
   }
 
   @Override

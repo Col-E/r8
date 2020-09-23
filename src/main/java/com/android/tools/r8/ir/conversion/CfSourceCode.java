@@ -20,6 +20,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
+import com.android.tools.r8.graph.CfCode.StackMapStatus;
+import com.android.tools.r8.graph.CfCodeDiagnostics;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -30,8 +32,10 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Monitor;
+import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.conversion.CfState.Slot;
 import com.android.tools.r8.ir.conversion.CfState.Snapshot;
 import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
@@ -210,6 +214,7 @@ public class CfSourceCode implements SourceCode {
   private TryHandlerList cachedTryHandlerList;
   private LocalVariableList cachedLocalVariableList;
   private int currentInstructionIndex;
+  private int currentBlockIndex;
   private boolean inPrelude;
   private Int2ReferenceMap<DebugLocalInfo> incomingLocals;
   private Int2ReferenceMap<DebugLocalInfo> outgoingLocals;
@@ -526,6 +531,7 @@ public class CfSourceCode implements SourceCode {
           incomingState.get(instructionIndex),
           instructionIndex == 0,
           getCanonicalDebugPositionAtOffset(instructionIndex));
+      currentBlockIndex = currentInstructionIndex;
     }
 
     assert currentBlockInfo != null;
@@ -613,8 +619,13 @@ public class CfSourceCode implements SourceCode {
     for (FrameType frameType : frame.getStack()) {
       stack[index++] = convertUninitialized(frameType);
     }
-    state.setStateFromFrame(
-        locals, stack, getCanonicalDebugPositionAtOffset(currentInstructionIndex));
+    // TODO(b/169135126) Assert that all values are precise.
+    Snapshot snapshot =
+        state.setStateFromFrame(
+            locals, stack, getCanonicalDebugPositionAtOffset(currentInstructionIndex));
+    // Update the incoming state as well with precise information.
+    assert incomingState.get(currentBlockIndex) != null;
+    incomingState.put(currentBlockIndex, snapshot);
   }
 
   private DexType convertUninitialized(FrameType type) {
@@ -656,6 +667,74 @@ public class CfSourceCode implements SourceCode {
   @Override
   public DebugLocalInfo getIncomingLocalAtBlock(int register, int blockOffset) {
     return getLocalVariables(blockOffset).locals.get(register);
+  }
+
+  @Override
+  public DexType getPhiTypeForBlock(
+      int register, int blockOffset, ValueTypeConstraint constraint, RegisterReadType readType) {
+    assert code.getStackMapStatus() != StackMapStatus.NOT_VERIFIED;
+    if (code.getStackMapStatus() == StackMapStatus.INVALID_OR_NOT_PRESENT) {
+      return null;
+    }
+    // We should be able to find the a snapshot at the block-offset:
+    Snapshot snapshot = incomingState.get(blockOffset);
+    if (snapshot == null) {
+      appView
+          .options()
+          .reporter
+          .warning(
+              new CfCodeDiagnostics(
+                  origin,
+                  method.getReference(),
+                  "Could not find stack map for block at offset "
+                      + blockOffset
+                      + ". This is most likely due to invalid"
+                      + " stack maps in input."));
+      return null;
+    }
+    // TODO(b/169135126) Assert that all values are precise.
+    Slot slot =
+        Slot.isStackSlot(register)
+            ? snapshot.getStack(Slot.stackPosition(register))
+            : snapshot.getLocal(register);
+    if (slot == null) {
+      if (readType == RegisterReadType.DEBUG) {
+        DebugLocalInfo incomingLocalAtBlock = getIncomingLocalAtBlock(register, blockOffset);
+        if (incomingLocalAtBlock != null) {
+          return incomingLocalAtBlock.type;
+        }
+        // TODO(b/b/169137397): The local ranges are not defined on the block. We should investigate
+        //   the impact of this when debugging. For now, make a final attempt at finding a local
+        //   variable with specified register.
+        List<LocalVariableInfo> localVariablesWithRegister = new ArrayList<>();
+        for (LocalVariableInfo variable : localVariables) {
+          if (variable.getIndex() == register) {
+            localVariablesWithRegister.add(variable);
+          }
+        }
+        if (localVariablesWithRegister.size() == 1) {
+          return localVariablesWithRegister.get(0).getLocal().type;
+        }
+      }
+      appView
+          .options()
+          .reporter
+          .warning(
+              new CfCodeDiagnostics(
+                  origin,
+                  method.getReference(),
+                  "Could not find phi type for register "
+                      + register
+                      + ". This is most likely due to invalid stack maps in input."));
+      return null;
+    }
+    if (slot.isPrecise()) {
+      return slot.preciseType;
+    }
+    // TODO(b/169135126): We should be able to remove this when having valid stack maps.
+    return slot.type.isObject()
+        ? appView.dexItemFactory().objectType
+        : slot.type.toPrimitiveType().toDexType(appView.dexItemFactory());
   }
 
   @Override
@@ -771,6 +850,11 @@ public class CfSourceCode implements SourceCode {
   @Override
   public boolean verifyLocalInScope(DebugLocalInfo local) {
     return false;
+  }
+
+  @Override
+  public boolean hasValidTypesFromStackMap() {
+    return code.getStackMapStatus() == StackMapStatus.VALID;
   }
 
   @Override

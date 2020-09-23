@@ -1027,7 +1027,7 @@ public class Value implements Comparable<Value> {
   public void widening(AppView<?> appView, TypeElement newType) {
     // During WIDENING (due to fix-point iteration), type update is monotonically upwards,
     //   i.e., towards something wider.
-    assert this.type.lessThanOrEqual(newType, appView)
+    assert skipWideningOrNarrowingCheck(appView) || this.type.lessThanOrEqual(newType, appView)
         : "During WIDENING, "
             + newType
             + " < "
@@ -1040,9 +1040,7 @@ public class Value implements Comparable<Value> {
   public void narrowing(AppView<?> appView, TypeElement newType) {
     // During NARROWING (e.g., after inlining), type update is monotonically downwards,
     //   i.e., towards something narrower, with more specific type info.
-    assert (!appView.options().testing.enableNarrowingChecksInD8
-                && !appView.enableWholeProgramOptimizations())
-            || !this.type.strictlyLessThan(newType, appView)
+    assert skipWideningOrNarrowingCheck(appView) || !this.type.strictlyLessThan(newType, appView)
         : "During NARROWING, "
             + type
             + " < "
@@ -1050,6 +1048,12 @@ public class Value implements Comparable<Value> {
             + " at "
             + (isPhi() ? asPhi().printPhi() : definition.toString());
     setType(newType);
+  }
+
+  private boolean skipWideningOrNarrowingCheck(AppView<?> appView) {
+    // TODO(b/169120386): We should not check widening or narrowing when in D8 with valid type-info.
+    return !appView.options().testing.enableNarrowAndWideningingChecksInD8
+        && !appView.enableWholeProgramOptimizations();
   }
 
   public BasicBlock getBlock() {

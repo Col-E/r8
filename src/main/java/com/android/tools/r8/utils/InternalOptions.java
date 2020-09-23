@@ -1241,7 +1241,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public Set<Inliner.Reason> validInliningReasons = null;
     public boolean noLocalsTableOnInput = false;
     public boolean forceNameReflectionOptimization = false;
-    public boolean enableNarrowingChecksInD8 = false;
+    public boolean enableNarrowAndWideningingChecksInD8 = false;
     public Consumer<IRCode> irModifier = null;
     public int basicBlockMuncherIterationLimit = NO_LIMIT;
     public boolean dontReportFailingCheckDiscarded = false;

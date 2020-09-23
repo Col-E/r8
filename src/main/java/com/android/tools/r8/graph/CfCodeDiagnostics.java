@@ -30,7 +30,7 @@ public class CfCodeDiagnostics implements Diagnostic {
   private final MethodPosition methodPosition;
   private final String diagnosticMessage;
 
-  CfCodeDiagnostics(Origin origin, DexMethod method, String diagnosticMessage) {
+  public CfCodeDiagnostics(Origin origin, DexMethod method, String diagnosticMessage) {
     this.origin = origin;
     this.methodPosition = new MethodPosition(method.asMethodReference());
     this.diagnosticMessage = diagnosticMessage;

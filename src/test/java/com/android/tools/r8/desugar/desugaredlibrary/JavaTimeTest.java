@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -18,7 +17,6 @@ import com.android.tools.r8.PrintUses;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -230,19 +228,11 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
           .assertSuccessWithOutput(expectedOutput);
     } else {
       // Run on the JVM with desugared library on classpath.
-      TestRunResult<?> result =
-          testForJvm()
-              .addProgramFiles(jar)
-              .addRunClasspathFiles(desugaredLibraryClassFile.get())
-              .run(parameters.getRuntime(), TestClass.class);
-      if (parameters.getApiLevel().isGreaterThan(AndroidApiLevel.N_MR1)) {
-        // java.time is present from O, so the desugared library classes are not loaded.
-        result.assertSuccessWithOutput(expectedOutput);
-      } else {
-        // TODO(b/164396438): Produce correct stack map.
-        result.assertFailureWithErrorThatMatches(
-            containsString("java.lang.VerifyError: Bad type on operand stack"));
-      }
+      testForJvm()
+          .addProgramFiles(jar)
+          .addRunClasspathFiles(desugaredLibraryClassFile.get())
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutput(expectedOutput);
     }
   }
 
