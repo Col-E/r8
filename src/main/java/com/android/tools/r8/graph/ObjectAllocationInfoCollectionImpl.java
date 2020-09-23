@@ -211,6 +211,10 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
     return TraversalContinuation.CONTINUE;
   }
 
+  public Set<DexType> getInstantiatedLambdaInterfaces() {
+    return instantiatedLambdas.keySet();
+  }
+
   public static class Builder extends ObjectAllocationInfoCollectionImpl {
 
     private static class Data {

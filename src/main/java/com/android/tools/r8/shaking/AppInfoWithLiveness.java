@@ -55,6 +55,7 @@ import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.Visibility;
+import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -613,21 +614,13 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public Collection<DexClass> computeReachableInterfaces() {
     Set<DexClass> interfaces = Sets.newIdentityHashSet();
-    Set<DexType> seen = Sets.newIdentityHashSet();
-    Deque<DexType> worklist = new ArrayDeque<>();
+    WorkList<DexType> worklist = WorkList.newIdentityWorkList();
+    worklist.addIfNotSeen(objectAllocationInfoCollection.getInstantiatedLambdaInterfaces());
     for (DexProgramClass clazz : classes()) {
-      worklist.add(clazz.type);
+      worklist.addIfNotSeen(clazz.type);
     }
-    for (DexCallSite callSite : callSites.keySet()) {
-      for (DexEncodedMethod method : lookupLambdaImplementedMethods(callSite)) {
-        worklist.add(method.holder());
-      }
-    }
-    while (!worklist.isEmpty()) {
-      DexType type = worklist.pop();
-      if (!seen.add(type)) {
-        continue;
-      }
+    while (worklist.hasNext()) {
+      DexType type = worklist.next();
       DexClass definition = definitionFor(type);
       if (definition == null) {
         continue;
@@ -636,9 +629,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         interfaces.add(definition);
       }
       if (definition.superType != null) {
-        worklist.add(definition.superType);
+        worklist.addIfNotSeen(definition.superType);
       }
-      Collections.addAll(worklist, definition.interfaces.values);
+      worklist.addIfNotSeen(definition.interfaces.values);
     }
     return interfaces;
   }
@@ -1247,18 +1240,21 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    */
   public void forEachTypeInHierarchyOfLiveProgramClasses(Consumer<DexClass> fn) {
     forEachTypeInHierarchyOfLiveProgramClasses(
-        fn, ListUtils.map(liveTypes, t -> definitionFor(t).asProgramClass()), callSites, this);
+        fn,
+        ListUtils.map(liveTypes, t -> definitionFor(t).asProgramClass()),
+        objectAllocationInfoCollection.getInstantiatedLambdaInterfaces(),
+        this);
   }
 
   // Split in a static method so it can be used during construction.
   static void forEachTypeInHierarchyOfLiveProgramClasses(
       Consumer<DexClass> fn,
       Collection<DexProgramClass> liveProgramClasses,
-      Map<DexCallSite, ProgramMethodSet> callSites,
+      Set<DexType> lambdaInterfaces,
       AppInfoWithClassHierarchy appInfo) {
     Set<DexType> seen = Sets.newIdentityHashSet();
-    Deque<DexType> worklist = new ArrayDeque<>();
     liveProgramClasses.forEach(c -> seen.add(c.type));
+    Deque<DexType> worklist = new ArrayDeque<>(lambdaInterfaces);
     for (DexProgramClass liveProgramClass : liveProgramClasses) {
       fn.accept(liveProgramClass);
       DexType superType = liveProgramClass.superType;
@@ -1268,16 +1264,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       for (DexType iface : liveProgramClass.interfaces.values) {
         if (seen.add(iface)) {
           worklist.add(iface);
-        }
-      }
-    }
-    for (DexCallSite callSite : callSites.keySet()) {
-      List<DexType> interfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
-      if (interfaces != null) {
-        for (DexType iface : interfaces) {
-          if (seen.add(iface)) {
-            worklist.add(iface);
-          }
         }
       }
     }

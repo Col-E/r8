@@ -59,7 +59,7 @@ public class IntraproceduralDataflowAnalysis<StateType extends AbstractState<Sta
       // Update the block exit state, and re-enqueue all successor blocks if the abstract state
       // changed.
       if (setBlockExitState(block, state)) {
-        worklist.addAll(block.getSuccessors());
+        worklist.addAllIgnoringSeenSet(block.getSuccessors());
       }
     }
     return new SuccessfulDataflowAnalysisResult();

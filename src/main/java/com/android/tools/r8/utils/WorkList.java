@@ -50,7 +50,7 @@ public class WorkList<T> {
     }
   }
 
-  public void addAll(Iterable<T> items) {
+  public void addAllIgnoringSeenSet(Iterable<T> items) {
     items.forEach(workingList::addLast);
   }
 
