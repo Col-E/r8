@@ -1609,11 +1609,6 @@ public abstract class R8RunArtTestsTest {
     return builder;
   }
 
-  protected void runArtTest(CompilerUnderTest compilerUnderTest) throws Throwable {
-    // Use the default dex VM specified.
-    runArtTest(ToolHelper.getDexVm(), compilerUnderTest);
-  }
-
   private static class CompilationOptions implements Consumer<InternalOptions> {
 
     private final boolean disableInlining;
