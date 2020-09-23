@@ -1132,13 +1132,9 @@ public class IRConverter {
       return false;
     }
     boolean didDesugar = false;
-    Supplier<AppInfoWithClassHierarchy> lazyAppInfo =
-        Suppliers.memoize(() -> appView.appInfoForDesugaring());
     if (lambdaRewriter != null) {
-      didDesugar |= lambdaRewriter.desugarLambdas(method, lazyAppInfo.get()) > 0;
-    }
-    if (backportedMethodRewriter != null) {
-      didDesugar |= backportedMethodRewriter.desugar(method, lazyAppInfo.get());
+      AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
+      didDesugar |= lambdaRewriter.desugarLambdas(method, appInfo) > 0;
     }
     return didDesugar;
   }
@@ -1421,6 +1417,12 @@ public class IRConverter {
       // perform backport rewriting before the methods can be retargeted.
       timing.begin("Retarget library methods");
       desugaredLibraryRetargeter.desugar(code);
+      timing.end();
+    }
+
+    if (backportedMethodRewriter != null) {
+      timing.begin("Rewrite backport methods");
+      backportedMethodRewriter.desugar(code);
       timing.end();
     }
 

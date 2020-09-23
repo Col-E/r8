@@ -1,44 +1,56 @@
 package com.android.tools.r8.ir.desugar.backports;
 
-import com.android.tools.r8.cf.code.CfArithmeticBinop;
-import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.code.Add;
+import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NumericType;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.FullMethodInvokeRewriter;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.MethodInvokeRewriter;
-import java.util.ListIterator;
-import org.objectweb.asm.Opcodes;
+import com.android.tools.r8.ir.code.Value;
+import java.util.List;
+import java.util.Set;
 
 public final class NumericMethodRewrites {
-
-  public static MethodInvokeRewriter rewriteToInvokeMath() {
-    return (invoke, factory) -> {
-      DexMethod method = invoke.getMethod();
-      return new CfInvoke(
-          Opcodes.INVOKESTATIC,
-          factory.createMethod(factory.mathType, method.proto, method.name),
-          false);
-    };
+  public static void rewriteToInvokeMath(
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
+    InvokeStatic mathInvoke =
+        new InvokeStatic(
+            factory.createMethod(
+                factory.mathType, invoke.getInvokedMethod().proto, invoke.getInvokedMethod().name),
+            invoke.outValue(),
+            invoke.inValues(),
+            false);
+    iterator.replaceCurrentInstruction(mathInvoke);
   }
 
-  public static MethodInvokeRewriter rewriteToAddInstruction() {
-    return (invoke, factory) -> {
-      NumericType numericType = NumericType.fromDexType(invoke.getMethod().getReturnType());
-      return new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, numericType);
-    };
+  public static void rewriteToAddInstruction(
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
+    List<Value> values = invoke.inValues();
+    assert values.size() == 2;
+
+    NumericType numericType = NumericType.fromDexType(invoke.getReturnType());
+    Add add = new Add(numericType, invoke.outValue(), values.get(0), values.get(1));
+    iterator.replaceCurrentInstruction(add);
   }
 
-  public static MethodInvokeRewriter rewriteAsIdentity() {
-    return new FullMethodInvokeRewriter() {
-      @Override
-      public void rewrite(
-          CfInvoke invoke, ListIterator<CfInstruction> iterator, DexItemFactory factory) {
-        // The invoke consumes the stack value and pushes another assumed to be the same.
-        iterator.remove();
-      }
-    };
+  public static void rewriteAsIdentity(
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
+    List<Value> values = invoke.inValues();
+    assert values.size() == 1;
+    if (invoke.hasOutValue()) {
+      invoke.outValue().replaceUsers(values.get(0));
+    }
+    // TODO(b/152853271): Debugging information is lost here (DebugLocalWrite may be required).
+    iterator.removeOrReplaceByDebugLocalRead();
   }
 
   private NumericMethodRewrites() {

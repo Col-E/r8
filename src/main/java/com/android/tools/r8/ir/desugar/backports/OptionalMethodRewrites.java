@@ -4,40 +4,69 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
-import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.MethodInvokeRewriter;
-import java.util.function.Function;
-import org.objectweb.asm.Opcodes;
+import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.Value;
+import java.util.Set;
 
 public final class OptionalMethodRewrites {
 
   private OptionalMethodRewrites() {}
 
-  private static MethodInvokeRewriter createRewriter(
-      Function<DexItemFactory, DexType> holderTypeSupplier, String methodName) {
-    return (invoke, factory) ->
-        new CfInvoke(
-            Opcodes.INVOKEVIRTUAL,
+  public static void rewriteOrElseGet(
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
+    InvokeVirtual getInvoke =
+        new InvokeVirtual(
+            factory.createMethod(factory.optionalType, invoke.getInvokedMethod().proto, "get"),
+            invoke.outValue(),
+            invoke.inValues());
+    iterator.replaceCurrentInstruction(getInvoke);
+  }
+
+  public static void rewriteDoubleOrElseGet(
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
+    InvokeVirtual getInvoke =
+        new InvokeVirtual(
             factory.createMethod(
-                holderTypeSupplier.apply(factory), invoke.getMethod().proto, methodName),
-            false);
+                factory.optionalDoubleType, invoke.getInvokedMethod().proto, "getAsDouble"),
+            invoke.outValue(),
+            invoke.inValues());
+    iterator.replaceCurrentInstruction(getInvoke);
   }
 
-  public static MethodInvokeRewriter rewriteOrElseGet() {
-    return createRewriter(factory -> factory.optionalType, "get");
+  public static void rewriteIntOrElseGet(
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
+    InvokeVirtual getInvoke =
+        new InvokeVirtual(
+            factory.createMethod(
+                factory.optionalIntType, invoke.getInvokedMethod().proto, "getAsInt"),
+            invoke.outValue(),
+            invoke.inValues());
+    iterator.replaceCurrentInstruction(getInvoke);
   }
 
-  public static MethodInvokeRewriter rewriteDoubleOrElseGet() {
-    return createRewriter(factory -> factory.optionalDoubleType, "getAsDouble");
-  }
-
-  public static MethodInvokeRewriter rewriteIntOrElseGet() {
-    return createRewriter(factory -> factory.optionalIntType, "getAsInt");
-  }
-
-  public static MethodInvokeRewriter rewriteLongOrElseGet() {
-    return createRewriter(factory -> factory.optionalLongType, "getAsLong");
+  public static void rewriteLongOrElseGet(
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
+    InvokeVirtual getInvoke =
+        new InvokeVirtual(
+            factory.createMethod(
+                factory.optionalLongType, invoke.getInvokedMethod().proto, "getAsLong"),
+            invoke.outValue(),
+            invoke.inValues());
+    iterator.replaceCurrentInstruction(getInvoke);
   }
 }

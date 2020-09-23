@@ -4,25 +4,27 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.cf.code.CfInvoke;
+
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.ir.desugar.backports.BooleanMethodRewrites;
@@ -38,19 +40,19 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
-import org.objectweb.asm.Opcodes;
 
 public final class BackportedMethodRewriter {
 
@@ -109,34 +111,29 @@ public final class BackportedMethodRewriter {
     BackportedMethods.registerSynthesizedCodeReferences(options.itemFactory);
   }
 
-  public boolean desugar(ProgramMethod method, AppInfoWithClassHierarchy appInfo) {
+  public void desugar(IRCode code) {
     if (!enabled) {
-      return false;
+      return; // Nothing to do!
     }
-    CfCode code = method.getDefinition().getCode().asCfCode();
-    ListIterator<CfInstruction> iterator = code.getInstructions().listIterator();
-    boolean replaced = false;
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
-      CfInvoke invoke = iterator.next().asInvoke();
-      if (invoke == null) {
+      Instruction instruction = iterator.next();
+      if (!instruction.isInvokeMethod()) {
         continue;
       }
-      DexMethod invokedMethod = invoke.getMethod();
+
+      InvokeMethod invoke = instruction.asInvokeMethod();
+      DexMethod invokedMethod = invoke.getInvokedMethod();
       MethodProvider provider = getMethodProviderOrNull(invokedMethod);
       if (provider != null) {
-        if (!replaced) {
-          // Create mutable instructions on first write.
-          ArrayList<CfInstruction> mutableInstructions = new ArrayList<>(code.getInstructions());
-          code.setInstructions(mutableInstructions);
-          iterator = mutableInstructions.listIterator(iterator.previousIndex());
-          iterator.next();
-        }
         provider.rewriteInvoke(
-            invoke, iterator, method.getHolder(), appInfo, synthesizedMethods::add);
-        replaced = true;
+            invoke, iterator, code, appView, affectedValues, synthesizedMethods::add);
       }
     }
-    return replaced;
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
   }
 
   public void processSynthesizedClasses(IRConverter converter, ExecutorService executor)
@@ -251,7 +248,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, LongMethodRewrites.rewriteCompare()));
+      addProvider(new InvokeRewriter(method, LongMethodRewrites::rewriteCompare));
 
       // Boolean
       type = factory.boxedBooleanType;
@@ -296,7 +293,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hash");
       proto = factory.createProto(factory.intType, factory.objectArrayType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, ObjectsMethodRewrites.rewriteToArraysHashCode()));
+      addProvider(new InvokeRewriter(method, ObjectsMethodRewrites::rewriteToArraysHashCode));
 
       // int Objects.hashCode(Object o)
       name = factory.createString("hashCode");
@@ -306,7 +303,7 @@ public final class BackportedMethodRewriter {
 
       // T Objects.requireNonNull(T obj)
       method = factory.objectsMethods.requireNonNull;
-      addProvider(new InvokeRewriter(method, ObjectsMethodRewrites.rewriteRequireNonNull()));
+      addProvider(new InvokeRewriter(method, ObjectsMethodRewrites::rewriteRequireNonNull));
 
       // T Objects.requireNonNull(T obj, String message)
       name = factory.createString("requireNonNull");
@@ -363,7 +360,7 @@ public final class BackportedMethodRewriter {
       DexString name = factory.createString("hashCode");
       DexProto proto = factory.createProto(factory.intType, factory.byteType);
       DexMethod method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteAsIdentity()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteAsIdentity));
 
       // Short
       type = factory.boxedShortType;
@@ -371,7 +368,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.shortType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteAsIdentity()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteAsIdentity));
 
       // Integer
       type = factory.boxedIntType;
@@ -380,25 +377,25 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteAsIdentity()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteAsIdentity));
 
       // int Integer.max(int a, int b)
       name = factory.createString("max");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteToInvokeMath()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // int Integer.min(int a, int b)
       name = factory.createString("min");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteToInvokeMath()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // int Integer.sum(int a, int b)
       name = factory.createString("sum");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteToAddInstruction()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToAddInstruction));
 
       // Double
       type = factory.boxedDoubleType;
@@ -413,19 +410,19 @@ public final class BackportedMethodRewriter {
       name = factory.createString("max");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteToInvokeMath()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // double Double.min(double a, double b)
       name = factory.createString("min");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteToInvokeMath()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // double Double.sum(double a, double b)
       name = factory.createString("sum");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteToAddInstruction()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToAddInstruction));
 
       // boolean Double.isFinite(double a)
       name = factory.createString("isFinite");
@@ -440,25 +437,25 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.floatType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, FloatMethodRewrites.rewriteHashCode()));
+      addProvider(new InvokeRewriter(method, FloatMethodRewrites::rewriteHashCode));
 
       // float Float.max(float a, float b)
       name = factory.createString("max");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteToInvokeMath()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // float Float.min(float a, float b)
       name = factory.createString("min");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteToInvokeMath()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // float Float.sum(float a, float b)
       name = factory.createString("sum");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteToAddInstruction()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToAddInstruction));
 
       // boolean Float.isFinite(float a)
       name = factory.createString("isFinite");
@@ -479,19 +476,19 @@ public final class BackportedMethodRewriter {
       name = factory.createString("logicalAnd");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, BooleanMethodRewrites.rewriteLogicalAnd()));
+      addProvider(new InvokeRewriter(method, BooleanMethodRewrites::rewriteLogicalAnd));
 
       // boolean Boolean.logicalOr(boolean a, boolean b)
       name = factory.createString("logicalOr");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, BooleanMethodRewrites.rewriteLogicalOr()));
+      addProvider(new InvokeRewriter(method, BooleanMethodRewrites::rewriteLogicalOr));
 
       // boolean Boolean.logicalXor(boolean a, boolean b)
       name = factory.createString("logicalXor");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, BooleanMethodRewrites.rewriteLogicalXor()));
+      addProvider(new InvokeRewriter(method, BooleanMethodRewrites::rewriteLogicalXor));
 
       // Long
       type = factory.boxedLongType;
@@ -506,19 +503,19 @@ public final class BackportedMethodRewriter {
       name = factory.createString("max");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteToInvokeMath()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // long Long.min(long a, long b)
       name = factory.createString("min");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteToInvokeMath()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // long Long.sum(long a, long b)
       name = factory.createString("sum");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteToAddInstruction()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToAddInstruction));
 
       // Character
       type = factory.boxedCharType;
@@ -527,7 +524,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.charType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteAsIdentity()));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteAsIdentity));
 
       // Objects
       type = factory.objectsType;
@@ -919,7 +916,7 @@ public final class BackportedMethodRewriter {
         method = factory.createMethod(type, proto, name);
         addProvider(
             i == 0
-                ? new InvokeRewriter(method, CollectionMethodRewrites.rewriteListOfEmpty())
+                ? new InvokeRewriter(method, CollectionMethodRewrites::rewriteListOfEmpty)
                 : new MethodGenerator(
                     method,
                     (options, methodArg) ->
@@ -940,7 +937,7 @@ public final class BackportedMethodRewriter {
         method = factory.createMethod(type, proto, name);
         addProvider(
             i == 0
-                ? new InvokeRewriter(method, CollectionMethodRewrites.rewriteSetOfEmpty())
+                ? new InvokeRewriter(method, CollectionMethodRewrites::rewriteSetOfEmpty)
                 : new MethodGenerator(
                     method,
                     (options, methodArg) ->
@@ -960,7 +957,7 @@ public final class BackportedMethodRewriter {
         method = factory.createMethod(type, proto, name);
         addProvider(
             i == 0
-                ? new InvokeRewriter(method, CollectionMethodRewrites.rewriteMapOfEmpty())
+                ? new InvokeRewriter(method, CollectionMethodRewrites::rewriteMapOfEmpty)
                 : new MethodGenerator(
                     method,
                     (options, methodArg) ->
@@ -1227,10 +1224,10 @@ public final class BackportedMethodRewriter {
           };
       MethodInvokeRewriter[] rewriters =
           new MethodInvokeRewriter[] {
-            OptionalMethodRewrites.rewriteOrElseGet(),
-            OptionalMethodRewrites.rewriteDoubleOrElseGet(),
-            OptionalMethodRewrites.rewriteLongOrElseGet(),
-            OptionalMethodRewrites.rewriteIntOrElseGet(),
+            OptionalMethodRewrites::rewriteOrElseGet,
+            OptionalMethodRewrites::rewriteDoubleOrElseGet,
+            OptionalMethodRewrites::rewriteLongOrElseGet,
+            OptionalMethodRewrites::rewriteIntOrElseGet,
           };
       DexString name = factory.createString("orElseThrow");
       for (int i = 0; i < optionalTypes.length; i++) {
@@ -1297,10 +1294,11 @@ public final class BackportedMethodRewriter {
     }
 
     public abstract void rewriteInvoke(
-        CfInvoke invoke,
-        ListIterator<CfInstruction> iterator,
-        DexProgramClass context,
-        AppInfoWithClassHierarchy appInfo,
+        InvokeMethod invoke,
+        InstructionListIterator iterator,
+        IRCode code,
+        AppView<?> appView,
+        Set<Value> affectedValues,
         Consumer<ProgramMethod> registerSynthesizedMethod);
   }
 
@@ -1315,12 +1313,14 @@ public final class BackportedMethodRewriter {
 
     @Override
     public void rewriteInvoke(
-        CfInvoke invoke,
-        ListIterator<CfInstruction> iterator,
-        DexProgramClass context,
-        AppInfoWithClassHierarchy appInfo,
+        InvokeMethod invoke,
+        InstructionListIterator iterator,
+        IRCode code,
+        AppView<?> appView,
+        Set<Value> affectedValues,
         Consumer<ProgramMethod> registerSynthesizedMethod) {
-      rewriter.rewrite(invoke, iterator, appInfo.dexItemFactory());
+      rewriter.rewrite(invoke, iterator, appView.dexItemFactory(), affectedValues);
+      assert code.isConsistentSSA();
     }
   }
 
@@ -1341,33 +1341,34 @@ public final class BackportedMethodRewriter {
 
     @Override
     public void rewriteInvoke(
-        CfInvoke invoke,
-        ListIterator<CfInstruction> iterator,
-        DexProgramClass context,
-        AppInfoWithClassHierarchy appInfo,
+        InvokeMethod invoke,
+        InstructionListIterator iterator,
+        IRCode code,
+        AppView<?> appView,
+        Set<Value> affectedValues,
         Consumer<ProgramMethod> registerSynthesizedMethod) {
-      ProgramMethod method = getSyntheticMethod(context, appInfo);
-      registerSynthesizedMethod.accept(method);
-      iterator.remove();
-      iterator.add(new CfInvoke(Opcodes.INVOKESTATIC, method.getReference(), false));
-    }
+      ProgramMethod method =
+          appView
+              .getSyntheticItems()
+              .createMethod(
+                  code.context().getHolder(),
+                  appView.dexItemFactory(),
+                  builder ->
+                      builder
+                          .setProto(getProto(appView.dexItemFactory()))
+                          .setAccessFlags(
+                              MethodAccessFlags.fromSharedAccessFlags(
+                                  Constants.ACC_PUBLIC
+                                      | Constants.ACC_STATIC
+                                      | Constants.ACC_SYNTHETIC,
+                                  false))
+                          .setCode(
+                              methodSig -> generateTemplateMethod(appView.options(), methodSig)));
 
-    private ProgramMethod getSyntheticMethod(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
-      return appInfo
-          .getSyntheticItems()
-          .createMethod(
-              context,
-              appInfo.dexItemFactory(),
-              builder ->
-                  builder
-                      .setProto(getProto(appInfo.dexItemFactory()))
-                      .setAccessFlags(
-                          MethodAccessFlags.fromSharedAccessFlags(
-                              Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC,
-                              false))
-                      .setCode(
-                          methodSig -> generateTemplateMethod(appInfo.app().options, methodSig)));
+      iterator.replaceCurrentInstruction(
+          new InvokeStatic(method.getReference(), invoke.outValue(), invoke.inValues()));
+
+      registerSynthesizedMethod.accept(method);
     }
 
     public DexProto getProto(DexItemFactory itemFactory) {
@@ -1399,30 +1400,16 @@ public final class BackportedMethodRewriter {
   }
 
   private interface TemplateMethodFactory {
+
     Code create(InternalOptions options, DexMethod method);
   }
 
-  public interface MethodInvokeRewriter {
+  private interface MethodInvokeRewriter {
 
-    CfInstruction rewriteSingle(CfInvoke invoke, DexItemFactory factory);
-
-    // Convenience wrapper since most rewrites are to a single instruction.
-    default void rewrite(
-        CfInvoke invoke, ListIterator<CfInstruction> iterator, DexItemFactory factory) {
-      iterator.remove();
-      iterator.add(rewriteSingle(invoke, factory));
-    }
-  }
-
-  public abstract static class FullMethodInvokeRewriter implements MethodInvokeRewriter {
-
-    @Override
-    public final CfInstruction rewriteSingle(CfInvoke invoke, DexItemFactory factory) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public abstract void rewrite(
-        CfInvoke invoke, ListIterator<CfInstruction> iterator, DexItemFactory factory);
+    void rewrite(
+        InvokeMethod invoke,
+        InstructionListIterator iterator,
+        DexItemFactory factory,
+        Set<Value> affectedValues);
   }
 }
