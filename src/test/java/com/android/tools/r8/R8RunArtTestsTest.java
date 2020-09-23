@@ -642,6 +642,7 @@ public abstract class R8RunArtTestsTest {
               "530-checker-lse2",
               TestCondition.match(
                   TestCondition.tools(DexTool.DX),
+                  TestCondition.compilers(CompilerUnderTest.R8, CompilerUnderTest.D8),
                   TestCondition.runtimesUpTo(DexVm.Version.V6_0_1)))
           .put(
               "534-checker-bce-deoptimization",
