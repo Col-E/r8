@@ -3,15 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.examples;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -43,7 +37,7 @@ public class TreeShakingInliningTest extends TreeShakingTest {
 
   @Test
   public void testKeeprules() throws Exception {
-    runTest(null, null, null, ImmutableList.of("src/test/examples/inlining/keep-rules.txt"), null);
+    runTest(null, null, null, ImmutableList.of("src/test/examples/inlining/keep-rules.txt"));
   }
 
   @Test
@@ -55,24 +49,6 @@ public class TreeShakingInliningTest extends TreeShakingTest {
             : ImmutableList.of(
                 "src/test/examples/inlining/keep-rules-discard.txt",
                 "src/test/examples/inlining/keep-rules-discard-constructor.txt");
-    if (getParameters().isDexRuntime()
-        && getParameters().getApiLevel().isLessThan(AndroidApiLevel.K)) {
-      // We fail to inline due to Objects.requireNonNull is missing in Android.jar before K.
-      assertThrows(
-          CompilationFailedException.class,
-          () ->
-              runTest(
-                  null,
-                  null,
-                  null,
-                  keepRules,
-                  null,
-                  TestCompilerBuilder::allowStderrMessages,
-                  diagnostics ->
-                      diagnostics.assertAllErrorsMatch(
-                          diagnosticMessage(containsString("Discard checks failed")))));
-    } else {
-      runTest(null, null, null, keepRules, null, TestCompilerBuilder::allowStderrMessages, null);
-    }
+    runTest(null, null, null, keepRules, null, TestCompilerBuilder::allowStderrMessages, null);
   }
 }

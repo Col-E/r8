@@ -10,9 +10,11 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder.DiagnosticsConsumer;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -167,6 +169,7 @@ public abstract class TreeShakingTest extends TestBase {
             .enableProguardTestOptions()
             .applyIf(minify.isAggressive(), b -> b.addKeepRules("-overloadaggressively"))
             .minification(minify.isMinify())
+            .setMinApi(parameters.getApiLevel())
             .addKeepRuleFiles(ListUtils.map(keepRulesFiles, Paths::get))
             .addLibraryFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib.jar"))
             .addDefaultRuntimeLibrary(parameters)
@@ -186,11 +189,13 @@ public abstract class TreeShakingTest extends TestBase {
     Path outJar = compileResult.writeToZip();
     if (parameters.isCfRuntime()) {
       Path shakinglib = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "shakinglib.jar");
+      CfRuntime cfRuntime = parameters.getRuntime().asCf();
       ProcessResult resultInput =
-          ToolHelper.runJava(Arrays.asList(Paths.get(programFile), shakinglib), getMainClass());
+          ToolHelper.runJava(
+              cfRuntime, Arrays.asList(Paths.get(programFile), shakinglib), getMainClass());
       Assert.assertEquals(0, resultInput.exitCode);
       ProcessResult resultOutput =
-          ToolHelper.runJava(Arrays.asList(outJar, shakinglib), getMainClass());
+          ToolHelper.runJava(cfRuntime, Arrays.asList(outJar, shakinglib), getMainClass());
       if (outputComparator != null) {
         outputComparator.accept(resultInput.stdout, resultOutput.stdout);
       } else {
@@ -207,14 +212,15 @@ public abstract class TreeShakingTest extends TestBase {
     Consumer<ArtCommandBuilder> extraArtArgs = builder -> {
       builder.appendClasspath(ToolHelper.EXAMPLES_BUILD_DIR + "shakinglib/classes.dex");
     };
+    DexVm dexVm = parameters.getRuntime().asDex().getVm();
     if (Files.exists(Paths.get(originalDex))) {
       if (outputComparator != null) {
         String output1 =
             ToolHelper.runArtNoVerificationErrors(
-                Collections.singletonList(originalDex), getMainClass(), extraArtArgs, null);
+                Collections.singletonList(originalDex), getMainClass(), extraArtArgs, dexVm);
         String output2 =
             ToolHelper.runArtNoVerificationErrors(
-                Collections.singletonList(outJar.toString()), getMainClass(), extraArtArgs, null);
+                Collections.singletonList(outJar.toString()), getMainClass(), extraArtArgs, dexVm);
         outputComparator.accept(output1, output2);
       } else {
         ToolHelper.checkArtOutputIdentical(
@@ -232,7 +238,7 @@ public abstract class TreeShakingTest extends TestBase {
       Assert.assertNull(outputComparator);
       Assert.assertNull(dexComparator);
       ToolHelper.runArtNoVerificationErrors(
-          Collections.singletonList(outJar.toString()), getMainClass(), extraArtArgs, null);
+          Collections.singletonList(outJar.toString()), getMainClass(), extraArtArgs, dexVm);
     }
     if (inspection != null) {
       compileResult.inspect(inspection);
