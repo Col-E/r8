@@ -54,7 +54,7 @@ public abstract class DexClass extends DexDefinition {
   private EnclosingMethodAttribute enclosingMethod;
 
   /** InnerClasses table. If this class is an inner class, it will have an entry here. */
-  private final List<InnerClassAttribute> innerClasses;
+  private List<InnerClassAttribute> innerClasses;
 
   private NestHostClassAttribute nestHost;
   private final List<NestMemberClassAttribute> nestMembers;
@@ -721,6 +721,10 @@ public abstract class DexClass extends DexDefinition {
 
   public List<InnerClassAttribute> getInnerClasses() {
     return innerClasses;
+  }
+
+  public void setInnerClasses(List<InnerClassAttribute> innerClasses) {
+    this.innerClasses = innerClasses;
   }
 
   public EnclosingMethodAttribute getEnclosingMethodAttribute() {

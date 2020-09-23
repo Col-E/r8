@@ -428,6 +428,10 @@ public final class InterfaceProcessor {
       this.extraOriginalMethodSignatures = tmp;
     }
 
+    public BiMap<DexMethod, DexMethod> getExtraOriginalMethodSignatures() {
+      return extraOriginalMethodSignatures;
+    }
+
     @Override
     public boolean isInterfaceProcessorLens() {
       return true;
@@ -476,11 +480,12 @@ public final class InterfaceProcessor {
       }
 
       @Override
-      public GraphLens build(DexItemFactory dexItemFactory, GraphLens previousLens) {
+      public InterfaceProcessorNestedGraphLens build(
+          DexItemFactory dexItemFactory, GraphLens previousLens) {
         if (originalFieldSignatures.isEmpty()
             && originalMethodSignatures.isEmpty()
             && extraOriginalMethodSignatures.isEmpty()) {
-          return previousLens;
+          return null;
         }
         return new InterfaceProcessorNestedGraphLens(
             typeMap,

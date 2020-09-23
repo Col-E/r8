@@ -1002,18 +1002,26 @@ public final class InterfaceMethodRewriter {
     // classes if needed.
     AppInfo appInfo = appView.appInfo();
     MainDexClasses mainDexClasses = appInfo.getMainDexClasses();
-    processInterfaces(builder, flavour)
-        .forEach(
-            (interfaceClass, synthesizedClass) -> {
-              // Don't need to optimize synthesized class since all of its methods
-              // are just moved from interfaces and don't need to be re-processed.
-              builder.addSynthesizedClass(synthesizedClass);
-              boolean addToMainDexClasses =
-                  interfaceClass.isProgramClass()
-                      && mainDexClasses.contains(interfaceClass.asProgramClass());
-              appInfo.addSynthesizedClass(synthesizedClass, addToMainDexClasses);
-            });
-
+    InterfaceProcessorNestedGraphLens.Builder graphLensBuilder =
+        InterfaceProcessorNestedGraphLens.builder();
+    Map<DexClass, DexProgramClass> classMapping =
+        processInterfaces(builder, flavour, graphLensBuilder);
+    InterfaceProcessorNestedGraphLens graphLens =
+        graphLensBuilder.build(appView.dexItemFactory(), appView.graphLens());
+    if (appView.enableWholeProgramOptimizations() && graphLens != null) {
+      appView.setGraphLens(graphLens);
+    }
+    classMapping.forEach(
+        (interfaceClass, synthesizedClass) -> {
+          // Don't need to optimize synthesized class since all of its methods
+          // are just moved from interfaces and don't need to be re-processed.
+          builder.addSynthesizedClass(synthesizedClass);
+          boolean addToMainDexClasses =
+              interfaceClass.isProgramClass()
+                  && mainDexClasses.contains(interfaceClass.asProgramClass());
+          appInfo.addSynthesizedClass(synthesizedClass, addToMainDexClasses);
+        });
+    new InterfaceMethodRewriterFixup(appView, graphLens).run();
     if (appView.options().isDesugaredLibraryCompilation()) {
       renameEmulatedInterfaces();
     }
@@ -1036,9 +1044,10 @@ public final class InterfaceMethodRewriter {
         && clazz.isInterface() == mustBeInterface;
   }
 
-  private Map<DexClass, DexProgramClass> processInterfaces(Builder<?> builder, Flavor flavour) {
-    InterfaceProcessorNestedGraphLens.Builder graphLensBuilder =
-        InterfaceProcessorNestedGraphLens.builder();
+  private Map<DexClass, DexProgramClass> processInterfaces(
+      Builder<?> builder,
+      Flavor flavour,
+      InterfaceProcessorNestedGraphLens.Builder graphLensBuilder) {
     InterfaceProcessor processor = new InterfaceProcessor(appView, this);
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, true)) {
@@ -1048,9 +1057,6 @@ public final class InterfaceMethodRewriter {
     for (Entry<DexLibraryClass, Set<DexProgramClass>> entry : requiredDispatchClasses.entrySet()) {
       DexProgramClass dispatchClass = processor.process(entry.getKey(), entry.getValue());
       dispatchClass.forEachProgramMethod(synthesizedMethods::add);
-    }
-    if (appView.enableWholeProgramOptimizations()) {
-      appView.setGraphLens(graphLensBuilder.build(appView.dexItemFactory(), appView.graphLens()));
     }
     return processor.syntheticClasses;
   }

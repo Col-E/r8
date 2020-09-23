@@ -29,7 +29,9 @@ public class TestParameters {
 
   public boolean canUseDefaultAndStaticInterfaceMethods() {
     assert isCfRuntime() || isDexRuntime();
-    return isCfRuntime() || getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
+    return isCfRuntime()
+        || getApiLevel()
+            .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport());
   }
 
   // Convenience predicates.
