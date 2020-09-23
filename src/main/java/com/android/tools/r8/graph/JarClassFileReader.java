@@ -823,8 +823,8 @@ public class JarClassFileReader {
               createAnnotationSet(annotations, options),
               parameterAnnotationsList,
               code,
-              parent.version,
               false,
+              parent.version,
               deprecated);
       Wrapper<DexMethod> signature = MethodSignatureEquivalence.get().wrap(method);
       if (parent.methodSignatures.add(signature)) {

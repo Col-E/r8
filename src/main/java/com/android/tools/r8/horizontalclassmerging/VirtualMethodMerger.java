@@ -170,8 +170,8 @@ public class VirtualMethodMerger {
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             synthesizedCode,
-            classFileVersion,
-            true);
+            true,
+            classFileVersion);
 
     // Map each old method to the newly synthesized method in the graph lens.
     for (ProgramMethod oldMethod : methods) {

@@ -165,8 +165,8 @@ public class ConstructorMerger {
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             synthesizedCode,
-            classFileVersion,
-            true);
+            true,
+            classFileVersion);
 
     if (isTrivialMerge()) {
       // The constructor does not require the additional argument, just map it like a regular

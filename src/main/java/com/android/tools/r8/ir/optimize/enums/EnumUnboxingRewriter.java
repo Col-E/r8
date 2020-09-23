@@ -635,8 +635,8 @@ public class EnumUnboxingRewriter {
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),
         cfCode,
-        REQUIRED_CLASS_FILE_VERSION,
-        true);
+        true,
+        REQUIRED_CLASS_FILE_VERSION);
   }
 
   private MethodAccessFlags synthesizedMethodAccessFlags(boolean sync) {

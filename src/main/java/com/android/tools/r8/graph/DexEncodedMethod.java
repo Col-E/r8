@@ -228,7 +228,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       DexAnnotationSet annotations,
       ParameterAnnotationsList parameterAnnotationsList,
       Code code) {
-    this(method, accessFlags, annotations, parameterAnnotationsList, code, -1, false);
+    this(method, accessFlags, annotations, parameterAnnotationsList, code, false, -1);
   }
 
   public DexEncodedMethod(
@@ -238,7 +238,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
       boolean d8R8Synthesized) {
-    this(method, accessFlags, annotations, parameterAnnotationsList, code, -1, d8R8Synthesized);
+    this(method, accessFlags, annotations, parameterAnnotationsList, code, d8R8Synthesized, -1);
   }
 
   public DexEncodedMethod(
@@ -247,16 +247,16 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       DexAnnotationSet annotations,
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
-      int classFileVersion,
-      boolean d8R8Synthesized) {
+      boolean d8R8Synthesized,
+      int classFileVersion) {
     this(
         method,
         accessFlags,
         annotations,
         parameterAnnotationsList,
         code,
-        classFileVersion,
         d8R8Synthesized,
+        classFileVersion,
         false);
   }
 
@@ -266,8 +266,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       DexAnnotationSet annotations,
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
-      int classFileVersion,
       boolean d8R8Synthesized,
+      int classFileVersion,
       boolean deprecated) {
     super(annotations);
     this.method = method;
@@ -1527,8 +1527,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
               annotations,
               parameterAnnotations,
               code,
-              classFileVersion,
-              d8R8Synthesized);
+              d8R8Synthesized,
+              classFileVersion);
       result.setKotlinMemberInfo(kotlinMemberInfo);
       result.compilationState = compilationState;
       result.optimizationInfo = optimizationInfo;

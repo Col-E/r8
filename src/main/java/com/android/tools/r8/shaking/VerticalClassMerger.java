@@ -1251,8 +1251,8 @@ public class VerticalClassMerger {
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               code,
-              method.hasClassFileVersion() ? method.getClassFileVersion() : -1,
-              true);
+              true,
+              method.hasClassFileVersion() ? method.getClassFileVersion() : -1);
       bridge.setLibraryMethodOverride(method.isLibraryMethodOverride());
       if (method.accessFlags.isPromotedToPublic()) {
         // The bridge is now the public method serving the role of the original method, and should
