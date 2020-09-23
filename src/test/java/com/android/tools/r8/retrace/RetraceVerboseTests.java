@@ -11,6 +11,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousMethodVerboseStackTrace;
+import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
 import com.android.tools.r8.retrace.stacktraces.VerboseUnknownStackTrace;
@@ -48,6 +49,11 @@ public class RetraceVerboseTests extends TestBase {
   @Test
   public void testVerboseUnknownMethod() {
     runRetraceTest(new VerboseUnknownStackTrace());
+  }
+
+  @Test
+  public void testAmbiguousMissingLineVerbose() {
+    runRetraceTest(new AmbiguousWithSignatureVerboseStackTrace());
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {

@@ -20,6 +20,8 @@ import com.android.tools.r8.retrace.stacktraces.ActualIdentityStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousMissingLineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousStackTrace;
+import com.android.tools.r8.retrace.stacktraces.AmbiguousWithMultipleLineMappingsStackTrace;
+import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureNonVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.CircularReferenceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameStackTrace;
@@ -138,6 +140,16 @@ public class RetraceTests extends TestBase {
   @Test
   public void testAmbiguousMissingLineStackTrace() {
     runRetraceTest(new AmbiguousMissingLineStackTrace());
+  }
+
+  @Test
+  public void testAmbiguousMissingLineNotVerbose() {
+    runRetraceTest(new AmbiguousWithSignatureNonVerboseStackTrace());
+  }
+
+  @Test
+  public void testAmbiguousMultipleMappingsTest() {
+    runRetraceTest(new AmbiguousWithMultipleLineMappingsStackTrace());
   }
 
   @Test
