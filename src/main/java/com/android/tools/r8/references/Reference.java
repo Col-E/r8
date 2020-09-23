@@ -6,21 +6,18 @@ package com.android.tools.r8.references;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.MapMaker;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * Reference provider/factory.
  *
  * <p>The reference class provides a single point for creating and managing reference objects that
- * represent types, methods and fields in a JVM/DEX application. The objects are interned/shared so
- * that allocation is reduced and equality is constant time. Internally, the objects are weakly
- * stored to avoid memory pressure.
+ * represent types, methods and fields in a JVM/DEX application. The objects may or may not be
+ * interned/shared.
  *
  * <p>No guarantees are made on identity and all references must be compared by {@code equals}.
  */
@@ -36,37 +33,8 @@ public final class Reference {
   public static PrimitiveReference LONG = PrimitiveReference.LONG;
   public static PrimitiveReference DOUBLE = PrimitiveReference.DOUBLE;
 
-  private static Reference instance;
-
-  // Weak map of classes. The values are weak and the descriptor is used as key.
-  private final ConcurrentMap<String, ClassReference> classes =
-      new MapMaker().weakValues().makeMap();
-
-  // Weak map of arrays. The values are weak and the descriptor is used as key.
-  private final ConcurrentMap<String, ArrayReference> arrays =
-      new MapMaker().weakValues().makeMap();
-
-  // Weak map of method references. Keys are strong and must not be identical to the value.
-  private final ConcurrentMap<MethodReference, MethodReference> methods =
-      new MapMaker().weakValues().makeMap();
-
-  // Weak map of field references. Keys are strong and must not be identical to the value.
-  private final ConcurrentMap<FieldReference, FieldReference> fields =
-      new MapMaker().weakValues().makeMap();
-
   private Reference() {
     // Intentionally hidden.
-  }
-
-  private static Reference getInstance() {
-    if (instance == null) {
-      synchronized (Reference.class) {
-        if (instance == null) {
-          instance = new Reference();
-        }
-      }
-    }
-    return instance;
   }
 
   public static TypeReference returnTypeFromDescriptor(String descriptor) {
@@ -99,7 +67,7 @@ public final class Reference {
 
   /** Get a class reference from a JVM descriptor. */
   public static ClassReference classFromDescriptor(String descriptor) {
-    return getInstance().classes.computeIfAbsent(descriptor, ClassReference::fromDescriptor);
+    return ClassReference.fromDescriptor(descriptor);
   }
 
   /**
@@ -127,17 +95,12 @@ public final class Reference {
 
   /** Get an array reference from a JVM descriptor. */
   public static ArrayReference arrayFromDescriptor(String descriptor) {
-    return getInstance().arrays.computeIfAbsent(descriptor, ArrayReference::fromDescriptor);
+    return ArrayReference.fromDescriptor(descriptor);
   }
 
   /** Get an array reference from a base type and dimensions. */
   public static ArrayReference array(TypeReference baseType, int dimensions) {
-    String arrayDescriptor =
-        DescriptorUtils.toArrayDescriptor(dimensions, baseType.getDescriptor());
-    return getInstance()
-        .arrays
-        .computeIfAbsent(
-            arrayDescriptor, descriptor -> ArrayReference.fromBaseType(baseType, dimensions));
+    return ArrayReference.fromBaseType(baseType, dimensions);
   }
 
   /** Get a method reference from its full reference specification. */
@@ -146,15 +109,8 @@ public final class Reference {
       String methodName,
       List<TypeReference> formalTypes,
       TypeReference returnType) {
-    MethodReference key = new MethodReference(
+    return new MethodReference(
         holderClass, methodName, ImmutableList.copyOf(formalTypes), returnType);
-    return getInstance().methods.computeIfAbsent(key,
-        // Allocate a distinct value for the canonical reference so the key is not a strong pointer.
-        k -> new MethodReference(
-            k.getHolderClass(),
-            k.getMethodName(),
-            ImmutableList.copyOf(k.getFormalTypes()),
-            k.getReturnType()));
   }
 
   /** Get a method reference from a Java reflection method. */
@@ -208,10 +164,7 @@ public final class Reference {
   /** Get a field reference from its full reference specification. */
   public static FieldReference field(
       ClassReference holderClass, String fieldName, TypeReference fieldType) {
-    FieldReference key = new FieldReference(holderClass, fieldName, fieldType);
-    return getInstance().fields.computeIfAbsent(key,
-        // Allocate a distinct value for the canonical reference so the key is not a strong pointer.
-        k -> new FieldReference(k.getHolderClass(), k.getFieldName(), k.getFieldType()));
+    return new FieldReference(holderClass, fieldName, fieldType);
   }
 
   /** Get a field reference from a Java reflection field. */

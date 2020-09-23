@@ -31,8 +31,8 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -629,9 +629,9 @@ public class GraphInspector {
     this.inspector = inspector;
 
     Set<GraphNode> targets = consumer.getTargets();
-    classes = new IdentityHashMap<>(targets.size());
-    methods = new IdentityHashMap<>(targets.size());
-    fields = new IdentityHashMap<>(targets.size());
+    classes = new HashMap<>(targets.size());
+    methods = new HashMap<>(targets.size());
+    fields = new HashMap<>(targets.size());
 
     for (GraphNode target : targets) {
       if (target instanceof ClassGraphNode) {

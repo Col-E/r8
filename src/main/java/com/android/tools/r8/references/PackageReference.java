@@ -33,7 +33,7 @@ public class PackageReference {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof PackageReference)) {
       return false;
     }
     PackageReference that = (PackageReference) o;

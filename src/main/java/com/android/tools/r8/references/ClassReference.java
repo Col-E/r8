@@ -41,12 +41,18 @@ public final class ClassReference implements TypeReference {
 
   @Override
   public boolean equals(Object o) {
-    return this == o;
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof ClassReference)) {
+      return false;
+    }
+    return descriptor.equals(((ClassReference) o).descriptor);
   }
 
   @Override
   public int hashCode() {
-    return System.identityHashCode(this);
+    return descriptor.hashCode();
   }
 
   @Override

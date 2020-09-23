@@ -6,6 +6,7 @@ package com.android.tools.r8.references;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.DescriptorUtils;
+import java.util.Objects;
 
 /** Reference to an array type. */
 @Keep
@@ -13,7 +14,8 @@ public final class ArrayReference implements TypeReference {
 
   private final int dimensions;
   private final TypeReference baseType;
-  private String descriptor;
+  // Consider removing the descriptor field as dimensions and baseType encode the same information.
+  private final String descriptor;
 
   private ArrayReference(int dimensions, TypeReference baseType, String descriptor) {
     assert dimensions > 0;
@@ -71,11 +73,18 @@ public final class ArrayReference implements TypeReference {
 
   @Override
   public boolean equals(Object o) {
-    return this == o;
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof ArrayReference)) {
+      return false;
+    }
+    ArrayReference other = (ArrayReference) o;
+    return dimensions == other.dimensions && baseType.equals(other.baseType);
   }
 
   @Override
   public int hashCode() {
-    return System.identityHashCode(this);
+    return Objects.hash(dimensions, baseType);
   }
 }

@@ -24,7 +24,7 @@ public final class FieldGraphNode extends GraphNode {
   @Override
   public boolean equals(Object o) {
     return this == o
-        || (o instanceof FieldGraphNode && ((FieldGraphNode) o).reference == reference);
+        || (o instanceof FieldGraphNode && ((FieldGraphNode) o).reference.equals(reference));
   }
 
   @Override
