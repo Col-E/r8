@@ -48,8 +48,8 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
-  public void reportBlacklisted() {
-    print("method is blacklisted from inlining.");
+  public void reportExtraNeverInline() {
+    print("method is marked as an additional never inline method.");
   }
 
   @Override

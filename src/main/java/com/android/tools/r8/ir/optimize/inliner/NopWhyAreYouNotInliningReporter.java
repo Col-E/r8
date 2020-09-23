@@ -22,7 +22,7 @@ public class NopWhyAreYouNotInliningReporter extends WhyAreYouNotInliningReporte
   }
 
   @Override
-  public void reportBlacklisted() {}
+  public void reportExtraNeverInline() {}
 
   @Override
   public void reportCallerNotSameClass() {}

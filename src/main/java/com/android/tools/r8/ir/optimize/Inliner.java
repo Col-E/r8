@@ -85,7 +85,7 @@ import java.util.Set;
 public class Inliner implements PostOptimization {
 
   protected final AppView<AppInfoWithLiveness> appView;
-  private final Set<DexMethod> blacklist;
+  private final Set<DexMethod> extraNeverInlineMethods;
   private final LambdaMerger lambdaMerger;
   private final LensCodeRewriter lensCodeRewriter;
   final MainDexTracingResult mainDexClasses;
@@ -106,7 +106,7 @@ public class Inliner implements PostOptimization {
       LensCodeRewriter lensCodeRewriter) {
     Kotlin.Intrinsics intrinsics = appView.dexItemFactory().kotlin.intrinsics;
     this.appView = appView;
-    this.blacklist =
+    this.extraNeverInlineMethods =
         appView.options().kotlinOptimizationOptions().disableKotlinSpecificOptimizations
             ? ImmutableSet.of()
             : ImmutableSet.of(intrinsics.throwNpe, intrinsics.throwParameterIsNullException);
@@ -119,7 +119,7 @@ public class Inliner implements PostOptimization {
             : null;
   }
 
-  boolean isBlacklisted(
+  boolean neverInline(
       InvokeMethod invoke,
       SingleResolutionResult resolutionResult,
       ProgramMethod singleTarget,
@@ -136,10 +136,11 @@ public class Inliner implements PostOptimization {
       return true;
     }
 
-    if (blacklist.contains(appView.graphLens().getOriginalMethodSignature(singleTargetReference))
+    if (extraNeverInlineMethods.contains(
+            appView.graphLens().getOriginalMethodSignature(singleTargetReference))
         || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(
             singleTargetReference, appView)) {
-      whyAreYouNotInliningReporter.reportBlacklisted();
+      whyAreYouNotInliningReporter.reportExtraNeverInline();
       return true;
     }
 

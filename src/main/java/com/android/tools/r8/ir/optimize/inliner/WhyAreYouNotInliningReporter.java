@@ -45,7 +45,7 @@ public abstract class WhyAreYouNotInliningReporter {
     }
   }
 
-  public abstract void reportBlacklisted();
+  public abstract void reportExtraNeverInline();
 
   public abstract void reportCallerNotSameClass();
 
