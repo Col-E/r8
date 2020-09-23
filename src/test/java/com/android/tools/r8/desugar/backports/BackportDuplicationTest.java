@@ -7,7 +7,10 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -153,6 +156,34 @@ public class BackportDuplicationTest extends TestBase {
                 assertEquals(syntheticsInParts, getSyntheticMethods(inspector));
               }
             });
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void testD8FilePerClassFile() throws Exception {
+    runD8FilePerMode(OutputMode.DexFilePerClassFile);
+    fail("b/169095082");
+  }
+
+  @Test
+  public void testD8FilePerClass() throws Exception {
+    runD8FilePerMode(OutputMode.DexFilePerClass);
+  }
+
+  public void runD8FilePerMode(OutputMode outputMode) throws Exception {
+    Path perClassOutput =
+        testForD8(parameters.getBackend())
+            .setOutputMode(outputMode)
+            .addProgramClasses(CLASSES)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+    testForD8()
+        .addProgramFiles(perClassOutput)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED)
+        .inspect(this::checkNoInternalSyntheticNames)
+        .inspect(this::checkExpectedSynthetics);
   }
 
   private void checkNoInternalSyntheticNames(CodeInspector inspector) {

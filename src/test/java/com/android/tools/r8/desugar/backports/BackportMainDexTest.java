@@ -9,12 +9,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ByteDataView;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.GenerateMainDexListRunResult;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -141,6 +144,39 @@ public class BackportMainDexTest extends TestBase {
     MainDexConsumer mainDexConsumer = new MainDexConsumer();
     testForD8(parameters.getBackend())
         .addProgramClasses(CLASSES)
+        .setMinApi(parameters.getApiLevel())
+        .addMainDexListClasses(MiniAssert.class, TestClass.class, User2.class)
+        .setProgramConsumer(mainDexConsumer)
+        .compile()
+        .inspect(this::checkExpectedSynthetics)
+        .run(parameters.getRuntime(), TestClass.class, getRunArgs())
+        .assertSuccessWithOutput(EXPECTED);
+    checkMainDex(mainDexConsumer);
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void testD8FilePerClassFile() throws Exception {
+    runD8FilePerMode(OutputMode.DexFilePerClassFile);
+    fail("b/169095082");
+  }
+
+  @Test
+  public void testD8FilePerClass() throws Exception {
+    runD8FilePerMode(OutputMode.DexFilePerClass);
+  }
+
+  private void runD8FilePerMode(OutputMode outputMode) throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    Path perClassOutput =
+        testForD8(parameters.getBackend())
+            .setOutputMode(outputMode)
+            .addProgramClasses(CLASSES)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+    MainDexConsumer mainDexConsumer = new MainDexConsumer();
+    testForD8()
+        .addProgramFiles(perClassOutput)
         .setMinApi(parameters.getApiLevel())
         .addMainDexListClasses(MiniAssert.class, TestClass.class, User2.class)
         .setProgramConsumer(mainDexConsumer)
