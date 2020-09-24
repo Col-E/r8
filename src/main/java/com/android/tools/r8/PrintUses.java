@@ -207,7 +207,10 @@ public class PrintUses {
       addType(field.holder);
       Set<DexField> typeFields = fields.get(field.holder);
       if (typeFields != null) {
-        assert baseField != null;
+        if (baseField == null) {
+          System.out.println(field.toSourceString());
+        }
+        assert baseField != null : field.toSourceString();
         if (!allowObfuscation) {
           noObfuscationTypes.add(field.holder);
         }

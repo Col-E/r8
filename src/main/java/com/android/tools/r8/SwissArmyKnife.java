@@ -7,6 +7,7 @@ import com.android.tools.r8.bisect.Bisect;
 import com.android.tools.r8.compatproguard.CompatProguard;
 import com.android.tools.r8.dexsplitter.DexSplitter;
 import com.android.tools.r8.relocator.RelocatorCommandLine;
+import com.android.tools.r8.tracereferences.TraceReferences;
 import java.util.Arrays;
 
 /**
@@ -74,6 +75,9 @@ public class SwissArmyKnife {
         break;
       case "relocator":
         RelocatorCommandLine.main(shift((args)));
+        break;
+      case "tracereferences":
+        TraceReferences.main(shift((args)));
         break;
       default:
         runDefault(args);

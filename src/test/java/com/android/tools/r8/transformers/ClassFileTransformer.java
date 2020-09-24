@@ -425,6 +425,11 @@ public class ClassFileTransformer {
     boolean test(int access, String name, String descriptor, String signature, String[] exceptions);
   }
 
+  @FunctionalInterface
+  public interface FieldPredicate {
+    boolean test(int access, String name, String descriptor, String signature, Object value);
+  }
+
   public ClassFileTransformer removeInnerClasses() {
     return addClassTransformer(
         new ClassTransformer() {
@@ -456,6 +461,19 @@ public class ClassFileTransformer {
               int access, String name, String descriptor, String signature, String[] exceptions) {
             return super.visitMethod(
                 access, name.equals(oldName) ? newName : name, descriptor, signature, exceptions);
+          }
+        });
+  }
+
+  public ClassFileTransformer removeFields(FieldPredicate predicate) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public FieldVisitor visitField(
+              int access, String name, String descriptor, String signature, Object value) {
+            return predicate.test(access, name, descriptor, signature, value)
+                ? null
+                : super.visitField(access, name, descriptor, signature, value);
           }
         });
   }

@@ -509,6 +509,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return accessFlags.isPublic();
   }
 
+  public boolean isProtectedMethod() {
+    checkIfObsolete();
+    return accessFlags.isProtected();
+  }
+
   public boolean isPrivateMethod() {
     checkIfObsolete();
     return accessFlags.isPrivate();

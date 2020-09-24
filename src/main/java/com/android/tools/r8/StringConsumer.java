@@ -145,6 +145,7 @@ public interface StringConsumer {
       if (failedToCreateDelegate) {
         return;
       }
+      ensureDelegate(handler);
       if (delegate != null) {
         delegate.finished(handler);
         delegate = null;
