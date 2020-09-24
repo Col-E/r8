@@ -11,14 +11,16 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.junit.Test;
 
-public class NoAnnotationsTest extends HorizontalClassMergingTestBase {
-  public NoAnnotationsTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
+public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergingTestBase {
+  public NoClassesOrMembersWithAnnotationsTest(
+      TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
   }
 
@@ -27,7 +29,6 @@ public class NoAnnotationsTest extends HorizontalClassMergingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addKeepClassRules(TypeAnnotation.class, MethodAnnotation.class)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
@@ -35,9 +36,12 @@ public class NoAnnotationsTest extends HorizontalClassMergingTestBase {
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("a", "b", "c", "foo")
+        .assertSuccessWithOutputLines(
+            "a", "b", "c", "foo", "null", "annotation 2", "annotation 1", "annotation 2")
         .inspect(
             codeInspector -> {
+              assertThat(codeInspector.clazz(TypeAnnotation.class), isPresent());
+              assertThat(codeInspector.clazz(MethodAnnotation.class), isPresent());
               assertThat(codeInspector.clazz(A.class), isPresent());
               assertThat(codeInspector.clazz(B.class), isPresent());
               assertThat(codeInspector.clazz(C.class), isPresent());
@@ -81,11 +85,37 @@ public class NoAnnotationsTest extends HorizontalClassMergingTestBase {
   }
 
   static class Main {
-    public static void main(String[] args) {
+    @NeverInline
+    public static void foo(TypeAnnotation annotation) {
+      System.out.println(annotation);
+    }
+
+    @NeverInline
+    public static void foo2(MethodAnnotation annotation) {
+      System.out.println(annotation.toString().replaceFirst(".*@.*", "annotation 2"));
+    }
+
+    public static void main(String[] args) throws NoSuchMethodException {
       A a = new A();
       B b = new B("b");
       C c = new C("c");
       c.foo();
+      foo(null);
+      foo2(
+          new MethodAnnotation() {
+            @Override
+            public Class<? extends Annotation> annotationType() {
+              return null;
+            }
+          });
+      System.out.println(
+          b.getClass().getAnnotations()[0].toString().replaceFirst(".*", "annotation 1"));
+      System.out.println(
+          c.getClass()
+              .getMethods()[0]
+              .getAnnotations()[0]
+              .toString()
+              .replaceFirst(".*", "annotation 2"));
     }
   }
 }

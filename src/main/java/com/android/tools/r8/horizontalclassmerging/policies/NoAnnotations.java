@@ -10,6 +10,6 @@ import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
 public class NoAnnotations extends SingleClassPolicy {
   @Override
   public boolean canMerge(DexProgramClass program) {
-    return !program.hasClassOrMemberAnnotations();
+    return !program.isAnnotation();
   }
 }

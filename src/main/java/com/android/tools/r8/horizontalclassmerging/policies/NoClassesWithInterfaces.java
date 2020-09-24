@@ -7,10 +7,10 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
 
-public class NoInterfaces extends SingleClassPolicy {
+public class NoClassesWithInterfaces extends SingleClassPolicy {
 
   @Override
   public boolean canMerge(DexProgramClass program) {
-    return !program.isInterface();
+    return program.interfaces.isEmpty();
   }
 }
