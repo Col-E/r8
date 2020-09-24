@@ -98,13 +98,15 @@ public class ConstructorMerger {
     DexEncodedMethod firstConstructor = constructors.iterator().next();
     DexProto oldProto = firstConstructor.getProto();
 
-    if (isTrivialMerge()) {
+    if (isTrivialMerge() && syntheticArgumentClass == null) {
       return oldProto;
     }
 
     List<DexType> parameters = new ArrayList<>();
     Collections.addAll(parameters, oldProto.parameters.values);
-    parameters.add(dexItemFactory.intType);
+    if (!isTrivialMerge()) {
+      parameters.add(dexItemFactory.intType);
+    }
     if (syntheticArgumentClass != null) {
       parameters.add(syntheticArgumentClass.getArgumentClass());
     }
@@ -171,7 +173,15 @@ public class ConstructorMerger {
     if (isTrivialMerge()) {
       // The constructor does not require the additional argument, just map it like a regular
       // method.
-      lensBuilder.mapMethod(constructors.iterator().next().method, newConstructorReference);
+      DexEncodedMethod oldConstructor = constructors.iterator().next();
+      if (addExtraNull) {
+        List<ExtraParameter> extraParameters = new LinkedList<>();
+        extraParameters.add(new ExtraUnusedNullParameter());
+        lensBuilder.mapMergedConstructor(
+            oldConstructor.method, newConstructorReference, extraParameters);
+      } else {
+        lensBuilder.mapMethod(oldConstructor.method, newConstructorReference);
+      }
     } else {
       // Map each old constructor to the newly synthesized constructor in the graph lens.
       for (DexEncodedMethod oldConstructor : constructors) {
