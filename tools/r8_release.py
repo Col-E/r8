@@ -7,14 +7,12 @@ import argparse
 import datetime
 import os.path
 import re
-import shutil
 import subprocess
 import sys
 import urllib
 import xml
-import xml.etree.ElementTree as et
 import zipfile
-import archive_desugar_jdk_libs
+
 import utils
 
 R8_DEV_BRANCH = '2.2'
@@ -249,7 +247,7 @@ def prepare_maven(args):
   return release_maven
 
 # ------------------------------------------------------ column 70 --v
-def git_message_dev(version):
+def git_message_dev(version, bugs):
   return """Update D8 R8 to %s
 
 This is a development snapshot, it's fine to use for studio canary
@@ -259,7 +257,7 @@ but IS NOT suitable for public release.
 
 Built here: go/r8-releases/raw/%s
 Test: ./gradlew check
-Bug: """ % (version, version)
+Bug: %s""" % (version, version, '\nBug: '.join(bugs))
 
 
 def git_message_release(version, bugs):
@@ -268,7 +266,7 @@ def git_message_release(version, bugs):
 Built here: go/r8-releases/raw/%s/
 Test: ./gradlew check
 
-Bug: %s """ % (version, version, '\nBug: '.join(bugs))
+Bug: %s""" % (version, version, '\nBug: '.join(bugs))
 
 
 def prepare_studio(args):
@@ -282,7 +280,7 @@ def prepare_studio(args):
       return 'DryRun: omitting studio release for %s' % options.version
 
     if 'dev' in options.version:
-      git_message = git_message_dev(options.version)
+      git_message = git_message_dev(options.version, options.bug)
       r8_checkout = utils.REPO_ROOT
       return release_studio_or_aosp(
         r8_checkout, args.studio, options, git_message)
