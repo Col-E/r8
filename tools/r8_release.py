@@ -248,13 +248,14 @@ def prepare_maven(args):
 
   return release_maven
 
+# ------------------------------------------------------ column 70 --v
 def git_message_dev(version):
   return """Update D8 R8 to %s
 
-This is a development snapshot, it's fine to use for studio canary build, but
-not for BETA or release, for those we would need a release version of R8
-binaries.
-This build IS suitable for preview release but IS NOT suitable for public release.
+This is a development snapshot, it's fine to use for studio canary
+build, but not for BETA or release, for those we would need a release
+version of R8 binaries. This build IS suitable for preview release
+but IS NOT suitable for public release.
 
 Built here: go/r8-releases/raw/%s
 Test: ./gradlew check
