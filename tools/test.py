@@ -162,6 +162,12 @@ def archive_failures():
 def Main():
   (options, args) = ParseOptions()
 
+  if options.horizontal_class_merging:
+    # This flag is in preperation of running horizontal class merging
+    # but currently is the same as the default tests. Don't run to
+    # save resources on the bots.
+    return 0
+
   if utils.is_bot():
     gradle.RunGradle(['--no-daemon', 'clean'])
 
