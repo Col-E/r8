@@ -9,7 +9,6 @@ import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -235,7 +234,7 @@ public final class RetraceStackTrace {
                       new ExceptionLine(
                           initialWhiteSpace,
                           description,
-                          element.getClassReference().getTypeName(),
+                          element.getRetracedClass().getTypeName(),
                           message)));
       return exceptionLines;
     }
@@ -407,7 +406,7 @@ public final class RetraceStackTrace {
             .forEach(
                 classElement -> {
                   retraceClassAndMethods(
-                      retracer, verbose, lines, classElement.getClassReference().getTypeName());
+                      retracer, verbose, lines, classElement.getRetracedClass().getTypeName());
                 });
       } else {
         retraceClassAndMethods(retracer, verbose, lines, retraceClassLoaderName);
@@ -425,7 +424,7 @@ public final class RetraceStackTrace {
       }
       retraceResult.forEach(
           methodElement -> {
-            MethodReference methodReference = methodElement.getMethodReference();
+            RetracedMethod methodReference = methodElement.getMethod();
             lines.add(
                 new AtLine(
                     startingWhitespace,
@@ -568,7 +567,7 @@ public final class RetraceStackTrace {
                   exceptionLines.add(
                       new CircularReferenceLine(
                           startWhitespace,
-                          element.getClassReference().getTypeName(),
+                          element.getRetracedClass().getTypeName(),
                           endBracketAndWhitespace)));
       return exceptionLines;
     }

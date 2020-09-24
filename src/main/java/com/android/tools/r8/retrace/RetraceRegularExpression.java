@@ -7,11 +7,11 @@ package com.android.tools.r8.retrace;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassResult.Element;
 import com.android.tools.r8.retrace.RetraceRegularExpression.ClassNameGroup.ClassNameGroupHandler;
+import com.android.tools.r8.retrace.RetracedField.KnownRetracedField;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -101,7 +101,7 @@ public class RetraceRegularExpression {
       if (isAmbiguous) {
         retracedStrings.sort(new RetraceLineComparator());
       }
-      ClassReference previousContext = null;
+      RetracedClass previousContext = null;
       for (RetraceString retracedString : retracedStrings) {
         String finalString = retracedString.builder.build(string);
         if (!isAmbiguous) {
@@ -109,7 +109,7 @@ public class RetraceRegularExpression {
           continue;
         }
         assert retracedString.getClassContext() != null;
-        ClassReference currentContext = retracedString.getClassContext().getClassReference();
+        RetracedClass currentContext = retracedString.getClassContext().getRetracedClass();
         if (currentContext.equals(previousContext)) {
           int firstNonWhitespaceCharacter = StringUtils.firstNonWhitespaceCharacter(finalString);
           finalString =
@@ -131,9 +131,9 @@ public class RetraceRegularExpression {
           (line, t) -> {
             switch (t) {
               case CLASS:
-                return line.getClassContext().getClassReference().getTypeName();
+                return line.getClassContext().getRetracedClass().getTypeName();
               case METHOD:
-                return line.getMethodContext().getMethodReference().getMethodName();
+                return line.getMethodContext().getMethod().getMethodName();
               case SOURCE:
                 return line.getSource();
               case LINE:
@@ -241,7 +241,7 @@ public class RetraceRegularExpression {
 
   static class RetraceStringContext {
     private final Element classContext;
-    private final ClassReference qualifiedContext;
+    private final RetracedClass qualifiedContext;
     private final String methodName;
     private final RetraceMethodResult.Element methodContext;
     private final int minifiedLineNumber;
@@ -251,7 +251,7 @@ public class RetraceRegularExpression {
 
     private RetraceStringContext(
         Element classContext,
-        ClassReference qualifiedContext,
+        RetracedClass qualifiedContext,
         String methodName,
         RetraceMethodResult.Element methodContext,
         int minifiedLineNumber,
@@ -273,7 +273,7 @@ public class RetraceRegularExpression {
     }
 
     private RetraceStringContext withClassContext(
-        Element classContext, ClassReference qualifiedContext) {
+        Element classContext, RetracedClass qualifiedContext) {
       return new RetraceStringContext(
           classContext,
           qualifiedContext,
@@ -299,7 +299,7 @@ public class RetraceRegularExpression {
 
     private RetraceStringContext withMethodContext(
         RetraceMethodResult.Element methodContext,
-        ClassReference qualifiedContext,
+        RetracedClass qualifiedContext,
         boolean isAmbiguous) {
       return new RetraceStringContext(
           classContext,
@@ -312,7 +312,7 @@ public class RetraceRegularExpression {
           isAmbiguous);
     }
 
-    private RetraceStringContext withQualifiedContext(ClassReference qualifiedContext) {
+    private RetraceStringContext withQualifiedContext(RetracedClass qualifiedContext) {
       return new RetraceStringContext(
           classContext,
           qualifiedContext,
@@ -485,7 +485,7 @@ public class RetraceRegularExpression {
 
   abstract static class ClassNameGroup extends RegularExpressionGroup {
 
-    abstract String getClassName(ClassReference classReference);
+    abstract String getClassName(RetracedClass classReference);
 
     abstract ClassReference classFromMatch(String match);
 
@@ -525,13 +525,13 @@ public class RetraceRegularExpression {
               element -> {
                 final RetraceString newRetraceString =
                     retraceString.updateContext(
-                        context -> context.withClassContext(element, element.getClassReference()));
+                        context -> context.withClassContext(element, element.getRetracedClass()));
                 retraceStrings.add(newRetraceString);
                 if (qualifiedHandler == null) {
                   // If there is no qualified handler, commit right away.
                   newRetraceString.builder.appendRetracedString(
                       original,
-                      classNameGroup.getClassName(element.getClassReference()),
+                      classNameGroup.getClassName(element.getRetracedClass()),
                       startOfGroup,
                       matcher.end(captureGroup));
                 }
@@ -543,7 +543,7 @@ public class RetraceRegularExpression {
       void commitClassName(
           String original,
           RetraceString retraceString,
-          ClassReference qualifiedContext,
+          RetracedClass qualifiedContext,
           Matcher matcher) {
         if (matcher.start(captureGroup) == NO_MATCH) {
           return;
@@ -568,7 +568,7 @@ public class RetraceRegularExpression {
         assert !retraceClassResult.isAmbiguous();
         Box<RetraceStringContext> box = new Box<>();
         retraceClassResult.forEach(
-            element -> box.set(context.withClassContext(element, element.getClassReference())));
+            element -> box.set(context.withClassContext(element, element.getRetracedClass())));
         return box.get();
       }
 
@@ -597,7 +597,7 @@ public class RetraceRegularExpression {
     }
 
     @Override
-    String getClassName(ClassReference classReference) {
+    String getClassName(RetracedClass classReference) {
       return classReference.getTypeName();
     }
 
@@ -615,7 +615,7 @@ public class RetraceRegularExpression {
     }
 
     @Override
-    String getClassName(ClassReference classReference) {
+    String getClassName(RetracedClass classReference) {
       return classReference.getBinaryName();
     }
 
@@ -672,18 +672,15 @@ public class RetraceRegularExpression {
                   final RetraceString newRetraceString = retraceString.duplicate(newContext);
                   if (classNameGroupHandler != null) {
                     classNameGroupHandler.commitClassName(
-                        original,
-                        newRetraceString,
-                        element.getMethodReference().getHolderClass(),
-                        matcher);
+                        original, newRetraceString, element.getMethod().getHolderClass(), matcher);
                   }
                   retracedStrings.add(
                       newRetraceString.appendRetracedString(
                           original,
                           printVerbose
                               ? RetraceUtils.methodDescriptionFromMethodReference(
-                                  element.getMethodReference(), false, true)
-                              : element.getMethodReference().getMethodName(),
+                                  element.getMethod(), false, true)
+                              : element.getMethod().getMethodName(),
                           startOfGroup,
                           matcher.end(captureGroup)));
                 });
@@ -722,7 +719,7 @@ public class RetraceRegularExpression {
                   element,
                   retraceString.context.withMethodContext(
                       element,
-                      element.getMethodReference().getHolderClass(),
+                      element.getMethod().getHolderClass(),
                       element.getRetraceMethodResult().isAmbiguous())));
     }
   }
@@ -778,20 +775,16 @@ public class RetraceRegularExpression {
                 element -> {
                   if (classNameGroupHandler != null) {
                     classNameGroupHandler.commitClassName(
-                        original,
-                        retraceString,
-                        element.getFieldReference().getHolderClass(),
-                        matcher);
+                        original, retraceString, element.getField().getHolderClass(), matcher);
                   }
                   retracedStrings.add(
                       retraceString
                           .updateContext(
                               context ->
-                                  context.withQualifiedContext(
-                                      element.getFieldReference().getHolderClass()))
+                                  context.withQualifiedContext(element.getField().getHolderClass()))
                           .appendRetracedString(
                               original,
-                              getFieldString(element.getFieldReference()),
+                              getFieldString(element.getField()),
                               startOfGroup,
                               matcher.end(captureGroup)));
                 });
@@ -801,11 +794,13 @@ public class RetraceRegularExpression {
       };
     }
 
-    private String getFieldString(FieldReference fieldReference) {
-      if (!printVerbose) {
+    private String getFieldString(RetracedField fieldReference) {
+      if (!printVerbose || fieldReference.isUnknown()) {
         return fieldReference.getFieldName();
       }
-      return fieldReference.getFieldType().getTypeName() + " " + fieldReference.getFieldName();
+      assert fieldReference.isKnown();
+      KnownRetracedField knownRef = fieldReference.asKnown();
+      return knownRef.getFieldType().getTypeName() + " " + fieldReference.getFieldName();
     }
   }
 
@@ -917,8 +912,7 @@ public class RetraceRegularExpression {
               continue;
             }
             // If the method context is unknown, do nothing.
-            if (methodContext.getMethodReference().isUnknown()
-                || methodContext.hasNoLineNumberRange()) {
+            if (methodContext.isUnknown() || methodContext.hasNoLineNumberRange()) {
               retracedStrings.add(retraceString);
               continue;
             }
@@ -997,10 +991,10 @@ public class RetraceRegularExpression {
         for (RetraceString retraceString : strings) {
           retracedType.forEach(
               element -> {
-                TypeReference retracedReference = element.getTypeReference();
+                RetracedType retracedReference = element.getType();
                 retraceString.appendRetracedString(
                     original,
-                    retracedReference == null ? "void" : retracedReference.getTypeName(),
+                    retracedReference.isVoid() ? "void" : retracedReference.getTypeName(),
                     startOfGroup,
                     matcher.end(captureGroup));
               });
@@ -1039,8 +1033,8 @@ public class RetraceRegularExpression {
                       final RetraceTypeResult retraceResult =
                           retracer.retrace(Reference.returnTypeFromDescriptor(descriptor));
                       assert !retraceResult.isAmbiguous();
-                      final Box<TypeReference> elementBox = new Box<>();
-                      retraceResult.forEach(element -> elementBox.set(element.getTypeReference()));
+                      final Box<RetracedType> elementBox = new Box<>();
+                      retraceResult.forEach(element -> elementBox.set(element.getType()));
                       return elementBox.get().getTypeName();
                     })
                 .filter(Objects::nonNull)

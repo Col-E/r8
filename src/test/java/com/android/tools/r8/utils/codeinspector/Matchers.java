@@ -15,6 +15,7 @@ import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceMethodResult;
 import com.android.tools.r8.retrace.RetraceMethodResult.Element;
+import com.android.tools.r8.retrace.RetracedMethod;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.Visibility;
 import com.google.common.collect.ImmutableList;
@@ -344,7 +345,7 @@ public class Matchers {
             .appendValue(subject.getOriginalName())
             .appendText(" was ");
         if (subject.isPresent()) {
-          AccessFlags accessFlags =
+          AccessFlags<?> accessFlags =
               subject.isMethodSubject()
                   ? subject.asMethodSubject().getMethod().accessFlags
                   : subject.asFieldSubject().getField().accessFlags;
@@ -463,7 +464,12 @@ public class Matchers {
                 returnValue.set(false);
                 return;
               }
-              sameMethod = element.getMethodReference().equals(currentInline.methodReference);
+              sameMethod =
+                  element.getMethod().isKnown()
+                      && element
+                          .getMethod()
+                          .asKnown()
+                          .equalsMethodReference(currentInline.methodReference);
               boolean samePosition =
                   element.getOriginalLineNumber(currentInline.minifiedPosition)
                       == currentInline.originalPosition;
@@ -495,7 +501,7 @@ public class Matchers {
         for (int i = 0; i < retraceElements.size(); i++) {
           Element retraceElement = retraceElements.get(i);
           StackTraceLine stackTraceLine = stackTrace.get(i);
-          MethodReference methodReference = retraceElement.getMethodReference();
+          RetracedMethod methodReference = retraceElement.getMethod();
           if (!stackTraceLine.methodName.equals(methodReference.getMethodName())
               || !stackTraceLine.className.equals(methodReference.getHolderClass().getTypeName())
               || stackTraceLine.lineNumber

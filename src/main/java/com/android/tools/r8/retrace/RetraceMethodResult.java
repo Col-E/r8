@@ -9,9 +9,6 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.Range;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.references.MethodReference.UnknownMethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -41,8 +38,8 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
     assert classElement != null;
   }
 
-  public UnknownMethodReference getUnknownReference() {
-    return new UnknownMethodReference(classElement.getClassReference(), obfuscatedName);
+  public RetracedMethod getUnknownReference() {
+    return RetracedMethod.createUnknown(classElement.getRetracedClass(), obfuscatedName);
   }
 
   private boolean hasRetraceResult() {
@@ -102,12 +99,13 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
         .map(
             mappedRange -> {
               MethodSignature signature = mappedRange.signature;
-              ClassReference holder =
+              RetracedClass holder =
                   mappedRange.signature.isQualified()
-                      ? Reference.classFromDescriptor(
-                          DescriptorUtils.javaTypeToDescriptor(
-                              mappedRange.signature.toHolderFromQualified()))
-                      : classElement.getClassReference();
+                      ? RetracedClass.create(
+                          Reference.classFromDescriptor(
+                              DescriptorUtils.javaTypeToDescriptor(
+                                  mappedRange.signature.toHolderFromQualified())))
+                      : classElement.getRetracedClass();
               List<TypeReference> formalTypes = new ArrayList<>(signature.parameters.length);
               for (String parameter : signature.parameters) {
                 formalTypes.add(Reference.typeFromTypeName(parameter));
@@ -115,12 +113,14 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
               TypeReference returnType =
                   Reference.returnTypeFromDescriptor(
                       DescriptorUtils.javaTypeToDescriptor(signature.type));
-              MethodReference retracedMethod =
-                  Reference.method(
+              RetracedMethod retracedMethod =
+                  RetracedMethod.create(
                       holder,
-                      signature.isQualified() ? signature.toUnqualifiedName() : signature.name,
-                      formalTypes,
-                      returnType);
+                      Reference.method(
+                          holder.getClassReference(),
+                          signature.isQualified() ? signature.toUnqualifiedName() : signature.name,
+                          formalTypes,
+                          returnType));
               return new Element(this, classElement, retracedMethod, mappedRange);
             });
   }
@@ -133,7 +133,7 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
 
   public static class Element {
 
-    private final MethodReference methodReference;
+    private final RetracedMethod methodReference;
     private final RetraceMethodResult retraceMethodResult;
     private final RetraceClassResult.Element classElement;
     private final MappedRange mappedRange;
@@ -141,7 +141,7 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
     private Element(
         RetraceMethodResult retraceMethodResult,
         RetraceClassResult.Element classElement,
-        MethodReference methodReference,
+        RetracedMethod methodReference,
         MappedRange mappedRange) {
       this.classElement = classElement;
       this.retraceMethodResult = retraceMethodResult;
@@ -149,7 +149,23 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
       this.mappedRange = mappedRange;
     }
 
-    public MethodReference getMethodReference() {
+    public boolean isUnknown() {
+      return methodReference.isUnknown();
+    }
+
+    public boolean hasNoLineNumberRange() {
+      return mappedRange == null || mappedRange.minifiedRange == null;
+    }
+
+    public boolean containsMinifiedLineNumber(int linePosition) {
+      if (hasNoLineNumberRange()) {
+        return false;
+      }
+      return mappedRange.minifiedRange.from <= linePosition
+          && linePosition <= mappedRange.minifiedRange.to;
+    }
+
+    public RetracedMethod getMethod() {
       return methodReference;
     }
 
@@ -165,18 +181,6 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
       return mappedRange != null ? mappedRange.getOriginalLineNumber(linePosition) : linePosition;
     }
 
-    public boolean containsMinifiedLineNumber(int linePosition) {
-      if (hasNoLineNumberRange()) {
-        return false;
-      }
-      return mappedRange.minifiedRange.from <= linePosition
-          && linePosition <= mappedRange.minifiedRange.to;
-    }
-
-    public boolean hasNoLineNumberRange() {
-      return mappedRange == null || mappedRange.minifiedRange == null;
-    }
-
     public int getFirstLineNumberOfOriginalRange() {
       if (hasNoLineNumberRange()) {
         return 0;
@@ -188,5 +192,6 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
       return RetraceUtils.getSourceFile(
           classElement, methodReference.getHolderClass(), sourceFile, retraceMethodResult.retracer);
     }
+
   }
 }

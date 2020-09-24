@@ -7,9 +7,6 @@ package com.android.tools.r8.retrace;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.FieldReference;
-import com.android.tools.r8.references.FieldReference.UnknownFieldReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.List;
@@ -51,14 +48,14 @@ public class RetraceFieldResult extends Result<RetraceFieldResult.Element, Retra
     return memberNamings.size() > 1;
   }
 
+  public RetracedField getUnknownReference() {
+    return RetracedField.createUnknown(classElement.getRetracedClass(), obfuscatedName);
+  }
+
   @Override
   public Stream<Element> stream() {
     if (!hasRetraceResult()) {
-      return Stream.of(
-          new Element(
-              this,
-              classElement,
-              new UnknownFieldReference(classElement.getClassReference(), obfuscatedName)));
+      return Stream.of(new Element(this, classElement, getUnknownReference()));
     }
     assert !memberNamings.isEmpty();
     return memberNamings.stream()
@@ -67,21 +64,24 @@ public class RetraceFieldResult extends Result<RetraceFieldResult.Element, Retra
               assert memberNaming.isFieldNaming();
               FieldSignature fieldSignature =
                   memberNaming.getOriginalSignature().asFieldSignature();
-              ClassReference holder =
+              RetracedClass holder =
                   fieldSignature.isQualified()
-                      ? Reference.classFromDescriptor(
-                          DescriptorUtils.javaTypeToDescriptor(
-                              fieldSignature.toHolderFromQualified()))
-                      : classElement.getClassReference();
+                      ? RetracedClass.create(
+                          Reference.classFromDescriptor(
+                              DescriptorUtils.javaTypeToDescriptor(
+                                  fieldSignature.toHolderFromQualified())))
+                      : classElement.getRetracedClass();
               return new Element(
                   this,
                   classElement,
-                  Reference.field(
+                  RetracedField.create(
                       holder,
-                      fieldSignature.isQualified()
-                          ? fieldSignature.toUnqualifiedName()
-                          : fieldSignature.name,
-                      Reference.typeFromTypeName(fieldSignature.type)));
+                      Reference.field(
+                          holder.getClassReference(),
+                          fieldSignature.isQualified()
+                              ? fieldSignature.toUnqualifiedName()
+                              : fieldSignature.name,
+                          Reference.typeFromTypeName(fieldSignature.type))));
             });
   }
 
@@ -93,25 +93,29 @@ public class RetraceFieldResult extends Result<RetraceFieldResult.Element, Retra
 
   public static class Element {
 
-    private final FieldReference fieldReference;
+    private final RetracedField fieldReference;
     private final RetraceFieldResult retraceFieldResult;
     private final RetraceClassResult.Element classElement;
 
     private Element(
         RetraceFieldResult retraceFieldResult,
         RetraceClassResult.Element classElement,
-        FieldReference fieldReference) {
+        RetracedField fieldReference) {
       this.classElement = classElement;
       this.fieldReference = fieldReference;
       this.retraceFieldResult = retraceFieldResult;
     }
 
-    public FieldReference getFieldReference() {
+    public boolean isUnknown() {
+      return fieldReference.isUnknown();
+    }
+
+    public RetracedField getField() {
       return fieldReference;
     }
 
     public RetraceFieldResult getRetraceFieldResult() {
-      return getRetraceFieldResult();
+      return retraceFieldResult;
     }
 
     public RetraceClassResult.Element getClassElement() {

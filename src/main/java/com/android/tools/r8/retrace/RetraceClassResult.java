@@ -92,9 +92,11 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
     return Stream.of(
         new Element(
             this,
-            mapper == null ? obfuscatedReference : Reference.classFromTypeName(mapper.originalName),
-            mapper,
-            false));
+            RetracedClass.create(
+                mapper == null
+                    ? obfuscatedReference
+                    : Reference.classFromTypeName(mapper.originalName)),
+            mapper));
   }
 
   @Override
@@ -115,20 +117,19 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
   public static class Element {
 
     private final RetraceClassResult classResult;
-    private final ClassReference classReference;
+    private final RetracedClass classReference;
     private final ClassNamingForNameMapper mapper;
 
     public Element(
         RetraceClassResult classResult,
-        ClassReference classReference,
-        ClassNamingForNameMapper mapper,
-        boolean isAmbiguous) {
+        RetracedClass classReference,
+        ClassNamingForNameMapper mapper) {
       this.classResult = classResult;
       this.classReference = classReference;
       this.mapper = mapper;
     }
 
-    public ClassReference getClassReference() {
+    public RetracedClass getRetracedClass() {
       return classReference;
     }
 

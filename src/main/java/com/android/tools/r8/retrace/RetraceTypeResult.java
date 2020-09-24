@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceTypeResult.Element;
 import java.util.function.Consumer;
@@ -24,15 +23,17 @@ public class RetraceTypeResult extends Result<Element, RetraceTypeResult> {
   public Stream<Element> stream() {
     // Handle void and primitive types as single element results.
     if (obfuscatedType == null || obfuscatedType.isPrimitive()) {
-      return Stream.of(new Element(obfuscatedType));
+      return Stream.of(new Element(RetracedType.create(obfuscatedType)));
     }
     if (obfuscatedType.isArray()) {
       int dimensions = obfuscatedType.asArray().getDimensions();
       return retracer.retrace(obfuscatedType.asArray().getBaseType()).stream()
-          .map(base -> new Element(Reference.array(base.getTypeReference(), dimensions)));
+          .map(
+              baseElement ->
+                  new Element(RetracedType.create(baseElement.retracedType.toArray(dimensions))));
     }
     return retracer.retrace(obfuscatedType.asClass()).stream()
-        .map(clazz -> new Element(clazz.getClassReference()));
+        .map(classElement -> new Element(classElement.getRetracedClass().getRetracedType()));
   }
 
   public boolean isAmbiguous() {
@@ -47,14 +48,14 @@ public class RetraceTypeResult extends Result<Element, RetraceTypeResult> {
 
   public static class Element {
 
-    private final TypeReference typeReference;
+    private final RetracedType retracedType;
 
-    public Element(TypeReference typeReference) {
-      this.typeReference = typeReference;
+    public Element(RetracedType retracedType) {
+      this.retracedType = retracedType;
     }
 
-    public TypeReference getTypeReference() {
-      return typeReference;
+    public RetracedType getType() {
+      return retracedType;
     }
   }
 }

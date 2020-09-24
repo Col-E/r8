@@ -4,9 +4,8 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.references.ClassReference;
-import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.retrace.RetracedMethod.KnownRetracedMethod;
 import com.android.tools.r8.utils.Box;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -18,7 +17,7 @@ public class RetraceUtils {
       Sets.newHashSet("", "SourceFile", "Unknown", "Unknown Source", "PG");
 
   public static String methodDescriptionFromMethodReference(
-      MethodReference methodReference, boolean appendHolder, boolean verbose) {
+      RetracedMethod methodReference, boolean appendHolder, boolean verbose) {
     StringBuilder sb = new StringBuilder();
     if (appendHolder) {
       sb.append(methodReference.getHolderClass().getTypeName());
@@ -27,15 +26,14 @@ public class RetraceUtils {
     if (!verbose || methodReference.isUnknown()) {
       return sb.append(methodReference.getMethodName()).toString();
     }
-    sb.append(
-        methodReference.getReturnType() == null
-            ? "void"
-            : methodReference.getReturnType().getTypeName());
+    assert methodReference.isKnown();
+    KnownRetracedMethod knownRef = methodReference.asKnown();
+    sb.append(knownRef.isVoid() ? "void" : knownRef.getReturnType().getTypeName());
     sb.append(" ");
     sb.append(methodReference.getMethodName());
     sb.append("(");
     boolean seenFirstIndex = false;
-    for (TypeReference formalType : methodReference.getFormalTypes()) {
+    for (TypeReference formalType : knownRef.getFormalTypes()) {
       if (seenFirstIndex) {
         sb.append(",");
       }
@@ -63,17 +61,17 @@ public class RetraceUtils {
 
   static RetraceSourceFileResult getSourceFile(
       RetraceClassResult.Element classElement,
-      ClassReference context,
+      RetracedClass context,
       String sourceFile,
       RetraceApi retracer) {
     // If no context is specified always retrace using the found class element.
     if (context == null) {
       return classElement.retraceSourceFile(sourceFile);
     }
-    if (context.equals(classElement.getClassReference())) {
+    if (context.equals(classElement.getRetracedClass())) {
       return classElement.retraceSourceFile(sourceFile);
     } else {
-      RetraceClassResult contextClassResult = retracer.retrace(context);
+      RetraceClassResult contextClassResult = retracer.retrace(context.getClassReference());
       assert !contextClassResult.isAmbiguous();
       if (contextClassResult.hasRetraceResult()) {
         Box<RetraceSourceFileResult> retraceSourceFile = new Box<>();
@@ -84,7 +82,7 @@ public class RetraceUtils {
         return new RetraceSourceFileResult(
             synthesizeFileName(
                 context.getTypeName(),
-                classElement.getClassReference().getTypeName(),
+                classElement.getRetracedClass().getTypeName(),
                 sourceFile,
                 true),
             true);

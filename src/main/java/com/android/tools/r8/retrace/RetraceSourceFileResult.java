@@ -17,11 +17,11 @@ public class RetraceSourceFileResult {
     this.synthesized = synthesized;
   }
 
-  public String getFilename() {
-    return filename;
-  }
-
   public boolean isSynthesized() {
     return synthesized;
+  }
+
+  public String getFilename() {
+    return filename;
   }
 }

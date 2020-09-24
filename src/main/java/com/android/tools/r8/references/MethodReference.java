@@ -17,7 +17,7 @@ import java.util.Objects;
  * full list of formal parameters.
  */
 @Keep
-public class MethodReference {
+public final class MethodReference {
   private final ClassReference holderClass;
   private final String methodName;
   private final List<TypeReference> formalTypes;
@@ -30,15 +30,10 @@ public class MethodReference {
       TypeReference returnType) {
     assert holderClass != null;
     assert methodName != null;
-    assert formalTypes != null || isUnknown();
     this.holderClass = holderClass;
     this.methodName = methodName;
     this.formalTypes = formalTypes;
     this.returnType = returnType;
-  }
-
-  public boolean isUnknown() {
-    return false;
   }
 
   public ClassReference getHolderClass() {
@@ -89,17 +84,5 @@ public class MethodReference {
   @Override
   public String toString() {
     return getHolderClass().toString() + getMethodName() + getMethodDescriptor();
-  }
-
-  public static final class UnknownMethodReference extends MethodReference {
-
-    @Override
-    public boolean isUnknown() {
-      return true;
-    }
-
-    public UnknownMethodReference(ClassReference holderClass, String methodName) {
-      super(holderClass, methodName, null, null);
-    }
   }
 }
