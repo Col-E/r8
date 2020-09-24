@@ -16,7 +16,6 @@ import static com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator.
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.horizontalclassmerging.SyntheticArgumentClass;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
@@ -42,7 +41,8 @@ public class DexType extends DexReference implements PresortedComparable<DexType
 
   // Bundletool is merging classes that may originate from a build with an old version of R8.
   // Allow merging of classes that use names from older versions of R8.
-  private static List<String> OLD_SYNTHESIZED_NAMES = ImmutableList.of("$r8$java8methods$utility");
+  private static List<String> OLD_SYNTHESIZED_NAMES =
+      ImmutableList.of("$r8$backportedMethods$utility", "$r8$java8methods$utility");
 
   public final DexString descriptor;
   private String toStringCache = null;
@@ -327,7 +327,6 @@ public class DexType extends DexReference implements PresortedComparable<DexType
         || name.contains(OutlineOptions.CLASS_NAME) // Global singleton.
         || name.contains(TwrCloseResourceRewriter.UTILITY_CLASS_NAME) // Global singleton.
         || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME) // Global singleton.
-        || name.contains(BackportedMethodRewriter.UTILITY_CLASS_NAME_PREFIX) // Shared on reference.
         || name.contains(ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME); // Global singleton.
   }
 

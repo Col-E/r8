@@ -56,10 +56,6 @@ import java.util.function.Consumer;
 
 public final class BackportedMethodRewriter {
 
-  // Don't change this name, at least not without adding special-casing in DexType to support
-  // merging old dex code in Bundletool.
-  public static final String UTILITY_CLASS_NAME_PREFIX = "$r8$backportedMethods$utility";
-
   private final AppView<?> appView;
   private final RewritableMethods rewritableMethods;
   private final boolean enabled;
