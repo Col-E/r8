@@ -30,8 +30,11 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -89,7 +92,14 @@ public class ZipUtils {
     try (ZipOutputStream stream =
         new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(zipFile)))) {
       for (Path path : filesToZip) {
-        ZipEntry zipEntry = new ZipEntry(basePath.relativize(path).toString());
+        ZipEntry zipEntry =
+            new ZipEntry(
+                StreamSupport.stream(
+                        Spliterators.spliteratorUnknownSize(
+                            basePath.relativize(path).iterator(), Spliterator.ORDERED),
+                        false)
+                    .map(Path::toString)
+                    .collect(Collectors.joining("/")));
         stream.putNextEntry(zipEntry);
         Files.copy(path, stream);
         stream.closeEntry();
