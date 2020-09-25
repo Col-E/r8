@@ -994,17 +994,6 @@ public class Inliner implements PostOptimization {
             continue;
           }
 
-          DexType downcastTypeOrNull = getDowncastTypeIfNeeded(strategy, invoke, singleTarget);
-          if (downcastTypeOrNull != null) {
-            DexClass downcastClass = appView.definitionFor(downcastTypeOrNull, context);
-            if (downcastClass == null
-                || AccessControl.isClassAccessible(downcastClass, context, appView)
-                    .isPossiblyFalse()) {
-              continue;
-            }
-          }
-
-
           DexEncodedMethod singleTargetMethod = singleTarget.getDefinition();
           WhyAreYouNotInliningReporter whyAreYouNotInliningReporter =
               oracle.isForcedInliningOracle()
@@ -1021,6 +1010,16 @@ public class Inliner implements PostOptimization {
           if (action == null) {
             assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
             continue;
+          }
+
+          DexType downcastTypeOrNull = getDowncastTypeIfNeeded(strategy, invoke, singleTarget);
+          if (downcastTypeOrNull != null) {
+            DexClass downcastClass = appView.definitionFor(downcastTypeOrNull, context);
+            if (downcastClass == null
+                || AccessControl.isClassAccessible(downcastClass, context, appView)
+                    .isPossiblyFalse()) {
+              continue;
+            }
           }
 
           if (!inlineeStack.isEmpty()
