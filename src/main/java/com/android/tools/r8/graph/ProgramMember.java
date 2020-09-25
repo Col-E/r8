@@ -8,7 +8,14 @@ public interface ProgramMember<D extends DexEncodedMember<D, R>, R extends DexMe
     extends ProgramDefinition {
 
   @Override
+  default DexProgramClass getContextClass() {
+    return getHolder();
+  }
+
+  @Override
   D getDefinition();
+
+  DexProgramClass getHolder();
 
   DexType getHolderType();
 }

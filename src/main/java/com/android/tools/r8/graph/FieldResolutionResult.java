@@ -7,7 +7,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.utils.OptionalBool;
 
 public abstract class FieldResolutionResult
-    implements MemberResolutionResult<DexEncodedField, DexField> {
+    extends MemberResolutionResult<DexEncodedField, DexField> {
 
   public static FailedFieldResolutionResult failure() {
     return FailedFieldResolutionResult.INSTANCE;
@@ -20,9 +20,6 @@ public abstract class FieldResolutionResult
   public DexEncodedField getResolvedField() {
     return null;
   }
-
-  public abstract OptionalBool isAccessibleFrom(
-      ProgramMethod context, AppInfoWithClassHierarchy appInfo);
 
   public boolean isSuccessfulResolution() {
     return false;
@@ -85,14 +82,15 @@ public abstract class FieldResolutionResult
       return resolvedField;
     }
 
+    @Override
     public DexClassAndField getResolutionPair() {
       return DexClassAndField.create(resolvedHolder, resolvedField);
     }
 
     @Override
-    public OptionalBool isAccessibleFrom(ProgramMethod context, AppInfoWithClassHierarchy appInfo) {
-      return AccessControl.isFieldAccessible(
-          resolvedField, initialResolutionHolder, context.getHolder(), appInfo);
+    public OptionalBool isAccessibleFrom(
+        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
+      return AccessControl.isMemberAccessible(this, context, appInfo);
     }
 
     @Override
@@ -121,7 +119,8 @@ public abstract class FieldResolutionResult
     private static final FailedFieldResolutionResult INSTANCE = new FailedFieldResolutionResult();
 
     @Override
-    public OptionalBool isAccessibleFrom(ProgramMethod context, AppInfoWithClassHierarchy appInfo) {
+    public OptionalBool isAccessibleFrom(
+        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
       return OptionalBool.FALSE;
     }
 
@@ -140,7 +139,8 @@ public abstract class FieldResolutionResult
     private static final UnknownFieldResolutionResult INSTANCE = new UnknownFieldResolutionResult();
 
     @Override
-    public OptionalBool isAccessibleFrom(ProgramMethod context, AppInfoWithClassHierarchy appInfo) {
+    public OptionalBool isAccessibleFrom(
+        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
       return OptionalBool.FALSE;
     }
 

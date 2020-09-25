@@ -60,7 +60,6 @@ import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
@@ -292,7 +291,8 @@ final class InlineCandidateProcessor {
                   .appInfo()
                   .resolveMethod(invokeMethod.getInvokedMethod(), invokeMethod.getInterfaceBit())
                   .asSingleResolution();
-          if (resolutionResult == null) {
+          if (resolutionResult == null
+              || resolutionResult.isAccessibleFrom(method, appView).isPossiblyFalse()) {
             return user; // Not eligible.
           }
 
@@ -311,13 +311,11 @@ final class InlineCandidateProcessor {
             return user; // Not eligible.
           }
 
-          OptionalBool methodAccessible =
-              AccessControl.isMethodAccessible(
-                  singleTargetMethod, singleTarget.getHolder().asDexClass(), method, appView);
-
-          if (!methodAccessible.isTrue()) {
-            return user; // Not eligible.
+          if (AccessControl.isClassAccessible(singleTarget.getHolder(), method, appView)
+              .isPossiblyFalse()) {
+            continue;
           }
+
           // Eligible constructor call (for new instance roots only).
           if (user.isInvokeDirect()) {
             InvokeDirect invoke = user.asInvokeDirect();

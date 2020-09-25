@@ -4,10 +4,20 @@
 
 package com.android.tools.r8.graph;
 
-public interface MemberResolutionResult<
+import com.android.tools.r8.utils.OptionalBool;
+
+public abstract class MemberResolutionResult<
     D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> {
 
-  boolean isSuccessfulMemberResolutionResult();
+  public abstract boolean isSuccessfulMemberResolutionResult();
 
-  SuccessfulMemberResolutionResult<D, R> asSuccessfulMemberResolutionResult();
+  public abstract SuccessfulMemberResolutionResult<D, R> asSuccessfulMemberResolutionResult();
+
+  public abstract OptionalBool isAccessibleFrom(
+      ProgramDefinition context, AppInfoWithClassHierarchy appInfo);
+
+  public final OptionalBool isAccessibleFrom(
+      ProgramDefinition context, AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return isAccessibleFrom(context, appView.appInfo());
+  }
 }

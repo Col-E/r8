@@ -18,8 +18,7 @@ import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
-public abstract class ResolutionResult
-    implements MemberResolutionResult<DexEncodedMethod, DexMethod> {
+public abstract class ResolutionResult extends MemberResolutionResult<DexEncodedMethod, DexMethod> {
 
   /**
    * Returns true if resolution succeeded *and* the resolved method has a known definition.
@@ -75,21 +74,8 @@ public abstract class ResolutionResult
     return null;
   }
 
-  public abstract OptionalBool isAccessibleFrom(
-      DexProgramClass context, AppInfoWithClassHierarchy appInfo);
-
-  public final OptionalBool isAccessibleFrom(
-      ProgramMethod context, AppInfoWithClassHierarchy appInfo) {
-    return isAccessibleFrom(context.getHolder(), appInfo);
-  }
-
   public abstract OptionalBool isAccessibleForVirtualDispatchFrom(
-      DexProgramClass context, AppInfoWithClassHierarchy appInfo);
-
-  public final OptionalBool isAccessibleForVirtualDispatchFrom(
-      ProgramMethod context, AppInfoWithClassHierarchy appInfo) {
-    return isAccessibleForVirtualDispatchFrom(context.getHolder(), appInfo);
-  }
+      ProgramDefinition context, AppInfoWithClassHierarchy appInfo);
 
   public abstract boolean isVirtualTarget();
 
@@ -183,6 +169,7 @@ public abstract class ResolutionResult
           : null;
     }
 
+    @Override
     public DexClassAndMethod getResolutionPair() {
       return DexClassAndMethod.create(resolvedHolder, resolvedMethod);
     }
@@ -210,14 +197,13 @@ public abstract class ResolutionResult
 
     @Override
     public OptionalBool isAccessibleFrom(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
-      return AccessControl.isMethodAccessible(
-          resolvedMethod, initialResolutionHolder, context, appInfo);
+        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
+      return AccessControl.isMemberAccessible(this, context, appInfo);
     }
 
     @Override
     public OptionalBool isAccessibleForVirtualDispatchFrom(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
       if (resolvedMethod.isVirtualMethod()) {
         return isAccessibleFrom(context, appInfo);
       }
@@ -781,13 +767,13 @@ public abstract class ResolutionResult
 
     @Override
     public OptionalBool isAccessibleFrom(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
       return OptionalBool.TRUE;
     }
 
     @Override
     public OptionalBool isAccessibleForVirtualDispatchFrom(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
       return OptionalBool.TRUE;
     }
 
@@ -816,13 +802,13 @@ public abstract class ResolutionResult
 
     @Override
     public OptionalBool isAccessibleFrom(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
       return OptionalBool.FALSE;
     }
 
     @Override
     public OptionalBool isAccessibleForVirtualDispatchFrom(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+        ProgramDefinition context, AppInfoWithClassHierarchy appInfo) {
       return OptionalBool.FALSE;
     }
 

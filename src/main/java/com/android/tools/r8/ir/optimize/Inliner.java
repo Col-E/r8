@@ -65,7 +65,6 @@ import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -983,7 +982,8 @@ public class Inliner implements PostOptimization {
                   .appInfo()
                   .resolveMethod(invoke.getInvokedMethod(), invoke.getInterfaceBit())
                   .asSingleResolution();
-          if (resolutionResult == null) {
+          if (resolutionResult == null
+              || resolutionResult.isAccessibleFrom(context, appView).isPossiblyFalse()) {
             continue;
           }
 
@@ -994,15 +994,16 @@ public class Inliner implements PostOptimization {
             continue;
           }
 
-          OptionalBool methodAccessible =
-              AccessControl.isMethodAccessible(
-                  singleTarget.getDefinition(),
-                  singleTarget.getHolder().asDexClass(),
-                  context,
-                  appView);
-          if (!methodAccessible.isTrue()) {
-            continue;
+          DexType downcastTypeOrNull = getDowncastTypeIfNeeded(strategy, invoke, singleTarget);
+          if (downcastTypeOrNull != null) {
+            DexClass downcastClass = appView.definitionFor(downcastTypeOrNull, context);
+            if (downcastClass == null
+                || AccessControl.isClassAccessible(downcastClass, context, appView)
+                    .isPossiblyFalse()) {
+              continue;
+            }
           }
+
 
           DexEncodedMethod singleTargetMethod = singleTarget.getDefinition();
           WhyAreYouNotInliningReporter whyAreYouNotInliningReporter =
@@ -1069,12 +1070,7 @@ public class Inliner implements PostOptimization {
           iterator.previous();
           strategy.markInlined(inlinee);
           iterator.inlineInvoke(
-              appView,
-              code,
-              inlinee.code,
-              blockIterator,
-              blocksToRemove,
-              getDowncastTypeIfNeeded(strategy, invoke, singleTarget));
+              appView, code, inlinee.code, blockIterator, blocksToRemove, downcastTypeOrNull);
 
           if (inlinee.reason == Reason.SINGLE_CALLER) {
             feedback.markInlinedIntoSingleCallSite(singleTargetMethod);

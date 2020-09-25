@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.analysis.value;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
-import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -14,6 +13,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
+import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -80,12 +80,9 @@ public abstract class SingleFieldValue extends SingleValue {
   @Override
   public boolean isMaterializableInContext(
       AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
-    return AccessControl.isFieldAccessible(
-            appView.appInfo().resolveField(field).getResolvedField(),
-            appView.definitionForHolder(field),
-            context.getHolder(),
-            appView.appInfo())
-        .isTrue();
+    SuccessfulFieldResolutionResult resolutionResult =
+        appView.appInfo().resolveField(field).asSuccessfulResolution();
+    return resolutionResult != null && resolutionResult.isAccessibleFrom(context, appView).isTrue();
   }
 
   @Override

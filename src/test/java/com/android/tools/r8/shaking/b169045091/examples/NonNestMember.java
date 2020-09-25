@@ -2,13 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.graph;
+package com.android.tools.r8.shaking.b169045091.examples;
 
-public interface ProgramDefinition {
-
-  DexProgramClass getContextClass();
-
-  DexType getContextType();
-
-  DexDefinition getDefinition();
-}
+/**
+ * Mirror of
+ * src/test/examplesJava11/com/android/tools/r8/shaking/b169045091/examples/NonNestMember.java.
+ */
+public class NonNestMember {}

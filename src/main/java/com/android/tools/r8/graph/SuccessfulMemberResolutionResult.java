@@ -12,4 +12,6 @@ public interface SuccessfulMemberResolutionResult<
   DexClass getResolvedHolder();
 
   D getResolvedMember();
+
+  DexClassAndMember<D, R> getResolutionPair();
 }

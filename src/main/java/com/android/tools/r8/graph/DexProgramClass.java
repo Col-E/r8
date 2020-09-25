@@ -494,6 +494,11 @@ public class DexProgramClass extends DexClass
   }
 
   @Override
+  public DexProgramClass getContextClass() {
+    return this;
+  }
+
+  @Override
   public DexType getContextType() {
     return getType();
   }

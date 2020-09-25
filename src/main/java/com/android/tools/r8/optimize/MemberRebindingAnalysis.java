@@ -6,6 +6,7 @@ package com.android.tools.r8.optimize;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -330,8 +331,8 @@ public class MemberRebindingAnalysis {
       return;
     }
 
-    DexEncodedField resolvedField = resolutionResult.getResolvedField();
-    if (resolvedField.field == field) {
+    DexClassAndField resolvedField = resolutionResult.getResolutionPair();
+    if (resolvedField.getReference() == field) {
       assert false;
       return;
     }
@@ -341,7 +342,7 @@ public class MemberRebindingAnalysis {
     boolean accessibleInAllContexts = true;
     for (ProgramMethod context : contexts) {
       boolean inaccessibleInContext =
-          AccessControl.isFieldAccessible(
+          AccessControl.isMemberAccessible(
                   resolvedField, resolutionResult.getResolvedHolder(), context, appView)
               .isPossiblyFalse();
       if (inaccessibleInContext) {
@@ -353,7 +354,8 @@ public class MemberRebindingAnalysis {
     if (accessibleInAllContexts) {
       builder.map(
           field,
-          lens.lookupField(validTargetFor(resolvedField.field, field, DexClass::lookupField)));
+          lens.lookupField(
+              validTargetFor(resolvedField.getReference(), field, DexClass::lookupField)));
     }
   }
 

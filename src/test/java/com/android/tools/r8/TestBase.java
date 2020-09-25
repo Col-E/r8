@@ -337,6 +337,11 @@ public class TestBase {
     return ClassFileTransformer.create(clazz);
   }
 
+  public static ClassFileTransformer transformer(Path path, ClassReference classReference)
+      throws IOException {
+    return ClassFileTransformer.create(Files.readAllBytes(path), classReference);
+  }
+
   public static ClassFileTransformer transformer(byte[] bytes, ClassReference classReference) {
     return ClassFileTransformer.create(bytes, classReference);
   }

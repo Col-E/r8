@@ -40,8 +40,7 @@ public class InliningNonAccessible extends TestBase {
   static class Main {
     public static void main(String[] args) {
       OuterImpl.register(args);
-      InnerClass inner = new InnerClass();
-      inner.foobar();
+      new InnerClass().foobar();
       System.out.println("42");
     }
   }

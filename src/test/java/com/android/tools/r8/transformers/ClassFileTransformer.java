@@ -13,15 +13,18 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.MethodTransformer.MethodContext;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -364,6 +367,16 @@ public class ClassFileTransformer {
     return setAccessFlags(method, MethodAccessFlags::setBridge);
   }
 
+  public ClassFileTransformer setPrivate(Field field) {
+    return setAccessFlags(
+        field,
+        accessFlags -> {
+          accessFlags.setPrivate();
+          accessFlags.unsetProtected();
+          accessFlags.unsetPublic();
+        });
+  }
+
   public ClassFileTransformer setPublic(Method method) {
     return setAccessFlags(
         method,
@@ -393,8 +406,31 @@ public class ClassFileTransformer {
     return setAccessFlags(Reference.methodFromMethod(constructor), setter);
   }
 
+  public ClassFileTransformer setAccessFlags(Field field, Consumer<FieldAccessFlags> setter) {
+    return setAccessFlags(Reference.fieldFromField(field), setter);
+  }
+
   public ClassFileTransformer setAccessFlags(Method method, Consumer<MethodAccessFlags> setter) {
     return setAccessFlags(Reference.methodFromMethod(method), setter);
+  }
+
+  private ClassFileTransformer setAccessFlags(
+      FieldReference fieldReference, Consumer<FieldAccessFlags> setter) {
+    return addClassTransformer(
+        new ClassTransformer() {
+
+          @Override
+          public FieldVisitor visitField(
+              int access, String name, String descriptor, String signature, Object value) {
+            FieldAccessFlags accessFlags = FieldAccessFlags.fromCfAccessFlags(access);
+            if (name.equals(fieldReference.getFieldName())
+                && descriptor.equals(fieldReference.getFieldType().getDescriptor())) {
+              setter.accept(accessFlags);
+            }
+            return super.visitField(
+                accessFlags.getAsCfAccessFlags(), name, descriptor, signature, value);
+          }
+        });
   }
 
   private ClassFileTransformer setAccessFlags(
