@@ -167,6 +167,7 @@ public final class L8Command extends BaseCompilerCommand {
     // Assert some of R8 optimizations are disabled.
     assert !internal.enableInlining;
     assert !internal.enableClassInlining;
+    assert !internal.enableHorizontalClassMerging;
     assert !internal.enableStaticClassMerging;
     assert !internal.enableVerticalClassMerging;
     assert !internal.enableClassStaticizer;

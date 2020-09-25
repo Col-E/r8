@@ -162,13 +162,12 @@ def archive_failures():
 def Main():
   (options, args) = ParseOptions()
 
-  if options.horizontal_class_merging:
-    # This flag is in preperation of running horizontal class merging
-    # but currently is the same as the default tests. Don't run to
-    # save resources on the bots.
-    return 0
-
   if utils.is_bot():
+    if options.horizontal_class_merging:
+      # This flag is in preparation of running horizontal class merging
+      # but currently is the same as the default tests. Don't run to
+      # save resources on the bots.
+      return 0
     gradle.RunGradle(['--no-daemon', 'clean'])
 
   gradle_args = ['--stacktrace']
@@ -296,6 +295,9 @@ def Main():
     # Note: not setting -Pruntimes will run with all available runtimes.
     return_code = gradle.RunGradle(gradle_args, throw_on_failure=False)
     return archive_and_return(return_code, options)
+
+  if options.horizontal_class_merging:
+    gradle_args.append('-PhorizontalClassMerging')
 
   # Now run tests on selected runtime(s).
   if options.runtimes:
