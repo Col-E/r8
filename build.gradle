@@ -1006,9 +1006,7 @@ task R8LibApiOnly {
 task R8Lib {
     dependsOn r8LibCreateTask(
             "Main",
-            ["src/main/keep.txt",
-             "src/main/keep-applymapping.txt",
-             generateR8LibKeepRules.outputs.files[0]],
+            ["src/main/keep.txt", generateR8LibKeepRules.outputs.files[0]],
             r8NoManifestWithRelocatedDeps,
             r8LibPath,
     ).dependsOn(generateR8LibKeepRules)
@@ -1019,7 +1017,7 @@ task R8Lib {
 task R8LibNoDeps {
     dependsOn r8LibCreateTask(
             "NoDeps",
-            ["src/main/keep.txt", "src/main/keep-applymapping.txt"],
+            ["src/main/keep.txt"],
             r8NoManifestWithoutDeps,
             r8LibExludeDepsPath,
             "--release",
