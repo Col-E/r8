@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
+import static com.android.tools.r8.utils.ExceptionUtils.STATUS_ERROR;
+
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.ProgramResource;
@@ -11,7 +13,6 @@ import com.android.tools.r8.Version;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
-import com.android.tools.r8.utils.ExceptionUtils;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -76,20 +77,25 @@ public class TraceReferences {
     formatter.format(result);
   }
 
-  public static void run(String... args) throws CompilationFailedException {
-    TraceReferencesCommand command = TraceReferencesCommand.parse(args, Origin.root()).build();
-    if (command.isPrintHelp()) {
-      System.out.println(TraceReferencesCommandParser.USAGE_MESSAGE);
-      return;
+  public static void main(String... args) {
+    try {
+      TraceReferencesCommand command = TraceReferencesCommand.parse(args, Origin.root()).build();
+      if (command.isPrintHelp()) {
+        System.out.println(TraceReferencesCommandParser.USAGE_MESSAGE);
+        return;
+      }
+      if (command.isPrintVersion()) {
+        System.out.println("referencetrace " + Version.getVersionString());
+        return;
+      }
+      run(command);
+    } catch (CompilationFailedException e) {
+      System.exit(STATUS_ERROR);
+    } catch (Throwable e) {
+      System.err.println("ReferenceTrace failed with an internal error.");
+      Throwable cause = e.getCause() == null ? e : e.getCause();
+      cause.printStackTrace();
+      System.exit(STATUS_ERROR);
     }
-    if (command.isPrintVersion()) {
-      System.out.println("referencetrace " + Version.getVersionString());
-      return;
-    }
-    run(command);
-  }
-
-  public static void main(String[] args) {
-    ExceptionUtils.withMainProgramHandler(() -> run(args));
   }
 }

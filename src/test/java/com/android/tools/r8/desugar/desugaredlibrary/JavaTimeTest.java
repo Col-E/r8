@@ -13,12 +13,12 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.PrintUses;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -32,7 +32,6 @@ import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.android.tools.r8.utils.codeinspector.TryCatchSubject;
 import com.android.tools.r8.utils.codeinspector.TypeSubject;
-import com.google.common.base.Charsets;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
@@ -40,6 +39,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import kotlin.text.Charsets;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,7 +51,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
-  private final boolean traceReferencesKeepRules;
+  private final boolean printUsesKeepRules;
   private static final String expectedOutput =
       StringUtils.lines(
           "Caught java.time.format.DateTimeParseException",
@@ -61,7 +61,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
           "GMT",
           "Hello, world");
 
-  @Parameters(name = "{2}, shrinkDesugaredLibrary: {0}, traceReferencesKeepRules {1}")
+  @Parameters(name = "{2}, shrinkDesugaredLibrary: {0}, printUsesKeepRules {1}")
   public static List<Object[]> data() {
     return buildParameters(
         BooleanUtils.values(),
@@ -74,9 +74,9 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
   }
 
   public JavaTimeTest(
-      boolean shrinkDesugaredLibrary, boolean traceReferencesKeepRules, TestParameters parameters) {
+      boolean shrinkDesugaredLibrary, boolean printUsesKeepRules, TestParameters parameters) {
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
-    this.traceReferencesKeepRules = traceReferencesKeepRules;
+    this.printUsesKeepRules = printUsesKeepRules;
     this.parameters = parameters;
   }
 
@@ -159,16 +159,16 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
             }
           });
 
-  private String collectKeepRulesWithTraceReferences(
+  private String collectKeepRulesWithPrintUses(
       Path desugaredProgramClassFile, Path desugaredLibraryClassFile) throws Exception {
-    Path generatedKeepRules = temp.newFile().toPath();
-    TraceReferences.run(
-        "--format", "keep",
-        "--lib", ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
-        "--target", desugaredLibraryClassFile.toString(),
-        "--source", desugaredProgramClassFile.toString(),
-        "--output", generatedKeepRules.toString());
-    return FileUtils.readTextFile(generatedKeepRules, Charsets.UTF_8);
+    Path printUsesKeepRules = temp.newFile().toPath();
+    PrintUses.main(
+        "--keeprules",
+        ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+        desugaredLibraryClassFile.toString(),
+        desugaredProgramClassFile.toString(),
+        printUsesKeepRules.toString());
+    return FileUtils.readTextFile(printUsesKeepRules, Charsets.UTF_8);
   }
 
   private String desugaredLibraryKeepRules(
@@ -178,10 +178,9 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     if (shrinkDesugaredLibrary) {
       desugaredLibraryKeepRules = keepRuleConsumer.get();
       if (desugaredLibraryKeepRules != null) {
-        if (traceReferencesKeepRules) {
+        if (printUsesKeepRules) {
           desugaredLibraryKeepRules =
-              collectKeepRulesWithTraceReferences(
-                  programSupplier.get(), desugaredLibraryClassFile.get());
+              collectKeepRulesWithPrintUses(programSupplier.get(), desugaredLibraryClassFile.get());
         }
       }
     }
@@ -190,7 +189,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testTimeD8Cf() throws Exception {
-    Assume.assumeTrue(shrinkDesugaredLibrary || !traceReferencesKeepRules);
+    Assume.assumeTrue(shrinkDesugaredLibrary || !printUsesKeepRules);
 
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     // Use D8 to desugar with Java classfile output.
@@ -204,7 +203,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
             .writeToZip();
 
     String desugaredLibraryKeepRules;
-    if (shrinkDesugaredLibrary && !traceReferencesKeepRules && keepRuleConsumer.get() != null) {
+    if (shrinkDesugaredLibrary && !printUsesKeepRules && keepRuleConsumer.get() != null) {
       // Collection keep rules is only implemented in the DEX writer.
       assertEquals(0, keepRuleConsumer.get().length());
       desugaredLibraryKeepRules = "-keep class * { *; }";
@@ -240,7 +239,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
   @Test
   public void testTimeD8() throws Exception {
     Assume.assumeTrue(parameters.getRuntime().isDex());
-    Assume.assumeTrue(shrinkDesugaredLibrary || !traceReferencesKeepRules);
+    Assume.assumeTrue(shrinkDesugaredLibrary || !printUsesKeepRules);
 
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     TestCompileResult<?, ?> result =
@@ -263,7 +262,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
   @Test
   public void testTimeR8() throws Exception {
     Assume.assumeTrue(parameters.getRuntime().isDex());
-    Assume.assumeTrue(shrinkDesugaredLibrary || !traceReferencesKeepRules);
+    Assume.assumeTrue(shrinkDesugaredLibrary || !printUsesKeepRules);
 
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     TestCompileResult<?, ?> result =
