@@ -64,6 +64,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
 
   @Test
   public void testTrivial() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     Class<?> main = TrivialTestClass.class;
     Class<?>[] classes = {
         TrivialTestClass.class,
@@ -220,6 +221,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
 
   @Test
   public void testInvalidatedRoot() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     Class<?> main = InvalidRootsTestClass.class;
     Class<?>[] classes = {
         InvalidRootsTestClass.class,

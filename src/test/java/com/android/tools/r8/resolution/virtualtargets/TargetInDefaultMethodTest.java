@@ -86,6 +86,7 @@ public class TargetInDefaultMethodTest extends TestBase {
 
   @Test
   public void testR8() throws IOException, CompilationFailedException, ExecutionException {
+    expectThrowsWithHorizontalClassMergingIf(parameters.isCfRuntime());
     testForR8(parameters.getBackend())
         .addInnerClasses(TargetInDefaultMethodTest.class)
         .enableInliningAnnotations()

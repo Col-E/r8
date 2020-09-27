@@ -37,6 +37,7 @@ public class StaticClassMergerVisibilityTest extends TestBase {
 
   @Test
   public void testStaticClassIsRemoved() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .addInnerClasses(StaticClassMergerVisibilityTest.class)

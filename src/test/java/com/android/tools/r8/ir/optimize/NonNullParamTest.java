@@ -171,6 +171,7 @@ public class NonNullParamTest extends TestBase {
 
   @Test
   public void testNonNullParamAfterInvokeVirtual() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     Class<?> mainClass = NonNullParamAfterInvokeVirtualMain.class;
     CodeInspector inspector =
         buildAndRun(

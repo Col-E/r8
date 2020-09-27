@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -42,6 +43,8 @@ public class DesugaredGenericSignatureTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testD8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(DesugaredGenericSignatureTest.class)
@@ -61,6 +64,8 @@ public class DesugaredGenericSignatureTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addInnerClasses(DesugaredGenericSignatureTest.class)

@@ -41,6 +41,7 @@ public class ClassInliningOracleTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(enableInvokeSuperToInvokeVirtualRewriting);
     testForR8(parameters.getBackend())
         .addInnerClasses(ClassInliningOracleTest.class)
         .addKeepMainRule(TestClass.class)

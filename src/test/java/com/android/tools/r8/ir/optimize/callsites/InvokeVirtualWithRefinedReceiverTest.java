@@ -41,6 +41,7 @@ public class InvokeVirtualWithRefinedReceiverTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeVirtualWithRefinedReceiverTest.class)
         .addKeepMainRule(MAIN)

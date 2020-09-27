@@ -39,6 +39,7 @@ public class WithStaticizerTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(WithStaticizerTest.class)
         .addKeepMainRule(MAIN)

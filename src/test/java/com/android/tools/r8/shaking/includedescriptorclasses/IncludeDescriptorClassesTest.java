@@ -82,8 +82,9 @@ public class IncludeDescriptorClassesTest extends TestBase {
 
   @Test
   public void testNoIncludesDescriptorClasses() throws Exception {
-    for (Class mainClass : mainClasses) {
-      List<Class> allClasses = new ArrayList<>(applicationClasses);
+    expectThrowsWithHorizontalClassMerging();
+    for (Class<?> mainClass : mainClasses) {
+      List<Class<?>> allClasses = new ArrayList<>(applicationClasses);
       allClasses.add(mainClass);
 
       Path proguardConfig = writeTextToTempFile(
@@ -160,7 +161,8 @@ public class IncludeDescriptorClassesTest extends TestBase {
 
     @Test
     public void testKeepClassMemberNames() throws Exception {
-      for (Class mainClass : mainClasses) {
+    expectThrowsWithHorizontalClassMerging();
+    for (Class<?> mainClass : mainClasses) {
         Path proguardConfig = writeTextToTempFile(
             keepMainProguardConfiguration(mainClass),
             // same as -keepclassmembers,allowshrinking,includedescriptorclasses

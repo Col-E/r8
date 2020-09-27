@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Collection;
@@ -56,6 +57,8 @@ public class CustomCollectionInterfaceSuperTest extends DesugaredLibraryTestBase
           .assertSuccessWithOutput(EXPECTED_OUTPUT);
       return;
     }
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(CustomCollectionInterfaceSuperTest.class)

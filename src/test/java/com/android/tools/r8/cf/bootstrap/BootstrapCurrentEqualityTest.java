@@ -71,10 +71,13 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   @BeforeClass
   public static void beforeAll() throws Exception {
-    if (data().stream().count() > 0) {
-      r8R8Debug = compileR8(CompilationMode.DEBUG);
-      r8R8Release = compileR8(CompilationMode.RELEASE);
-    }
+    assertThrowsWithHorizontalClassMerging(
+        () -> {
+          if (data().stream().count() > 0) {
+            r8R8Debug = compileR8(CompilationMode.DEBUG);
+            r8R8Release = compileR8(CompilationMode.RELEASE);
+          }
+        });
   }
 
   @Parameters(name = "{0}")
@@ -120,6 +123,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   @Test
   public void testRetrace() throws IOException {
+    expectThrowsWithHorizontalClassMerging();
     ProcessResult processResult =
         ToolHelper.runProcess(
             new ProcessBuilder()
@@ -205,6 +209,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     Path helloJar = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION);
     ProcessResult runResult = ToolHelper.runJava(helloJar, "hello.Hello");
     assertEquals(0, runResult.exitCode);

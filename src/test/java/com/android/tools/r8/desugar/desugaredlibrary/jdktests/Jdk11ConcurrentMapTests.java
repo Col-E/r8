@@ -98,6 +98,8 @@ public class Jdk11ConcurrentMapTests extends Jdk11DesugaredLibraryTestBase {
 
   @Test
   public void testD8Concurrent() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     // TODO(b/134732760): Support Java 9+ libraries.
     // We skip the ConcurrentRemoveIf test because of the  non desugared class CompletableFuture.
     Assume.assumeFalse("b/144975341",
@@ -157,6 +159,8 @@ public class Jdk11ConcurrentMapTests extends Jdk11DesugaredLibraryTestBase {
 
   @Test
   public void testD8ConcurrentHash() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     Assume.assumeFalse("b/144975341",
         parameters.getRuntime().asDex().getVm().getVersion() == Version.V10_0_0);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);

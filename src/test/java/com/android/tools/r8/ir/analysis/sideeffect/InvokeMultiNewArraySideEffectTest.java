@@ -34,6 +34,7 @@ public class InvokeMultiNewArraySideEffectTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(parameters.isCfRuntime());
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeMultiNewArraySideEffectTest.class)
         .addKeepMainRule(TestClass.class)

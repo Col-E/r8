@@ -64,6 +64,7 @@ public class B77836766 extends TestBase {
    */
   @Test
   public void test_bridgeTargetInBase_differentBridges() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     JasminBuilder jasminBuilder = new JasminBuilder();
 
     ClassBuilder absCls = jasminBuilder.addClass("AbsCls");
@@ -185,6 +186,7 @@ public class B77836766 extends TestBase {
    */
   @Test
   public void test_bridgeTargetInBase_bridgeAndNonBridge() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     JasminBuilder jasminBuilder = new JasminBuilder();
 
     ClassBuilder baseCls = jasminBuilder.addClass("Base");

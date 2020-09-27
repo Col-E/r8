@@ -125,6 +125,7 @@ public class VerticalClassMergerTest extends TestBase {
 
   @Test
   public void testClassesHaveBeenMerged() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     runR8(EXAMPLE_KEEP, this::configure);
     // GenericInterface should be merged into GenericInterfaceImpl.
     for (String candidate : CAN_BE_MERGED) {
@@ -328,6 +329,7 @@ public class VerticalClassMergerTest extends TestBase {
 
   @Test
   public void testConflictWasDetected() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     runR8(EXAMPLE_KEEP, this::configure);
     assertThat(inspector.clazz("classmerging.ConflictingInterface"), isPresent());
     assertThat(inspector.clazz("classmerging.ConflictingInterfaceImpl"), isPresent());
@@ -410,6 +412,7 @@ public class VerticalClassMergerTest extends TestBase {
 
   @Test
   public void testMethodCollision() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     String main = "classmerging.MethodCollisionTest";
     Path[] programFiles =
         new Path[] {
@@ -1009,6 +1012,7 @@ public class VerticalClassMergerTest extends TestBase {
 
   @Test
   public void testSyntheticBridgeSignatures() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     // Try both with and without inlining. If the bridge signatures are not updated properly, and
     // inlining is enabled, then there can be issues with our inlining invariants regarding the
     // outermost caller. If inlining is disabled, there is a risk that the methods will end up
@@ -1082,6 +1086,7 @@ public class VerticalClassMergerTest extends TestBase {
   // should be updated, and class A should be removed entirely.
   @Test
   public void testExceptionTables() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     String main = "classmerging.ExceptionTest";
     Path[] programFiles =
         new Path[] {
@@ -1218,6 +1223,7 @@ public class VerticalClassMergerTest extends TestBase {
 
   @Test
   public void testNoIllegalClassAccessWithAccessModifications() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     // If access modifications are allowed then SimpleInterface should be merged into
     // SimpleInterfaceImpl.
     String main = "classmerging.SimpleInterfaceAccessTest";

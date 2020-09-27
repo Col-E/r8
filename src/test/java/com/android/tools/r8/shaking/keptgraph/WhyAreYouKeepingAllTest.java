@@ -45,6 +45,7 @@ public class WhyAreYouKeepingAllTest extends TestBase {
 
   @Test
   public void test() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     testForR8(Backend.CF)
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
         .addKeepRuleFiles(MAIN_KEEP)

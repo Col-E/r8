@@ -38,6 +38,7 @@ public class TreeShakingMinificationTest extends TreeShakingTest {
 
   @Test
   public void test() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     runTest(null, null, null, ImmutableList.of("src/test/examples/minification/keep-rules.txt"));
   }
 

@@ -54,6 +54,8 @@ public class TryCatchTimeConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testBaselineD8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .setMinApi(parameters.getApiLevel())
@@ -73,6 +75,8 @@ public class TryCatchTimeConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testBaselineR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())
@@ -93,6 +97,8 @@ public class TryCatchTimeConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testTryCatchD8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .setMinApi(parameters.getApiLevel())
@@ -112,6 +118,8 @@ public class TryCatchTimeConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testTryCatchR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())

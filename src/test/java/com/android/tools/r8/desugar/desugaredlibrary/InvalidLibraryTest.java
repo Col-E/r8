@@ -8,6 +8,7 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.InvalidLibrarySuperclassDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -64,6 +65,11 @@ public class InvalidLibraryTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testProgramSupertype() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary
+            && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)
+            && parameters.getDexRuntimeVersion() != Version.V5_1_1
+            && parameters.getDexRuntimeVersion() != Version.V6_0_1);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .setMinApi(parameters.getApiLevel())
@@ -84,6 +90,11 @@ public class InvalidLibraryTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testClasspathSupertype() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary
+            && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)
+            && parameters.getDexRuntimeVersion() != Version.V5_1_1
+            && parameters.getDexRuntimeVersion() != Version.V6_0_1);
     Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()

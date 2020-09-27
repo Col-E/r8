@@ -18,7 +18,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.OptionalBool;
-import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
@@ -28,8 +27,6 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class NestStaticMethodAccessWithIntermediateClassTest extends TestBase {
-
-  static final String EXPECTED = StringUtils.lines("A::bar");
 
   private final TestParameters parameters;
   private final boolean inSameNest;
@@ -87,6 +84,7 @@ public class NestStaticMethodAccessWithIntermediateClassTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())

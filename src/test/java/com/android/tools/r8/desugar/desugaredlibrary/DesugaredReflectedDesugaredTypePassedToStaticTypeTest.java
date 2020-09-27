@@ -27,7 +27,7 @@ public class DesugaredReflectedDesugaredTypePassedToStaticTypeTest
   private final boolean shrinkDesugaredLibrary;
   private static final String EXPECTED = StringUtils.lines("1992", "1992");
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(), BooleanUtils.values());
@@ -41,6 +41,8 @@ public class DesugaredReflectedDesugaredTypePassedToStaticTypeTest
 
   @Test
   public void testD8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult runResult =
         testForD8()
@@ -65,6 +67,8 @@ public class DesugaredReflectedDesugaredTypePassedToStaticTypeTest
 
   @Test
   public void testR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())

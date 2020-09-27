@@ -53,8 +53,9 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-public abstract class RunExamplesAndroidOTest
-      <B extends BaseCommand.Builder<? extends BaseCommand, B>> {
+public abstract class RunExamplesAndroidOTest<
+        B extends BaseCommand.Builder<? extends BaseCommand, B>>
+    extends TestBase {
   static final String EXAMPLE_DIR = ToolHelper.EXAMPLES_ANDROID_O_BUILD_DIR;
 
   abstract class TestRunner<C extends TestRunner<C>> {
@@ -364,6 +365,7 @@ public abstract class RunExamplesAndroidOTest
 
   @Test
   public void lambdaDesugaring() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withKeepAll()

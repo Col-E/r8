@@ -13,6 +13,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
@@ -72,6 +73,8 @@ public class Jdk11AtomicTests extends Jdk11DesugaredLibraryTestBase {
 
   @Test
   public void testD8AtomicReference() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()
@@ -95,6 +98,8 @@ public class Jdk11AtomicTests extends Jdk11DesugaredLibraryTestBase {
 
   @Test
   public void testD8AtomicUpdaters() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()

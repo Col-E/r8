@@ -34,6 +34,7 @@ public class UnusedAndUninstantiatedTypesTest extends TestBase {
 
   @Test
   public void testUnusedAndUninstantiatedTypes() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(UnusedAndUninstantiatedTypesTest.class)
         .addKeepMainRule(Main.class)

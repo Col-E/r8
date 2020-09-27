@@ -51,6 +51,7 @@ public class R8RunExamplesAndroidPTest extends RunExamplesAndroidPTest<R8Command
 
   @Test
   public void invokeCustomWithShrinking() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     test("invokecustom-with-shrinking", "invokecustom", "InvokeCustom")
         .withMinApiLevel(AndroidApiLevel.P.getLevel())
         .withBuilderTransformation(builder ->

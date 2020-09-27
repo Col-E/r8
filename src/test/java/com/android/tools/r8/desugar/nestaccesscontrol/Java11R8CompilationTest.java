@@ -47,6 +47,7 @@ public class Java11R8CompilationTest extends TestBase {
 
   @Test
   public void testR8CompiledWithR8() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)

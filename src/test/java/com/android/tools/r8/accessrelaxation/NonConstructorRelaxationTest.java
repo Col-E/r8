@@ -47,6 +47,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
 
   @Test
   public void testStaticMethodRelaxation() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     String expectedOutput =
         StringUtils.lines(
             "A::baz()",

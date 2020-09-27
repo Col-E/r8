@@ -50,6 +50,7 @@ public class InstanceOfMethodSpecializationTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(InstanceOfMethodSpecializationTest.class)
         .addKeepMainRule(TestClass.class)

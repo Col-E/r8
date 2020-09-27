@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.IdentityHashMap;
@@ -38,6 +39,8 @@ public class ConcurrentHashMapSubclassTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testCustomCollectionD8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(ConcurrentHashMapSubclassTest.class)
@@ -55,6 +58,8 @@ public class ConcurrentHashMapSubclassTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testCustomCollectionR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
         .addInnerClasses(ConcurrentHashMapSubclassTest.class)

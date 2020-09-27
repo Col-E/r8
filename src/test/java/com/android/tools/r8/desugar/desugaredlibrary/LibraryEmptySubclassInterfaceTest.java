@@ -8,6 +8,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +37,8 @@ public class LibraryEmptySubclassInterfaceTest extends DesugaredLibraryTestBase 
 
   @Test
   public void testD8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(LibraryEmptySubclassInterfaceTest.class)
@@ -64,6 +67,8 @@ public class LibraryEmptySubclassInterfaceTest extends DesugaredLibraryTestBase 
 
   @Test
   public void testR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
         .addInnerClasses(LibraryEmptySubclassInterfaceTest.class)

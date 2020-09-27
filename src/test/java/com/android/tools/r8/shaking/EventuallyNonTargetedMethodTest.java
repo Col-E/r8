@@ -37,6 +37,7 @@ public class EventuallyNonTargetedMethodTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()

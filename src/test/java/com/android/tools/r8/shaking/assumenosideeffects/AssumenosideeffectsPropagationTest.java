@@ -141,6 +141,7 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(config != TestConfig.NON_SPECIFIC_RULES_ALL);
     testForR8(parameters.getBackend())
         .addInnerClasses(AssumenosideeffectsPropagationTest.class)
         .addKeepMainRule(MAIN)

@@ -24,6 +24,7 @@ import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -131,6 +132,10 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
   @Test
   public void testTimeR8() throws Exception {
     boolean desugarLibrary = parameters.isDexRuntime() && requiresAnyCoreLibDesugaring(parameters);
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary
+            && parameters.isDexRuntime()
+            && parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.N));
     final R8FullTestBuilder testBuilder =
         testForR8(parameters.getBackend())
             .addProgramFiles(compiledJars.get(targetVersion))

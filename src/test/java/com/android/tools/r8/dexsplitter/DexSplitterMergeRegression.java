@@ -49,6 +49,7 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
 
   @Test
   public void testInliningFromFeature() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     // Static merging is based on sorting order, we assert that we merged to the feature.
     ThrowingConsumer<R8TestCompileResult, Exception> ensureMergingToFeature =
         r8TestCompileResult -> {

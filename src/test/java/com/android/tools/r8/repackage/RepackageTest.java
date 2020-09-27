@@ -98,6 +98,7 @@ public class RepackageTest extends RepackageTestBase {
 
   @Test
   public void testR8() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addProgramFiles(ToolHelper.getClassFilesForTestPackage(TestClass.class.getPackage()))
         .addKeepMainRule(TestClass.class)

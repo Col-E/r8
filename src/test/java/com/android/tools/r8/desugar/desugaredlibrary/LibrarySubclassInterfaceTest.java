@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import dalvik.system.PathClassLoader;
 import java.sql.SQLDataException;
@@ -49,6 +50,8 @@ public class LibrarySubclassInterfaceTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testCustomCollectionD8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdOut =
         testForD8()
@@ -69,6 +72,8 @@ public class LibrarySubclassInterfaceTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testCustomCollectionR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdOut =
         testForR8(Backend.DEX)

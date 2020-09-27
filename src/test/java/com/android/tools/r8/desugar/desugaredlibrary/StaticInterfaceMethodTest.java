@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.chrono.Chronology;
@@ -44,6 +45,8 @@ public class StaticInterfaceMethodTest extends DesugaredLibraryTestBase {
           .assertSuccessWithOutput(EXPECTED_OUTPUT);
       return;
     }
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(StaticInterfaceMethodTest.class)
@@ -61,6 +64,8 @@ public class StaticInterfaceMethodTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testStaticInterfaceMethodsR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     // Desugared library tests do not make sense in the Cf to Cf, and the JVM is already tested
     // in the D8 test. Just return.
     Assume.assumeFalse(parameters.isCfRuntime());

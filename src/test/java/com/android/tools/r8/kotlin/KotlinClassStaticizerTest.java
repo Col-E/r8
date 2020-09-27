@@ -17,7 +17,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.google.common.base.Predicates;
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,6 +36,7 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionAndRegularObjects() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
     final String mainClassName = "class_staticizer.MainKt";
 

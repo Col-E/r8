@@ -48,6 +48,7 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
 
   @Test
   public void b139769782() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     String expectedOutput = StringUtils.lines("A#foo(B)", "A#foo(B, Object)");
 
     if (parameters.isCfRuntime() && !minification && !allowAccessModification) {

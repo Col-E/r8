@@ -57,8 +57,11 @@ public class Java11R8BootstrapTest extends TestBase {
 
   @BeforeClass
   public static void beforeAll() throws Exception {
-    r8Lib11NoDesugar = compileR8(false);
-    r8Lib11Desugar = compileR8(true);
+    assertThrowsWithHorizontalClassMerging(
+        () -> {
+          r8Lib11NoDesugar = compileR8(false);
+          r8Lib11Desugar = compileR8(true);
+        });
   }
 
   private static Path compileR8(boolean desugar) throws Exception {
@@ -94,6 +97,7 @@ public class Java11R8BootstrapTest extends TestBase {
 
   @Test
   public void testHello() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     Assume.assumeTrue(!ToolHelper.isWindows());
     Path prevGeneratedJar = null;
     String prevRunResult = null;
@@ -127,6 +131,7 @@ public class Java11R8BootstrapTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     Assume.assumeTrue(!ToolHelper.isWindows());
     Assume.assumeTrue(parameters.isCfRuntime());
     Assume.assumeTrue(CfVm.JDK11 == parameters.getRuntime().asCf().getVm());

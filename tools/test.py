@@ -163,11 +163,6 @@ def Main():
   (options, args) = ParseOptions()
 
   if utils.is_bot():
-    if options.horizontal_class_merging:
-      # This flag is in preparation of running horizontal class merging
-      # but currently is the same as the default tests. Don't run to
-      # save resources on the bots.
-      return 0
     gradle.RunGradle(['--no-daemon', 'clean'])
 
   gradle_args = ['--stacktrace']

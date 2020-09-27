@@ -37,6 +37,7 @@ public class TreeShakingAbstractMethodRemovalTest extends TreeShakingTest {
 
   @Test
   public void test() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     runTest(
         null,
         null,

@@ -208,6 +208,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
   @Test
   public void testR8() throws Exception {
     boolean isRelease = mode == CompilationMode.RELEASE;
+    expectThrowsWithHorizontalClassMergingIf(isRelease);
     boolean expectCallPresent = !isRelease;
     int expectedGetClassCount = isRelease ? 0 : 5;
     int expectedConstClassCount = isRelease ? (parameters.isCfRuntime() ? 8 : 6) : 1;

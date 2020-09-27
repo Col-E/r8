@@ -37,6 +37,7 @@ public class VoidReturnTypeRewritingTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     String expected =
         StringUtils.lines(
             "Factory.createStatic() -> null",

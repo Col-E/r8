@@ -41,6 +41,7 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
 
   @Test
   public void testJstyleRunnable() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     final String folder = "lambdas_jstyle_runnable";
     final String mainClassName = "lambdas_jstyle_runnable.MainKt";
     final String implementer1ClassName = "lambdas_jstyle_runnable.Implementer1Kt";

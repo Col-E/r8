@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.shrinkingtests;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,8 @@ public class KeepRuleShrinkTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testMapProblem() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()

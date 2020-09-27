@@ -133,6 +133,8 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
 
   @Test
   public void testTime() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     D8TestCompileResult compileResult =

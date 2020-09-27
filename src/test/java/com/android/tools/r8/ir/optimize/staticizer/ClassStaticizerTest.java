@@ -14,6 +14,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -267,6 +268,7 @@ public class ClassStaticizerTest extends TestBase {
 
   @Test
   public void testMoveToHost() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     Class<?> main = MoveToHostTestClass.class;
     Class<?>[] classes = {
         NeverInline.class,
@@ -281,7 +283,7 @@ public class ClassStaticizerTest extends TestBase {
         CandidateConflictField.class
     };
     String javaOutput = runOnJava(main);
-    SingleTestRunResult result =
+    R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()

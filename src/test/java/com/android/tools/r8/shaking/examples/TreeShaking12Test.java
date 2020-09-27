@@ -44,6 +44,8 @@ public class TreeShaking12Test extends TreeShakingTest {
 
   @Test
   public void testKeeprules() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        getFrontend() != Frontend.JAR || getParameters().isDexRuntime());
     runTest(
         TreeShaking12Test::shaking12OnlyInstantiatedClassesHaveConstructors,
         null,
@@ -53,6 +55,8 @@ public class TreeShaking12Test extends TreeShakingTest {
 
   @Test
   public void testKeeprulesprintusage() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        getFrontend() != Frontend.JAR || getParameters().isDexRuntime());
     runTest(
         null,
         null,

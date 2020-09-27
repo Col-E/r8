@@ -87,6 +87,7 @@ public class NestVirtualMethodAccessTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(!inSameNest);
     testForR8(parameters.getBackend())
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())

@@ -5,6 +5,8 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -37,6 +39,11 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testRetargetOverrideD8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary
+            && parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K)
+            && parameters.getDexRuntimeVersion() != Version.V5_1_1
+            && parameters.getDexRuntimeVersion() != Version.V6_0_1);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdout =
         testForD8()
@@ -57,6 +64,11 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testRetargetOverrideR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary
+            && parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K)
+            && parameters.getDexRuntimeVersion() != Version.V5_1_1
+            && parameters.getDexRuntimeVersion() != Version.V6_0_1);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdout =
         testForR8(Backend.DEX)

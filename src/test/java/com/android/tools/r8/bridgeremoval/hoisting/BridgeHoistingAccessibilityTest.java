@@ -38,6 +38,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addInnerClasses(BridgeHoistingAccessibilityTestClasses.class)

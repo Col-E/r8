@@ -68,6 +68,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
 
   @Test
   public void testNoInterfaceMethodsD8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(shrinkDesugaredLibrary);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .setMinApi(parameters.getApiLevel())

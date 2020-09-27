@@ -45,8 +45,9 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-public abstract class RunExamplesAndroidPTest
-      <B extends BaseCommand.Builder<? extends BaseCommand, B>> {
+public abstract class RunExamplesAndroidPTest<
+        B extends BaseCommand.Builder<? extends BaseCommand, B>>
+    extends TestBase {
   static final String EXAMPLE_DIR = ToolHelper.EXAMPLES_ANDROID_P_BUILD_DIR;
 
   abstract class TestRunner<C extends TestRunner<C>> {

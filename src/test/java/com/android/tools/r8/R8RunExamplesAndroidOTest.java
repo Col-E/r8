@@ -101,6 +101,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Override
   @Test
   public void lambdaDesugaring() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
@@ -120,6 +121,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
 
   @Test
   public void testMultipleInterfacesLambdaOutValue() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     // We can only remove trivial check casts for the lambda objects if we keep track all the
     // multiple interfaces we additionally specified for the lambdas
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
@@ -141,6 +143,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Test
   @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void lambdaDesugaringWithDefaultMethods() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(AndroidApiLevel.N)
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
@@ -161,6 +164,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Override
   @Test
   public void lambdaDesugaringNPlus() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
@@ -185,6 +189,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Test
   @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void lambdaDesugaringNPlusWithDefaultMethods() throws Throwable {
+    expectThrowsWithHorizontalClassMerging();
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
         .withMinApiLevel(AndroidApiLevel.N)
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)

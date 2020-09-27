@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.shrinkingtests;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.Clock;
@@ -36,6 +37,8 @@ public class InheritanceTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testInheritance() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addProgramClasses(Impl.class)

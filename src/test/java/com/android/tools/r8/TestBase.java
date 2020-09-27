@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static com.google.common.collect.Lists.cartesianProduct;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
@@ -74,6 +75,7 @@ import com.android.tools.r8.utils.PreloadedClassFileProvider;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
+import com.android.tools.r8.utils.ThrowingAction;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -118,6 +120,7 @@ import java.util.zip.ZipOutputStream;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -350,6 +353,8 @@ public class TestBase {
   private static final boolean RUN_PROGUARD = System.getProperty("run_proguard") != null;
   // Actually running r8.jar in a forked process.
   private static final boolean RUN_R8_JAR = System.getProperty("run_r8_jar") != null;
+
+  @Rule public ExpectedException thrown = ExpectedException.none();
 
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
@@ -1687,5 +1692,33 @@ public class TestBase {
         .addClasspathClasses(classpath)
         .compile()
         .writeToZip();
+  }
+
+  public static <E extends Throwable> void assertThrowsWithHorizontalClassMerging(
+      ThrowingAction<E> action) throws E {
+    try {
+      action.execute();
+      if (isHorizontalClassMergingEnabled()) {
+        fail();
+      }
+    } catch (Throwable throwable) {
+      if (!isHorizontalClassMergingEnabled()) {
+        throw throwable;
+      }
+    }
+  }
+
+  public void expectThrowsWithHorizontalClassMerging() {
+    expectThrowsWithHorizontalClassMergingIf(true);
+  }
+
+  public void expectThrowsWithHorizontalClassMergingIf(boolean condition) {
+    if (isHorizontalClassMergingEnabled() && condition) {
+      thrown.expect(Throwable.class);
+    }
+  }
+
+  private static boolean isHorizontalClassMergingEnabled() {
+    return System.getProperty("com.android.tools.r8.horizontalClassMerging") != null;
   }
 }

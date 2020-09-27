@@ -66,6 +66,7 @@ public class SummaryStatisticsConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testStatsD8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(shrinkDesugaredLibrary && shrinkDesugaredLibrary);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .setMinApi(parameters.getApiLevel())
@@ -85,6 +86,7 @@ public class SummaryStatisticsConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testStatsR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(shrinkDesugaredLibrary && shrinkDesugaredLibrary);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())

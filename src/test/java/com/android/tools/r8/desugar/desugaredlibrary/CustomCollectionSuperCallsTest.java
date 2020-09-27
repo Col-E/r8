@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +37,8 @@ public class CustomCollectionSuperCallsTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testCustomCollectionSuperCallsD8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()
@@ -55,6 +58,8 @@ public class CustomCollectionSuperCallsTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testCustomCollectionSuperCallsR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     R8TestRunResult r8TestRunResult =
         testForR8(parameters.getBackend())

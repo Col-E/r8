@@ -112,6 +112,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
 
   @Test
   public void testEnabled() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
     compileWithR8(
         getProguardConfigWithNeverInline(true, null),

@@ -40,6 +40,7 @@ public class AbstractMethodOnNonAbstractClassTest extends TestBase {
 
   @Test
   public void testCompat() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     R8TestCompileResult compileResult =
         testForR8Compat(parameters.getBackend())
             .addInnerClasses(AbstractMethodOnNonAbstractClassTest.class)

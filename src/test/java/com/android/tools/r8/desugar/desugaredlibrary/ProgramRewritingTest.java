@@ -54,6 +54,8 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testProgramD8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     ArrayList<Path> coreLambdaStubs = new ArrayList<>();
     coreLambdaStubs.add(ToolHelper.getCoreLambdaStubs());
     for (Boolean coreLambdaStubsActive : BooleanUtils.values()) {
@@ -111,6 +113,8 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testProgramR8() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     Assume.assumeTrue(
         "TODO(b/139451198): Make the test run with new SDK.",
         parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel());

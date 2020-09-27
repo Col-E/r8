@@ -85,6 +85,7 @@ public class NestStaticMethodAccessTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())

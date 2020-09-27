@@ -73,6 +73,7 @@ public class BootstrapTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     // Run hello.jar to ensure it exists and is valid.
     Path hello = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION);
     ProcessResult runHello = ToolHelper.runJava(hello, "hello.Hello");

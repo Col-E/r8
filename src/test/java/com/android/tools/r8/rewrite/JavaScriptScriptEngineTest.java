@@ -53,6 +53,7 @@ public class JavaScriptScriptEngineTest extends ScriptEngineTestBase {
 
   @Test
   public void testR8() throws IOException, CompilationFailedException, ExecutionException {
+    expectThrowsWithHorizontalClassMergingIf(parameters.isDexRuntime());
     testForR8(parameters.getBackend())
         .addInnerClasses(JavaScriptScriptEngineTest.class)
         .addKeepMainRule(TestClass.class)

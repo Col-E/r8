@@ -60,6 +60,7 @@ public class NestClassMergingTest extends TestBase {
 
   @Test
   public void testClassMergeAcrossNestAndNonNest() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     // Potentially merge classes from a nest with non nest classes.
     testClassMergeAcrossNest(
         new String[] {

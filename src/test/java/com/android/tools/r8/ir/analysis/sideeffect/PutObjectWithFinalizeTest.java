@@ -41,6 +41,7 @@ public class PutObjectWithFinalizeTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(PutObjectWithFinalizeTest.class)
         .addKeepMainRule(TestClass.class)
