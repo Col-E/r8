@@ -89,7 +89,8 @@ class EnumUnboxingCandidateAnalysis {
           && staticField.accessFlags.isFinal()
           && staticField.field.name == factory.enumValuesFieldName) {
         // Field $VALUES, valid, do nothing.
-      } else {
+      } else if (appView.appInfo().isFieldRead(staticField)) {
+        // Only non read static fields are valid, and they are assumed unused.
         return false;
       }
     }

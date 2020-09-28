@@ -423,6 +423,10 @@ public class R8 {
                   appViewWithLiveness, appViewWithLiveness.appInfo().computeSubtypingInfo())
               .run();
 
+          if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
+            appView.protoShrinker().enumProtoShrinker.clearDeadEnumLiteMaps();
+          }
+
           AnnotationRemover annotationRemover =
               annotationRemoverBuilder
                   .computeClassesToRetainInnerClassAttributeFor(appViewWithLiveness)
@@ -779,6 +783,8 @@ public class R8 {
         }
 
         if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
+          appView.protoShrinker().enumProtoShrinker.verifyDeadEnumLiteMapsAreDead();
+
           IRConverter converter = new IRConverter(appView, timing, null, mainDexTracingResult);
 
           // If proto shrinking is enabled, we need to reprocess every dynamicMethod(). This ensures

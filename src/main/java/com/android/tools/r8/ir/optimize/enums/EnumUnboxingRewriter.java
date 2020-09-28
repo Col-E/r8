@@ -192,7 +192,6 @@ public class EnumUnboxingRewriter {
                   iterator, invokeMethod, zeroCheckMethod, m -> synthesizeZeroCheckMethod());
             }
           }
-          // TODO(b/147860220): rewrite also other enum methods.
         } else if (instruction.isInvokeStatic()) {
           InvokeStatic invokeStatic = instruction.asInvokeStatic();
           DexMethod invokedMethod = invokeStatic.getInvokedMethod();

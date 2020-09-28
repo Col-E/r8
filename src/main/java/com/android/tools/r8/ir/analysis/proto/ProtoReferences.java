@@ -19,6 +19,7 @@ public class ProtoReferences {
 
   private final DexItemFactory dexItemFactory;
 
+  public final DexType enumLiteType;
   public final DexType enumLiteMapType;
   public final DexType extendableMessageType;
   public final DexType extensionDescriptorType;
@@ -41,9 +42,11 @@ public class ProtoReferences {
   public final MethodToInvokeMembers methodToInvokeMembers;
 
   public final DexString defaultInstanceFieldName;
+  public final DexString internalValueMapFieldName;
   public final DexString dynamicMethodName;
   public final DexString findLiteExtensionByNumberName;
   public final DexString newBuilderMethodName;
+  public final DexString findValueByNumberName;
 
   public final DexString protobufPackageDescriptorPrefix;
 
@@ -58,6 +61,7 @@ public class ProtoReferences {
     dexItemFactory = factory;
 
     // Types.
+    enumLiteType = factory.createType("Lcom/google/protobuf/Internal$EnumLite;");
     enumLiteMapType = factory.createType("Lcom/google/protobuf/Internal$EnumLiteMap;");
     extendableMessageType =
         factory.createType("Lcom/google/protobuf/GeneratedMessageLite$ExtendableMessage;");
@@ -81,9 +85,11 @@ public class ProtoReferences {
 
     // Names.
     defaultInstanceFieldName = factory.createString("DEFAULT_INSTANCE");
+    internalValueMapFieldName = factory.createString("internalValueMap");
     dynamicMethodName = factory.createString("dynamicMethod");
     findLiteExtensionByNumberName = factory.createString("findLiteExtensionByNumber");
     newBuilderMethodName = factory.createString("newBuilder");
+    findValueByNumberName = factory.createString("findValueByNumber");
 
     // Other names.
     protobufPackageDescriptorPrefix = factory.createString("Lcom/google/protobuf/");

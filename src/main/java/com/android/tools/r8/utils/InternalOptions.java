@@ -171,6 +171,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     protoShrinking.enableGeneratedMessageLiteShrinking = true;
     protoShrinking.enableGeneratedMessageLiteBuilderShrinking = true;
     protoShrinking.enableGeneratedExtensionRegistryShrinking = true;
+    protoShrinking.enableEnumLiteProtoShrinking = true;
   }
 
   void disableAllOptimizations() {
@@ -1176,11 +1177,13 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableGeneratedMessageLiteShrinking = false;
     public boolean enableGeneratedMessageLiteBuilderShrinking = false;
     public boolean traverseOneOfAndRepeatedProtoFields = false;
+    public boolean enableEnumLiteProtoShrinking = false;
 
     public boolean isProtoShrinkingEnabled() {
       return enableGeneratedExtensionRegistryShrinking
           || enableGeneratedMessageLiteShrinking
-          || enableGeneratedMessageLiteBuilderShrinking;
+          || enableGeneratedMessageLiteBuilderShrinking
+          || enableEnumLiteProtoShrinking;
     }
   }
 
