@@ -43,10 +43,8 @@ public class DebugLocalStartOutsideRangeTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(
             diagnostics -> {
-              if (parameters.isDexRuntime()) {
-                diagnostics.assertWarningThatMatches(
-                    diagnosticMessage(containsString("Could not find phi type for register")));
-              }
+              diagnostics.assertNoWarningsMatch(
+                  diagnosticMessage(containsString("Could not find phi type for register")));
             });
   }
 

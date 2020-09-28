@@ -716,16 +716,17 @@ public class CfSourceCode implements SourceCode {
           return localVariablesWithRegister.get(0).getLocal().type;
         }
       }
-      appView
-          .options()
-          .reporter
-          .warning(
-              new CfCodeDiagnostics(
-                  origin,
-                  method.getReference(),
-                  "Could not find phi type for register "
-                      + register
-                      + ". This is most likely due to invalid stack maps in input."));
+      // TODO(b/169346184): Delay reporting errors here due to invalid debug info until resolved.
+      // appView
+      //     .options()
+      //     .reporter
+      //     .warning(
+      //         new CfCodeDiagnostics(
+      //             origin,
+      //             method.getReference(),
+      //             "Could not find phi type for register "
+      //                 + register
+      //                 + ". This is most likely due to invalid stack maps in input."));
       return null;
     }
     if (slot.isPrecise()) {

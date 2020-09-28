@@ -39,8 +39,6 @@ public class SwitchDebugLocalsConflictTest extends TestBase {
               diagnotics.assertNoErrors();
               diagnotics.assertInfoThatMatches(
                   diagnosticMessage(containsString("invalid locals information")));
-              diagnotics.assertAllWarningsMatch(
-                  diagnosticMessage(containsString("Could not find phi type for register 14")));
             });
   }
 
