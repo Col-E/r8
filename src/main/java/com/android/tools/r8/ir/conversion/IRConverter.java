@@ -543,6 +543,9 @@ public class IRConverter {
   }
 
   private boolean needsIRConversion(Code code, ProgramMethod method) {
+    if (options.testing.forceIRForCfToCfDesugar) {
+      return true;
+    }
     if (options.isDesugaredLibraryCompilation()) {
       // TODO(b/169035524): Create method for evaluating if a code object needs rewriting for
       // library desugaring.
