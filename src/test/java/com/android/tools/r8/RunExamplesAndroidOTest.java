@@ -365,7 +365,6 @@ public abstract class RunExamplesAndroidOTest<
 
   @Test
   public void lambdaDesugaring() throws Throwable {
-    expectThrowsWithHorizontalClassMerging();
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withKeepAll()

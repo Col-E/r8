@@ -64,11 +64,11 @@ public class StaticInterfaceMethodTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testStaticInterfaceMethodsR8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     // Desugared library tests do not make sense in the Cf to Cf, and the JVM is already tested
     // in the D8 test. Just return.
     Assume.assumeFalse(parameters.isCfRuntime());
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addKeepMainRule(Executor.class)
