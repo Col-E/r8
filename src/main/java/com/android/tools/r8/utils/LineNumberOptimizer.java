@@ -303,7 +303,8 @@ public class LineNumberOptimizer {
       addClassToClassNaming(originalType, renamedClassName, onDemandClassNamingBuilder);
 
       // First transfer renamed fields to classNamingBuilder.
-      addFieldsToClassNaming(appView.graphLens(), namingLens, clazz, onDemandClassNamingBuilder);
+      addFieldsToClassNaming(
+          appView.graphLens(), namingLens, clazz, originalType, onDemandClassNamingBuilder);
 
       // Then process the methods, ordered by renamed name.
       List<DexString> renamedMethodNames = new ArrayList<>(methodsByRenamedName.keySet());
@@ -358,7 +359,7 @@ public class LineNumberOptimizer {
 
           DexMethod originalMethod = appView.graphLens().getOriginalMethodSignature(method.method);
           MethodSignature originalSignature =
-              MethodSignature.fromDexMethod(originalMethod, originalMethod.holder != clazz.type);
+              MethodSignature.fromDexMethod(originalMethod, originalMethod.holder != originalType);
 
           DexString obfuscatedNameDexString = namingLens.lookupName(method.method);
           String obfuscatedName = obfuscatedNameDexString.toString();
@@ -367,7 +368,7 @@ public class LineNumberOptimizer {
           if (mappedPositions.isEmpty()) {
             // But only if it's been renamed.
             if (obfuscatedNameDexString != originalMethod.name
-                || originalMethod.holder != clazz.type) {
+                || originalMethod.holder != originalType) {
               onDemandClassNamingBuilder
                   .get()
                   .addMappedRange(null, originalSignature, null, obfuscatedName);
@@ -539,15 +540,16 @@ public class LineNumberOptimizer {
       GraphLens graphLens,
       NamingLens namingLens,
       DexProgramClass clazz,
+      DexType originalType,
       Supplier<Builder> onDemandClassNamingBuilder) {
     clazz.forEachField(
         dexEncodedField -> {
           DexField dexField = dexEncodedField.field;
           DexField originalField = graphLens.getOriginalFieldSignature(dexField);
           DexString renamedName = namingLens.lookupName(dexField);
-          if (renamedName != originalField.name || originalField.holder != clazz.type) {
+          if (renamedName != originalField.name || originalField.holder != originalType) {
             FieldSignature originalSignature =
-                FieldSignature.fromDexField(originalField, originalField.holder != clazz.type);
+                FieldSignature.fromDexField(originalField, originalField.holder != originalType);
             MemberNaming memberNaming = new MemberNaming(originalSignature, renamedName.toString());
             onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
           }
