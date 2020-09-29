@@ -311,7 +311,6 @@ public class FieldAssignmentTracker {
             DexEncodedField field =
                 appView.appInfo().resolveField(info.getField()).getResolvedField();
             if (field == null) {
-              assert false;
               return;
             }
             if (!info.hasReflectiveAccess() && !info.isWrittenFromMethodHandle()) {

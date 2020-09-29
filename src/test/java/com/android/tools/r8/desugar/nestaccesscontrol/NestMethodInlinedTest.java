@@ -59,7 +59,7 @@ public class NestMethodInlinedTest extends TestBase {
               options.enableClassInlining = false;
               options.enableVerticalClassMerging = false;
             })
-        .enableInliningAnnotations("nesthostexample")
+        .enableInliningAnnotations()
         .addProgramFiles(toCompile)
         .compile()
         .inspect(this::assertMethodsInlined)

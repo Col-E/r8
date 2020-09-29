@@ -72,6 +72,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
+import com.android.tools.r8.utils.ReflectiveBuildPathUtils;
+import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesClass;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
@@ -1652,6 +1654,10 @@ public class TestBase {
 
   public static String typeName(Class<?> clazz) {
     return clazz.getTypeName();
+  }
+
+  public static String examplesTypeName(Class<? extends ExamplesClass> clazz) throws Exception {
+    return ReflectiveBuildPathUtils.resolveClassName(clazz);
   }
 
   public static AndroidApiLevel apiLevelWithDefaultInterfaceMethodsSupport() {

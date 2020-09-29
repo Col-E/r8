@@ -4,8 +4,8 @@
 
 package horizontalclassmerging;
 
-import annotations.NeverClassInline;
-import annotations.NeverInline;
+import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 
 public class BasicNestHostHorizontalClassMerging {
   // Prevent merging with BasicNestHostHorizontalClassMerging2.
@@ -17,16 +17,13 @@ public class BasicNestHostHorizontalClassMerging {
 
   @NeverInline
   private void print(String v) {
-    /* if (System.currentTimeMillis() < 0) {
-      name = "never";
-    } */
     System.out.println(name + ": " + v);
   }
 
   public static void main(String[] args) {
     BasicNestHostHorizontalClassMerging host = new BasicNestHostHorizontalClassMerging("1");
-    A a = new A(host);
-    B b = new B(host);
+    new A(host);
+    new B(host);
     BasicNestHostHorizontalClassMerging2.main(args);
   }
 

@@ -4,7 +4,7 @@
 
 package nesthostexample;
 
-import annotations.NeverInline;
+import com.android.tools.r8.NeverInline;
 
 public class NestPvtMethodCallInlined {
 

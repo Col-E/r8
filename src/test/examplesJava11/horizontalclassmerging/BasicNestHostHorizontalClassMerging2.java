@@ -4,18 +4,14 @@
 
 package horizontalclassmerging;
 
-import annotations.NeverClassInline;
-import annotations.NeverInline;
+import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 
 public class BasicNestHostHorizontalClassMerging2 {
   @NeverInline
   public static void main(String[] args) {
-    A a = new A();
-    B b = new B();
-    if (System.currentTimeMillis() < 0) {
-      System.out.println(a);
-      System.out.println(b);
-    }
+    new A();
+    new B();
   }
 
   @NeverInline

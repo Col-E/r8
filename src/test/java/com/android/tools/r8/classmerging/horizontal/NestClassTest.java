@@ -7,42 +7,38 @@ package com.android.tools.r8.classmerging.horizontal;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPrivate;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.desugar.nestaccesscontrol.NestAccessControlTestUtils;
+import com.android.tools.r8.classmerging.horizontal.NestClassTest.R.horizontalclassmerging.BasicNestHostHorizontalClassMerging;
+import com.android.tools.r8.classmerging.horizontal.NestClassTest.R.horizontalclassmerging.BasicNestHostHorizontalClassMerging2;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesClass;
+import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesJava11RootPackage;
+import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesPackage;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 
 public class NestClassTest extends HorizontalClassMergingTestBase {
-  public static final String PACKAGE_NAME = "horizontalclassmerging.";
-  private final String NEST_MAIN_CLASS_1 = PACKAGE_NAME + "BasicNestHostHorizontalClassMerging";
-  private final String NEST_MAIN_CLASS_1A = NEST_MAIN_CLASS_1 + "$A";
-  private final String NEST_MAIN_CLASS_1B = NEST_MAIN_CLASS_1 + "$B";
-  private final String NEST_MAIN_CLASS_2 = PACKAGE_NAME + "BasicNestHostHorizontalClassMerging2";
-  private final String NEST_MAIN_CLASS_2A = NEST_MAIN_CLASS_2 + "$A";
-  private final String NEST_MAIN_CLASS_2B = NEST_MAIN_CLASS_2 + "$B";
+  public static class R extends ExamplesJava11RootPackage {
+    public static class horizontalclassmerging extends ExamplesPackage {
+      public static class BasicNestHostHorizontalClassMerging extends ExamplesClass {
+        public static class A extends ExamplesClass {}
 
-  private List<Path> resolveProgramFiles() {
-    return ImmutableList.of(
-            NEST_MAIN_CLASS_1,
-            NEST_MAIN_CLASS_1A,
-            NEST_MAIN_CLASS_1B,
-            NEST_MAIN_CLASS_2,
-            NEST_MAIN_CLASS_2A,
-            NEST_MAIN_CLASS_2B)
-        .stream()
-        .map(NestAccessControlTestUtils.CLASSES_PATH::resolve)
-        .collect(Collectors.toList());
+        public static class B extends ExamplesClass {}
+      }
+
+      public static class BasicNestHostHorizontalClassMerging2 extends ExamplesClass {
+        public static class A extends ExamplesClass {}
+
+        public static class B extends ExamplesClass {}
+      }
+    }
   }
 
   public NestClassTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
@@ -59,21 +55,27 @@ public class NestClassTest extends HorizontalClassMergingTestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addKeepMainRule(NEST_MAIN_CLASS_1)
-        .addProgramFiles(resolveProgramFiles())
+        .addKeepMainRule(examplesTypeName(BasicNestHostHorizontalClassMerging.class))
+        .addExamplesProgramFiles(R.class)
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .compile()
-        .run(parameters.getRuntime(), NEST_MAIN_CLASS_1)
+        .run(parameters.getRuntime(), examplesTypeName(BasicNestHostHorizontalClassMerging.class))
         .assertSuccessWithOutputLines("1: a", "1: b", "2: a", "2: b")
         .inspect(
             codeInspector -> {
-              ClassSubject class1A = codeInspector.clazz(NEST_MAIN_CLASS_1A);
-              ClassSubject class2A = codeInspector.clazz(NEST_MAIN_CLASS_2A);
-              ClassSubject class1 = codeInspector.clazz(NEST_MAIN_CLASS_1);
-              ClassSubject class2 = codeInspector.clazz(NEST_MAIN_CLASS_2);
+              ClassSubject class1A =
+                  codeInspector.clazz(
+                      examplesTypeName(BasicNestHostHorizontalClassMerging.A.class));
+              ClassSubject class2A =
+                  codeInspector.clazz(
+                      examplesTypeName(BasicNestHostHorizontalClassMerging2.A.class));
+              ClassSubject class1 =
+                  codeInspector.clazz(examplesTypeName(BasicNestHostHorizontalClassMerging.class));
+              ClassSubject class2 =
+                  codeInspector.clazz(examplesTypeName(BasicNestHostHorizontalClassMerging2.class));
               assertThat(class1, isPresent());
               assertThat(class2, isPresent());
               assertThat(class1A, isPresent());
@@ -90,13 +92,16 @@ public class NestClassTest extends HorizontalClassMergingTestBase {
               assertThat(printClass2MethodSubject, isPrivate());
               assertThat(printClass2MethodSubject, isStatic());
 
-              if (enableHorizontalClassMerging) {
-                assertThat(codeInspector.clazz(NEST_MAIN_CLASS_1B), not(isPresent()));
-                assertThat(codeInspector.clazz(NEST_MAIN_CLASS_2B), not(isPresent()));
-              } else {
-                assertThat(codeInspector.clazz(NEST_MAIN_CLASS_1B), isPresent());
-                assertThat(codeInspector.clazz(NEST_MAIN_CLASS_2B), isPresent());
-              }
+              assertThat(
+                  codeInspector.clazz(
+                      examplesTypeName(BasicNestHostHorizontalClassMerging.B.class)),
+                  notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(
+                  codeInspector.clazz(
+                      examplesTypeName(BasicNestHostHorizontalClassMerging2.B.class)),
+                  notIf(isPresent(), enableHorizontalClassMerging));
+
+              // TODO(b/165517236): Explicitly check 1.B is merged into 1.A, and 2.B into 2.A.
             });
   }
 }

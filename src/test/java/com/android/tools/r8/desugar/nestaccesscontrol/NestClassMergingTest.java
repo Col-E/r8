@@ -96,7 +96,7 @@ public class NestClassMergingTest extends TestBase {
                   options.enableClassInlining = false;
                   options.enableNestReduction = false;
                 })
-            .enableInliningAnnotations("nesthostexample")
+            .enableInliningAnnotations()
             .addProgramFiles(bothNestsAndOutsideClassToCompile)
             .compile()
             .inspect(NestAttributesUpdateTest::assertNestAttributesCorrect);
