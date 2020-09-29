@@ -14,6 +14,7 @@ import static org.junit.Assume.assumeFalse;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.retrace.Retrace.RetraceAbortException;
 import com.android.tools.r8.retrace.stacktraces.ActualBotStackTraceBase;
 import com.android.tools.r8.retrace.stacktraces.ActualIdentityStackTrace;
@@ -29,6 +30,7 @@ import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileContextStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
+import com.android.tools.r8.retrace.stacktraces.MemberFieldOverlapStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NamedModuleStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NullStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ObfucatedExceptionClassStackTrace;
@@ -41,6 +43,7 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -189,6 +192,22 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInlineSourceFileContext() {
     runRetraceTest(new InlineSourceFileContextStackTrace());
+  }
+
+  @Test
+  public void testMemberFieldOverlapStackTrace() throws Exception {
+    MemberFieldOverlapStackTrace stackTraceForTest = new MemberFieldOverlapStackTrace();
+    runRetraceTest(stackTraceForTest);
+    inspectRetraceTest(stackTraceForTest, stackTraceForTest::inspectField);
+  }
+
+  private void inspectRetraceTest(
+      StackTraceForTest stackTraceForTest, Consumer<RetraceApi> inspection) throws Exception {
+    TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
+    ClassNameMapper classNameMapper =
+        ClassNameMapper.mapperFromString(stackTraceForTest.mapping(), diagnosticsHandler);
+    RetraceApi retracer = Retracer.create(classNameMapper);
+    inspection.accept(retracer);
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {

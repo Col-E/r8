@@ -40,7 +40,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     private final Map<MethodSignature, MemberNaming> methodMembers = Maps.newHashMap();
     private final Map<FieldSignature, MemberNaming> fieldMembers = Maps.newHashMap();
     private final Map<String, List<MappedRange>> mappedRangesByName = Maps.newHashMap();
-    private final Map<String, List<MemberNaming>> mappedNamingsByName = Maps.newHashMap();
+    private final Map<String, List<MemberNaming>> mappedFieldNamingsByName = Maps.newHashMap();
     private final Map<Signature, List<MappingInformation>> additionalMappings = Maps.newHashMap();
 
     private Builder(String renamedName, String originalName) {
@@ -54,10 +54,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
         methodMembers.put(entry.getRenamedSignature().asMethodSignature(), entry);
       } else {
         fieldMembers.put(entry.getRenamedSignature().asFieldSignature(), entry);
+        mappedFieldNamingsByName
+            .computeIfAbsent(entry.getRenamedName(), m -> new ArrayList<>())
+            .add(entry);
       }
-      mappedNamingsByName
-          .computeIfAbsent(entry.getRenamedName(), m -> new ArrayList<>())
-          .add(entry);
       return this;
     }
 
@@ -119,7 +119,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
           methodMembers,
           fieldMembers,
           map,
-          mappedNamingsByName,
+          mappedFieldNamingsByName,
           additionalMappings);
     }
 
@@ -249,7 +249,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
   /** Map of renamed name -> MappedRangesOfName */
   public final Map<String, MappedRangesOfName> mappedRangesByRenamedName;
 
-  public final Map<String, List<MemberNaming>> mappedNamingsByName;
+  public final Map<String, List<MemberNaming>> mappedFieldNamingsByName;
 
   private final Map<Signature, List<MappingInformation>> additionalMappings;
 
@@ -259,14 +259,14 @@ public class ClassNamingForNameMapper implements ClassNaming {
       Map<MethodSignature, MemberNaming> methodMembers,
       Map<FieldSignature, MemberNaming> fieldMembers,
       Map<String, MappedRangesOfName> mappedRangesByRenamedName,
-      Map<String, List<MemberNaming>> mappedNamingsByName,
+      Map<String, List<MemberNaming>> mappedFieldNamingsByName,
       Map<Signature, List<MappingInformation>> additionalMappings) {
     this.renamedName = renamedName;
     this.originalName = originalName;
     this.methodMembers = ImmutableMap.copyOf(methodMembers);
     this.fieldMembers = ImmutableMap.copyOf(fieldMembers);
     this.mappedRangesByRenamedName = mappedRangesByRenamedName;
-    this.mappedNamingsByName = mappedNamingsByName;
+    this.mappedFieldNamingsByName = mappedFieldNamingsByName;
     this.additionalMappings = additionalMappings;
   }
 

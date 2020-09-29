@@ -44,7 +44,7 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
     return lookup(
         fieldName,
         (mapper, name) -> {
-          List<MemberNaming> memberNamings = mapper.mappedNamingsByName.get(name);
+          List<MemberNaming> memberNamings = mapper.mappedFieldNamingsByName.get(name);
           if (memberNamings == null || memberNamings.isEmpty()) {
             return null;
           }
@@ -163,7 +163,7 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
       return lookup(
           fieldName,
           (mapper, name) -> {
-            List<MemberNaming> memberNamings = mapper.mappedNamingsByName.get(name);
+            List<MemberNaming> memberNamings = mapper.mappedFieldNamingsByName.get(name);
             if (memberNamings == null || memberNamings.isEmpty()) {
               return null;
             }
