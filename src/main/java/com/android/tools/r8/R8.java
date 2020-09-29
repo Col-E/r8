@@ -410,15 +410,8 @@ public class R8 {
 
           // Recompute the subtyping information.
           Set<DexType> removedClasses = pruner.getRemovedClasses();
-          appView.setAppInfo(
-              appView
-                  .appInfo()
-                  .withLiveness()
-                  .prunedCopyFrom(
-                      prunedApp,
-                      removedClasses,
-                      pruner.getMethodsToKeepForConfigurationDebugging()));
-          appView.setAppServices(appView.appServices().prunedCopy(removedClasses));
+          appView.removePrunedClasses(
+              prunedApp, removedClasses, pruner.getMethodsToKeepForConfigurationDebugging());
           new AbstractMethodRemover(
                   appViewWithLiveness, appViewWithLiveness.appInfo().computeSubtypingInfo())
               .run();
@@ -595,8 +588,6 @@ public class R8 {
         appViewWithLiveness.setAppInfo(new EnumValueInfoMapCollector(appViewWithLiveness).run());
       }
 
-      appView.setAppServices(appView.appServices().rewrittenWithLens(appView.graphLens()));
-
       // Collect the already pruned types before creating a new app info without liveness.
       // TODO: we should avoid removing liveness.
       Set<DexType> prunedTypes = appView.withLiveness().appInfo().getPrunedTypes();
@@ -734,14 +725,11 @@ public class R8 {
               ExceptionUtils.withFinishedResourceHandler(
                   options.reporter, options.usageInformationConsumer);
             }
-            appViewWithLiveness.setAppInfo(
-                appViewWithLiveness
-                    .appInfo()
-                    .prunedCopyFrom(
-                        application,
-                        CollectionUtils.mergeSets(prunedTypes, removedClasses),
-                        pruner.getMethodsToKeepForConfigurationDebugging()));
-            appView.setAppServices(appView.appServices().prunedCopy(removedClasses));
+
+            appView.removePrunedClasses(
+                application,
+                CollectionUtils.mergeSets(prunedTypes, removedClasses),
+                pruner.getMethodsToKeepForConfigurationDebugging());
 
             new BridgeHoisting(appViewWithLiveness).run();
 

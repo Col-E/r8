@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
@@ -61,13 +60,14 @@ public class TreePruner {
     DirectMappedDexApplication application = appView.appInfo().app().asDirect();
     Timing timing = application.timing;
     timing.begin("Pruning application...");
-    DirectMappedDexApplication result;
     try {
-      result = removeUnused(application).build();
+      DirectMappedDexApplication.Builder builder = removeUnused(application);
+      return prunedTypes.isEmpty() && !appView.options().configurationDebugging
+          ? application
+          : builder.build();
     } finally {
       timing.end();
     }
-    return result;
   }
 
   private DirectMappedDexApplication.Builder removeUnused(DirectMappedDexApplication application) {
@@ -359,7 +359,7 @@ public class TreePruner {
     return Collections.unmodifiableSet(prunedTypes);
   }
 
-  public Collection<DexReference> getMethodsToKeepForConfigurationDebugging() {
+  public Collection<DexMethod> getMethodsToKeepForConfigurationDebugging() {
     return Collections.unmodifiableCollection(methodsToKeepForConfigurationDebugging);
   }
 

@@ -162,6 +162,14 @@ public class ClassFileTransformer {
 
   /** Unconditionally replace the implements clause of a class. */
   public ClassFileTransformer setImplements(Class<?>... interfaces) {
+    return setImplementsClassDescriptors(
+        Arrays.stream(interfaces)
+            .map(clazz -> DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName()))
+            .toArray(String[]::new));
+  }
+
+  /** Unconditionally replace the implements clause of a class. */
+  public ClassFileTransformer setImplementsClassDescriptors(String... classDescriptors) {
     return addClassTransformer(
         new ClassTransformer() {
           @Override
@@ -178,8 +186,8 @@ public class ClassFileTransformer {
                 name,
                 signature,
                 superName,
-                Arrays.stream(interfaces)
-                    .map(clazz -> DescriptorUtils.getBinaryNameFromJavaType(clazz.getTypeName()))
+                Arrays.stream(classDescriptors)
+                    .map(DescriptorUtils::getBinaryNameFromDescriptor)
                     .toArray(String[]::new));
           }
         });

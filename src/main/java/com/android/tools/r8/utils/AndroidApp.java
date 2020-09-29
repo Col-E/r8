@@ -576,7 +576,7 @@ public class AndroidApp {
                         if (featureSplitConfiguration != null) {
                           DexType type = dexItemFactory.createType(classDescriptor);
                           FeatureSplit featureSplit = classToFeatureSplitMap.getFeatureSplit(type);
-                          if (featureSplit != null) {
+                          if (featureSplit != null && !featureSplit.isBase()) {
                             return featureSplitArchiveOutputStreams.get(featureSplit);
                           }
                         }

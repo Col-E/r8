@@ -7,7 +7,6 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -16,12 +15,12 @@ import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
+import com.android.tools.r8.utils.DataResourceConsumerForTesting;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -30,10 +29,8 @@ import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -58,57 +55,6 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
 
   public AdaptResourceFileContentsTest(Backend backend) {
     this.backend = backend;
-  }
-
-  public static class DataResourceConsumerForTesting implements DataResourceConsumer {
-
-    private final DataResourceConsumer inner;
-    private final Map<String, ImmutableList<String>> resources = new HashMap<>();
-
-    public DataResourceConsumerForTesting() {
-      this(null);
-    }
-
-    public DataResourceConsumerForTesting(DataResourceConsumer inner) {
-      this.inner = inner;
-    }
-
-    @Override
-    public void accept(DataDirectoryResource directory, DiagnosticsHandler diagnosticsHandler) {
-      if (inner != null) {
-        inner.accept(directory, diagnosticsHandler);
-      }
-    }
-
-    @Override
-    public void accept(DataEntryResource file, DiagnosticsHandler diagnosticsHandler) {
-      assertFalse(resources.containsKey(file.getName()));
-      try {
-        byte[] bytes = ByteStreams.toByteArray(file.getByteStream());
-        String contents = new String(bytes, Charset.defaultCharset());
-        resources.put(file.getName(), ImmutableList.copyOf(contents.split(System.lineSeparator())));
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-      if (inner != null) {
-        inner.accept(file, diagnosticsHandler);
-      }
-    }
-
-    @Override
-    public void finished(DiagnosticsHandler handler) {}
-
-    public ImmutableList<String> get(String name) {
-      return resources.get(name);
-    }
-
-    public boolean isEmpty() {
-      return size() == 0;
-    }
-
-    public int size() {
-      return resources.size();
-    }
   }
 
   private static final ImmutableList<String> originalAllChangedResource =

@@ -16,6 +16,7 @@ import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -93,12 +94,12 @@ public class AppServices {
     }
     // Check if service is defined feature
     DexProgramClass serviceClass = appView.definitionForProgramType(serviceType);
-    if (classToFeatureSplitMap.isInFeature(serviceClass)) {
+    if (serviceClass != null && classToFeatureSplitMap.isInFeature(serviceClass)) {
       return true;
     }
-    for (DexType dexType : featureImplementations.get(FeatureSplit.BASE)) {
-      DexProgramClass implementationClass = appView.definitionForProgramType(dexType);
-      if (classToFeatureSplitMap.isInFeature(implementationClass)) {
+    for (DexType implementationType : featureImplementations.get(FeatureSplit.BASE)) {
+      DexProgramClass implementationClass = appView.definitionForProgramType(implementationType);
+      if (implementationClass != null && classToFeatureSplitMap.isInFeature(implementationClass)) {
         return true;
       }
     }
@@ -187,19 +188,20 @@ public class AppServices {
   public static class Builder {
 
     private final AppView<?> appView;
+    private final InternalOptions options;
     private final Map<DexType, Map<FeatureSplit, List<DexType>>> services = new LinkedHashMap<>();
 
     private Builder(AppView<?> appView) {
       this.appView = appView;
+      this.options = appView.options();
     }
 
     public AppServices build() {
       for (DataResourceProvider provider : appView.appInfo().app().dataResourceProviders) {
         readServices(provider, FeatureSplit.BASE);
       }
-      if (appView.options().featureSplitConfiguration != null) {
-        List<FeatureSplit> featureSplits =
-            appView.options().featureSplitConfiguration.getFeatureSplits();
+      if (options.featureSplitConfiguration != null) {
+        List<FeatureSplit> featureSplits = options.featureSplitConfiguration.getFeatureSplits();
         for (FeatureSplit featureSplit : featureSplits) {
           for (ProgramResourceProvider provider : featureSplit.getProgramResourceProviders()) {
             DataResourceProvider dataResourceProvider = provider.getDataResourceProvider();
@@ -238,28 +240,45 @@ public class AppServices {
       public void visit(DataEntryResource file) {
         try {
           String name = file.getName();
-          if (name.startsWith(SERVICE_DIRECTORY_NAME)) {
-            String serviceName = name.substring(SERVICE_DIRECTORY_NAME.length());
-            if (DescriptorUtils.isValidJavaType(serviceName)) {
-              String serviceDescriptor = DescriptorUtils.javaTypeToDescriptor(serviceName);
-              DexType serviceType = appView.dexItemFactory().createType(serviceDescriptor);
-              byte[] bytes = ByteStreams.toByteArray(file.getByteStream());
-              String contents = new String(bytes, Charset.defaultCharset());
-              Map<FeatureSplit, List<DexType>> featureSplitImplementations =
-                  services.computeIfAbsent(serviceType, k -> new LinkedHashMap<>());
-              List<DexType> serviceImplementations =
-                  featureSplitImplementations.computeIfAbsent(featureSplit, f -> new ArrayList<>());
-              readServiceImplementationsForService(
-                  contents, file.getOrigin(), serviceImplementations);
+          if (!name.startsWith(SERVICE_DIRECTORY_NAME)) {
+            return;
+          }
+          String serviceName = name.substring(SERVICE_DIRECTORY_NAME.length());
+          if (!DescriptorUtils.isValidJavaType(serviceName)) {
+            return;
+          }
+          String serviceDescriptor = DescriptorUtils.javaTypeToDescriptor(serviceName);
+          DexType serviceType = appView.dexItemFactory().createType(serviceDescriptor);
+          if (appView.enableWholeProgramOptimizations()) {
+            DexClass serviceClass =
+                appView.appInfo().definitionForWithoutExistenceAssert(serviceType);
+            if (serviceClass == null) {
+              warn(
+                  "Unexpected reference to missing service class: META-INF/services/"
+                      + serviceType.toSourceString()
+                      + ".",
+                  serviceType,
+                  file.getOrigin());
             }
           }
+          byte[] bytes = ByteStreams.toByteArray(file.getByteStream());
+          String contents = new String(bytes, Charset.defaultCharset());
+          Map<FeatureSplit, List<DexType>> featureSplitImplementations =
+              services.computeIfAbsent(serviceType, k -> new LinkedHashMap<>());
+          List<DexType> serviceImplementations =
+              featureSplitImplementations.computeIfAbsent(featureSplit, f -> new ArrayList<>());
+          readServiceImplementationsForService(
+              contents, file.getOrigin(), serviceType, serviceImplementations);
         } catch (IOException | ResourceException e) {
           throw new CompilationError(e.getMessage(), e);
         }
       }
 
       private void readServiceImplementationsForService(
-          String contents, Origin origin, List<DexType> serviceImplementations) {
+          String contents,
+          Origin origin,
+          DexType serviceType,
+          List<DexType> serviceImplementations) {
         if (contents != null) {
           StringUtils.splitLines(contents).stream()
               .map(String::trim)
@@ -272,16 +291,32 @@ public class AppServices {
                   serviceImplementationType -> {
                     if (!serviceImplementationType.isClassType()) {
                       // Should never happen.
-                      appView
-                          .options()
-                          .reporter
-                          .warning(
-                              new StringDiagnostic(
-                                  "Unexpected service implementation found in META-INF/services/: `"
-                                      + serviceImplementationType.toSourceString()
-                                      + "`.",
-                                  origin));
+                      warn(
+                          "Unexpected service implementation found in META-INF/services/"
+                              + serviceType.toSourceString()
+                              + ": "
+                              + serviceImplementationType.toSourceString()
+                              + ".",
+                          serviceImplementationType,
+                          origin);
                       return false;
+                    }
+                    if (appView.enableWholeProgramOptimizations()) {
+                      DexClass serviceImplementationClass =
+                          appView
+                              .appInfo()
+                              .definitionForWithoutExistenceAssert(serviceImplementationType);
+                      if (serviceImplementationClass == null) {
+                        warn(
+                            "Unexpected reference to missing service implementation class in "
+                                + "META-INF/services/"
+                                + serviceType.toSourceString()
+                                + ": "
+                                + serviceImplementationType.toSourceString()
+                                + ".",
+                            serviceImplementationType,
+                            origin);
+                      }
                     }
                     // Only keep one of each implementation type in the list.
                     return !serviceImplementations.contains(serviceImplementationType);
@@ -293,6 +328,12 @@ public class AppServices {
       private String prefixUntilCommentChar(String line) {
         int commentCharIndex = line.indexOf('#');
         return commentCharIndex > -1 ? line.substring(0, commentCharIndex) : line;
+      }
+
+      private void warn(String message, DexType type, Origin origin) {
+        if (!options.getProguardConfiguration().getDontWarnPatterns().matches(type)) {
+          options.reporter.warning(new StringDiagnostic(message, origin));
+        }
       }
     }
   }

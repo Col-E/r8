@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.rewrite.serviceloaders;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -38,25 +34,19 @@ public class MissingServiceClassWithFeatureTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addProgramClasses(TestClass.class, ServiceImpl.class)
-          .addKeepMainRule(TestClass.class)
-          .addKeepClassAndMembersRules(FeatureClass.class)
-          .addKeepRules("-dontwarn " + Service.class.getTypeName())
-          .addDataEntryResources(
-              DataEntryResource.fromBytes(
-                  StringUtils.lines("java.lang.Object").getBytes(),
-                  AppServices.SERVICE_DIRECTORY_NAME + Service.class.getTypeName(),
-                  Origin.unknown()))
-          .addFeatureSplit(FeatureClass.class)
-          .setMinApi(parameters.getApiLevel())
-          .compile();
-      fail();
-    } catch (CompilationFailedException e) {
-      // TODO(b/169531713): Fix NPE.
-      assertTrue(e.getCause() instanceof NullPointerException);
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(TestClass.class, ServiceImpl.class)
+        .addKeepMainRule(TestClass.class)
+        .addKeepClassAndMembersRules(FeatureClass.class)
+        .addKeepRules("-dontwarn " + Service.class.getTypeName())
+        .addDataEntryResources(
+            DataEntryResource.fromBytes(
+                StringUtils.lines("java.lang.Object").getBytes(),
+                AppServices.SERVICE_DIRECTORY_NAME + Service.class.getTypeName(),
+                Origin.unknown()))
+        .addFeatureSplit(FeatureClass.class)
+        .setMinApi(parameters.getApiLevel())
+        .compile();
   }
 
   static class TestClass {

@@ -34,6 +34,7 @@ import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -521,6 +522,32 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return !cfByteCodePassThrough.isEmpty();
   }
 
+  public void removePrunedClasses(
+      DirectMappedDexApplication prunedApp,
+      Set<DexType> removedClasses,
+      Collection<DexMethod> methodsToKeepForConfigurationDebugging) {
+    assert enableWholeProgramOptimizations();
+    assert appInfo().hasLiveness();
+    removePrunedClasses(
+        prunedApp, removedClasses, methodsToKeepForConfigurationDebugging, withLiveness());
+  }
+
+  private static void removePrunedClasses(
+      DirectMappedDexApplication prunedApp,
+      Set<DexType> removedClasses,
+      Collection<DexMethod> methodsToKeepForConfigurationDebugging,
+      AppView<AppInfoWithLiveness> appView) {
+    if (removedClasses.isEmpty() && !appView.options().configurationDebugging) {
+      assert appView.appInfo.app() == prunedApp;
+      return;
+    }
+    appView.setAppInfo(
+        appView
+            .appInfo()
+            .prunedCopyFrom(prunedApp, removedClasses, methodsToKeepForConfigurationDebugging));
+    appView.setAppServices(appView.appServices().prunedCopy(removedClasses));
+  }
+
   public void rewriteWithLens(NonIdentityGraphLens lens) {
     if (lens != null) {
       rewriteWithLens(lens, appInfo().app().asDirect(), withLiveness(), lens.getPrevious());
@@ -566,6 +593,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         GraphLens.getIdentityLens(),
         () -> {
           appView.setAppInfo(appView.appInfo().rewrittenWithLens(application, lens));
+          appView.setAppServices(appView.appServices().rewrittenWithLens(lens));
           if (appView.hasInitClassLens()) {
             appView.setInitClassLens(appView.initClassLens().rewrittenWithLens(lens));
           }
