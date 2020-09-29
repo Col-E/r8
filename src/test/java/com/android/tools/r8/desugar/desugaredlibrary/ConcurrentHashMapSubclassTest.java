@@ -15,6 +15,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,6 +46,7 @@ public class ConcurrentHashMapSubclassTest extends DesugaredLibraryTestBase {
   public void testCustomCollectionD8() throws Exception {
     expectThrowsWithHorizontalClassMergingIf(
         shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
+    Assume.assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(ConcurrentHashMapSubclassTest.class)
@@ -100,6 +102,7 @@ public class ConcurrentHashMapSubclassTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testCustomCollectionR8() throws Exception {
+    Assume.assumeTrue(parameters.getRuntime().isDex());
     expectThrowsWithHorizontalClassMergingIf(
         shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
