@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.L8Command;
@@ -165,6 +166,25 @@ public class DesugaredLibraryTestBase extends TestBase {
       return new PresentKeepRuleConsumer();
     }
     return new AbsentKeepRuleConsumer();
+  }
+
+  public Path getDesugaredLibraryInCF(
+      TestParameters parameters, Consumer<InternalOptions> configurationForLibraryCompilation)
+      throws IOException, CompilationFailedException {
+    Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs.jar");
+    L8Command.Builder l8Builder =
+        L8Command.builder()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
+            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
+            .setMode(CompilationMode.DEBUG)
+            .addDesugaredLibraryConfiguration(
+                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+            .setMinApiLevel(parameters.getApiLevel().getLevel())
+            .setOutput(desugaredLib, OutputMode.ClassFile);
+
+    ToolHelper.runL8(l8Builder.build(), configurationForLibraryCompilation);
+    return desugaredLib;
   }
 
   public interface KeepRuleConsumer extends StringConsumer {
