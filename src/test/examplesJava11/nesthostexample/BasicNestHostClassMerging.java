@@ -4,6 +4,8 @@
 
 package nesthostexample;
 
+import annotations.NeverInline;
+
 public class BasicNestHostClassMerging {
 
   private String field = "Outer";

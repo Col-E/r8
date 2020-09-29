@@ -24,6 +24,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.PreventChangingVisib
 import com.android.tools.r8.horizontalclassmerging.policies.PreventMergeIntoMainDex;
 import com.android.tools.r8.horizontalclassmerging.policies.RespectPackageBoundaries;
 import com.android.tools.r8.horizontalclassmerging.policies.SameFeatureSplit;
+import com.android.tools.r8.horizontalclassmerging.policies.SameNestHost;
 import com.android.tools.r8.horizontalclassmerging.policies.SameParentClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ClassMergingEnqueuerExtension;
@@ -64,6 +65,7 @@ public class HorizontalClassMerger {
             new NotEntryPoint(appView.dexItemFactory()),
             new PreventMergeIntoMainDex(appView, mainDexTracingResult),
             new SameParentClass(),
+            new SameNestHost(),
             new PreventChangingVisibility(),
             new SameFeatureSplit(appView),
             new RespectPackageBoundaries(appView),

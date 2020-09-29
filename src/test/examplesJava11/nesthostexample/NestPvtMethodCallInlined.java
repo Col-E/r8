@@ -4,6 +4,8 @@
 
 package nesthostexample;
 
+import annotations.NeverInline;
+
 public class NestPvtMethodCallInlined {
 
   public static class Inner {

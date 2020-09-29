@@ -4,6 +4,8 @@
 
 package nesthostexample;
 
+import annotations.NeverInline;
+
 public class BasicNestHostTreePruning {
 
   private String field = System.currentTimeMillis() >= 0 ? "NotPruned" : "Dead";

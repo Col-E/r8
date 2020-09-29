@@ -11,7 +11,6 @@ import java.util.LinkedList;
 import java.util.Map;
 
 public abstract class MultiClassSameReferencePolicy<T> extends MultiClassPolicy {
-
   @Override
   public final Collection<Collection<DexProgramClass>> apply(Collection<DexProgramClass> group) {
     Map<T, Collection<DexProgramClass>> groups = new IdentityHashMap<>();

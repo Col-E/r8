@@ -4,6 +4,8 @@
 
 package nesthostexample;
 
+import annotations.NeverInline;
+
 public class NestHostInliningSubclasses {
 
   public static class InnerWithPrivAccess extends NestHostInlining.InnerWithPrivAccess {

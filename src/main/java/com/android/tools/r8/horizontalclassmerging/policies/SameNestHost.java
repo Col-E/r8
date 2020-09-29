@@ -8,10 +8,9 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
 
-public class SameParentClass extends MultiClassSameReferencePolicy<DexType> {
-
+public class SameNestHost extends MultiClassSameReferencePolicy<DexType> {
   @Override
   public DexType getMergeKey(DexProgramClass clazz) {
-    return clazz.superType;
+    return clazz.getNestHost();
   }
 }
