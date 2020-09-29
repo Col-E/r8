@@ -5,6 +5,7 @@
 package com.android.tools.r8.repackaging;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.utils.DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR;
 import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 
 import com.android.tools.r8.graph.AppView;
@@ -18,7 +19,7 @@ import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.SortedProgramPackageCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
-import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -43,13 +44,14 @@ import java.util.concurrent.ExecutorService;
 public class Repackaging {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final DexItemFactory dexItemFactory;
   private final ProguardConfiguration proguardConfiguration;
+  private final RepackagingConfiguration repackagingConfiguration;
 
   public Repackaging(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.dexItemFactory = appView.dexItemFactory();
     this.proguardConfiguration = appView.options().getProguardConfiguration();
+    this.repackagingConfiguration =
+        appView.options().testing.repackagingConfigurationFactory.apply(appView);
   }
 
   public RepackagingLens run(
@@ -90,10 +92,16 @@ public class Repackaging {
     Iterator<ProgramPackage> iterator = packages.iterator();
     while (iterator.hasNext()) {
       ProgramPackage pkg = iterator.next();
-      String newPackageDescriptor = getNewPackageDescriptor(pkg, seenPackageDescriptors);
+      String newPackageDescriptor =
+          repackagingConfiguration.getNewPackageDescriptor(pkg, seenPackageDescriptors);
       if (pkg.getPackageDescriptor().equals(newPackageDescriptor)) {
         for (DexProgramClass alreadyRepackagedClass : pkg) {
-          mappings.put(alreadyRepackagedClass.getType(), alreadyRepackagedClass.getType());
+          if (!appView.appInfo().isRepackagingAllowed(alreadyRepackagedClass.getType())) {
+            mappings.put(alreadyRepackagedClass.getType(), alreadyRepackagedClass.getType());
+          }
+        }
+        for (DexProgramClass alreadyRepackagedClass : pkg) {
+          processClass(alreadyRepackagedClass, pkg, newPackageDescriptor, mappings);
         }
         seenPackageDescriptors.add(newPackageDescriptor);
         iterator.remove();
@@ -111,7 +119,8 @@ public class Repackaging {
     // desired package.
     for (ProgramPackage pkg : packages) {
       // Already processed packages should have been removed.
-      String newPackageDescriptor = getNewPackageDescriptor(pkg, seenPackageDescriptors);
+      String newPackageDescriptor =
+          repackagingConfiguration.getNewPackageDescriptor(pkg, seenPackageDescriptors);
       assert !pkg.getPackageDescriptor().equals(newPackageDescriptor);
 
       Iterable<DexProgramClass> classesToRepackage =
@@ -151,7 +160,8 @@ public class Repackaging {
     }
     mappings.put(
         classToRepackage.getType(),
-        getRepackagedType(classToRepackage, outerClass, newPackageDescriptor, mappings));
+        repackagingConfiguration.getRepackagedType(
+            classToRepackage, outerClass, newPackageDescriptor, mappings));
   }
 
   private Iterable<DexProgramClass> computeClassesToRepackage(
@@ -165,46 +175,129 @@ public class Repackaging {
     return constraintGraph.computeClassesToRepackage();
   }
 
-  private String getNewPackageDescriptor(ProgramPackage pkg, Set<String> seenPackageDescriptors) {
-    String newPackageDescriptor =
-        StringUtils.replaceAll(proguardConfiguration.getPackagePrefix(), ".", "/");
-    if (proguardConfiguration.getPackageObfuscationMode().isRepackageClasses()) {
-      return newPackageDescriptor;
-    }
-    if (!newPackageDescriptor.isEmpty()) {
-      newPackageDescriptor += "/";
-    }
-    newPackageDescriptor += pkg.getLastPackageName();
-    String finalPackageDescriptor = newPackageDescriptor;
-    for (int i = 1; seenPackageDescriptors.contains(finalPackageDescriptor); i++) {
-      finalPackageDescriptor = newPackageDescriptor + INNER_CLASS_SEPARATOR + i;
-    }
-    return finalPackageDescriptor;
+  public interface RepackagingConfiguration {
+
+    String getNewPackageDescriptor(ProgramPackage pkg, Set<String> seenPackageDescriptors);
+
+    DexType getRepackagedType(
+        DexProgramClass clazz,
+        DexProgramClass outerClass,
+        String newPackageDescriptor,
+        BiMap<DexType, DexType> mappings);
   }
 
-  private DexType getRepackagedType(
-      DexProgramClass clazz,
-      DexProgramClass outerClass,
-      String newPackageDescriptor,
-      BiMap<DexType, DexType> mappings) {
-    DexType repackagedDexType =
-        clazz.getType().replacePackage(newPackageDescriptor, dexItemFactory);
-    if (outerClass != null) {
-      String simpleName = clazz.getType().getSimpleName();
-      String outerClassSimpleName = outerClass.getType().getSimpleName();
-      if (simpleName.startsWith(outerClassSimpleName + INNER_CLASS_SEPARATOR)) {
-        String newSimpleName =
-            mappings.get(outerClass.getType()).getSimpleName()
-                + simpleName.substring(outerClassSimpleName.length());
-        repackagedDexType = repackagedDexType.withSimpleName(newSimpleName, dexItemFactory);
+  public static class DefaultRepackagingConfiguration implements RepackagingConfiguration {
+
+    private final DexItemFactory dexItemFactory;
+    private final ProguardConfiguration proguardConfiguration;
+
+    public DefaultRepackagingConfiguration(
+        DexItemFactory dexItemFactory, ProguardConfiguration proguardConfiguration) {
+      this.dexItemFactory = dexItemFactory;
+      this.proguardConfiguration = proguardConfiguration;
+    }
+
+    @Override
+    public String getNewPackageDescriptor(ProgramPackage pkg, Set<String> seenPackageDescriptors) {
+      String newPackageDescriptor =
+          DescriptorUtils.getBinaryNameFromJavaType(proguardConfiguration.getPackagePrefix());
+      if (proguardConfiguration.getPackageObfuscationMode().isRepackageClasses()) {
+        return newPackageDescriptor;
       }
+      if (!newPackageDescriptor.isEmpty()) {
+        newPackageDescriptor += DESCRIPTOR_PACKAGE_SEPARATOR;
+      }
+      newPackageDescriptor += pkg.getLastPackageName();
+      String finalPackageDescriptor = newPackageDescriptor;
+      for (int i = 1; seenPackageDescriptors.contains(finalPackageDescriptor); i++) {
+        finalPackageDescriptor = newPackageDescriptor + INNER_CLASS_SEPARATOR + i;
+      }
+      return finalPackageDescriptor;
     }
-    DexType finalRepackagedDexType = repackagedDexType;
-    for (int i = 1; mappings.inverse().containsKey(finalRepackagedDexType); i++) {
-      finalRepackagedDexType =
-          repackagedDexType.addSuffix(
-              Character.toString(INNER_CLASS_SEPARATOR) + i, dexItemFactory);
+
+    @Override
+    public DexType getRepackagedType(
+        DexProgramClass clazz,
+        DexProgramClass outerClass,
+        String newPackageDescriptor,
+        BiMap<DexType, DexType> mappings) {
+      DexType repackagedDexType =
+          clazz.getType().replacePackage(newPackageDescriptor, dexItemFactory);
+      // Rename the class consistently with its outer class.
+      if (outerClass != null) {
+        String simpleName = clazz.getType().getSimpleName();
+        String outerClassSimpleName = outerClass.getType().getSimpleName();
+        if (simpleName.startsWith(outerClassSimpleName + INNER_CLASS_SEPARATOR)) {
+          String newSimpleName =
+              mappings.get(outerClass.getType()).getSimpleName()
+                  + simpleName.substring(outerClassSimpleName.length());
+          repackagedDexType = repackagedDexType.withSimpleName(newSimpleName, dexItemFactory);
+        } else {
+          assert false
+              : "Unexpected name for inner class: "
+                  + clazz.getType().toSourceString()
+                  + " (outer class: "
+                  + outerClass.getType().toSourceString()
+                  + ")";
+        }
+      }
+      // Ensure that the generated name is unique.
+      DexType finalRepackagedDexType = repackagedDexType;
+      for (int i = 1; mappings.inverse().containsKey(finalRepackagedDexType); i++) {
+        finalRepackagedDexType =
+            repackagedDexType.addSuffix(
+                Character.toString(INNER_CLASS_SEPARATOR) + i, dexItemFactory);
+      }
+      return finalRepackagedDexType;
     }
-    return finalRepackagedDexType;
+  }
+
+  /** Testing only. */
+  public static class SuffixRenamingRepackagingConfiguration implements RepackagingConfiguration {
+
+    private final String classNameSuffix;
+    private final DexItemFactory dexItemFactory;
+
+    public SuffixRenamingRepackagingConfiguration(
+        String classNameSuffix, DexItemFactory dexItemFactory) {
+      this.classNameSuffix = classNameSuffix;
+      this.dexItemFactory = dexItemFactory;
+    }
+
+    @Override
+    public String getNewPackageDescriptor(ProgramPackage pkg, Set<String> seenPackageDescriptors) {
+      // Don't change the package of classes.
+      return pkg.getPackageDescriptor();
+    }
+
+    @Override
+    public DexType getRepackagedType(
+        DexProgramClass clazz,
+        DexProgramClass outerClass,
+        String newPackageDescriptor,
+        BiMap<DexType, DexType> mappings) {
+      DexType repackagedDexType = clazz.getType();
+      // Rename the class consistently with its outer class.
+      if (outerClass != null) {
+        String simpleName = clazz.getType().getSimpleName();
+        String outerClassSimpleName = outerClass.getType().getSimpleName();
+        if (simpleName.startsWith(outerClassSimpleName + INNER_CLASS_SEPARATOR)) {
+          String newSimpleName =
+              mappings.get(outerClass.getType()).getSimpleName()
+                  + simpleName.substring(outerClassSimpleName.length());
+          repackagedDexType = repackagedDexType.withSimpleName(newSimpleName, dexItemFactory);
+        }
+      }
+      // Append the class name suffix to all classes.
+      repackagedDexType = repackagedDexType.addSuffix(classNameSuffix, dexItemFactory);
+      // Ensure that the generated name is unique.
+      DexType finalRepackagedDexType = repackagedDexType;
+      for (int i = 1; mappings.inverse().containsKey(finalRepackagedDexType); i++) {
+        finalRepackagedDexType =
+            repackagedDexType.addSuffix(
+                Character.toString(INNER_CLASS_SEPARATOR) + i, dexItemFactory);
+      }
+      return finalRepackagedDexType;
+    }
   }
 }

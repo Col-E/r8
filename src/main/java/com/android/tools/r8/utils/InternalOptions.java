@@ -43,6 +43,8 @@ import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.repackaging.Repackaging.DefaultRepackagingConfiguration;
+import com.android.tools.r8.repackaging.Repackaging.RepackagingConfiguration;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.GlobalKeepInfoConfiguration;
@@ -75,6 +77,7 @@ import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import org.objectweb.asm.Opcodes;
 
@@ -1212,6 +1215,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public BiConsumer<AppInfoWithLiveness, Enqueuer.Mode> enqueuerInspector = null;
 
     public BiConsumer<ProgramMethod, MethodProcessingId> methodProcessingIdConsumer = null;
+
+    public Function<AppView<AppInfoWithLiveness>, RepackagingConfiguration>
+        repackagingConfigurationFactory =
+            appView ->
+                new DefaultRepackagingConfiguration(
+                    appView.dexItemFactory(), appView.options().getProguardConfiguration());
 
     public Consumer<Deque<SortedProgramMethodSet>> waveModifier = waves -> {};
 
