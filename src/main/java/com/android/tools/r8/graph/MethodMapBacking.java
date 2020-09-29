@@ -11,6 +11,7 @@ import com.google.common.base.Equivalence.Wrapper;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceRBTreeMap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map.Entry;
@@ -56,14 +57,6 @@ public class MethodMapBacking extends MethodCollectionBacking {
       methodMap.remove(existingKey);
       methodMap.put(wrap(method.method), method);
     }
-  }
-
-  private void rehash() {
-    Object2ReferenceMap<Wrapper<DexMethod>, DexEncodedMethod> newMap = createMap(methodMap.size());
-    for (DexEncodedMethod method : methodMap.values()) {
-      newMap.put(wrap(method.method), method);
-    }
-    methodMap = newMap;
   }
 
   @Override
@@ -259,17 +252,13 @@ public class MethodMapBacking extends MethodCollectionBacking {
 
   @Override
   void replaceMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
-    boolean rehash = false;
-    for (Object2ReferenceMap.Entry<Wrapper<DexMethod>, DexEncodedMethod> entry :
-        methodMap.object2ReferenceEntrySet()) {
-      DexEncodedMethod newMethod = replacement.apply(entry.getValue());
-      if (newMethod != entry.getValue()) {
-        rehash = rehash || newMethod.method != entry.getKey().get();
-        entry.setValue(newMethod);
+    ArrayList<DexEncodedMethod> initialValues = new ArrayList<>(methodMap.values());
+    for (DexEncodedMethod method : initialValues) {
+      DexEncodedMethod newMethod = replacement.apply(method);
+      if (newMethod != method) {
+        removeMethod(method.method);
+        addMethod(newMethod);
       }
-    }
-    if (rehash) {
-      rehash();
     }
   }
 

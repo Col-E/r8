@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.enums;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
@@ -15,6 +16,7 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -42,8 +44,38 @@ class EnumUnboxingLens extends GraphLens.NestedGraphLens {
         originalMethodSignatures,
         previousLens,
         dexItemFactory);
+    assert noDuplicateEntries(fieldMap, originalFieldSignatures);
+    assert noDuplicateEntries(methodMap, originalMethodSignatures);
     this.prototypeChangesPerMethod = prototypeChangesPerMethod;
     this.unboxedEnums = unboxedEnums;
+  }
+
+  private <T extends DexMember<?, ?>> boolean noDuplicateEntries(
+      Map<T, T> map, BiMap<T, T> originalSignatures) {
+    if (map.size() == originalSignatures.size()) {
+      return true;
+    }
+    IdentityHashMap<T, T> methodMapReverse = new IdentityHashMap<>();
+    IdentityHashMap<T, Set<T>> duplicate = new IdentityHashMap<>();
+    map.forEach(
+        (k, v) -> {
+          if (methodMapReverse.containsKey(v)) {
+            Set<T> dexMethods = duplicate.computeIfAbsent(v, ignored -> Sets.newIdentityHashSet());
+            dexMethods.add(methodMapReverse.get(v));
+            dexMethods.add(k);
+          } else {
+            methodMapReverse.put(v, k);
+          }
+        });
+    assert !duplicate.isEmpty();
+    StringBuilder sb = new StringBuilder();
+    sb.append("Enum unboxing has created duplicate members: \n");
+    duplicate.forEach(
+        (target, origins) -> {
+          sb.append(origins).append(" -> ").append(target).append("\n");
+        });
+    assert false : sb.toString();
+    return false;
   }
 
   @Override
