@@ -625,7 +625,20 @@ public class CfSourceCode implements SourceCode {
             locals, stack, getCanonicalDebugPositionAtOffset(currentInstructionIndex));
     // Update the incoming state as well with precise information.
     assert incomingState.get(currentBlockIndex) != null;
-    incomingState.put(currentBlockIndex, snapshot);
+    if (isFirstFrameInBlock()) {
+      incomingState.put(currentBlockIndex, snapshot);
+    }
+  }
+
+  private boolean isFirstFrameInBlock() {
+    for (int i = currentBlockIndex; i < currentInstructionIndex; i++) {
+      CfInstruction cfInstruction = code.getInstructions().get(i);
+      if (cfInstruction.isPosition() || cfInstruction.isLabel()) {
+        continue;
+      }
+      return false;
+    }
+    return true;
   }
 
   private DexType convertUninitialized(FrameType type) {

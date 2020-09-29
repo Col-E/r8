@@ -4,11 +4,6 @@
 
 package com.android.tools.r8.ir;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -39,21 +34,10 @@ public class DebugLocalStartRangeInLinearBlockWithFrameTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assertThrows(
-        CompilationFailedException.class,
-        () -> {
-          testForD8(parameters.getBackend())
-              .addProgramClassFileData(AbstractAjaxCallbackDump.dump())
-              .setMinApi(parameters.getApiLevel())
-              .compileWithExpectedDiagnostics(
-                  diagnostics -> {
-                    diagnostics.assertAllErrorsMatch(
-                        diagnosticMessage(
-                            containsString(
-                                "com.android.tools.r8.errors.CompilationError: Different stack"
-                                    + " heights at jump target: 0 != 1")));
-                  });
-        });
+    testForD8(parameters.getBackend())
+        .addProgramClassFileData(AbstractAjaxCallbackDump.dump())
+        .setMinApi(parameters.getApiLevel())
+        .compile();
   }
 
   public static class AbstractAjaxCallbackDump implements Opcodes {
