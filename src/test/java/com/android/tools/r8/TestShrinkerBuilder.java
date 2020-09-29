@@ -35,17 +35,14 @@ public abstract class TestShrinkerBuilder<
   }
 
   @Override
-  public T setMinApi(AndroidApiLevel minApiLevel) {
-    if (backend == Backend.DEX) {
-      return super.setMinApi(minApiLevel.getLevel());
-    }
-    return self();
+  public boolean isTestShrinkerBuilder() {
+    return true;
   }
 
   @Override
-  public T setMinApi(int minApiLevel) {
+  public T setMinApi(AndroidApiLevel minApiLevel) {
     if (backend == Backend.DEX) {
-      return super.setMinApi(minApiLevel);
+      return super.setMinApi(minApiLevel.getLevel());
     }
     return self();
   }

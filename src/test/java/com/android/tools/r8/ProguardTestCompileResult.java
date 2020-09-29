@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
@@ -17,8 +18,13 @@ public class ProguardTestCompileResult
   private final Path outputJar;
   private final String proguardMap;
 
-  ProguardTestCompileResult(TestState state, Path outputJar, String proguardMap) {
-    super(state, AndroidApp.builder().addProgramFiles(outputJar).build(), OutputMode.ClassFile);
+  ProguardTestCompileResult(
+      TestState state, Path outputJar, AndroidApiLevel minApiLevel, String proguardMap) {
+    super(
+        state,
+        AndroidApp.builder().addProgramFiles(outputJar).build(),
+        minApiLevel,
+        OutputMode.ClassFile);
     this.outputJar = outputJar;
     this.proguardMap = proguardMap;
   }

@@ -133,6 +133,10 @@ public class TestBase {
     CF,
     DEX;
 
+    public boolean isDex() {
+      return this == DEX;
+    }
+
     public static Backend fromConsumer(ProgramConsumer consumer) {
       return consumer instanceof ClassFileConsumer ? CF : DEX;
     }

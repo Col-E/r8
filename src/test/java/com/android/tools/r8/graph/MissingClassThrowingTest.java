@@ -6,7 +6,6 @@ package com.android.tools.r8.graph;
 
 import static org.hamcrest.core.StringContains.containsString;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoStaticClassMerging;
 import com.android.tools.r8.TestBase;
@@ -14,7 +13,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,8 +63,7 @@ public class MissingClassThrowingTest extends TestBase {
 
   @Ignore("b/128885552")
   @Test
-  public void testSuperTypeOfExceptions()
-      throws ExecutionException, CompilationFailedException, IOException {
+  public void testSuperTypeOfExceptions() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(Program.class)
         .noMinification()

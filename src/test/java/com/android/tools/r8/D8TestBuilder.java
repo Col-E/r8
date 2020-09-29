@@ -64,7 +64,7 @@ public class D8TestBuilder
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
     ToolHelper.runD8(builder, optionsConsumer);
-    return new D8TestCompileResult(getState(), app.get(), getOutputMode());
+    return new D8TestCompileResult(getState(), app.get(), minApiLevel, getOutputMode());
   }
 
   public D8TestBuilder setIntermediate(boolean intermediate) {

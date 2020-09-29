@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.TestBase.Backend.DEX;
+import static com.android.tools.r8.TestBase.testForD8;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -48,15 +49,18 @@ public abstract class TestCompileResult<
     extends TestBaseResult<CR, RR> {
 
   public final AndroidApp app;
+  public final AndroidApiLevel minApiLevel;
   private final OutputMode outputMode;
   final List<Path> additionalRunClassPath = new ArrayList<>();
   final List<String> vmArguments = new ArrayList<>();
   private boolean withArt6Plus64BitsLib = false;
   private boolean withArtFrameworks = true;
 
-  TestCompileResult(TestState state, AndroidApp app, OutputMode outputMode) {
+  TestCompileResult(
+      TestState state, AndroidApp app, AndroidApiLevel minApiLevel, OutputMode outputMode) {
     super(state);
     this.app = app;
+    this.minApiLevel = minApiLevel;
     this.outputMode = outputMode;
   }
 
@@ -167,11 +171,19 @@ public abstract class TestCompileResult<
     return self();
   }
 
-  public CR addRunClasspathClasses(Class<?>... classpath) {
+  public CR addRunClasspathClasses(Class<?>... classpath) throws Exception {
     return addRunClasspathClasses(Arrays.asList(classpath));
   }
 
-  public CR addRunClasspathClasses(List<Class<?>> classpath) {
+  public CR addRunClasspathClasses(List<Class<?>> classpath) throws Exception {
+    if (getBackend() == Backend.DEX) {
+      return addRunClasspathFiles(
+          testForD8(state.getTempFolder())
+              .addProgramClasses(classpath)
+              .setMinApi(minApiLevel)
+              .compile()
+              .writeToZip());
+    }
     assert getBackend() == Backend.CF;
     try {
       Path path = state.getNewTempFolder().resolve("runtime-classes.jar");

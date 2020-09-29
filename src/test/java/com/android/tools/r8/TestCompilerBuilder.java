@@ -53,7 +53,7 @@ public abstract class TestCompilerBuilder<
   private final List<Path> additionalRunClassPath = new ArrayList<>();
   private ProgramConsumer programConsumer;
   private StringConsumer mainDexListConsumer;
-  private AndroidApiLevel defaultMinApiLevel = ToolHelper.getMinApiLevelForDexVm();
+  protected AndroidApiLevel minApiLevel = ToolHelper.getMinApiLevelForDexVm();
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
   private ByteArrayOutputStream stdout = null;
   private PrintStream oldStdout = null;
@@ -62,6 +62,10 @@ public abstract class TestCompilerBuilder<
   protected OutputMode outputMode = OutputMode.DexIndexed;
 
   private boolean isAndroidBuildVersionAdded = false;
+
+  public boolean isTestShrinkerBuilder() {
+    return false;
+  }
 
   public T addAndroidBuildVersion() {
     addProgramClasses(AndroidBuildVersion.class);
@@ -103,13 +107,14 @@ public abstract class TestCompilerBuilder<
     AndroidAppConsumers sink = new AndroidAppConsumers();
     builder.setProgramConsumer(sink.wrapProgramConsumer(programConsumer));
     builder.setMainDexListConsumer(mainDexListConsumer);
-    if (backend == Backend.DEX && defaultMinApiLevel != null) {
+    if (backend.isDex() || !isTestShrinkerBuilder()) {
       assert !builder.isMinApiLevelSet()
           : "Don't set the API level directly through BaseCompilerCommand.Builder in tests";
-      builder.setMinApiLevel(defaultMinApiLevel.getLevel());
+      builder.setMinApiLevel(minApiLevel.getLevel());
     }
     if (useDefaultRuntimeLibrary) {
-      if (backend == Backend.DEX && builder.isMinApiLevelSet()) {
+      if (backend == Backend.DEX) {
+        assert builder.isMinApiLevelSet();
         builder.addLibraryFiles(
             ToolHelper.getFirstSupportedAndroidJar(
                 AndroidApiLevel.getAndroidApiLevel(builder.getMinApiLevel())));
@@ -233,11 +238,7 @@ public abstract class TestCompilerBuilder<
   }
 
   public T setMinApi(int minApiLevel) {
-    assert builder.getMinApiLevel() > 0 || this.defaultMinApiLevel != null
-        : "Tests must use this method to set min API level, and not"
-            + " BaseCompilerCommand.Builder.setMinApiLevel()";
-    this.defaultMinApiLevel = null;
-    builder.setMinApiLevel(minApiLevel);
+    this.minApiLevel = AndroidApiLevel.getAndroidApiLevel(minApiLevel);
     return self();
   }
 

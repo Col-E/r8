@@ -12,6 +12,7 @@ import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -29,7 +30,6 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   private final List<ProguardConfigurationRule> syntheticProguardRules;
   private final String proguardMap;
   private final CollectingGraphConsumer graphConsumer;
-  private final int minApiLevel;
   private final List<Path> features;
 
   R8TestCompileResult(
@@ -40,14 +40,13 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
       List<ProguardConfigurationRule> syntheticProguardRules,
       String proguardMap,
       CollectingGraphConsumer graphConsumer,
-      int minApiLevel,
+      AndroidApiLevel minApiLevel,
       List<Path> features) {
-    super(state, app, outputMode);
+    super(state, app, minApiLevel, outputMode);
     this.proguardConfiguration = proguardConfiguration;
     this.syntheticProguardRules = syntheticProguardRules;
     this.proguardMap = proguardMap;
     this.graphConsumer = graphConsumer;
-    this.minApiLevel = minApiLevel;
     this.features = features;
   }
 
