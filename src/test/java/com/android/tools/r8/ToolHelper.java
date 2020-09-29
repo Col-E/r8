@@ -790,6 +790,30 @@ public class ToolHelper {
     return Files.exists(path);
   }
 
+  public static boolean shouldHaveAndroidJar(AndroidApiLevel apiLevel) {
+    switch (apiLevel) {
+      case B_1_1:
+      case C:
+      case D:
+      case E:
+      case E_0_1:
+      case E_MR1:
+      case F:
+      case G:
+      case G_MR1:
+      case H:
+      case H_MR1:
+      case H_MR2:
+      case J:
+      case J_MR1:
+      case J_MR2:
+      case K_WATCH:
+        return false;
+      default:
+        return true;
+    }
+  }
+
   public static Path getAndroidJar(AndroidApiLevel apiLevel) {
     Path path = getAndroidJarPath(apiLevel);
     assert Files.exists(path)
