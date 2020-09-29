@@ -100,6 +100,8 @@ public abstract class ClassSubject extends Subject {
 
   public abstract MethodSubject uniqueMethodWithName(String name);
 
+  public abstract MethodSubject uniqueMethodWithFinalName(String name);
+
   public MethodSubject mainMethod() {
     return method("void", "main", ImmutableList.of("java.lang.String[]"));
   }

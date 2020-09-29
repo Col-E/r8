@@ -575,7 +575,6 @@ public class R8 {
               appView.appInfo().app().asDirect().builder();
           HorizontalClassMergerGraphLens lens = merger.run(appBuilder);
           if (lens != null) {
-            appView.setHorizontallyMergedClasses(lens.getHorizontallyMergedClasses());
             appView.rewriteWithLensAndApplication(lens, appBuilder.build());
           }
           timing.end();

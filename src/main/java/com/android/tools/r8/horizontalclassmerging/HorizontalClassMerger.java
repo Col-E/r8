@@ -90,6 +90,8 @@ public class HorizontalClassMerger {
       return null;
     }
 
+    HorizontallyMergedClasses.Builder mergedClassesBuilder =
+        new HorizontallyMergedClasses.Builder();
     HorizontalClassMergerGraphLens.Builder lensBuilder =
         new HorizontalClassMergerGraphLens.Builder();
     FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder =
@@ -97,7 +99,8 @@ public class HorizontalClassMerger {
 
     // Set up a class merger for each group.
     Collection<ClassMerger> classMergers =
-        initializeClassMergers(lensBuilder, fieldAccessChangesBuilder, groups);
+        initializeClassMergers(
+            mergedClassesBuilder, lensBuilder, fieldAccessChangesBuilder, groups);
     Iterable<DexProgramClass> allMergeClasses =
         Iterables.concat(Iterables.transform(classMergers, ClassMerger::getClasses));
 
@@ -107,7 +110,10 @@ public class HorizontalClassMerger {
     applyClassMergers(classMergers, syntheticArgumentClass);
 
     // Generate the class lens.
-    return createLens(lensBuilder, fieldAccessChangesBuilder);
+    HorizontallyMergedClasses mergedClasses = mergedClassesBuilder.build();
+    appView.setHorizontallyMergedClasses(mergedClasses);
+    return createLens(
+        mergedClasses, lensBuilder, fieldAccessChangesBuilder, syntheticArgumentClass);
   }
 
   /**
@@ -115,6 +121,7 @@ public class HorizontalClassMerger {
    * be merged and how the merging should be performed.
    */
   private Collection<ClassMerger> initializeClassMergers(
+      HorizontallyMergedClasses.Builder mergedClassesBuilder,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       Collection<Collection<DexProgramClass>> groups) {
@@ -130,7 +137,7 @@ public class HorizontalClassMerger {
       ClassMerger merger =
           new ClassMerger.Builder(target)
               .addClassesToMerge(group)
-              .build(appView, lensBuilder, fieldAccessChangesBuilder);
+              .build(appView, mergedClassesBuilder, lensBuilder, fieldAccessChangesBuilder);
       classMergers.add(merger);
     }
 
@@ -150,11 +157,19 @@ public class HorizontalClassMerger {
    * containing all changes performed by horizontal class merging.
    */
   private HorizontalClassMergerGraphLens createLens(
+      HorizontallyMergedClasses mergedClasses,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
-      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder) {
+      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
+      SyntheticArgumentClass syntheticArgumentClass) {
 
     HorizontalClassMergerGraphLens lens =
-        new TreeFixer(appView, lensBuilder, fieldAccessChangesBuilder).fixupTypeReferences();
+        new TreeFixer(
+                appView,
+                mergedClasses,
+                lensBuilder,
+                fieldAccessChangesBuilder,
+                syntheticArgumentClass)
+            .fixupTypeReferences();
     return lens;
   }
 }

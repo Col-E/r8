@@ -44,6 +44,7 @@ public class ClassMerger {
   private final Collection<DexProgramClass> toMergeGroup;
   private final DexItemFactory dexItemFactory;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
+  private final HorizontallyMergedClasses.Builder mergedClassesBuilder;
   private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
 
   private final Reference2IntMap<DexType> classIdentifiers = new Reference2IntOpenHashMap<>();
@@ -54,6 +55,7 @@ public class ClassMerger {
   private ClassMerger(
       AppView<AppInfoWithLiveness> appView,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
+      HorizontallyMergedClasses.Builder mergedClassesBuilder,
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       DexProgramClass target,
       Collection<DexProgramClass> toMergeGroup,
@@ -62,6 +64,7 @@ public class ClassMerger {
       Collection<ConstructorMerger> constructorMergers) {
     this.appView = appView;
     this.lensBuilder = lensBuilder;
+    this.mergedClassesBuilder = mergedClassesBuilder;
     this.fieldAccessChangesBuilder = fieldAccessChangesBuilder;
     this.target = target;
     this.toMergeGroup = toMergeGroup;
@@ -156,9 +159,9 @@ public class ClassMerger {
   public void mergeGroup(SyntheticArgumentClass syntheticArgumentClass) {
     appendClassIdField();
 
+    mergedClassesBuilder.addMergeGroup(target, toMergeGroup);
     for (DexProgramClass clazz : toMergeGroup) {
       merge(clazz);
-      lensBuilder.mapType(clazz.type, target.type);
     }
 
     mergeConstructors(syntheticArgumentClass);
@@ -222,6 +225,7 @@ public class ClassMerger {
 
     public ClassMerger build(
         AppView<AppInfoWithLiveness> appView,
+        HorizontallyMergedClasses.Builder mergedClassesBuilder,
         HorizontalClassMergerGraphLens.Builder lensBuilder,
         FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder) {
       DexItemFactory dexItemFactory = appView.dexItemFactory();
@@ -244,6 +248,7 @@ public class ClassMerger {
       return new ClassMerger(
           appView,
           lensBuilder,
+          mergedClassesBuilder,
           fieldAccessChangesBuilder,
           target,
           toMergeGroup,

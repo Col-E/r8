@@ -26,7 +26,9 @@ public class SimplePolicyExecutor extends PolicyExecutor {
     Iterator<Collection<DexProgramClass>> i = groups.iterator();
     while (i.hasNext()) {
       Collection<DexProgramClass> group = i.next();
+      int previousNumberOfClasses = group.size();
       group.removeIf(clazz -> !policy.canMerge(clazz));
+      policy.numberOfRemovedClasses += previousNumberOfClasses - group.size();
       if (group.size() < 2) {
         i.remove();
       }

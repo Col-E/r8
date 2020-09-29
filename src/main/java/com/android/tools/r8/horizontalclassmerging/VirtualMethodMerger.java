@@ -145,7 +145,8 @@ public class VirtualMethodMerger {
             Integer.max(classFileVersion, method.getDefinition().getClassFileVersion());
       }
       DexMethod newMethod = moveMethod(method);
-      lensBuilder.recordOriginalSignature(method.getReference(), newMethod);
+      lensBuilder.mapMethod(newMethod, newMethod);
+      lensBuilder.mapMethodInverse(method.getReference(), newMethod);
       classIdToMethodMap.put(classIdentifiers.getInt(method.getHolderType()), newMethod);
     }
 
@@ -175,7 +176,7 @@ public class VirtualMethodMerger {
 
     // Map each old method to the newly synthesized method in the graph lens.
     for (ProgramMethod oldMethod : methods) {
-      lensBuilder.mapMethod(oldMethod.getReference(), newMethodReference);
+      lensBuilder.moveMethod(oldMethod.getReference(), newMethodReference);
     }
     lensBuilder.recordExtraOriginalSignature(originalMethodReference, newMethodReference);
 

@@ -8,11 +8,13 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.google.common.collect.Iterators;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-public class DexTypeList extends DexItem {
+public class DexTypeList extends DexItem implements Iterable<DexType> {
 
   private static final DexTypeList theEmptyTypeList = new DexTypeList();
 
@@ -35,7 +37,8 @@ public class DexTypeList extends DexItem {
     return ArrayUtils.contains(values, type);
   }
 
-  public void forEach(Consumer<DexType> consumer) {
+  @Override
+  public void forEach(Consumer<? super DexType> consumer) {
     for (DexType value : values) {
       consumer.accept(value);
     }
@@ -120,5 +123,10 @@ public class DexTypeList extends DexItem {
       }
     }
     throw new Unreachable();
+  }
+
+  @Override
+  public Iterator<DexType> iterator() {
+    return Iterators.forArray(values);
   }
 }

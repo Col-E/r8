@@ -146,6 +146,18 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public MethodSubject uniqueMethodWithFinalName(String name) {
+    MethodSubject methodSubject = null;
+    for (FoundMethodSubject candidate : allMethods()) {
+      if (candidate.getFinalName().equals(name)) {
+        assert methodSubject == null;
+        methodSubject = candidate;
+      }
+    }
+    return methodSubject != null ? methodSubject : new AbsentMethodSubject();
+  }
+
+  @Override
   public void forAllFields(Consumer<FoundFieldSubject> inspection) {
     forAllInstanceFields(inspection);
     forAllStaticFields(inspection);

@@ -7,18 +7,18 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   private final AppView<?> appView;
@@ -27,8 +27,8 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
 
   private HorizontalClassMergerGraphLens(
       AppView<?> appView,
+      HorizontallyMergedClasses horizontallyMergedClasses,
       Map<DexMethod, List<ExtraParameter>> methodExtraParameters,
-      Map<DexType, DexType> typeMap,
       Map<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
       BiMap<DexField, DexField> originalFieldSignatures,
@@ -36,7 +36,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       Map<DexMethod, DexMethod> originalConstructorSignatures,
       GraphLens previousLens) {
     super(
-        typeMap,
+        horizontallyMergedClasses.getForwardMap(),
         methodMap,
         fieldMap,
         originalFieldSignatures,
@@ -55,10 +55,6 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       return super.getOriginalMethodSignature(method);
     }
     return getPrevious().getOriginalMethodSignature(originalConstructor);
-  }
-
-  public HorizontallyMergedClasses getHorizontallyMergedClasses() {
-    return new HorizontallyMergedClasses(this.typeMap);
   }
 
   /**
@@ -81,102 +77,67 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   }
 
   public static class Builder {
-    private final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
     private final BiMap<DexField, DexField> fieldMap = HashBiMap.create();
-    private final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
-    private final Map<DexMethod, Set<DexMethod>> completeInverseMethodMap = new IdentityHashMap<>();
 
-    private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
-    private final Map<DexMethod, DexMethod> extraOriginalMethodSignatures = new IdentityHashMap<>();
+    private ManyToOneMap<DexMethod, DexMethod> methodMap = new ManyToOneMap<>();
 
     private final Map<DexMethod, List<ExtraParameter>> methodExtraParameters =
         new IdentityHashMap<>();
 
     Builder() {}
 
-    public HorizontalClassMergerGraphLens build(AppView<?> appView) {
-      assert !typeMap.isEmpty();
-
+    public HorizontalClassMergerGraphLens build(
+        AppView<?> appView, HorizontallyMergedClasses mergedClasses) {
+      ManyToOneInverseMap<DexMethod, DexMethod> inverseMethodMap =
+          methodMap.inverse(
+              group -> {
+                // Every group should have a representative. Fail in debug mode.
+                assert false;
+                return group.iterator().next();
+              });
       BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
+
       return new HorizontalClassMergerGraphLens(
           appView,
+          mergedClasses,
           methodExtraParameters,
-          typeMap,
           fieldMap,
-          methodMap,
+          methodMap.getForwardMap(),
           originalFieldSignatures,
-          originalMethodSignatures,
-          extraOriginalMethodSignatures,
+          inverseMethodMap.getBiMap(),
+          inverseMethodMap.getExtraMap(),
           appView.graphLens());
     }
 
-    public DexType lookupType(DexType type) {
-      return typeMap.getOrDefault(type, type);
-    }
-
-    public Builder mapType(DexType from, DexType to) {
-      typeMap.put(from, to);
-      return this;
-    }
-
-    /** Bidirectional mapping from one method to another. */
-    public Builder moveMethod(DexMethod from, DexMethod to) {
-      if (from == to) {
-        return this;
-      }
-
-      mapMethod(from, to);
-      recordOriginalSignature(from, to);
-      return this;
-    }
-
-    public Builder recordOriginalSignature(DexMethod from, DexMethod to) {
-      if (from == to) {
-        return this;
-      }
-
-      originalMethodSignatures.forcePut(to, originalMethodSignatures.getOrDefault(from, from));
-      return this;
+    public void remapMethods(BiMap<DexMethod, DexMethod> remapMethods) {
+      methodMap = methodMap.remap(remapMethods, Function.identity(), Function.identity());
     }
 
     /** Unidirectional mapping from one method to another. */
     public Builder recordExtraOriginalSignature(DexMethod from, DexMethod to) {
-      if (from == to) {
-        return this;
-      }
+      methodMap.setRepresentative(from, to);
 
-      extraOriginalMethodSignatures.put(to, extraOriginalMethodSignatures.getOrDefault(from, from));
       return this;
     }
 
     /** Unidirectional mapping from one method to another. */
     public Builder mapMethod(DexMethod from, DexMethod to) {
-      if (from == to) {
-        return this;
-      }
-
-      for (DexMethod existingFrom :
-          completeInverseMethodMap.getOrDefault(from, Collections.emptySet())) {
-        methodMap.put(existingFrom, to);
-
-        // We currently assume that a single method can only be remapped twice.
-        assert completeInverseMethodMap
-            .getOrDefault(existingFrom, Collections.emptySet())
-            .isEmpty();
-      }
-
       methodMap.put(from, to);
-      completeInverseMethodMap.computeIfAbsent(to, ignore -> new HashSet<>()).add(from);
 
       return this;
     }
 
-    public boolean hasExtraSignatureMappingFor(DexMethod method) {
-      return extraOriginalMethodSignatures.containsKey(method);
+    /** Unidirectional mapping from one method to another. */
+    public Builder mapMethodInverse(DexMethod from, DexMethod to) {
+      methodMap.putInverse(from, to);
+
+      return this;
     }
 
-    public boolean hasOriginalSignatureMappingFor(DexMethod method) {
-      return originalMethodSignatures.containsKey(method);
+    public Builder moveMethod(DexMethod from, DexMethod to) {
+      mapMethod(from, to);
+      mapMethodInverse(from, to);
+      return this;
     }
 
     /**
@@ -184,10 +145,23 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
      * where many constructors are merged into a single constructor. The synthesized constructor
      * therefore does not have a unique reverse constructor.
      */
-    public Builder mapMergedConstructor(
+    public Builder moveMergedConstructor(
         DexMethod from, DexMethod to, List<ExtraParameter> extraParameters) {
-      mapMethod(from, to);
+      moveMethod(from, to);
       methodExtraParameters.put(from, extraParameters);
+      return this;
+    }
+
+    public Builder addExtraParameters(DexMethod to, List<ExtraParameter> extraParameters) {
+      Set<DexMethod> mapsFrom = methodMap.lookupReverse(to);
+      if (mapsFrom == null) {
+        mapsFrom = Collections.singleton(to);
+      }
+      mapsFrom.forEach(
+          originalFrom ->
+              methodExtraParameters
+                  .computeIfAbsent(originalFrom, ignore -> new ArrayList<>(extraParameters.size()))
+                  .addAll(extraParameters));
       return this;
     }
   }

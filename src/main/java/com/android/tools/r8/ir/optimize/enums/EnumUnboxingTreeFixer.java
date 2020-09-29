@@ -145,14 +145,11 @@ class EnumUnboxingTreeFixer {
     DexClass holder = appView.definitionFor(encodedMethod.holder());
     assert holder != null;
     if (encodedMethod.isInstanceInitializer()) {
-      while (holder.lookupMethod(newMethod) != null) {
-        newMethod =
-            factory.createMethod(
-                newMethod.holder,
-                factory.appendTypeToProto(
-                    newMethod.proto, relocator.getDefaultEnumUnboxingUtility()),
-                newMethod.name);
-      }
+      newMethod =
+          factory.createInstanceInitializerWithFreshProto(
+              newMethod,
+              relocator.getDefaultEnumUnboxingUtility(),
+              tryMethod -> holder.lookupMethod(tryMethod) == null);
     } else {
       int index = 0;
       while (holder.lookupMethod(newMethod) != null) {

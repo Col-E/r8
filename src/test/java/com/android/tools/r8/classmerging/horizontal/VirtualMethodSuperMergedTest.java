@@ -14,8 +14,9 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
-public class VirtualMethodSuperMerged extends HorizontalClassMergingTestBase {
-  public VirtualMethodSuperMerged(TestParameters parameters, boolean enableHorizontalClassMerging) {
+public class VirtualMethodSuperMergedTest extends HorizontalClassMergingTestBase {
+  public VirtualMethodSuperMergedTest(
+      TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
   }
 

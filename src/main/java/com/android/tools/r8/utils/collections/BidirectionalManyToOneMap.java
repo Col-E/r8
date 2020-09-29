@@ -19,6 +19,22 @@ public class BidirectionalManyToOneMap<K, V> {
     return backing.getOrDefault(key, value);
   }
 
+  public Map<K, V> getForwardMap() {
+    return backing;
+  }
+
+  public Set<K> keySet() {
+    return backing.keySet();
+  }
+
+  public boolean hasKey(K key) {
+    return backing.containsKey(key);
+  }
+
+  public boolean hasValue(V value) {
+    return inverse.containsKey(value);
+  }
+
   public Set<K> getKeys(V value) {
     return inverse.getOrDefault(value, Collections.emptySet());
   }

@@ -329,7 +329,6 @@ public class VerticalClassMergerTest extends TestBase {
 
   @Test
   public void testConflictWasDetected() throws Throwable {
-    expectThrowsWithHorizontalClassMerging();
     runR8(EXAMPLE_KEEP, this::configure);
     assertThat(inspector.clazz("classmerging.ConflictingInterface"), isPresent());
     assertThat(inspector.clazz("classmerging.ConflictingInterfaceImpl"), isPresent());

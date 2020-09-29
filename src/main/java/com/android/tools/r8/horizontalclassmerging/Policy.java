@@ -9,6 +9,9 @@ package com.android.tools.r8.horizontalclassmerging;
  * {@link SingleClassPolicy} or {@link MultiClassPolicy}.
  */
 public abstract class Policy {
+  /** Counter keeping track of how many classes this policy has removed. For debugging only. */
+  public int numberOfRemovedClasses;
+
   public boolean shouldSkipPolicy() {
     return false;
   }

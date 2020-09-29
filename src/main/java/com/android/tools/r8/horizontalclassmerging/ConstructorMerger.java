@@ -140,7 +140,8 @@ public class ConstructorMerger {
         classFileVersion = Integer.max(classFileVersion, constructor.getClassFileVersion());
       }
       DexMethod movedConstructor = moveConstructor(constructor);
-      lensBuilder.recordOriginalSignature(constructor.method, movedConstructor);
+      lensBuilder.mapMethod(movedConstructor, movedConstructor);
+      lensBuilder.mapMethodInverse(constructor.method, movedConstructor);
       typeConstructorClassMap.put(
           classIdentifiers.getInt(constructor.getHolderType()), movedConstructor);
     }
@@ -152,14 +153,13 @@ public class ConstructorMerger {
       assert target.lookupMethod(newConstructorReference) == null;
     }
 
-    DexMethod originalConstructorReference =
-        appView.graphLens().getOriginalMethodSignature(constructors.iterator().next().method);
+    DexMethod representativeConstructorReference = constructors.iterator().next().method;
     ConstructorEntryPointSynthesizedCode synthesizedCode =
         new ConstructorEntryPointSynthesizedCode(
             typeConstructorClassMap,
             newConstructorReference,
             classIdField,
-            originalConstructorReference);
+            appView.graphLens().getOriginalMethodSignature(representativeConstructorReference));
     DexEncodedMethod newConstructor =
         new DexEncodedMethod(
             newConstructorReference,
@@ -177,10 +177,10 @@ public class ConstructorMerger {
       if (addExtraNull) {
         List<ExtraParameter> extraParameters = new LinkedList<>();
         extraParameters.add(new ExtraUnusedNullParameter());
-        lensBuilder.mapMergedConstructor(
+        lensBuilder.moveMergedConstructor(
             oldConstructor.method, newConstructorReference, extraParameters);
       } else {
-        lensBuilder.mapMethod(oldConstructor.method, newConstructorReference);
+        lensBuilder.moveMethod(oldConstructor.method, newConstructorReference);
       }
     } else {
       // Map each old constructor to the newly synthesized constructor in the graph lens.
@@ -193,12 +193,13 @@ public class ConstructorMerger {
           extraParameters.add(new ExtraUnusedNullParameter());
         }
 
-        lensBuilder.mapMergedConstructor(
+        lensBuilder.moveMergedConstructor(
             oldConstructor.method, newConstructorReference, extraParameters);
       }
     }
     // Map the first constructor to the newly synthesized constructor.
-    lensBuilder.recordExtraOriginalSignature(originalConstructorReference, newConstructorReference);
+    lensBuilder.recordExtraOriginalSignature(
+        representativeConstructorReference, newConstructorReference);
 
     target.addDirectMethod(newConstructor);
 

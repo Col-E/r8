@@ -452,7 +452,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_privatePropertyIsAlwaysInlined() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
+    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePrivateProp");
     runTest(
@@ -491,7 +491,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_internalPropertyCannotBeInlined() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
+    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_useInternalProp");
     runTest(
@@ -524,7 +524,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_publicPropertyCannotBeInlined() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
+    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     String mainClass = addMainToClasspath(
         "properties.CompanionPropertiesKt", "companionProperties_usePublicProp");
     runTest(
@@ -558,7 +558,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_privateLateInitPropertyIsAlwaysInlined() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
+    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePrivateLateInitProp");
@@ -595,7 +595,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_internalLateInitPropertyCannotBeInlined() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
+    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_useInternalLateInitProp");
@@ -623,7 +623,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_publicLateInitPropertyCannotBeInlined() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
+    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePublicLateInitProp");

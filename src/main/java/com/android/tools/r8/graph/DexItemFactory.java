@@ -1778,23 +1778,22 @@ public class DexItemFactory {
     return str.replace('.', '$');
   }
 
-  public DexString createFreshMemberString(String baseName, DexType holder, int index) {
-    StringBuilder sb =
-        new StringBuilder()
-            .append(baseName)
-            .append('$')
-            .append(escapeMemberString(holder.toSourceString()));
+  public String createMemberString(String baseName, DexType holder, int index) {
+    StringBuilder sb = new StringBuilder().append(baseName);
+    if (holder != null) {
+      sb.append('$').append(escapeMemberString(holder.toSourceString()));
+    }
 
     if (index > 0) {
       sb.append("$").append(index);
     }
 
-    return createString(sb.toString());
+    return sb.toString();
   }
 
   /**
    * Find a fresh method name that is not used by any other method. The method name takes the form
-   * "basename$holdername$index".
+   * "basename$holdername" or "basename$holdername$index".
    *
    * @param tryString callback to check if the method name is in use.
    */
@@ -1802,12 +1801,36 @@ public class DexItemFactory {
       String baseName, DexType holder, Function<DexString, Optional<T>> tryString) {
     int index = 0;
     while (true) {
-      DexString name = createFreshMemberString(baseName, holder, index++);
+      DexString name = createString(createMemberString(baseName, holder, index++));
       Optional<T> result = tryString.apply(name);
       if (result.isPresent()) {
         return result.get();
       }
     }
+  }
+
+  /**
+   * Find a fresh method name that is not in the string pool. The name takes the form
+   * "basename$holdername" or "basename$holdername$index".
+   */
+  public DexString createGloballyFreshMemberString(String baseName, DexType holder) {
+    assert !sorted;
+    int index = 0;
+    while (true) {
+      String name = createMemberString(baseName, holder, index++);
+      DexString dexName = lookupString(name);
+      if (dexName == null) {
+        return createString(name);
+      }
+    }
+  }
+
+  /**
+   * Find a fresh method name that is not in the string pool. The name takes the form "basename" or
+   * "basename$index".
+   */
+  public DexString createGloballyFreshMemberString(String baseName) {
+    return createGloballyFreshMemberString(baseName, null);
   }
 
   /**
@@ -1837,6 +1860,26 @@ public class DexItemFactory {
               }
             });
     return method;
+  }
+
+  public DexMethod createInstanceInitializerWithFreshProto(
+      DexMethod method, DexType extraType, Predicate<DexMethod> isFresh) {
+    assert method.isInstanceInitializer(this);
+    return createInstanceInitializerWithFreshProto(
+        method.proto,
+        extraType,
+        proto -> Optional.of(createMethod(method.holder, proto, method.name)).filter(isFresh));
+  }
+
+  private DexMethod createInstanceInitializerWithFreshProto(
+      DexProto proto, DexType extraType, Function<DexProto, Optional<DexMethod>> isFresh) {
+    while (true) {
+      Optional<DexMethod> object = isFresh.apply(proto);
+      if (object.isPresent()) {
+        return object.get();
+      }
+      proto = appendTypeToProto(proto, extraType);
+    }
   }
 
   public DexString lookupString(int size, byte[] content) {
