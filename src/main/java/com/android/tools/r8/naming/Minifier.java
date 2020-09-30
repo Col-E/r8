@@ -58,7 +58,7 @@ public class Minifier {
             new MinificationPackageNamingStrategy(appView),
             // Use deterministic class order to make sure renaming is deterministic.
             appView.appInfo().classesWithDeterministicOrder());
-    ClassRenaming classRenaming = classNameMinifier.computeRenaming(timing);
+    ClassRenaming classRenaming = classNameMinifier.computeRenaming(timing, executorService);
     timing.end();
 
     assert new MinifiedRenaming(

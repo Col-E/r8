@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.naming.NamingLens.NonIdentityNamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,7 +21,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 // Naming lens for rewriting type prefixes.
-public class PrefixRewritingNamingLens extends NonIdentityNamingLens {
+public class PrefixRewritingNamingLens extends NamingLens {
 
   final NamingLens namingLens;
   final InternalOptions options;
@@ -41,7 +40,6 @@ public class PrefixRewritingNamingLens extends NonIdentityNamingLens {
   }
 
   public PrefixRewritingNamingLens(NamingLens namingLens, AppView<?> appView) {
-    super(appView.dexItemFactory());
     this.appView = appView;
     this.namingLens = namingLens;
     this.options = appView.options();
@@ -70,7 +68,7 @@ public class PrefixRewritingNamingLens extends NonIdentityNamingLens {
   }
 
   @Override
-  protected DexString internalLookupClassDescriptor(DexType type) {
+  public DexString lookupDescriptor(DexType type) {
     DexString renaming = getRenaming(type);
     return renaming != null ? renaming : namingLens.lookupDescriptor(type);
   }

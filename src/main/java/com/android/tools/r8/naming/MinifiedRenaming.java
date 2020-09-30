@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
-import com.android.tools.r8.naming.NamingLens.NonIdentityNamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
@@ -28,7 +27,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-class MinifiedRenaming extends NonIdentityNamingLens {
+class MinifiedRenaming extends NamingLens {
 
   final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Map<String, String> packageRenaming;
@@ -39,7 +38,6 @@ class MinifiedRenaming extends NonIdentityNamingLens {
       ClassRenaming classRenaming,
       MethodRenaming methodRenaming,
       FieldRenaming fieldRenaming) {
-    super(appView.dexItemFactory());
     this.appView = appView;
     this.packageRenaming = classRenaming.packageRenaming;
     renaming.putAll(classRenaming.classRenaming);
@@ -53,7 +51,7 @@ class MinifiedRenaming extends NonIdentityNamingLens {
   }
 
   @Override
-  protected DexString internalLookupClassDescriptor(DexType type) {
+  public DexString lookupDescriptor(DexType type) {
     return renaming.getOrDefault(type, type.descriptor);
   }
 

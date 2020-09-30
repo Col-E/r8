@@ -32,6 +32,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 
 class ClassNameMinifier {
@@ -112,11 +114,14 @@ class ClassNameMinifier {
     }
   }
 
-  ClassRenaming computeRenaming(Timing timing) {
-    return computeRenaming(timing, Collections.emptyMap());
+  ClassRenaming computeRenaming(Timing timing, ExecutorService executorService)
+      throws ExecutionException {
+    return computeRenaming(timing, executorService, Collections.emptyMap());
   }
 
-  ClassRenaming computeRenaming(Timing timing, Map<DexType, DexString> syntheticClasses) {
+  ClassRenaming computeRenaming(
+      Timing timing, ExecutorService executorService, Map<DexType, DexString> syntheticClasses)
+      throws ExecutionException {
     // Externally defined synthetic classes populate an initial renaming.
     renaming.putAll(syntheticClasses);
 
@@ -152,6 +157,10 @@ class ClassNameMinifier {
     for (DexClass clazz : classes) {
       renameDanglingTypes(clazz);
     }
+    timing.end();
+
+    timing.begin("rename-arrays");
+    appView.dexItemFactory().forAllTypes(this::renameArrayTypeIfNeeded);
     timing.end();
 
     return new ClassRenaming(Collections.unmodifiableMap(renaming), getPackageRenaming());
@@ -348,6 +357,23 @@ class ClassNameMinifier {
       states.put(prefix, state);
     }
     return state;
+  }
+
+  private void renameArrayTypeIfNeeded(DexType type) {
+    if (type.isArrayType()) {
+      DexType base = type.toBaseType(appView.dexItemFactory());
+      DexString value = renaming.get(base);
+      if (value != null) {
+        int dimensions = type.descriptor.numberOfLeadingSquareBrackets();
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < dimensions; i++) {
+          builder.append('[');
+        }
+        builder.append(value.toString());
+        DexString descriptor = appView.dexItemFactory().createString(builder.toString());
+        renaming.put(type, descriptor);
+      }
+    }
   }
 
   protected class Namespace implements InternalNamingState {

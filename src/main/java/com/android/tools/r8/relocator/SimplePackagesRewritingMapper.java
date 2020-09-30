@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.naming.NamingLens.NonIdentityNamingLens;
 import com.android.tools.r8.references.PackageReference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -96,18 +95,23 @@ class SimplePackagesRewritingMapper {
     return new RelocatorNamingLens(typeMappings, packingMappings.build(), appView.dexItemFactory());
   }
 
-  private static class RelocatorNamingLens extends NonIdentityNamingLens {
+  Map<DexType, DexString> getTypeMappings() {
+    return typeMappings;
+  }
+
+  private static class RelocatorNamingLens extends NamingLens {
 
     private final Map<DexType, DexString> typeMappings;
     private final Map<String, String> packageMappings;
+    private final DexItemFactory factory;
 
     private RelocatorNamingLens(
         Map<DexType, DexString> typeMappings,
         Map<String, String> packageMappings,
         DexItemFactory factory) {
-      super(factory);
       this.typeMappings = typeMappings;
       this.packageMappings = packageMappings;
+      this.factory = factory;
     }
 
     @Override
@@ -116,7 +120,20 @@ class SimplePackagesRewritingMapper {
     }
 
     @Override
-    protected DexString internalLookupClassDescriptor(DexType type) {
+    public DexString lookupDescriptor(DexType type) {
+      if (type.isPrimitiveType() || type.isVoidType()) {
+        return type.descriptor;
+      }
+      if (type.isArrayType()) {
+        DexType baseType = type.toBaseType(factory);
+        if (baseType == null || baseType.isPrimitiveType()) {
+          return type.descriptor;
+        }
+        String baseDescriptor = typeMappings.getOrDefault(baseType, baseType.descriptor).toString();
+        return factory.createString(
+            DescriptorUtils.toArrayDescriptor(
+                type.getNumberOfLeadingSquareBrackets(), baseDescriptor));
+      }
       return typeMappings.getOrDefault(type, type.descriptor);
     }
 

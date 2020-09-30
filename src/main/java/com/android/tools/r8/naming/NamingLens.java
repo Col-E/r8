@@ -45,13 +45,6 @@ public abstract class NamingLens {
 
   public abstract DexString lookupDescriptor(DexType type);
 
-  public DexString lookupClassDescriptor(DexType type) {
-    assert type.isClassType();
-    return internalLookupClassDescriptor(type);
-  }
-
-  protected abstract DexString internalLookupClassDescriptor(DexType type);
-
   public abstract DexString lookupInnerName(InnerClassAttribute attribute, InternalOptions options);
 
   public abstract DexString lookupName(DexMethod method);
@@ -123,7 +116,7 @@ public abstract class NamingLens {
       return type.replaceBaseType(newBaseType, dexItemFactory);
     }
     assert type.isClassType();
-    return dexItemFactory.createType(lookupClassDescriptor(type));
+    return dexItemFactory.createType(lookupDescriptor(type));
   }
 
   public boolean hasPrefixRewritingLogic() {
@@ -186,34 +179,7 @@ public abstract class NamingLens {
     return true;
   }
 
-  public abstract static class NonIdentityNamingLens extends NamingLens {
-
-    private final DexItemFactory dexItemFactory;
-
-    protected NonIdentityNamingLens(DexItemFactory dexItemFactory) {
-      this.dexItemFactory = dexItemFactory;
-    }
-
-    protected DexItemFactory dexItemFactory() {
-      return dexItemFactory;
-    }
-
-    @Override
-    public final DexString lookupDescriptor(DexType type) {
-      if (type.isPrimitiveType() || type.isVoidType() || type.isNullValueType()) {
-        return type.getDescriptor();
-      }
-      if (type.isArrayType()) {
-        DexType baseType = type.toBaseType(dexItemFactory);
-        DexString desc = lookupDescriptor(baseType);
-        return desc.toArrayDescriptor(type.getNumberOfLeadingSquareBrackets(), dexItemFactory);
-      }
-      assert type.isClassType();
-      return lookupClassDescriptor(type);
-    }
-  }
-
-  private static final class IdentityLens extends NamingLens {
+  private static class IdentityLens extends NamingLens {
 
     private IdentityLens() {
       // Intentionally left empty.
@@ -221,11 +187,6 @@ public abstract class NamingLens {
 
     @Override
     public DexString lookupDescriptor(DexType type) {
-      return type.descriptor;
-    }
-
-    @Override
-    protected DexString internalLookupClassDescriptor(DexType type) {
       return type.descriptor;
     }
 

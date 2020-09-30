@@ -331,7 +331,9 @@ public abstract class GraphLens {
   }
 
   /** Lookup a rebound or non-rebound method reference using the current graph lens. */
-  public abstract MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type);
+  public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+    return internalLookupMethod(method, context, type, result -> result);
+  }
 
   protected abstract MethodLookupResult internalLookupMethod(
       DexMethod reference, DexMethod context, Type type, LookupMethodContinuation continuation);
@@ -608,10 +610,6 @@ public abstract class GraphLens {
       this.previousLens = previousLens;
     }
 
-    public final DexItemFactory dexItemFactory() {
-      return dexItemFactory;
-    }
-
     public final GraphLens getPrevious() {
       return previousLens;
     }
@@ -621,20 +619,6 @@ public abstract class GraphLens {
       previousLens = lens;
       action.execute();
       previousLens = oldParent;
-    }
-
-    @Override
-    public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-      if (method.getHolderType().isArrayType()) {
-        assert method.getName() == dexItemFactory.cloneMethodName;
-        assert method.getReturnType() == dexItemFactory.objectType;
-        return MethodLookupResult.builder(this)
-            .setReference(method.withHolder(lookupType(method.getHolderType()), dexItemFactory))
-            .setType(type)
-            .build();
-      }
-      assert method.getHolderType().isClassType();
-      return internalLookupMethod(method, context, type, result -> result);
     }
 
     @Override
@@ -757,11 +741,6 @@ public abstract class GraphLens {
     public DexType lookupClassType(DexType type) {
       assert type.isClassType();
       return type;
-    }
-
-    @Override
-    public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-      return MethodLookupResult.builder(this).setReference(method).setType(type).build();
     }
 
     @Override
