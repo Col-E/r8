@@ -19,11 +19,11 @@ import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
-import com.android.tools.r8.graph.GenericSignature.Parser;
 import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.graph.GenericSignature.WildcardIndicator;
 import com.android.tools.r8.graph.GenericSignatureTestClassA.I;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -103,7 +103,13 @@ public class GenericSignatureTest extends TestBase {
     // class <T:GenericSignatureTestClassA<T>.Y>CYY<T extends A<T>.Y> extends CY<T>
     DexClass clazz = cyy.getDexProgramClass();
     assertNotNull(clazz);
-    classSignature = Parser.toClassSignature(clazz, appView);
+    classSignature =
+        GenericSignature.parseClassSignature(
+            clazz.getType().getName(),
+            getGenericSignature(clazz, appView),
+            clazz.origin,
+            appView.dexItemFactory(),
+            appView.options().reporter);
     assertNotNull(classSignature);
 
     assertEquals(1, classSignature.formalTypeParameters.size());
@@ -135,7 +141,13 @@ public class GenericSignatureTest extends TestBase {
     DexEncodedField field = yyInZZ.getField();
     assertNotNull(field);
 
-    fieldTypeSignature = Parser.toFieldTypeSignature(field, appView);
+    fieldTypeSignature =
+        GenericSignature.parseFieldTypeSignature(
+            field.field.qualifiedName(),
+            getGenericSignature(field, appView),
+            Origin.unknown(),
+            appView.dexItemFactory(),
+            appView.options().reporter);
     assertNotNull(fieldTypeSignature);
 
     // field type: A$Y$YY
@@ -152,7 +164,13 @@ public class GenericSignatureTest extends TestBase {
     method = newYY.getMethod();
     assertNotNull(method);
 
-    methodTypeSignature = Parser.toMethodTypeSignature(method, appView);
+    methodTypeSignature =
+        GenericSignature.parseMethodSignature(
+            method.qualifiedName(),
+            getGenericSignature(method, appView),
+            Origin.unknown(),
+            appView.dexItemFactory(),
+            appView.options().reporter);
     assertNotNull(methodTypeSignature);
 
     assertEquals(1, methodTypeSignature.formalTypeParameters.size());
@@ -194,7 +212,13 @@ public class GenericSignatureTest extends TestBase {
     method = convertToYY.getMethod();
     assertNotNull(method);
 
-    methodTypeSignature = GenericSignature.Parser.toMethodTypeSignature(method, appView);
+    methodTypeSignature =
+        GenericSignature.parseMethodSignature(
+            method.qualifiedName(),
+            getGenericSignature(method, appView),
+            Origin.unknown(),
+            appView.dexItemFactory(),
+            appView.options().reporter);
     assertNotNull(methodTypeSignature);
 
     // return type: Function<A$Y$ZZ<TT>, A$Y$YY>
@@ -231,7 +255,13 @@ public class GenericSignatureTest extends TestBase {
     assertNotNull(method);
 
     // return type: void
-    methodTypeSignature = Parser.toMethodTypeSignature(method, appView);
+    methodTypeSignature =
+        GenericSignature.parseMethodSignature(
+            method.qualifiedName(),
+            getGenericSignature(method, appView),
+            Origin.unknown(),
+            appView.dexItemFactory(),
+            appView.options().reporter);
     assertNotNull(methodTypeSignature);
     returnType = methodTypeSignature.returnType();
     assertTrue(returnType.isVoidDescriptor());
@@ -304,7 +334,12 @@ public class GenericSignatureTest extends TestBase {
       AppView<AppInfoWithLiveness> appView,
       Consumer<FieldTypeSignature> fieldTypeConsumer) {
     MethodTypeSignature methodTypeSignature =
-        Parser.toMethodTypeSignature(methodSubject.getMethod(), appView);
+        GenericSignature.parseMethodSignature(
+            methodSubject.getOriginalName(),
+            getGenericSignature(methodSubject.getMethod(), appView),
+            Origin.unknown(),
+            appView.dexItemFactory(),
+            appView.options().reporter);
     TypeSignature typeSignature = methodTypeSignature.returnType.typeSignature;
     FieldTypeSignature fieldTypeSignature = typeSignature.asFieldTypeSignature();
     assertTrue(fieldTypeSignature.isClassTypeSignature());
@@ -333,6 +368,22 @@ public class GenericSignatureTest extends TestBase {
     FieldTypeSignature typeArgument = typeArguments.get(0);
     assertTrue(typeArgument.isClassTypeSignature());
     check_A_Y_ZZ(a, y, zz, typeArgument.asClassTypeSignature());
+  }
+
+  private static String getGenericSignature(
+      DexDefinition definition, AppView<AppInfoWithLiveness> appView) {
+    DexAnnotationSet annotations = definition.annotations();
+    if (annotations.annotations.length == 0) {
+      return null;
+    }
+    for (int i = 0; i < annotations.annotations.length; i++) {
+      DexAnnotation annotation = annotations.annotations[i];
+      if (!DexAnnotation.isSignatureAnnotation(annotation, appView.dexItemFactory())) {
+        continue;
+      }
+      return DexAnnotation.getSignature(annotation);
+    }
+    return null;
   }
 }
 
