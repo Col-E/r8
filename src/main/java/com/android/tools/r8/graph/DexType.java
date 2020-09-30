@@ -52,6 +52,10 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     this.descriptor = descriptor;
   }
 
+  public DexString getDescriptor() {
+    return descriptor;
+  }
+
   @Override
   public int computeHashCode() {
     return descriptor.hashCode();
@@ -431,11 +435,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   }
 
   public DexType toArrayType(int dimensions, DexItemFactory dexItemFactory) {
-    byte[] content = new byte[descriptor.content.length + dimensions];
-    Arrays.fill(content, 0, dimensions, (byte) '[');
-    System.arraycopy(descriptor.content, 0, content, dimensions, descriptor.content.length);
-    DexString newDesc = dexItemFactory.createString(descriptor.size + dimensions, content);
-    return dexItemFactory.createType(newDesc);
+    return dexItemFactory.createType(descriptor.toArrayDescriptor(dimensions, dexItemFactory));
   }
 
   public DexType toArrayElementType(DexItemFactory dexItemFactory) {

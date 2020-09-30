@@ -500,4 +500,11 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     }
     return arrayDim;
   }
+
+  public DexString toArrayDescriptor(int dimensions, DexItemFactory dexItemFactory) {
+    byte[] newContent = new byte[content.length + dimensions];
+    Arrays.fill(newContent, 0, dimensions, (byte) '[');
+    System.arraycopy(content, 0, newContent, dimensions, content.length);
+    return dexItemFactory.createString(size + dimensions, newContent);
+  }
 }

@@ -2261,6 +2261,7 @@ public class DexItemFactory {
         });
   }
 
+  @Deprecated
   synchronized public void forAllTypes(Consumer<DexType> f) {
     new ArrayList<>(types.values()).forEach(f);
   }
