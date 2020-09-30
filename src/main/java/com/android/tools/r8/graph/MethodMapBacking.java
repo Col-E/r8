@@ -252,6 +252,9 @@ public class MethodMapBacking extends MethodCollectionBacking {
 
   @Override
   void replaceMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    // The code assumes that when replacement.apply(method) is called, the map is up-to-date with
+    // the previously replaced methods. We therefore cannot postpone the map updates to the end of
+    // the method.
     ArrayList<DexEncodedMethod> initialValues = new ArrayList<>(methodMap.values());
     for (DexEncodedMethod method : initialValues) {
       DexEncodedMethod newMethod = replacement.apply(method);

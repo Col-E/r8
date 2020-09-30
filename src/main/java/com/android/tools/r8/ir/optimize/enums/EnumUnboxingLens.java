@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.enums;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
@@ -14,9 +13,9 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -44,38 +43,8 @@ class EnumUnboxingLens extends GraphLens.NestedGraphLens {
         originalMethodSignatures,
         previousLens,
         dexItemFactory);
-    assert noDuplicateEntries(fieldMap, originalFieldSignatures);
-    assert noDuplicateEntries(methodMap, originalMethodSignatures);
     this.prototypeChangesPerMethod = prototypeChangesPerMethod;
     this.unboxedEnums = unboxedEnums;
-  }
-
-  private <T extends DexMember<?, ?>> boolean noDuplicateEntries(
-      Map<T, T> map, BiMap<T, T> originalSignatures) {
-    if (map.size() == originalSignatures.size()) {
-      return true;
-    }
-    IdentityHashMap<T, T> methodMapReverse = new IdentityHashMap<>();
-    IdentityHashMap<T, Set<T>> duplicate = new IdentityHashMap<>();
-    map.forEach(
-        (k, v) -> {
-          if (methodMapReverse.containsKey(v)) {
-            Set<T> dexMethods = duplicate.computeIfAbsent(v, ignored -> Sets.newIdentityHashSet());
-            dexMethods.add(methodMapReverse.get(v));
-            dexMethods.add(k);
-          } else {
-            methodMapReverse.put(v, k);
-          }
-        });
-    assert !duplicate.isEmpty();
-    StringBuilder sb = new StringBuilder();
-    sb.append("Enum unboxing has created duplicate members: \n");
-    duplicate.forEach(
-        (target, origins) -> {
-          sb.append(origins).append(" -> ").append(target).append("\n");
-        });
-    assert false : sb.toString();
-    return false;
   }
 
   @Override
@@ -99,26 +68,45 @@ class EnumUnboxingLens extends GraphLens.NestedGraphLens {
     return type;
   }
 
-  public static Builder builder() {
+  public static Builder enumUnboxingLensBuilder() {
     return new Builder();
   }
 
-  static class Builder extends NestedGraphLens.Builder {
+  static class Builder {
+
+    protected final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
+    protected final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
+    protected final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
 
     private Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
         new IdentityHashMap<>();
 
-    public void move(DexMethod from, boolean fromStatic, DexMethod to, boolean toStatic) {
-      move(from, fromStatic, to, toStatic, 0);
+    public void map(DexType from, DexType to) {
+      if (from == to) {
+        return;
+      }
+      typeMap.put(from, to);
+    }
+
+    public void move(DexField from, DexField to) {
+      if (from == to) {
+        return;
+      }
+      originalFieldSignatures.put(to, from);
+    }
+
+    public void move(DexMethod from, DexMethod to, boolean fromStatic, boolean toStatic) {
+      move(from, to, fromStatic, toStatic, 0);
     }
 
     public void move(
         DexMethod from,
-        boolean fromStatic,
         DexMethod to,
+        boolean fromStatic,
         boolean toStatic,
         int numberOfExtraNullParameters) {
-      super.move(from, to);
+      assert from != to;
+      originalMethodSignatures.put(to, from);
       int offsetDiff = 0;
       int toOffset = BooleanUtils.intValue(!toStatic);
       RewrittenPrototypeDescription.ArgumentInfoCollection.Builder builder =
@@ -153,13 +141,15 @@ class EnumUnboxingLens extends GraphLens.NestedGraphLens {
 
     public EnumUnboxingLens build(
         DexItemFactory dexItemFactory, GraphLens previousLens, Set<DexType> unboxedEnums) {
-      if (typeMap.isEmpty() && methodMap.isEmpty() && fieldMap.isEmpty()) {
+      if (typeMap.isEmpty()
+          && originalFieldSignatures.isEmpty()
+          && originalMethodSignatures.isEmpty()) {
         return null;
       }
       return new EnumUnboxingLens(
           typeMap,
-          methodMap,
-          fieldMap,
+          originalMethodSignatures.inverse(),
+          originalFieldSignatures.inverse(),
           originalFieldSignatures,
           originalMethodSignatures,
           previousLens,

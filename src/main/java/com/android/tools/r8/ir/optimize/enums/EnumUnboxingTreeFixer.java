@@ -28,7 +28,7 @@ import java.util.Set;
 class EnumUnboxingTreeFixer {
 
   private final Map<DexType, List<DexEncodedMethod>> unboxedEnumsMethods = new IdentityHashMap<>();
-  private final EnumUnboxingLens.Builder lensBuilder = EnumUnboxingLens.builder();
+  private final EnumUnboxingLens.Builder lensBuilder = EnumUnboxingLens.enumUnboxingLensBuilder();
   private final AppView<?> appView;
   private final DexItemFactory factory;
   private final Set<DexType> enumsToUnbox;
@@ -108,7 +108,7 @@ class EnumUnboxingTreeFixer {
     DexProto proto = encodedMethod.isStatic() ? method.proto : factory.prependHolderToProto(method);
     DexMethod newMethod = factory.createMethod(newHolder, fixupProto(proto), newMethodName);
     assert appView.definitionFor(encodedMethod.holder()).lookupMethod(newMethod) == null;
-    lensBuilder.move(method, encodedMethod.isStatic(), newMethod, true);
+    lensBuilder.move(method, newMethod, encodedMethod.isStatic(), true);
     encodedMethod.accessFlags.promoteToPublic();
     encodedMethod.accessFlags.promoteToStatic();
     encodedMethod.clearAnnotations();
@@ -131,7 +131,7 @@ class EnumUnboxingTreeFixer {
     int numberOfExtraNullParameters = newMethod.getArity() - encodedMethod.method.getArity();
     boolean isStatic = encodedMethod.isStatic();
     lensBuilder.move(
-        encodedMethod.method, isStatic, newMethod, isStatic, numberOfExtraNullParameters);
+        encodedMethod.method, newMethod, isStatic, isStatic, numberOfExtraNullParameters);
     DexEncodedMethod newEncodedMethod = encodedMethod.toTypeSubstitutedMethod(newMethod);
     assert !encodedMethod.isLibraryMethodOverride().isTrue()
         : "Enum unboxing is changing the signature of a library override in a non unboxed class.";
