@@ -143,7 +143,7 @@ public class ProguardMapMinifier {
             new MinificationPackageNamingStrategy(appView),
             mappedClasses);
     ClassRenaming classRenaming =
-        classNameMinifier.computeRenaming(timing, executorService, syntheticCompanionClasses);
+        classNameMinifier.computeRenaming(timing, syntheticCompanionClasses);
     timing.end();
 
     ApplyMappingMemberNamingStrategy nameStrategy =
@@ -578,9 +578,9 @@ public class ProguardMapMinifier {
     }
 
     @Override
-    public DexString lookupDescriptor(DexType type) {
+    protected DexString internalLookupClassDescriptor(DexType type) {
       checkForUseOfNotMappedReference(type);
-      return super.lookupDescriptor(type);
+      return super.internalLookupClassDescriptor(type);
     }
 
     private void checkForUseOfNotMappedReference(DexType type) {
