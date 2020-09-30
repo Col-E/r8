@@ -32,6 +32,11 @@ def parse_arguments():
       help='Path to r8lib map.',
       default=utils.R8LIB_JAR + '.map')
   parser.add_argument(
+      '--no-r8lib',
+      default=False,
+      action='store_true',
+      help='Use r8.jar and not r8lib.jar.')
+  parser.add_argument(
       '--stacktrace',
       help='Path to stacktrace file.',
       default=None)
@@ -57,17 +62,22 @@ def main():
     hash_or_version = find_version_or_hash_from_tag(args.tag)
   else:
     hash_or_version = args.commit_hash or args.version
-  return run(args.map, hash_or_version, args.stacktrace, args.commit_hash is not None)
+  return run(
+      args.map,
+      hash_or_version,
+      args.stacktrace,
+      args.commit_hash is not None,
+      args.no_r8lib)
 
-def run(r8lib_map_path, hash_or_version, stacktrace, is_hash):
+def run(map_path, hash_or_version, stacktrace, is_hash, no_r8lib):
   if hash_or_version:
     download_path = archive.GetUploadDestination(
         hash_or_version,
         'r8lib.jar.map',
         is_hash)
     if utils.file_exists_on_cloud_storage(download_path):
-      r8lib_map_path = tempfile.NamedTemporaryFile().name
-      utils.download_file_from_cloud_storage(download_path, r8lib_map_path)
+      map_path = tempfile.NamedTemporaryFile().name
+      utils.download_file_from_cloud_storage(download_path, map_path)
     else:
       print('Could not find map file from argument: %s.' % hash_or_version)
       return 1
@@ -75,14 +85,15 @@ def run(r8lib_map_path, hash_or_version, stacktrace, is_hash):
   retrace_args = [
     jdk.GetJavaExecutable(),
     '-cp',
-    utils.R8LIB_JAR,
+    utils.R8_JAR if no_r8lib else utils.R8LIB_JAR,
     'com.android.tools.r8.retrace.Retrace',
-    r8lib_map_path
+    map_path
   ]
 
   if stacktrace:
     retrace_args.append(stacktrace)
 
+  utils.PrintCmd(retrace_args)
   return subprocess.call(retrace_args)
 
 
