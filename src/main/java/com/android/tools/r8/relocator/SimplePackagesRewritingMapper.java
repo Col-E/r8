@@ -5,7 +5,6 @@
 package com.android.tools.r8.relocator;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
@@ -146,11 +145,6 @@ class SimplePackagesRewritingMapper {
     @Override
     public DexString lookupName(DexMethod method) {
       return method.name;
-    }
-
-    @Override
-    public DexString lookupMethodName(DexCallSite callSite) {
-      return callSite.methodName;
     }
 
     @Override

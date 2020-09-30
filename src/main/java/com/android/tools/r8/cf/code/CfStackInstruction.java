@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -93,6 +94,7 @@ public class CfStackInstruction extends CfInstruction {
 
   @Override
   public void write(
+      AppView<?> appView,
       ProgramMethod context,
       DexItemFactory dexItemFactory,
       GraphLens graphLens,

@@ -299,7 +299,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
     if (shouldAddParameterNames(method.getDefinition(), appView)) {
       parameterLabel = new CfLabel();
       parameterLabel.write(
-          method, dexItemFactory, graphLens, initClassLens, namingLens, rewriter, visitor);
+          appView, method, dexItemFactory, graphLens, initClassLens, namingLens, rewriter, visitor);
     }
     for (CfInstruction instruction : instructions) {
       if (instruction instanceof CfFrame
@@ -308,7 +308,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
         continue;
       }
       instruction.write(
-          method, dexItemFactory, graphLens, initClassLens, namingLens, rewriter, visitor);
+          appView, method, dexItemFactory, graphLens, initClassLens, namingLens, rewriter, visitor);
     }
     visitor.visitEnd();
     visitor.visitMaxs(maxStack, maxLocals);

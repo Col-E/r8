@@ -5,6 +5,7 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -53,6 +54,7 @@ public class CfInvokeDynamic extends CfInstruction {
 
   @Override
   public void write(
+      AppView<?> appView,
       ProgramMethod context,
       DexItemFactory dexItemFactory,
       GraphLens graphLens,
@@ -68,7 +70,7 @@ public class CfInvokeDynamic extends CfInstruction {
       bsmArgs[i] = decodeBootstrapArgument(bootstrapArgs.get(i), namingLens);
     }
     Handle bsmHandle = bootstrapMethod.toAsmHandle(namingLens);
-    DexString methodName = namingLens.lookupMethodName(rewrittenCallSite);
+    DexString methodName = namingLens.lookupMethodName(rewrittenCallSite, appView);
     visitor.visitInvokeDynamicInsn(
         methodName.toString(),
         rewrittenCallSite.methodProto.toDescriptorString(namingLens),

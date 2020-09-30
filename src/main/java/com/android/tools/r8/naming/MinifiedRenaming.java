@@ -6,7 +6,6 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
@@ -43,7 +42,6 @@ class MinifiedRenaming extends NamingLens {
     this.packageRenaming = classRenaming.packageRenaming;
     renaming.putAll(classRenaming.classRenaming);
     renaming.putAll(methodRenaming.renaming);
-    renaming.putAll(methodRenaming.callSiteRenaming);
     renaming.putAll(fieldRenaming.renaming);
   }
 
@@ -116,11 +114,6 @@ class MinifiedRenaming extends NamingLens {
     }
     // If no renaming can be found the default is the methods name.
     return method.name;
-  }
-
-  @Override
-  public DexString lookupMethodName(DexCallSite callSite) {
-    return renaming.getOrDefault(callSite, callSite.methodName);
   }
 
   @Override

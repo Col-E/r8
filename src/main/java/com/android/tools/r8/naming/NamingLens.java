@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -48,7 +49,27 @@ public abstract class NamingLens {
 
   public abstract DexString lookupName(DexMethod method);
 
-  public abstract DexString lookupMethodName(DexCallSite callSite);
+  public final DexString lookupMethodName(DexCallSite callSite, AppView<?> appView) {
+    if (!appView.appInfo().hasLiveness()) {
+      return callSite.methodName;
+    }
+    Set<DexEncodedMethod> lambdaImplementedMethods =
+        appView.appInfo().withLiveness().lookupLambdaImplementedMethods(callSite);
+    if (lambdaImplementedMethods.isEmpty()) {
+      return callSite.methodName;
+    }
+    DexMethod lambdaImplementedMethodReference =
+        lambdaImplementedMethods.iterator().next().getReference();
+    DexString renamedMethodName =
+        lookupMethod(lambdaImplementedMethodReference, appView.dexItemFactory()).getName();
+    // Verify that all lambda implemented methods are renamed consistently.
+    assert lambdaImplementedMethods.stream()
+        .map(DexEncodedMethod::getReference)
+        .map(reference -> lookupMethod(reference, appView.dexItemFactory()))
+        .map(DexMethod::getName)
+        .allMatch(name -> name == renamedMethodName);
+    return renamedMethodName;
+  }
 
   public abstract DexString lookupName(DexField field);
 
@@ -177,11 +198,6 @@ public abstract class NamingLens {
     @Override
     public DexString lookupName(DexMethod method) {
       return method.name;
-    }
-
-    @Override
-    public DexString lookupMethodName(DexCallSite callSite) {
-      return callSite.methodName;
     }
 
     @Override

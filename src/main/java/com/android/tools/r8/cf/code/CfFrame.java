@@ -7,6 +7,7 @@ import static org.objectweb.asm.Opcodes.F_NEW;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCodeStackMapValidatingException;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -350,6 +351,7 @@ public class CfFrame extends CfInstruction {
 
   @Override
   public void write(
+      AppView<?> appView,
       ProgramMethod context,
       DexItemFactory dexItemFactory,
       GraphLens graphLens,

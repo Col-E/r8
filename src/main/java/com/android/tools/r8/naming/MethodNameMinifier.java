@@ -4,7 +4,6 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -165,16 +164,13 @@ class MethodNameMinifier {
   static class MethodRenaming {
 
     final Map<DexMethod, DexString> renaming;
-    final Map<DexCallSite, DexString> callSiteRenaming;
 
-    private MethodRenaming(
-        Map<DexMethod, DexString> renaming, Map<DexCallSite, DexString> callSiteRenaming) {
+    private MethodRenaming(Map<DexMethod, DexString> renaming) {
       this.renaming = renaming;
-      this.callSiteRenaming = callSiteRenaming;
     }
 
     public static MethodRenaming empty() {
-      return new MethodRenaming(ImmutableMap.of(), ImmutableMap.of());
+      return new MethodRenaming(ImmutableMap.of());
     }
   }
 
@@ -199,7 +195,7 @@ class MethodNameMinifier {
     assignNamesToClassesMethods(appView.dexItemFactory().objectType, rootNamingState);
     timing.end();
 
-    return new MethodRenaming(renaming, interfaceMethodNameMinifier.getCallSiteRenamings());
+    return new MethodRenaming(renaming);
   }
 
   private void assignNamesToClassesMethods(DexType type, MethodNamingState<?> parentNamingState) {

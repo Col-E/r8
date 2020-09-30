@@ -88,6 +88,7 @@ public class CfInvoke extends CfInstruction {
 
   @Override
   public void write(
+      AppView<?> appView,
       ProgramMethod context,
       DexItemFactory dexItemFactory,
       GraphLens graphLens,

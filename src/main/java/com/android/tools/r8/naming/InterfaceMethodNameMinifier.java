@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -362,8 +361,6 @@ class InterfaceMethodNameMinifier {
   private final Equivalence<DexEncodedMethod> definitionEquivalence;
   private final MethodNameMinifier.State minifierState;
 
-  private final Map<DexCallSite, DexString> callSiteRenamings = new IdentityHashMap<>();
-
   /** A map from DexMethods to all the states linked to interfaces they appear in. */
   private final Map<Wrapper<DexEncodedMethod>, InterfaceMethodGroupState> globalStateMap =
       new HashMap<>();
@@ -394,10 +391,6 @@ class InterfaceMethodNameMinifier {
 
   private Comparator<Wrapper<DexEncodedMethod>> getDefaultInterfaceMethodOrdering() {
     return Comparator.comparing(globalStateMap::get);
-  }
-
-  Map<DexCallSite, DexString> getCallSiteRenamings() {
-    return callSiteRenamings;
   }
 
   private void reserveNamesInInterfaces(Collection<DexClass> interfaces) {
@@ -560,10 +553,6 @@ class InterfaceMethodNameMinifier {
       } else {
         // Propagate reserved name to all states.
         groupState.reserveName(reservedName);
-        for (DexCallSite callSite : groupState.callSites) {
-          assert !callSiteRenamings.containsKey(callSite);
-          callSiteRenamings.put(callSite, reservedName);
-        }
       }
     }
     timing.end();
@@ -583,10 +572,6 @@ class InterfaceMethodNameMinifier {
             .anyMatch(loggingFilter::contains)) {
           print(interfaceMethodGroup.get().getReference(), sourceMethods, System.out);
         }
-      }
-      for (DexCallSite callSite : groupState.callSites) {
-        assert !callSiteRenamings.containsKey(callSite);
-        callSiteRenamings.put(callSite, newName);
       }
     }
 

@@ -5,7 +5,6 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
@@ -90,16 +89,6 @@ public class PrefixRewritingNamingLens extends NamingLens {
       return method.name;
     }
     return namingLens.lookupName(method);
-  }
-
-  @Override
-  public DexString lookupMethodName(DexCallSite callSite) {
-    if (callSite.bootstrapMethod.rewrittenTarget != null
-        && isRenamed(callSite.bootstrapMethod.rewrittenTarget.holder)) {
-      // Prefix rewriting does not influence the inner name.
-      return callSite.methodName;
-    }
-    return namingLens.lookupMethodName(callSite);
   }
 
   @Override
