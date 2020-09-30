@@ -62,6 +62,10 @@ public abstract class RepackageTestBase extends TestBase {
     return isRepackagedAsExpected(inspector, null, eligibleForRepackaging);
   }
 
+  protected Matcher<Class<?>> isNotRepackaged(CodeInspector inspector) {
+    return isRepackagedAsExpected(inspector, null, false);
+  }
+
   /**
    * Checks that the class of interest is repackaged as expected.
    *

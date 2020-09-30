@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
+import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MemberResolutionResult;
 import com.android.tools.r8.graph.ProgramDefinition;
@@ -32,6 +33,7 @@ public class RepackagingUseRegistry extends UseRegistry {
   private final AppInfoWithLiveness appInfo;
   private final RepackagingConstraintGraph constraintGraph;
   private final ProgramDefinition context;
+  private final InitClassLens initClassLens;
   private final RepackagingConstraintGraph.Node node;
 
   public RepackagingUseRegistry(
@@ -42,6 +44,7 @@ public class RepackagingUseRegistry extends UseRegistry {
     this.appInfo = appView.appInfo();
     this.constraintGraph = constraintGraph;
     this.context = context;
+    this.initClassLens = appView.initClassLens();
     this.node = constraintGraph.getNode(context.getDefinition());
   }
 
@@ -145,7 +148,7 @@ public class RepackagingUseRegistry extends UseRegistry {
 
   @Override
   public void registerInitClass(DexType type) {
-    registerTypeAccess(type);
+    registerFieldAccess(initClassLens.getInitClassField(type));
   }
 
   @Override

@@ -452,10 +452,18 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   public T enableMemberValuePropagationAnnotations() {
-    if (!enableMemberValuePropagationAnnotations) {
-      enableMemberValuePropagationAnnotations = true;
-      addInternalKeepRules(
-          "-neverpropagatevalue class * { @com.android.tools.r8.NeverPropagateValue *; }");
+    return enableMemberValuePropagationAnnotations(true);
+  }
+
+  public T enableMemberValuePropagationAnnotations(boolean enable) {
+    if (enable) {
+      if (!enableMemberValuePropagationAnnotations) {
+        enableMemberValuePropagationAnnotations = true;
+        addInternalKeepRules(
+            "-neverpropagatevalue class * { @com.android.tools.r8.NeverPropagateValue *; }");
+      }
+    } else {
+      assert !enableMemberValuePropagationAnnotations;
     }
     return self();
   }
