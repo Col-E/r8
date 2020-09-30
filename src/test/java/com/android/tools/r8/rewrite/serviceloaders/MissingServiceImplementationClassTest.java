@@ -4,9 +4,7 @@
 
 package com.android.tools.r8.rewrite.serviceloaders;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -19,8 +17,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.rewrite.serviceloaders.MissingServiceClassTest.Service;
-import com.android.tools.r8.rewrite.serviceloaders.MissingServiceClassTest.ServiceImpl;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DataResourceConsumerForTesting;
 import com.android.tools.r8.utils.StringUtils;
@@ -74,22 +70,8 @@ public class MissingServiceImplementationClassTest extends TestBase {
                       new DataResourceConsumerForTesting(options.dataResourceConsumer));
                   options.dataResourceConsumer = dataResourceConsumer.get();
                 })
-            .allowDiagnosticWarningMessages()
             .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                inspector -> {
-                  inspector.assertWarningsCount(1);
-                  inspector.assertAllWarningsMatch(
-                      diagnosticMessage(
-                          containsString(
-                              "Unexpected reference to missing service implementation class in "
-                                  + AppServices.SERVICE_DIRECTORY_NAME
-                                  + Service.class.getTypeName()
-                                  + ": "
-                                  + ServiceImpl.class.getTypeName()
-                                  + ".")));
-                });
+            .compile();
 
     CodeInspector inspector = compileResult.inspector();
     ClassSubject serviceClassSubject = inspector.clazz(Service.class);

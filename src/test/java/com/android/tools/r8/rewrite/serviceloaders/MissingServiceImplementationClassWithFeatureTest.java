@@ -4,16 +4,12 @@
 
 package com.android.tools.r8.rewrite.serviceloaders;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.containsString;
-
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.rewrite.serviceloaders.MissingServiceImplementationClassTest.Service;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ServiceLoader;
 import org.junit.Test;
@@ -48,20 +44,8 @@ public class MissingServiceImplementationClassWithFeatureTest extends TestBase {
                 AppServices.SERVICE_DIRECTORY_NAME + Service.class.getTypeName(),
                 Origin.unknown()))
         .addFeatureSplit(FeatureClass.class)
-        .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
-        .compile()
-        .inspectDiagnosticMessages(
-            inspector -> {
-              inspector.assertWarningsCount(1);
-              inspector.assertAllWarningsMatch(
-                  diagnosticMessage(
-                      containsString(
-                          "Unexpected reference to missing service implementation class in "
-                              + AppServices.SERVICE_DIRECTORY_NAME
-                              + Service.class.getTypeName()
-                              + ": MissingClass.")));
-            });
+        .compile();
   }
 
   static class TestClass {
