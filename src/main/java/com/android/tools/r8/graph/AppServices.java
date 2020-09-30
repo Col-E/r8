@@ -301,24 +301,23 @@ public class AppServices {
                           origin);
                       return false;
                     }
-                    // TODO(b/169753370): Re-enable again after roll.
-                    // if (appView.enableWholeProgramOptimizations()) {
-                    //   DexClass serviceImplementationClass =
-                    //       appView
-                    //           .appInfo()
-                    //           .definitionForWithoutExistenceAssert(serviceImplementationType);
-                    //   if (serviceImplementationClass == null) {
-                    //     warn(
-                    //         "Unexpected reference to missing service implementation class in "
-                    //             + "META-INF/services/"
-                    //             + serviceType.toSourceString()
-                    //             + ": "
-                    //             + serviceImplementationType.toSourceString()
-                    //             + ".",
-                    //         serviceImplementationType,
-                    //         origin);
-                    //   }
-                    // }
+                    if (appView.enableWholeProgramOptimizations()) {
+                      DexClass serviceImplementationClass =
+                          appView
+                              .appInfo()
+                              .definitionForWithoutExistenceAssert(serviceImplementationType);
+                      if (serviceImplementationClass == null) {
+                        warn(
+                            "Unexpected reference to missing service implementation class in "
+                                + "META-INF/services/"
+                                + serviceType.toSourceString()
+                                + ": "
+                                + serviceImplementationType.toSourceString()
+                                + ".",
+                            serviceImplementationType,
+                            origin);
+                      }
+                    }
                     // Only keep one of each implementation type in the list.
                     return !serviceImplementations.contains(serviceImplementationType);
                   })
@@ -332,6 +331,10 @@ public class AppServices {
       }
 
       private void warn(String message, DexType type, Origin origin) {
+        if (true) {
+          // TODO(b/169753370): Re-enable again after roll.
+          return;
+        }
         if (!options.getProguardConfiguration().getDontWarnPatterns().matches(type)) {
           options.reporter.warning(new StringDiagnostic(message, origin));
         }

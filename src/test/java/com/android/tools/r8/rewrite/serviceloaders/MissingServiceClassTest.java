@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.rewrite.serviceloaders;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -51,19 +49,8 @@ public class MissingServiceClassTest extends TestBase {
                 AppServices.SERVICE_DIRECTORY_NAME + Service.class.getTypeName(),
                 Origin.unknown()))
         .addOptionsModification(o -> o.dataResourceConsumer = dataResourceConsumer)
-        .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectDiagnosticMessages(
-            inspector -> {
-              inspector.assertAllWarningsMatch(
-                  diagnosticMessage(
-                      containsString(
-                          "Unexpected reference to missing service class: "
-                              + AppServices.SERVICE_DIRECTORY_NAME
-                              + Service.class.getTypeName()
-                              + ".")));
-            })
         .addRunClasspathClasses(Service.class, ServiceImpl.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithEmptyOutput();
