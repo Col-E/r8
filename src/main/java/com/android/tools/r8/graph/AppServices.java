@@ -301,23 +301,24 @@ public class AppServices {
                           origin);
                       return false;
                     }
-                    if (appView.enableWholeProgramOptimizations()) {
-                      DexClass serviceImplementationClass =
-                          appView
-                              .appInfo()
-                              .definitionForWithoutExistenceAssert(serviceImplementationType);
-                      if (serviceImplementationClass == null) {
-                        warn(
-                            "Unexpected reference to missing service implementation class in "
-                                + "META-INF/services/"
-                                + serviceType.toSourceString()
-                                + ": "
-                                + serviceImplementationType.toSourceString()
-                                + ".",
-                            serviceImplementationType,
-                            origin);
-                      }
-                    }
+                    // TODO(b/169753370): Re-enable again after roll.
+                    // if (appView.enableWholeProgramOptimizations()) {
+                    //   DexClass serviceImplementationClass =
+                    //       appView
+                    //           .appInfo()
+                    //           .definitionForWithoutExistenceAssert(serviceImplementationType);
+                    //   if (serviceImplementationClass == null) {
+                    //     warn(
+                    //         "Unexpected reference to missing service implementation class in "
+                    //             + "META-INF/services/"
+                    //             + serviceType.toSourceString()
+                    //             + ": "
+                    //             + serviceImplementationType.toSourceString()
+                    //             + ".",
+                    //         serviceImplementationType,
+                    //         origin);
+                    //   }
+                    // }
                     // Only keep one of each implementation type in the list.
                     return !serviceImplementations.contains(serviceImplementationType);
                   })
