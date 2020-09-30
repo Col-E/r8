@@ -53,7 +53,7 @@ public abstract class TestCompilerBuilder<
   private final List<Path> additionalRunClassPath = new ArrayList<>();
   private ProgramConsumer programConsumer;
   private StringConsumer mainDexListConsumer;
-  protected AndroidApiLevel minApiLevel = ToolHelper.getMinApiLevelForDexVm();
+  protected int minApiLevel = ToolHelper.getMinApiLevelForDexVm().getLevel();
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
   private ByteArrayOutputStream stdout = null;
   private PrintStream oldStdout = null;
@@ -110,7 +110,7 @@ public abstract class TestCompilerBuilder<
     if (backend.isDex() || !isTestShrinkerBuilder()) {
       assert !builder.isMinApiLevelSet()
           : "Don't set the API level directly through BaseCompilerCommand.Builder in tests";
-      builder.setMinApiLevel(minApiLevel.getLevel());
+      builder.setMinApiLevel(minApiLevel);
     }
     if (useDefaultRuntimeLibrary) {
       if (backend == Backend.DEX) {
@@ -238,7 +238,7 @@ public abstract class TestCompilerBuilder<
   }
 
   public T setMinApi(int minApiLevel) {
-    this.minApiLevel = AndroidApiLevel.getAndroidApiLevel(minApiLevel);
+    this.minApiLevel = minApiLevel;
     return self();
   }
 

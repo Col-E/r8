@@ -51,7 +51,7 @@ public class DXTestBuilder
       Path outJar = dxOutputFolder.resolve("output.jar");
 
       List<String> args = new ArrayList<>();
-      args.add("--min-sdk-version=" + minApiLevel.getLevel());
+      args.add("--min-sdk-version=" + minApiLevel);
       args.add("--output=" + outJar.toString());
       args.addAll(injars.stream().map(Path::toString).collect(Collectors.toList()));
       ProcessResult result =

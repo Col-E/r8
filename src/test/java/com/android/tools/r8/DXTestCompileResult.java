@@ -5,12 +5,11 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 
 public class DXTestCompileResult extends TestCompileResult<DXTestCompileResult, DXTestRunResult> {
 
-  DXTestCompileResult(TestState state, AndroidApp app, AndroidApiLevel minApiLevel) {
+  DXTestCompileResult(TestState state, AndroidApp app, int minApiLevel) {
     super(state, app, minApiLevel, OutputMode.DexIndexed);
   }
 

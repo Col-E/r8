@@ -45,19 +45,18 @@ import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 
 public abstract class TestCompileResult<
-        CR extends TestCompileResult<CR, RR>, RR extends TestRunResult>
+        CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
     extends TestBaseResult<CR, RR> {
 
   public final AndroidApp app;
-  public final AndroidApiLevel minApiLevel;
+  public final int minApiLevel;
   private final OutputMode outputMode;
   final List<Path> additionalRunClassPath = new ArrayList<>();
   final List<String> vmArguments = new ArrayList<>();
   private boolean withArt6Plus64BitsLib = false;
   private boolean withArtFrameworks = true;
 
-  TestCompileResult(
-      TestState state, AndroidApp app, AndroidApiLevel minApiLevel, OutputMode outputMode) {
+  TestCompileResult(TestState state, AndroidApp app, int minApiLevel, OutputMode outputMode) {
     super(state);
     this.app = app;
     this.minApiLevel = minApiLevel;

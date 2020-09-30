@@ -4,12 +4,10 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 
 public class D8TestCompileResult extends TestCompileResult<D8TestCompileResult, D8TestRunResult> {
-  D8TestCompileResult(
-      TestState state, AndroidApp app, AndroidApiLevel minApiLevel, OutputMode outputMode) {
+  D8TestCompileResult(TestState state, AndroidApp app, int minApiLevel, OutputMode outputMode) {
     super(state, app, minApiLevel, outputMode);
   }
 
