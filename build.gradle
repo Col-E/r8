@@ -362,16 +362,19 @@ def cloudSystemDependencies = [
         linux: [
                 "third_party": ["openjdk/openjdk-9.0.4/linux",
                                 "openjdk/jdk8/linux-x86",
-                                "openjdk/jdk-11/Linux"],
+                                "openjdk/jdk-11/Linux",
+                                "openjdk/jdk-15/linux"],
         ],
         osx: [
                 "third_party": ["openjdk/openjdk-9.0.4/osx",
                                 "openjdk/jdk8/darwin-x86",
-                                "openjdk/jdk-11/Mac"],
+                                "openjdk/jdk-11/Mac",
+                                "openjdk/jdk-15/osx"],
         ],
         windows: [
                 "third_party": ["openjdk/openjdk-9.0.4/windows",
-                                "openjdk/jdk-11/Windows"],
+                                "openjdk/jdk-11/Windows",
+                                "openjdk/jdk-15/windows"],
         ],
 ]
 
