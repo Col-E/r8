@@ -82,7 +82,6 @@ public class IncludeDescriptorClassesTest extends TestBase {
 
   @Test
   public void testNoIncludesDescriptorClasses() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     for (Class<?> mainClass : mainClasses) {
       List<Class<?>> allClasses = new ArrayList<>(applicationClasses);
       allClasses.add(mainClass);

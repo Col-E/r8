@@ -7,6 +7,7 @@ import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
@@ -87,12 +88,12 @@ public class NestVirtualMethodAccessTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(!inSameNest);
     testForR8(parameters.getBackend())
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
+        .enableNoHorizontalClassMergingAnnotations()
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkExpectedResult);
   }
@@ -114,6 +115,7 @@ public class NestVirtualMethodAccessTest extends TestBase {
     return transformer(clazz).setNest(clazz);
   }
 
+  @NoHorizontalClassMerging
   static class A {
     /* will be private */ void bar() {
       System.out.println("A::bar");

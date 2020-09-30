@@ -11,6 +11,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -40,11 +41,11 @@ public class AbstractMethodOnNonAbstractClassTest extends TestBase {
 
   @Test
   public void testCompat() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     R8TestCompileResult compileResult =
         testForR8Compat(parameters.getBackend())
             .addInnerClasses(AbstractMethodOnNonAbstractClassTest.class)
             .addKeepMainRule(TestClass.class)
+            .enableNoHorizontalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile();
 
@@ -75,6 +76,7 @@ public class AbstractMethodOnNonAbstractClassTest extends TestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(AbstractMethodOnNonAbstractClassTest.class)
             .addKeepMainRule(TestClass.class)
+            .enableNoHorizontalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile();
 
@@ -114,6 +116,7 @@ public class AbstractMethodOnNonAbstractClassTest extends TestBase {
     void m() {}
   }
 
+  @NoHorizontalClassMerging
   static class B extends A {
 
     @Override

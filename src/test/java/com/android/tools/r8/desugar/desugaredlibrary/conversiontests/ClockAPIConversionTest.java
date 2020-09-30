@@ -50,8 +50,6 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testClockD8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .setMinApi(parameters.getApiLevel())
@@ -72,8 +70,6 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testClockR8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addKeepMainRule(Executor.class)

@@ -143,7 +143,9 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Test
   @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void lambdaDesugaringWithDefaultMethods() throws Throwable {
+    // This should be fixed by horizontal class merging field mapping.
     expectThrowsWithHorizontalClassMerging();
+
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(AndroidApiLevel.N)
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
@@ -164,7 +166,6 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Override
   @Test
   public void lambdaDesugaringNPlus() throws Throwable {
-    expectThrowsWithHorizontalClassMerging();
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
@@ -182,14 +183,13 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 2, "lambdadesugaringnplus"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 3, "lambdadesugaringnplus"))
         .run();
   }
 
   @Test
   @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void lambdaDesugaringNPlusWithDefaultMethods() throws Throwable {
-    expectThrowsWithHorizontalClassMerging();
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
         .withMinApiLevel(AndroidApiLevel.N)
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)

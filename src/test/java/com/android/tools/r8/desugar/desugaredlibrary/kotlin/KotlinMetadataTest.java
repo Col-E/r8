@@ -132,10 +132,6 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
   @Test
   public void testTimeR8() throws Exception {
     boolean desugarLibrary = parameters.isDexRuntime() && requiresAnyCoreLibDesugaring(parameters);
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary
-            && parameters.isDexRuntime()
-            && parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.N));
     final R8FullTestBuilder testBuilder =
         testForR8(parameters.getBackend())
             .addProgramFiles(compiledJars.get(targetVersion))

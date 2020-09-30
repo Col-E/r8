@@ -73,8 +73,6 @@ public class Jdk11AtomicTests extends Jdk11DesugaredLibraryTestBase {
 
   @Test
   public void testD8AtomicReference() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()
@@ -98,8 +96,6 @@ public class Jdk11AtomicTests extends Jdk11DesugaredLibraryTestBase {
 
   @Test
   public void testD8AtomicUpdaters() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()

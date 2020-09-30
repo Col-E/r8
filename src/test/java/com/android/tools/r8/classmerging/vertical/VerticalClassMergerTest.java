@@ -411,7 +411,6 @@ public class VerticalClassMergerTest extends TestBase {
 
   @Test
   public void testMethodCollision() throws Throwable {
-    expectThrowsWithHorizontalClassMerging();
     String main = "classmerging.MethodCollisionTest";
     Path[] programFiles =
         new Path[] {

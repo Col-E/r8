@@ -82,7 +82,6 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_primitivePropertyIsAlwaysInlined() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_usePrimitiveProp");
@@ -117,7 +116,6 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_privatePropertyIsAlwaysInlined() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_usePrivateProp");
@@ -153,7 +151,6 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_internalPropertyIsAlwaysInlined() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_useInternalProp");
@@ -188,7 +185,6 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionProperty_publicPropertyIsAlwaysInlined() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_usePublicProp");
@@ -223,7 +219,6 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionLateInitProperty_privatePropertyIsAlwaysInlined() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePrivateLateInitProp");
@@ -257,7 +252,6 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionLateInitProperty_internalPropertyIsAlwaysInlined() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_useInternalLateInitProp");
@@ -282,7 +276,6 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionLateInitProperty_publicPropertyIsAlwaysInlined() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePublicLateInitProp");

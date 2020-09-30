@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -40,12 +41,14 @@ public class AlreadyRenamedAbstractMethodRenamingTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static final class Sub1 extends Base {
     public final void a() {
       System.out.println("Sub1::a");
     }
   }
 
+  @NoHorizontalClassMerging
   static final class Sub2 extends Base {
     public final void a() {
       System.out.println("Sub2::a");
@@ -79,6 +82,7 @@ public class AlreadyRenamedAbstractMethodRenamingTest extends TestBase {
         .addInnerClasses(AlreadyRenamedAbstractMethodRenamingTest.class)
         .addKeepMainRule(TestMain.class)
         .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), TestMain.class)
         .assertSuccessWithOutput(StringUtils.lines("Sub1::a"))

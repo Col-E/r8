@@ -85,7 +85,6 @@ public class SubTypeMissingOverridesTest extends TestBase {
 
   @Test
   public void testR8() throws IOException, CompilationFailedException, ExecutionException {
-    expectThrowsWithHorizontalClassMergingIf(parameters.isCfRuntime());
     testForR8(parameters.getBackend())
         .addInnerClasses(SubTypeMissingOverridesTest.class)
         .enableNoVerticalClassMergingAnnotations()

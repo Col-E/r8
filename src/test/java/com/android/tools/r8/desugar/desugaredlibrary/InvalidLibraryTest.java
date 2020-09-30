@@ -65,11 +65,6 @@ public class InvalidLibraryTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testProgramSupertype() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary
-            && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)
-            && parameters.getDexRuntimeVersion() != Version.V5_1_1
-            && parameters.getDexRuntimeVersion() != Version.V6_0_1);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .setMinApi(parameters.getApiLevel())
@@ -90,11 +85,6 @@ public class InvalidLibraryTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testClasspathSupertype() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary
-            && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)
-            && parameters.getDexRuntimeVersion() != Version.V5_1_1
-            && parameters.getDexRuntimeVersion() != Version.V6_0_1);
     Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()

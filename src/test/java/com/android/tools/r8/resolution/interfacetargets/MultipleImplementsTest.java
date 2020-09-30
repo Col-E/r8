@@ -79,7 +79,6 @@ public class MultipleImplementsTest extends TestBase {
 
   @Test
   public void testR8() throws IOException, CompilationFailedException, ExecutionException {
-    expectThrowsWithHorizontalClassMergingIf(parameters.isCfRuntime());
     testForR8(parameters.getBackend())
         .addInnerClasses(MultipleImplementsTest.class)
         .enableInliningAnnotations()

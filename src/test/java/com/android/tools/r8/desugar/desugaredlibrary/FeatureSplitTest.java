@@ -50,8 +50,6 @@ public class FeatureSplitTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testTwoFeatures() throws CompilationFailedException, IOException, ExecutionException {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     CompiledWithFeature compiledWithFeature = new CompiledWithFeature().invoke(this);
     Path basePath = compiledWithFeature.getBasePath();
     Path feature1Path = compiledWithFeature.getFeature1Path();

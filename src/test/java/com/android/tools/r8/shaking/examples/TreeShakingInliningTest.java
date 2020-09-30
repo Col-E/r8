@@ -37,13 +37,11 @@ public class TreeShakingInliningTest extends TreeShakingTest {
 
   @Test
   public void testKeeprules() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     runTest(null, null, null, ImmutableList.of("src/test/examples/inlining/keep-rules.txt"));
   }
 
   @Test
   public void testKeeprulesdiscard() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     // On the cf backend, we don't inline into constructors, see: b/136250031
     List<String> keepRules =
         getParameters().isCfRuntime()

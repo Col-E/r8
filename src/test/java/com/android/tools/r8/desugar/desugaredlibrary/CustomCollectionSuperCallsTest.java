@@ -37,8 +37,6 @@ public class CustomCollectionSuperCallsTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testCustomCollectionSuperCallsD8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()

@@ -70,7 +70,6 @@ public class Regress69825683Test extends TestBase {
 
   @Test
   public void innerConstructsOuter() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     Class<?> clazz = com.android.tools.r8.regress.b69825683.innerconstructsouter.Outer.class;
     CodeInspector inspector =
         testForR8(parameters.getBackend())

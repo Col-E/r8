@@ -44,8 +44,6 @@ public class ConcurrentHashMapSubclassTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testCustomCollectionD8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     Assume.assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
@@ -103,8 +101,6 @@ public class ConcurrentHashMapSubclassTest extends DesugaredLibraryTestBase {
   @Test
   public void testCustomCollectionR8() throws Exception {
     Assume.assumeTrue(parameters.getRuntime().isDex());
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
         .addInnerClasses(ConcurrentHashMapSubclassTest.class)

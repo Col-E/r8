@@ -53,8 +53,6 @@ public class APIConversionFinalClassTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testFinalMethod() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .setMinApi(AndroidApiLevel.B)

@@ -41,7 +41,6 @@ public class InvokeVirtualNegativeTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeVirtualNegativeTest.class)
         .addKeepMainRule(MAIN)

@@ -41,8 +41,6 @@ public class DesugaredReflectedDesugaredTypePassedToStaticTypeTest
 
   @Test
   public void testD8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult runResult =
         testForD8()
@@ -67,8 +65,6 @@ public class DesugaredReflectedDesugaredTypePassedToStaticTypeTest
 
   @Test
   public void testR8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())

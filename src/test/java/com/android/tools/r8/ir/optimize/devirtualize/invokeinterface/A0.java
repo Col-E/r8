@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.devirtualize.invokeinterface;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
+
+@NoHorizontalClassMerging
 public class A0 extends A {
   @Override
   public int get() {

@@ -39,11 +39,6 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testRetargetOverrideD8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary
-            && parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K)
-            && parameters.getDexRuntimeVersion() != Version.V5_1_1
-            && parameters.getDexRuntimeVersion() != Version.V6_0_1);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdout =
         testForD8()
@@ -64,11 +59,6 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testRetargetOverrideR8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary
-            && parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K)
-            && parameters.getDexRuntimeVersion() != Version.V5_1_1
-            && parameters.getDexRuntimeVersion() != Version.V6_0_1);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdout =
         testForR8(Backend.DEX)

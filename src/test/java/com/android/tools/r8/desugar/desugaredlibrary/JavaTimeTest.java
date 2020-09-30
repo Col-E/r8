@@ -191,10 +191,6 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
   @Test
   public void testTimeD8Cf() throws Exception {
     Assume.assumeTrue(shrinkDesugaredLibrary || !traceReferencesKeepRules);
-    expectThrowsWithHorizontalClassMergingIf(
-        parameters.isDexRuntime()
-            && traceReferencesKeepRules
-            && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
 
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     // Use D8 to desugar with Java classfile output.
@@ -245,8 +241,6 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
   public void testTimeD8() throws Exception {
     Assume.assumeTrue(parameters.getRuntime().isDex());
     Assume.assumeTrue(shrinkDesugaredLibrary || !traceReferencesKeepRules);
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
 
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     TestCompileResult<?, ?> result =
@@ -268,8 +262,6 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testTimeR8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     Assume.assumeTrue(parameters.getRuntime().isDex());
     Assume.assumeTrue(shrinkDesugaredLibrary || !traceReferencesKeepRules);
 

@@ -35,8 +35,6 @@ public class FieldAccessTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testField() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addProgramClasses(Executor.class)

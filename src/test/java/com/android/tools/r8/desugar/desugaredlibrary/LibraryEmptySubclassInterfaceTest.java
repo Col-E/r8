@@ -37,8 +37,6 @@ public class LibraryEmptySubclassInterfaceTest extends DesugaredLibraryTestBase 
 
   @Test
   public void testD8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(LibraryEmptySubclassInterfaceTest.class)
@@ -67,8 +65,6 @@ public class LibraryEmptySubclassInterfaceTest extends DesugaredLibraryTestBase 
 
   @Test
   public void testR8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
         .addInnerClasses(LibraryEmptySubclassInterfaceTest.class)

@@ -50,7 +50,6 @@ public class ForceInlineTest extends TestBase {
 
   @Test
   public void testDefaultInlining() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     CodeInspector inspector =
         runTest(
             ImmutableList.of(
@@ -79,7 +78,6 @@ public class ForceInlineTest extends TestBase {
 
   @Test
   public void testNeverInline() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     CodeInspector inspector =
         runTest(
             ImmutableList.of(
@@ -107,7 +105,6 @@ public class ForceInlineTest extends TestBase {
 
   @Test
   public void testForceInline() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     CodeInspector inspector =
         runTest(
             ImmutableList.of(

@@ -69,8 +69,6 @@ public class AllTimeConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testRewrittenAPICallsD8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .setMinApi(parameters.getApiLevel())
@@ -92,8 +90,6 @@ public class AllTimeConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testRewrittenAPICallsR8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())

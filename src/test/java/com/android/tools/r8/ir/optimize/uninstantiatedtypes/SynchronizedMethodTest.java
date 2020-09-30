@@ -23,7 +23,6 @@ public class SynchronizedMethodTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     String expectedOutput = StringUtils.lines("In A.m()", "Got NullPointerException");
     CodeInspector inspector =
         testForR8(Backend.DEX)

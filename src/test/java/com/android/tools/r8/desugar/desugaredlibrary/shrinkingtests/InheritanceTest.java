@@ -37,8 +37,6 @@ public class InheritanceTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testInheritance() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addProgramClasses(Impl.class)

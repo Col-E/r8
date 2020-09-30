@@ -67,6 +67,9 @@ public class VirtualMethodMerger {
       if (resolutionResult == null) {
         return null;
       }
+      if (resolutionResult.getResolvedMethod().isAbstract()) {
+        return null;
+      }
       return resolutionResult.getResolvedMethod().method;
     }
 

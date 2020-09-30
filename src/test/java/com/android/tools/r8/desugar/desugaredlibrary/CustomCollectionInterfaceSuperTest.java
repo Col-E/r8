@@ -57,8 +57,6 @@ public class CustomCollectionInterfaceSuperTest extends DesugaredLibraryTestBase
           .assertSuccessWithOutput(EXPECTED_OUTPUT);
       return;
     }
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(CustomCollectionInterfaceSuperTest.class)

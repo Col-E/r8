@@ -48,7 +48,6 @@ public class InvokeMethodWithNonNullParamCheckTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     String expected =
         StringUtils.joinLines(
             "Caught NullPointerException from testRewriteInvokeStaticToThrowNull",
