@@ -377,7 +377,7 @@ public class InheritanceClassInDexDistributor {
     return groupClassNumber;
   }
 
-  private Collection<VirtualFile> assignGroup(ClassGroup group, List<VirtualFile> dexBlackList) {
+  private Collection<VirtualFile> assignGroup(ClassGroup group, List<VirtualFile> exclude) {
     VirtualFileCycler cycler =
         new VirtualFileCycler(dexes, appView, graphLens, initClassLens, namingLens, dexIndexOffset);
     if (group.members.isEmpty()) {
@@ -385,7 +385,7 @@ public class InheritanceClassInDexDistributor {
     } else if (group.canFitInOneDex()) {
       VirtualFile currentDex;
       while (true) {
-        currentDex = cycler.nextOrCreate(dex -> !dexBlackList.contains(dex) && !isDexFull(dex));
+        currentDex = cycler.nextOrCreate(dex -> !exclude.contains(dex) && !isDexFull(dex));
         if (assignAll(currentDex, group.members)) {
           break;
         }
@@ -396,31 +396,32 @@ public class InheritanceClassInDexDistributor {
       // About the existing dexes: only case when there can be an empty one is when this.dexes
       // contains only one empty dex created as initial dex of a minimal main dex run. So no need to
       // run through all the existing dexes to find for a possible empty candidate, if the next one
-      // is not empty, no other existing dex is. This means the black list check is redundant but
+      // is not empty, no other existing dex is. This means the exclude check is redundant but
       // its cost is negligible so no need to go wild on optimization and let's be safe.
-      VirtualFile dexForLinkingClasses = cycler.nextOrCreate(
-              dex -> dex.isEmpty() && !dexBlackList.contains(dex) && !isDexFull(dex));
+      VirtualFile dexForLinkingClasses =
+          cycler.nextOrCreate(dex -> dex.isEmpty() && !exclude.contains(dex) && !isDexFull(dex));
       Set<DexProgramClass> remaining = assignFromRoot(dexForLinkingClasses, group.members);
 
       // Assign remainingclasses so that they are never in the same dex as their subclasses.
       // They will fail to link during DexOpt but they will be loaded only once.
       // For now use a "leaf layer by dex" algorithm to ensure the constrainst.
-      Collection<VirtualFile> blackList = new HashSet<>(dexBlackList);
-      blackList.add(dexForLinkingClasses);
+      Collection<VirtualFile> newExclude = new HashSet<>(exclude);
+      newExclude.add(dexForLinkingClasses);
 
-      Collection<VirtualFile> usedDex = assignClassesWithLinkingError(remaining, blackList);
+      Collection<VirtualFile> usedDex = assignClassesWithLinkingError(remaining, newExclude);
       usedDex.add(dexForLinkingClasses);
       return usedDex;
     }
   }
 
   /**
-   * Assign classes so that they are never in the same dex as their subclasses.
-   * They will fail to link during DexOpt but they will be loaded only once.
+   * Assign classes so that they are never in the same dex as their subclasses. They will fail to
+   * link during DexOpt but they will be loaded only once.
+   *
    * @param classes set of classes to assign, the set will be destroyed during assignment.
    */
   private Collection<VirtualFile> assignClassesWithLinkingError(
-      Set<DexProgramClass> classes, Collection<VirtualFile> dexBlackList) {
+      Set<DexProgramClass> classes, Collection<VirtualFile> exclude) {
 
     List<ClassGroup> layers = collectNoDirectInheritanceGroups(classes);
 
@@ -429,18 +430,18 @@ public class InheritanceClassInDexDistributor {
     Collection<VirtualFile> usedDex = new ArrayList<>();
     VirtualFileCycler cycler =
         new VirtualFileCycler(dexes, appView, graphLens, initClassLens, namingLens, dexIndexOffset);
-    // Don't modify input dexBlackList. Think about modifying the input collection considering this
+    // Don't modify exclude. Think about modifying the input collection considering this
     // is private API.
-    Set<VirtualFile> currentBlackList = new HashSet<>(dexBlackList);
+    Set<VirtualFile> currentExclude = new HashSet<>(exclude);
     // Don't put class expected to fail linking in the main dex, save main dex space for classes
     // that may benefit to be in the main dex.
-    currentBlackList.add(mainDex);
+    currentExclude.add(mainDex);
 
     for (ClassGroup group : layers) {
       cycler.reset();
       VirtualFile dexForLayer =
-          cycler.nextOrCreate(dex -> !currentBlackList.contains(dex) && !isDexFull(dex));
-      currentBlackList.add(dexForLayer);
+          cycler.nextOrCreate(dex -> !currentExclude.contains(dex) && !isDexFull(dex));
+      currentExclude.add(dexForLayer);
       usedDex.add(dexForLayer);
       for (DexProgramClass dexProgramClass : getSortedCopy(group.members)) {
         while (true) {
@@ -458,8 +459,8 @@ public class InheritanceClassInDexDistributor {
             }
             // Current dex is too full, continue to next dex.
             dexForLayer =
-                cycler.nextOrCreate(dex -> !currentBlackList.contains(dex) && !isDexFull(dex));
-            currentBlackList.add(dexForLayer);
+                cycler.nextOrCreate(dex -> !currentExclude.contains(dex) && !isDexFull(dex));
+            currentExclude.add(dexForLayer);
             usedDex.add(dexForLayer);
           } else {
             dexForLayer.commitTransaction();
