@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.origin.SynthesizedOrigin;
@@ -51,8 +50,7 @@ public abstract class LambdaGroupClassBuilder<T extends LambdaGroup> {
         Collections.emptyList(),
         buildEnclosingMethodAttribute(),
         buildInnerClasses(),
-        buildClassSignature(),
-        DexAnnotationSet.empty(),
+        buildAnnotations(),
         buildStaticFields(appView, feedback),
         buildInstanceFields(),
         buildDirectMethods(),
@@ -70,7 +68,7 @@ public abstract class LambdaGroupClassBuilder<T extends LambdaGroup> {
 
   protected abstract List<InnerClassAttribute> buildInnerClasses();
 
-  protected abstract ClassSignature buildClassSignature();
+  protected abstract DexAnnotationSet buildAnnotations();
 
   protected abstract DexEncodedMethod[] buildVirtualMethods();
 

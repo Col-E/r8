@@ -62,7 +62,6 @@ import java.util.stream.Stream;
 public class DexItemFactory {
 
   public static final String throwableDescriptorString = "Ljava/lang/Throwable;";
-  public static final String dalvikAnnotationSignatureString = "Ldalvik/annotation/Signature;";
 
   /** Set of types that may be synthesized during compilation. */
   private final Set<DexType> possibleCompilerSynthesizedTypes = Sets.newIdentityHashSet();
@@ -542,7 +541,7 @@ public class DexItemFactory {
   public final DexType annotationMethodParameters =
       createStaticallyKnownType("Ldalvik/annotation/MethodParameters;");
   public final DexType annotationSignature =
-      createStaticallyKnownType(dalvikAnnotationSignatureString);
+      createStaticallyKnownType("Ldalvik/annotation/Signature;");
   public final DexType annotationSourceDebugExtension =
       createStaticallyKnownType("Ldalvik/annotation/SourceDebugExtension;");
   public final DexType annotationThrows = createStaticallyKnownType("Ldalvik/annotation/Throws;");

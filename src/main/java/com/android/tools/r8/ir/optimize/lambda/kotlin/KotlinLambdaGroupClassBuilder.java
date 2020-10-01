@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -22,8 +23,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
-import com.android.tools.r8.graph.GenericSignature;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -34,7 +33,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupClassBuilder;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
-import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
@@ -86,11 +84,14 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
   }
 
   @Override
-  protected ClassSignature buildClassSignature() {
+  protected DexAnnotationSet buildAnnotations() {
     // Kotlin-style lambdas supported by the merged may only contain optional signature and
     // kotlin metadata annotations. We remove the latter, but keep the signature if present.
-    return GenericSignature.parseClassSignature(
-        origin, id.signature, new SynthesizedOrigin(origin, getClass()), factory, options.reporter);
+    String signature = id.signature;
+    return signature == null
+        ? DexAnnotationSet.empty()
+        : new DexAnnotationSet(
+            new DexAnnotation[]{DexAnnotation.createSignatureAnnotation(signature, factory)});
   }
 
   @Override

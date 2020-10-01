@@ -83,9 +83,6 @@ public class AnnotationRemover {
         assert !DexAnnotation.isMemberClassesAnnotation(annotation, dexItemFactory);
         assert !DexAnnotation.isEnclosingMethodAnnotation(annotation, dexItemFactory);
         assert !DexAnnotation.isEnclosingClassAnnotation(annotation, dexItemFactory);
-        // TODO(b/129925954): Signature is being represented as a class attribute.
-        assert !holder.isDexClass()
-            || !DexAnnotation.isSignatureAnnotation(annotation, dexItemFactory);
         if (config.exceptions && DexAnnotation.isThrowingAnnotation(annotation, dexItemFactory)) {
           return true;
         }
@@ -187,6 +184,15 @@ public class AnnotationRemover {
     }
   }
 
+  private static boolean hasSignatureAnnotation(DexProgramClass clazz, DexItemFactory itemFactory) {
+    for (DexAnnotation annotation : clazz.annotations().annotations) {
+      if (DexAnnotation.isSignatureAnnotation(annotation, itemFactory)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public void run() {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       stripAttributes(clazz);
@@ -285,9 +291,6 @@ public class AnnotationRemover {
           hasInnerClassesFromSet(clazz, classesToRetainInnerClassAttributeFor);
     }
     if (keptAnyway || keepForThisInnerClass || keepForThisEnclosingClass) {
-      if (!keep.signature) {
-        clazz.clearClassSignature();
-      }
       if (!keep.enclosingMethod) {
         clazz.clearEnclosingMethodAttribute();
       }
@@ -322,7 +325,6 @@ public class AnnotationRemover {
       // reflection. (Note that clearing these attributes can enable more vertical class merging.)
       clazz.clearEnclosingMethodAttribute();
       clazz.clearInnerClasses();
-      clazz.clearClassSignature();
     }
   }
 
@@ -366,7 +368,7 @@ public class AnnotationRemover {
         Map<DexType, DexProgramClass> enclosingClasses = new IdentityHashMap<>();
         Set<DexProgramClass> genericClasses = Sets.newIdentityHashSet();
         for (DexProgramClass clazz : appView.appInfo().classes()) {
-          if (clazz.getClassSignature().hasSignature()) {
+          if (hasSignatureAnnotation(clazz, appView.dexItemFactory())) {
             genericClasses.add(clazz);
           }
           for (InnerClassAttribute innerClassAttribute : clazz.getInnerClasses()) {

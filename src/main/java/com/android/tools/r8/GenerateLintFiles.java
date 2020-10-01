@@ -24,7 +24,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -174,7 +173,6 @@ public class GenerateLintFiles {
             Collections.emptyList(),
             null,
             Collections.emptyList(),
-            ClassSignature.NO_CLASS_SIGNATURE,
             DexAnnotationSet.empty(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,

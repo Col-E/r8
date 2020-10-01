@@ -892,14 +892,12 @@ public class R8 {
           || options.getProguardConfiguration().hasApplyMappingFile()) {
         assert appView.rootSet().verifyKeptItemsAreKept(appView);
       }
-
-      assert options.testing.disableMappingToOriginalProgramVerification
-          || appView
-              .graphLens()
-              .verifyMappingToOriginalProgram(
-                  appView,
-                  new ApplicationReader(inputApp.withoutMainDexList(), options, timing)
-                      .read(executorService));
+      assert appView
+          .graphLens()
+          .verifyMappingToOriginalProgram(
+              appView,
+              new ApplicationReader(inputApp.withoutMainDexList(), options, timing)
+                  .read(executorService));
 
       // Report synthetic rules (only for testing).
       // TODO(b/120959039): Move this to being reported through the graph consumer.

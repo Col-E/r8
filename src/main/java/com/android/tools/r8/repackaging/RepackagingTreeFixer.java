@@ -73,7 +73,6 @@ public class RepackagingTreeFixer {
             fixupNestMemberAttributes(clazz.getNestMembersClassAttributes()),
             fixupEnclosingMethodAttribute(clazz.getEnclosingMethodAttribute()),
             fixupInnerClassAttributes(clazz.getInnerClasses()),
-            clazz.getClassSignature(),
             clazz.annotations(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,

@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collections;
@@ -76,7 +75,6 @@ public class SyntheticArgumentClass {
               Collections.emptyList(),
               null,
               Collections.emptyList(),
-              ClassSignature.NO_CLASS_SIGNATURE,
               DexAnnotationSet.empty(),
               DexEncodedField.EMPTY_ARRAY,
               DexEncodedField.EMPTY_ARRAY,

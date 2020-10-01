@@ -23,7 +23,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -161,7 +160,6 @@ public final class LambdaClass {
             Collections.emptyList(),
             null,
             Collections.emptyList(),
-            ClassSignature.NO_CLASS_SIGNATURE,
             DexAnnotationSet.empty(),
             synthesizeStaticFields(),
             synthesizeInstanceFields(),

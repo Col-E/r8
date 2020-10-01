@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestHostClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
@@ -72,6 +71,7 @@ public class SyntheticClassBuilder {
     List<NestMemberClassAttribute> nestMembers = Collections.emptyList();
     EnclosingMethodAttribute enclosingMembers = null;
     List<InnerClassAttribute> innerClasses = Collections.emptyList();
+    DexAnnotationSet classAnnotations = DexAnnotationSet.empty();
     DexEncodedField[] staticFields = DexEncodedField.EMPTY_ARRAY;
     DexEncodedField[] instanceFields = DexEncodedField.EMPTY_ARRAY;
     DexEncodedMethod[] directMethods = DexEncodedMethod.EMPTY_ARRAY;
@@ -106,8 +106,7 @@ public class SyntheticClassBuilder {
         nestMembers,
         enclosingMembers,
         innerClasses,
-        ClassSignature.NO_CLASS_SIGNATURE,
-        DexAnnotationSet.empty(),
+        classAnnotations,
         staticFields,
         instanceFields,
         directMethods,

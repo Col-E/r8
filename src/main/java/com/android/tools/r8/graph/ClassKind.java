@@ -6,7 +6,6 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.origin.Origin;
 import java.util.List;
 import java.util.function.Consumer;
@@ -27,7 +26,6 @@ public enum ClassKind {
           nestMembers,
           enclosingMember,
           innerClasses,
-          classSignature,
           annotations,
           staticFields,
           instanceFields,
@@ -47,7 +45,6 @@ public enum ClassKind {
             nestMembers,
             enclosingMember,
             innerClasses,
-            classSignature,
             annotations,
             staticFields,
             instanceFields,
@@ -68,7 +65,6 @@ public enum ClassKind {
           nestMembers,
           enclosingMember,
           innerClasses,
-          classSignature,
           annotations,
           staticFields,
           instanceFields,
@@ -88,7 +84,6 @@ public enum ClassKind {
             nestMembers,
             enclosingMember,
             innerClasses,
-            classSignature,
             annotations,
             staticFields,
             instanceFields,
@@ -111,7 +106,6 @@ public enum ClassKind {
         List<NestMemberClassAttribute> nestMembers,
         EnclosingMethodAttribute enclosingMember,
         List<InnerClassAttribute> innerClasses,
-        ClassSignature classSignature,
         DexAnnotationSet annotations,
         DexEncodedField[] staticFields,
         DexEncodedField[] instanceFields,
@@ -141,7 +135,6 @@ public enum ClassKind {
       List<NestMemberClassAttribute> nestMembers,
       EnclosingMethodAttribute enclosingMember,
       List<InnerClassAttribute> innerClasses,
-      ClassSignature classSignature,
       DexAnnotationSet annotations,
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
@@ -161,7 +154,6 @@ public enum ClassKind {
         nestMembers,
         enclosingMember,
         innerClasses,
-        classSignature,
         annotations,
         staticFields,
         instanceFields,
