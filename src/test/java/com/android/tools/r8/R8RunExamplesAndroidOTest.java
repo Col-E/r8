@@ -101,7 +101,6 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Override
   @Test
   public void lambdaDesugaring() throws Throwable {
-    expectThrowsWithHorizontalClassMerging();
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
@@ -121,7 +120,6 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
 
   @Test
   public void testMultipleInterfacesLambdaOutValue() throws Throwable {
-    expectThrowsWithHorizontalClassMerging();
     // We can only remove trivial check casts for the lambda objects if we keep track all the
     // multiple interfaces we additionally specified for the lambdas
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
@@ -143,9 +141,6 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Test
   @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void lambdaDesugaringWithDefaultMethods() throws Throwable {
-    // This should be fixed by horizontal class merging field mapping.
-    expectThrowsWithHorizontalClassMerging();
-
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(AndroidApiLevel.N)
         .withOptionConsumer(opts -> opts.enableClassInlining = false)

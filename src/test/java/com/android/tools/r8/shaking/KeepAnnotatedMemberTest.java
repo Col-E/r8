@@ -100,7 +100,6 @@ public class KeepAnnotatedMemberTest extends TestBase {
 
   @Test
   public void testWithMembersPresentAnnotation() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(Backend.CF)
         .addProgramFiles(R8_JAR)
         .addKeepRules("-keepclasseswithmembers class * { @" + PRESENT_ANNOTATION + " *** *(...); }")
