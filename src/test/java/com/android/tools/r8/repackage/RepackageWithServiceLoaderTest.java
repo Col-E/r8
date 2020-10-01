@@ -14,8 +14,6 @@ import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.rewrite.serviceloaders.MissingServiceImplementationClassTest.Service;
-import com.android.tools.r8.rewrite.serviceloaders.MissingServiceImplementationClassTest.ServiceImpl;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DataResourceConsumerForTesting;
 import com.android.tools.r8.utils.StringUtils;
