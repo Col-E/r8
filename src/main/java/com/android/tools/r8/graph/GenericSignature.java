@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.DescriptorUtils.getClassBinaryNameFromD
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassBinaryName;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -216,6 +217,20 @@ public class GenericSignature {
       for (ClassTypeSignature superInterface : superInterfaceSignatures) {
         visitor.visitSuperInterface(superInterface);
       }
+    }
+
+    public String toRenamedString(NamingLens namingLens) {
+      if (hasNoSignature()) {
+        return null;
+      }
+      GenericSignaturePrinter genericSignaturePrinter = new GenericSignaturePrinter(namingLens);
+      genericSignaturePrinter.visitClassSignature(this);
+      return genericSignaturePrinter.toString();
+    }
+
+    @Override
+    public String toString() {
+      return toRenamedString(NamingLens.getIdentityLens());
     }
   }
 
