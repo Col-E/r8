@@ -1,7 +1,7 @@
 // Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.optimize;
+package com.android.tools.r8.optimize.bridgehoisting;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
+import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -31,9 +31,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,11 +70,13 @@ public class BridgeHoisting {
 
   private final AppView<AppInfoWithLiveness> appView;
 
-  // A lens that keeps track of the changes for construction of the Proguard map.
-  private final BridgeHoistingLens.Builder lensBuilder = new BridgeHoistingLens.Builder();
+  // Structure that keeps track of the changes for construction of the Proguard map and
+  // AppInfoWithLiveness maintenance.
+  private final BridgeHoistingResult result;
 
   public BridgeHoisting(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
+    this.result = new BridgeHoistingResult(appView);
   }
 
   public void run() {
@@ -85,9 +84,30 @@ public class BridgeHoisting {
     BottomUpClassHierarchyTraversal.forProgramClasses(appView, subtypingInfo)
         .excludeInterfaces()
         .visit(appView.appInfo().classes(), clazz -> processClass(clazz, subtypingInfo));
-    if (!lensBuilder.isEmpty()) {
-      BridgeHoistingLens lens = lensBuilder.build(appView);
+    if (!result.isEmpty()) {
+      BridgeHoistingLens lens = result.buildLens();
       appView.rewriteWithLens(lens);
+
+      // Update method access info collection.
+      MethodAccessInfoCollection.Modifier methodAccessInfoCollectionModifier =
+          appView.appInfo().getMethodAccessInfoCollection().modifier();
+
+      // The bridge hoisting lens does not specify any code rewritings. Therefore references to the
+      // bridge methods are left as-is in the code, but they are rewritten to the hoisted bridges
+      // during the rewriting of AppInfoWithLiveness. Therefore, this conservatively records that
+      // there may be an invoke-virtual instruction that targets each of the removed bridges.
+      methodAccessInfoCollectionModifier.addAll(result.getBridgeMethodAccessInfoCollection());
+
+      // Additionally, we record the invokes from the newly synthesized bridge methods.
+      result.forEachHoistedBridge(
+          (bridge, bridgeInfo) -> {
+            if (bridgeInfo.isVirtualBridgeInfo()) {
+              DexMethod reference = bridgeInfo.asVirtualBridgeInfo().getInvokedMethod();
+              methodAccessInfoCollectionModifier.registerInvokeVirtualInContext(reference, bridge);
+            } else {
+              assert false;
+            }
+          });
     }
   }
 
@@ -118,40 +138,6 @@ public class BridgeHoisting {
       }
     }
     return candidates;
-  }
-
-  /**
-   * Returns true if the bridge method is referencing a method in the superclass of {@param holder}.
-   * If this is not the case, we cannot hoist the bridge method, as that would lead to a type error:
-   * <code>
-   *   class A {
-   *     void bridge() {
-   *       v0 <- Argument
-   *       invoke-virtual {v0}, void B.m() // <- not valid
-   *       Return
-   *     }
-   *   }
-   *   class B extends A {
-   *     void m() {
-   *       ...
-   *     }
-   *   }
-   * </code>
-   */
-  private boolean bridgeIsTargetingMethodInSuperclass(
-      DexProgramClass holder, BridgeInfo bridgeInfo) {
-    if (bridgeInfo.isVirtualBridgeInfo()) {
-      VirtualBridgeInfo virtualBridgeInfo = bridgeInfo.asVirtualBridgeInfo();
-      DexMethod invokedMethod = virtualBridgeInfo.getInvokedMethod();
-      assert !appView.appInfo().isStrictSubtypeOf(invokedMethod.holder, holder.type);
-      if (invokedMethod.holder == holder.type) {
-        return false;
-      }
-      assert appView.appInfo().isStrictSubtypeOf(holder.type, invokedMethod.holder);
-      return true;
-    }
-    assert false;
-    return false;
   }
 
   private void hoistBridgeIfPossible(
@@ -251,7 +237,7 @@ public class BridgeHoisting {
       newMethod.getAccessFlags().demoteFromFinal();
     }
     clazz.addVirtualMethod(newMethod);
-    lensBuilder.move(representative.getReference(), newMethodReference);
+    result.move(representative.getReference(), newMethodReference);
 
     // Remove all of the bridges in the eligible subclasses.
     for (DexProgramClass subclass : eligibleSubclasses) {
@@ -365,48 +351,5 @@ public class BridgeHoisting {
             code.handlers,
             code.getDebugInfo())
         : code;
-  }
-
-  static class BridgeHoistingLens extends NestedGraphLens {
-
-    public BridgeHoistingLens(
-        AppView<?> appView, BiMap<DexMethod, DexMethod> originalMethodSignatures) {
-      super(
-          ImmutableMap.of(),
-          ImmutableMap.of(),
-          ImmutableMap.of(),
-          null,
-          originalMethodSignatures,
-          appView.graphLens(),
-          appView.dexItemFactory());
-    }
-
-    @Override
-    public boolean hasCodeRewritings() {
-      return getPrevious().hasCodeRewritings();
-    }
-
-    @Override
-    public boolean isLegitimateToHaveEmptyMappings() {
-      return true;
-    }
-
-    static class Builder {
-
-      private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
-
-      public boolean isEmpty() {
-        return originalMethodSignatures.isEmpty();
-      }
-
-      public void move(DexMethod from, DexMethod to) {
-        originalMethodSignatures.forcePut(to, originalMethodSignatures.getOrDefault(from, from));
-      }
-
-      public BridgeHoistingLens build(AppView<?> appView) {
-        assert !isEmpty();
-        return new BridgeHoistingLens(appView, originalMethodSignatures);
-      }
-    }
   }
 }

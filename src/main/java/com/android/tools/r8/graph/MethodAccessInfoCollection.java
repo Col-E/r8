@@ -8,6 +8,7 @@ import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -41,9 +42,18 @@ public class MethodAccessInfoCollection {
     return new ConcurrentBuilder();
   }
 
+  public static IdentityBuilder identityBuilder() {
+    return new IdentityBuilder();
+  }
+
   // TODO(b/132593519): We should not need sorted maps with the new member rebinding analysis.
   public static SortedBuilder sortedBuilder() {
     return new SortedBuilder();
+  }
+
+  public Modifier modifier() {
+    return new Modifier(
+        directInvokes, interfaceInvokes, staticInvokes, superInvokes, virtualInvokes);
   }
 
   public void forEachMethodReference(Consumer<DexMethod> method) {
@@ -73,6 +83,10 @@ public class MethodAccessInfoCollection {
 
   public void forEachVirtualInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
     virtualInvokes.forEach(consumer);
+  }
+
+  public void forEachVirtualInvokeContext(DexMethod method, Consumer<ProgramMethod> consumer) {
+    virtualInvokes.getOrDefault(method, ProgramMethodSet.empty()).forEach(consumer);
   }
 
   public MethodAccessInfoCollection rewrittenWithLens(
@@ -107,11 +121,16 @@ public class MethodAccessInfoCollection {
     private final T virtualInvokes;
 
     private Builder(Supplier<T> factory) {
-      directInvokes = factory.get();
-      interfaceInvokes = factory.get();
-      staticInvokes = factory.get();
-      superInvokes = factory.get();
-      virtualInvokes = factory.get();
+      this(factory.get(), factory.get(), factory.get(), factory.get(), factory.get());
+    }
+
+    private Builder(
+        T directInvokes, T interfaceInvokes, T staticInvokes, T superInvokes, T virtualInvokes) {
+      this.directInvokes = directInvokes;
+      this.interfaceInvokes = interfaceInvokes;
+      this.staticInvokes = staticInvokes;
+      this.superInvokes = superInvokes;
+      this.virtualInvokes = virtualInvokes;
     }
 
     public T getDirectInvokes() {
@@ -138,21 +157,43 @@ public class MethodAccessInfoCollection {
       return registerInvokeMethodInContext(invokedMethod, context, directInvokes);
     }
 
+    public void registerInvokeDirectInContexts(DexMethod invokedMethod, ProgramMethodSet contexts) {
+      contexts.forEach(context -> registerInvokeDirectInContext(invokedMethod, context));
+    }
+
     public boolean registerInvokeInterfaceInContext(
         DexMethod invokedMethod, ProgramMethod context) {
       return registerInvokeMethodInContext(invokedMethod, context, interfaceInvokes);
+    }
+
+    public void registerInvokeInterfaceInContexts(
+        DexMethod invokedMethod, ProgramMethodSet contexts) {
+      contexts.forEach(context -> registerInvokeInterfaceInContext(invokedMethod, context));
     }
 
     public boolean registerInvokeStaticInContext(DexMethod invokedMethod, ProgramMethod context) {
       return registerInvokeMethodInContext(invokedMethod, context, staticInvokes);
     }
 
+    public void registerInvokeStaticInContexts(DexMethod invokedMethod, ProgramMethodSet contexts) {
+      contexts.forEach(context -> registerInvokeStaticInContext(invokedMethod, context));
+    }
+
     public boolean registerInvokeSuperInContext(DexMethod invokedMethod, ProgramMethod context) {
       return registerInvokeMethodInContext(invokedMethod, context, superInvokes);
     }
 
+    public void registerInvokeSuperInContexts(DexMethod invokedMethod, ProgramMethodSet contexts) {
+      contexts.forEach(context -> registerInvokeSuperInContext(invokedMethod, context));
+    }
+
     public boolean registerInvokeVirtualInContext(DexMethod invokedMethod, ProgramMethod context) {
       return registerInvokeMethodInContext(invokedMethod, context, virtualInvokes);
+    }
+
+    public void registerInvokeVirtualInContexts(
+        DexMethod invokedMethod, ProgramMethodSet contexts) {
+      contexts.forEach(context -> registerInvokeVirtualInContext(invokedMethod, context));
     }
 
     private static boolean registerInvokeMethodInContext(
@@ -176,10 +217,38 @@ public class MethodAccessInfoCollection {
     }
   }
 
+  public static class IdentityBuilder
+      extends Builder<IdentityHashMap<DexMethod, ProgramMethodSet>> {
+
+    private IdentityBuilder() {
+      super(IdentityHashMap::new);
+    }
+  }
+
   public static class SortedBuilder extends Builder<TreeMap<DexMethod, ProgramMethodSet>> {
 
     private SortedBuilder() {
       super(() -> new TreeMap<>(DexMethod::slowCompareTo));
+    }
+  }
+
+  public static class Modifier extends Builder<Map<DexMethod, ProgramMethodSet>> {
+
+    private Modifier(
+        Map<DexMethod, ProgramMethodSet> directInvokes,
+        Map<DexMethod, ProgramMethodSet> interfaceInvokes,
+        Map<DexMethod, ProgramMethodSet> staticInvokes,
+        Map<DexMethod, ProgramMethodSet> superInvokes,
+        Map<DexMethod, ProgramMethodSet> virtualInvokes) {
+      super(directInvokes, interfaceInvokes, staticInvokes, superInvokes, virtualInvokes);
+    }
+
+    public void addAll(MethodAccessInfoCollection collection) {
+      collection.forEachDirectInvoke(this::registerInvokeDirectInContexts);
+      collection.forEachInterfaceInvoke(this::registerInvokeInterfaceInContexts);
+      collection.forEachStaticInvoke(this::registerInvokeStaticInContexts);
+      collection.forEachSuperInvoke(this::registerInvokeSuperInContexts);
+      collection.forEachVirtualInvoke(this::registerInvokeVirtualInContexts);
     }
   }
 }

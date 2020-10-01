@@ -4,16 +4,22 @@
 
 package com.android.tools.r8.utils.collections;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 public class BidirectionalManyToOneMap<K, V> {
 
   private final Map<K, V> backing = new IdentityHashMap<>();
   private final Map<V, Set<K>> inverse = new IdentityHashMap<>();
+
+  public void forEach(BiConsumer<Set<K>, V> consumer) {
+    inverse.forEach((value, keys) -> consumer.accept(keys, value));
+  }
 
   public V getOrDefault(K key, V value) {
     return backing.getOrDefault(key, value);
@@ -39,8 +45,28 @@ public class BidirectionalManyToOneMap<K, V> {
     return inverse.getOrDefault(value, Collections.emptySet());
   }
 
+  public boolean isEmpty() {
+    return backing.isEmpty();
+  }
+
+  public void remove(K key) {
+    V value = backing.remove(key);
+    if (value != null) {
+      Set<K> keys = inverse.get(value);
+      keys.remove(key);
+      if (keys.isEmpty()) {
+        inverse.remove(value);
+      }
+    }
+  }
+
   public void put(K key, V value) {
+    remove(key);
     backing.put(key, value);
     inverse.computeIfAbsent(value, ignore -> new LinkedHashSet<>()).add(key);
+  }
+
+  public Collection<V> values() {
+    return backing.values();
   }
 }
