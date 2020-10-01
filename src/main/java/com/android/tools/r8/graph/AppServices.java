@@ -331,11 +331,8 @@ public class AppServices {
       }
 
       private void warn(String message, DexType type, Origin origin) {
-        if (true) {
-          // TODO(b/169753370): Re-enable again after roll.
-          return;
-        }
-        if (!options.getProguardConfiguration().getDontWarnPatterns().matches(type)) {
+        if (options.getProguardConfiguration() == null
+            || !options.getProguardConfiguration().getDontWarnPatterns().matches(type)) {
           options.reporter.warning(new StringDiagnostic(message, origin));
         }
       }

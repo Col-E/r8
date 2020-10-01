@@ -8,15 +8,18 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.ListUtils;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class GenerateMainDexListRunResult
     extends SingleTestRunResult<GenerateMainDexListRunResult> {
 
+  final TestState state;
   List<String> mainDexList;
 
-  public GenerateMainDexListRunResult(List<String> mainDexList) {
+  public GenerateMainDexListRunResult(List<String> mainDexList, TestState state) {
     super(null, null, null);
     this.mainDexList = mainDexList;
+    this.state = state;
   }
 
   public List<ClassReference> getMainDexList() {
@@ -27,6 +30,12 @@ public class GenerateMainDexListRunResult
           String binaryName = entry.substring(0, entry.length() - ".class".length());
           return Reference.classFromBinaryName(binaryName);
         });
+  }
+
+  public GenerateMainDexListRunResult inspectDiagnosticMessages(
+      Consumer<TestDiagnosticMessages> consumer) {
+    consumer.accept(state.getDiagnosticsMessages());
+    return self();
   }
 
   @Override

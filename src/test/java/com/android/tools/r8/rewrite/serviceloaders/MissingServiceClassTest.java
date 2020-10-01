@@ -4,13 +4,19 @@
 
 package com.android.tools.r8.rewrite.serviceloaders;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DataResourceConsumerForTesting;
@@ -49,14 +55,51 @@ public class MissingServiceClassTest extends TestBase {
                 AppServices.SERVICE_DIRECTORY_NAME + Service.class.getTypeName(),
                 Origin.unknown()))
         .addOptionsModification(o -> o.dataResourceConsumer = dataResourceConsumer)
+        .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
+        .inspectDiagnosticMessages(this::inspectDiagnosticMessages)
         .addRunClasspathClasses(Service.class, ServiceImpl.class)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithEmptyOutput();
 
     inspectResource(
         dataResourceConsumer.get(AppServices.SERVICE_DIRECTORY_NAME + Service.class.getTypeName()));
+  }
+
+  @Test
+  public void testMainDex() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    testForMainDexListGenerator()
+        .addProgramClasses(TestClass.class)
+        .addLibraryFiles(ToolHelper.getFirstSupportedAndroidJar(parameters.getApiLevel()))
+        .addMainDexRules(keepMainProguardConfiguration(TestClass.class))
+        .addDataEntryResources(
+            DataEntryResource.fromBytes(
+                StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
+                AppServices.SERVICE_DIRECTORY_NAME + Service.class.getTypeName(),
+                Origin.unknown()))
+        .run()
+        .inspectDiagnosticMessages(this::inspectDiagnosticMessages);
+  }
+
+  private void inspectDiagnosticMessages(TestDiagnosticMessages inspector) {
+    inspector.assertWarningsCount(2);
+    inspector.assertAllWarningsMatch(
+        diagnosticMessage(
+            anyOf(
+                containsString(
+                    "Unexpected reference to missing service class: "
+                        + AppServices.SERVICE_DIRECTORY_NAME
+                        + Service.class.getTypeName()
+                        + "."),
+                containsString(
+                    "Unexpected reference to missing service implementation class in "
+                        + AppServices.SERVICE_DIRECTORY_NAME
+                        + Service.class.getTypeName()
+                        + ": "
+                        + ServiceImpl.class.getTypeName()
+                        + "."))));
   }
 
   private void inspectResource(List<String> contents) {

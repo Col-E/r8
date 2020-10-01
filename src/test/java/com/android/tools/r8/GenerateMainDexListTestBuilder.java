@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 public class GenerateMainDexListTestBuilder
     extends TestBaseBuilder<
@@ -26,7 +27,8 @@ public class GenerateMainDexListTestBuilder
   }
 
   public static GenerateMainDexListTestBuilder create(TestState state) {
-    return new GenerateMainDexListTestBuilder(state, GenerateMainDexListCommand.builder());
+    return new GenerateMainDexListTestBuilder(
+        state, GenerateMainDexListCommand.builder(state.getDiagnosticsHandler()));
   }
 
   @Override
@@ -67,7 +69,7 @@ public class GenerateMainDexListTestBuilder
   }
 
   public GenerateMainDexListRunResult run() throws CompilationFailedException {
-    return new GenerateMainDexListRunResult(GenerateMainDexList.run(builder.build()));
+    return new GenerateMainDexListRunResult(GenerateMainDexList.run(builder.build()), getState());
   }
 
   public GenerateMainDexListTestBuilder addMainDexRules(Collection<String> rules) {
@@ -77,5 +79,14 @@ public class GenerateMainDexListTestBuilder
 
   public GenerateMainDexListTestBuilder addMainDexRules(String... rules) {
     return addMainDexRules(Arrays.asList(rules));
+  }
+
+  public GenerateMainDexListTestBuilder addDataResources(List<DataEntryResource> resources) {
+    resources.forEach(builder.getAppBuilder()::addDataResource);
+    return self();
+  }
+
+  public GenerateMainDexListTestBuilder addDataEntryResources(DataEntryResource... resources) {
+    return addDataResources(Arrays.asList(resources));
   }
 }

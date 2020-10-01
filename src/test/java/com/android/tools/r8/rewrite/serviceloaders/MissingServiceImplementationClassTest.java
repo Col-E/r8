@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.rewrite.serviceloaders;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -70,8 +72,22 @@ public class MissingServiceImplementationClassTest extends TestBase {
                       new DataResourceConsumerForTesting(options.dataResourceConsumer));
                   options.dataResourceConsumer = dataResourceConsumer.get();
                 })
+            .allowDiagnosticWarningMessages()
             .setMinApi(parameters.getApiLevel())
-            .compile();
+            .compile()
+            .inspectDiagnosticMessages(
+                inspector -> {
+                  inspector.assertWarningsCount(1);
+                  inspector.assertAllWarningsMatch(
+                      diagnosticMessage(
+                          containsString(
+                              "Unexpected reference to missing service implementation class in "
+                                  + AppServices.SERVICE_DIRECTORY_NAME
+                                  + Service.class.getTypeName()
+                                  + ": "
+                                  + ServiceImpl.class.getTypeName()
+                                  + ".")));
+                });
 
     CodeInspector inspector = compileResult.inspector();
     ClassSubject serviceClassSubject = inspector.clazz(Service.class);
@@ -154,6 +170,7 @@ public class MissingServiceImplementationClassTest extends TestBase {
 
   public static class ServiceImpl implements Service {
 
+    @Override
     @NeverInline
     public void greet() {
       System.out.println("Hello world!");
