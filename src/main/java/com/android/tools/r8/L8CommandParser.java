@@ -54,6 +54,7 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
                   "                          # <file> is a desugared library configuration"
                       + " (json)."),
               ASSERTIONS_USAGE_MESSAGE,
+              THREAD_COUNT_USAGE_MESSAGE,
               Arrays.asList(
                   "  --version               # Print the version of l8.",
                   "  --help                  # Print this message.")));

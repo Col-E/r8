@@ -36,6 +36,13 @@ public class BaseCompilerCommandParser<
           "                          # is the default handling of javac assertion code when",
           "                          # generating class file format.");
 
+  static final Iterable<String> THREAD_COUNT_USAGE_MESSAGE =
+      Arrays.asList(
+          "  " + THREAD_COUNT_FLAG + " <number of threads>",
+          "                          # Number of threads to use for compilation. If not specified",
+          "                          # the number will be based on heuristics taking the number",
+          "                          # of cores into account.");
+
   public static void parsePositiveIntArgument(
       Consumer<Diagnostic> errorConsumer,
       String flag,

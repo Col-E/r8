@@ -99,6 +99,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
                   "  --main-dex-list-output <file>  ",
                   "                          # Output the full main-dex list in <file>."),
               ASSERTIONS_USAGE_MESSAGE,
+              THREAD_COUNT_USAGE_MESSAGE,
               Arrays.asList(
                   "  --version               # Print the version of r8.",
                   "  --help                  # Print this message.")));

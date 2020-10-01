@@ -143,6 +143,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
                   "  --main-dex-list-output <file>",
                   "                          # Output resulting main dex list in <file>."),
               ASSERTIONS_USAGE_MESSAGE,
+              THREAD_COUNT_USAGE_MESSAGE,
               Arrays.asList(
                   "  --version               # Print the version of d8.",
                   "  --help                  # Print this message.")));
