@@ -10,6 +10,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.references.MethodReference;
@@ -432,6 +433,52 @@ public class Matchers {
         mismatchDescription
             .appendText(item.descriptor())
             .appendText(" is not " + clazz.type.toDescriptorString());
+      }
+    };
+  }
+
+  public static Matcher<FieldSubject> isFieldOfType(DexType type) {
+    return new TypeSafeMatcher<FieldSubject>() {
+      @Override
+      protected boolean matchesSafely(FieldSubject fieldSubject) {
+        return fieldSubject.getFieldReference().type == type;
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("is field of type");
+      }
+
+      @Override
+      protected void describeMismatchSafely(FieldSubject item, Description mismatchDescription) {
+        mismatchDescription
+            .appendText(item.getOriginalSignature().toString())
+            .appendText(" is not of type ")
+            .appendText(type.toSourceString());
+      }
+    };
+  }
+
+  public static Matcher<FieldSubject> isFieldOfArrayType(
+      CodeInspector codeInspector, DexType type) {
+    return new TypeSafeMatcher<FieldSubject>() {
+      @Override
+      protected boolean matchesSafely(FieldSubject fieldSubject) {
+        return fieldSubject.getFieldReference().type.isArrayType()
+            && fieldSubject.getFieldReference().type.toBaseType(codeInspector.getFactory()) == type;
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("is field of type");
+      }
+
+      @Override
+      protected void describeMismatchSafely(FieldSubject item, Description mismatchDescription) {
+        mismatchDescription
+            .appendText(item.getOriginalSignature().toString())
+            .appendText(" is not an array of type ")
+            .appendText(type.toSourceString());
       }
     };
   }

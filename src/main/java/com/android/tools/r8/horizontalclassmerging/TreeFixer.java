@@ -389,8 +389,7 @@ class TreeFixer {
       DexField field = encodedField.field;
       DexField newField = fixupFieldReference(field);
       if (newField != encodedField.field) {
-        // TODO(b/165498187): track mapped fields
-        /* lensBuilder.map(field, newField); */
+        lensBuilder.mapField(field, newField);
         setter.setField(i, encodedField.toTypeSubstitutedField(newField));
       }
     }

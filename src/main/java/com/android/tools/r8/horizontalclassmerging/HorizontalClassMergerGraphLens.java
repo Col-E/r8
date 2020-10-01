@@ -113,6 +113,11 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       methodMap = methodMap.remap(remapMethods, Function.identity(), Function.identity());
     }
 
+    public Builder mapField(DexField from, DexField to) {
+      fieldMap.put(from, to);
+      return this;
+    }
+
     /** Unidirectional mapping from one method to another. */
     public Builder recordExtraOriginalSignature(DexMethod from, DexMethod to) {
       methodMap.setRepresentative(from, to);
