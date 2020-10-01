@@ -1975,6 +1975,10 @@ test {
         include "com/android/tools/r8/internal/**"
     }
 
+    if (project.hasProperty('test_namespace')) {
+        include "com/android/tools/r8/" + project.getProperty('test_namespace') + "/**"
+    }
+
     if (project.hasProperty('tool')) {
         if (project.property('tool') == 'r8') {
             exclude "com/android/tools/r8/jctf/**"

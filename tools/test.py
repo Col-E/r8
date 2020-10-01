@@ -112,6 +112,10 @@ def ParseOptions():
   result.add_option('--java-max-memory-size', '--java_max_memory_size',
       help='Set memory for running tests, default 4G',
       default='4G')
+  result.add_option('--test-namespace', '--test_namespace',
+      help='Only run tests in  this namespace. The namespace is relative to '
+          'com/android/tools/r8, e.g., desugar/desugaredlibrary',
+      default=None)
   result.add_option('--shard-count', '--shard_count',
       help='We are running this many shards.')
   result.add_option('--shard-number', '--shard_number',
@@ -193,6 +197,8 @@ def Main():
     gradle_args.append('-Pjctf')
   if options.only_jctf:
     gradle_args.append('-Ponly_jctf')
+  if options.test_namespace:
+    gradle_args.append('-Ptest_namespace=%s' % options.test_namespace)
   if options.jctf_compile_only:
     gradle_args.append('-Pjctf_compile_only')
   if options.disable_assertions:
