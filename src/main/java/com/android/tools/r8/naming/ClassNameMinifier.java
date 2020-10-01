@@ -244,7 +244,7 @@ class ClassNameMinifier {
     if (attribute == null) {
       return null;
     }
-    return attribute.getLiveContext(appView.appInfo());
+    return attribute.getLiveContext(appView);
   }
 
   private DexString computeName(DexType type) {

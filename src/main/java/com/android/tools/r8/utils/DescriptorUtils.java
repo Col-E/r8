@@ -552,6 +552,27 @@ public class DescriptorUtils {
         binaryName.replace(DESCRIPTOR_PACKAGE_SEPARATOR, JAVA_PACKAGE_SEPARATOR));
   }
 
+  /**
+   * Computes the inner name from the outer- and inner descriptors. If outer is not a prefix of the
+   * inner descriptor null is returned. Do not use this method if the relationship between inner and
+   * outer is not reflected in the name.
+   *
+   * @param outerDescriptor the outer descriptor, such as Lfoo/bar/Baz;
+   * @param innerDescriptor the inner descriptor, such as Lfoo/bar/Baz$Qux;
+   * @return the inner name or null, i.e. Qux in the example above
+   */
+  public static String getInnerClassName(String outerDescriptor, String innerDescriptor) {
+    if (innerDescriptor.length() <= outerDescriptor.length()) {
+      return null;
+    }
+    String prefix =
+        outerDescriptor.substring(0, outerDescriptor.length() - 1) + INNER_CLASS_SEPARATOR;
+    if (innerDescriptor.startsWith(prefix)) {
+      return innerDescriptor.substring(prefix.length(), innerDescriptor.length() - 1);
+    }
+    return null;
+  }
+
   public static class ModuleAndDescriptor {
     private final String module;
     private final String descriptor;

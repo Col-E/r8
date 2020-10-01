@@ -36,6 +36,7 @@ public class TreePruner {
   private final AppView<AppInfoWithLiveness> appView;
   private final TreePrunerConfiguration configuration;
   private final UnusedItemsPrinter unusedItemsPrinter;
+  private final Set<DexType> missingTypes;
   private final Set<DexType> prunedTypes = Sets.newIdentityHashSet();
   private final Set<DexMethod> methodsToKeepForConfigurationDebugging = Sets.newIdentityHashSet();
 
@@ -47,6 +48,7 @@ public class TreePruner {
     InternalOptions options = appView.options();
     this.appView = appView;
     this.configuration = configuration;
+    this.missingTypes = appView.appInfo().getMissingTypes();
     this.unusedItemsPrinter =
         options.hasUsageInformationConsumer()
             ? new UnusedItemsPrinter(
@@ -174,7 +176,7 @@ public class TreePruner {
     if (reachableStaticFields != null) {
       clazz.setStaticFields(reachableStaticFields);
     }
-    clazz.removeInnerClasses(this::isAttributeReferencingPrunedType);
+    clazz.removeInnerClasses(this::isAttributeReferencingMissingOrPrunedType);
     clazz.removeEnclosingMethodAttribute(this::isAttributeReferencingPrunedItem);
     rewriteNestAttributes(clazz);
     unusedItemsPrinter.visited();
@@ -193,6 +195,10 @@ public class TreePruner {
         claimNestOwnership(clazz);
       }
     }
+  }
+
+  private boolean isTypeMissing(DexType type) {
+    return missingTypes.contains(type);
   }
 
   private boolean isTypeLive(DexType type) {
@@ -238,13 +244,12 @@ public class TreePruner {
             && !appInfo.liveMethods.contains(attr.getEnclosingMethod()));
   }
 
-  private boolean isAttributeReferencingPrunedType(InnerClassAttribute attr) {
-    AppInfoWithLiveness appInfo = appView.appInfo();
-    if (!isTypeLive(attr.getInner())) {
+  private boolean isAttributeReferencingMissingOrPrunedType(InnerClassAttribute attr) {
+    if (isTypeMissing(attr.getInner()) || !isTypeLive(attr.getInner())) {
       return true;
     }
-    DexType context = attr.getLiveContext(appInfo);
-    return context == null || !isTypeLive(context);
+    DexType context = attr.getLiveContext(appView);
+    return context == null || isTypeMissing(context) || !isTypeLive(context);
   }
 
   private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> int firstUnreachableIndex(

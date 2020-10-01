@@ -91,17 +91,17 @@ public class InnerClassAttribute {
     }
   }
 
-  public DexType getLiveContext(AppInfoWithLiveness appInfo) {
+  public DexType getLiveContext(AppView<? extends AppInfoWithLiveness> appView) {
     DexType context = getOuter();
     if (context == null) {
-      DexClass inner = appInfo.definitionFor(getInner());
+      DexClass inner = appView.definitionFor(getInner());
       if (inner != null && inner.getEnclosingMethodAttribute() != null) {
         EnclosingMethodAttribute enclosingMethodAttribute = inner.getEnclosingMethodAttribute();
         if (enclosingMethodAttribute.getEnclosingClass() != null) {
           context = enclosingMethodAttribute.getEnclosingClass();
         } else {
           DexMethod enclosingMethod = enclosingMethodAttribute.getEnclosingMethod();
-          if (!appInfo.liveMethods.contains(enclosingMethod)) {
+          if (!appView.appInfo().liveMethods.contains(enclosingMethod)) {
             // EnclosingMethodAttribute will be pruned as it references the pruned method.
             // Hence, the current InnerClassAttribute will be removed too. No live context.
             return null;

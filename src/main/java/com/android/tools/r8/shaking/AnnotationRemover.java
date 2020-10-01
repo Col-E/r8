@@ -387,7 +387,7 @@ public class AnnotationRemover {
               if (appView.appInfo().isNonProgramTypeOrLiveProgramType(inner)) {
                 result.add(inner);
               }
-              DexType context = innerClassAttribute.getLiveContext(appView.appInfo());
+              DexType context = innerClassAttribute.getLiveContext(appView);
               if (context != null && appView.appInfo().isNonProgramTypeOrLiveProgramType(context)) {
                 result.add(context);
               }
