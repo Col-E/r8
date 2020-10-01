@@ -7,6 +7,7 @@ import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
 import java.util.List;
@@ -26,6 +27,7 @@ public class DexClasspathClass extends DexClass implements Supplier<DexClasspath
       List<NestMemberClassAttribute> nestMembers,
       EnclosingMethodAttribute enclosingMember,
       List<InnerClassAttribute> innerClasses,
+      ClassSignature classSignature,
       DexAnnotationSet annotations,
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
@@ -46,6 +48,7 @@ public class DexClasspathClass extends DexClass implements Supplier<DexClasspath
         nestMembers,
         enclosingMember,
         innerClasses,
+        classSignature,
         annotations,
         origin,
         skipNameValidationForTesting);

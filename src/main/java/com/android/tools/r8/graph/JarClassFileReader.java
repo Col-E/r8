@@ -32,6 +32,7 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -206,6 +207,7 @@ public class JarClassFileReader {
     private final List<NestMemberClassAttribute> nestMembers = new ArrayList<>();
     private EnclosingMethodAttribute enclosingMember = null;
     private final List<InnerClassAttribute> innerClasses = new ArrayList<>();
+    private ClassSignature classSignature = ClassSignature.NO_CLASS_SIGNATURE;
     private List<DexAnnotation> annotations = null;
     private List<DexAnnotationElement> defaultAnnotations = null;
     private final List<DexEncodedField> staticFields = new ArrayList<>();
@@ -329,9 +331,9 @@ public class JarClassFileReader {
       assert superName != null || name.equals(Constants.JAVA_LANG_OBJECT_NAME);
       superType = superName == null ? null : application.getTypeFromName(superName);
       this.interfaces = application.getTypeListFromNames(interfaces);
-      if (signature != null && !signature.isEmpty()) {
-        addAnnotation(DexAnnotation.createSignatureAnnotation(signature, application.getFactory()));
-      }
+      classSignature =
+          GenericSignature.parseClassSignature(
+              name, signature, origin, application.getFactory(), application.options.reporter);
     }
 
     @Override
@@ -410,6 +412,7 @@ public class JarClassFileReader {
               nestMembers,
               enclosingMember,
               innerClasses,
+              classSignature,
               createAnnotationSet(annotations, application.options),
               staticFields.toArray(DexEncodedField.EMPTY_ARRAY),
               instanceFields.toArray(DexEncodedField.EMPTY_ARRAY),
@@ -567,8 +570,8 @@ public class JarClassFileReader {
       this.desc = desc;
       this.value = value;
       if (signature != null && !signature.isEmpty()) {
-        addAnnotation(DexAnnotation.createSignatureAnnotation(
-            signature, parent.application.getFactory()));
+        addAnnotation(
+            DexAnnotation.createSignatureAnnotation(signature, parent.application.getFactory()));
       }
     }
 
@@ -648,7 +651,6 @@ public class JarClassFileReader {
     private void addAnnotation(DexAnnotation annotation) {
       getAnnotations().add(annotation);
     }
-
     private List<DexAnnotation> getAnnotations() {
       if (annotations == null) {
         annotations = new ArrayList<>();

@@ -245,12 +245,10 @@ public class CodeInspector {
   }
 
   public String getOriginalSignatureAttribute(
-      DexAnnotationSet annotations, BiConsumer<GenericSignatureParser, String> parse) {
-    String finalSignature = getFinalSignatureAttribute(annotations);
+      String finalSignature, BiConsumer<GenericSignatureParser, String> parse) {
     if (finalSignature == null || mapping == null) {
       return finalSignature;
     }
-
     GenericSignatureGenerator rewriter = new GenericSignatureGenerator();
     GenericSignatureParser<String> parser = new GenericSignatureParser<>(rewriter);
     parse.accept(parser, finalSignature);

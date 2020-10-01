@@ -58,7 +58,7 @@ public class SignatureOfMergedClassesTest extends TestBase {
             L.class,
             ImplL.class)
         .addKeepMainRule(Main.class)
-        .addKeepClassRules(InterfaceToKeep.class)
+        .addKeepClassRules(InterfaceToKeep.class, ImplI.class, K.class)
         .addKeepAttributes("Signature, InnerClasses, EnclosingMethod, *Annotation*")
         .setMinApi(parameters.getApiLevel())
         .noMinification()

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -35,6 +36,7 @@ class CallGraphTestBase extends TestBase {
           Collections.emptyList(),
           null,
           Collections.emptyList(),
+          ClassSignature.NO_CLASS_SIGNATURE,
           DexAnnotationSet.empty(),
           DexEncodedField.EMPTY_ARRAY,
           DexEncodedField.EMPTY_ARRAY,

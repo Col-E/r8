@@ -454,12 +454,14 @@ public class ApplicationWriter {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       EnclosingMethodAttribute enclosingMethod = clazz.getEnclosingMethodAttribute();
       List<InnerClassAttribute> innerClasses = clazz.getInnerClasses();
-      if (enclosingMethod == null && innerClasses.isEmpty()) {
+      if (enclosingMethod == null
+          && innerClasses.isEmpty()
+          && clazz.getClassSignature().hasNoSignature()) {
         continue;
       }
 
       // EnclosingMember translates directly to an enclosing class/method if present.
-      List<DexAnnotation> annotations = new ArrayList<>(1 + innerClasses.size());
+      List<DexAnnotation> annotations = new ArrayList<>(2 + innerClasses.size());
       if (enclosingMethod != null) {
         if (enclosingMethod.getEnclosingMethod() != null) {
           annotations.add(
@@ -507,6 +509,12 @@ public class ApplicationWriter {
         }
       }
 
+      if (clazz.getClassSignature().hasSignature()) {
+        annotations.add(
+            DexAnnotation.createSignatureAnnotation(
+                clazz.getClassSignature().toRenamedString(namingLens), options.itemFactory));
+      }
+
       if (!annotations.isEmpty()) {
         // Append the annotations to annotations array of the class.
         DexAnnotation[] copy =
@@ -520,6 +528,7 @@ public class ApplicationWriter {
       // Clear the attribute structures now that they are represented in annotations.
       clazz.clearEnclosingMethodAttribute();
       clazz.clearInnerClasses();
+      clazz.clearClassSignature();
     }
   }
 

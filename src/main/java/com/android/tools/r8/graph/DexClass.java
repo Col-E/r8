@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
@@ -59,6 +60,9 @@ public abstract class DexClass extends DexDefinition {
   private NestHostClassAttribute nestHost;
   private final List<NestMemberClassAttribute> nestMembers;
 
+  /** Generic signature information if the attribute is present in the input */
+  protected ClassSignature classSignature;
+
   public DexClass(
       DexString sourceFile,
       DexTypeList interfaces,
@@ -73,6 +77,7 @@ public abstract class DexClass extends DexDefinition {
       List<NestMemberClassAttribute> nestMembers,
       EnclosingMethodAttribute enclosingMethod,
       List<InnerClassAttribute> innerClasses,
+      ClassSignature classSignature,
       DexAnnotationSet annotations,
       Origin origin,
       boolean skipNameValidationForTesting) {
@@ -92,6 +97,9 @@ public abstract class DexClass extends DexDefinition {
     assert nestMembers != null;
     this.enclosingMethod = enclosingMethod;
     this.innerClasses = innerClasses;
+    assert classSignature != null;
+    this.classSignature = classSignature;
+    assert GenericSignatureUtils.verifyNoDuplicateGenericDefinitions(classSignature, annotations);
     if (type == superType) {
       throw new CompilationError("Class " + type.toString() + " cannot extend itself");
     }
@@ -749,6 +757,10 @@ public abstract class DexClass extends DexDefinition {
     innerClasses.clear();
   }
 
+  public void clearClassSignature() {
+    classSignature = ClassSignature.NO_CLASS_SIGNATURE;
+  }
+
   public void removeInnerClasses(Predicate<InnerClassAttribute> predicate) {
     innerClasses.removeIf(predicate::test);
   }
@@ -772,6 +784,14 @@ public abstract class DexClass extends DexDefinition {
       }
     }
     throw new Unreachable();
+  }
+
+  public ClassSignature getClassSignature() {
+    return classSignature;
+  }
+
+  public void setClassSignature(ClassSignature classSignature) {
+    this.classSignature = classSignature;
   }
 
   public boolean isLocalClass() {

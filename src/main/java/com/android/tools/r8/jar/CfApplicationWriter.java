@@ -179,7 +179,7 @@ public class CfApplicationWriter {
     }
     String desc = namingLens.lookupDescriptor(clazz.type).toString();
     String name = namingLens.lookupInternalName(clazz.type);
-    String signature = getSignature(clazz.annotations());
+    String signature = clazz.getClassSignature().toRenamedString(namingLens);
     String superName =
         clazz.type == options.itemFactory.objectType
             ? null

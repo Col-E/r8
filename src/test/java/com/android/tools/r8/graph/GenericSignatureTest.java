@@ -43,23 +43,28 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class GenericSignatureTest extends TestBase {
 
+  private final TestParameters parameters;
+
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
-  public GenericSignatureTest(TestParameters parameters) {}
+  public GenericSignatureTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void test() throws Exception {
     AndroidApp app =
-        testForD8()
+        testForD8(parameters.getBackend())
             .debug()
             .addProgramClassesAndInnerClasses(
                 GenericSignatureTestClassA.class,
                 GenericSignatureTestClassB.class,
                 GenericSignatureTestClassCY.class,
                 GenericSignatureTestClassCYY.class)
+            .setMinApi(parameters.getApiLevel())
             .compile()
             .app;
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(app);
@@ -103,13 +108,7 @@ public class GenericSignatureTest extends TestBase {
     // class <T:GenericSignatureTestClassA<T>.Y>CYY<T extends A<T>.Y> extends CY<T>
     DexClass clazz = cyy.getDexProgramClass();
     assertNotNull(clazz);
-    classSignature =
-        GenericSignature.parseClassSignature(
-            clazz.getType().getName(),
-            getGenericSignature(clazz, appView),
-            clazz.origin,
-            appView.dexItemFactory(),
-            appView.options().reporter);
+    classSignature = clazz.classSignature;
     assertNotNull(classSignature);
 
     assertEquals(1, classSignature.formalTypeParameters.size());

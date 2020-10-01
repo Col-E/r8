@@ -51,6 +51,8 @@ import com.android.tools.r8.graph.DexValue.DexValueKind;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.graph.GenericSignature;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
@@ -60,6 +62,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.Reporter;
 import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -757,7 +760,8 @@ public class DexParser {
       }
 
       AttributesAndAnnotations attrs =
-          new AttributesAndAnnotations(type, annotationsDirectory.clazz, options.itemFactory);
+          new AttributesAndAnnotations(
+              type, origin, annotationsDirectory.clazz, options.itemFactory, options.reporter);
 
       Long finalChecksum = checksum;
       ChecksumSupplier checksumSupplier =
@@ -776,6 +780,7 @@ public class DexParser {
               Collections.emptyList(),
               attrs.getEnclosingMethodAttribute(),
               attrs.getInnerClasses(),
+              attrs.classSignature,
               attrs.getAnnotations(),
               staticFields,
               instanceFields,
@@ -1327,6 +1332,7 @@ public class DexParser {
     private EnclosingMethodAttribute enclosingMethodAttribute = null;
     private List<InnerClassAttribute> innerClasses = null;
     private List<DexAnnotation> lazyAnnotations = null;
+    private ClassSignature classSignature = ClassSignature.NO_CLASS_SIGNATURE;
 
     public DexAnnotationSet getAnnotations() {
       if (lazyAnnotations != null) {
@@ -1346,8 +1352,16 @@ public class DexParser {
       return enclosingMethodAttribute;
     }
 
+    public ClassSignature getClassSignature() {
+      return classSignature;
+    }
+
     public AttributesAndAnnotations(
-        DexType type, DexAnnotationSet annotations, DexItemFactory factory) {
+        DexType type,
+        Origin origin,
+        DexAnnotationSet annotations,
+        DexItemFactory factory,
+        Reporter reporter) {
       this.originalAnnotations = annotations;
       DexType enclosingClass = null;
       DexMethod enclosingMethod = null;
@@ -1378,6 +1392,12 @@ public class DexParser {
           } else {
             memberClasses.addAll(members);
           }
+        } else if (DexAnnotation.isSignatureAnnotation(annotation, factory)) {
+          ensureAnnotations(i);
+          String signature = DexAnnotation.getSignature(annotation);
+          classSignature =
+              GenericSignature.parseClassSignature(
+                  type.getName(), signature, origin, factory, reporter);
         } else {
           copyAnnotation(annotation);
         }
