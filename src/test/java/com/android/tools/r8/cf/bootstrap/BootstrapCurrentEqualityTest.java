@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.bootstrap;
 
+import static com.android.tools.r8.graph.GenericSignatureIdentityTest.testParseSignaturesInJar;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.google.common.io.ByteStreams.toByteArray;
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -205,6 +206,11 @@ public class BootstrapCurrentEqualityTest extends TestBase {
             .compile()
             .outputJar();
     assert filesAreEqual(runR81, runR82);
+  }
+
+  @Test
+  public void testSignatures() throws Exception {
+    testParseSignaturesInJar(r8R8Release.getFirst());
   }
 
   @Test

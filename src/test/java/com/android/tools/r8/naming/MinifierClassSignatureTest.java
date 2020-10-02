@@ -322,6 +322,9 @@ public class MinifierClassSignatureTest extends TestBase {
                 ProguardKeepAttributes.SIGNATURE)
             .addKeepAllClassesRuleWithAllowObfuscation()
             .allowDiagnosticMessages()
+            .addOptionsModification(
+                internalOptions ->
+                    internalOptions.testing.disableMappingToOriginalProgramVerification = true)
             .compile();
 
     compileResult.assertNoInfoMessages();

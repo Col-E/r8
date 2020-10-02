@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -1391,7 +1392,7 @@ public class Outliner {
         Collections.emptyList(),
         null,
         Collections.emptyList(),
-        // TODO: Build dex annotations structure.
+        ClassSignature.NO_CLASS_SIGNATURE,
         DexAnnotationSet.empty(),
         DexEncodedField.EMPTY_ARRAY, // Static fields.
         DexEncodedField.EMPTY_ARRAY, // Instance fields.

@@ -1280,6 +1280,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public int verificationSizeLimitInBytesOverride = -1;
     public boolean forceIRForCfToCfDesugar =
         System.getProperty("com.android.tools.r8.forceIRForCfToCfDesugar") != null;
+    public boolean disableMappingToOriginalProgramVerification = false;
 
     // Flag to allow processing of resources in D8. A data resource consumer still needs to be
     // specified.

@@ -46,11 +46,13 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AsmUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.PredicateUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Optional;
+import java.util.function.Predicate;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassTooLargeException;
@@ -79,6 +81,7 @@ public class CfApplicationWriter {
   private final NamingLens namingLens;
   private final InternalOptions options;
   private final Marker marker;
+  private final Predicate<DexType> isTypeMissing;
 
   public final ProguardMapSupplier proguardMapSupplier;
 
@@ -96,6 +99,8 @@ public class CfApplicationWriter {
     assert marker != null;
     this.marker = marker;
     this.proguardMapSupplier = proguardMapSupplier;
+    this.isTypeMissing =
+        PredicateUtils.isNull(appView.appInfo()::definitionForWithoutExistenceAssert);
   }
 
   public void write(ClassFileConsumer consumer) {
@@ -179,7 +184,7 @@ public class CfApplicationWriter {
     }
     String desc = namingLens.lookupDescriptor(clazz.type).toString();
     String name = namingLens.lookupInternalName(clazz.type);
-    String signature = getSignature(clazz.annotations());
+    String signature = clazz.getClassSignature().toRenamedString(namingLens, isTypeMissing);
     String superName =
         clazz.type == options.itemFactory.objectType
             ? null

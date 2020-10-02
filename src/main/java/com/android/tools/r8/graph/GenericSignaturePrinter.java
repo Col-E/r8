@@ -13,13 +13,16 @@ import com.android.tools.r8.graph.GenericSignature.WildcardIndicator;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class GenericSignaturePrinter implements GenericSignatureVisitor {
 
   private final NamingLens namingLens;
+  private final Predicate<DexType> isTypeMissing;
 
-  public GenericSignaturePrinter(NamingLens namingLens) {
+  public GenericSignaturePrinter(NamingLens namingLens, Predicate<DexType> isTypeMissing) {
     this.namingLens = namingLens;
+    this.isTypeMissing = isTypeMissing;
   }
 
   private final StringBuilder sb = new StringBuilder();
@@ -117,9 +120,14 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
         sb.append("L").append(DescriptorUtils.getBinaryNameFromDescriptor(renamedString));
       } else {
         assert classTypeSignature.enclosingTypeSignature != null;
-        String outerDescriptor =
-            namingLens.lookupDescriptor(classTypeSignature.enclosingTypeSignature.type).toString();
+        DexType enclosingType = classTypeSignature.enclosingTypeSignature.type;
+        String outerDescriptor = namingLens.lookupDescriptor(enclosingType).toString();
         String innerClassName = DescriptorUtils.getInnerClassName(outerDescriptor, renamedString);
+        if (innerClassName == null && isTypeMissing.test(classTypeSignature.type)) {
+          assert renamedString.equals(classTypeSignature.type.toDescriptorString());
+          innerClassName =
+              DescriptorUtils.getInnerClassName(enclosingType.toDescriptorString(), renamedString);
+        }
         if (innerClassName == null) {
           // We can no longer encode the inner name in the generic signature.
           return;

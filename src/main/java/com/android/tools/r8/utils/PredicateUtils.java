@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class PredicateUtils {
@@ -19,5 +20,9 @@ public class PredicateUtils {
 
   public static <T> Predicate<T> not(Predicate<T> predicate) {
     return t -> !predicate.test(t);
+  }
+
+  public static <T, R> Predicate<T> isNull(Function<T, R> func) {
+    return t -> func.apply(t) == null;
   }
 }

@@ -91,9 +91,6 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
 
   public static boolean hasValidAnnotations(Kotlin kotlin, DexClass lambda) {
     for (DexAnnotation annotation : lambda.annotations().annotations) {
-      if (DexAnnotation.isSignatureAnnotation(annotation, kotlin.factory)) {
-        continue;
-      }
       if (annotation.annotation.type == kotlin.factory.kotlinMetadataType) {
         continue;
       }
@@ -104,13 +101,7 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
 
   String validateAnnotations(AppView<AppInfoWithLiveness> appView, Kotlin kotlin, DexClass lambda)
       throws LambdaStructureError {
-    String signature = null;
     for (DexAnnotation annotation : lambda.liveAnnotations(appView).annotations) {
-      if (DexAnnotation.isSignatureAnnotation(annotation, kotlin.factory)) {
-        signature = DexAnnotation.getSignature(annotation);
-        continue;
-      }
-
       if (annotation.annotation.type == appView.dexItemFactory().kotlinMetadataType) {
         // Ignore kotlin metadata on lambda classes. Metadata on synthetic
         // classes exists but is not used in the current Kotlin version (1.2.21)
@@ -123,7 +114,7 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
           "unexpected annotation: " + annotation.annotation.type.toSourceString());
     }
     assert hasValidAnnotations(kotlin, lambda);
-    return signature;
+    return lambda.getClassSignature().toString();
   }
 
   void validateStaticFields(Kotlin kotlin, DexClass lambda) throws LambdaStructureError {

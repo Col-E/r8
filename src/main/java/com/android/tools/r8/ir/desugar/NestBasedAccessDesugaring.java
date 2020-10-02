@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
@@ -185,6 +186,7 @@ public abstract class NestBasedAccessDesugaring {
         Collections.emptyList(),
         null,
         Collections.emptyList(),
+        ClassSignature.NO_CLASS_SIGNATURE,
         DexAnnotationSet.empty(),
         DexEncodedField.EMPTY_ARRAY,
         DexEncodedField.EMPTY_ARRAY,

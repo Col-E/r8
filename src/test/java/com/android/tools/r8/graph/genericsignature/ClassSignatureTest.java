@@ -6,6 +6,7 @@ package com.android.tools.r8.graph.genericsignature;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.graph.GenericSignature.ClassSignature.NO_CLASS_SIGNATURE;
+import static com.google.common.base.Predicates.alwaysFalse;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -155,7 +156,7 @@ public class ClassSignatureTest extends TestBase {
         GenericSignature.parseClassSignature(
             "A", signature, Origin.unknown(), new DexItemFactory(), new Reporter());
     GenericSignaturePrinter genericSignaturePrinter =
-        new GenericSignaturePrinter(NamingLens.getIdentityLens());
+        new GenericSignaturePrinter(NamingLens.getIdentityLens(), alwaysFalse());
     genericSignaturePrinter.visitClassSignature(parsed);
     String outSignature = genericSignaturePrinter.toString();
     assertEquals(signature, outSignature);

@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -712,6 +713,7 @@ public final class InterfaceMethodRewriter {
             Collections.emptyList(),
             null,
             Collections.emptyList(),
+            ClassSignature.NO_CLASS_SIGNATURE,
             DexAnnotationSet.empty(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,

@@ -13,6 +13,8 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignatureTypeRewriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -27,7 +29,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-// TODO(b/129925954): Reimplement this by using the internal encoding and transformation logic.
+// TODO(b/169516860): We should generalize this to handle rewriting of attributes in general.
 public class GenericSignatureRewriter {
 
   private final AppView<?> appView;
@@ -56,17 +58,27 @@ public class GenericSignatureRewriter {
     ThreadUtils.processItems(
         classes,
         clazz -> {
+          GenericSignatureTypeRewriter genericSignatureTypeRewriter =
+              new GenericSignatureTypeRewriter(appView, clazz);
           GenericSignatureCollector genericSignatureCollector =
               new GenericSignatureCollector(clazz);
           GenericSignatureParser<DexType> genericSignatureParser =
               new GenericSignatureParser<>(genericSignatureCollector);
-          clazz.setAnnotations(
-              rewriteGenericSignatures(
-                  clazz.annotations(),
-                  genericSignatureParser::parseClassSignature,
-                  genericSignatureCollector::getRenamedSignature,
-                  (signature, e) ->
-                      options.warningInvalidSignature(clazz, clazz.getOrigin(), signature, e)));
+          ClassSignature classSignature = clazz.getClassSignature();
+          if (classSignature.hasSignature()) {
+            // TODO(b/129925954): We still have to rewrite to capture the lastWrittenType.
+            //  The design is utterly broken.
+            DexAnnotation classSignatureAnnotation =
+                DexAnnotation.createSignatureAnnotation(
+                    classSignature.toString(), options.itemFactory);
+            rewriteGenericSignatures(
+                new DexAnnotationSet(new DexAnnotation[] {classSignatureAnnotation}),
+                genericSignatureParser::parseClassSignature,
+                genericSignatureCollector::getRenamedSignature,
+                (signature, e) ->
+                    options.warningInvalidSignature(clazz, clazz.getOrigin(), signature, e));
+          }
+          clazz.setClassSignature(genericSignatureTypeRewriter.rewrite(classSignature));
           clazz.forEachField(
               field ->
                   field.setAnnotations(
@@ -91,6 +103,7 @@ public class GenericSignatureRewriter {
         executorService);
   }
 
+  // TODO(b/129925954): Remove this when using modeled signatures for methods and fields.
   private DexAnnotationSet rewriteGenericSignatures(
       DexAnnotationSet annotations,
       Consumer<String> parser,

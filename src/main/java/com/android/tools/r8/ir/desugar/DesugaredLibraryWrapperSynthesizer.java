@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -230,6 +231,7 @@ public class DesugaredLibraryWrapperSynthesizer {
         Collections.emptyList(),
         null,
         Collections.emptyList(),
+        ClassSignature.NO_CLASS_SIGNATURE,
         DexAnnotationSet.empty(),
         DexEncodedField.EMPTY_ARRAY, // No static fields.
         new DexEncodedField[] {wrapperField},

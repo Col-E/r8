@@ -186,7 +186,8 @@ public class FoundMethodSubject extends MethodSubject {
   @Override
   public String getOriginalSignatureAttribute() {
     return codeInspector.getOriginalSignatureAttribute(
-        dexMethod.annotations(), GenericSignatureParser::parseMethodSignature);
+        codeInspector.getFinalSignatureAttribute(dexMethod.annotations()),
+        GenericSignatureParser::parseMethodSignature);
   }
 
   public DexMethod getOriginalDexMethod(DexItemFactory dexItemFactory) {

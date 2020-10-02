@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_ARGUMENTS;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 import static com.google.common.base.Predicates.alwaysTrue;
 
@@ -11,12 +12,15 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.TraversalContinuation;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -62,6 +66,7 @@ public class DexProgramClass extends DexClass
       List<NestMemberClassAttribute> nestMembers,
       EnclosingMethodAttribute enclosingMember,
       List<InnerClassAttribute> innerClasses,
+      ClassSignature classSignature,
       DexAnnotationSet classAnnotations,
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
@@ -81,6 +86,7 @@ public class DexProgramClass extends DexClass
         nestMembers,
         enclosingMember,
         innerClasses,
+        classSignature,
         classAnnotations,
         staticFields,
         instanceFields,
@@ -103,6 +109,7 @@ public class DexProgramClass extends DexClass
       List<NestMemberClassAttribute> nestMembers,
       EnclosingMethodAttribute enclosingMember,
       List<InnerClassAttribute> innerClasses,
+      ClassSignature classSignature,
       DexAnnotationSet classAnnotations,
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
@@ -125,6 +132,7 @@ public class DexProgramClass extends DexClass
         nestMembers,
         enclosingMember,
         innerClasses,
+        classSignature,
         classAnnotations,
         origin,
         skipNameValidationForTesting);
@@ -283,6 +291,7 @@ public class DexProgramClass extends DexClass
       for (InnerClassAttribute attribute : getInnerClasses()) {
         attribute.collectIndexedItems(indexedItems);
       }
+      // We are explicitly not adding items referenced in signatures.
       forEachProgramField(field -> field.collectIndexedItems(indexedItems));
       forEachProgramMethod(method -> method.collectIndexedItems(indexedItems, graphLens, rewriter));
     }
@@ -296,6 +305,7 @@ public class DexProgramClass extends DexClass
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     assert getEnclosingMethodAttribute() == null;
     assert getInnerClasses().isEmpty();
+    assert !classSignature.hasSignature();
     if (hasClassOrMemberAnnotations()) {
       mixedItems.setAnnotationsDirectoryForClass(this, new DexAnnotationDirectory(this));
     }
@@ -305,6 +315,7 @@ public class DexProgramClass extends DexClass
   public void addDependencies(MixedSectionCollection collector) {
     assert getEnclosingMethodAttribute() == null;
     assert getInnerClasses().isEmpty();
+    assert !classSignature.hasSignature();
     // We only have a class data item if there are methods or fields.
     if (hasMethodsOrFields()) {
       collector.add(this);
@@ -474,7 +485,7 @@ public class DexProgramClass extends DexClass
       return;
     }
     addExtraInterfacesToInterfacesArray(extraInterfaces);
-    addExtraInterfacesToSignatureAnnotationIfPresent(extraInterfaces, factory);
+    addExtraInterfacesToSignatureIfPresent(extraInterfaces);
   }
 
   private void addExtraInterfacesToInterfacesArray(List<DexType> extraInterfaces) {
@@ -486,31 +497,22 @@ public class DexProgramClass extends DexClass
     interfaces = new DexTypeList(newInterfaces);
   }
 
-  private void addExtraInterfacesToSignatureAnnotationIfPresent(
-      List<DexType> extraInterfaces, DexItemFactory factory) {
-    // We need to introduce in the dalvik.annotation.Signature annotation the extra interfaces.
+  private void addExtraInterfacesToSignatureIfPresent(List<DexType> extraInterfaces) {
+    // We need to introduce the extra interfaces to the generic signature.
     // At this point we cheat and pretend the extraInterfaces simply don't use any generic types.
-    DexAnnotation[] annotations = annotations().annotations;
-    for (int i = 0; i < annotations.length; i++) {
-      DexAnnotation annotation = annotations[i];
-      if (DexAnnotation.isSignatureAnnotation(annotation, factory)) {
-        DexAnnotation[] rewrittenAnnotations = annotations.clone();
-        rewrittenAnnotations[i] = rewriteSignatureAnnotation(annotation, extraInterfaces, factory);
-        setAnnotations(new DexAnnotationSet(rewrittenAnnotations));
-        // There is at most one signature annotation, so we can return here.
-        return;
-      }
+    if (classSignature.hasNoSignature() || extraInterfaces.isEmpty()) {
+      return;
     }
-  }
-
-  private DexAnnotation rewriteSignatureAnnotation(
-      DexAnnotation annotation, List<DexType> extraInterfaces, DexItemFactory factory) {
-    String signature = DexAnnotation.getSignature(annotation);
-    StringBuilder newSignatureBuilder = new StringBuilder(signature);
+    ImmutableList.Builder<ClassTypeSignature> interfacesBuilder =
+        ImmutableList.<ClassTypeSignature>builder().addAll(classSignature.superInterfaceSignatures);
     for (DexType extraInterface : extraInterfaces) {
-      newSignatureBuilder.append(extraInterface.descriptor.toString());
+      interfacesBuilder.add(new ClassTypeSignature(extraInterface, EMPTY_TYPE_ARGUMENTS));
     }
-    return DexAnnotation.createSignatureAnnotation(newSignatureBuilder.toString(), factory);
+    classSignature =
+        new ClassSignature(
+            classSignature.formalTypeParameters,
+            classSignature.superClassSignature,
+            interfacesBuilder.build());
   }
 
   @Override

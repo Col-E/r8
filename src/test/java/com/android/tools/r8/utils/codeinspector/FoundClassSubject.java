@@ -359,12 +359,12 @@ public class FoundClassSubject extends ClassSubject {
   @Override
   public String getOriginalSignatureAttribute() {
     return codeInspector.getOriginalSignatureAttribute(
-        dexClass.annotations(), GenericSignatureParser::parseClassSignature);
+        dexClass.getClassSignature().toString(), GenericSignatureParser::parseClassSignature);
   }
 
   @Override
   public String getFinalSignatureAttribute() {
-    return codeInspector.getFinalSignatureAttribute(dexClass.annotations());
+    return dexClass.getClassSignature().toString();
   }
 
   @Override
