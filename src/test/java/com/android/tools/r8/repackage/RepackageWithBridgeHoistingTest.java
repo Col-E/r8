@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -41,6 +42,7 @@ public class RepackageWithBridgeHoistingTest extends RepackageTestBase {
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -85,6 +87,7 @@ public class RepackageWithBridgeHoistingTest extends RepackageTestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   public static class PrintGreeter extends GreeterBase {
 
     // Will be hoisted to GreeterBase.greetBridge().
@@ -100,6 +103,7 @@ public class RepackageWithBridgeHoistingTest extends RepackageTestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   public static class PrintlnGreeter extends GreeterBase {
 
     // Will be hoisted to GreeterBase.greetBridge().
