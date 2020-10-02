@@ -85,11 +85,11 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
 
   public boolean isMoreVisibleThan(
       AccessFlags other, String packageNameThis, String packageNameOther) {
-    int visibilityOrdinal = visibilityOrdinal();
-    if (visibilityOrdinal > other.visibilityOrdinal()) {
+    int visibilityOrdinal = getVisibilityOrdinal();
+    if (visibilityOrdinal > other.getVisibilityOrdinal()) {
       return true;
     }
-    if (visibilityOrdinal == other.visibilityOrdinal()
+    if (visibilityOrdinal == other.getVisibilityOrdinal()
         && isVisibilityDependingOnPackage()
         && !packageNameThis.equals(packageNameOther)) {
       return true;
@@ -98,14 +98,14 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
   }
 
   public boolean isAtLeastAsVisibleAs(AccessFlags other) {
-    return visibilityOrdinal() >= other.visibilityOrdinal();
+    return getVisibilityOrdinal() >= other.getVisibilityOrdinal();
   }
 
   public boolean isSameVisibility(AccessFlags other) {
-    return visibilityOrdinal() == other.visibilityOrdinal();
+    return getVisibilityOrdinal() == other.getVisibilityOrdinal();
   }
 
-  private int visibilityOrdinal() {
+  public int getVisibilityOrdinal() {
     // public > protected > package > private
     if (isPublic()) {
       return 3;
@@ -121,7 +121,7 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
   }
 
   public boolean isVisibilityDependingOnPackage() {
-    return visibilityOrdinal() == 1 || visibilityOrdinal() == 2;
+    return getVisibilityOrdinal() == 1 || getVisibilityOrdinal() == 2;
   }
 
   public boolean isPackagePrivate() {

@@ -47,7 +47,7 @@ public class ClassInitFieldSynthesizer {
     // Use an existing static field if there is one.
     DexEncodedField encodedClinitField = null;
     for (DexEncodedField staticField : clazz.staticFields()) {
-      // We need to field to be accessible from the contexts in which it is accessed.
+      // We need the field to be accessible from the contexts in which it is accessed.
       if (!isMinimumRequiredVisibility(staticField, minimumRequiredVisibility)) {
         continue;
       }
@@ -56,8 +56,18 @@ public class ClassInitFieldSynthesizer {
       if (staticField.field.type.isWideType()) {
         continue;
       }
-      encodedClinitField = staticField;
-      break;
+      if (encodedClinitField == null) {
+        encodedClinitField = staticField;
+      } else {
+        // Prefer the field that is most visible.
+        if (staticField.getAccessFlags().getVisibilityOrdinal()
+            > encodedClinitField.getAccessFlags().getVisibilityOrdinal()) {
+          encodedClinitField = staticField;
+        }
+      }
+      if (encodedClinitField.isPublic()) {
+        break;
+      }
     }
     if (encodedClinitField == null) {
       FieldAccessFlags accessFlags =
