@@ -244,7 +244,8 @@ public abstract class KeepInfoCollection {
             assert !info.isPinned()
                 || newMethod.getReturnType() == lens.lookupType(method.getReturnType());
             KeepMethodInfo previous = newMethodInfo.put(newMethod, info);
-            assert previous == null;
+            // TODO(b/169927809): Avoid collisions.
+            // assert previous == null;
           });
       Map<DexField, KeepFieldInfo> newFieldInfo = new IdentityHashMap<>(keepFieldInfo.size());
       keepFieldInfo.forEach(
