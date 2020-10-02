@@ -59,6 +59,7 @@ import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -358,7 +359,7 @@ public class EnumUnboxer {
     ProgramMethodSet dependencies = enumUnboxingCandidatesInfo.allMethodDependencies();
     enumUnboxingCandidatesInfo.clear();
     // Update keep info on any of the enum methods of the removed classes.
-    updateKeepInfo(enumClassesToUnbox);
+    updateKeepInfo(enumsToUnbox);
     DirectMappedDexApplication.Builder appBuilder = appView.appInfo().app().asDirect().builder();
     UnboxedEnumMemberRelocator relocator =
         UnboxedEnumMemberRelocator.builder(appView)
@@ -414,26 +415,9 @@ public class EnumUnboxer {
         });
   }
 
-  private void updateKeepInfo(Set<DexProgramClass> enumsToUnbox) {
-    appView
-        .appInfo()
-        .getKeepInfo()
-        .mutate(
-            keepInfo -> {
-              for (DexProgramClass enumToUnbox : enumsToUnbox) {
-                assert !keepInfo.getClassInfo(enumToUnbox).isPinned();
-                enumToUnbox.forEachProgramMethod(
-                    method -> {
-                      keepInfo.unsafeAllowMinificationOfMethod(method);
-                      keepInfo.unsafeUnpinMethod(method);
-                    });
-                enumToUnbox.forEachProgramField(
-                    field -> {
-                      keepInfo.unsafeAllowMinificationOfField(field);
-                      keepInfo.unsafeUnpinField(field);
-                    });
-              }
-            });
+  private void updateKeepInfo(Set<DexType> enumsToUnbox) {
+    KeepInfoCollection keepInfo = appView.appInfo().getKeepInfo();
+    keepInfo.mutate(mutator -> mutator.removeKeepInfoForPrunedItems(enumsToUnbox));
   }
 
   public EnumInstanceFieldDataMap finishAnalysis() {
