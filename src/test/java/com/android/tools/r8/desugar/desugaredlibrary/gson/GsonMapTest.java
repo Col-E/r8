@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary.gson;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.nio.file.Path;
@@ -24,6 +23,7 @@ public class GsonMapTest extends DesugaredLibraryTestBase {
   private final boolean shrinkDesugaredLibrary;
   private static final Path GSON_CONFIGURATION =
       Paths.get("src/test/java/com/android/tools/r8/desugar/desugaredlibrary/gson/gson.cfg");
+  private static final Path GSON_2_8_1_JAR = Paths.get("third_party/iosched_2019/gson-2.8.1.jar");
 
   @Parameters(name = "shrinkDesugaredLibrary: {0}, runtime: {1}")
   public static List<Object[]> data() {
@@ -42,7 +42,7 @@ public class GsonMapTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(TestClasses.class)
-        .addProgramFiles(ToolHelper.DEPS) // Includes GSON 2.7.
+        .addProgramFiles(GSON_2_8_1_JAR)
         .addKeepMainRule(TestClasses.TestClass.class)
         .addKeepRuleFiles(GSON_CONFIGURATION)
         .allowUnusedProguardConfigurationRules()
