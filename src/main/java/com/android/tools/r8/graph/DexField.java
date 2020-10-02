@@ -6,6 +6,8 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.Reference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -165,5 +167,12 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
 
   public DexField withHolder(DexType holder, DexItemFactory dexItemFactory) {
     return dexItemFactory.createField(holder, type, name);
+  }
+
+  public FieldReference asFieldReference() {
+    return Reference.field(
+        Reference.classFromDescriptor(holder.toDescriptorString()),
+        name.toString(),
+        Reference.typeFromDescriptor(type.toDescriptorString()));
   }
 }

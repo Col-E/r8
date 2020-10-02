@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -57,7 +58,8 @@ public class OverloadedReservedFieldNamingTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(A.class);
     assertThat(classSubject, isPresent());
 
-    FieldSubject fieldSubject = classSubject.uniqueFieldWithName("a");
+    FieldSubject fieldSubject =
+        classSubject.asFoundClassSubject().uniqueFieldWithName("a", Reference.BOOL);
     assertThat(fieldSubject, isPresentAndNotRenamed());
 
     FieldSubject helloFieldSubject = classSubject.uniqueFieldWithName("hello");

@@ -441,7 +441,7 @@ public class Matchers {
     return new TypeSafeMatcher<FieldSubject>() {
       @Override
       protected boolean matchesSafely(FieldSubject fieldSubject) {
-        return fieldSubject.getFieldReference().type == type;
+        return fieldSubject.getDexField().type == type;
       }
 
       @Override
@@ -464,8 +464,8 @@ public class Matchers {
     return new TypeSafeMatcher<FieldSubject>() {
       @Override
       protected boolean matchesSafely(FieldSubject fieldSubject) {
-        return fieldSubject.getFieldReference().type.isArrayType()
-            && fieldSubject.getFieldReference().type.toBaseType(codeInspector.getFactory()) == type;
+        return fieldSubject.getDexField().type.isArrayType()
+            && fieldSubject.getDexField().type.toBaseType(codeInspector.getFactory()) == type;
       }
 
       @Override

@@ -50,7 +50,7 @@ public class ConstructorMergingTrivialOverlapTest extends HorizontalClassMerging
                 MethodSubject firstInitSubject = aClassSubject.init("int");
                 assertThat(firstInitSubject, isPresent());
                 assertThat(
-                    firstInitSubject, writesInstanceField(classIdFieldSubject.getFieldReference()));
+                    firstInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
 
                 ClassSubject synthesizedClass = getSynthesizedArgumentClassSubject(codeInspector);
 
@@ -58,12 +58,11 @@ public class ConstructorMergingTrivialOverlapTest extends HorizontalClassMerging
                     aClassSubject.init("int", synthesizedClass.getFinalName());
                 assertThat(otherInitSubject, isPresent());
                 assertThat(
-                    otherInitSubject, writesInstanceField(classIdFieldSubject.getFieldReference()));
+                    otherInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
 
                 MethodSubject printSubject = aClassSubject.method("void", "print");
                 assertThat(printSubject, isPresent());
-                assertThat(
-                    printSubject, readsInstanceField(classIdFieldSubject.getFieldReference()));
+                assertThat(printSubject, readsInstanceField(classIdFieldSubject.getDexField()));
 
                 assertThat(codeInspector.clazz(B.class), not(isPresent()));
 

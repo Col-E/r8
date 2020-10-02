@@ -14,9 +14,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.classmerging.horizontal.EmptyClassTest.A;
-import com.android.tools.r8.classmerging.horizontal.EmptyClassTest.B;
-import com.android.tools.r8.classmerging.horizontal.EmptyClassTest.Main;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import org.junit.Test;
@@ -48,18 +45,16 @@ public class FieldTypeMergedTest extends HorizontalClassMergingTestBase {
               ClassSubject cClassSubject = codeInspector.clazz(C.class);
               assertThat(codeInspector.clazz(C.class), isPresent());
 
-              // TODO(b/169318508): use cClassSubject.uniqueFieldWithName("fieldB")
-              FieldSubject fieldSubject = cClassSubject.allFields().get(0);
+              FieldSubject fieldSubject = cClassSubject.uniqueFieldWithName("fieldB");
               assertThat(fieldSubject, isPresent());
               if (enableHorizontalClassMerging) {
                 assertThat(
                     fieldSubject, isFieldOfType(aClassSubject.getDexProgramClass().getType()));
               }
 
-              // TODO(b/169318508): use cClassSubject.uniqueFieldWithName("fieldArrayB")
-              fieldSubject = cClassSubject.allFields().get(1);
+              fieldSubject = cClassSubject.uniqueFieldWithName("fieldArrayB");
               assertThat(fieldSubject, isPresent());
-              assertTrue(fieldSubject.getFieldReference().type.isArrayType());
+              assertTrue(fieldSubject.getDexField().type.isArrayType());
               if (enableHorizontalClassMerging) {
                 assertThat(
                     fieldSubject,

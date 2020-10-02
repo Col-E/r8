@@ -28,14 +28,21 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.retrace.RetraceApi;
+import com.android.tools.r8.retrace.RetraceTypeResult;
+import com.android.tools.r8.retrace.RetracedField;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
+import com.google.common.collect.Sets;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 import org.junit.rules.TemporaryFolder;
@@ -206,14 +213,58 @@ public class FoundClassSubject extends ClassSubject {
 
   @Override
   public FieldSubject uniqueFieldWithName(String name) {
-    FieldSubject fieldSubject = null;
+    return uniqueFieldWithName(name, null);
+  }
+
+  // TODO(b/169882658): This should be removed when we have identity mappings for ambiguous cases.
+  public FieldSubject uniqueFieldWithName(String name, TypeReference originalType) {
+    RetraceApi retracer = codeInspector.retrace();
+    Set<FoundFieldSubject> candidates = Sets.newIdentityHashSet();
+    Set<FoundFieldSubject> sameTypeCandidates = Sets.newIdentityHashSet();
     for (FoundFieldSubject candidate : allFields()) {
-      if (candidate.getOriginalName(false).equals(name)) {
-        assert fieldSubject == null;
-        fieldSubject = candidate;
+      FieldReference fieldReference = candidate.getDexField().asFieldReference();
+      // TODO(b/169882658): This if should be removed completely.
+      if (candidate.getFinalName().equals(name)) {
+        candidates.add(candidate);
+        if (isNullOrEqual(originalType, fieldReference.getFieldType())) {
+          sameTypeCandidates.add(candidate);
+        }
       }
+      retracer
+          .retrace(fieldReference)
+          .forEach(
+              element -> {
+                RetracedField field = element.getField();
+                if (!element.isUnknown() && field.getFieldName().equals(name)) {
+                  candidates.add(candidate);
+                  // TODO(b/169953605): There should not be a need for mapping the final type.
+                  TypeReference fieldOriginalType = originalType;
+                  if (fieldOriginalType == null) {
+                    RetraceTypeResult retraceTypeResult =
+                        retracer.retrace(fieldReference.getFieldType());
+                    assert !retraceTypeResult.isAmbiguous();
+                    fieldOriginalType =
+                        retraceTypeResult.stream().iterator().next().getType().getTypeReference();
+                  }
+                  if (isNullOrEqual(fieldOriginalType, field.asKnown().getFieldType())) {
+                    sameTypeCandidates.add(candidate);
+                  }
+                }
+              });
     }
-    return fieldSubject != null ? fieldSubject : new AbsentFieldSubject();
+    assert candidates.size() >= sameTypeCandidates.size();
+    // If we have any merged types we cannot rely on sameTypeCandidates, so we look in all
+    // candidates first.
+    if (candidates.size() == 1) {
+      return candidates.iterator().next();
+    }
+    return sameTypeCandidates.size() == 1
+        ? sameTypeCandidates.iterator().next()
+        : new AbsentFieldSubject();
+  }
+
+  private boolean isNullOrEqual(TypeReference original, TypeReference rewritten) {
+    return original == null || original.equals(rewritten);
   }
 
   @Override

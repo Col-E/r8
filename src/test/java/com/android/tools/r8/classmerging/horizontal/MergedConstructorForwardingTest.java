@@ -13,9 +13,6 @@ import static org.hamcrest.core.IsNot.not;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.classmerging.horizontal.ConstructorMergingTest.A;
-import com.android.tools.r8.classmerging.horizontal.ConstructorMergingTest.B;
-import com.android.tools.r8.classmerging.horizontal.ConstructorMergingTest.Main;
 import com.android.tools.r8.horizontalclassmerging.ClassMerger;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -53,17 +50,16 @@ public class MergedConstructorForwardingTest extends HorizontalClassMergingTestB
                 MethodSubject firstInitSubject = aClassSubject.init("int");
                 assertThat(firstInitSubject, isPresent());
                 assertThat(
-                    firstInitSubject, writesInstanceField(classIdFieldSubject.getFieldReference()));
+                    firstInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
 
                 MethodSubject otherInitSubject = aClassSubject.init("long", "int");
                 assertThat(otherInitSubject, isPresent());
                 assertThat(
-                    otherInitSubject, writesInstanceField(classIdFieldSubject.getFieldReference()));
+                    otherInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
 
                 MethodSubject printSubject = aClassSubject.method("void", "print");
                 assertThat(printSubject, isPresent());
-                assertThat(
-                    printSubject, readsInstanceField(classIdFieldSubject.getFieldReference()));
+                assertThat(printSubject, readsInstanceField(classIdFieldSubject.getDexField()));
 
                 assertThat(codeInspector.clazz(B.class), not(isPresent()));
 

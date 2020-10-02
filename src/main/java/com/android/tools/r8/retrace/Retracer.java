@@ -19,6 +19,7 @@ public class Retracer implements RetraceApi {
 
   private Retracer(ClassNameMapper classNameMapper) {
     this.classNameMapper = classNameMapper;
+    assert classNameMapper != null;
   }
 
   public static RetraceApi create(ClassNameMapper classNameMapper) {

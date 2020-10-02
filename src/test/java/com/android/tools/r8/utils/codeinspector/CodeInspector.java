@@ -484,6 +484,6 @@ public class CodeInspector {
   }
 
   public RetraceApi retrace() {
-    return Retracer.create(mapping);
+    return Retracer.create(mapping == null ? ClassNameMapper.builder().build() : mapping);
   }
 }
