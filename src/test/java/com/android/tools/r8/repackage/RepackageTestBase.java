@@ -8,7 +8,7 @@ import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_P
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
 import static org.junit.Assert.assertFalse;
 
-import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.StringUtils;
@@ -139,7 +139,7 @@ public abstract class RepackageTestBase extends TestBase {
     };
   }
 
-  protected void configureRepackaging(R8FullTestBuilder testBuilder) {
+  protected void configureRepackaging(R8TestBuilder<?> testBuilder) {
     testBuilder
         .addKeepRules(
             "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + getRepackagePackage() + "\"")
