@@ -4,5 +4,5 @@
 package naming101;
 
 public class c {
-  static int i = 1;
+  public static int i = 1;
 }

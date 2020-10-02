@@ -4,7 +4,7 @@
 package naming101;
 
 public class d {
-  static int c() {
+  public static int c() {
     return c.i;
   }
 }
