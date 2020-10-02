@@ -3,70 +3,66 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
-import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.StringConsumer;
-import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedClass;
+import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedField;
+import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedMethod;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
 
-class KeepRuleFormatter extends ResultFormatter {
+class KeepRuleFormatter extends Formatter {
   final boolean allowObfuscation;
 
-  KeepRuleFormatter(
-      StringConsumer output, DiagnosticsHandler diagnosticsHandler, boolean allowObfuscation) {
-    super(output, diagnosticsHandler);
+  KeepRuleFormatter(boolean allowObfuscation) {
     this.allowObfuscation = allowObfuscation;
   }
 
   @Override
-  protected void printTypeHeader(DexClass dexClass) {
+  protected void printTypeHeader(TracedClass tracedClass) {
     append(allowObfuscation ? "-keep,allowobfuscation" : "-keep");
-    if (dexClass.isInterface()) {
-      append(" interface " + dexClass.type.toSourceString() + " {" + System.lineSeparator());
-    } else if (dexClass.accessFlags.isEnum()) {
-      append(" enum " + dexClass.type.toSourceString() + " {" + System.lineSeparator());
+    if (tracedClass.getAccessFlags().isInterface()) {
+      appendLine(" interface " + tracedClass.getReference().getTypeName() + " {");
+    } else if (tracedClass.getAccessFlags().isEnum()) {
+      appendLine(" enum " + tracedClass.getReference().getTypeName() + " {");
     } else {
-      append(" class " + dexClass.type.toSourceString() + " {" + System.lineSeparator());
+      appendLine(" class " + tracedClass.getReference().getTypeName() + " {");
     }
   }
 
   @Override
-  protected void printConstructorName(DexEncodedMethod encodedMethod) {
+  protected void printConstructorName(MethodReference method) {
     append("<init>");
   }
 
   @Override
-  protected void printField(DexClass dexClass, DexField field) {
+  protected void printField(TracedField field) {
     append(
         "  "
-            + field.type.toSourceString()
+            + field.getReference().getFieldType().getTypeName()
             + " "
-            + field.name.toString()
+            + field.getReference().getFieldName()
             + ";"
             + System.lineSeparator());
   }
 
   @Override
-  protected void printMethod(DexEncodedMethod encodedMethod, String typeName) {
-    // Static initializers do not require keep rules - it is kept by keeping the class.
-    if (encodedMethod.accessFlags.isConstructor() && encodedMethod.accessFlags.isStatic()) {
+  protected void printMethod(TracedMethod tracedMethod) {
+    if (tracedMethod.getReference().getMethodName().equals("<clinit>")) {
       return;
     }
     append("  ");
-    if (encodedMethod.isPublicMethod()) {
+    if (tracedMethod.getAccessFlags().isPublic()) {
       append("public ");
-    } else if (encodedMethod.isPrivateMethod()) {
+    } else if (tracedMethod.getAccessFlags().isPrivate()) {
       append("private ");
-    } else if (encodedMethod.isProtectedMethod()) {
+    } else if (tracedMethod.getAccessFlags().isProtected()) {
       append("protected ");
     }
-    if (encodedMethod.isStatic()) {
+    if (tracedMethod.getAccessFlags().isStatic()) {
       append("static ");
     }
-    printNameAndReturn(encodedMethod);
-    printArguments(encodedMethod.method);
+    printNameAndReturn(tracedMethod.getReference());
+    printArguments(tracedMethod.getReference());
     appendLine(";");
   }
 

@@ -6,11 +6,13 @@ package com.android.tools.r8.tracereferences;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.JdkClassFileProvider;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.tracereferences.TraceReferencesFormattingConsumer.OutputFormat;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,17 +20,6 @@ import java.util.Arrays;
 import java.util.Set;
 
 class TraceReferencesCommandParser {
-
-  enum OutputFormat {
-    /** Format used with the -printusage flag */
-    PRINTUSAGE,
-    /** Keep rules keeping each of the traced references */
-    KEEP_RULES,
-    /**
-     * Keep rules with <code>allowobfuscation</code> modifier keeping each of the traced references
-     */
-    KEEP_RULES_WITH_ALLOWOBFUSCATION
-  }
 
   private static final Set<String> OPTIONS_WITH_PARAMETER =
       ImmutableSet.of("--lib", "--target", "--source", "--format", "--output");
@@ -78,6 +69,8 @@ class TraceReferencesCommandParser {
   private TraceReferencesCommand.Builder parse(
       String[] args, Origin origin, TraceReferencesCommand.Builder builder) {
     String[] expandedArgs = FlagFile.expandFlagFiles(args, builder::error);
+    Path output = null;
+    OutputFormat format = TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE;
     for (int i = 0; i < expandedArgs.length; i++) {
       String arg = expandedArgs[i].trim();
       String nextArg = null;
@@ -103,28 +96,42 @@ class TraceReferencesCommandParser {
       } else if (arg.equals("--source")) {
         builder.addSourceFiles(Paths.get(nextArg));
       } else if (arg.equals("--format")) {
-        OutputFormat format = null;
         if (nextArg.equals("printuses")) {
-          format = OutputFormat.PRINTUSAGE;
+          format = TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE;
         }
         if (nextArg.equals("keep")) {
-          format = OutputFormat.KEEP_RULES;
+          format = TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES;
         }
         if (nextArg.equals("keepallowobfuscation")) {
-          format = OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION;
+          format = TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION;
         }
         if (format == null) {
           builder.error(new StringDiagnostic("Unsupported format '" + nextArg + "'"));
         }
-        builder.setOutputFormat(format);
       } else if (arg.equals("--output")) {
-        builder.setOutputPath(Paths.get(nextArg));
+        output = Paths.get(nextArg);
       } else if (arg.startsWith("@")) {
         builder.error(new StringDiagnostic("Recursive @argfiles are not supported: ", origin));
       } else {
         builder.error(new StringDiagnostic("Unsupported argument '" + arg + "'"));
       }
     }
+    final Path finalOutput = output;
+    builder.setConsumer(
+        new TraceReferencesFormattingConsumer(format) {
+          @Override
+          public void finished() {
+            PrintStream out = System.out;
+            if (finalOutput != null) {
+              try {
+                out = new PrintStream(Files.newOutputStream(finalOutput));
+              } catch (IOException e) {
+                builder.error(new ExceptionDiagnostic(e));
+              }
+            }
+            out.print(get());
+          }
+        });
     return builder;
   }
 

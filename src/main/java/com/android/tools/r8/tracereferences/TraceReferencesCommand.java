@@ -11,10 +11,8 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.ProgramResourceProvider;
-import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.tracereferences.TraceReferencesCommandParser.OutputFormat;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -35,8 +33,7 @@ public class TraceReferencesCommand {
   private final ImmutableList<ClassFileResourceProvider> library;
   private final ImmutableList<ClassFileResourceProvider> traceTarget;
   private final ImmutableList<ProgramResourceProvider> traceSource;
-  private final StringConsumer output;
-  private final OutputFormat outputFormat;
+  private final TraceReferencesConsumer consumer;
 
   TraceReferencesCommand(
       boolean printHelp,
@@ -45,16 +42,14 @@ public class TraceReferencesCommand {
       ImmutableList<ClassFileResourceProvider> library,
       ImmutableList<ClassFileResourceProvider> traceTarget,
       ImmutableList<ProgramResourceProvider> traceSource,
-      StringConsumer output,
-      OutputFormat outputFormat) {
+      TraceReferencesConsumer consumer) {
     this.printHelp = printHelp;
     this.printVersion = printVersion;
     this.diagnosticsHandler = diagnosticsHandler;
     this.library = library;
     this.traceTarget = traceTarget;
     this.traceSource = traceSource;
-    this.output = output;
-    this.outputFormat = outputFormat;
+    this.consumer = consumer;
   }
 
   /**
@@ -101,8 +96,7 @@ public class TraceReferencesCommand {
         ImmutableList.builder();
     private final ImmutableList.Builder<ProgramResourceProvider> traceSourceBuilder =
         ImmutableList.builder();
-    private StringConsumer output;
-    private OutputFormat outputFormat = TraceReferencesCommandParser.OutputFormat.PRINTUSAGE;
+    private TraceReferencesConsumer consumer;
 
     private Builder(DiagnosticsHandler diagnosticsHandler) {
       this.diagnosticsHandler = diagnosticsHandler;
@@ -197,13 +191,8 @@ public class TraceReferencesCommand {
       return this;
     }
 
-    Builder setOutputPath(Path output) {
-      this.output = new StringConsumer.FileConsumer(output);
-      return this;
-    }
-
-    Builder setOutputFormat(OutputFormat outputFormat) {
-      this.outputFormat = outputFormat;
+    Builder setConsumer(TraceReferencesConsumer consumer) {
+      this.consumer = consumer;
       return this;
     }
 
@@ -217,8 +206,7 @@ public class TraceReferencesCommand {
           libraryBuilder.build(),
           traceTarget,
           traceSource,
-          output,
-          outputFormat);
+          consumer);
     }
 
     void error(Diagnostic diagnostic) {
@@ -244,11 +232,7 @@ public class TraceReferencesCommand {
     return traceSource;
   }
 
-  StringConsumer getOutput() {
-    return output;
-  }
-
-  OutputFormat getOutputFormat() {
-    return outputFormat;
+  TraceReferencesConsumer getConsumer() {
+    return consumer;
   }
 }

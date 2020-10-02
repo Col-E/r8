@@ -14,7 +14,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.tracereferences.TraceReferencesCommandParser.OutputFormat;
+import com.android.tools.r8.tracereferences.TraceReferencesFormattingConsumer.OutputFormat;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -53,8 +54,7 @@ public class TraceReferencesCommandTest extends TestBase {
     assertEquals(0, command.getLibrary().size());
     assertEquals(0, command.getTarget().size());
     assertEquals(0, command.getSource().size());
-    assertEquals(TraceReferencesCommandParser.OutputFormat.PRINTUSAGE, command.getOutputFormat());
-    assertNull(command.getOutput());
+    assertNull(command.getConsumer());
   }
 
   @Test(expected = CompilationFailedException.class)
@@ -105,29 +105,48 @@ public class TraceReferencesCommandTest extends TestBase {
   }
 
   private String formatName(OutputFormat format) {
-    if (format == TraceReferencesCommandParser.OutputFormat.PRINTUSAGE) {
+    if (format == TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE) {
       return "printuses";
     }
-    if (format == TraceReferencesCommandParser.OutputFormat.KEEP_RULES) {
+    if (format == TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES) {
       return "keep";
     }
-    assertSame(format, TraceReferencesCommandParser.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION);
+    assertSame(
+        format, TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION);
     return "keepallowobfuscation";
   }
 
   public void runAndCheckOutput(
       Path targetJar, Path sourceJar, OutputFormat format, String expected) throws Throwable {
+    runAndCheckOutput(targetJar, sourceJar, format, expected, null);
+  }
+
+  public void runAndCheckOutput(
+      Path targetJar,
+      Path sourceJar,
+      OutputFormat format,
+      String expected,
+      Consumer<DiagnosticsChecker> diagnosticsCheckerConsumer)
+      throws Throwable {
     Path dir = temp.newFolder().toPath();
     Path output = dir.resolve("output.txt");
+    DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
+    TraceReferencesFormattingConsumer consumer = new TraceReferencesFormattingConsumer(format);
     TraceReferences.run(
-        TraceReferencesCommand.builder()
+        TraceReferencesCommand.builder(diagnosticsChecker)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addTargetFiles(targetJar)
             .addSourceFiles(sourceJar)
-            .setOutputPath(output)
-            .setOutputFormat(format)
+            .setConsumer(consumer)
             .build());
-    assertEquals(expected, FileUtils.readTextFile(output, Charsets.UTF_8));
+    assertEquals(expected, consumer.get());
+    if (diagnosticsCheckerConsumer != null) {
+      diagnosticsCheckerConsumer.accept(diagnosticsChecker);
+    } else {
+      assertEquals(0, diagnosticsChecker.errors.size());
+      assertEquals(0, diagnosticsChecker.warnings.size());
+      assertEquals(0, diagnosticsChecker.infos.size());
+    }
 
     TraceReferences.run(
         TraceReferencesCommand.parse(
@@ -172,7 +191,7 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(
         ImmutableList.of(Target.class),
         ImmutableList.of(Source.class),
-        TraceReferencesCommandParser.OutputFormat.PRINTUSAGE,
+        TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE,
         StringUtils.lines(
             ImmutableList.of(
                 "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target",
@@ -187,7 +206,7 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(
         ImmutableList.of(Target.class),
         ImmutableList.of(Source.class),
-        TraceReferencesCommandParser.OutputFormat.KEEP_RULES,
+        TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES,
         StringUtils.lines(
             ImmutableList.of(
                 "-keep class com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target"
@@ -203,7 +222,7 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(
         ImmutableList.of(Target.class),
         ImmutableList.of(Source.class),
-        TraceReferencesCommandParser.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
+        TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
         StringUtils.lines(
             ImmutableList.of(
                 "-keep,allowobfuscation class"
@@ -219,7 +238,7 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(
         ImmutableList.of(OtherTarget.class),
         ImmutableList.of(Source.class),
-        TraceReferencesCommandParser.OutputFormat.PRINTUSAGE,
+        TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE,
         StringUtils.lines(ImmutableList.of()));
   }
 
@@ -228,7 +247,7 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(
         ImmutableList.of(OtherTarget.class),
         ImmutableList.of(Source.class),
-        TraceReferencesCommandParser.OutputFormat.KEEP_RULES,
+        TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES,
         StringUtils.lines(ImmutableList.of()));
   }
 
@@ -237,7 +256,7 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(
         ImmutableList.of(OtherTarget.class),
         ImmutableList.of(Source.class),
-        TraceReferencesCommandParser.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
+        TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
         StringUtils.lines(ImmutableList.of()));
   }
 
@@ -264,7 +283,7 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(
         targetJar,
         sourceJar,
-        TraceReferencesCommandParser.OutputFormat.PRINTUSAGE,
+        TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE,
         StringUtils.lines(
             ImmutableList.of(
                 "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target",
@@ -273,7 +292,12 @@ public class TraceReferencesCommandTest extends TestBase {
                     + ".target(int)",
                 "# Error: Could not find definition for field int"
                     + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target"
-                    + ".field")));
+                    + ".field")),
+        diagnosticsChecker -> {
+          assertEquals(0, diagnosticsChecker.errors.size());
+          assertEquals(2, diagnosticsChecker.warnings.size());
+          assertEquals(0, diagnosticsChecker.infos.size());
+        });
   }
 
   @Test
@@ -289,7 +313,7 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(
         targetJar,
         sourceJar,
-        TraceReferencesCommandParser.OutputFormat.KEEP_RULES,
+        TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES,
         StringUtils.lines(
             ImmutableList.of(
                 "-keep class com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target"
@@ -301,7 +325,12 @@ public class TraceReferencesCommandTest extends TestBase {
                     + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target"
                     + ".field",
                 "}",
-                "-keeppackagenames com.android.tools.r8.tracereferences")));
+                "-keeppackagenames com.android.tools.r8.tracereferences")),
+        diagnosticsChecker -> {
+          assertEquals(0, diagnosticsChecker.errors.size());
+          assertEquals(2, diagnosticsChecker.warnings.size());
+          assertEquals(0, diagnosticsChecker.infos.size());
+        });
   }
 
   @Test
@@ -317,7 +346,7 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(
         targetJar,
         sourceJar,
-        TraceReferencesCommandParser.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
+        TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
         StringUtils.lines(
             ImmutableList.of(
                 "-keep,allowobfuscation class"
@@ -327,7 +356,12 @@ public class TraceReferencesCommandTest extends TestBase {
                 "# Error: Could not find definition for field int"
                     + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target.field",
                 "}",
-                "-keeppackagenames com.android.tools.r8.tracereferences")));
+                "-keeppackagenames com.android.tools.r8.tracereferences")),
+        diagnosticsChecker -> {
+          assertEquals(0, diagnosticsChecker.errors.size());
+          assertEquals(2, diagnosticsChecker.warnings.size());
+          assertEquals(0, diagnosticsChecker.infos.size());
+        });
   }
 
   private byte[] getClassWithTargetRemoved() throws IOException {

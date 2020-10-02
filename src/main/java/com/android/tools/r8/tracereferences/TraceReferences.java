@@ -32,7 +32,7 @@ public class TraceReferences {
       throw new CompilationFailedException();
     } catch (Exception e) {
       command.getDiagnosticsHandler().error(new ExceptionDiagnostic(e));
-      throw new CompilationFailedException();
+      throw new CompilationFailedException(e);
     }
   }
 
@@ -46,8 +46,8 @@ public class TraceReferences {
     if (command.getSource().isEmpty()) {
       throw new TraceReferencesException("No source specified");
     }
-    if (command.getOutput() == null) {
-      throw new TraceReferencesException("No output specified");
+    if (command.getConsumer() == null) {
+      throw new TraceReferencesException("No consumer specified");
     }
     AndroidApp.Builder builder = AndroidApp.builder();
     command.getLibrary().forEach(builder::addLibraryResourceProvider);
@@ -80,25 +80,8 @@ public class TraceReferences {
         }
       }
     }
-    Tracer tracer = new Tracer(tagetDescriptors, builder.build());
-    Result result = tracer.run();
-    ResultFormatter formatter;
-    switch (command.getOutputFormat()) {
-      case PRINTUSAGE:
-        formatter = new PrintUsesFormatter(command.getOutput(), command.getDiagnosticsHandler());
-        break;
-      case KEEP_RULES:
-        formatter =
-            new KeepRuleFormatter(command.getOutput(), command.getDiagnosticsHandler(), false);
-        break;
-      case KEEP_RULES_WITH_ALLOWOBFUSCATION:
-        formatter =
-            new KeepRuleFormatter(command.getOutput(), command.getDiagnosticsHandler(), true);
-        break;
-      default:
-        throw new TraceReferencesException("Unexpected format " + command.getOutputFormat().name());
-    }
-    formatter.format(result);
+    Tracer tracer = new Tracer(tagetDescriptors, builder.build(), command.getDiagnosticsHandler());
+    tracer.run(command.getConsumer());
   }
 
   public static void run(String... args) throws CompilationFailedException {

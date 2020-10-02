@@ -3,35 +3,30 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
-import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.StringConsumer;
-import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedClass;
+import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedField;
+import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedMethod;
 import java.util.List;
 
-class PrintUsesFormatter extends ResultFormatter {
-
-  PrintUsesFormatter(StringConsumer output, DiagnosticsHandler diagnosticsHandler) {
-    super(output, diagnosticsHandler);
-  }
+class PrintUsesFormatter extends Formatter {
 
   @Override
-  protected void printConstructorName(DexEncodedMethod encodedMethod) {
-    if (encodedMethod.accessFlags.isStatic()) {
+  protected void printConstructorName(MethodReference method) {
+    if (method.getMethodName().equals("<clinit>")) {
       append("<clinit>");
     } else {
-      String holderName = encodedMethod.holder().toSourceString();
+      String holderName = method.getHolderClass().getTypeName();
       String constructorName = holderName.substring(holderName.lastIndexOf('.') + 1);
       append(constructorName);
     }
   }
 
   @Override
-  protected void printMethod(DexEncodedMethod encodedMethod, String typeName) {
-    append(typeName + ": ");
-    printNameAndReturn(encodedMethod);
-    printArguments(encodedMethod.method);
+  protected void printMethod(TracedMethod method) {
+    append(method.getReference().getHolderClass().getTypeName() + ": ");
+    printNameAndReturn(method.getReference());
+    printArguments(method.getReference());
     appendLine("");
   }
 
@@ -41,20 +36,20 @@ class PrintUsesFormatter extends ResultFormatter {
   }
 
   @Override
-  protected void printTypeHeader(DexClass dexClass) {
-    appendLine(dexClass.type.toSourceString());
+  protected void printTypeHeader(TracedClass type) {
+    appendLine(type.getReference().getTypeName());
   }
 
   @Override
   protected void printTypeFooter() {}
 
   @Override
-  protected void printField(DexClass dexClass, DexField field) {
+  protected void printField(TracedField field) {
     appendLine(
-        dexClass.type.toSourceString()
+        field.getReference().getHolderClass().getTypeName()
             + ": "
-            + field.type.toSourceString()
+            + field.getReference().getFieldType().getTypeName()
             + " "
-            + field.name.toString());
+            + field.getReference().getFieldName());
   }
 }
