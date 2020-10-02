@@ -16,9 +16,9 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
     this.name = name;
   }
 
-  public DexEncodedMember<?, ?> lookupOnClass(DexClass clazz) {
-    return clazz != null ? clazz.lookupMember(this) : null;
-  }
+  public abstract DexEncodedMember<?, ?> lookupOnClass(DexClass clazz);
+
+  public abstract ProgramMember<?, ?> lookupOnProgramClass(DexProgramClass clazz);
 
   public abstract boolean match(R entry);
 

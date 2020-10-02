@@ -11,16 +11,20 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLens.PublicizedLensBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
 import java.util.LinkedHashSet;
@@ -32,6 +36,7 @@ public final class ClassAndMemberPublicizer {
 
   private final DexApplication application;
   private final AppView<AppInfoWithLiveness> appView;
+  private final KeepInfoCollection keepInfo;
   private final SubtypingInfo subtypingInfo;
   private final MethodPoolCollection methodPoolCollection;
 
@@ -43,6 +48,7 @@ public final class ClassAndMemberPublicizer {
       SubtypingInfo subtypingInfo) {
     this.application = application;
     this.appView = appView;
+    this.keepInfo = appView.appInfo().getKeepInfo();
     this.subtypingInfo = subtypingInfo;
     this.methodPoolCollection =
         // We will add private instance methods when we promote them.
@@ -82,6 +88,12 @@ public final class ClassAndMemberPublicizer {
     return lensBuilder.build(appView);
   }
 
+  private void doPublicize(ProgramDefinition definition) {
+    definition.getAccessFlags().promoteToPublic();
+    keepInfo.mutate(
+        keepInfo -> keepInfo.unsetRequireAllowAccessModificationForRepackaging(definition));
+  }
+
   private void publicizeType(DexType type) {
     DexProgramClass clazz = asProgramClassOrNull(application.definitionFor(type));
     if (clazz != null) {
@@ -91,30 +103,31 @@ public final class ClassAndMemberPublicizer {
   }
 
   private void publicizeClass(DexProgramClass clazz) {
-    clazz.accessFlags.promoteToPublic();
+    doPublicize(clazz);
 
     // Publicize fields.
-    clazz.forEachField(
+    clazz.forEachProgramField(
         field -> {
-          if (field.isPublic()) {
+          DexEncodedField definition = field.getDefinition();
+          if (definition.isPublic()) {
             return;
           }
-          if (!appView.appInfo().isAccessModificationAllowed(field.field)) {
+          if (!appView.appInfo().isAccessModificationAllowed(field.getReference())) {
             // TODO(b/131130038): Also do not publicize package-private and protected fields that
             //  are kept.
-            if (field.isPrivate()) {
+            if (definition.isPrivate()) {
               return;
             }
           }
-          field.accessFlags.promoteToPublic();
+          doPublicize(field);
         });
 
     // Publicize methods.
     Set<DexEncodedMethod> privateInstanceMethods = new LinkedHashSet<>();
-    clazz.forEachMethod(
+    clazz.forEachProgramMethod(
         method -> {
-          if (publicizeMethod(clazz, method)) {
-            privateInstanceMethods.add(method);
+          if (publicizeMethod(method)) {
+            privateInstanceMethods.add(method.getDefinition());
           }
         });
     if (!privateInstanceMethods.isEmpty()) {
@@ -131,58 +144,58 @@ public final class ClassAndMemberPublicizer {
     }
   }
 
-  private boolean publicizeMethod(DexProgramClass holder, DexEncodedMethod method) {
-    MethodAccessFlags accessFlags = method.accessFlags;
+  private boolean publicizeMethod(ProgramMethod method) {
+    MethodAccessFlags accessFlags = method.getAccessFlags();
     if (accessFlags.isPublic()) {
       return false;
     }
     // If this method is mentioned in keep rules, do not transform (rule applications changed).
-    if (!appView.appInfo().isAccessModificationAllowed(method.method)) {
+    DexEncodedMethod definition = method.getDefinition();
+    if (!appView.appInfo().isAccessModificationAllowed(method.getReference())) {
       // TODO(b/131130038): Also do not publicize package-private and protected methods that are
       //  kept.
-      if (method.isPrivate()) {
+      if (definition.isPrivate()) {
         return false;
       }
     }
 
-    if (!accessFlags.isPrivate() || appView.dexItemFactory().isConstructor(method.method)) {
+    if (!accessFlags.isPrivate() || appView.dexItemFactory().isConstructor(method.getReference())) {
       // TODO(b/150589374): This should check for dispatch targets or just abandon in
       //  package-private.
-      accessFlags.promoteToPublic();
+      doPublicize(method);
       return false;
     }
 
-    if (!accessFlags.isStatic()) {
-
-      // We can't publicize private instance methods in interfaces or methods that are copied from
-      // interfaces to lambda-desugared classes because this will be added as a new default method.
-      // TODO(b/111118390): It might be possible to transform it into static methods, though.
-      if (holder.isInterface() || accessFlags.isSynthetic()) {
-        return false;
-      }
-
-      boolean wasSeen = methodPoolCollection.markIfNotSeen(holder, method.method);
-      if (wasSeen) {
-        // We can't do anything further because even renaming is not allowed due to the keep rule.
-        if (!appView.appInfo().isMinificationAllowed(method.method)) {
-          return false;
-        }
-        // TODO(b/111118390): Renaming will enable more private instance methods to be publicized.
-        return false;
-      }
-      lensBuilder.add(method.method);
-      accessFlags.promoteToFinal();
-      accessFlags.promoteToPublic();
-      // The method just became public and is therefore not a library override.
-      method.setLibraryMethodOverride(OptionalBool.FALSE);
-      return true;
+    if (accessFlags.isStatic()) {
+      // For private static methods we can just relax the access to public, since
+      // even though JLS prevents from declaring static method in derived class if
+      // an instance method with same signature exists in superclass, JVM actually
+      // does not take into account access of the static methods.
+      doPublicize(method);
+      return false;
     }
 
-    // For private static methods we can just relax the access to public, since
-    // even though JLS prevents from declaring static method in derived class if
-    // an instance method with same signature exists in superclass, JVM actually
-    // does not take into account access of the static methods.
-    accessFlags.promoteToPublic();
-    return false;
+    // We can't publicize private instance methods in interfaces or methods that are copied from
+    // interfaces to lambda-desugared classes because this will be added as a new default method.
+    // TODO(b/111118390): It might be possible to transform it into static methods, though.
+    if (method.getHolder().isInterface() || accessFlags.isSynthetic()) {
+      return false;
+    }
+
+    boolean wasSeen = methodPoolCollection.markIfNotSeen(method.getHolder(), method.getReference());
+    if (wasSeen) {
+      // We can't do anything further because even renaming is not allowed due to the keep rule.
+      if (!appView.appInfo().isMinificationAllowed(method.getReference())) {
+        return false;
+      }
+      // TODO(b/111118390): Renaming will enable more private instance methods to be publicized.
+      return false;
+    }
+    lensBuilder.add(method.getReference());
+    accessFlags.promoteToFinal();
+    doPublicize(method);
+    // The method just became public and is therefore not a library override.
+    definition.setLibraryMethodOverride(OptionalBool.FALSE);
+    return true;
   }
 }

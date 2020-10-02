@@ -4,7 +4,7 @@
 package com.android.tools.r8.shaking;
 
 /** Immutable keep requirements for a field. */
-public final class KeepFieldInfo extends KeepInfo<KeepFieldInfo.Builder, KeepFieldInfo> {
+public final class KeepFieldInfo extends KeepMemberInfo<KeepFieldInfo.Builder, KeepFieldInfo> {
 
   // Requires all aspects of a field to be kept.
   private static final KeepFieldInfo TOP = new Builder().makeTop().build();
@@ -26,6 +26,7 @@ public final class KeepFieldInfo extends KeepInfo<KeepFieldInfo.Builder, KeepFie
 
   // This builder is not private as there are known instances where it is safe to modify keep info
   // in a non-upwards direction.
+  @Override
   Builder builder() {
     return new Builder(this);
   }

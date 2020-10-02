@@ -19,6 +19,11 @@ public class DexClassAndField extends DexClassAndMember<DexEncodedField, DexFiel
     }
   }
 
+  @Override
+  public FieldAccessFlags getAccessFlags() {
+    return getDefinition().getAccessFlags();
+  }
+
   public boolean isProgramField() {
     return false;
   }

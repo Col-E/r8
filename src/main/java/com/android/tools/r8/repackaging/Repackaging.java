@@ -96,7 +96,7 @@ public class Repackaging {
           repackagingConfiguration.getNewPackageDescriptor(pkg, seenPackageDescriptors);
       if (pkg.getPackageDescriptor().equals(newPackageDescriptor)) {
         for (DexProgramClass alreadyRepackagedClass : pkg) {
-          if (!appView.appInfo().isRepackagingAllowed(alreadyRepackagedClass.getType())) {
+          if (!appView.appInfo().isRepackagingAllowed(alreadyRepackagedClass)) {
             mappings.put(alreadyRepackagedClass.getType(), alreadyRepackagedClass.getType());
           }
         }

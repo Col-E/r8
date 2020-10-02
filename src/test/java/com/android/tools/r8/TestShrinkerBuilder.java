@@ -174,6 +174,10 @@ public abstract class TestShrinkerBuilder<
     return addKeepRules("-keep class " + pkg.getName() + ".*");
   }
 
+  public T addKeepPackageNamesRule(Package pkg) {
+    return addKeepRules("-keeppackagenames " + pkg.getName());
+  }
+
   public T addKeepMainRule(Class<?> mainClass) {
     return addKeepMainRule(mainClass.getTypeName());
   }

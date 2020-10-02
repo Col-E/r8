@@ -6,22 +6,33 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.shaking.KeepInfo.Builder;
 
 /** Keep information that can be associated with any item, i.e., class, method or field. */
-public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
+public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>> {
 
   private final boolean pinned;
   private final boolean allowMinification;
   private final boolean allowAccessModification;
+  private final boolean requireAccessModificationForRepackaging;
 
-  private KeepInfo(boolean pinned, boolean allowMinification, boolean allowAccessModification) {
+  private KeepInfo(
+      boolean pinned,
+      boolean allowMinification,
+      boolean allowAccessModification,
+      boolean requireAccessModificationForRepackaging) {
     this.pinned = pinned;
     this.allowMinification = allowMinification;
     this.allowAccessModification = allowAccessModification;
+    this.requireAccessModificationForRepackaging = requireAccessModificationForRepackaging;
   }
 
   KeepInfo(B builder) {
     this(
-        builder.isPinned(), builder.isMinificationAllowed(), builder.isAccessModificationAllowed());
+        builder.isPinned(),
+        builder.isMinificationAllowed(),
+        builder.isAccessModificationAllowed(),
+        builder.isAccessModificationRequiredForRepackaging());
   }
+
+  abstract B builder();
 
   /** True if an item must be present in the output. */
   public boolean isPinned() {
@@ -40,6 +51,18 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
 
   boolean internalIsMinificationAllowed() {
     return allowMinification;
+  }
+
+  /**
+   * True if an item may be repackaged.
+   *
+   * <p>This method requires knowledge of the global configuration as that can override the concrete
+   * value on a given item.
+   */
+  public abstract boolean isRepackagingAllowed(GlobalKeepInfoConfiguration configuration);
+
+  boolean internalIsAccessModificationRequiredForRepackaging() {
+    return requireAccessModificationForRepackaging;
   }
 
   /**
@@ -71,7 +94,7 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
   }
 
   /** Builder to construct an arbitrary keep info object. */
-  public abstract static class Builder<B extends Builder, K extends KeepInfo> {
+  public abstract static class Builder<B extends Builder<B, K>, K extends KeepInfo<B, K>> {
 
     abstract B self();
 
@@ -87,6 +110,7 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
     private boolean pinned;
     private boolean allowMinification;
     private boolean allowAccessModification;
+    private boolean requireAccessModificationForRepackaging;
 
     Builder() {
       // Default initialized. Use should be followed by makeTop/makeBottom.
@@ -97,11 +121,14 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
       pinned = original.isPinned();
       allowMinification = original.internalIsMinificationAllowed();
       allowAccessModification = original.internalIsAccessModificationAllowed();
+      requireAccessModificationForRepackaging =
+          original.internalIsAccessModificationRequiredForRepackaging();
     }
 
     B makeTop() {
       pin();
       disallowMinification();
+      requireAccessModificationForRepackaging();
       disallowAccessModification();
       return self();
     }
@@ -109,6 +136,7 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
     B makeBottom() {
       unpin();
       allowMinification();
+      unsetRequireAccessModificationForRepackaging();
       allowAccessModification();
       return self();
     }
@@ -131,6 +159,8 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
     private boolean internalIsEqualTo(K other) {
       return isPinned() == other.isPinned()
           && isMinificationAllowed() == other.internalIsMinificationAllowed()
+          && isAccessModificationRequiredForRepackaging()
+              == other.internalIsAccessModificationRequiredForRepackaging()
           && isAccessModificationAllowed() == other.internalIsAccessModificationAllowed()
           && isEqualTo(other);
     }
@@ -141,6 +171,10 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
 
     public boolean isMinificationAllowed() {
       return allowMinification;
+    }
+
+    public boolean isAccessModificationRequiredForRepackaging() {
+      return requireAccessModificationForRepackaging;
     }
 
     public boolean isAccessModificationAllowed() {
@@ -173,6 +207,20 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
       return setAllowMinification(false);
     }
 
+    public B setRequireAccessModificationForRepackaging(
+        boolean requireAccessModificationForRepackaging) {
+      this.requireAccessModificationForRepackaging = requireAccessModificationForRepackaging;
+      return self();
+    }
+
+    public B requireAccessModificationForRepackaging() {
+      return setRequireAccessModificationForRepackaging(true);
+    }
+
+    public B unsetRequireAccessModificationForRepackaging() {
+      return setRequireAccessModificationForRepackaging(false);
+    }
+
     public B setAllowAccessModification(boolean allowAccessModification) {
       this.allowAccessModification = allowAccessModification;
       return self();
@@ -189,7 +237,7 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
 
   /** Joiner to construct monotonically increasing keep info object. */
   public abstract static class Joiner<
-      J extends Joiner, B extends Builder, K extends KeepInfo<B, K>> {
+      J extends Joiner<J, B, K>, B extends Builder<B, K>, K extends KeepInfo<B, K>> {
 
     abstract J self();
 
@@ -220,6 +268,11 @@ public abstract class KeepInfo<B extends Builder, K extends KeepInfo> {
 
     public J disallowAccessModification() {
       builder.disallowAccessModification();
+      return self();
+    }
+
+    public J requireAccessModificationForRepackaging() {
+      builder.requireAccessModificationForRepackaging();
       return self();
     }
 

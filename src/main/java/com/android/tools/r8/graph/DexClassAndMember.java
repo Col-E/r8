@@ -21,6 +21,8 @@ public abstract class DexClassAndMember<
     this.definition = definition;
   }
 
+  public abstract AccessFlags<?> getAccessFlags();
+
   public DexType getContextType() {
     return getHolderType();
   }

@@ -10,6 +10,7 @@ import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public abstract class DexClass extends DexDefinition {
@@ -229,6 +231,15 @@ public abstract class DexClass extends DexDefinition {
     for (DexEncodedField field : instanceFields()) {
       consumer.accept(field);
     }
+  }
+
+  public TraversalContinuation traverseFields(Function<DexEncodedField, TraversalContinuation> fn) {
+    for (DexEncodedField field : fields()) {
+      if (fn.apply(field).shouldBreak()) {
+        return TraversalContinuation.BREAK;
+      }
+    }
+    return TraversalContinuation.CONTINUE;
   }
 
   public List<DexEncodedField> staticFields() {

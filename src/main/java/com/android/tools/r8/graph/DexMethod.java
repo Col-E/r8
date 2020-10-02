@@ -75,6 +75,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return clazz != null ? clazz.lookupMember(this) : null;
   }
 
+  @Override
   public ProgramMethod lookupOnProgramClass(DexProgramClass clazz) {
     return clazz != null ? clazz.lookupProgramMethod(this) : null;
   }

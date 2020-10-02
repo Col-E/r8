@@ -37,6 +37,11 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   }
 
   @Override
+  public ProgramField lookupOnProgramClass(DexProgramClass clazz) {
+    return clazz != null ? clazz.lookupProgramField(this) : null;
+  }
+
+  @Override
   public <T> T apply(
       Function<DexType, T> classConsumer,
       Function<DexField, T> fieldConsumer,

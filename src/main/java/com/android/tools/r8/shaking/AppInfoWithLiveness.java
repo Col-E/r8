@@ -39,6 +39,7 @@ import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -477,18 +478,18 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
               DexMethod method = reference.asDexMethod();
               DexProgramClass clazz = asProgramClassOrNull(previous.definitionFor(method.holder));
               if (clazz != null) {
-                DexEncodedMethod definition = clazz.lookupMethod(method);
+                ProgramMethod definition = clazz.lookupProgramMethod(method);
                 if (definition != null) {
-                  collection.pinMethod(clazz, definition);
+                  collection.pinMethod(definition);
                 }
               }
             } else {
               DexField field = reference.asDexField();
               DexProgramClass clazz = asProgramClassOrNull(previous.definitionFor(field.holder));
               if (clazz != null) {
-                DexEncodedField definition = clazz.lookupField(field);
+                ProgramField definition = clazz.lookupProgramField(field);
                 if (definition != null) {
-                  collection.pinField(clazz, definition);
+                  collection.pinField(definition);
                 }
               }
             }
@@ -912,9 +913,22 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return keepInfo.getInfo(reference, this).isAccessModificationAllowed(options());
   }
 
-  public boolean isRepackagingAllowed(DexType type) {
-    return options().isRepackagingEnabled()
-        && keepInfo.getClassInfo(type, this).isRepackagingAllowed(options());
+  public boolean isRepackagingAllowed(DexProgramClass clazz) {
+    if (!options().isRepackagingEnabled()) {
+      return false;
+    }
+    if (!keepInfo.getInfo(clazz).isRepackagingAllowed(options())) {
+      return false;
+    }
+    return clazz
+        .traverseProgramMethods(
+            member -> {
+              if (keepInfo.getInfo(member).isRepackagingAllowed(options())) {
+                return TraversalContinuation.CONTINUE;
+              }
+              return TraversalContinuation.BREAK;
+            })
+        .shouldContinue();
   }
 
   public boolean isPinned(DexReference reference) {

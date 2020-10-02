@@ -182,6 +182,17 @@ public class DexProgramClass extends DexClass
     return toProgramMethodOrNull(getInitializer(types));
   }
 
+  /** Find member in this class matching {@param member}. */
+  @SuppressWarnings("unchecked")
+  public <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+      ProgramMember<D, R> lookupProgramMember(DexMember<D, R> member) {
+    ProgramMember<?, ?> definition =
+        member.isDexField()
+            ? lookupProgramField(member.asDexField())
+            : lookupProgramMethod(member.asDexMethod());
+    return (ProgramMember<D, R>) definition;
+  }
+
   public ProgramField lookupProgramField(DexField reference) {
     return toProgramFieldOrNull(lookupField(reference));
   }
@@ -204,8 +215,22 @@ public class DexProgramClass extends DexClass
     return null;
   }
 
+  public TraversalContinuation traverseProgramMembers(
+      Function<ProgramMember<?, ?>, TraversalContinuation> fn) {
+    TraversalContinuation continuation = traverseProgramFields(fn);
+    if (continuation.shouldContinue()) {
+      return traverseProgramMethods(fn);
+    }
+    return TraversalContinuation.BREAK;
+  }
+
+  public TraversalContinuation traverseProgramFields(
+      Function<? super ProgramField, TraversalContinuation> fn) {
+    return traverseFields(field -> fn.apply(new ProgramField(this, field)));
+  }
+
   public TraversalContinuation traverseProgramMethods(
-      Function<ProgramMethod, TraversalContinuation> fn) {
+      Function<? super ProgramMethod, TraversalContinuation> fn) {
     return getMethodCollection().traverse(method -> fn.apply(new ProgramMethod(this, method)));
   }
 

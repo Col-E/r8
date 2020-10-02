@@ -54,6 +54,7 @@ import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -679,7 +680,7 @@ public class Enqueuer {
 
   private void enqueueRootField(
       ProgramField field, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
-    keepFieldWithRules(field.getHolder(), field.getDefinition(), rules);
+    keepFieldWithRules(field, rules);
     workList.enqueueMarkFieldKeptAction(
         field, graphReporter.reportKeepField(precondition, rules, field.getDefinition()));
   }
@@ -697,7 +698,7 @@ public class Enqueuer {
 
   private void enqueueRootMethod(
       ProgramMethod method, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
-    keepMethodWithRules(method.getHolder(), method.getDefinition(), rules);
+    keepMethodWithRules(method, rules);
     workList.enqueueMarkMethodKeptAction(
         method, graphReporter.reportKeepMethod(precondition, rules, method.getDefinition()));
   }
@@ -2605,13 +2606,13 @@ public class Enqueuer {
   }
 
   private void markEnumValuesAsReachable(DexProgramClass clazz, KeepReason reason) {
-    DexEncodedMethod valuesMethod = clazz.lookupMethod(generatedEnumValuesMethod(clazz));
+    ProgramMethod valuesMethod = clazz.lookupProgramMethod(generatedEnumValuesMethod(clazz));
     if (valuesMethod != null) {
       // TODO(sgjesse): Does this have to be enqueued as a root item? Right now it is done as the
       // marking for not renaming it is in the root set.
-      workList.enqueueMarkMethodKeptAction(new ProgramMethod(clazz, valuesMethod), reason);
-      keepInfo.keepMethod(clazz, valuesMethod);
-      shouldNotBeMinified(valuesMethod.toReference());
+      workList.enqueueMarkMethodKeptAction(valuesMethod, reason);
+      keepInfo.keepMethod(valuesMethod);
+      shouldNotBeMinified(valuesMethod.getReference());
     }
   }
 
@@ -2734,25 +2735,26 @@ public class Enqueuer {
     return appInfoWithLiveness;
   }
 
-  public NestedGraphLens buildGraphLens(AppView<?> appView) {
+  public NestedGraphLens buildGraphLens() {
     return lambdaRewriter != null ? lambdaRewriter.fixup() : null;
   }
 
   private void keepClassWithRules(DexProgramClass clazz, Set<ProguardKeepRuleBase> rules) {
-    keepInfo.joinClass(clazz, info -> applyKeepRules(rules, info));
+    keepInfo.joinClass(clazz, info -> applyKeepRules(clazz, rules, info));
   }
 
-  private void keepMethodWithRules(
-      DexProgramClass holder, DexEncodedMethod method, Set<ProguardKeepRuleBase> rules) {
-    keepInfo.joinMethod(holder, method, info -> applyKeepRules(rules, info));
+  private void keepMethodWithRules(ProgramMethod method, Set<ProguardKeepRuleBase> rules) {
+    keepInfo.joinMethod(method, info -> applyKeepRules(method, rules, info));
   }
 
-  private void keepFieldWithRules(
-      DexProgramClass holder, DexEncodedField field, Set<ProguardKeepRuleBase> rules) {
-    keepInfo.joinField(holder, field, info -> applyKeepRules(rules, info));
+  private void keepFieldWithRules(ProgramField field, Set<ProguardKeepRuleBase> rules) {
+    keepInfo.joinField(field, info -> applyKeepRules(field, rules, info));
   }
 
-  private void applyKeepRules(Set<ProguardKeepRuleBase> rules, KeepInfo.Joiner<?, ?, ?> joiner) {
+  private void applyKeepRules(
+      ProgramDefinition definition,
+      Set<ProguardKeepRuleBase> rules,
+      KeepInfo.Joiner<?, ?, ?> joiner) {
     for (ProguardKeepRuleBase rule : rules) {
       ProguardKeepRuleModifiers modifiers =
           (rule.isProguardIfRule() ? rule.asProguardIfRule().getSubsequentRule() : rule)
@@ -2760,6 +2762,9 @@ public class Enqueuer {
       if (!modifiers.allowsShrinking) {
         // TODO(b/159589281): Evaluate this interpretation.
         joiner.pin();
+        if (!definition.getAccessFlags().isPublic()) {
+          joiner.requireAccessModificationForRepackaging();
+        }
       }
       if (!modifiers.allowsObfuscation) {
         joiner.disallowMinification();
@@ -3676,8 +3681,9 @@ public class Enqueuer {
             clazz, null, InstantiationReason.REFLECTION, KeepReason.reflectiveUseIn(method));
       }
       if (!keepInfo.getFieldInfo(encodedField, clazz).isPinned()) {
-        keepInfo.pinField(clazz, encodedField);
-        markFieldAsKept(new ProgramField(clazz, encodedField), KeepReason.reflectiveUseIn(method));
+        ProgramField programField = new ProgramField(clazz, encodedField);
+        keepInfo.pinField(programField);
+        markFieldAsKept(programField, KeepReason.reflectiveUseIn(method));
       }
     } else {
       assert identifierItem.isDexMethod();
@@ -3869,10 +3875,11 @@ public class Enqueuer {
 
         // Also pin all of its virtual methods to ensure that the devirtualizer does not perform
         // illegal rewritings of invoke-interface instructions into invoke-virtual instructions.
-        for (DexEncodedMethod virtualMethod : clazz.virtualMethods()) {
-          keepInfo.pinMethod(clazz, virtualMethod);
-          markVirtualMethodAsReachable(virtualMethod.method, true, null, reason);
-        }
+        clazz.forEachProgramVirtualMethod(
+            virtualMethod -> {
+              keepInfo.pinMethod(virtualMethod);
+              markVirtualMethodAsReachable(virtualMethod.getReference(), true, null, reason);
+            });
       }
     }
   }

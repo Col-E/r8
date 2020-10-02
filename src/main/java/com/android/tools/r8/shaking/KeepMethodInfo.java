@@ -4,7 +4,7 @@
 package com.android.tools.r8.shaking;
 
 /** Immutable keep requirements for a method. */
-public final class KeepMethodInfo extends KeepInfo<KeepMethodInfo.Builder, KeepMethodInfo> {
+public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder, KeepMethodInfo> {
 
   // Requires all aspects of a method to be kept.
   private static final KeepMethodInfo TOP = new Builder().makeTop().build();
@@ -26,6 +26,7 @@ public final class KeepMethodInfo extends KeepInfo<KeepMethodInfo.Builder, KeepM
 
   // This builder is not private as there are known instances where it is safe to modify keep info
   // in a non-upwards direction.
+  @Override
   Builder builder() {
     return new Builder(this);
   }

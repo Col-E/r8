@@ -703,7 +703,7 @@ public class R8 {
                       timing)
                   .withEnumValueInfoMaps(enumValueInfoMapCollection));
           // Rerunning the enqueuer should not give rise to any method rewritings.
-          assert enqueuer.buildGraphLens(appView) == null;
+          assert enqueuer.buildGraphLens() == null;
           appView.withGeneratedMessageLiteBuilderShrinker(
               shrinker ->
                   shrinker.rewriteDeadBuilderReferencesFromDynamicMethods(
@@ -1019,7 +1019,7 @@ public class R8 {
                 options.getProguardConfiguration().getDontWarnPatterns(),
                 executorService,
                 timing));
-    NestedGraphLens lens = enqueuer.buildGraphLens(appView);
+    NestedGraphLens lens = enqueuer.buildGraphLens();
     appView.rewriteWithLens(lens);
     if (InternalOptions.assertionsEnabled()) {
       // Register the dead proto types. These are needed to verify that no new missing types are

@@ -24,6 +24,11 @@ public class DexClassAndMethod extends DexClassAndMember<DexEncodedMethod, DexMe
   }
 
   @Override
+  public MethodAccessFlags getAccessFlags() {
+    return getDefinition().getAccessFlags();
+  }
+
+  @Override
   public boolean isMethodTarget() {
     return true;
   }

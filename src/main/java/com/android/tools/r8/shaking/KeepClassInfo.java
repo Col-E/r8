@@ -24,7 +24,8 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     super(builder);
   }
 
-  private Builder builder() {
+  @Override
+  Builder builder() {
     return new Builder(this);
   }
 
@@ -33,18 +34,11 @@ public final class KeepClassInfo extends KeepInfo<KeepClassInfo.Builder, KeepCla
     return new Joiner(this);
   }
 
-  /**
-   * True if a class may be repackaged.
-   *
-   * <p>This method requires knowledge of the global configuration as that can override the concrete
-   * value on a given item.
-   */
+  @Override
   public boolean isRepackagingAllowed(GlobalKeepInfoConfiguration configuration) {
-    return configuration.isRepackagingEnabled() && internalIsRepackagingAllowed();
-  }
-
-  boolean internalIsRepackagingAllowed() {
-    return internalIsMinificationAllowed();
+    return configuration.isRepackagingEnabled()
+        && internalIsMinificationAllowed()
+        && !internalIsAccessModificationRequiredForRepackaging();
   }
 
   @Override

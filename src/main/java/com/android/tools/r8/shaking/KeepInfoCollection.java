@@ -9,7 +9,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -17,6 +16,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.KeepFieldInfo.Joiner;
@@ -105,7 +105,7 @@ public abstract class KeepInfoCollection {
     return definition == null ? KeepFieldInfo.bottom() : getFieldInfo(definition, holder);
   }
 
-  public final KeepInfo getInfo(DexReference reference, DexDefinitionSupplier definitions) {
+  public final KeepInfo<?, ?> getInfo(DexReference reference, DexDefinitionSupplier definitions) {
     if (reference.isDexType()) {
       return getClassInfo(reference.asDexType(), definitions);
     }
@@ -114,6 +114,19 @@ public abstract class KeepInfoCollection {
     }
     if (reference.isDexField()) {
       return getFieldInfo(reference.asDexField(), definitions);
+    }
+    throw new Unreachable();
+  }
+
+  public final KeepInfo<?, ?> getInfo(ProgramDefinition definition) {
+    if (definition.isProgramClass()) {
+      return getClassInfo(definition.asProgramClass());
+    }
+    if (definition.isProgramMethod()) {
+      return getMethodInfo(definition.asProgramMethod());
+    }
+    if (definition.isProgramField()) {
+      return getFieldInfo(definition.asProgramField());
     }
     throw new Unreachable();
   }
@@ -325,17 +338,17 @@ public abstract class KeepInfoCollection {
       } else if (reference.isDexMethod()) {
         DexMethod method = reference.asDexMethod();
         DexProgramClass clazz = asProgramClassOrNull(definitions.definitionFor(method.holder));
-        DexEncodedMethod definition = method.lookupOnClass(clazz);
+        ProgramMethod definition = method.lookupOnProgramClass(clazz);
         if (definition != null) {
-          joinMethod(clazz, definition, fn::accept);
+          joinMethod(definition, fn::accept);
         }
       } else {
         assert reference.isDexField();
         DexField field = reference.asDexField();
         DexProgramClass clazz = asProgramClassOrNull(definitions.definitionFor(field.holder));
-        DexEncodedField definition = field.lookupOnClass(clazz);
+        ProgramField definition = field.lookupOnProgramClass(clazz);
         if (definition != null) {
-          joinField(clazz, definition, fn::accept);
+          joinField(definition, fn::accept);
         }
       }
     }
@@ -348,9 +361,8 @@ public abstract class KeepInfoCollection {
       joinClass(clazz, KeepInfo.Joiner::pin);
     }
 
-    public void joinMethod(
-        DexProgramClass holder, DexEncodedMethod method, Consumer<KeepMethodInfo.Joiner> fn) {
-      KeepMethodInfo info = getMethodInfo(method, holder);
+    public void joinMethod(ProgramMethod method, Consumer<KeepMethodInfo.Joiner> fn) {
+      KeepMethodInfo info = getMethodInfo(method);
       if (info == KeepMethodInfo.top()) {
         return;
       }
@@ -358,24 +370,16 @@ public abstract class KeepInfoCollection {
       fn.accept(joiner);
       KeepMethodInfo joined = joiner.join();
       if (!info.equals(joined)) {
-        keepMethodInfo.put(method.method, joined);
+        keepMethodInfo.put(method.getReference(), joined);
       }
     }
 
-    public void joinMethod(ProgramMethod programMethod, Consumer<KeepMethodInfo.Joiner> fn) {
-      joinMethod(programMethod.getHolder(), programMethod.getDefinition(), fn);
+    public void keepMethod(ProgramMethod method) {
+      joinMethod(method, KeepInfo.Joiner::top);
     }
 
-    public void keepMethod(ProgramMethod programMethod) {
-      keepMethod(programMethod.getHolder(), programMethod.getDefinition());
-    }
-
-    public void keepMethod(DexProgramClass holder, DexEncodedMethod method) {
-      joinMethod(holder, method, KeepInfo.Joiner::top);
-    }
-
-    public void pinMethod(DexProgramClass holder, DexEncodedMethod method) {
-      joinMethod(holder, method, KeepInfo.Joiner::pin);
+    public void pinMethod(ProgramMethod method) {
+      joinMethod(method, KeepInfo.Joiner::pin);
     }
 
     public void unsafeAllowMinificationOfMethod(ProgramMethod method) {
@@ -406,9 +410,31 @@ public abstract class KeepInfoCollection {
       }
     }
 
-    public void joinField(
-        DexProgramClass holder, DexEncodedField field, Consumer<KeepFieldInfo.Joiner> fn) {
-      KeepFieldInfo info = getFieldInfo(field, holder);
+    public void unsetRequireAllowAccessModificationForRepackaging(ProgramDefinition definition) {
+      if (definition.isProgramClass()) {
+        DexProgramClass clazz = definition.asProgramClass();
+        KeepClassInfo info = getClassInfo(clazz);
+        keepClassInfo.put(
+            clazz.getType(), info.builder().unsetRequireAccessModificationForRepackaging().build());
+      } else if (definition.isProgramMethod()) {
+        ProgramMethod method = definition.asProgramMethod();
+        KeepMethodInfo info = getMethodInfo(method);
+        keepMethodInfo.put(
+            method.getReference(),
+            info.builder().unsetRequireAccessModificationForRepackaging().build());
+      } else if (definition.isProgramField()) {
+        ProgramField field = definition.asProgramField();
+        KeepFieldInfo info = getFieldInfo(field);
+        keepFieldInfo.put(
+            field.getReference(),
+            info.builder().unsetRequireAccessModificationForRepackaging().build());
+      } else {
+        throw new Unreachable();
+      }
+    }
+
+    public void joinField(ProgramField field, Consumer<KeepFieldInfo.Joiner> fn) {
+      KeepFieldInfo info = getFieldInfo(field);
       if (info.isTop()) {
         return;
       }
@@ -416,29 +442,16 @@ public abstract class KeepInfoCollection {
       fn.accept(joiner);
       KeepFieldInfo joined = joiner.join();
       if (!info.equals(joined)) {
-        keepFieldInfo.put(field.field, joined);
+        keepFieldInfo.put(field.getReference(), joined);
       }
     }
 
-    public void keepField(ProgramField programField) {
-      keepField(programField.getHolder(), programField.getDefinition());
+    public void keepField(ProgramField field) {
+      joinField(field, KeepInfo.Joiner::top);
     }
 
-    public void keepField(DexProgramClass holder, DexEncodedField field) {
-      joinField(holder, field, KeepInfo.Joiner::top);
-    }
-
-    public void pinField(DexProgramClass holder, DexEncodedField field) {
-      joinField(holder, field, KeepInfo.Joiner::pin);
-    }
-
-    public void keepMember(DexProgramClass holder, DexEncodedMember<?, ?> member) {
-      if (member.isDexEncodedMethod()) {
-        keepMethod(holder, member.asDexEncodedMethod());
-      } else {
-        assert member.isDexEncodedField();
-        keepField(holder, member.asDexEncodedField());
-      }
+    public void pinField(ProgramField field) {
+      joinField(field, KeepInfo.Joiner::pin);
     }
 
     public void unsafeAllowMinificationOfField(ProgramField field) {

@@ -8,7 +8,33 @@ public interface ProgramDefinition {
 
   DexProgramClass getContextClass();
 
+  AccessFlags<?> getAccessFlags();
+
   DexType getContextType();
 
   DexDefinition getDefinition();
+
+  default boolean isProgramClass() {
+    return false;
+  }
+
+  default DexProgramClass asProgramClass() {
+    return null;
+  }
+
+  default boolean isProgramField() {
+    return false;
+  }
+
+  default ProgramField asProgramField() {
+    return null;
+  }
+
+  default boolean isProgramMethod() {
+    return false;
+  }
+
+  default ProgramMethod asProgramMethod() {
+    return null;
+  }
 }
