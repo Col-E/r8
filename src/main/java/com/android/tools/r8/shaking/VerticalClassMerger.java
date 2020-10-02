@@ -639,10 +639,19 @@ public class VerticalClassMerger {
       Log.debug(getClass(), "Merged %d classes.", mergedClasses.size());
     }
     timing.end();
+
+    if (mergedClasses.isEmpty()) {
+      return null;
+    }
+
     timing.begin("fixup");
     VerticalClassMergerGraphLens lens = new TreeFixer().fixupTypeReferences();
+    KeepInfoCollection keepInfo = appView.appInfo().getKeepInfo();
+    keepInfo.mutate(mutator -> mutator.removeKeepInfoForPrunedItems(mergedClasses.keySet()));
     timing.end();
-    assert lens == null || verifyGraphLens(lens);
+
+    assert lens != null;
+    assert verifyGraphLens(lens);
     return lens;
   }
 

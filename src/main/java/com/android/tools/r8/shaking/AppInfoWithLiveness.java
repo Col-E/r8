@@ -951,6 +951,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (!removedClasses.isEmpty()) {
       // Rebuild the hierarchy.
       objectAllocationInfoCollection.mutate(mutator -> {}, this);
+      keepInfo.mutate(keepInfo -> keepInfo.removeKeepInfoForPrunedItems(removedClasses));
     }
     return new AppInfoWithLiveness(this, application, removedClasses, additionalPinnedItems);
   }

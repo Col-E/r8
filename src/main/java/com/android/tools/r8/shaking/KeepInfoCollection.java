@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 // Non-mutable collection of keep information pertaining to a program.
@@ -197,6 +198,12 @@ public abstract class KeepInfoCollection {
       this.ruleInstances = ruleInstances;
     }
 
+    public void removeKeepInfoForPrunedItems(Set<DexType> removedClasses) {
+      keepClassInfo.keySet().removeIf(removedClasses::contains);
+      keepFieldInfo.keySet().removeIf(field -> removedClasses.contains(field.getHolderType()));
+      keepMethodInfo.keySet().removeIf(method -> removedClasses.contains(method.getHolderType()));
+    }
+
     @Override
     public KeepInfoCollection rewrite(NonIdentityGraphLens lens, InternalOptions options) {
       Map<DexType, KeepClassInfo> newClassInfo = new IdentityHashMap<>(keepClassInfo.size());
@@ -204,7 +211,8 @@ public abstract class KeepInfoCollection {
           (type, info) -> {
             DexType newType = lens.lookupType(type);
             assert newType == type || !info.isPinned() || info.isMinificationAllowed(options);
-            newClassInfo.put(newType, info);
+            KeepClassInfo previous = newClassInfo.put(newType, info);
+            assert previous == null;
           });
       Map<DexMethod, KeepMethodInfo> newMethodInfo = new IdentityHashMap<>(keepMethodInfo.size());
       keepMethodInfo.forEach(
@@ -222,7 +230,8 @@ public abstract class KeepInfoCollection {
                     .allMatch(x -> x);
             assert !info.isPinned()
                 || newMethod.getReturnType() == lens.lookupType(method.getReturnType());
-            newMethodInfo.put(newMethod, info);
+            KeepMethodInfo previous = newMethodInfo.put(newMethod, info);
+            assert previous == null;
           });
       Map<DexField, KeepFieldInfo> newFieldInfo = new IdentityHashMap<>(keepFieldInfo.size());
       keepFieldInfo.forEach(
@@ -231,7 +240,8 @@ public abstract class KeepInfoCollection {
             assert newField.name == field.name
                 || !info.isPinned()
                 || info.isMinificationAllowed(options);
-            newFieldInfo.put(newField, info);
+            KeepFieldInfo previous = newFieldInfo.put(newField, info);
+            assert previous == null;
           });
       Map<DexReference, List<Consumer<KeepInfo.Joiner<?, ?, ?>>>> newRuleInstances =
           new IdentityHashMap<>(ruleInstances.size());
