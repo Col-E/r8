@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.gson;
 
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.gson.TestClasses.TestClass;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,25 +42,30 @@ public class GsonMapTest extends DesugaredLibraryTestBase {
   public void testGsonMap() throws Exception {
     Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForR8(parameters.getBackend())
-        .addProgramClassesAndInnerClasses(TestClasses.class)
-        .addProgramFiles(GSON_2_8_1_JAR)
-        .addKeepMainRule(TestClasses.TestClass.class)
-        .addKeepRuleFiles(GSON_CONFIGURATION)
-        .allowUnusedProguardConfigurationRules()
-        .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
-        .allowDiagnosticMessages()
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .setMinApi(parameters.getApiLevel())
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .run(parameters.getRuntime(), TestClasses.TestClass.class)
-        .assertSuccessWithOutputLines("true", "true", "false", "false", "false");
+    R8TestRunResult runResult =
+        testForR8(parameters.getBackend())
+            .addProgramClassesAndInnerClasses(TestClasses.class)
+            .addProgramFiles(GSON_2_8_1_JAR)
+            .addKeepMainRule(TestClass.class)
+            .addKeepRuleFiles(GSON_CONFIGURATION)
+            .allowUnusedProguardConfigurationRules()
+            .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
+            .allowDiagnosticMessages()
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .addDesugaredCoreLibraryRunClassPath(
+                this::buildDesugaredLibrary,
+                parameters.getApiLevel(),
+                keepRuleConsumer.get(),
+                shrinkDesugaredLibrary)
+            .run(parameters.getRuntime(), TestClass.class);
     // TODO(b/167649682): Should be always true.
     // .assertSuccessWithOutputLines("true", "true", "true", "true", "true");
+    if (shrinkDesugaredLibrary) {
+      runResult.assertSuccessWithOutputLines("true", "true", "false", "false", "false");
+    } else {
+      runResult.assertSuccessWithOutputLines("true", "true", "false", "true", "false");
+    }
   }
 }
