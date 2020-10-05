@@ -1253,7 +1253,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean alwaysUsePessimisticRegisterAllocation = false;
     public boolean enableCheckCastAndInstanceOfRemoval = true;
     public boolean enableDeadSwitchCaseElimination = true;
-    public boolean enableExperimentalRepackaging = false;
     public boolean enableInvokeSuperToInvokeVirtualRewriting = true;
     public boolean enableSwitchToIfRewriting = true;
     public boolean enableEnumUnboxingDebugLogs = false;

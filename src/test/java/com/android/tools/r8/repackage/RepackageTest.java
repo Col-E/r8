@@ -66,10 +66,9 @@ public class RepackageTest extends RepackageTestBase {
 
   private final boolean allowAccessModification;
 
-  @Parameters(name = "{3}, allow access modification: {0}, experimental: {1}, kind: {2}")
+  @Parameters(name = "{3}, allow access modification: {0}, kind: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(),
         BooleanUtils.values(),
         ImmutableList.of(FLATTEN_PACKAGE_HIERARCHY, REPACKAGE_CLASSES),
         getTestParameters().withAllRuntimesAndApiLevels().build());
@@ -77,17 +76,15 @@ public class RepackageTest extends RepackageTestBase {
 
   public RepackageTest(
       boolean allowAccessModification,
-      boolean enableExperimentalRepackaging,
       String flattenPackageHierarchyOrRepackageClasses,
       TestParameters parameters) {
-    super(enableExperimentalRepackaging, flattenPackageHierarchyOrRepackageClasses, parameters);
+    super(flattenPackageHierarchyOrRepackageClasses, parameters);
     this.allowAccessModification = allowAccessModification;
   }
 
   @Test
   public void testJvm() throws Exception {
     assumeFalse(allowAccessModification);
-    assumeFalse(isExperimentalRepackaging());
     assumeTrue(isFlattenPackageHierarchy());
     assumeTrue(parameters.isCfRuntime());
     testForJvm()
@@ -134,11 +131,7 @@ public class RepackageTest extends RepackageTestBase {
    * eligible for repackaging (or it needs to stay in its original package).
    */
   private void forEachClass(BiConsumer<Class<?>, Boolean> consumer) {
-    // TODO(b/165783399): This should be renamed to markAlwaysEligible() and always pass `true` to
-    //  the consumer, since these classes should be repackaged independent of
-    //  -allowaccessmodification.
-    Consumer<Class<?>> markShouldAlwaysBeEligible =
-        clazz -> consumer.accept(clazz, allowAccessModification || isExperimentalRepackaging());
+    Consumer<Class<?>> markShouldAlwaysBeEligible = clazz -> consumer.accept(clazz, true);
     Consumer<Class<?>> markEligibleWithAllowAccessModification =
         clazz -> consumer.accept(clazz, allowAccessModification);
 

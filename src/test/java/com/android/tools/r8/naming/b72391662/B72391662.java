@@ -140,7 +140,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     assertThat(testClass, isPresent());
 
     // Test the totally unused method.
-    MethodSubject staticMethod = testClass.method("void", "unused", ImmutableList.of());
+    MethodSubject staticMethod = testClass.uniqueMethodWithName("unused");
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
     if (shrinker.isR8()) {
@@ -150,7 +150,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     }
 
     // Test an indirectly referred method.
-    staticMethod = testClass.method("java.lang.String", "staticMethod", ImmutableList.of());
+    staticMethod = testClass.uniqueMethodWithName("staticMethod");
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
     boolean publicizeCondition = shrinker.isR8() ? allowAccessModification
@@ -191,7 +191,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     assertThat(testClass, isPresent());
 
     // Test the totally unused method.
-    MethodSubject staticMethod = testClass.method("void", "unused", ImmutableList.of());
+    MethodSubject staticMethod = testClass.uniqueMethodWithName("unused");
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
     if (shrinker.isR8()) {
@@ -201,7 +201,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     }
 
     // Test an indirectly referred method.
-    staticMethod = testClass.method("java.lang.String", "staticMethod", ImmutableList.of());
+    staticMethod = testClass.uniqueMethodWithName("staticMethod");
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
     boolean publicizeCondition = shrinker.isR8() ? allowAccessModification
@@ -254,11 +254,11 @@ public class B72391662 extends ProguardCompatibilityTestBase {
     assertThat(testClass, isPresent());
 
     // Test the totally unused method.
-    MethodSubject staticMethod = testClass.method("void", "unused", ImmutableList.of());
+    MethodSubject staticMethod = testClass.uniqueMethodWithName("unused");
     assertThat(staticMethod, not(isPresent()));
 
     // Test an indirectly referred method.
-    staticMethod = testClass.method("java.lang.String", "staticMethod", ImmutableList.of());
+    staticMethod = testClass.uniqueMethodWithName("staticMethod");
     assertThat(staticMethod, isPresent());
     assertEquals(minify, staticMethod.isRenamed());
     boolean publicizeCondition = shrinker.isR8() ? allowAccessModification

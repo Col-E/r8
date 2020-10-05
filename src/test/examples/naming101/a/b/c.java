@@ -4,5 +4,5 @@
 package naming101.a.b;
 
 public class c {
-  static boolean flag = true;
+  public static boolean flag = true;
 }

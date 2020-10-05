@@ -21,7 +21,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardPackageNameList;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
@@ -40,7 +39,6 @@ class ClassNameMinifier {
   private final ClassNamingStrategy classNamingStrategy;
   private final PackageNamingStrategy packageNamingStrategy;
   private final Iterable<? extends DexClass> classes;
-  private final PackageObfuscationMode packageObfuscationMode;
   private final boolean isAccessModificationAllowed;
   private final Set<String> noObfuscationPrefixes = Sets.newHashSet();
   private final Set<String> usedPackagePrefixes = Sets.newHashSet();
@@ -63,27 +61,16 @@ class ClassNameMinifier {
     this.packageNamingStrategy = packageNamingStrategy;
     this.classes = classes;
     InternalOptions options = appView.options();
-    this.packageObfuscationMode =
-        options.testing.enableExperimentalRepackaging
-            ? PackageObfuscationMode.NONE
-            : options.getProguardConfiguration().getPackageObfuscationMode();
     this.isAccessModificationAllowed =
         options.getProguardConfiguration().isAccessModificationAllowed();
     this.keepInnerClassStructure = options.keepInnerClassStructure();
 
     // Initialize top-level naming state.
-    if (options.testing.enableExperimentalRepackaging) {
-      topLevelState = new Namespace("");
-      String newPackageDescriptor =
-          StringUtils.replaceAll(options.getProguardConfiguration().getPackagePrefix(), ".", "/");
-      if (!newPackageDescriptor.isEmpty()) {
-        registerPackagePrefixesAsUsed(newPackageDescriptor, false);
-      }
-    } else {
-      topLevelState =
-          new Namespace(
-              getPackageBinaryNameFromJavaType(
-                  options.getProguardConfiguration().getPackagePrefix()));
+    topLevelState = new Namespace("");
+    String newPackageDescriptor =
+        StringUtils.replaceAll(options.getProguardConfiguration().getPackagePrefix(), ".", "/");
+    if (!newPackageDescriptor.isEmpty()) {
+      registerPackagePrefixesAsUsed(newPackageDescriptor, false);
     }
 
     states.put("", topLevelState);
@@ -284,25 +271,7 @@ class ClassNameMinifier {
     if (noObfuscationPrefixes.contains(packageName) || keepPackageNames.matches(type)) {
       return states.computeIfAbsent(packageName, Namespace::new);
     }
-    Namespace state = topLevelState;
-    switch (packageObfuscationMode) {
-      case NONE:
-        // For general obfuscation, rename all the involved package prefixes.
-        state = getStateForPackagePrefix(packageName);
-        break;
-      case REPACKAGE:
-        // For repackaging, all classes are repackaged to a single package.
-        state = topLevelState;
-        break;
-      case FLATTEN:
-        // For flattening, all packages are repackaged to a single package.
-        state = states.computeIfAbsent(packageName, k -> {
-          String renamedPackagePrefix = topLevelState.nextPackagePrefix();
-          return new Namespace(renamedPackagePrefix);
-        });
-        break;
-    }
-    return state;
+    return getStateForPackagePrefix(packageName);
   }
 
   private Namespace getStateForPackagePrefix(String prefix) {

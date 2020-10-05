@@ -62,7 +62,7 @@ public class RepackagingCompatibilityTest extends TestBase {
 
   @Test
   public void testProguard() throws Exception {
-    runTest(testForProguard(), "Proguard");
+    runTest(testForProguard().addKeepRules("-dontwarn " + getClass().getTypeName()), "Proguard");
   }
 
   private void runTest(TestShrinkerBuilder<?, ?, ?, ?, ?> builder, String shrinker)
@@ -125,11 +125,11 @@ public class RepackagingCompatibilityTest extends TestBase {
         throw new Unreachable();
     }
   }
-}
 
-class RepackagingCompatabilityTestClass {
+  public static class RepackagingCompatabilityTestClass {
 
-  public static void main(String[] args) {
-    System.out.println("Hello world!");
+    public static void main(String[] args) {
+      System.out.println("Hello world!");
+    }
   }
 }

@@ -6,7 +6,6 @@ package com.android.tools.r8.repackage;
 
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
-import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
@@ -24,7 +23,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 public abstract class RepackageTestBase extends TestBase {
 
-  private final boolean enableExperimentalRepackaging;
   private final String flattenPackageHierarchyOrRepackageClasses;
   protected final TestParameters parameters;
 
@@ -36,15 +34,8 @@ public abstract class RepackageTestBase extends TestBase {
   }
 
   public RepackageTestBase(
-      String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
-    this(true, flattenPackageHierarchyOrRepackageClasses, parameters);
-  }
-
-  public RepackageTestBase(
-      boolean enableExperimentalRepackaging,
       String flattenPackageHierarchyOrRepackageClasses,
       TestParameters parameters) {
-    this.enableExperimentalRepackaging = enableExperimentalRepackaging;
     this.flattenPackageHierarchyOrRepackageClasses = flattenPackageHierarchyOrRepackageClasses;
     this.parameters = parameters;
   }
@@ -140,18 +131,8 @@ public abstract class RepackageTestBase extends TestBase {
   }
 
   protected void configureRepackaging(R8TestBuilder<?> testBuilder) {
-    testBuilder
-        .addKeepRules(
-            "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + getRepackagePackage() + "\"")
-        .addOptionsModification(
-            options -> {
-              assertFalse(options.testing.enableExperimentalRepackaging);
-              options.testing.enableExperimentalRepackaging = enableExperimentalRepackaging;
-            });
-  }
-
-  protected boolean isExperimentalRepackaging() {
-    return enableExperimentalRepackaging;
+    testBuilder.addKeepRules(
+        "-" + flattenPackageHierarchyOrRepackageClasses + " \"" + getRepackagePackage() + "\"");
   }
 
   protected boolean isFlattenPackageHierarchy() {
