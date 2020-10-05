@@ -32,8 +32,7 @@ import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.Invoke.Type;
-import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
-import com.android.tools.r8.ir.synthetic.SynthesizedCode;
+import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.BiMap;
@@ -260,15 +259,13 @@ public final class InterfaceProcessor {
 
       DexMethod origMethod = direct.method;
       DexMethod newMethod = rewriter.staticAsMethodOfDispatchClass(origMethod);
-      ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
-          ForwardMethodSourceCode.builder(newMethod);
       // Create a forwarding method to the library static interface method. The method is added
       // to the dispatch class, however, the targeted method is still on the interface, so the
       // interface bit should be set to true.
-      forwardSourceCodeBuilder
-          .setTarget(origMethod)
-          .setInvokeType(Type.STATIC)
-          .setIsInterface(true);
+      ForwardMethodBuilder forwardMethodBuilder =
+          ForwardMethodBuilder.builder(appView.dexItemFactory())
+              .setStaticSource(newMethod)
+              .setStaticTarget(origMethod, true);
       DexEncodedMethod newEncodedMethod =
           new DexEncodedMethod(
               newMethod,
@@ -276,7 +273,7 @@ public final class InterfaceProcessor {
                   Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new SynthesizedCode(forwardSourceCodeBuilder::build),
+              forwardMethodBuilder.build(),
               true);
       newEncodedMethod.getMutableOptimizationInfo().markNeverInline();
       dispatchMethods.add(newEncodedMethod);

@@ -4,70 +4,56 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.cf.code.CfTryCatch;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.conversion.IRBuilder;
-import java.util.Collections;
-
 // Source code representing synthesized lambda constructor.
-final class LambdaConstructorSourceCode extends SynthesizedLambdaSourceCode {
+import com.android.tools.r8.ir.code.ValueType;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import org.objectweb.asm.Opcodes;
 
-  LambdaConstructorSourceCode(LambdaClass lambda, Position callerPosition) {
-    super(lambda, lambda.constructor, callerPosition);
-  }
+final class LambdaConstructorSourceCode {
 
-  @Override
-  protected void prepareInstructions() {
+  public static CfCode build(LambdaClass lambda) {
+    int maxStack = 1;
+    ImmutableList<CfTryCatch> tryCatchRanges = ImmutableList.of();
+    ImmutableList<CfCode.LocalVariableInfo> localVariables = ImmutableList.of();
+    Builder<CfInstruction> instructions = ImmutableList.builder();
     // Super constructor call (always java.lang.Object.<init>()).
-    DexMethod objectInitMethod = factory().objectMembers.constructor;
-    add(
-        builder -> {
-          assert builder.getReceiverValue() != null;
-          builder.addInvoke(
-              Invoke.Type.DIRECT,
-              objectInitMethod,
-              objectInitMethod.proto,
-              Collections.singletonList(builder.getReceiverValue()),
-              false /* isInterface */);
-        });
-
+    instructions.add(new CfLoad(ValueType.OBJECT, 0));
+    instructions.add(
+        new CfInvoke(
+            Opcodes.INVOKESPECIAL,
+            lambda.appView.dexItemFactory().objectMembers.constructor,
+            false));
     // Assign capture fields.
-    DexType[] capturedTypes = captures();
-    int capturedValues = capturedTypes.length;
-    if (capturedValues > 0) {
-      for (int i = 0; i < capturedValues; i++) {
-        DexField field = lambda.getCaptureField(i);
-        int idx = i;
-        add(builder -> builder.addInstancePut(getParamRegister(idx), getReceiverRegister(), field));
-      }
+    DexType[] capturedTypes = lambda.descriptor.captures.values;
+    int maxLocals = 1;
+    for (int i = 0; i < capturedTypes.length; i++) {
+      DexField field = lambda.getCaptureField(i);
+      assert field.type == capturedTypes[i];
+      ValueType type = ValueType.fromDexType(field.type);
+      instructions.add(new CfLoad(ValueType.OBJECT, 0));
+      instructions.add(new CfLoad(type, maxLocals));
+      instructions.add(new CfFieldInstruction(Opcodes.PUTFIELD, field, field));
+      maxLocals += type.requiredRegisters();
+      maxStack += type.requiredRegisters();
     }
-
     // Final return.
-    add(IRBuilder::addReturn);
-  }
-
-  @Override
-  public int hashCode() {
-    // We want all zero-parameter constructor source code instances to
-    // be treated as equal, since it only has one call to super constructor,
-    // which is always java.lang.Object.<init>().
-    return captures().length == 0
-        ? System.identityHashCode(factory().objectMembers.constructor)
-        : super.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (!(obj instanceof LambdaConstructorSourceCode)) {
-      return false;
-    }
-    if (captures().length == 0) {
-      // See comment in hashCode().
-      return ((LambdaConstructorSourceCode) obj).captures().length == 0;
-    }
-    return super.equals(obj);
+    instructions.add(new CfReturnVoid());
+    return new CfCode(
+        lambda.constructor.holder,
+        maxStack,
+        maxLocals,
+        instructions.build(),
+        tryCatchRanges,
+        localVariables);
   }
 }

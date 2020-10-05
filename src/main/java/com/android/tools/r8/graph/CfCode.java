@@ -412,7 +412,9 @@ public class CfCode extends Code implements Comparable<CfCode> {
       Origin origin,
       boolean shouldApplyCodeRewritings) {
     if (!verifyFrames(method, appView, origin, shouldApplyCodeRewritings)) {
-      instructions.removeIf(CfInstruction::isFrame);
+      ArrayList<CfInstruction> copy = new ArrayList<>(instructions);
+      copy.removeIf(CfInstruction::isFrame);
+      setInstructions(copy);
     }
   }
 

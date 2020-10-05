@@ -234,7 +234,7 @@ public final class LambdaClass {
                 Constants.ACC_PUBLIC | Constants.ACC_FINAL, false),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new LambdaMainMethodSynthesizedCode(this, mainMethod),
+            LambdaMainMethodSourceCode.build(this, mainMethod),
             true);
 
     // Synthesize bridge methods.
@@ -252,7 +252,7 @@ public final class LambdaClass {
                   false),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new LambdaBridgeMethodSynthesizedCode(this, mainMethod, bridgeMethod),
+              LambdaBridgeMethodSourceCode.build(this, bridgeMethod, mainMethod),
               true);
     }
     return methods;
@@ -273,7 +273,7 @@ public final class LambdaClass {
                 true),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new LambdaConstructorSynthesizedCode(this),
+            LambdaConstructorSourceCode.build(this),
             true);
 
     // Class constructor for stateless lambda classes.
@@ -285,7 +285,7 @@ public final class LambdaClass {
                   Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, true),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new LambdaClassConstructorSynthesizedCode(this),
+              LambdaClassConstructorSourceCode.build(this),
               true);
     }
     return methods;
@@ -748,13 +748,14 @@ public final class LambdaClass {
           MethodAccessFlags.fromSharedAccessFlags(
               Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC,
               false);
+
       DexEncodedMethod accessorEncodedMethod =
           new DexEncodedMethod(
               callTarget,
               accessorFlags,
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new LambdaAccessorMethodWithSynthesizedCode(LambdaClass.this),
+              AccessorMethodSourceCode.build(LambdaClass.this, callTarget),
               true);
 
       // We may arrive here concurrently so we need must update the methods of the class atomically.

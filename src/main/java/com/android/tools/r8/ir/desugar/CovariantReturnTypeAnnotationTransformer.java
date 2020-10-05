@@ -22,10 +22,8 @@ import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
-import com.android.tools.r8.ir.synthetic.SynthesizedCode;
+import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.google.common.base.Predicates;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -111,12 +109,13 @@ public final class CovariantReturnTypeAnnotationTransformer {
       DexProgramClass clazz,
       List<DexEncodedMethod> methodsWithCovariantReturnTypeAnnotation,
       List<DexEncodedMethod> covariantReturnTypeMethods) {
-    for (DexEncodedMethod method : clazz.virtualMethods()) {
-      if (methodHasCovariantReturnTypeAnnotation(method)) {
-        methodsWithCovariantReturnTypeAnnotation.add(method);
-        buildCovariantReturnTypeMethodsForMethod(clazz, method, covariantReturnTypeMethods);
-      }
-    }
+    clazz.forEachProgramVirtualMethod(
+        method -> {
+          if (methodHasCovariantReturnTypeAnnotation(method.getDefinition())) {
+            methodsWithCovariantReturnTypeAnnotation.add(method.getDefinition());
+            buildCovariantReturnTypeMethodsForMethod(method, covariantReturnTypeMethods);
+          }
+        });
   }
 
   private boolean methodHasCovariantReturnTypeAnnotation(DexEncodedMethod method) {
@@ -132,13 +131,11 @@ public final class CovariantReturnTypeAnnotationTransformer {
   // variantReturnTypes annotations on the given method. Adds the newly constructed, synthetic
   // methods to the list covariantReturnTypeMethods.
   private void buildCovariantReturnTypeMethodsForMethod(
-      DexProgramClass clazz,
-      DexEncodedMethod method,
-      List<DexEncodedMethod> covariantReturnTypeMethods) {
-    assert methodHasCovariantReturnTypeAnnotation(method);
-    for (DexType covariantReturnType : getCovariantReturnTypes(clazz, method)) {
+      ProgramMethod method, List<DexEncodedMethod> covariantReturnTypeMethods) {
+    assert methodHasCovariantReturnTypeAnnotation(method.getDefinition());
+    for (DexType covariantReturnType : getCovariantReturnTypes(method)) {
       DexEncodedMethod covariantReturnTypeMethod =
-          buildCovariantReturnTypeMethod(clazz, method, covariantReturnType);
+          buildCovariantReturnTypeMethod(method, covariantReturnType);
       covariantReturnTypeMethods.add(covariantReturnTypeMethod);
     }
   }
@@ -149,32 +146,35 @@ public final class CovariantReturnTypeAnnotationTransformer {
   //
   // Note: any "synchronized" or "strictfp" modifier could be dropped safely.
   private DexEncodedMethod buildCovariantReturnTypeMethod(
-      DexProgramClass clazz, DexEncodedMethod method, DexType covariantReturnType) {
+      ProgramMethod method, DexType covariantReturnType) {
+    DexProgramClass methodHolder = method.getHolder();
+    DexMethod methodReference = method.getReference();
+    DexEncodedMethod methodDefinition = method.getDefinition();
     DexProto newProto =
         factory.createProto(
-            covariantReturnType, method.method.proto.parameters, method.method.proto.shorty);
-    MethodAccessFlags newAccessFlags = method.accessFlags.copy();
+            covariantReturnType, methodReference.proto.parameters, methodReference.proto.shorty);
+    MethodAccessFlags newAccessFlags = methodDefinition.accessFlags.copy();
     newAccessFlags.setBridge();
     newAccessFlags.setSynthetic();
-    DexMethod newMethod = factory.createMethod(method.holder(), newProto, method.method.name);
-    ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
-        ForwardMethodSourceCode.builder(newMethod);
-    forwardSourceCodeBuilder
-        .setReceiver(clazz.type)
-        .setTargetReceiver(method.holder())
-        .setTarget(method.method)
-        .setInvokeType(Invoke.Type.VIRTUAL)
-        .setCastResult();
+    DexMethod newMethod =
+        factory.createMethod(methodHolder.getType(), newProto, methodReference.getName());
+    ForwardMethodBuilder forwardMethodBuilder =
+        ForwardMethodBuilder.builder(factory)
+            .setNonStaticSource(newMethod)
+            .setVirtualTarget(methodReference, methodHolder.isInterface())
+            .setCastResult();
     DexEncodedMethod newVirtualMethod =
         new DexEncodedMethod(
             newMethod,
             newAccessFlags,
-            method.annotations().keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation)),
-            method.parameterAnnotationsList.keepIf(Predicates.alwaysTrue()),
-            new SynthesizedCode(forwardSourceCodeBuilder::build),
+            methodDefinition
+                .annotations()
+                .keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation)),
+            methodDefinition.parameterAnnotationsList.keepIf(Predicates.alwaysTrue()),
+            forwardMethodBuilder.build(),
             true);
-    // Optimize to generate DexCode instead of SynthesizedCode.
-    ProgramMethod programMethod = new ProgramMethod(clazz, newVirtualMethod);
+    // Optimize to generate DexCode instead of CfCode.
+    ProgramMethod programMethod = new ProgramMethod(methodHolder, newVirtualMethod);
     converter.optimizeSynthesizedMethod(programMethod);
     return newVirtualMethod;
   }
@@ -187,12 +187,15 @@ public final class CovariantReturnTypeAnnotationTransformer {
   //   @Override
   //   public Foo foo() { ... return new SubOfSubOfFoo(); }
   // then this method returns the set { SubOfFoo, SubOfSubOfFoo }.
-  private Set<DexType> getCovariantReturnTypes(DexClass clazz, DexEncodedMethod method) {
+  private Set<DexType> getCovariantReturnTypes(ProgramMethod method) {
     Set<DexType> covariantReturnTypes = new HashSet<>();
-    for (DexAnnotation annotation : method.annotations().annotations) {
+    for (DexAnnotation annotation : method.getDefinition().annotations().annotations) {
       if (isCovariantReturnTypeAnnotation(annotation.annotation)) {
         getCovariantReturnTypesFromAnnotation(
-            clazz, method, annotation.annotation, covariantReturnTypes);
+            method.getHolder(),
+            method.getDefinition(),
+            annotation.annotation,
+            covariantReturnTypes);
       }
     }
     return covariantReturnTypes;

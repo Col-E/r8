@@ -9,6 +9,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -1397,7 +1398,7 @@ public final class BackportedMethodRewriter {
 
   private interface TemplateMethodFactory {
 
-    Code create(InternalOptions options, DexMethod method);
+    CfCode create(InternalOptions options, DexMethod method);
   }
 
   private interface MethodInvokeRewriter {
