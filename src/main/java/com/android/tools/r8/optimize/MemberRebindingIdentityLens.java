@@ -45,6 +45,11 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
   }
 
   @Override
+  public boolean hasCodeRewritings() {
+    return false;
+  }
+
+  @Override
   protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
     assert previous.getReboundReference() == null;
     return FieldLookupResult.builder(this)
