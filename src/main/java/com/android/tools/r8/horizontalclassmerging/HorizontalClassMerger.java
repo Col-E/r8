@@ -49,6 +49,7 @@ public class HorizontalClassMerger {
       MainDexTracingResult mainDexTracingResult,
       ClassMergingEnqueuerExtension classMergingEnqueuerExtension) {
     this.appView = appView;
+    assert appView.options().enableInlining;
 
     List<Policy> policies =
         ImmutableList.of(

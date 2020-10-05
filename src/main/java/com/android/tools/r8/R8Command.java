@@ -868,6 +868,12 @@ public final class R8Command extends BaseCompilerCommand {
       internal.enableEnumUnboxing = false;
     }
 
+    if (!internal.enableInlining) {
+      // If R8 cannot perform inlining, then the synthetic constructors would not inline the called
+      // constructors, producing invalid code.
+      internal.enableHorizontalClassMerging = false;
+    }
+
     // Amend the proguard-map consumer with options from the proguard configuration.
     internal.proguardMapConsumer =
         wrapStringConsumer(
