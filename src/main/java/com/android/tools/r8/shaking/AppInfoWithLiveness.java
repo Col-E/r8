@@ -921,7 +921,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       return false;
     }
     return clazz
-        .traverseProgramMethods(
+        .traverseProgramMembers(
             member -> {
               if (keepInfo.getInfo(member).isRepackagingAllowed(options())) {
                 return TraversalContinuation.CONTINUE;
