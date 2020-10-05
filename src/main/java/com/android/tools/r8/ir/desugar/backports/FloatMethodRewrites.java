@@ -4,29 +4,20 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.code.Value;
-import java.util.Set;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.MethodInvokeRewriter;
+import org.objectweb.asm.Opcodes;
 
 public final class FloatMethodRewrites {
 
   private FloatMethodRewrites() {}
 
-  public static void rewriteHashCode(
-      InvokeMethod invoke,
-      InstructionListIterator iterator,
-      DexItemFactory factory,
-      Set<Value> affectedValues) {
-    InvokeStatic mathInvoke =
-        new InvokeStatic(
+  public static MethodInvokeRewriter rewriteHashCode() {
+    return (invoke, factory) ->
+        new CfInvoke(
+            Opcodes.INVOKESTATIC,
             factory.createMethod(
-                factory.boxedFloatType, invoke.getInvokedMethod().proto, "floatToIntBits"),
-            invoke.outValue(),
-            invoke.inValues(),
+                factory.boxedFloatType, invoke.getMethod().proto, "floatToIntBits"),
             false);
-    iterator.replaceCurrentInstruction(mathInvoke);
   }
 }
