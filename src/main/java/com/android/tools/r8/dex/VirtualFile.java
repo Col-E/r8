@@ -693,7 +693,7 @@ public class VirtualFile {
 
     @Override
     public DexString getRenamedDescriptor(DexType type) {
-      return namingLens.lookupDescriptor(graphLens.lookupType(type));
+      return namingLens.lookupDescriptor(type);
     }
 
     @Override
