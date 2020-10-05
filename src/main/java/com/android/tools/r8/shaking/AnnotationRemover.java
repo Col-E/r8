@@ -285,9 +285,6 @@ public class AnnotationRemover {
           hasInnerClassesFromSet(clazz, classesToRetainInnerClassAttributeFor);
     }
     if (keptAnyway || keepForThisInnerClass || keepForThisEnclosingClass) {
-      if (!keep.signature) {
-        clazz.clearClassSignature();
-      }
       if (!keep.enclosingMethod) {
         clazz.clearEnclosingMethodAttribute();
       }
@@ -322,6 +319,9 @@ public class AnnotationRemover {
       // reflection. (Note that clearing these attributes can enable more vertical class merging.)
       clazz.clearEnclosingMethodAttribute();
       clazz.clearInnerClasses();
+    }
+    // TODO(b/170077516): Prune attributes.
+    if (!keep.signature) {
       clazz.clearClassSignature();
     }
   }

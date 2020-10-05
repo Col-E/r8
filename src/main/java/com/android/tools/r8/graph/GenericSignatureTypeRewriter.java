@@ -228,10 +228,10 @@ public class GenericSignatureTypeRewriter {
     }
 
     private DexType getTarget(DexType type) {
-      if (appInfoWithLiveness != null && appInfoWithLiveness.wasPruned(type)) {
+      DexType rewrittenType = appView.graphLens().lookupType(type);
+      if (appInfoWithLiveness != null && appInfoWithLiveness.wasPruned(rewrittenType)) {
         return null;
       }
-      DexType rewrittenType = appView.graphLens().lookupType(type);
       if (isSuperClassOrInterface && context.type == rewrittenType) {
         return null;
       }
