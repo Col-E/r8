@@ -12,6 +12,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 public class HorizontallyMergedClasses implements MergedClasses {
   private final BidirectionalManyToOneMap<DexType, DexType> mergedClasses;
@@ -22,6 +23,10 @@ public class HorizontallyMergedClasses implements MergedClasses {
 
   public DexType getMergeTargetOrDefault(DexType type) {
     return mergedClasses.getOrDefault(type, type);
+  }
+
+  public Set<DexType> getSources() {
+    return mergedClasses.keySet();
   }
 
   public boolean hasBeenMergedIntoDifferentType(DexType type) {

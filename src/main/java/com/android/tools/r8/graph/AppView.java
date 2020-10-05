@@ -35,6 +35,7 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -520,6 +521,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public boolean hasCfByteCodePassThroughMethods() {
     return !cfByteCodePassThrough.isEmpty();
+  }
+
+  public void removePrunedClasses(
+      DirectMappedDexApplication prunedApp, Set<DexType> removedClasses) {
+    removePrunedClasses(prunedApp, removedClasses, Collections.emptySet());
   }
 
   public void removePrunedClasses(

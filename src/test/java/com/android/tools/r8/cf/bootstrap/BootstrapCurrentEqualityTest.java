@@ -210,6 +210,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   @Test
   public void testSignatures() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     testParseSignaturesInJar(r8R8Release.getFirst());
   }
 
