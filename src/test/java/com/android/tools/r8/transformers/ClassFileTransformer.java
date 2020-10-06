@@ -474,6 +474,11 @@ public class ClassFileTransformer {
     boolean test(int access, String name, String descriptor, String signature, Object value);
   }
 
+  @FunctionalInterface
+  public interface FieldSignaturePredicate {
+    boolean test(String name, String typeDescriptor);
+  }
+
   public ClassFileTransformer removeInnerClasses() {
     return addClassTransformer(
         new ClassTransformer() {
@@ -520,6 +525,42 @@ public class ClassFileTransformer {
                 : super.visitField(access, name, descriptor, signature, value);
           }
         });
+  }
+
+  public ClassFileTransformer remapField(FieldSignaturePredicate predicate, String newName) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitFieldInsn(
+              final int opcode, final String owner, final String name, final String descriptor) {
+            if (predicate.test(name, descriptor)) {
+              super.visitFieldInsn(opcode, owner, newName, descriptor);
+            } else {
+              super.visitFieldInsn(opcode, owner, name, descriptor);
+            }
+          }
+        });
+  }
+
+  public ClassFileTransformer renameField(FieldSignaturePredicate predicate, String newName) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public FieldVisitor visitField(
+              int access, String name, String descriptor, String signature, Object value) {
+            if (predicate.test(name, descriptor)) {
+              return super.visitField(access, newName, descriptor, signature, value);
+            } else {
+              return super.visitField(access, name, descriptor, signature, value);
+            }
+          }
+        });
+  }
+
+  public ClassFileTransformer renameAndRemapField(String oldName, String newName) {
+    FieldSignaturePredicate matchPredicate = (name, signature) -> oldName.equals(name);
+    remapField(matchPredicate, newName);
+    return renameField(matchPredicate, newName);
   }
 
   /** Abstraction of the MethodVisitor.visitMethodInsn method with its sub visitor. */

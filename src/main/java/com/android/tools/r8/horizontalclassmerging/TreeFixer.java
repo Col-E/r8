@@ -32,6 +32,7 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -384,10 +385,26 @@ class TreeFixer {
     if (fields == null) {
       return;
     }
+    Set<DexField> existingFields = Sets.newIdentityHashSet();
+
     for (int i = 0; i < fields.size(); i++) {
       DexEncodedField encodedField = fields.get(i);
       DexField field = encodedField.field;
       DexField newField = fixupFieldReference(field);
+
+      // Rename the field if it already exists.
+      if (!existingFields.add(newField)) {
+        DexField template = newField;
+        newField =
+            dexItemFactory.createFreshMember(
+                tryName ->
+                    Optional.of(template.withName(tryName, dexItemFactory))
+                        .filter(tryMethod -> !existingFields.contains(tryMethod)),
+                newField.name.toSourceString());
+        boolean added = existingFields.add(newField);
+        assert added;
+      }
+
       if (newField != encodedField.field) {
         lensBuilder.mapField(field, newField);
         setter.setField(i, encodedField.toTypeSubstitutedField(newField));

@@ -1799,7 +1799,7 @@ public class DexItemFactory {
    * @param tryString callback to check if the method name is in use.
    */
   public <T extends DexMember<?, ?>> T createFreshMember(
-      String baseName, DexType holder, Function<DexString, Optional<T>> tryString) {
+      Function<DexString, Optional<T>> tryString, String baseName, DexType holder) {
     int index = 0;
     while (true) {
       DexString name = createString(createMemberString(baseName, holder, index++));
@@ -1808,6 +1808,17 @@ public class DexItemFactory {
         return result.get();
       }
     }
+  }
+
+  /**
+   * Find a fresh method name that is not used by any other method. The method name takes the form
+   * "basename" or "basename$index".
+   *
+   * @param tryString callback to check if the method name is in use.
+   */
+  public <T extends DexMember<?, ?>> T createFreshMember(
+      Function<DexString, Optional<T>> tryString, String baseName) {
+    return createFreshMember(tryString, baseName, null);
   }
 
   /**
@@ -1850,8 +1861,6 @@ public class DexItemFactory {
       Predicate<DexMethod> isFresh) {
     DexMethod method =
         createFreshMember(
-            baseName,
-            holder,
             name -> {
               DexMethod tryMethod = createMethod(target, proto, name);
               if (isFresh.test(tryMethod)) {
@@ -1859,7 +1868,9 @@ public class DexItemFactory {
               } else {
                 return Optional.empty();
               }
-            });
+            },
+            baseName,
+            holder);
     return method;
   }
 
