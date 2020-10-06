@@ -33,6 +33,7 @@ import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -559,6 +560,7 @@ public class JarClassFileReader {
     private final String name;
     private final String desc;
     private final Object value;
+    private FieldTypeSignature fieldSignature;
     private List<DexAnnotation> annotations = null;
 
     public CreateFieldVisitor(CreateDexClassVisitor parent,
@@ -569,10 +571,13 @@ public class JarClassFileReader {
       this.name = name;
       this.desc = desc;
       this.value = value;
-      if (signature != null && !signature.isEmpty()) {
-        addAnnotation(
-            DexAnnotation.createSignatureAnnotation(signature, parent.application.getFactory()));
-      }
+      this.fieldSignature =
+          GenericSignature.parseFieldTypeSignature(
+              name,
+              signature,
+              parent.origin,
+              parent.application.getFactory(),
+              parent.application.options.reporter);
     }
 
     @Override
@@ -598,7 +603,12 @@ public class JarClassFileReader {
         DexValue staticValue = flags.isStatic() ? getStaticValue(value, dexField.type) : null;
         DexEncodedField field =
             new DexEncodedField(
-                dexField, flags, annotationSet, staticValue, AsmUtils.isDeprecated(access));
+                dexField,
+                flags,
+                fieldSignature,
+                annotationSet,
+                staticValue,
+                AsmUtils.isDeprecated(access));
         if (flags.isStatic()) {
           parent.staticFields.add(field);
         } else {

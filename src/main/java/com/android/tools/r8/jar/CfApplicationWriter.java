@@ -340,7 +340,7 @@ public class CfApplicationWriter {
     }
     String name = namingLens.lookupName(field.field).toString();
     String desc = namingLens.lookupDescriptor(field.field.type).toString();
-    String signature = getSignature(field.annotations());
+    String signature = field.getFieldSignature().toRenamedString(namingLens, isTypeMissing);
     Object value = getStaticValue(field);
     FieldVisitor visitor = writer.visitField(access, name, desc, signature, value);
     writeAnnotations(visitor::visitAnnotation, field.annotations().annotations);

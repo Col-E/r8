@@ -243,6 +243,11 @@ public class DexAnnotation extends DexItem {
     return signature.toString();
   }
 
+  public static String getSignature(DexAnnotationSet signatureAnnotations, DexItemFactory factory) {
+    DexAnnotation signature = signatureAnnotations.getFirstMatching(factory.annotationSignature);
+    return signature == null ? null : getSignature(signature);
+  }
+
   public static DexAnnotation createThrowsAnnotation(DexValue[] exceptions,
       DexItemFactory factory) {
     return createSystemValueAnnotation(factory.annotationThrows, factory,

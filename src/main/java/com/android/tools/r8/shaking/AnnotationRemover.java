@@ -207,6 +207,9 @@ public class AnnotationRemover {
   private void processField(DexEncodedField field) {
     field.setAnnotations(
         field.annotations().rewrite(annotation -> rewriteAnnotation(field, annotation)));
+    if (!keep.signature) {
+      field.clearFieldSignature();
+    }
   }
 
   private DexAnnotation rewriteAnnotation(DexDefinition holder, DexAnnotation original) {

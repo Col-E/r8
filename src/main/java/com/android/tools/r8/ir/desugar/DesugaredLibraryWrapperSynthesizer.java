@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
+
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
@@ -427,7 +429,8 @@ public class DesugaredLibraryWrapperSynthesizer {
     // Field is package private to be accessible from convert methods without a getter.
     FieldAccessFlags fieldAccessFlags =
         FieldAccessFlags.fromCfAccessFlags(Constants.ACC_FINAL | Constants.ACC_SYNTHETIC);
-    return new DexEncodedField(field, fieldAccessFlags, DexAnnotationSet.empty(), null);
+    return new DexEncodedField(
+        field, fieldAccessFlags, NO_FIELD_TYPE_SIGNATURE, DexAnnotationSet.empty(), null);
   }
 
   private DexEncodedMethod synthesizeConstructor(DexField field) {

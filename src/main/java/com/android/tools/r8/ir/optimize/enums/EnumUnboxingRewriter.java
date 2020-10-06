@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
 import com.android.tools.r8.dex.Constants;
@@ -421,6 +422,7 @@ public class EnumUnboxingRewriter {
         field,
         FieldAccessFlags.fromSharedAccessFlags(
             Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC),
+        NO_FIELD_TYPE_SIGNATURE,
         DexAnnotationSet.empty(),
         null);
   }

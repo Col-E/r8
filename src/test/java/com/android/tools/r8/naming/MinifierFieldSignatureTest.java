@@ -190,6 +190,9 @@ public class MinifierFieldSignatureTest extends TestBase {
             .addKeepAllClassesRuleWithAllowObfuscation()
             .setMinApi(parameters.getApiLevel())
             .allowDiagnosticMessages()
+            .addOptionsModification(
+                internalOptions ->
+                    internalOptions.testing.disableMappingToOriginalProgramVerification = true)
             .compile();
 
     CodeInspector inspector = compileResult.inspector();
@@ -284,8 +287,7 @@ public class MinifierFieldSignatureTest extends TestBase {
           diagnostics.assertWarningsMatch(
               diagnosticMessage(
                   allOf(
-                      containsString("Invalid signature 'X' for field"),
-                      containsString("java.lang.String Fields.anX"),
+                      containsString("Invalid signature 'X' for field anX"),
                       // TODO(sgjesse): The position 2 reported here is one off.
                       containsString("Expected L, [ or T at position 2"))));
         },

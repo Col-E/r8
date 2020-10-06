@@ -629,14 +629,25 @@ public class DexParser {
       fieldIndex += dexReader.getUleb128();
       DexField field = indexedItems.getField(fieldIndex);
       FieldAccessFlags accessFlags = FieldAccessFlags.fromDexAccessFlags(dexReader.getUleb128());
-      DexAnnotationSet fieldAnnotations = annotationIterator.getNextFor(field);
       DexValue staticValue = null;
       if (accessFlags.isStatic()) {
         if (staticValues != null && i < staticValues.length) {
           staticValue = staticValues[i];
         }
       }
-      fields[i] = new DexEncodedField(field, accessFlags, fieldAnnotations, staticValue);
+      DexAnnotationSet fieldAnnotations = annotationIterator.getNextFor(field);
+      String fieldSignature = DexAnnotation.getSignature(fieldAnnotations, dexItemFactory);
+      if (fieldSignature != null) {
+        fieldAnnotations = fieldAnnotations.getWithout(dexItemFactory.annotationSignature);
+      }
+      fields[i] =
+          new DexEncodedField(
+              field,
+              accessFlags,
+              GenericSignature.parseFieldTypeSignature(
+                  field.name.toString(), fieldSignature, origin, dexItemFactory, options.reporter),
+              fieldAnnotations,
+              staticValue);
     }
     return fields;
   }

@@ -33,6 +33,11 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
   }
 
   @Override
+  public void visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
+    printFieldTypeSignature(fieldSignature, false);
+  }
+
+  @Override
   public void visitFormalTypeParameters(List<FormalTypeParameter> formalTypeParameters) {
     if (formalTypeParameters.isEmpty()) {
       return;

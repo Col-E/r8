@@ -57,7 +57,7 @@ public class B126592786 extends TestBase {
         .compile()
         .inspect(
             inspector -> {
-              String genericTypeDescriptor = "Ljava/lang/Object;";
+              String genericTypeDescriptor = "*";
               if (genericTypeLive) {
                 ClassSubject genericType = inspector.clazz(GenericType.class);
                 assertThat(genericType, isPresentAndRenamed(minify));
@@ -66,8 +66,7 @@ public class B126592786 extends TestBase {
               String expectedSignature = "Ljava/util/List<" + genericTypeDescriptor + ">;";
               FieldSubject list = inspector.clazz(A.class).uniqueFieldWithName("list");
               assertThat(list, isPresent());
-              assertThat(list.getSignatureAnnotation(), isPresent());
-              assertEquals(expectedSignature, list.getSignatureAnnotationValue());
+              assertEquals(expectedSignature, list.getFinalSignatureAttribute());
             })
         .run(mainClass)
         .assertSuccess();

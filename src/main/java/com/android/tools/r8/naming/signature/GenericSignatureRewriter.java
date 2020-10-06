@@ -81,14 +81,8 @@ public class GenericSignatureRewriter {
           clazz.setClassSignature(genericSignatureTypeRewriter.rewrite(classSignature));
           clazz.forEachField(
               field ->
-                  field.setAnnotations(
-                      rewriteGenericSignatures(
-                          field.annotations(),
-                          genericSignatureParser::parseFieldSignature,
-                          genericSignatureCollector::getRenamedSignature,
-                          (signature, e) ->
-                              options.warningInvalidSignature(
-                                  field, clazz.getOrigin(), signature, e))));
+                  field.setFieldSignature(
+                      genericSignatureTypeRewriter.rewrite(field.getFieldSignature())));
           clazz.forEachMethod(
               method ->
                   method.setAnnotations(

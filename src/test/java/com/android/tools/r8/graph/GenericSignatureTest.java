@@ -140,14 +140,8 @@ public class GenericSignatureTest extends TestBase {
     DexEncodedField field = yyInZZ.getField();
     assertNotNull(field);
 
-    fieldTypeSignature =
-        GenericSignature.parseFieldTypeSignature(
-            field.field.qualifiedName(),
-            getGenericSignature(field, appView),
-            Origin.unknown(),
-            appView.dexItemFactory(),
-            appView.options().reporter);
-    assertNotNull(fieldTypeSignature);
+    fieldTypeSignature = field.getFieldSignature();
+    assertTrue(fieldTypeSignature.hasSignature());
 
     // field type: A$Y$YY
     assertTrue(fieldTypeSignature.isClassTypeSignature());

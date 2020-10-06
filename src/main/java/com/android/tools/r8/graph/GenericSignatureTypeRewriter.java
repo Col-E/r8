@@ -41,6 +41,13 @@ public class GenericSignatureTypeRewriter {
     return new ClassSignatureRewriter().run(classSignature);
   }
 
+  public FieldTypeSignature rewrite(FieldTypeSignature fieldTypeSignature) {
+    if (fieldTypeSignature.hasNoSignature() || appView.graphLens().isIdentityLens()) {
+      return fieldTypeSignature;
+    }
+    return new TypeSignatureRewriter().run(fieldTypeSignature);
+  }
+
   private class ClassSignatureRewriter implements GenericSignatureVisitor {
 
     private final List<FormalTypeParameter> rewrittenTypeParameters = new ArrayList<>();

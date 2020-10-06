@@ -4,10 +4,12 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
@@ -28,6 +30,8 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   public final FieldAccessFlags accessFlags;
   private DexValue staticValue;
   private final boolean deprecated;
+  /** Generic signature information if the attribute is present in the input */
+  private FieldTypeSignature fieldSignature;
 
   private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
   private KotlinFieldLevelInfo kotlinMemberInfo = NO_KOTLIN_INFO;
@@ -35,6 +39,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   public DexEncodedField(
       DexField field,
       FieldAccessFlags accessFlags,
+      FieldTypeSignature fieldSignature,
       DexAnnotationSet annotations,
       DexValue staticValue,
       boolean deprecated) {
@@ -43,14 +48,18 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     this.accessFlags = accessFlags;
     this.staticValue = staticValue;
     this.deprecated = deprecated;
+    this.fieldSignature = fieldSignature;
+    assert fieldSignature != null;
+    assert GenericSignatureUtils.verifyNoDuplicateGenericDefinitions(fieldSignature, annotations);
   }
 
   public DexEncodedField(
       DexField field,
       FieldAccessFlags accessFlags,
+      FieldTypeSignature fieldSignature,
       DexAnnotationSet annotations,
       DexValue staticValue) {
-    this(field, accessFlags, annotations, staticValue, false);
+    this(field, accessFlags, fieldSignature, annotations, staticValue, false);
   }
 
   public DexType type() {
@@ -288,7 +297,9 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     if (this.field == field) {
       return this;
     }
-    DexEncodedField result = new DexEncodedField(field, accessFlags, annotations(), staticValue);
+    // TODO(b/169923358): Consider removing the fieldSignature here.
+    DexEncodedField result =
+        new DexEncodedField(field, accessFlags, fieldSignature, annotations(), staticValue);
     result.optimizationInfo =
         optimizationInfo.isMutableFieldOptimizationInfo()
             ? optimizationInfo.asMutableFieldOptimizationInfo().mutableCopy()
@@ -309,5 +320,18 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     }
     // TODO(b/150593449): Support non primitive DexValue (String, enum) and add assertions.
     return true;
+  }
+
+  public FieldTypeSignature getFieldSignature() {
+    return fieldSignature;
+  }
+
+  public void setFieldSignature(FieldTypeSignature fieldSignature) {
+    assert fieldSignature != null;
+    this.fieldSignature = fieldSignature;
+  }
+
+  public void clearFieldSignature() {
+    this.fieldSignature = NO_FIELD_TYPE_SIGNATURE;
   }
 }

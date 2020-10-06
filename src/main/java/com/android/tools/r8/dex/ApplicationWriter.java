@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexEncodedArray;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
@@ -45,6 +46,7 @@ import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -457,85 +459,105 @@ public class ApplicationWriter {
   private void insertAttributeAnnotations() {
     // Convert inner-class attributes to DEX annotations
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      EnclosingMethodAttribute enclosingMethod = clazz.getEnclosingMethodAttribute();
-      List<InnerClassAttribute> innerClasses = clazz.getInnerClasses();
-      if (enclosingMethod == null
-          && innerClasses.isEmpty()
-          && clazz.getClassSignature().hasNoSignature()) {
-        continue;
-      }
-
-      // EnclosingMember translates directly to an enclosing class/method if present.
-      List<DexAnnotation> annotations = new ArrayList<>(2 + innerClasses.size());
-      if (enclosingMethod != null) {
-        if (enclosingMethod.getEnclosingMethod() != null) {
-          annotations.add(
-              DexAnnotation.createEnclosingMethodAnnotation(
-                  enclosingMethod.getEnclosingMethod(), options.itemFactory));
-        } else {
-          // At this point DEX can't distinguish between local classes and member classes based on
-          // the enclosing class annotation itself.
-          annotations.add(
-              DexAnnotation.createEnclosingClassAnnotation(
-                  enclosingMethod.getEnclosingClass(), options.itemFactory));
-        }
-      }
-
-      // Each inner-class entry becomes a inner-class (or inner-class & enclosing-class pair) if
-      // it relates to the present class. If it relates to the outer-type (and is named) it becomes
-      // part of the member-classes annotation.
-      if (!innerClasses.isEmpty()) {
-        List<DexType> memberClasses = new ArrayList<>(innerClasses.size());
-        for (InnerClassAttribute innerClass : innerClasses) {
-          if (clazz.type == innerClass.getInner()) {
-            if (enclosingMethod == null
-                && (innerClass.getOuter() == null || innerClass.isAnonymous())) {
-              options.warningMissingEnclosingMember(
-                  clazz.type, clazz.origin, clazz.getInitialClassFileVersion());
-            } else {
-              annotations.add(
-                  DexAnnotation.createInnerClassAnnotation(
-                      namingLens.lookupInnerName(innerClass, options),
-                      innerClass.getAccess(),
-                      options.itemFactory));
-              if (innerClass.getOuter() != null && innerClass.isNamed()) {
-                annotations.add(
-                    DexAnnotation.createEnclosingClassAnnotation(
-                        innerClass.getOuter(), options.itemFactory));
-              }
-            }
-          } else if (clazz.type == innerClass.getOuter() && innerClass.isNamed()) {
-            memberClasses.add(innerClass.getInner());
-          }
-        }
-        if (!memberClasses.isEmpty()) {
-          annotations.add(
-              DexAnnotation.createMemberClassesAnnotation(memberClasses, options.itemFactory));
-        }
-      }
-
-      if (clazz.getClassSignature().hasSignature()) {
-        annotations.add(
-            DexAnnotation.createSignatureAnnotation(
-                clazz.getClassSignature().toRenamedString(namingLens, isTypeMissing),
-                options.itemFactory));
-      }
-
-      if (!annotations.isEmpty()) {
-        // Append the annotations to annotations array of the class.
-        DexAnnotation[] copy =
-            ObjectArrays.concat(
-                clazz.annotations().annotations,
-                annotations.toArray(DexAnnotation.EMPTY_ARRAY),
-                DexAnnotation.class);
-        clazz.setAnnotations(new DexAnnotationSet(copy));
-      }
-
-      // Clear the attribute structures now that they are represented in annotations.
-      clazz.clearEnclosingMethodAttribute();
-      clazz.clearInnerClasses();
-      clazz.clearClassSignature();
+      insertAttributeAnnotationsForClass(clazz);
+      clazz.fields().forEach(this::insertAttributeAnnotationsForField);
     }
+  }
+
+  private void insertAttributeAnnotationsForClass(DexProgramClass clazz) {
+    EnclosingMethodAttribute enclosingMethod = clazz.getEnclosingMethodAttribute();
+    List<InnerClassAttribute> innerClasses = clazz.getInnerClasses();
+    if (enclosingMethod == null
+        && innerClasses.isEmpty()
+        && clazz.getClassSignature().hasNoSignature()) {
+      return;
+    }
+
+    // EnclosingMember translates directly to an enclosing class/method if present.
+    List<DexAnnotation> annotations = new ArrayList<>(2 + innerClasses.size());
+    if (enclosingMethod != null) {
+      if (enclosingMethod.getEnclosingMethod() != null) {
+        annotations.add(
+            DexAnnotation.createEnclosingMethodAnnotation(
+                enclosingMethod.getEnclosingMethod(), options.itemFactory));
+      } else {
+        // At this point DEX can't distinguish between local classes and member classes based on
+        // the enclosing class annotation itself.
+        annotations.add(
+            DexAnnotation.createEnclosingClassAnnotation(
+                enclosingMethod.getEnclosingClass(), options.itemFactory));
+      }
+    }
+
+    // Each inner-class entry becomes a inner-class (or inner-class & enclosing-class pair) if
+    // it relates to the present class. If it relates to the outer-type (and is named) it becomes
+    // part of the member-classes annotation.
+    if (!innerClasses.isEmpty()) {
+      List<DexType> memberClasses = new ArrayList<>(innerClasses.size());
+      for (InnerClassAttribute innerClass : innerClasses) {
+        if (clazz.type == innerClass.getInner()) {
+          if (enclosingMethod == null
+              && (innerClass.getOuter() == null || innerClass.isAnonymous())) {
+            options.warningMissingEnclosingMember(
+                clazz.type, clazz.origin, clazz.getInitialClassFileVersion());
+          } else {
+            annotations.add(
+                DexAnnotation.createInnerClassAnnotation(
+                    namingLens.lookupInnerName(innerClass, options),
+                    innerClass.getAccess(),
+                    options.itemFactory));
+            if (innerClass.getOuter() != null && innerClass.isNamed()) {
+              annotations.add(
+                  DexAnnotation.createEnclosingClassAnnotation(
+                      innerClass.getOuter(), options.itemFactory));
+            }
+          }
+        } else if (clazz.type == innerClass.getOuter() && innerClass.isNamed()) {
+          memberClasses.add(innerClass.getInner());
+        }
+      }
+      if (!memberClasses.isEmpty()) {
+        annotations.add(
+            DexAnnotation.createMemberClassesAnnotation(memberClasses, options.itemFactory));
+      }
+    }
+
+    if (clazz.getClassSignature().hasSignature()) {
+      annotations.add(
+          DexAnnotation.createSignatureAnnotation(
+              clazz.getClassSignature().toRenamedString(namingLens, isTypeMissing),
+              options.itemFactory));
+    }
+
+    if (!annotations.isEmpty()) {
+      // Append the annotations to annotations array of the class.
+      DexAnnotation[] copy =
+          ObjectArrays.concat(
+              clazz.annotations().annotations,
+              annotations.toArray(DexAnnotation.EMPTY_ARRAY),
+              DexAnnotation.class);
+      clazz.setAnnotations(new DexAnnotationSet(copy));
+    }
+
+    // Clear the attribute structures now that they are represented in annotations.
+    clazz.clearEnclosingMethodAttribute();
+    clazz.clearInnerClasses();
+    clazz.clearClassSignature();
+  }
+
+  private void insertAttributeAnnotationsForField(DexEncodedField field) {
+    if (field.getFieldSignature().hasNoSignature()) {
+      return;
+    }
+    // Append the annotations to annotations array of the class.
+    field.setAnnotations(
+        new DexAnnotationSet(
+            ArrayUtils.appendSingleElement(
+                field.annotations().annotations,
+                DexAnnotation.createSignatureAnnotation(
+                    field.getFieldSignature().toRenamedString(namingLens, isTypeMissing),
+                    options.itemFactory))));
+    field.clearFieldSignature();
   }
 
   private void setCallSiteContexts(ExecutorService executorService) throws ExecutionException {

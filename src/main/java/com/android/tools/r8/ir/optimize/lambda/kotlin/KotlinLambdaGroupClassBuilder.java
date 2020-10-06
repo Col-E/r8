@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
+import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -288,12 +289,22 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
     int size = capture.length();
     DexEncodedField[] result = new DexEncodedField[1 + size];
 
-    result[0] = new DexEncodedField(group.getLambdaIdField(factory),
-        CAPTURE_FIELD_FLAGS_RELAXED, DexAnnotationSet.empty(), null);
+    result[0] =
+        new DexEncodedField(
+            group.getLambdaIdField(factory),
+            CAPTURE_FIELD_FLAGS_RELAXED,
+            NO_FIELD_TYPE_SIGNATURE,
+            DexAnnotationSet.empty(),
+            null);
 
     for (int id = 0; id < size; id++) {
-      result[id + 1] = new DexEncodedField(group.getCaptureField(factory, id),
-          CAPTURE_FIELD_FLAGS_RELAXED, DexAnnotationSet.empty(), null);
+      result[id + 1] =
+          new DexEncodedField(
+              group.getCaptureField(factory, id),
+              CAPTURE_FIELD_FLAGS_RELAXED,
+              NO_FIELD_TYPE_SIGNATURE,
+              DexAnnotationSet.empty(),
+              null);
     }
 
     return result;
@@ -313,7 +324,11 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
             DexField field = group.getSingletonInstanceField(factory, info.id);
             DexEncodedField encodedField =
                 new DexEncodedField(
-                    field, SINGLETON_FIELD_FLAGS, DexAnnotationSet.empty(), DexValueNull.NULL);
+                    field,
+                    SINGLETON_FIELD_FLAGS,
+                    NO_FIELD_TYPE_SIGNATURE,
+                    DexAnnotationSet.empty(),
+                    DexValueNull.NULL);
             result.add(encodedField);
 
             // Record that the field is definitely not null. It is guaranteed to be assigned in the

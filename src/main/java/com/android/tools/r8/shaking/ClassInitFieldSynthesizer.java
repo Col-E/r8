@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
@@ -80,6 +81,7 @@ public class ClassInitFieldSynthesizer {
           new DexEncodedField(
               appView.dexItemFactory().createField(clazz.type, clinitField.type, clinitField.name),
               accessFlags,
+              NO_FIELD_TYPE_SIGNATURE,
               DexAnnotationSet.empty(),
               null);
       clazz.appendStaticField(encodedClinitField);

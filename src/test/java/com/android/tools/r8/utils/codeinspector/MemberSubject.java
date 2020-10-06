@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.graph.DexAnnotationElement;
-import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 
 public abstract class MemberSubject extends Subject {
@@ -52,32 +49,6 @@ public abstract class MemberSubject extends Subject {
   }
 
   public abstract AnnotationSubject annotation(String name);
-
-  public AnnotationSubject getSignatureAnnotation() {
-    return annotation("dalvik.annotation.Signature");
-  }
-
-  public String getSignatureAnnotationValue() {
-    AnnotationSubject annotation = getSignatureAnnotation();
-    if (!annotation.isPresent()) {
-      return null;
-    }
-
-    assert annotation.getAnnotation().elements.length == 1;
-    DexAnnotationElement element = annotation.getAnnotation().elements[0];
-    assert element.name.toString().equals("value");
-    assert element.value.isDexValueArray();
-    DexValueArray array = element.value.asDexValueArray();
-    StringBuilder builder = new StringBuilder();
-    for (DexValue value : array.getValues()) {
-      if (value.isDexValueString()) {
-        builder.append(value.asDexValueString().value);
-      } else {
-        builder.append(value.toString());
-      }
-    }
-    return builder.toString();
-  }
 
   public FieldSubject asFieldSubject() {
     return null;

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
@@ -300,8 +302,13 @@ public final class LambdaClass {
       FieldAccessFlags accessFlags =
           FieldAccessFlags.fromSharedAccessFlags(
               Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC);
-      fields[i] = new DexEncodedField(
-          getCaptureField(i), accessFlags, DexAnnotationSet.empty(), null);
+      fields[i] =
+          new DexEncodedField(
+              getCaptureField(i),
+              accessFlags,
+              NO_FIELD_TYPE_SIGNATURE,
+              DexAnnotationSet.empty(),
+              null);
     }
     return fields;
   }
@@ -323,6 +330,7 @@ public final class LambdaClass {
                     | Constants.ACC_FINAL
                     | Constants.ACC_SYNTHETIC
                     | Constants.ACC_STATIC),
+            NO_FIELD_TYPE_SIGNATURE,
             DexAnnotationSet.empty(),
             DexValueNull.NULL);
     return fields;

@@ -5,6 +5,7 @@ package com.android.tools.r8.utils;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
@@ -136,5 +137,19 @@ public class ArrayUtils {
     for (int i = 1; i < array.length; i++) {
       array[i] += array[i - 1];
     }
+  }
+
+  /**
+   * Copies the current array to a new array that can fit one more element and adds 'element' to
+   * index |ts|. Only use this if adding a single element since copying the array is expensive.
+   *
+   * @param ts the original array
+   * @param element the element to add
+   * @return a new array with element on index |ts|
+   */
+  public static <T> T[] appendSingleElement(T[] ts, T element) {
+    T[] newArray = Arrays.copyOf(ts, ts.length + 1);
+    newArray[ts.length] = element;
+    return newArray;
   }
 }

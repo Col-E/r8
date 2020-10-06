@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.library;
 
 import static com.android.tools.r8.graph.DexLibraryClass.asLibraryClassOrNull;
+import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
@@ -38,6 +39,7 @@ public class LibraryFieldSynthesis {
                       field,
                       FieldAccessFlags.fromCfAccessFlags(
                           Constants.ACC_PRIVATE | Constants.ACC_FINAL),
+                      NO_FIELD_TYPE_SIGNATURE,
                       DexAnnotationSet.empty(),
                       null));
             }

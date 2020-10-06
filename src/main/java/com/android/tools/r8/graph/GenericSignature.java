@@ -322,10 +322,29 @@ public class GenericSignature {
       return this != GenericSignature.NO_FIELD_TYPE_SIGNATURE;
     }
 
+    public boolean hasNoSignature() {
+      return !hasSignature();
+    }
+
     public abstract FieldTypeSignature asArgument(WildcardIndicator indicator);
 
     public boolean isStar() {
       return false;
+    }
+
+    public String toRenamedString(NamingLens namingLens, Predicate<DexType> isTypeMissing) {
+      if (hasNoSignature()) {
+        return null;
+      }
+      GenericSignaturePrinter genericSignaturePrinter =
+          new GenericSignaturePrinter(namingLens, isTypeMissing);
+      genericSignaturePrinter.visitTypeSignature(this);
+      return genericSignaturePrinter.toString();
+    }
+
+    @Override
+    public String toString() {
+      return toRenamedString(NamingLens.getIdentityLens(), alwaysTrue());
     }
   }
 
@@ -650,6 +669,9 @@ public class GenericSignature {
       Origin origin,
       DexItemFactory factory,
       Reporter reporter) {
+    if (signature == null || signature.isEmpty()) {
+      return NO_FIELD_TYPE_SIGNATURE;
+    }
     Parser parser = new Parser(factory);
     try {
       return parser.parseFieldTypeSignature(signature);

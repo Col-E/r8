@@ -11,6 +11,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import java.io.IOException;
@@ -36,7 +37,7 @@ public class ApplyMappingSignatureTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private TestParameters parameters;
@@ -52,9 +53,12 @@ public class ApplyMappingSignatureTest extends TestBase {
         .addProgramClasses(A.class, SignatureTest.class)
         .addKeepClassRulesWithAllowObfuscation(A.class)
         .addKeepClassAndMembersRules(SignatureTest.class)
-        .addKeepAttributes("Signature", "InnerClasses", "EnclosingMethod")
+        .addKeepAttributes(
+            ProguardKeepAttributes.SIGNATURE,
+            ProguardKeepAttributes.INNER_CLASSES,
+            ProguardKeepAttributes.ENCLOSING_METHOD)
         .addApplyMapping(A.class.getTypeName() + " -> foo:")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), SignatureTest.class)
         .assertSuccessWithOutput("HELLO")
         .inspect(
@@ -63,7 +67,7 @@ public class ApplyMappingSignatureTest extends TestBase {
               assertThat(clazz, isPresent());
               FieldSubject field = clazz.uniqueFieldWithName("field");
               assertThat(field, isPresent());
-              assertThat(field.getSignatureAnnotationValue(), containsString("foo"));
+              assertThat(field.getFinalSignatureAttribute(), containsString("foo"));
             });
   }
 }
