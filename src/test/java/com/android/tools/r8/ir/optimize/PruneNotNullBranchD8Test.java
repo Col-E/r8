@@ -24,7 +24,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class PruneNotNullBranchD8Test extends TestBase {
 
   private final TestParameters parameters;
-  private final String EXPECTED = "/foo/bar/baz0";
+  private final String EXPECTED = "foo_bar_baz0";
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -58,9 +58,9 @@ public class PruneNotNullBranchD8Test extends TestBase {
     public static void main(String[] args) {
       File file;
       if (args.length == 0) {
-        file = new File("/foo/bar/baz0");
+        file = new File("foo_bar_baz0");
       } else {
-        file = new File("/foo/bar/baz1");
+        file = new File("foo_bar_baz1");
       }
       if (file != null) {
         System.out.println(file.getPath());
