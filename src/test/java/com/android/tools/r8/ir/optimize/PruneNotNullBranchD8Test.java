@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
@@ -48,8 +49,13 @@ public class PruneNotNullBranchD8Test extends TestBase {
               assertThat(main, isPresent());
               MethodSubject mainMethod = main.mainMethod();
               assertThat(mainMethod, isPresent());
-              // TODO(b/170060113): We should be able to remove the throw.
-              assertTrue(mainMethod.streamInstructions().anyMatch(InstructionSubject::isThrow));
+              if (parameters.isDexRuntime()) {
+                assertFalse(mainMethod.streamInstructions().anyMatch(InstructionSubject::isThrow));
+              } else {
+                assert parameters.isCfRuntime();
+                // We are not going through IR when running in CF
+                assertTrue(mainMethod.streamInstructions().anyMatch(InstructionSubject::isThrow));
+              }
             });
   }
 

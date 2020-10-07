@@ -49,4 +49,8 @@ public class IterableUtils {
     iterable.forEach(result::add);
     return result;
   }
+
+  public static <T> boolean isEmpty(Iterable<T> iterable) {
+    return !iterable.iterator().hasNext();
+  }
 }

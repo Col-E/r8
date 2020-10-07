@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock.EdgeType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -448,9 +449,9 @@ public class Phi extends Value implements InstructionOrPhi {
     return result;
   }
 
-  // TODO(b/169120386) This class is added to ensure we do not narrow or widen phi's in D8 when
-  //  having stack map information. It should be removed when we are certain to never widen or
-  //  narrowing phi's in D8.
+  // TODO(b/169120386) This class is added to ensure we do not narrow or widen the type of phi's
+  //  in D8 when having stack map information. We do allow for narrowing on nullable information.
+  //  It should be removed when we are certain to never widen or narrowing phi's in D8.
   public static class StackMapPhi extends Phi {
 
     public StackMapPhi(
@@ -478,7 +479,20 @@ public class Phi extends Value implements InstructionOrPhi {
     @Override
     public TypeElement computePhiType(AppView<?> appView) {
       assert !appView.enableWholeProgramOptimizations();
-      return type;
+      if (type.isPrimitiveType()) {
+        return type;
+      }
+      assert type.isReferenceType();
+      Nullability nullability = Nullability.bottom();
+      for (Value operand : getOperands()) {
+        nullability = nullability.join(operand.type.nullability());
+      }
+      return type.asReferenceType().getOrCreateVariant(nullability);
+    }
+
+    @Override
+    public boolean isStackMapPhi() {
+      return true;
     }
   }
 }

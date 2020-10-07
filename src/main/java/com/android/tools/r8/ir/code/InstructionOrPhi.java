@@ -18,6 +18,10 @@ public interface InstructionOrPhi {
     return false;
   }
 
+  default boolean isStackMapPhi() {
+    return false;
+  }
+
   default Phi asPhi() {
     return null;
   }

@@ -723,9 +723,11 @@ public class IRBuilder {
       // TODO(b/169137397): We may have ended up generating StackMapPhi's before concluding
       //  having incorrect stack map types. Figure out a way to clean that up.
       new TypeAnalysis(appView).widening(ir);
+    } else {
+      assert canUseStackMapTypes() && !hasIncorrectStackMapTypes;
+      assert allPhisAreStackMapPhis(ir);
+      new TypeAnalysis(appView).narrowing(ir);
     }
-    // TODO(b/169137397): If we have canUseStackMapTypes() && !hasIncorrectStackMapTypes we should
-    //  have that all phi's are stack-map phis.
 
     // Update the IR code if collected call site optimization info has something useful.
     // While aggregation of parameter information at call sites would be more precise than static
@@ -753,6 +755,15 @@ public class IRBuilder {
   public boolean canUseStackMapTypes() {
     // TODO(b/168592290): See if we can get using stack map types to work with R8.
     return !appView.enableWholeProgramOptimizations() && source.hasValidTypesFromStackMap();
+  }
+
+  private boolean allPhisAreStackMapPhis(IRCode ir) {
+    ir.instructions()
+        .forEach(
+            instruction -> {
+              assert !instruction.isPhi() || instruction.isStackMapPhi();
+            });
+    return true;
   }
 
   public void constrainType(Value value, ValueTypeConstraint constraint) {

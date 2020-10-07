@@ -64,6 +64,13 @@ public class TypeAnalysis {
     analyzeValues(values, Mode.WIDENING);
   }
 
+  public void narrowing(IRCode code) {
+    mode = Mode.NARROWING;
+    assert worklist.isEmpty();
+    code.topologicallySortedBlocks().forEach(this::analyzeBasicBlock);
+    analyze();
+  }
+
   public void narrowing(Iterable<? extends Value> values) {
     // TODO(b/125492155) Not sorting causes us to have non-deterministic behaviour. This should be
     //  removed when the bug is fixed.
