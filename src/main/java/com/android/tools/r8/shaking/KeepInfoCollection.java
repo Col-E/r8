@@ -383,25 +383,6 @@ public abstract class KeepInfoCollection {
       joinMethod(method, KeepInfo.Joiner::pin);
     }
 
-    public void unsafeAllowMinificationOfMethod(ProgramMethod method) {
-      KeepMethodInfo info = keepMethodInfo.get(method.getReference());
-      if (info != null && !info.internalIsMinificationAllowed()) {
-        keepMethodInfo.put(method.getReference(), info.builder().allowMinification().build());
-      }
-    }
-
-    // Unpinning a method represents a non-monotonic change to the keep info of that item.
-    // This is generally unsound as it requires additional analysis to determine that a method that
-    // was pinned no longer is. A known sound example is the enum analysis that will identify
-    // non-escaping enums on enum types that are not pinned, thus their methods do not need to be
-    // retained even if a rule has marked them as conditionally pinned.
-    public void unsafeUnpinMethod(ProgramMethod method) {
-      // This asserts that the holder is not pinned as some analysis must have established that the
-      // type is not "present" and thus the method need not be pinned.
-      assert !getClassInfo(method.getHolder()).isPinned();
-      unsafeUnpinMethod(method.getReference());
-    }
-
     // TODO(b/157700141): Avoid pinning/unpinning references.
     @Deprecated
     public void unsafeUnpinMethod(DexMethod method) {
@@ -453,22 +434,6 @@ public abstract class KeepInfoCollection {
 
     public void pinField(ProgramField field) {
       joinField(field, KeepInfo.Joiner::pin);
-    }
-
-    public void unsafeAllowMinificationOfField(ProgramField field) {
-      assert !getClassInfo(field.getHolder()).isPinned();
-      KeepFieldInfo info = keepFieldInfo.get(field.getReference());
-      if (info != null && !info.internalIsMinificationAllowed()) {
-        keepFieldInfo.put(field.getReference(), info.builder().allowAccessModification().build());
-      }
-    }
-
-    public void unsafeUnpinField(ProgramField field) {
-      assert !getClassInfo(field.getHolder()).isPinned();
-      KeepFieldInfo info = this.keepFieldInfo.get(field.getReference());
-      if (info != null && info.isPinned()) {
-        keepFieldInfo.put(field.getReference(), info.builder().unpin().build());
-      }
     }
 
     @Override
