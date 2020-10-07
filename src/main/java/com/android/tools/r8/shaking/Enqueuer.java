@@ -2611,7 +2611,7 @@ public class Enqueuer {
       // TODO(sgjesse): Does this have to be enqueued as a root item? Right now it is done as the
       // marking for not renaming it is in the root set.
       workList.enqueueMarkMethodKeptAction(valuesMethod, reason);
-      keepInfo.keepMethod(valuesMethod);
+      keepInfo.joinMethod(valuesMethod, joiner -> joiner.pin().disallowMinification());
       shouldNotBeMinified(valuesMethod.getReference());
     }
   }
@@ -2762,7 +2762,7 @@ public class Enqueuer {
       if (!modifiers.allowsShrinking) {
         // TODO(b/159589281): Evaluate this interpretation.
         joiner.pin();
-        if (!definition.getAccessFlags().isPublic()) {
+        if (definition.getAccessFlags().isPackagePrivateOrProtected()) {
           joiner.requireAccessModificationForRepackaging();
         }
       }

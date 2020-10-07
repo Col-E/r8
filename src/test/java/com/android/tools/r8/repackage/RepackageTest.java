@@ -66,7 +66,7 @@ public class RepackageTest extends RepackageTestBase {
 
   private final boolean allowAccessModification;
 
-  @Parameters(name = "{3}, allow access modification: {0}, kind: {1}")
+  @Parameters(name = "{2}, allow access modification: {0}, kind: {1}")
   public static List<Object[]> data() {
     return buildParameters(
         BooleanUtils.values(),

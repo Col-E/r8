@@ -34,6 +34,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -42,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -179,12 +181,14 @@ public class VirtualFile {
   }
 
   private static Map<DexProgramClass, String> computeOriginalNameMapping(
-      Collection<DexProgramClass> classes, ClassNameMapper proguardMap) {
-    Map<DexProgramClass, String> originalNames = new HashMap<>(classes.size());
+      Collection<DexProgramClass> classes, GraphLens graphLens, ClassNameMapper proguardMap) {
+    Map<DexProgramClass, String> originalNames = new IdentityHashMap<>(classes.size());
     classes.forEach(
-        (DexProgramClass c) -> {
+        clazz -> {
+          DexType originalType = graphLens.getOriginalType(clazz.getType());
           originalNames.put(
-              c, DescriptorUtils.descriptorToJavaType(c.type.toDescriptorString(), proguardMap));
+              clazz,
+              DescriptorUtils.descriptorToJavaType(originalType.toDescriptorString(), proguardMap));
         });
     return originalNames;
   }
@@ -367,8 +371,10 @@ public class VirtualFile {
       virtualFiles.add(mainDexFile);
       addMarkers(mainDexFile);
 
-      classes = Sets.newHashSet(appView.appInfo().classes());
-      originalNames = computeOriginalNameMapping(classes, appView.appInfo().app().getProguardMap());
+      classes = SetUtils.newIdentityHashSet(appView.appInfo().classes());
+      originalNames =
+          computeOriginalNameMapping(
+              classes, appView.graphLens(), appView.appInfo().app().getProguardMap());
     }
 
     private void addMarkers(VirtualFile virtualFile) {
