@@ -950,7 +950,10 @@ public abstract class GraphLens {
 
     @Override
     public DexMethod getOriginalMethodSignature(DexMethod method) {
-      DexMethod originalMethod = internalGetPreviousMethodSignature(method);
+      DexMethod originalMethod =
+          originalMethodSignatures != null
+              ? originalMethodSignatures.getOrDefault(method, method)
+              : method;
       return getPrevious().getOriginalMethodSignature(originalMethod);
     }
 
@@ -968,7 +971,9 @@ public abstract class GraphLens {
         return originalMethod;
       }
       DexMethod renamedMethod = getPrevious().getRenamedMethodSignature(originalMethod, applied);
-      return internalGetNextMethodSignature(renamedMethod);
+      return originalMethodSignatures != null
+          ? originalMethodSignatures.inverse().getOrDefault(renamedMethod, renamedMethod)
+          : renamedMethod;
     }
 
     @Override
@@ -1056,12 +1061,6 @@ public abstract class GraphLens {
     protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
       return originalMethodSignatures != null
           ? originalMethodSignatures.getOrDefault(method, method)
-          : method;
-    }
-
-    protected DexMethod internalGetNextMethodSignature(DexMethod method) {
-      return originalMethodSignatures != null
-          ? originalMethodSignatures.inverse().getOrDefault(method, method)
           : method;
     }
 
