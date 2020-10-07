@@ -14,7 +14,6 @@ import static org.junit.Assume.assumeFalse;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.retrace.Retrace.RetraceAbortException;
 import com.android.tools.r8.retrace.stacktraces.ActualBotStackTraceBase;
 import com.android.tools.r8.retrace.stacktraces.ActualIdentityStackTrace;
@@ -203,11 +202,8 @@ public class RetraceTests extends TestBase {
 
   private void inspectRetraceTest(
       StackTraceForTest stackTraceForTest, Consumer<RetraceApi> inspection) throws Exception {
-    TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
-    ClassNameMapper classNameMapper =
-        ClassNameMapper.mapperFromString(stackTraceForTest.mapping(), diagnosticsHandler);
-    RetraceApi retracer = Retracer.create(classNameMapper);
-    inspection.accept(retracer);
+    inspection.accept(
+        Retracer.create(stackTraceForTest::mapping, new TestDiagnosticMessagesImpl()));
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {

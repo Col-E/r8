@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.code.Instruction;
@@ -38,6 +39,7 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.retrace.DirectClassNameMapperProguardMapProducer;
 import com.android.tools.r8.retrace.RetraceApi;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.AndroidApp;
@@ -484,6 +486,28 @@ public class CodeInspector {
   }
 
   public RetraceApi retrace() {
-    return Retracer.create(mapping == null ? ClassNameMapper.builder().build() : mapping);
+    try {
+      return Retracer.create(
+          new InternalProguardMapProducer(
+              mapping == null ? ClassNameMapper.builder().build() : mapping),
+          new TestDiagnosticMessagesImpl());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static class InternalProguardMapProducer
+      implements DirectClassNameMapperProguardMapProducer {
+
+    public final ClassNameMapper prebuiltMapper;
+
+    public InternalProguardMapProducer(ClassNameMapper prebuiltMapper) {
+      this.prebuiltMapper = prebuiltMapper;
+    }
+
+    @Override
+    public ClassNameMapper getClassNameMapper() {
+      return prebuiltMapper;
+    }
   }
 }

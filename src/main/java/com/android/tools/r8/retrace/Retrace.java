@@ -10,7 +10,6 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.Version;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
 import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
 import com.android.tools.r8.utils.OptionsParsing;
@@ -142,11 +141,9 @@ public class Retrace {
     try {
       Timing timing = Timing.create("R8 retrace", command.printMemory());
       timing.begin("Read proguard map");
-      ClassNameMapper classNameMapper =
-          ClassNameMapper.mapperFromString(
-              command.proguardMapProducer.get(), command.diagnosticsHandler);
+      RetraceApi retracer =
+          Retracer.create(command.proguardMapProducer, command.diagnosticsHandler);
       timing.end();
-      RetraceApi retracer = Retracer.create(classNameMapper);
       RetraceCommandLineResult result;
       timing.begin("Parse and Retrace");
       if (command.regularExpression != null) {
