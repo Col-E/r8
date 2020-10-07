@@ -448,15 +448,17 @@ public final class InterfaceProcessor {
     }
 
     @Override
-    public DexMethod getOriginalMethodSignature(DexMethod method) {
-      DexMethod originalMethod = extraOriginalMethodSignatures.get(method);
-      if (originalMethod == null) {
-        originalMethod =
-            originalMethodSignatures != null
-                ? originalMethodSignatures.getOrDefault(method, method)
-                : method;
-      }
-      return getPrevious().getOriginalMethodSignature(originalMethod);
+    protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+      return extraOriginalMethodSignatures.getOrDefault(
+          method, originalMethodSignatures.getOrDefault(method, method));
+    }
+
+    @Override
+    protected DexMethod internalGetNextMethodSignature(DexMethod method) {
+      return originalMethodSignatures
+          .inverse()
+          .getOrDefault(
+              method, extraOriginalMethodSignatures.inverse().getOrDefault(method, method));
     }
 
     @Override
