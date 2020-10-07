@@ -154,12 +154,12 @@ public class VirtualMethodMerger {
     }
 
     // Use the first of the original methods as the original method for the merged constructor.
+    DexMethod templateReference = methods.iterator().next().getReference();
     DexMethod originalMethodReference =
-        appView.graphLens().getOriginalMethodSignature(methods.iterator().next().getReference());
+        appView.graphLens().getOriginalMethodSignature(templateReference);
 
     DexMethod newMethodReference =
-        dexItemFactory.createMethod(
-            target.type, originalMethodReference.proto, originalMethodReference.name);
+        dexItemFactory.createMethod(target.type, templateReference.proto, templateReference.name);
     AbstractSynthesizedCode synthesizedCode =
         new VirtualMethodEntryPointSynthesizedCode(
             classIdToMethodMap,
