@@ -6,21 +6,15 @@ package com.android.tools.r8.classmerging.vertical;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
-import org.junit.runners.Parameterized.Parameters;
 
 public abstract class VerticalClassMergerTestBase extends TestBase {
 
   protected final TestParameters parameters;
-
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return TestBase.getTestParameters().withAllRuntimesAndApiLevels().build();
-  }
 
   public VerticalClassMergerTestBase(TestParameters parameters) {
     this.parameters = parameters;
@@ -31,5 +25,11 @@ public abstract class VerticalClassMergerTestBase extends TestBase {
       DexItemFactory dexItemFactory,
       VerticallyMergedClasses verticallyMergedClasses) {
     assertTrue(verticallyMergedClasses.hasBeenMergedIntoSubtype(toDexType(clazz, dexItemFactory)));
+  }
+
+  public void runDebugTest(Class<?> mainClass, R8TestCompileResult compileResult) throws Throwable {
+    assertTrue(parameters.isDexRuntime());
+    new VerticalClassMergerDebugTestRunner(mainClass.getTypeName(), temp)
+        .run(compileResult.app, compileResult.writeProguardMap());
   }
 }

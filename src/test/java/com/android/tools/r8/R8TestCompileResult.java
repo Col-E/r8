@@ -173,6 +173,12 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
     return proguardMap;
   }
 
+  public Path writeProguardMap() throws IOException {
+    Path file = state.getNewTempFolder().resolve("out.zip");
+    writeProguardMap(file);
+    return file;
+  }
+
   public R8TestCompileResult writeProguardMap(Path path) throws IOException {
     FileUtils.writeTextFile(path, getProguardMap());
     return self();
