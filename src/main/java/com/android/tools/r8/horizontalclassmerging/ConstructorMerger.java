@@ -91,6 +91,10 @@ public class ConstructorMerger {
 
     DexEncodedMethod encodedMethod = constructor.toTypeSubstitutedMethod(method);
     encodedMethod.getMutableOptimizationInfo().markForceInline();
+    encodedMethod.accessFlags.unsetConstructor();
+    encodedMethod.accessFlags.unsetPublic();
+    encodedMethod.accessFlags.unsetProtected();
+    encodedMethod.accessFlags.setPrivate();
     target.addDirectMethod(encodedMethod);
     return method;
   }
