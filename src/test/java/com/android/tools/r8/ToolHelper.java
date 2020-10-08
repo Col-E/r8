@@ -266,6 +266,10 @@ public class ToolHelper {
         return isOlderThanOrEqual(Version.V4_4_4);
       }
 
+      public boolean isDefault() {
+        return this == DEFAULT;
+      }
+
       public boolean isLatest() {
         return this == V10_0_0;
       }
