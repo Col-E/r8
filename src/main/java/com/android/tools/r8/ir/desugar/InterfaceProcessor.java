@@ -108,7 +108,7 @@ public final class InterfaceProcessor {
         implMethod.copyMetadata(virtual);
         virtual.setDefaultInterfaceMethodImplementation(implMethod);
         companionMethods.add(implMethod);
-        graphLensBuilder.recordOrigin(implMethod.method, virtual.method);
+        graphLensBuilder.recordCodeMovedToCompanionClass(virtual.method, implMethod.method);
       }
 
       // Remove bridge methods.
@@ -453,15 +453,17 @@ public final class InterfaceProcessor {
     }
 
     @Override
-    public DexMethod getOriginalMethodSignature(DexMethod method) {
-      DexMethod originalMethod = extraOriginalMethodSignatures.get(method);
-      if (originalMethod == null) {
-        originalMethod =
-            originalMethodSignatures != null
-                ? originalMethodSignatures.getOrDefault(method, method)
-                : method;
-      }
-      return getPrevious().getOriginalMethodSignature(originalMethod);
+    protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+      return extraOriginalMethodSignatures.getOrDefault(
+          method, originalMethodSignatures.getOrDefault(method, method));
+    }
+
+    @Override
+    protected DexMethod internalGetNextMethodSignature(DexMethod method) {
+      return originalMethodSignatures
+          .inverse()
+          .getOrDefault(
+              method, extraOriginalMethodSignatures.inverse().getOrDefault(method, method));
     }
 
     @Override
@@ -477,11 +479,10 @@ public final class InterfaceProcessor {
 
       private final BiMap<DexMethod, DexMethod> extraOriginalMethodSignatures = HashBiMap.create();
 
-      public void recordOrigin(DexMethod method, DexMethod origin) {
-        if (method == origin) {
-          return;
-        }
-        extraOriginalMethodSignatures.put(method, origin);
+      public void recordCodeMovedToCompanionClass(DexMethod from, DexMethod to) {
+        assert from != to;
+        originalMethodSignatures.put(from, from);
+        extraOriginalMethodSignatures.put(to, from);
       }
 
       @Override
