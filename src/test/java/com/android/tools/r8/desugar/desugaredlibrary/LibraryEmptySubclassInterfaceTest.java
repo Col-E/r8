@@ -8,7 +8,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,9 +57,7 @@ public class LibraryEmptySubclassInterfaceTest extends DesugaredLibraryTestBase 
       return;
     }
     String keepRules = keepRuleConsumer.get();
-    assertThat(keepRules, containsString("-keep class j$.util.Map"));
     assertThat(keepRules, containsString("-keep class j$.util.concurrent.ConcurrentHashMap"));
-    assertThat(keepRules, containsString("-keep class j$.util.concurrent.ConcurrentMap"));
   }
 
   @Test
