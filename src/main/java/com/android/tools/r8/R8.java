@@ -559,7 +559,7 @@ public class R8 {
             timing.end();
           }
         }
-        if (options.enableHorizontalClassMerging) {
+        if (options.enableHorizontalClassMerging && options.enableInlining) {
           timing.begin("HorizontalClassMerger");
           HorizontalClassMerger merger =
               new HorizontalClassMerger(

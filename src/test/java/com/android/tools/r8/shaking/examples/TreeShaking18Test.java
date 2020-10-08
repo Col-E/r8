@@ -39,7 +39,6 @@ public class TreeShaking18Test extends TreeShakingTest {
 
   @Test
   public void test() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     runTest(
         TreeShaking18Test::unusedRemoved,
         null,
