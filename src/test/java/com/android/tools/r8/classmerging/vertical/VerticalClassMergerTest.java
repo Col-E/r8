@@ -42,7 +42,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Streams;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -52,7 +51,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.IntStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -1106,42 +1104,6 @@ public class VerticalClassMergerTest extends TestBase {
     runTest(
         testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowUnusedProguardConfigurationRules(),
-        main,
-        programFiles,
-        preservedClassNames::contains);
-  }
-
-  @Test
-  public void testNoIllegalClassAccessWithAccessModifications() throws Throwable {
-    expectThrowsWithHorizontalClassMerging();
-    // If access modifications are allowed then SimpleInterface should be merged into
-    // SimpleInterfaceImpl.
-    String main = "classmerging.SimpleInterfaceAccessTest";
-    Path[] programFiles =
-        new Path[] {
-          CF_DIR.resolve("SimpleInterfaceAccessTest.class"),
-          CF_DIR.resolve("SimpleInterfaceAccessTest$SimpleInterface.class"),
-          CF_DIR.resolve("SimpleInterfaceAccessTest$OtherSimpleInterface.class"),
-          CF_DIR.resolve("SimpleInterfaceAccessTest$OtherSimpleInterfaceImpl.class"),
-          CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever.class"),
-          CF_DIR.resolve("pkg/SimpleInterfaceImplRetriever$SimpleInterfaceImpl.class")
-        };
-    ImmutableSet<String> preservedClassNames =
-        ImmutableSet.of(
-            "classmerging.SimpleInterfaceAccessTest",
-            "classmerging.SimpleInterfaceAccessTest$OtherSimpleInterfaceImpl",
-            "classmerging.pkg.SimpleInterfaceImplRetriever",
-            "classmerging.pkg.SimpleInterfaceImplRetriever$SimpleInterfaceImpl");
-    // Allow access modifications (and prevent SimpleInterfaceImplRetriever from being removed as
-    // a result of inlining).
-    runTest(
-        testForR8(parameters.getBackend())
-            .addKeepRules(
-                getProguardConfig(
-                    EXAMPLE_KEEP,
-                    "-allowaccessmodification",
-                    "-keep public class classmerging.pkg.SimpleInterfaceImplRetriever"))
             .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
