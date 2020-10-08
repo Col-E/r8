@@ -142,6 +142,11 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   @Override
+  public Iterable<DexType> getReferencedTypes() {
+    return proto.getTypes();
+  }
+
+  @Override
   public int computeHashCode() {
     return holder.hashCode()
         + proto.hashCode() * 7

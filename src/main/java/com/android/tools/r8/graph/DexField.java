@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
+import java.util.Collections;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -113,6 +114,11 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   @Override
   public DexField asDexField() {
     return this;
+  }
+
+  @Override
+  public Iterable<DexType> getReferencedTypes() {
+    return Collections.singleton(type);
   }
 
   @Override

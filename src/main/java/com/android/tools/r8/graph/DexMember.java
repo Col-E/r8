@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.google.common.collect.Iterables;
+
 public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
     extends DexReference implements PresortedComparable<R> {
 
@@ -32,5 +34,11 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
   @Override
   public DexMember<D, R> asDexMember() {
     return this;
+  }
+
+  public abstract Iterable<DexType> getReferencedTypes();
+
+  public Iterable<DexType> getReferencedBaseTypes(DexItemFactory dexItemFactory) {
+    return Iterables.transform(getReferencedTypes(), type -> type.toBaseType(dexItemFactory));
   }
 }
