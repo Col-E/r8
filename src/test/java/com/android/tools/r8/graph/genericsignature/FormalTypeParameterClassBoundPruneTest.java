@@ -4,9 +4,14 @@
 
 package com.android.tools.r8.graph.genericsignature;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.lang.reflect.TypeVariable;
 import org.junit.Test;
@@ -70,6 +75,28 @@ public class FormalTypeParameterClassBoundPruneTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(
             "class java.lang.Object", Interface.class.getTypeName() + "<T>");
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(
+            transformer(Main.class).removeInnerClasses().transform(),
+            transformer(Super.class).removeInnerClasses().transform(),
+            transformer(Interface.class).removeInnerClasses().transform())
+        .addKeepMainRule(Main.class)
+        .addKeepClassRules(Interface.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepAttributes(
+            ProguardKeepAttributes.SIGNATURE,
+            ProguardKeepAttributes.INNER_CLASSES,
+            ProguardKeepAttributes.ENCLOSING_METHOD)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(Interface.class.getTypeName() + "<T>")
+        .inspect(
+            inspector -> {
+              assertThat(inspector.clazz(Super.class), not(isPresent()));
+            });
   }
 
   public static class Super<T> {}
