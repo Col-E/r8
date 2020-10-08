@@ -37,10 +37,14 @@ def CheckFormatting(input_api, output_api, branch):
 
   git diff -U0 $(git cl upstream) | %s -p1 -i
 
+or fix formatting, commit and upload:
+
+  git diff -U0 $(git cl upstream) | %s -p1 -i && git commit -a --amend --no-edit && git cl upload
+
 or bypass the checks with:
 
-  cl upload --bypass-hooks
-  """ % FMT_CMD))
+  git cl upload --bypass-hooks
+  """ % (FMT_CMD, FMT_CMD)))
   return results
 
 def CheckDeterministicDebuggingChanged(input_api, output_api, branch):
