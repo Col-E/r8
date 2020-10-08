@@ -30,6 +30,7 @@ import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.Predicates;
@@ -398,6 +399,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return appInfo.options();
   }
 
+  public TestingOptions testing() {
+    return options().testing;
+  }
+
   public RootSet rootSet() {
     return rootSet;
   }
@@ -466,6 +471,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   public void setVerticallyMergedClasses(VerticallyMergedClasses verticallyMergedClasses) {
     assert this.verticallyMergedClasses == null;
     this.verticallyMergedClasses = verticallyMergedClasses;
+    if (testing().verticallyMergedClassesConsumer != null) {
+      testing().verticallyMergedClassesConsumer.accept(dexItemFactory(), verticallyMergedClasses);
+    }
   }
 
   public EnumValueInfoMapCollection unboxedEnums() {

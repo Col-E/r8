@@ -8,7 +8,7 @@ import com.android.tools.r8.NeverInline;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
-public class Outer {
+public class VerticalClassMergingWithNonVisibleAnnotationTestClasses {
 
   @Retention(RetentionPolicy.RUNTIME)
   private @interface PrivateClassAnnotation {}

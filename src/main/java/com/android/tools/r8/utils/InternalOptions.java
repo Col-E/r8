@@ -35,6 +35,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodProcessingId;
@@ -1221,6 +1222,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
             appView ->
                 new DefaultRepackagingConfiguration(
                     appView.dexItemFactory(), appView.options().getProguardConfiguration());
+
+    public BiConsumer<DexItemFactory, VerticallyMergedClasses> verticallyMergedClassesConsumer =
+        null;
 
     public Consumer<Deque<SortedProgramMethodSet>> waveModifier = waves -> {};
 

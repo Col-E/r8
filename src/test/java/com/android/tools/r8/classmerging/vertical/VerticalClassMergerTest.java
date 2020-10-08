@@ -57,7 +57,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
@@ -101,7 +100,7 @@ public class VerticalClassMergerTest extends TestBase {
   }
 
   private void runR8(Path proguardConfig, Consumer<InternalOptions> optionsConsumer)
-      throws IOException, ExecutionException, CompilationFailedException {
+      throws IOException, CompilationFailedException {
     inspector =
         testForR8(parameters.getBackend())
             .addProgramFiles(EXAMPLE_JAR)
@@ -122,19 +121,6 @@ public class VerticalClassMergerTest extends TestBase {
       "classmerging.Outer$SuperClass",
       "classmerging.SuperClass"
   );
-
-  @Test
-  public void testClassesHaveBeenMerged() throws Throwable {
-    expectThrowsWithHorizontalClassMerging();
-    runR8(EXAMPLE_KEEP, this::configure);
-    // GenericInterface should be merged into GenericInterfaceImpl.
-    for (String candidate : CAN_BE_MERGED) {
-      assertThat(inspector.clazz(candidate), not(isPresent()));
-    }
-    assertThat(inspector.clazz("classmerging.GenericInterfaceImpl"), isPresent());
-    assertThat(inspector.clazz("classmerging.Outer$SubClass"), isPresent());
-    assertThat(inspector.clazz("classmerging.SubClass"), isPresent());
-  }
 
   @Test
   public void testClassesHaveNotBeenMerged() throws Throwable {

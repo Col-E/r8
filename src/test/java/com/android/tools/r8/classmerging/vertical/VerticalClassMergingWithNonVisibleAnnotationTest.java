@@ -14,8 +14,8 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.classmerging.vertical.testclasses.Outer;
-import com.android.tools.r8.classmerging.vertical.testclasses.Outer.Base;
+import com.android.tools.r8.classmerging.vertical.testclasses.VerticalClassMergingWithNonVisibleAnnotationTestClasses;
+import com.android.tools.r8.classmerging.vertical.testclasses.VerticalClassMergingWithNonVisibleAnnotationTestClasses.Base;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -26,7 +26,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class VerticalClassMergingWithNonVisibleAnnotation extends TestBase {
+public class VerticalClassMergingWithNonVisibleAnnotationTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -35,18 +35,20 @@ public class VerticalClassMergingWithNonVisibleAnnotation extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public VerticalClassMergingWithNonVisibleAnnotation(TestParameters parameters) {
+  public VerticalClassMergingWithNonVisibleAnnotationTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(Outer.class)
+        .addInnerClasses(VerticalClassMergingWithNonVisibleAnnotationTestClasses.class)
         .addProgramClasses(Sub.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Sub.class)
-        .addKeepClassRules(Outer.class.getPackage().getName() + ".Outer$Private* { *; }")
+        .addKeepClassRules(
+            VerticalClassMergingWithNonVisibleAnnotationTestClasses.class.getTypeName()
+                + "$Private* { *; }")
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
@@ -65,7 +67,8 @@ public class VerticalClassMergingWithNonVisibleAnnotation extends TestBase {
               assertThat(foo, isPresent());
               AnnotationSubject privateMethodAnnotation =
                   foo.annotation(
-                      Outer.class.getPackage().getName() + ".Outer$PrivateMethodAnnotation");
+                      VerticalClassMergingWithNonVisibleAnnotationTestClasses.class.getTypeName()
+                          + "$PrivateMethodAnnotation");
               assertThat(privateMethodAnnotation, isPresent());
             });
   }

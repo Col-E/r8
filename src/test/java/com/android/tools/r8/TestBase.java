@@ -1648,6 +1648,10 @@ public class TestBase {
     return path;
   }
 
+  public static DexType toDexType(Class<?> clazz, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createType(descriptor(clazz));
+  }
+
   public static String binaryName(Class<?> clazz) {
     return DescriptorUtils.getBinaryNameFromJavaType(typeName(clazz));
   }

@@ -10,6 +10,8 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -26,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -101,6 +104,12 @@ public abstract class TestCompilerBuilder<
           options.testing.allowCheckDiscardedErrors = true;
           options.testing.dontReportFailingCheckDiscarded = skipReporting;
         });
+  }
+
+  public T addVerticallyMergedClassesInspector(
+      BiConsumer<DexItemFactory, VerticallyMergedClasses> inspector) {
+    return addOptionsModification(
+        options -> options.testing.verticallyMergedClassesConsumer = inspector);
   }
 
   public CR compile() throws CompilationFailedException {
