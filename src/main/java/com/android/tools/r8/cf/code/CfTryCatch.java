@@ -4,7 +4,9 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.graph.CfCompareHelper;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -53,5 +55,9 @@ public class CfTryCatch {
         .thenComparing(c -> c.guards, ComparatorUtils.listComparator(DexType::slowCompareTo))
         .thenComparing(c -> c.targets, ComparatorUtils.listComparator(helper::compareLabels))
         .compare(this, other);
+  }
+
+  public void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
+    guards.forEach(registry::registerExceptionGuard);
   }
 }

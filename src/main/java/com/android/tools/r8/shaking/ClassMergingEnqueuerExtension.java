@@ -9,15 +9,19 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.analysis.EnqueuerCheckCastAnalysis;
+import com.android.tools.r8.graph.analysis.EnqueuerExceptionGuardAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerInstanceOfAnalysis;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
 public class ClassMergingEnqueuerExtension
-    implements EnqueuerInstanceOfAnalysis, EnqueuerCheckCastAnalysis {
+    implements EnqueuerInstanceOfAnalysis,
+        EnqueuerCheckCastAnalysis,
+        EnqueuerExceptionGuardAnalysis {
 
   private final Set<DexType> instanceOfTypes = Sets.newIdentityHashSet();
   private final Set<DexType> checkCastTypes = Sets.newIdentityHashSet();
+  private final Set<DexType> exceptionGuardTypes = Sets.newIdentityHashSet();
   private final DexItemFactory factory;
 
   public ClassMergingEnqueuerExtension(DexItemFactory factory) {
@@ -34,6 +38,11 @@ public class ClassMergingEnqueuerExtension
     instanceOfTypes.add(type.toBaseType(factory));
   }
 
+  @Override
+  public void traceExceptionGuard(DexType guard, ProgramMethod context) {
+    exceptionGuardTypes.add(guard);
+  }
+
   public boolean isCheckCastType(DexProgramClass clazz) {
     return checkCastTypes.contains(clazz.type);
   }
@@ -42,7 +51,18 @@ public class ClassMergingEnqueuerExtension
     return instanceOfTypes.contains(clazz.type);
   }
 
+  public boolean isExceptionGuardType(DexProgramClass clazz) {
+    return exceptionGuardTypes.contains(clazz.type);
+  }
+
+  public boolean isRuntimeCheckType(DexProgramClass clazz) {
+    return isInstanceOfType(clazz) || isCheckCastType(clazz) || isExceptionGuardType(clazz);
+  }
+
   public void attach(Enqueuer enqueuer) {
-    enqueuer.registerInstanceOfAnalysis(this).registerCheckCastAnalysis(this);
+    enqueuer
+        .registerInstanceOfAnalysis(this)
+        .registerCheckCastAnalysis(this)
+        .registerExceptionGuardAnalysis(this);
   }
 }

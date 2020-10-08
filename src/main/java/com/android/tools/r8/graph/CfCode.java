@@ -508,7 +508,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
     for (CfInstruction instruction : instructions) {
       instruction.registerUse(registry, method);
     }
-    tryCatchRanges.forEach(tryCatch -> tryCatch.guards.forEach(registry::registerTypeReference));
+    tryCatchRanges.forEach(tryCatch -> tryCatch.internalRegisterUse(registry, method));
   }
 
   @Override

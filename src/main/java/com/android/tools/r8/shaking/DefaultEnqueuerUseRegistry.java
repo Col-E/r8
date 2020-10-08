@@ -134,6 +134,11 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
   }
 
   @Override
+  public void registerExceptionGuard(DexType guard) {
+    enqueuer.traceExceptionGuard(guard, context);
+  }
+
+  @Override
   public void registerMethodHandle(DexMethodHandle methodHandle, MethodHandleUse use) {
     super.registerMethodHandle(methodHandle, use);
     enqueuer.traceMethodHandle(methodHandle, use, context);

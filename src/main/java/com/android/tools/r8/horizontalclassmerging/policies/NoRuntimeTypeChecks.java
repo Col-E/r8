@@ -18,7 +18,6 @@ public class NoRuntimeTypeChecks extends SingleClassPolicy {
   @Override
   public boolean canMerge(DexProgramClass clazz) {
     // We currently assume we only merge classes that implement the same set of interfaces.
-    return !(this.classMergingEnqueuerExtension.isCheckCastType(clazz)
-        || this.classMergingEnqueuerExtension.isInstanceOfType(clazz));
+    return !classMergingEnqueuerExtension.isRuntimeCheckType(clazz);
   }
 }

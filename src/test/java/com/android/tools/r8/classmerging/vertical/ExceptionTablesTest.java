@@ -38,7 +38,6 @@ public class ExceptionTablesTest extends VerticalClassMergerTestBase {
 
   @Test
   public void testClassesHaveBeenMerged() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(ExceptionTablesTest.class)
         .addKeepMainRule(TestClass.class)

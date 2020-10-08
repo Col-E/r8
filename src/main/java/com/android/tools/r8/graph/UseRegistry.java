@@ -75,6 +75,10 @@ public abstract class UseRegistry {
     registerTypeReference(type);
   }
 
+  public void registerExceptionGuard(DexType guard) {
+    registerTypeReference(guard);
+  }
+
   public void registerMethodHandle(DexMethodHandle methodHandle, MethodHandleUse use) {
     switch (methodHandle.type) {
       case INSTANCE_GET:

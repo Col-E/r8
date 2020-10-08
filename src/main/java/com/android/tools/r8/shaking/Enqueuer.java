@@ -65,6 +65,7 @@ import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.analysis.DesugaredLibraryConversionWrapperAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerCheckCastAnalysis;
+import com.android.tools.r8.graph.analysis.EnqueuerExceptionGuardAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerInstanceOfAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerInvokeAnalysis;
 import com.android.tools.r8.ir.analysis.proto.ProtoEnqueuerUseRegistry;
@@ -178,6 +179,7 @@ public class Enqueuer {
   private Set<EnqueuerAnalysis> analyses = Sets.newIdentityHashSet();
   private Set<EnqueuerInvokeAnalysis> invokeAnalyses = Sets.newIdentityHashSet();
   private Set<EnqueuerInstanceOfAnalysis> instanceOfAnalyses = Sets.newIdentityHashSet();
+  private Set<EnqueuerExceptionGuardAnalysis> exceptionGuardAnalyses = Sets.newIdentityHashSet();
   private Set<EnqueuerCheckCastAnalysis> checkCastAnalyses = Sets.newIdentityHashSet();
 
   // Don't hold a direct pointer to app info (use appView).
@@ -433,6 +435,11 @@ public class Enqueuer {
 
   public Enqueuer registerCheckCastAnalysis(EnqueuerCheckCastAnalysis analysis) {
     checkCastAnalyses.add(analysis);
+    return this;
+  }
+
+  public Enqueuer registerExceptionGuardAnalysis(EnqueuerExceptionGuardAnalysis analysis) {
+    exceptionGuardAnalyses.add(analysis);
     return this;
   }
 
@@ -1025,6 +1032,11 @@ public class Enqueuer {
   void traceInstanceOf(DexType type, ProgramMethod currentMethod) {
     instanceOfAnalyses.forEach(analysis -> analysis.traceInstanceOf(type, currentMethod));
     traceTypeReference(type, currentMethod);
+  }
+
+  void traceExceptionGuard(DexType guard, ProgramMethod currentMethod) {
+    exceptionGuardAnalyses.forEach(analysis -> analysis.traceExceptionGuard(guard, currentMethod));
+    traceTypeReference(guard, currentMethod);
   }
 
   void traceInvokeDirect(DexMethod invokedMethod, ProgramMethod context) {
