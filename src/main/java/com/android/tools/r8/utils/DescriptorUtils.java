@@ -339,6 +339,16 @@ public class DescriptorUtils {
   }
 
   /**
+   * Convert class to a binary name.
+   *
+   * @param clazz a java.lang.Class reference
+   * @return class binary name i.e. "java/lang/Object"
+   */
+  public static String getClassBinaryName(Class<?> clazz) {
+    return getBinaryNameFromJavaType(clazz.getTypeName());
+  }
+
+  /**
    * Get package java name from a class descriptor.
    *
    * @param descriptor a class descriptor i.e. "Ljava/lang/Object;"
