@@ -60,7 +60,7 @@ final class PublicizerLens extends NestedGraphLens {
     assert clazz != null;
     DexEncodedMethod actualEncodedTarget = clazz.lookupVirtualMethod(signatureInCurrentWorld);
     assert actualEncodedTarget != null;
-    assert actualEncodedTarget.isPublicized();
+    assert actualEncodedTarget.isPublic();
     return true;
   }
 

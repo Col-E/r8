@@ -445,6 +445,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testGenericsSignatureInnerEnclosingKs() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     final String mainClassName = "lambdas_kstyle_generics.MainKt";
     runTest(
         "lambdas_kstyle_generics",

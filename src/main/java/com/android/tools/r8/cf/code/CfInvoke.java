@@ -351,7 +351,16 @@ public class CfInvoke extends CfInstruction {
   private Type invokeTypeForInvokeSpecialToNonInitMethodOnHolder(
       AppView<?> appView, CfSourceCode code) {
     boolean desugaringEnabled = appView.options().isInterfaceMethodDesugaringEnabled();
-    DexEncodedMethod encodedMethod = lookupMethodOnHolder(appView, method);
+    MethodLookupResult lookupResult = appView.graphLens().lookupMethod(method, method, Type.DIRECT);
+    if (lookupResult.getType() == Type.VIRTUAL) {
+      // The method has been publicized. We can't always expect private methods that have been
+      // publicized to be final. For example, if a private method A.m() is publicized, and A is
+      // subsequently merged with a class B, with declares a public non-final method B.m(), then the
+      // horizontal class merger will merge A.m() and B.m() into a new non-final public method.
+      return Type.VIRTUAL;
+    }
+    DexMethod rewrittenMethod = lookupResult.getReference();
+    DexEncodedMethod encodedMethod = lookupMethodOnHolder(appView, rewrittenMethod);
     if (encodedMethod == null) {
       // The method is not defined on the class, we can use super to target. When desugaring
       // default interface methods, it is expected they are targeted with invoke-direct.
@@ -375,12 +384,10 @@ public class CfInvoke extends CfInstruction {
   }
 
   private DexEncodedMethod lookupMethodOnHolder(AppView<?> appView, DexMethod method) {
-    MethodLookupResult lookupResult = appView.graphLens().lookupMethod(method, method, Type.DIRECT);
-    DexMethod rewrittenMethod = lookupResult.getReference();
     // Directly lookup the program type for holder. This bypasses lookup order as well as looks
     // directly on the application data, which bypasses and indirection or validation.
-    DexProgramClass clazz = appView.appInfo().unsafeDirectProgramTypeLookup(rewrittenMethod.holder);
+    DexProgramClass clazz = appView.appInfo().unsafeDirectProgramTypeLookup(method.getHolderType());
     assert clazz != null;
-    return clazz.lookupMethod(rewrittenMethod);
+    return clazz.lookupMethod(method);
   }
 }

@@ -22,9 +22,6 @@ public class VirtualMethodMergingOfPublicizedMethodsTest extends HorizontalClass
 
   @Test
   public void test() throws Exception {
-    if (enableHorizontalClassMerging) {
-      thrown.expect(CompilationFailedException.class);
-    }
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
