@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
-import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
-
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -18,6 +16,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
@@ -153,7 +152,7 @@ public class ClassMerger {
             classIdField,
             FieldAccessFlags.fromSharedAccessFlags(
                 Constants.ACC_PUBLIC + Constants.ACC_FINAL + Constants.ACC_SYNTHETIC),
-            NO_FIELD_TYPE_SIGNATURE,
+            FieldTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             null);
     target.appendInstanceField(encodedField);

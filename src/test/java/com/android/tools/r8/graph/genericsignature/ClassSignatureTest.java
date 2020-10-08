@@ -5,7 +5,6 @@
 package com.android.tools.r8.graph.genericsignature;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static com.android.tools.r8.graph.GenericSignature.ClassSignature.NO_CLASS_SIGNATURE;
 import static com.google.common.base.Predicates.alwaysFalse;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -111,9 +110,9 @@ public class ClassSignatureTest extends TestBase {
 
   @Test
   public void testSuperClassError() {
-    TestDiagnosticMessages testDiagnosticMessages = testParsingAndPrintingError("Lfoo/bar/baz");
-    testDiagnosticMessages.assertAllWarningsMatch(
-        diagnosticMessage(containsString("Invalid signature 'Lfoo/bar/baz'")));
+    testParsingAndPrintingError("Lfoo/bar/baz")
+        .assertAllWarningsMatch(
+            diagnosticMessage(containsString("Invalid signature 'Lfoo/bar/baz'")));
   }
 
   @Test
@@ -143,7 +142,12 @@ public class ClassSignatureTest extends TestBase {
   }
 
   @Test
-  public void testFormalTypeParameters2() {}
+  public void testFormalTypeParameterEmptyInterfaceError() {
+    testParsingAndPrintingError("<T:Ljava/lang/Object;:>Lfoo/bar/baz<TT;>;")
+        .assertAllWarningsMatch(
+            diagnosticMessage(
+                containsString("Invalid signature '<T:Ljava/lang/Object;:>Lfoo/bar/baz<TT;>;'")));
+  }
 
   @Test
   public void testFormalTypeParametersEmptyError() {
@@ -171,7 +175,7 @@ public class ClassSignatureTest extends TestBase {
             Origin.unknown(),
             new DexItemFactory(),
             new Reporter(testDiagnosticMessages));
-    assertEquals(NO_CLASS_SIGNATURE, parsed);
+    assertEquals(ClassSignature.noSignature(), parsed);
     return testDiagnosticMessages;
   }
 }

@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.library;
 
 import static com.android.tools.r8.graph.DexLibraryClass.asLibraryClassOrNull;
-import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
@@ -14,6 +13,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 
 /**
  * This class synthesizes library fields that we rely on for modeling.
@@ -39,7 +39,7 @@ public class LibraryFieldSynthesis {
                       field,
                       FieldAccessFlags.fromCfAccessFlags(
                           Constants.ACC_PRIVATE | Constants.ACC_FINAL),
-                      NO_FIELD_TYPE_SIGNATURE,
+                      FieldTypeSignature.noSignature(),
                       DexAnnotationSet.empty(),
                       null));
             }

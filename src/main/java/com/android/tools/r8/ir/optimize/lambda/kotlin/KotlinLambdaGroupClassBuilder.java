@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
-import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -25,6 +24,8 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -158,6 +159,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
                   new DexEncodedMethod(
                       method,
                       accessFlags,
+                      MethodTypeSignature.noSignature(),
                       isMainMethod ? id.mainMethodAnnotations : DexAnnotationSet.empty(),
                       isMainMethod
                           ? id.mainMethodParamAnnotations
@@ -252,6 +254,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
         new DexEncodedMethod(
             initializerMethod,
             CONSTRUCTOR_FLAGS_RELAXED, // always create access-relaxed constructor.
+            MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             new SynthesizedCode(
@@ -271,6 +274,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
           new DexEncodedMethod(
               method,
               CLASS_INITIALIZER_FLAGS,
+              MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               new SynthesizedCode(
@@ -293,7 +297,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
         new DexEncodedField(
             group.getLambdaIdField(factory),
             CAPTURE_FIELD_FLAGS_RELAXED,
-            NO_FIELD_TYPE_SIGNATURE,
+            FieldTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             null);
 
@@ -302,7 +306,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
           new DexEncodedField(
               group.getCaptureField(factory, id),
               CAPTURE_FIELD_FLAGS_RELAXED,
-              NO_FIELD_TYPE_SIGNATURE,
+              FieldTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               null);
     }
@@ -326,7 +330,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
                 new DexEncodedField(
                     field,
                     SINGLETON_FIELD_FLAGS,
-                    NO_FIELD_TYPE_SIGNATURE,
+                    FieldTypeSignature.noSignature(),
                     DexAnnotationSet.empty(),
                     DexValueNull.NULL);
             result.add(encodedField);

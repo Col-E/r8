@@ -42,6 +42,7 @@ import com.android.tools.r8.dex.MethodToCodeObjectMapping;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.NumericType;
@@ -131,6 +132,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       new DexEncodedMethod(
           null,
           MethodAccessFlags.fromDexAccessFlags(0),
+          MethodTypeSignature.noSignature(),
           DexAnnotationSet.empty(),
           ParameterAnnotationsList.empty(),
           null);
@@ -149,6 +151,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   private CallSiteOptimizationInfo callSiteOptimizationInfo = CallSiteOptimizationInfo.bottom();
   private int classFileVersion;
   private KotlinMethodLevelInfo kotlinMemberInfo = NO_KOTLIN_INFO;
+  /** Generic signature information if the attribute is present in the input */
+  private MethodTypeSignature genericSignature;
 
   private DexEncodedMethod defaultInterfaceMethodImplementation = null;
 
@@ -225,25 +229,44 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public DexEncodedMethod(
       DexMethod method,
       MethodAccessFlags accessFlags,
+      MethodTypeSignature genericSignature,
       DexAnnotationSet annotations,
       ParameterAnnotationsList parameterAnnotationsList,
       Code code) {
-    this(method, accessFlags, annotations, parameterAnnotationsList, code, false, -1);
+    this(
+        method,
+        accessFlags,
+        genericSignature,
+        annotations,
+        parameterAnnotationsList,
+        code,
+        false,
+        -1);
   }
 
   public DexEncodedMethod(
       DexMethod method,
       MethodAccessFlags accessFlags,
+      MethodTypeSignature genericSignature,
       DexAnnotationSet annotations,
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
       boolean d8R8Synthesized) {
-    this(method, accessFlags, annotations, parameterAnnotationsList, code, d8R8Synthesized, -1);
+    this(
+        method,
+        accessFlags,
+        genericSignature,
+        annotations,
+        parameterAnnotationsList,
+        code,
+        d8R8Synthesized,
+        -1);
   }
 
   public DexEncodedMethod(
       DexMethod method,
       MethodAccessFlags accessFlags,
+      MethodTypeSignature genericSignature,
       DexAnnotationSet annotations,
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
@@ -252,6 +275,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this(
         method,
         accessFlags,
+        genericSignature,
         annotations,
         parameterAnnotationsList,
         code,
@@ -263,6 +287,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public DexEncodedMethod(
       DexMethod method,
       MethodAccessFlags accessFlags,
+      MethodTypeSignature genericSignature,
       DexAnnotationSet annotations,
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
@@ -273,6 +298,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this.method = method;
     this.accessFlags = accessFlags;
     this.deprecated = deprecated;
+    this.genericSignature = genericSignature;
     this.parameterAnnotationsList = parameterAnnotationsList;
     this.code = code;
     this.classFileVersion = classFileVersion;
@@ -1146,6 +1172,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         new DexEncodedMethod(
             newMethod,
             accessFlags,
+            MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             code,
@@ -1175,6 +1202,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return new DexEncodedMethod(
         newMethod,
         accessFlags,
+        MethodTypeSignature.noSignature(),
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),
         code,
@@ -1278,6 +1306,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return new DexEncodedMethod(
         newMethod,
         newFlags,
+        MethodTypeSignature.noSignature(),
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),
         new SynthesizedCode(forwardSourceCodeBuilder::build),
@@ -1399,6 +1428,19 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     }
   }
 
+  public MethodTypeSignature getGenericSignature() {
+    return genericSignature;
+  }
+
+  public void setGenericSignature(MethodTypeSignature genericSignature) {
+    assert genericSignature != null;
+    this.genericSignature = genericSignature;
+  }
+
+  public void clearGenericSignature() {
+    this.genericSignature = MethodTypeSignature.noSignature();
+  }
+
   private static Builder syntheticBuilder(DexEncodedMethod from) {
     return new Builder(from, true);
   }
@@ -1411,6 +1453,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
     private DexMethod method;
     private final MethodAccessFlags accessFlags;
+    private final MethodTypeSignature genericSignature;
     private final DexAnnotationSet annotations;
     private OptionalBool isLibraryMethodOverride = OptionalBool.UNKNOWN;
     private ParameterAnnotationsList parameterAnnotations;
@@ -1429,6 +1472,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       // Copy all the mutable state of a DexEncodedMethod here.
       method = from.method;
       accessFlags = from.accessFlags.copy();
+      genericSignature = from.getGenericSignature();
       annotations = from.annotations();
       code = from.code;
       compilationState = CompilationState.NOT_PROCESSED;
@@ -1529,6 +1573,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
           new DexEncodedMethod(
               method,
               accessFlags,
+              genericSignature,
               annotations,
               parameterAnnotations,
               code,

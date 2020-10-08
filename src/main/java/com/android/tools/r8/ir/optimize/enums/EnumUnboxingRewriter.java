@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
-import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
 import com.android.tools.r8.dex.Constants;
@@ -24,6 +23,8 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -422,7 +423,7 @@ public class EnumUnboxingRewriter {
         field,
         FieldAccessFlags.fromSharedAccessFlags(
             Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC),
-        NO_FIELD_TYPE_SIGNATURE,
+        FieldTypeSignature.noSignature(),
         DexAnnotationSet.empty(),
         null);
   }
@@ -633,6 +634,7 @@ public class EnumUnboxingRewriter {
     return new DexEncodedMethod(
         method,
         synthesizedMethodAccessFlags(sync),
+        MethodTypeSignature.noSignature(),
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),
         cfCode,

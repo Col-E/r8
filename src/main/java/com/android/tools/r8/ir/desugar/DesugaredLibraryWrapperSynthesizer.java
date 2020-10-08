@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
-
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
@@ -28,6 +26,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -233,7 +233,7 @@ public class DesugaredLibraryWrapperSynthesizer {
         Collections.emptyList(),
         null,
         Collections.emptyList(),
-        ClassSignature.NO_CLASS_SIGNATURE,
+        ClassSignature.noSignature(),
         DexAnnotationSet.empty(),
         DexEncodedField.EMPTY_ARRAY, // No static fields.
         new DexEncodedField[] {wrapperField},
@@ -375,6 +375,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     return new DexEncodedMethod(
         methodToInstall,
         newFlags,
+        MethodTypeSignature.noSignature(),
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),
         code,
@@ -430,7 +431,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     FieldAccessFlags fieldAccessFlags =
         FieldAccessFlags.fromCfAccessFlags(Constants.ACC_FINAL | Constants.ACC_SYNTHETIC);
     return new DexEncodedField(
-        field, fieldAccessFlags, NO_FIELD_TYPE_SIGNATURE, DexAnnotationSet.empty(), null);
+        field, fieldAccessFlags, FieldTypeSignature.noSignature(), DexAnnotationSet.empty(), null);
   }
 
   private DexEncodedMethod synthesizeConstructor(DexField field) {
@@ -452,6 +453,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     return new DexEncodedMethod(
         methodToInstall,
         accessFlags,
+        MethodTypeSignature.noSignature(),
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),
         code,

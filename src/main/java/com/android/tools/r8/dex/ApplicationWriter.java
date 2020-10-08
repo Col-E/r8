@@ -461,6 +461,7 @@ public class ApplicationWriter {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       insertAttributeAnnotationsForClass(clazz);
       clazz.fields().forEach(this::insertAttributeAnnotationsForField);
+      clazz.methods().forEach(this::insertAttributeAnnotationsForMethod);
     }
   }
 
@@ -546,18 +547,33 @@ public class ApplicationWriter {
   }
 
   private void insertAttributeAnnotationsForField(DexEncodedField field) {
-    if (field.getFieldSignature().hasNoSignature()) {
+    if (field.getGenericSignature().hasNoSignature()) {
       return;
     }
-    // Append the annotations to annotations array of the class.
+    // Append the annotations to annotations array of the field.
     field.setAnnotations(
         new DexAnnotationSet(
             ArrayUtils.appendSingleElement(
                 field.annotations().annotations,
                 DexAnnotation.createSignatureAnnotation(
-                    field.getFieldSignature().toRenamedString(namingLens, isTypeMissing),
+                    field.getGenericSignature().toRenamedString(namingLens, isTypeMissing),
                     options.itemFactory))));
-    field.clearFieldSignature();
+    field.clearGenericSignature();
+  }
+
+  private void insertAttributeAnnotationsForMethod(DexEncodedMethod method) {
+    if (method.getGenericSignature().hasNoSignature()) {
+      return;
+    }
+    // Append the annotations to annotations array of the method.
+    method.setAnnotations(
+        new DexAnnotationSet(
+            ArrayUtils.appendSingleElement(
+                method.annotations().annotations,
+                DexAnnotation.createSignatureAnnotation(
+                    method.getGenericSignature().toRenamedString(namingLens, isTypeMissing),
+                    options.itemFactory))));
+    method.clearGenericSignature();
   }
 
   private void setCallSiteContexts(ExecutorService executorService) throws ExecutionException {

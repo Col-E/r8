@@ -1274,6 +1274,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         System.getProperty("com.android.tools.r8.trackDesugaredAPIConversions") != null;
     public boolean forceLibBackportsInL8CfToCf = false;
     public boolean enumUnboxingRewriteJavaCGeneratedMethod = false;
+    // TODO(b/154793333): Enable assertions always when resolved.
     public boolean assertConsistentRenamingOfSignature = false;
     public boolean allowStaticInterfaceMethodsForPreNApiLevel = false;
     public int verificationSizeLimitInBytesOverride = -1;

@@ -34,6 +34,7 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -208,7 +209,7 @@ public class JarClassFileReader {
     private final List<NestMemberClassAttribute> nestMembers = new ArrayList<>();
     private EnclosingMethodAttribute enclosingMember = null;
     private final List<InnerClassAttribute> innerClasses = new ArrayList<>();
-    private ClassSignature classSignature = ClassSignature.NO_CLASS_SIGNATURE;
+    private ClassSignature classSignature = ClassSignature.noSignature();
     private List<DexAnnotation> annotations = null;
     private List<DexAnnotationElement> defaultAnnotations = null;
     private final List<DexEncodedField> staticFields = new ArrayList<>();
@@ -680,6 +681,7 @@ public class JarClassFileReader {
     private List<List<DexAnnotation>> parameterAnnotationsLists = null;
     private List<DexValue> parameterNames = null;
     private List<DexValue> parameterFlags = null;
+    private final MethodTypeSignature genericSignature;
     final DexMethod method;
     final MethodAccessFlags flags;
     final boolean deprecated;
@@ -702,10 +704,13 @@ public class JarClassFileReader {
         addAnnotation(DexAnnotation.createThrowsAnnotation(
             values, parent.application.getFactory()));
       }
-      if (signature != null && !signature.isEmpty()) {
-        addAnnotation(DexAnnotation.createSignatureAnnotation(
-            signature, parent.application.getFactory()));
-      }
+      genericSignature =
+          GenericSignature.parseMethodSignature(
+              name,
+              signature,
+              parent.origin,
+              parent.application.getFactory(),
+              parent.application.options.reporter);
     }
 
     @Override
@@ -832,6 +837,7 @@ public class JarClassFileReader {
           new DexEncodedMethod(
               method,
               flags,
+              genericSignature,
               createAnnotationSet(annotations, options),
               parameterAnnotationsList,
               code,

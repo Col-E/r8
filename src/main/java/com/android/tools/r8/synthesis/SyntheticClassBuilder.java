@@ -106,7 +106,7 @@ public class SyntheticClassBuilder {
         nestMembers,
         enclosingMembers,
         innerClasses,
-        ClassSignature.NO_CLASS_SIGNATURE,
+        ClassSignature.noSignature(),
         DexAnnotationSet.empty(),
         staticFields,
         instanceFields,

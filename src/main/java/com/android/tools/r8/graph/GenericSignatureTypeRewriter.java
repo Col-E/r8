@@ -7,7 +7,8 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.graph.GenericSignature.EMPTY_SUPER_INTERFACES;
 import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_ARGUMENTS;
 import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_PARAMS;
-import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
+import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_SIGNATURES;
+import static com.android.tools.r8.graph.GenericSignature.FieldTypeSignature.noSignature;
 import static com.android.tools.r8.graph.GenericSignature.StarFieldTypeSignature.STAR_FIELD_TYPE_SIGNATURE;
 
 import com.android.tools.r8.graph.GenericSignature.ArrayTypeSignature;
@@ -15,6 +16,8 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
@@ -46,6 +49,13 @@ public class GenericSignatureTypeRewriter {
       return fieldTypeSignature;
     }
     return new TypeSignatureRewriter().run(fieldTypeSignature);
+  }
+
+  public MethodTypeSignature rewrite(MethodTypeSignature methodTypeSignature) {
+    if (methodTypeSignature.hasNoSignature() || appView.graphLens().isIdentityLens()) {
+      return methodTypeSignature;
+    }
+    return new MethodTypeSignatureRewriter().run(methodTypeSignature);
   }
 
   private class ClassSignatureRewriter implements GenericSignatureVisitor {
@@ -90,7 +100,7 @@ public class GenericSignatureTypeRewriter {
           && rewrittenSuperInterfaces.isEmpty()
           && rewrittenSuperClass.isNoSignature()
           && rewrittenSuperClass.type == appView.dexItemFactory().objectType) {
-        return ClassSignature.NO_CLASS_SIGNATURE;
+        return ClassSignature.noSignature();
       }
       return new ClassSignature(
           rewrittenTypeParameters.isEmpty() ? EMPTY_TYPE_PARAMS : rewrittenTypeParameters,
@@ -99,9 +109,77 @@ public class GenericSignatureTypeRewriter {
     }
   }
 
+  private class MethodTypeSignatureRewriter implements GenericSignatureVisitor {
+
+    private final List<FormalTypeParameter> rewrittenTypeParameters = new ArrayList<>();
+    private final List<TypeSignature> rewrittenTypeSignatures = new ArrayList<>();
+
+    ReturnType rewrittenReturnType = null;
+    private final List<TypeSignature> rewrittenThrowsSignatures = new ArrayList<>();
+
+    @Override
+    public void visitFormalTypeParameters(List<FormalTypeParameter> formalTypeParameters) {
+      for (FormalTypeParameter formalTypeParameter : formalTypeParameters) {
+        rewrittenTypeParameters.add(new FormalTypeParameterRewriter().run(formalTypeParameter));
+      }
+    }
+
+    @Override
+    public void visitMethodTypeSignatures(List<TypeSignature> typeSignatures) {
+      for (TypeSignature typeSignature : typeSignatures) {
+        TypeSignature rewrittenType = new TypeSignatureRewriter().run(typeSignature);
+        rewrittenTypeSignatures.add(rewrittenType == null ? objectTypeSignature : rewrittenType);
+      }
+    }
+
+    @Override
+    public void visitReturnType(ReturnType returnType) {
+      if (returnType.isVoidDescriptor()) {
+        rewrittenReturnType = ReturnType.VOID;
+      } else {
+        TypeSignature originalType = returnType.typeSignature();
+        TypeSignature rewrittenType = new TypeSignatureRewriter().run(originalType);
+        if (rewrittenType == null) {
+          rewrittenReturnType = ReturnType.VOID;
+        } else if (rewrittenType == originalType) {
+          rewrittenReturnType = returnType;
+        } else {
+          rewrittenReturnType = new ReturnType(rewrittenType);
+        }
+      }
+    }
+
+    @Override
+    public void visitThrowsSignatures(List<TypeSignature> typeSignatures) {
+      for (TypeSignature typeSignature : typeSignatures) {
+        TypeSignature rewrittenType = new TypeSignatureRewriter().run(typeSignature);
+        // If a throwing type is no longer found we remove it from the signature.
+        if (rewrittenType != null) {
+          rewrittenThrowsSignatures.add(rewrittenType);
+        }
+      }
+    }
+
+    private MethodTypeSignature run(MethodTypeSignature methodTypeSignature) {
+      methodTypeSignature.visit(this);
+      assert rewrittenReturnType != null;
+      if (rewrittenTypeParameters.isEmpty()
+          && rewrittenTypeSignatures.isEmpty()
+          && rewrittenReturnType.isVoidDescriptor()
+          && rewrittenThrowsSignatures.isEmpty()) {
+        return MethodTypeSignature.noSignature();
+      }
+      return new MethodTypeSignature(
+          rewrittenTypeParameters.isEmpty() ? EMPTY_TYPE_PARAMS : rewrittenTypeParameters,
+          rewrittenTypeSignatures.isEmpty() ? EMPTY_TYPE_SIGNATURES : rewrittenTypeSignatures,
+          rewrittenReturnType,
+          rewrittenThrowsSignatures.isEmpty() ? EMPTY_TYPE_SIGNATURES : rewrittenThrowsSignatures);
+    }
+  }
+
   private class FormalTypeParameterRewriter implements GenericSignatureVisitor {
 
-    private FieldTypeSignature rewrittenClassBound = NO_FIELD_TYPE_SIGNATURE;
+    private FieldTypeSignature rewrittenClassBound = noSignature();
     private final List<FieldTypeSignature> rewrittenInterfaceBounds = new ArrayList<>();
 
     @Override
@@ -126,7 +204,7 @@ public class GenericSignatureTypeRewriter {
       }
       return new FormalTypeParameter(
           formalTypeParameter.name,
-          rewrittenClassBound == null ? NO_FIELD_TYPE_SIGNATURE : rewrittenClassBound,
+          rewrittenClassBound == null ? noSignature() : rewrittenClassBound,
           rewrittenInterfaceBounds.isEmpty() ? EMPTY_TYPE_ARGUMENTS : rewrittenInterfaceBounds);
     }
   }

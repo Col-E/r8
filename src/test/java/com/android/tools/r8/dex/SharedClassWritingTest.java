@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
@@ -87,6 +88,7 @@ public class SharedClassWritingTest {
         dexItemFactory.createMethod(
             holder, dexItemFactory.createProto(dexItemFactory.voidType), "theMethod"),
         MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, false),
+        MethodTypeSignature.noSignature(),
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),
         code);
@@ -113,7 +115,7 @@ public class SharedClassWritingTest {
             Collections.emptyList(),
             null,
             Collections.emptyList(),
-            ClassSignature.NO_CLASS_SIGNATURE,
+            ClassSignature.noSignature(),
             DexAnnotationSet.empty(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,

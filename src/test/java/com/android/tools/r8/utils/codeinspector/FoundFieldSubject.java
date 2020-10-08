@@ -134,12 +134,12 @@ public class FoundFieldSubject extends FieldSubject {
   @Override
   public String getOriginalSignatureAttribute() {
     return codeInspector.getOriginalSignatureAttribute(
-        dexField.getFieldSignature().toString(), GenericSignatureParser::parseFieldSignature);
+        getFinalSignatureAttribute(), GenericSignatureParser::parseFieldSignature);
   }
 
   @Override
   public String getFinalSignatureAttribute() {
-    return dexField.getFieldSignature().toString();
+    return dexField.getGenericSignature().toString();
   }
 
   @Override

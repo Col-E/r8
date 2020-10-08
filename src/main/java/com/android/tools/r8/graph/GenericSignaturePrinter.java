@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.graph.GenericSignature.WildcardIndicator;
 import com.android.tools.r8.naming.NamingLens;
@@ -35,6 +37,35 @@ public class GenericSignaturePrinter implements GenericSignatureVisitor {
   @Override
   public void visitFieldTypeSignature(FieldTypeSignature fieldSignature) {
     printFieldTypeSignature(fieldSignature, false);
+  }
+
+  @Override
+  public void visitMethodSignature(MethodTypeSignature methodSignature) {
+    methodSignature.visit(this);
+  }
+
+  @Override
+  public void visitMethodTypeSignatures(List<TypeSignature> typeSignatures) {
+    sb.append("(");
+    typeSignatures.forEach(this::visitTypeSignature);
+    sb.append(")");
+  }
+
+  @Override
+  public void visitReturnType(ReturnType returnType) {
+    if (returnType.isVoidDescriptor()) {
+      sb.append("V");
+    } else {
+      visitTypeSignature(returnType.typeSignature);
+    }
+  }
+
+  @Override
+  public void visitThrowsSignatures(List<TypeSignature> typeSignatures) {
+    for (TypeSignature typeSignature : typeSignatures) {
+      sb.append("^");
+      visitTypeSignature(typeSignature);
+    }
   }
 
   @Override

@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
@@ -1257,6 +1258,7 @@ public class VerticalClassMerger {
           new DexEncodedMethod(
               newMethod,
               accessFlags,
+              MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               code,

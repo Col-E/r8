@@ -95,10 +95,7 @@ public class MinifierMethodSignatureTest extends TestBase {
           diagnostics.assertWarningsMatch(
               diagnosticMessage(
                   allOf(
-                      containsString("Invalid signature 'X' for method"),
-                      containsString(
-                          "java.lang.Throwable Methods.generic(java.lang.Throwable,"
-                              + " Methods$Inner)"),
+                      containsString("Invalid signature 'X' for method generic"),
                       containsString("Expected ( at position 1"))));
         },
         inspector -> noSignatureAttribute(lookupGeneric(inspector)));
@@ -181,6 +178,9 @@ public class MinifierMethodSignatureTest extends TestBase {
                 ProguardKeepAttributes.SIGNATURE)
             .addKeepAllClassesRuleWithAllowObfuscation()
             .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(
+                internalOptions ->
+                    internalOptions.testing.disableMappingToOriginalProgramVerification = true)
             .allowDiagnosticMessages()
             .compile();
 

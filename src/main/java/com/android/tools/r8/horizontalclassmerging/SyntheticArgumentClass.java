@@ -76,7 +76,7 @@ public class SyntheticArgumentClass {
               Collections.emptyList(),
               null,
               Collections.emptyList(),
-              ClassSignature.NO_CLASS_SIGNATURE,
+              ClassSignature.noSignature(),
               DexAnnotationSet.empty(),
               DexEncodedField.EMPTY_ARRAY,
               DexEncodedField.EMPTY_ARRAY,

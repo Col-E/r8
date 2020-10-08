@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -99,6 +100,7 @@ public final class InterfaceProcessor {
             new DexEncodedMethod(
                 companionMethod,
                 newFlags,
+                virtual.getGenericSignature(),
                 virtual.annotations(),
                 virtual.parameterAnnotationsList,
                 code,
@@ -139,6 +141,7 @@ public final class InterfaceProcessor {
             new DexEncodedMethod(
                 companionMethod,
                 newFlags,
+                direct.getGenericSignature(),
                 direct.annotations(),
                 direct.parameterAnnotationsList,
                 direct.getCode(),
@@ -166,6 +169,7 @@ public final class InterfaceProcessor {
               new DexEncodedMethod(
                   companionMethod,
                   newFlags,
+                  direct.getGenericSignature(),
                   direct.annotations(),
                   direct.parameterAnnotationsList,
                   code,
@@ -213,7 +217,7 @@ public final class InterfaceProcessor {
             Collections.emptyList(),
             null,
             Collections.emptyList(),
-            ClassSignature.NO_CLASS_SIGNATURE,
+            ClassSignature.noSignature(),
             DexAnnotationSet.empty(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,
@@ -271,6 +275,7 @@ public final class InterfaceProcessor {
               newMethod,
               MethodAccessFlags.fromSharedAccessFlags(
                   Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false),
+              MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               forwardMethodBuilder.build(),
@@ -298,7 +303,7 @@ public final class InterfaceProcessor {
             Collections.emptyList(),
             null,
             Collections.emptyList(),
-            ClassSignature.NO_CLASS_SIGNATURE,
+            ClassSignature.noSignature(),
             DexAnnotationSet.empty(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,

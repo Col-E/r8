@@ -769,7 +769,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public void clearClassSignature() {
-    classSignature = ClassSignature.NO_CLASS_SIGNATURE;
+    classSignature = ClassSignature.noSignature();
   }
 
   public void removeInnerClasses(Predicate<InnerClassAttribute> predicate) {

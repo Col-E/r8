@@ -83,13 +83,8 @@ public class AnnotationRemover {
         assert !DexAnnotation.isMemberClassesAnnotation(annotation, dexItemFactory);
         assert !DexAnnotation.isEnclosingMethodAnnotation(annotation, dexItemFactory);
         assert !DexAnnotation.isEnclosingClassAnnotation(annotation, dexItemFactory);
-        // TODO(b/129925954): Signature is being represented as a class attribute.
-        assert !holder.isDexClass()
-            || !DexAnnotation.isSignatureAnnotation(annotation, dexItemFactory);
+        assert !DexAnnotation.isSignatureAnnotation(annotation, dexItemFactory);
         if (config.exceptions && DexAnnotation.isThrowingAnnotation(annotation, dexItemFactory)) {
-          return true;
-        }
-        if (config.signature && DexAnnotation.isSignatureAnnotation(annotation, dexItemFactory)) {
           return true;
         }
         if (DexAnnotation.isSourceDebugExtension(annotation, dexItemFactory)) {
@@ -202,13 +197,16 @@ public class AnnotationRemover {
         method.annotations().rewrite(annotation -> rewriteAnnotation(method, annotation)));
     method.parameterAnnotationsList =
         method.parameterAnnotationsList.keepIf(this::filterParameterAnnotations);
+    if (!keep.signature) {
+      method.clearGenericSignature();
+    }
   }
 
   private void processField(DexEncodedField field) {
     field.setAnnotations(
         field.annotations().rewrite(annotation -> rewriteAnnotation(field, annotation)));
     if (!keep.signature) {
-      field.clearFieldSignature();
+      field.clearGenericSignature();
     }
   }
 

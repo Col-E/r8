@@ -23,13 +23,13 @@ import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.graph.GenericSignature.WildcardIndicator;
 import com.android.tools.r8.graph.GenericSignatureTestClassA.I;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.List;
 import java.util.function.Consumer;
@@ -140,7 +140,7 @@ public class GenericSignatureTest extends TestBase {
     DexEncodedField field = yyInZZ.getField();
     assertNotNull(field);
 
-    fieldTypeSignature = field.getFieldSignature();
+    fieldTypeSignature = field.getGenericSignature();
     assertTrue(fieldTypeSignature.hasSignature());
 
     // field type: A$Y$YY
@@ -157,13 +157,7 @@ public class GenericSignatureTest extends TestBase {
     method = newYY.getMethod();
     assertNotNull(method);
 
-    methodTypeSignature =
-        GenericSignature.parseMethodSignature(
-            method.qualifiedName(),
-            getGenericSignature(method, appView),
-            Origin.unknown(),
-            appView.dexItemFactory(),
-            appView.options().reporter);
+    methodTypeSignature = method.getGenericSignature();
     assertNotNull(methodTypeSignature);
 
     assertEquals(1, methodTypeSignature.formalTypeParameters.size());
@@ -205,13 +199,7 @@ public class GenericSignatureTest extends TestBase {
     method = convertToYY.getMethod();
     assertNotNull(method);
 
-    methodTypeSignature =
-        GenericSignature.parseMethodSignature(
-            method.qualifiedName(),
-            getGenericSignature(method, appView),
-            Origin.unknown(),
-            appView.dexItemFactory(),
-            appView.options().reporter);
+    methodTypeSignature = method.getGenericSignature();
     assertNotNull(methodTypeSignature);
 
     // return type: Function<A$Y$ZZ<TT>, A$Y$YY>
@@ -248,13 +236,7 @@ public class GenericSignatureTest extends TestBase {
     assertNotNull(method);
 
     // return type: void
-    methodTypeSignature =
-        GenericSignature.parseMethodSignature(
-            method.qualifiedName(),
-            getGenericSignature(method, appView),
-            Origin.unknown(),
-            appView.dexItemFactory(),
-            appView.options().reporter);
+    methodTypeSignature = method.getGenericSignature();
     assertNotNull(methodTypeSignature);
     returnType = methodTypeSignature.returnType();
     assertTrue(returnType.isVoidDescriptor());
@@ -302,7 +284,7 @@ public class GenericSignatureTest extends TestBase {
     checkMethodWildCard(y.uniqueMethodWithName("bar"), appView, WildcardIndicator.NEGATIVE);
     // Check for star
     checkFieldTypeSignature(
-        y.uniqueMethodWithName("baz"),
+        y.uniqueMethodWithName("baz").asFoundMethodSubject(),
         appView,
         typeSignature -> {
           assertTrue(typeSignature.isStar());
@@ -314,7 +296,7 @@ public class GenericSignatureTest extends TestBase {
       AppView<AppInfoWithLiveness> appView,
       WildcardIndicator indicator) {
     checkFieldTypeSignature(
-        methodSubject,
+        methodSubject.asFoundMethodSubject(),
         appView,
         typeSignature -> {
           assertTrue(typeSignature.isTypeVariableSignature());
@@ -323,16 +305,10 @@ public class GenericSignatureTest extends TestBase {
   }
 
   private void checkFieldTypeSignature(
-      MethodSubject methodSubject,
+      FoundMethodSubject methodSubject,
       AppView<AppInfoWithLiveness> appView,
       Consumer<FieldTypeSignature> fieldTypeConsumer) {
-    MethodTypeSignature methodTypeSignature =
-        GenericSignature.parseMethodSignature(
-            methodSubject.getOriginalName(),
-            getGenericSignature(methodSubject.getMethod(), appView),
-            Origin.unknown(),
-            appView.dexItemFactory(),
-            appView.options().reporter);
+    MethodTypeSignature methodTypeSignature = methodSubject.getMethod().getGenericSignature();
     TypeSignature typeSignature = methodTypeSignature.returnType.typeSignature;
     FieldTypeSignature fieldTypeSignature = typeSignature.asFieldTypeSignature();
     assertTrue(fieldTypeSignature.isClassTypeSignature());

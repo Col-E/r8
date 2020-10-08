@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -171,6 +172,7 @@ public class VirtualMethodMerger {
         new DexEncodedMethod(
             newMethodReference,
             getAccessFlags(),
+            MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             synthesizedCode,

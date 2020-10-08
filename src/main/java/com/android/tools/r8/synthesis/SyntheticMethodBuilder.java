@@ -4,14 +4,13 @@
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import java.util.List;
 
 public class SyntheticMethodBuilder {
 
@@ -24,7 +23,6 @@ public class SyntheticMethodBuilder {
   private DexProto proto = null;
   private SyntheticCodeGenerator codeGenerator = null;
   private MethodAccessFlags accessFlags = null;
-  private List<DexAnnotation> annotations = null;
 
   SyntheticMethodBuilder(SyntheticClassBuilder parent, String name) {
     this.parent = parent;
@@ -53,8 +51,9 @@ public class SyntheticMethodBuilder {
         new DexEncodedMethod(
             methodSignature,
             getAccessFlags(),
-            getAnnotations(),
-            getParameterAnnotations(),
+            MethodTypeSignature.noSignature(),
+            DexAnnotationSet.empty(),
+            ParameterAnnotationsList.empty(),
             getCodeObject(methodSignature),
             isCompilerSynthesized);
     assert isValidSyntheticMethod(method);
@@ -81,16 +80,6 @@ public class SyntheticMethodBuilder {
 
   private MethodAccessFlags getAccessFlags() {
     return accessFlags;
-  }
-
-  private DexAnnotationSet getAnnotations() {
-    return annotations == null
-        ? DexAnnotationSet.empty()
-        : new DexAnnotationSet(annotations.toArray(DexAnnotation.EMPTY_ARRAY));
-  }
-
-  private ParameterAnnotationsList getParameterAnnotations() {
-    return ParameterAnnotationsList.empty();
   }
 
   private Code getCodeObject(DexMethod methodSignature) {

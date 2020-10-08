@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
-import static org.junit.Assert.assertTrue;
-
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
@@ -17,7 +15,6 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
-import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -26,8 +23,6 @@ import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
@@ -227,23 +222,6 @@ public class CodeInspector {
       }
     }
     return null;
-  }
-
-  public String getFinalSignatureAttribute(DexAnnotationSet annotations) {
-    DexAnnotation annotation = findAnnotation("dalvik.annotation.Signature", annotations);
-    if (annotation == null) {
-      return null;
-    }
-    assert annotation.annotation.elements.length == 1;
-    DexAnnotationElement element = annotation.annotation.elements[0];
-    assert element.value.isDexValueArray();
-    StringBuilder builder = new StringBuilder();
-    DexValueArray valueArray = element.value.asDexValueArray();
-    for (DexValue value : valueArray.getValues()) {
-      assertTrue(value.isDexValueString());
-      builder.append(value.asDexValueString().getValue());
-    }
-    return builder.toString();
   }
 
   public String getOriginalSignatureAttribute(

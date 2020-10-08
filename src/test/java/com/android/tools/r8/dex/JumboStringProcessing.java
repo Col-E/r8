@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -155,7 +156,12 @@ public class JumboStringProcessing extends TestBase {
     MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, false);
     DexEncodedMethod method =
         new DexEncodedMethod(
-            null, flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
+            null,
+            flags,
+            MethodTypeSignature.noSignature(),
+            DexAnnotationSet.empty(),
+            ParameterAnnotationsList.empty(),
+            code);
     return new JumboStringRewriter(method, string, factory).rewrite();
   }
 }

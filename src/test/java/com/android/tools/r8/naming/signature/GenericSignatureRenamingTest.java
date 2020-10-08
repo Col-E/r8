@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming.signature;
 
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
@@ -71,18 +70,13 @@ public class GenericSignatureRenamingTest extends TestBase {
   }
 
   @Test
-  public void testR8WithAssertEnabled() {
-    // TODO(b/154793333): Enable assertions always when resolved.
-    assertThrows(
-        AssertionError.class,
-        () -> {
-          test(
-              testForR8(parameters.getBackend())
-                  .addKeepRules("-dontobfuscate")
-                  .addOptionsModification(
-                      internalOptions ->
-                          internalOptions.testing.assertConsistentRenamingOfSignature = true));
-        });
+  public void testR8WithAssertEnabled() throws Exception {
+    test(
+        testForR8(parameters.getBackend())
+            .addKeepRules("-dontobfuscate")
+            .addOptionsModification(
+                internalOptions ->
+                    internalOptions.testing.assertConsistentRenamingOfSignature = true));
   }
 
   private void test(R8TestBuilder<?> builder) throws Exception {

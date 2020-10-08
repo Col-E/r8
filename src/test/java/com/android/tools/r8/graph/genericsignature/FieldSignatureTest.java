@@ -5,7 +5,6 @@
 package com.android.tools.r8.graph.genericsignature;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
 import static com.google.common.base.Predicates.alwaysFalse;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -104,7 +103,7 @@ public class FieldSignatureTest extends TestBase {
             Origin.unknown(),
             new DexItemFactory(),
             new Reporter(testDiagnosticMessages));
-    assertEquals(NO_FIELD_TYPE_SIGNATURE, parsed);
+    assertEquals(FieldTypeSignature.noSignature(), parsed);
     return testDiagnosticMessages;
   }
 }

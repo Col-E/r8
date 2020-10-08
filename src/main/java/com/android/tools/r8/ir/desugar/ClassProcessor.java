@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -363,6 +364,7 @@ final class ClassProcessor {
         new DexEncodedMethod(
             newMethod,
             MethodAccessFlags.fromCfAccessFlags(Opcodes.ACC_PUBLIC, false),
+            MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             new SynthesizedCode(

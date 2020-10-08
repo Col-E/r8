@@ -9,9 +9,9 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
-import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import java.util.List;
 
 public interface GenericSignatureVisitor {
@@ -20,7 +20,7 @@ public interface GenericSignatureVisitor {
     throw new Unreachable("Implement if visited");
   }
 
-  default void visitMethodSignature(MethodSignature methodSignature) {
+  default void visitMethodSignature(MethodTypeSignature methodSignature) {
     throw new Unreachable("Implement if visited");
   }
 

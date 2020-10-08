@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -112,7 +113,7 @@ public class DesugaredLibraryRetargeter {
             Collections.emptyList(),
             null,
             Collections.emptyList(),
-            ClassSignature.NO_CLASS_SIGNATURE,
+            ClassSignature.noSignature(),
             DexAnnotationSet.empty(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,
@@ -447,7 +448,13 @@ public class DesugaredLibraryRetargeter {
                   emulatedDispatchMethod.getProto(),
                   emulatedDispatchMethod.getName());
       return new DexEncodedMethod(
-          newMethod, flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), null, true);
+          newMethod,
+          flags,
+          MethodTypeSignature.noSignature(),
+          DexAnnotationSet.empty(),
+          ParameterAnnotationsList.empty(),
+          null,
+          true);
     }
 
     private DexEncodedMethod generateHolderDispatchMethod(

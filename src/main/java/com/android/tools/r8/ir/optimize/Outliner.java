@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -1361,6 +1362,7 @@ public class Outliner {
           new DexEncodedMethod(
               method,
               methodAccess,
+              MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               new OutlineCode(outline),
@@ -1392,7 +1394,7 @@ public class Outliner {
         Collections.emptyList(),
         null,
         Collections.emptyList(),
-        ClassSignature.NO_CLASS_SIGNATURE,
+        ClassSignature.noSignature(),
         DexAnnotationSet.empty(),
         DexEncodedField.EMPTY_ARRAY, // Static fields.
         DexEncodedField.EMPTY_ARRAY, // Instance fields.

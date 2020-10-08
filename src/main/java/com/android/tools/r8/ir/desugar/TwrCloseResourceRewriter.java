@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.IRCode;
@@ -135,8 +136,15 @@ public final class TwrCloseResourceRewriter {
             options, twrCloseResourceMethod);
     MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(
         Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false);
-    DexEncodedMethod method = new DexEncodedMethod(twrCloseResourceMethod,
-        flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code, true);
+    DexEncodedMethod method =
+        new DexEncodedMethod(
+            twrCloseResourceMethod,
+            flags,
+            MethodTypeSignature.noSignature(),
+            DexAnnotationSet.empty(),
+            ParameterAnnotationsList.empty(),
+            code,
+            true);
 
     // Create utility class.
     DexProgramClass utilityClass =
@@ -152,7 +160,7 @@ public final class TwrCloseResourceRewriter {
             Collections.emptyList(),
             null,
             Collections.emptyList(),
-            ClassSignature.NO_CLASS_SIGNATURE,
+            ClassSignature.noSignature(),
             DexAnnotationSet.empty(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,

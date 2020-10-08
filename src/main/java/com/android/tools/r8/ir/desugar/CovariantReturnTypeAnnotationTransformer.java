@@ -167,6 +167,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
         new DexEncodedMethod(
             newMethod,
             newAccessFlags,
+            methodDefinition.getGenericSignature(),
             methodDefinition
                 .annotations()
                 .keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation)),

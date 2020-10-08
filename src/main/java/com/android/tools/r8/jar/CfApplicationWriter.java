@@ -274,20 +274,6 @@ public class CfApplicationWriter {
     return encodedAnnotation.elements[0].value;
   }
 
-  private String getSignature(DexAnnotationSet annotations) {
-    DexValue value =
-        getSystemAnnotationValue(annotations, application.dexItemFactory.annotationSignature);
-    if (value == null) {
-      return null;
-    }
-    // Signature has already been minified by ClassNameMinifier.renameTypesInGenericSignatures().
-    StringBuilder res = new StringBuilder();
-    for (DexValue part : value.asDexValueArray().getValues()) {
-      res.append(part.asDexValueString().getValue().toString());
-    }
-    return res.toString();
-  }
-
   private String getSourceDebugExtension(DexAnnotationSet annotations) {
     DexValue debugExtensions =
         getSystemAnnotationValue(
@@ -340,7 +326,7 @@ public class CfApplicationWriter {
     }
     String name = namingLens.lookupName(field.field).toString();
     String desc = namingLens.lookupDescriptor(field.field.type).toString();
-    String signature = field.getFieldSignature().toRenamedString(namingLens, isTypeMissing);
+    String signature = field.getGenericSignature().toRenamedString(namingLens, isTypeMissing);
     Object value = getStaticValue(field);
     FieldVisitor visitor = writer.visitField(access, name, desc, signature, value);
     writeAnnotations(visitor::visitAnnotation, field.annotations().annotations);
@@ -360,7 +346,8 @@ public class CfApplicationWriter {
     }
     String name = namingLens.lookupName(method.getReference()).toString();
     String desc = definition.descriptor(namingLens);
-    String signature = getSignature(definition.annotations());
+    String signature =
+        method.getDefinition().getGenericSignature().toRenamedString(namingLens, isTypeMissing);
     String[] exceptions = getExceptions(definition.annotations());
     MethodVisitor visitor = writer.visitMethod(access, name, desc, signature, exceptions);
     if (defaults.containsKey(definition.getName())) {

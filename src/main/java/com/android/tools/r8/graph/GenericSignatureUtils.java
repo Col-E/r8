@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.graph.GenericSignature.ClassSignature.NO_CLASS_SIGNATURE;
-import static com.android.tools.r8.graph.GenericSignature.MethodTypeSignature.NO_METHOD_TYPE_SIGNATURE;
-import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
-
 import com.android.tools.r8.graph.GenericSignature.DexDefinitionSignature;
 
 public class GenericSignatureUtils {
@@ -15,10 +11,7 @@ public class GenericSignatureUtils {
   public static boolean verifyNoDuplicateGenericDefinitions(
       DexDefinitionSignature<?> signature, DexAnnotationSet annotations) {
     assert signature != null;
-    if (signature == NO_METHOD_TYPE_SIGNATURE
-        || signature == NO_FIELD_TYPE_SIGNATURE
-        || signature == NO_CLASS_SIGNATURE
-        || annotations == null) {
+    if (signature.hasNoSignature() || annotations == null) {
       return true;
     }
     // The check is on the string descriptor to allow for not passing in a factory.

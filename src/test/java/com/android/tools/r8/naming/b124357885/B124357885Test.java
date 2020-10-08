@@ -10,19 +10,15 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.graph.DexAnnotationElement;
-import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
@@ -50,17 +46,7 @@ public class B124357885Test extends TestBase {
     this.minification = minification;
   }
 
-  private void checkSignatureAnnotation(CodeInspector inspector, AnnotationSubject signature) {
-    DexAnnotationElement[] elements = signature.getAnnotation().elements;
-    assertEquals(1, elements.length);
-    assertEquals("value", elements[0].name.toString());
-    assertTrue(elements[0].value.isDexValueArray());
-    DexValueArray array = elements[0].value.asDexValueArray();
-    StringBuilder builder = new StringBuilder();
-    for (DexValue value : array.getValues()) {
-      assertTrue(value.isDexValueString());
-      builder.append(value.asDexValueString().value);
-    }
+  private void checkSignature(CodeInspector inspector, String signature) {
     String fooImplFinalDescriptor =
         DescriptorUtils.javaTypeToDescriptor(inspector.clazz(FooImpl.class).getFinalName());
     StringBuilder expected =
@@ -71,7 +57,7 @@ public class B124357885Test extends TestBase {
             .append("<Ljava/lang/String;>")
             // Add the ; after the generic type.
             .append(";");
-    assertEquals(expected.toString(), builder.toString());
+    assertEquals(expected.toString(), signature);
   }
 
   @Test
@@ -90,14 +76,16 @@ public class B124357885Test extends TestBase {
             .inspect(
                 inspector -> {
                   assertThat(inspector.clazz(Main.class), isPresentAndNotRenamed());
-                  assertThat(inspector.clazz(Service.class), isPresentAndRenamed(minification));
                   assertThat(inspector.clazz(Foo.class), not(isPresent()));
                   assertThat(inspector.clazz(FooImpl.class), isPresentAndRenamed(minification));
+                  ClassSubject serviceClass = inspector.clazz(Service.class);
+                  assertThat(serviceClass, isPresentAndRenamed(minification));
                   // TODO(124477502): Using uniqueMethodWithName("fooList") does not work.
-                  assertEquals(1, inspector.clazz(Service.class).allMethods().size());
-                  MethodSubject fooList = inspector.clazz(Service.class).allMethods().get(0);
-                  AnnotationSubject signature = fooList.annotation("dalvik.annotation.Signature");
-                  checkSignatureAnnotation(inspector, signature);
+                  assertEquals(1, serviceClass.allMethods().size());
+                  MethodSubject fooList = serviceClass.allMethods().get(0);
+                  assertThat(fooList, isPresent());
+                  checkSignature(
+                      inspector, fooList.asFoundMethodSubject().getFinalSignatureAttribute());
                 });
 
     String fooImplFinalName = compileResult.inspector().clazz(FooImpl.class).getFinalName();

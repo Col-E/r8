@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import static com.android.tools.r8.graph.GenericSignature.NO_FIELD_TYPE_SIGNATURE;
-
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
@@ -26,6 +24,8 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -163,7 +163,7 @@ public final class LambdaClass {
             Collections.emptyList(),
             null,
             Collections.emptyList(),
-            ClassSignature.NO_CLASS_SIGNATURE,
+            ClassSignature.noSignature(),
             DexAnnotationSet.empty(),
             synthesizeStaticFields(),
             synthesizeInstanceFields(),
@@ -234,6 +234,7 @@ public final class LambdaClass {
             mainMethod,
             MethodAccessFlags.fromSharedAccessFlags(
                 Constants.ACC_PUBLIC | Constants.ACC_FINAL, false),
+            MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             LambdaMainMethodSourceCode.build(this, mainMethod),
@@ -252,6 +253,7 @@ public final class LambdaClass {
                       | Constants.ACC_SYNTHETIC
                       | Constants.ACC_BRIDGE,
                   false),
+              MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               LambdaBridgeMethodSourceCode.build(this, bridgeMethod, mainMethod),
@@ -273,6 +275,7 @@ public final class LambdaClass {
                 (stateless ? Constants.ACC_PRIVATE : Constants.ACC_PUBLIC)
                     | Constants.ACC_SYNTHETIC,
                 true),
+            MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             LambdaConstructorSourceCode.build(this),
@@ -285,6 +288,7 @@ public final class LambdaClass {
               classConstructor,
               MethodAccessFlags.fromSharedAccessFlags(
                   Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, true),
+              MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               LambdaClassConstructorSourceCode.build(this),
@@ -306,7 +310,7 @@ public final class LambdaClass {
           new DexEncodedField(
               getCaptureField(i),
               accessFlags,
-              NO_FIELD_TYPE_SIGNATURE,
+              FieldTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               null);
     }
@@ -330,7 +334,7 @@ public final class LambdaClass {
                     | Constants.ACC_FINAL
                     | Constants.ACC_SYNTHETIC
                     | Constants.ACC_STATIC),
-            NO_FIELD_TYPE_SIGNATURE,
+            FieldTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             DexValueNull.NULL);
     return fields;
@@ -622,6 +626,7 @@ public final class LambdaClass {
                         new DexEncodedMethod(
                             callTarget,
                             newAccessFlags,
+                            encodedMethod.getGenericSignature(),
                             encodedMethod.annotations(),
                             encodedMethod.parameterAnnotationsList,
                             encodedMethod.getCode(),
@@ -694,6 +699,7 @@ public final class LambdaClass {
                         new DexEncodedMethod(
                             callTarget,
                             newAccessFlags,
+                            encodedMethod.getGenericSignature(),
                             encodedMethod.annotations(),
                             encodedMethod.parameterAnnotationsList,
                             encodedMethod.getCode(),
@@ -723,6 +729,7 @@ public final class LambdaClass {
           new DexEncodedMethod(
               callTarget,
               accessorFlags,
+              MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               new SynthesizedCode(
@@ -761,6 +768,7 @@ public final class LambdaClass {
           new DexEncodedMethod(
               callTarget,
               accessorFlags,
+              MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               AccessorMethodSourceCode.build(LambdaClass.this, callTarget),

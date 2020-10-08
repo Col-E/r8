@@ -674,11 +674,22 @@ public class DexParser {
         code = codes.get(codeOff);
       }
       DexMethod method = indexedItems.getMethod(methodIndex);
+      DexAnnotationSet methodAnnotations = annotationIterator.getNextFor(method);
+      String methodSignature = DexAnnotation.getSignature(methodAnnotations, dexItemFactory);
+      if (methodSignature != null) {
+        methodAnnotations = methodAnnotations.getWithout(dexItemFactory.annotationSignature);
+      }
       methods[i] =
           new DexEncodedMethod(
               method,
               accessFlags,
-              annotationIterator.getNextFor(method),
+              GenericSignature.parseMethodSignature(
+                  method.name.toString(),
+                  methodSignature,
+                  origin,
+                  dexItemFactory,
+                  options.reporter),
+              methodAnnotations,
               parameterAnnotationsIterator.getNextFor(method),
               code);
     }
@@ -1343,7 +1354,7 @@ public class DexParser {
     private EnclosingMethodAttribute enclosingMethodAttribute = null;
     private List<InnerClassAttribute> innerClasses = null;
     private List<DexAnnotation> lazyAnnotations = null;
-    private ClassSignature classSignature = ClassSignature.NO_CLASS_SIGNATURE;
+    private ClassSignature classSignature = ClassSignature.noSignature();
 
     public DexAnnotationSet getAnnotations() {
       if (lazyAnnotations != null) {
