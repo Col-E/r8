@@ -143,25 +143,8 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
     checkAssertionCodeRemoved(inspector.clazz(clazz));
   }
 
-  private void checkAssertionCodeEnabled(ClassSubject subject) {
-    assertThat(subject, isPresent());
-    // <clinit> is removed by R8.
-    if (subject.uniqueMethodWithName("<clinit>").isPresent()) {
-      assertFalse(
-          subject
-              .uniqueMethodWithName("<clinit>")
-              .streamInstructions()
-              .anyMatch(InstructionSubject::isStaticPut));
-    }
-    assertTrue(
-        subject
-            .uniqueMethodWithName("m")
-            .streamInstructions()
-            .anyMatch(InstructionSubject::isThrow));
-  }
-
   private void checkAssertionCodeEnabled(CodeInspector inspector, Class<?> clazz) {
-    checkAssertionCodeEnabled(inspector.clazz(clazz));
+    AssertionsCheckerUtils.checkAssertionCodeEnabled(inspector.clazz(clazz), "m");
   }
 
   private void checkAssertionCodeLeft(CodeInspector inspector, Class<?> clazz) {
@@ -421,8 +404,8 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
         .compile()
         .inspect(
             inspector -> {
-              checkAssertionCodeEnabled(inspector.clazz("Class1"));
-              checkAssertionCodeEnabled(inspector.clazz("Class2"));
+              AssertionsCheckerUtils.checkAssertionCodeEnabled(inspector.clazz("Class1"), "m");
+              AssertionsCheckerUtils.checkAssertionCodeEnabled(inspector.clazz("Class2"), "m");
               checkAssertionCodeRemoved(inspector.clazz(class1));
               checkAssertionCodeRemoved(inspector.clazz(class2));
             })
@@ -472,8 +455,10 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
         .compile()
         .inspect(
             inspector -> {
-              checkAssertionCodeEnabled(inspector.clazz(TestClassForInnerClass.class));
-              checkAssertionCodeEnabled(inspector.clazz(TestClassForInnerClass.InnerClass.class));
+              AssertionsCheckerUtils.checkAssertionCodeEnabled(
+                  inspector.clazz(TestClassForInnerClass.class), "m");
+              AssertionsCheckerUtils.checkAssertionCodeEnabled(
+                  inspector.clazz(TestClassForInnerClass.InnerClass.class), "m");
             })
         .run(parameters.getRuntime(), TestClassForInnerClass.class)
         .assertSuccessWithOutputLines(

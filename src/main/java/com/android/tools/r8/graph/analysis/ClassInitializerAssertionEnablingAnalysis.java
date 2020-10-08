@@ -4,12 +4,14 @@
 
 package com.android.tools.r8.graph.analysis;
 
+import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -90,6 +92,15 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
   // 16: invokevirtual #43                 // Method java/lang/Class.desiredAssertionStatus:()Z
   // 19: putstatic     #45                 // Field ENABLED:Z
   // 22: return
+  //
+  // When JaCoCo instrumentation is applied the following instruction sequence is injected into
+  // each branch to register code coverage. This includes <clinit> where the vsalue for field
+  // $assertionsDisabled is determined by a branch structure.
+  //
+  // +0: aload_X
+  // +1: iconst_Y / ldc
+  // +2: iconst_Z / ldc
+  // +3  bastore
 
   private static List<Class<?>> javacInstructionSequence =
       ImmutableList.of(
@@ -100,6 +111,8 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
           CfFieldInstruction.class);
   private static List<Class<?>> r8InstructionSequence =
       ImmutableList.of(CfConstNumber.class, CfLogicalBinop.class, CfFieldInstruction.class);
+  private static List<Class<?>> jacocoInstructionSequence =
+      ImmutableList.of(CfLoad.class, CfConstNumber.class, CfConstNumber.class, CfArrayStore.class);
 
   private boolean hasJavacClinitAssertionCode(CfCode code) {
     for (int i = 0; i < code.getInstructions().size(); i++) {
@@ -160,6 +173,17 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
     return false;
   }
 
+  private boolean skipSequence(List<Class<?>> sequence, CfCode code, int fromIndex) {
+    int i = fromIndex;
+    for (; i < code.getInstructions().size() && i - fromIndex < sequence.size(); i++) {
+      CfInstruction instruction = code.getInstructions().get(i);
+      if (instruction.getClass() != sequence.get(i - fromIndex)) {
+        return false;
+      }
+    }
+    return i - fromIndex == sequence.size();
+  }
+
   private CfFieldInstruction isJavacInstructionSequence(CfCode code, int fromIndex) {
     List<Class<?>> sequence = javacInstructionSequence;
     int nextExpectedInstructionIndex = 0;
@@ -168,12 +192,27 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
         i < code.getInstructions().size() && nextExpectedInstructionIndex < sequence.size();
         i++) {
       instruction = code.getInstructions().get(i);
-      if (instruction.isLabel() || instruction.isFrame()) {
-        // Just ignore labels and frames.
+      if (instruction.isLabel() || instruction.isFrame() || instruction.isPosition()) {
+        // Just ignore labels, frames and positions.
         continue;
       }
       if (instruction.getClass() != sequence.get(nextExpectedInstructionIndex)) {
-        break;
+        // Skip injected JaCoCo injected code.
+        if (instruction.getClass() == jacocoInstructionSequence.get(0)
+            && skipSequence(jacocoInstructionSequence, code, i)) {
+          i += jacocoInstructionSequence.size();
+          if (i >= code.getInstructions().size()) {
+            break;
+          }
+          instruction = code.getInstructions().get(i);
+        }
+        if (instruction.isLabel() || instruction.isFrame() || instruction.isPosition()) {
+          // Just ignore labels, frames and positions.
+          continue;
+        }
+        if (instruction.getClass() != sequence.get(nextExpectedInstructionIndex)) {
+          break;
+        }
       }
       nextExpectedInstructionIndex++;
     }

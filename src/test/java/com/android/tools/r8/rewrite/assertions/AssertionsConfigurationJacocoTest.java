@@ -16,7 +16,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.rewrite.assertions.testclasses.A;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -41,6 +41,10 @@ public class AssertionsConfigurationJacocoTest extends TestBase implements Opcod
     this.parameters = parameters;
   }
 
+  private void checkAssertionCodeEnabled(CodeInspector inspector) {
+    AssertionsCheckerUtils.checkAssertionCodeEnabled(inspector.clazz(A.class), "m");
+  }
+
   @Test
   public void testD8() throws Exception {
     Assume.assumeTrue(parameters.isDexRuntime());
@@ -49,10 +53,9 @@ public class AssertionsConfigurationJacocoTest extends TestBase implements Opcod
         .addProgramClassFileData(transformClassWithJacocoInstrumentation(A.class))
         .setMinApi(parameters.getApiLevel())
         .addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions)
-        .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/169866678): Should be "AssertionError in A".
-        .assertSuccessWithOutput(StringUtils.lines());
+        .inspect(this::checkAssertionCodeEnabled)
+        .assertSuccessWithOutputLines("AssertionError in A");
   }
 
   @Test
@@ -64,10 +67,9 @@ public class AssertionsConfigurationJacocoTest extends TestBase implements Opcod
         .addKeepClassAndMembersRules(A.class, MockJacocoInit.class)
         .setMinApi(parameters.getApiLevel())
         .addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions)
-        .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/169866678): Should be "AssertionError in A".
-        .assertSuccessWithOutput(StringUtils.lines());
+        .inspect(this::checkAssertionCodeEnabled)
+        .assertSuccessWithOutputLines("AssertionError in A");
   }
 
   private byte[] transformClassWithJacocoInstrumentation(Class<?> clazz) throws IOException {
