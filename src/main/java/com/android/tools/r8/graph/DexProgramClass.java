@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_ARGUMENTS;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 import static com.google.common.base.Predicates.alwaysTrue;
 
@@ -480,7 +479,26 @@ public class DexProgramClass extends DexClass
     methodCollection.addDirectMethod(directMethod);
   }
 
-  public void addExtraInterfaces(List<DexType> extraInterfaces, DexItemFactory factory) {
+  public void replaceInterfaces(List<ClassTypeSignature> newInterfaces) {
+    if (newInterfaces.isEmpty()) {
+      return;
+    }
+    clearInterfaces();
+    addExtraInterfaces(newInterfaces);
+  }
+
+  private void clearInterfaces() {
+    interfaces = DexTypeList.empty();
+    if (classSignature.hasSignature()) {
+      classSignature =
+          new ClassSignature(
+              classSignature.formalTypeParameters,
+              classSignature.superClassSignature,
+              ImmutableList.of());
+    }
+  }
+
+  public void addExtraInterfaces(List<ClassTypeSignature> extraInterfaces) {
     if (extraInterfaces.isEmpty()) {
       return;
     }
@@ -488,25 +506,24 @@ public class DexProgramClass extends DexClass
     addExtraInterfacesToSignatureIfPresent(extraInterfaces);
   }
 
-  private void addExtraInterfacesToInterfacesArray(List<DexType> extraInterfaces) {
+  private void addExtraInterfacesToInterfacesArray(List<ClassTypeSignature> extraInterfaces) {
     DexType[] newInterfaces =
         Arrays.copyOf(interfaces.values, interfaces.size() + extraInterfaces.size());
     for (int i = interfaces.size(); i < newInterfaces.length; i++) {
-      newInterfaces[i] = extraInterfaces.get(i - interfaces.size());
+      newInterfaces[i] = extraInterfaces.get(i - interfaces.size()).type();
     }
     interfaces = new DexTypeList(newInterfaces);
   }
 
-  private void addExtraInterfacesToSignatureIfPresent(List<DexType> extraInterfaces) {
-    // We need to introduce the extra interfaces to the generic signature.
-    // At this point we cheat and pretend the extraInterfaces simply don't use any generic types.
+  private void addExtraInterfacesToSignatureIfPresent(List<ClassTypeSignature> extraInterfaces) {
+    // We introduce the extra interfaces to the generic signature.
     if (classSignature.hasNoSignature() || extraInterfaces.isEmpty()) {
       return;
     }
     ImmutableList.Builder<ClassTypeSignature> interfacesBuilder =
         ImmutableList.<ClassTypeSignature>builder().addAll(classSignature.superInterfaceSignatures);
-    for (DexType extraInterface : extraInterfaces) {
-      interfacesBuilder.add(new ClassTypeSignature(extraInterface, EMPTY_TYPE_ARGUMENTS));
+    for (ClassTypeSignature extraInterface : extraInterfaces) {
+      interfacesBuilder.add(extraInterface);
     }
     classSignature =
         new ClassSignature(

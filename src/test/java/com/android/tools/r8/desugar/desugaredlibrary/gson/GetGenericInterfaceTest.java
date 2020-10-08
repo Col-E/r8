@@ -1,14 +1,14 @@
 // Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
-//  for details. All rights reserved. Use of this source code is governed by a
+// for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.desugaredlibrary;
+package com.android.tools.r8.desugar.desugaredlibrary.gson;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import dalvik.system.PathClassLoader;
 import java.sql.SQLDataException;
@@ -32,7 +32,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class LibrarySubclassInterfaceTest extends DesugaredLibraryTestBase {
+public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
@@ -43,7 +43,7 @@ public class LibrarySubclassInterfaceTest extends DesugaredLibraryTestBase {
         BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }
 
-  public LibrarySubclassInterfaceTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
+  public GetGenericInterfaceTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
@@ -53,7 +53,7 @@ public class LibrarySubclassInterfaceTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdOut =
         testForD8()
-            .addInnerClasses(LibrarySubclassInterfaceTest.class)
+            .addInnerClasses(GetGenericInterfaceTest.class)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
@@ -73,7 +73,7 @@ public class LibrarySubclassInterfaceTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdOut =
         testForR8(Backend.DEX)
-            .addInnerClasses(LibrarySubclassInterfaceTest.class)
+            .addInnerClasses(GetGenericInterfaceTest.class)
             .addKeepMainRule(Executor.class)
             .noMinification()
             .setMinApi(parameters.getApiLevel())

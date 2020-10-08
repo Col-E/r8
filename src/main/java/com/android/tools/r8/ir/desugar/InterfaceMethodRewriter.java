@@ -54,7 +54,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -923,63 +922,6 @@ public final class InterfaceMethodRewriter {
     return newMethods;
   }
 
-  private void duplicateEmulatedInterfaces() {
-    // All classes implementing an emulated interface now implements the interface and the
-    // emulated one, as well as hidden overrides, for correct emulated dispatch.
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (clazz.type == appView.dexItemFactory().objectType) {
-        continue;
-      }
-      List<DexType> extraInterfaces = new ArrayList<>();
-      for (DexType type : clazz.interfaces.values) {
-        if (emulatedInterfaces.containsKey(type)) {
-          extraInterfaces.add(emulatedInterfaces.get(type));
-        }
-      }
-      if (!appView.options().isDesugaredLibraryCompilation()) {
-        assert clazz.superType != null;
-        DexClass superClazz = appView.definitionFor(clazz.superType);
-        if (superClazz != null && superClazz.isLibraryClass()) {
-          List<DexType> itfs = emulatedInterfacesOf(superClazz);
-          for (DexType itf : itfs) {
-            extraInterfaces.add(emulatedInterfaces.get(itf));
-          }
-        }
-        // Remove duplicates.
-        if (extraInterfaces.size() > 1) {
-          extraInterfaces = new ArrayList<>(new LinkedHashSet<>(extraInterfaces));
-        }
-      }
-      clazz.addExtraInterfaces(extraInterfaces, appView.dexItemFactory());
-    }
-  }
-
-  private List<DexType> emulatedInterfacesOf(DexClass superClazz) {
-    if (superClazz.type == factory.objectType) {
-      return Collections.emptyList();
-    }
-    ArrayList<DexType> itfs = new ArrayList<>();
-    LinkedList<DexType> workList = new LinkedList<>();
-    workList.add(superClazz.type);
-    while (!workList.isEmpty()) {
-      DexType dexType = workList.removeFirst();
-      DexClass dexClass = appView.definitionFor(dexType);
-      if (dexClass != null) {
-        if (dexClass.superType != factory.objectType) {
-          workList.add(dexClass.superType);
-        }
-        for (DexType itf : dexClass.interfaces.values) {
-          if (emulatedInterfaces.containsKey(itf)) {
-            itfs.add(itf);
-          } else {
-            workList.add(itf);
-          }
-        }
-      }
-    }
-    return itfs;
-  }
-
   /**
    * Move static and default interface methods to companion classes, add missing methods to forward
    * to moved default methods implementation.
@@ -992,7 +934,7 @@ public final class InterfaceMethodRewriter {
     if (appView.options().isDesugaredLibraryCompilation()) {
       generateEmulateInterfaceLibrary(builder);
     }
-    duplicateEmulatedInterfaces();
+    new DesugaredLibraryEmulatedInterfaceDuplicator(appView).duplicateEmulatedInterfaces();
 
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.

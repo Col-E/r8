@@ -391,7 +391,11 @@ public class GenericSignature {
     ClassTypeSignature enclosingTypeSignature;
     ClassTypeSignature innerTypeSignature;
 
-    ClassTypeSignature(DexType type, List<FieldTypeSignature> typeArguments) {
+    public ClassTypeSignature(DexType type) {
+      this(type, EMPTY_TYPE_ARGUMENTS);
+    }
+
+    public ClassTypeSignature(DexType type, List<FieldTypeSignature> typeArguments) {
       this(type, typeArguments, WildcardIndicator.NOT_AN_ARGUMENT);
     }
 
