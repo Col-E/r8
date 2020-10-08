@@ -306,6 +306,22 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer setGenericSignature(String newGenericSignature) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public void visit(
+              int version,
+              int access,
+              String name,
+              String signature,
+              String superName,
+              String[] interfaces) {
+            super.visit(version, access, name, newGenericSignature, superName, interfaces);
+          }
+        });
+  }
+
   public ClassFileTransformer setNest(Class<?> host, Class<?>... members) {
     assert !Arrays.asList(members).contains(host);
     return setMinVersion(CfVm.JDK11)
