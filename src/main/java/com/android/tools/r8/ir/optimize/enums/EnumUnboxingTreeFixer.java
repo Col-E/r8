@@ -144,7 +144,7 @@ class EnumUnboxingTreeFixer {
   private DexMethod ensureUniqueMethod(DexEncodedMethod encodedMethod, DexMethod newMethod) {
     DexClass holder = appView.definitionFor(encodedMethod.holder());
     assert holder != null;
-    if (encodedMethod.isInstanceInitializer()) {
+    if (newMethod.isInstanceInitializer(appView.dexItemFactory())) {
       newMethod =
           factory.createInstanceInitializerWithFreshProto(
               newMethod,
