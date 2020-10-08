@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
+import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -107,7 +108,11 @@ public class VirtualMethodMerger {
 
   private MethodAccessFlags getAccessFlags() {
     // TODO(b/164998929): ensure this behaviour is correct, should probably calculate upper bound
-    return methods.iterator().next().getDefinition().getAccessFlags();
+    MethodAccessFlags flags = methods.iterator().next().getDefinition().getAccessFlags().copy();
+    if (flags.isFinal() && Iterables.any(methods, method -> !method.getAccessFlags().isFinal())) {
+      flags.unsetFinal();
+    }
+    return flags;
   }
 
 
