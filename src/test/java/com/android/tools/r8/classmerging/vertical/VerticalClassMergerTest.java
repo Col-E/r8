@@ -1017,50 +1017,6 @@ public class VerticalClassMergerTest extends TestBase {
         preservedClassNames::contains);
   }
 
-  // If an exception class A is merged into another exception class B, then all exception tables
-  // should be updated, and class A should be removed entirely.
-  @Test
-  public void testExceptionTables() throws Throwable {
-    expectThrowsWithHorizontalClassMerging();
-    String main = "classmerging.ExceptionTest";
-    Path[] programFiles =
-        new Path[] {
-          CF_DIR.resolve("ExceptionTest.class"),
-          CF_DIR.resolve("ExceptionTest$ExceptionA.class"),
-          CF_DIR.resolve("ExceptionTest$ExceptionB.class"),
-          CF_DIR.resolve("ExceptionTest$Exception1.class"),
-          CF_DIR.resolve("ExceptionTest$Exception2.class")
-        };
-    Set<String> preservedClassNames =
-        ImmutableSet.of(
-            "classmerging.ExceptionTest",
-            "classmerging.ExceptionTest$ExceptionB",
-            "classmerging.ExceptionTest$Exception2");
-    CodeInspector inspector =
-        runTest(
-                testForR8(parameters.getBackend())
-                    .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-                    .allowUnusedProguardConfigurationRules(),
-                main,
-                programFiles,
-                preservedClassNames::contains)
-            .inspector();
-
-    ClassSubject mainClass = inspector.clazz(main);
-    assertThat(mainClass, isPresent());
-
-    MethodSubject mainMethod =
-        mainClass.method("void", "main", ImmutableList.of("java.lang.String[]"));
-    assertThat(mainMethod, isPresent());
-
-    // Check that the second catch handler has been removed.
-    assertEquals(
-        2,
-        Streams.stream(mainMethod.iterateTryCatches())
-            .flatMapToInt(x -> IntStream.of(x.getNumberOfHandlers()))
-            .sum());
-  }
-
   @Test
   public void testMergeDefaultMethodIntoClass() throws Throwable {
     String main = "classmerging.MergeDefaultMethodIntoClassTest";
