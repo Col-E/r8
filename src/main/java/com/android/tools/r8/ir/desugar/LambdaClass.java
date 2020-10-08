@@ -632,7 +632,7 @@ public final class LambdaClass {
                             encodedMethod.getCode(),
                             true);
                     newMethod.copyMetadata(encodedMethod);
-                    rewriter.lensBuilder.move(encodedMethod.method, callTarget);
+                    rewriter.forcefullyMoveMethod(encodedMethod.method, callTarget);
 
                     DexEncodedMethod.setDebugInfoWithFakeThisParameter(
                         newMethod.getCode(), callTarget.getArity(), appView);
@@ -705,7 +705,7 @@ public final class LambdaClass {
                             encodedMethod.getCode(),
                             true);
                     newMethod.copyMetadata(encodedMethod);
-                    rewriter.lensBuilder.move(encodedMethod.method, callTarget);
+                    rewriter.forcefullyMoveMethod(encodedMethod.method, callTarget);
                     return newMethod;
                   });
       return new ProgramMethod(implMethodHolder, replacement);

@@ -36,9 +36,6 @@ public class DesugarLambdaWithLocalClass extends TestBase {
           "Hello from inside lambda$test$0$DesugarLambdaWithLocalClass$TestClass",
           "Hello from inside lambda$testStatic$1");
 
-  private List<String> EXPECTED_DESUGARED_RESULT_R8_WITHOUT_INLINING =
-      ImmutableList.of("Hello from inside lambda$test$0", "Hello from inside lambda$testStatic$1");
-
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
@@ -113,22 +110,18 @@ public class DesugarLambdaWithLocalClass extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        // TODO(b/158752316, b/157700141): Disable inlining to keep the synthetic lambda methods.
-        .addOptionsModification(options -> options.enableInlining = false)
         .addInnerClasses(DesugarLambdaWithLocalClass.class)
         .setMinApi(parameters.getApiLevel())
-        .addKeepRules("-keep class * { *; }")
-        // Keeping the synthetic lambda methods is currently not supported - they are
-        // forcefully unpinned. The following rule has no effect. See b/b/157700141.
-        .addKeepRules("-keep class **.*$TestClass { synthetic *; }")
+        // Keep the synthesized inner classes.
+        .addKeepRules("-keep class **.*$TestClass$*MyConsumerImpl")
+        // Keep the outer context: TestClass *and* the synthetic lambda methods.
+        .addKeepRules("-keep class **.*$TestClass { private synthetic void lambda$*(*); }")
         .addKeepAttributes("InnerClasses", "EnclosingMethod")
-        .compile()
-        .inspect(this::checkEnclosingMethod)
+        .addKeepMainRule(TestClass.class)
         .run(parameters.getRuntime(), TestClass.class)
+        .inspect(this::checkEnclosingMethod)
         .assertSuccessWithOutputLines(
-            parameters.isCfRuntime()
-                ? EXPECTED_JAVAC_RESULT
-                : EXPECTED_DESUGARED_RESULT_R8_WITHOUT_INLINING);
+            parameters.isCfRuntime() ? EXPECTED_JAVAC_RESULT : EXPECTED_JAVAC_RESULT);
   }
 
   public interface MyConsumer<T> {

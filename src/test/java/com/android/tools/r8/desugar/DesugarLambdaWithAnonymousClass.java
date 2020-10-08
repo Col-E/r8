@@ -113,18 +113,17 @@ public class DesugarLambdaWithAnonymousClass extends TestBase {
   public void testR8() throws Exception {
     try {
       testForR8(parameters.getBackend())
-          // TODO(b/158752316, b/157700141): Disable inlining to keep the synthetic lambda methods.
-          .addOptionsModification(options -> options.enableInlining = false)
           .addInnerClasses(DesugarLambdaWithAnonymousClass.class)
           .setMinApi(parameters.getApiLevel())
-          .addKeepRules("-keep class * { *; }")
-          // Keeping the synthetic lambda methods is currently not supported - they are
-          // forcefully unpinned. The following rule has no effect. See b/b/157700141.
-          .addKeepRules("-keep class **.*$TestClass { synthetic *; }")
+          // Keep the synthesized inner classes.
+          .addKeepRules("-keep class **.*$TestClass$1")
+          .addKeepRules("-keep class **.*$TestClass$2")
+          // Keep the outer context: TestClass *and* the synthetic lambda methods.
+          .addKeepRules("-keep class **.*$TestClass { private synthetic void lambda$*(*); }")
           .addKeepAttributes("InnerClasses", "EnclosingMethod")
-          .compile()
-          .inspect(this::checkEnclosingMethod)
+          .addKeepMainRule(TestClass.class)
           .run(parameters.getRuntime(), TestClass.class)
+          .inspect(this::checkEnclosingMethod)
           .assertSuccessWithOutputLines(
               parameters.isCfRuntime() ? EXPECTED_JAVAC_RESULT : EXPECTED_DESUGARED_RESULT);
       assertFalse(parameters.isDexRuntime());

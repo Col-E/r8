@@ -46,6 +46,7 @@ import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -77,7 +78,8 @@ public class LambdaRewriter {
 
   final DexString instanceFieldName;
 
-  final LambdaRewriterLens.Builder lensBuilder = LambdaRewriterLens.builder();
+  private final LambdaRewriterLens.Builder lensBuilder = LambdaRewriterLens.builder();
+  private final Set<DexMethod> forcefullyMovedMethods = Sets.newIdentityHashSet();
 
   // Maps call sites seen so far to inferred lambda descriptor. It is intended
   // to help avoid re-matching call sites we already seen. Note that same call
@@ -93,6 +95,15 @@ public class LambdaRewriter {
   public LambdaRewriter(AppView<?> appView) {
     this.appView = appView;
     this.instanceFieldName = appView.dexItemFactory().createString(LAMBDA_INSTANCE_FIELD_NAME);
+  }
+
+  void forcefullyMoveMethod(DexMethod from, DexMethod to) {
+    lensBuilder.move(from, to);
+    forcefullyMovedMethods.add(from);
+  }
+
+  public Set<DexMethod> getForcefullyMovedMethods() {
+    return forcefullyMovedMethods;
   }
 
   private void synthesizeAccessibilityBridgesForLambdaClassesD8(

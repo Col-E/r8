@@ -263,8 +263,6 @@ public class Enqueuer {
    * Set of direct methods that are the immediate target of an invoke-dynamic.
    */
   private final Set<DexMethod> methodsTargetedByInvokeDynamic = Sets.newIdentityHashSet();
-  /** Set of direct lambda implementation methods that have been desugared, thus they may move. */
-  private final Set<DexMethod> desugaredLambdaImplementationMethods = Sets.newIdentityHashSet();
   /**
    * Set of virtual methods that are the immediate target of an invoke-direct.
    */
@@ -864,9 +862,6 @@ public class Enqueuer {
         if (lambdaClass.descriptor.interfaces.contains(appView.dexItemFactory().serializableType)) {
           classesWithSerializableLambdas.add(context.getHolder());
         }
-      }
-      if (descriptor.delegatesToLambdaImplMethod()) {
-        desugaredLambdaImplementationMethods.add(descriptor.implHandle.asMethod());
       }
     } else {
       markLambdaAsInstantiated(descriptor, context);
@@ -3088,6 +3083,16 @@ public class Enqueuer {
                 liveMethods.add(accessor, graphReporter.fakeReportShouldNotBeUsed());
               }
             });
+    unpinLambdaMethods();
+  }
+
+  // TODO(b/157700141): Determine if this is the right way to allow modification of pinned lambdas.
+  private void unpinLambdaMethods() {
+    assert lambdaRewriter != null;
+    for (DexMethod method : lambdaRewriter.getForcefullyMovedMethods()) {
+      keepInfo.unsafeUnpinMethod(method);
+      rootSet.prune(method);
+    }
   }
 
   private boolean verifyMissingTypes() {
@@ -3296,7 +3301,6 @@ public class Enqueuer {
     } finally {
       timing.end();
     }
-    unpinLambdaMethods();
   }
 
   private long getNumberOfLiveItems() {
@@ -3390,17 +3394,6 @@ public class Enqueuer {
       }
     }
     action.getAction().accept(builder);
-  }
-
-  // TODO(b/157700141): Determine if this is the right way to avoid modification of pinned lambdas.
-  private void unpinLambdaMethods() {
-    assert desugaredLambdaImplementationMethods.isEmpty()
-        || options.desugarState == DesugarState.ON;
-    for (DexMethod method : desugaredLambdaImplementationMethods) {
-      keepInfo.unsafeUnpinMethod(method);
-      rootSet.prune(method);
-    }
-    desugaredLambdaImplementationMethods.clear();
   }
 
   void retainAnnotationForFinalTreeShaking(List<DexAnnotation> annotations) {
