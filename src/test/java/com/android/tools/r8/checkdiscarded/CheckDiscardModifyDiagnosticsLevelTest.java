@@ -18,10 +18,9 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.checkdiscarded.testclasses.Main;
 import com.android.tools.r8.checkdiscarded.testclasses.UnusedClass;
 import com.android.tools.r8.checkdiscarded.testclasses.UsedClass;
+import com.android.tools.r8.errors.CheckDiscardDiagnostic;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.hamcrest.Matcher;
@@ -51,7 +50,11 @@ public class CheckDiscardModifyDiagnosticsLevelTest extends TestBase {
   }
 
   private Matcher<Diagnostic> discardCheckFailedMatcher() {
-    return diagnosticMessage(startsWith("Discard checks failed"));
+    return diagnosticMessage(
+        allOf(
+            startsWith("Discard checks failed"),
+            containsString("UsedClass was not discarded"),
+            containsString("is instantiated in")));
   }
 
   private Collection<Matcher<Diagnostic>> errorMatchers() {
@@ -67,15 +70,9 @@ public class CheckDiscardModifyDiagnosticsLevelTest extends TestBase {
   }
 
   private Collection<Matcher<Diagnostic>> infoMatchers() {
-    List<Matcher<Diagnostic>> matchers = new ArrayList();
-    matchers.add(
-        allOf(
-            diagnosticMessage(containsString("UsedClass was not discarded")),
-            diagnosticMessage(containsString("is instantiated in"))));
-    if (mappedLevel == DiagnosticsLevel.INFO) {
-      matchers.add(discardCheckFailedMatcher());
-    }
-    return matchers;
+    return mappedLevel == DiagnosticsLevel.INFO
+        ? ImmutableList.of(discardCheckFailedMatcher())
+        : ImmutableList.of();
   }
 
   @Test
@@ -88,8 +85,7 @@ public class CheckDiscardModifyDiagnosticsLevelTest extends TestBase {
           .addOptionsModification(this::noInlining)
           .setDiagnosticsLevelModifier(
               (level, diagnostic) -> {
-                if (diagnostic instanceof StringDiagnostic
-                    && diagnostic.getDiagnosticMessage().equals("Discard checks failed.")) {
+                if (diagnostic instanceof CheckDiscardDiagnostic) {
                   return mappedLevel;
                 } else {
                   return level;

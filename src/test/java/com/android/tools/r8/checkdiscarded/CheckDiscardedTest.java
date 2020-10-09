@@ -23,7 +23,6 @@ import com.android.tools.r8.checkdiscarded.testclasses.WillBeGone;
 import com.android.tools.r8.checkdiscarded.testclasses.WillStay;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.Consumer;
 import org.junit.Test;
@@ -90,16 +89,16 @@ public class CheckDiscardedTest extends TestBase {
     Consumer<TestDiagnosticMessages> check =
         diagnostics ->
             diagnostics
+                .assertNoInfos()
                 .assertNoWarnings()
-                .assertErrorsMatch(diagnosticMessage(containsString("Discard checks failed")))
-                .assertInfosMatch(
-                    ImmutableList.of(
+                .assertErrorsMatch(
+                    diagnosticMessage(
                         allOf(
-                            diagnosticMessage(containsString("UsedClass was not discarded")),
-                            diagnosticMessage(containsString("is instantiated in"))),
-                        allOf(
-                            diagnosticMessage(containsString("Main was not discarded")),
-                            diagnosticMessage(containsString("is referenced in keep rule")))));
+                            containsString("Discard checks failed"),
+                            containsString("UsedClass was not discarded"),
+                            containsString("is instantiated in"),
+                            containsString("Main was not discarded"),
+                            containsString("is referenced in keep rule"))));
     compile(WillStay.class, false, check);
   }
 
@@ -113,12 +112,14 @@ public class CheckDiscardedTest extends TestBase {
     Consumer<TestDiagnosticMessages> check =
         diagnostics ->
             diagnostics
+                .assertNoInfos()
                 .assertNoWarnings()
-                .assertErrorsMatch(diagnosticMessage(containsString("Discard checks failed")))
-                .assertInfosMatch(
-                    allOf(
-                        diagnosticMessage(containsString("was not discarded")),
-                        diagnosticMessage(containsString("is invoked from"))));
+                .assertErrorsMatch(
+                    diagnosticMessage(
+                        allOf(
+                            containsString("Discard checks failed"),
+                            containsString("was not discarded"),
+                            containsString("is invoked from"))));
     compile(WillStay.class, true, check);
   }
 
