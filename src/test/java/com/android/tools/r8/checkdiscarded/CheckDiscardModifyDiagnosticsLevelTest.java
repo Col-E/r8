@@ -1,0 +1,110 @@
+// Copyright (c) 2017, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+package com.android.tools.r8.checkdiscarded;
+
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.DiagnosticsLevel;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.checkdiscarded.testclasses.Main;
+import com.android.tools.r8.checkdiscarded.testclasses.UnusedClass;
+import com.android.tools.r8.checkdiscarded.testclasses.UsedClass;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import org.hamcrest.Matcher;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+
+@RunWith(Parameterized.class)
+public class CheckDiscardModifyDiagnosticsLevelTest extends TestBase {
+
+  @Parameters(name = "{0}, {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withNoneRuntime().build(), DiagnosticsLevel.values());
+  }
+
+  private final DiagnosticsLevel mappedLevel;
+
+  public CheckDiscardModifyDiagnosticsLevelTest(TestParameters parameters, DiagnosticsLevel level) {
+    parameters.assertNoneRuntime();
+    this.mappedLevel = level;
+  }
+
+  private void noInlining(InternalOptions options) {
+    options.enableInlining = false;
+  }
+
+  private Matcher<Diagnostic> discardCheckFailedMatcher() {
+    return diagnosticMessage(startsWith("Discard checks failed"));
+  }
+
+  private Collection<Matcher<Diagnostic>> errorMatchers() {
+    return mappedLevel == DiagnosticsLevel.ERROR
+        ? ImmutableList.of(discardCheckFailedMatcher())
+        : ImmutableList.of();
+  }
+
+  private Collection<Matcher<Diagnostic>> warningMatchers() {
+    return mappedLevel == DiagnosticsLevel.WARNING
+        ? ImmutableList.of(discardCheckFailedMatcher())
+        : ImmutableList.of();
+  }
+
+  private Collection<Matcher<Diagnostic>> infoMatchers() {
+    List<Matcher<Diagnostic>> matchers = new ArrayList();
+    matchers.add(
+        allOf(
+            diagnosticMessage(containsString("UsedClass was not discarded")),
+            diagnosticMessage(containsString("is instantiated in"))));
+    if (mappedLevel == DiagnosticsLevel.INFO) {
+      matchers.add(discardCheckFailedMatcher());
+    }
+    return matchers;
+  }
+
+  @Test
+  public void dontFailCompilationOnCheckDiscardedFailure() {
+    try {
+      testForR8(Backend.DEX)
+          .addProgramClasses(UnusedClass.class, UsedClass.class, Main.class)
+          .addKeepMainRule(Main.class)
+          .addKeepRules("-checkdiscard class " + UsedClass.class.getTypeName())
+          .addOptionsModification(this::noInlining)
+          .setDiagnosticsLevelModifier(
+              (level, diagnostic) -> {
+                if (diagnostic instanceof StringDiagnostic
+                    && diagnostic.getDiagnosticMessage().equals("Discard checks failed.")) {
+                  return mappedLevel;
+                } else {
+                  return level;
+                }
+              })
+          .allowDiagnosticMessages()
+          .compileWithExpectedDiagnostics(
+              diagnostics ->
+                  diagnostics
+                      .assertErrorsMatch(errorMatchers())
+                      .assertWarningsMatch(warningMatchers())
+                      .assertInfosMatch(infoMatchers()));
+      assertTrue(mappedLevel == DiagnosticsLevel.INFO || mappedLevel == DiagnosticsLevel.WARNING);
+    } catch (CompilationFailedException e) {
+      assertEquals(mappedLevel, DiagnosticsLevel.ERROR);
+    }
+  }
+}

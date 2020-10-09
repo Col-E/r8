@@ -171,6 +171,10 @@ public class Enqueuer {
     public boolean isTracingMainDex() {
       return this == MAIN_DEX_TRACING;
     }
+
+    public boolean isWhyAreYouKeeping() {
+      return this == WHY_ARE_YOU_KEEPING;
+    }
   }
 
   private final boolean forceProguardCompatibility;
@@ -2735,6 +2739,11 @@ public class Enqueuer {
     finalizeLibraryMethodOverrideInformation();
     analyses.forEach(analyses -> analyses.done(this));
     assert verifyKeptGraph();
+    if (mode.isWhyAreYouKeeping()) {
+      // For why are you keeping the information is reported through the kept graph callbacks and
+      // no AppInfo is returned.
+      return null;
+    }
     AppInfoWithLiveness appInfoWithLiveness = createAppInfo(appInfo);
     if (options.testing.enqueuerInspector != null) {
       options.testing.enqueuerInspector.accept(appInfoWithLiveness, mode);
