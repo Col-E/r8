@@ -41,7 +41,7 @@ public class GsonOptionalTest extends GsonDesugaredLibraryTestBase {
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
-            keepRuleConsumer.get() + GSON_LIBRARY_KEEP_RULES,
+            keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), OptionalTestClass.class)
         .assertSuccessWithOutputLines("true", "true");
@@ -65,7 +65,7 @@ public class GsonOptionalTest extends GsonDesugaredLibraryTestBase {
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
-            keepRuleConsumer.get() + GSON_LIBRARY_KEEP_RULES,
+            keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), OptionalTestClass.class)
         .assertSuccessWithOutputLines("true", "true");

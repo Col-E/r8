@@ -46,7 +46,7 @@ public class GsonAllMapsTest extends GsonDesugaredLibraryTestBase {
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
-            keepRuleConsumer.get() + GSON_LIBRARY_KEEP_RULES,
+            keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), AllMapsTestClass.class)
         .assertSuccessWithOutputLines(EXPECTED_RESULT);
@@ -69,7 +69,7 @@ public class GsonAllMapsTest extends GsonDesugaredLibraryTestBase {
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
-            keepRuleConsumer.get() + GSON_LIBRARY_KEEP_RULES,
+            keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), AllMapsTestClass.class)
         .assertSuccessWithOutputLines(EXPECTED_RESULT);

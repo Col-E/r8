@@ -11,10 +11,4 @@ public abstract class GsonDesugaredLibraryTestBase extends DesugaredLibraryTestB
   protected static final Path GSON_CONFIGURATION =
       Paths.get("src/test/java/com/android/tools/r8/desugar/desugaredlibrary/gson/gson.cfg");
   protected static final Path GSON_2_8_1_JAR = Paths.get("third_party/iosched_2019/gson-2.8.1.jar");
-  // We only need here, for all subclasses of java.util.Collection and java.util.Map,
-  // to keep the signature attribute.
-  protected static final String GSON_LIBRARY_KEEP_RULES =
-      "-keepattributes Signature\n"
-          + "-keepattributes EnclosingMethod\n"
-          + "-keepattributes InnerClasses\n";
 }
