@@ -335,7 +335,12 @@ def Main():
     runtimes = ['dex-' + art_vm]
     # Only append the "none" runtime and JVMs if running on the "default" DEX VM.
     if art_vm == "default":
-      runtimes.extend(['jdk8', 'jdk9', 'jdk11', 'none'])
+      # TODO(b/170454076): Remove special casing for bot when rex-script has
+      #  been migrated to account for runtimes.
+      if utils.is_bot():
+        runtimes.extend(['jdk11', 'none'])
+      else:
+        runtimes.extend(['jdk8', 'jdk9', 'jdk11', 'none'])
     return_code = gradle.RunGradle(
         gradle_args + [
           '-Pdex_vm=%s' % art_vm + vm_suffix,
