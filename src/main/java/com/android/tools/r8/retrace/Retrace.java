@@ -216,6 +216,7 @@ public class Retrace {
         return;
       }
       assert Arrays.asList(mappedArgs).contains("--help");
+      System.out.println("Retrace " + Version.getVersionString());
       System.out.print(USAGE_MESSAGE);
       return;
     }
@@ -262,9 +263,11 @@ public class Retrace {
       action.run();
     } catch (RetraceAbortException e) {
       // Detail of the errors were already reported
+      System.err.println(StringUtils.LINE_SEPARATOR + USAGE_MESSAGE + StringUtils.LINE_SEPARATOR);
       System.exit(STATUS_ERROR);
     } catch (RuntimeException e) {
       System.err.println("Retrace failed with an internal error.");
+      System.err.println(StringUtils.LINE_SEPARATOR + USAGE_MESSAGE + StringUtils.LINE_SEPARATOR);
       Throwable cause = e.getCause() == null ? e : e.getCause();
       cause.printStackTrace();
       System.exit(STATUS_ERROR);
