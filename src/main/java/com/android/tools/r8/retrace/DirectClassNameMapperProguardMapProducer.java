@@ -6,14 +6,13 @@ package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
-import java.io.IOException;
 
 public interface DirectClassNameMapperProguardMapProducer extends ProguardMapProducer {
 
   ClassNameMapper getClassNameMapper();
 
   @Override
-  default String get() throws IOException {
+  default String get() {
     throw new RuntimeException("Should not be called for DirectClassNameMapperProguardMapProducer");
   }
 }

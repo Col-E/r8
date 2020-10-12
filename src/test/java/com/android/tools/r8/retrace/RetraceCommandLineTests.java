@@ -67,6 +67,18 @@ public class RetraceCommandLineTests {
   }
 
   @Test
+  public void testInvalidMappingFile() throws IOException {
+    Path mappingFile = folder.newFile("mapping.txt").toPath();
+    Files.write(mappingFile, "foo.bar.baz <- is invalid mapping".getBytes());
+    Path stackTraceFile = folder.newFile("stacktrace.txt").toPath();
+    Files.write(stackTraceFile, new byte[0]);
+    runAbortTest(
+        containsString("Unable to parse mapping file"),
+        mappingFile.toString(),
+        stackTraceFile.toString());
+  }
+
+  @Test
   public void testVerbose() throws IOException {
     FoundMethodVerboseStackTrace stackTrace = new FoundMethodVerboseStackTrace();
     runTest(

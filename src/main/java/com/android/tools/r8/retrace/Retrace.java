@@ -12,6 +12,7 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
 import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -119,7 +120,15 @@ public class Retrace {
           new StringDiagnostic(String.format("Could not find mapping file '%s'.", mappingPath)));
       throw new RetraceAbortException();
     }
-    return () -> new String(Files.readAllBytes(path));
+    return () -> {
+      try {
+        return new String(Files.readAllBytes(path));
+      } catch (IOException e) {
+        diagnosticsHandler.error(
+            new StringDiagnostic(String.format("Could not open mapping file '%s'.", mappingPath)));
+        throw new RuntimeException(e);
+      }
+    };
   }
 
   private static List<String> getStackTraceFromFile(
@@ -172,6 +181,9 @@ public class Retrace {
       command.diagnosticsHandler.error(
           new StringDiagnostic("Could not open mapping input stream: " + ex.getMessage()));
       throw new RetraceAbortException();
+    } catch (InvalidMappingFileException e) {
+      command.diagnosticsHandler.error(new ExceptionDiagnostic(e));
+      throw e;
     }
   }
 
@@ -230,7 +242,7 @@ public class Retrace {
   }
 
   private static List<String> getStackTraceFromStandardInput() {
-    System.out.println("Waiting for stack-trace input on stdin...");
+    System.out.println("Waiting for stack-trace input...");
     Scanner sc = new Scanner(new InputStreamReader(System.in, Charsets.UTF_8));
     List<String> readLines = new ArrayList<>();
     while (sc.hasNext()) {
