@@ -22,8 +22,10 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
@@ -705,6 +707,8 @@ public class IRConverter {
     }
     if (enumUnboxer != null) {
       enumUnboxer.unboxEnums(postMethodProcessorBuilder, executorService, feedback);
+    } else {
+      appView.setUnboxedEnums(EnumValueInfoMapCollection.empty());
     }
     if (!options.debug) {
       new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
@@ -935,7 +939,10 @@ public class IRConverter {
     if (lambdaMerger != null) {
       lambdaMerger.applyLambdaClassMapping(
           application, this, feedback, builder, executorService);
+    } else {
+      appView.setHorizontallyMergedLambdaClasses(HorizontallyMergedLambdaClasses.empty());
     }
+    assert appView.horizontallyMergedLambdaClasses() != null;
   }
 
   private void generateDesugaredLibraryAPIWrappers(

@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils;
 
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class ConsumerUtils {
@@ -19,6 +20,10 @@ public class ConsumerUtils {
 
   public static <T> Consumer<T> emptyConsumer() {
     return ignore -> {};
+  }
+
+  public static <S, T> BiConsumer<S, T> emptyBiConsumer() {
+    return (s, t) -> {};
   }
 
   public static <T> ThrowingConsumer<T, RuntimeException> emptyThrowingConsumer() {

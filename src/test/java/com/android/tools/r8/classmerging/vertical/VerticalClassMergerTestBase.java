@@ -20,13 +20,6 @@ public abstract class VerticalClassMergerTestBase extends TestBase {
     this.parameters = parameters;
   }
 
-  public static void assertMergedIntoSubtype(
-      Class<?> clazz,
-      DexItemFactory dexItemFactory,
-      VerticallyMergedClasses verticallyMergedClasses) {
-    assertTrue(verticallyMergedClasses.hasBeenMergedIntoSubtype(toDexType(clazz, dexItemFactory)));
-  }
-
   public void runDebugTest(Class<?> mainClass, R8TestCompileResult compileResult) throws Throwable {
     assertTrue(parameters.isDexRuntime());
     new VerticalClassMergerDebugTestRunner(mainClass.getTypeName(), temp)

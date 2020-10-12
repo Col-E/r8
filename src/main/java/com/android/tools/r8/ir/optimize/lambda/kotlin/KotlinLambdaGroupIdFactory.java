@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.ir.optimize.lambda.CaptureSignature;
@@ -23,27 +24,26 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
   KotlinLambdaGroupIdFactory() {
   }
 
-  // Creates a lambda group id for kotlin style lambda. Should never return null, if the lambda
-  // does not pass pre-requirements (mostly by not meeting high-level structure expectations)
-  // should throw LambdaStructureError leaving the caller to decide if/how it needs to be reported.
+  public static KotlinLambdaGroupIdFactory getFactoryForClass(DexProgramClass clazz) {
+    if (clazz.getKotlinInfo().isSyntheticClass()
+        && clazz.getKotlinInfo().asSyntheticClass().isLambda()) {
+      if (clazz.getKotlinInfo().asSyntheticClass().isKotlinStyleLambda()) {
+        return KStyleLambdaGroupIdFactory.getInstance();
+      }
+      assert clazz.getKotlinInfo().asSyntheticClass().isJavaStyleLambda();
+      return JStyleLambdaGroupIdFactory.getInstance();
+    }
+    return null;
+  }
+
+  // Creates a lambda group id for a Java or Kotlin style lambda. Never returns null, but may throw
+  // a LambdaStructureError if the lambda does not pass pre-requirements (mostly by not meeting
+  // high-level structure expectations).
   //
   // At this point we only perform high-level checks before qualifying the lambda as a candidate
   // for merging and assigning lambda group id. We can NOT perform checks on method bodies since
   // they may not be converted yet, we'll do that in KStyleLambdaClassValidator.
-  public static LambdaGroupId create(
-      AppView<AppInfoWithLiveness> appView, Kotlin kotlin, DexClass lambda)
-      throws LambdaStructureError {
-
-    assert lambda.getKotlinInfo().isSyntheticClass();
-    if (lambda.getKotlinInfo().asSyntheticClass().isKotlinStyleLambda()) {
-      return KStyleLambdaGroupIdFactory.INSTANCE.validateAndCreate(appView, kotlin, lambda);
-    }
-
-    assert lambda.getKotlinInfo().asSyntheticClass().isJavaStyleLambda();
-    return JStyleLambdaGroupIdFactory.INSTANCE.validateAndCreate(appView, kotlin, lambda);
-  }
-
-  abstract LambdaGroupId validateAndCreate(
+  public abstract LambdaGroupId validateAndCreate(
       AppView<AppInfoWithLiveness> appView, Kotlin kotlin, DexClass lambda)
       throws LambdaStructureError;
 

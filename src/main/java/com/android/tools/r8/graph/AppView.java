@@ -445,6 +445,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses) {
     assert this.horizontallyMergedLambdaClasses == null;
     this.horizontallyMergedLambdaClasses = horizontallyMergedLambdaClasses;
+    testing()
+        .horizontallyMergedLambdaClassesConsumer
+        .accept(dexItemFactory(), horizontallyMergedLambdaClasses);
   }
 
   /**
@@ -471,9 +474,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   public void setVerticallyMergedClasses(VerticallyMergedClasses verticallyMergedClasses) {
     assert this.verticallyMergedClasses == null;
     this.verticallyMergedClasses = verticallyMergedClasses;
-    if (testing().verticallyMergedClassesConsumer != null) {
-      testing().verticallyMergedClassesConsumer.accept(dexItemFactory(), verticallyMergedClasses);
-    }
+    testing().verticallyMergedClassesConsumer.accept(dexItemFactory(), verticallyMergedClasses);
   }
 
   public EnumValueInfoMapCollection unboxedEnums() {
@@ -481,7 +482,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public void setUnboxedEnums(EnumValueInfoMapCollection unboxedEnums) {
+    assert this.unboxedEnums.isEmpty();
     this.unboxedEnums = unboxedEnums;
+    testing().unboxedEnumsConsumer.accept(dexItemFactory(), unboxedEnums);
   }
 
   public boolean validateUnboxedEnumsHaveBeenPruned() {

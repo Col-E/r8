@@ -7,6 +7,7 @@ package com.android.tools.r8.graph.classmerging;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 
 public class HorizontallyMergedLambdaClasses implements MergedClasses {
@@ -15,6 +16,10 @@ public class HorizontallyMergedLambdaClasses implements MergedClasses {
 
   public HorizontallyMergedLambdaClasses(Set<DexType> sources) {
     this.sources = sources;
+  }
+
+  public static HorizontallyMergedLambdaClasses empty() {
+    return new HorizontallyMergedLambdaClasses(ImmutableSet.of());
   }
 
   @Override

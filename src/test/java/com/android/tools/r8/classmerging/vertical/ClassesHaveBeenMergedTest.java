@@ -13,9 +13,8 @@ import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -48,12 +47,12 @@ public class ClassesHaveBeenMergedTest extends VerticalClassMergerTestBase {
         .assertSuccess();
   }
 
-  private void inspectVerticallyMergedClasses(
-      DexItemFactory dexItemFactory, VerticallyMergedClasses verticallyMergedClasses) {
-    assertMergedIntoSubtype(GenericInterface.class, dexItemFactory, verticallyMergedClasses);
-    assertMergedIntoSubtype(GenericAbstractClass.class, dexItemFactory, verticallyMergedClasses);
-    assertMergedIntoSubtype(Outer.SuperClass.class, dexItemFactory, verticallyMergedClasses);
-    assertMergedIntoSubtype(SuperClass.class, dexItemFactory, verticallyMergedClasses);
+  private void inspectVerticallyMergedClasses(VerticallyMergedClassesInspector inspector) {
+    inspector.assertMergedIntoSubtype(
+        GenericInterface.class,
+        GenericAbstractClass.class,
+        Outer.SuperClass.class,
+        SuperClass.class);
   }
 
   private void inspect(CodeInspector inspector) {

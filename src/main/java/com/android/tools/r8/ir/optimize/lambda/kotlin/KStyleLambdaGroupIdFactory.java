@@ -15,18 +15,21 @@ import com.android.tools.r8.ir.optimize.lambda.LambdaGroupId;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-final class KStyleLambdaGroupIdFactory extends KotlinLambdaGroupIdFactory {
-  static final KotlinLambdaGroupIdFactory INSTANCE = new KStyleLambdaGroupIdFactory();
+public final class KStyleLambdaGroupIdFactory extends KotlinLambdaGroupIdFactory {
+  private static final KStyleLambdaGroupIdFactory INSTANCE = new KStyleLambdaGroupIdFactory();
+
+  private KStyleLambdaGroupIdFactory() {}
+
+  public static KStyleLambdaGroupIdFactory getInstance() {
+    return INSTANCE;
+  }
 
   @Override
-  LambdaGroupId validateAndCreate(
+  public LambdaGroupId validateAndCreate(
       AppView<AppInfoWithLiveness> appView, Kotlin kotlin, DexClass lambda)
       throws LambdaStructureError {
     boolean accessRelaxed =
         appView.options().getProguardConfiguration().isAccessModificationAllowed();
-
-    assert lambda.getKotlinInfo().isSyntheticClass();
-    assert lambda.getKotlinInfo().asSyntheticClass().isKotlinStyleLambda();
 
     // Ignore ACC_SUPER.
     ClassAccessFlags copy = lambda.accessFlags.copy();

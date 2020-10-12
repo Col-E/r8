@@ -15,9 +15,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.classmerging.vertical.testclasses.NoIllegalClassAccessWithAccessModificationsTestClasses;
 import com.android.tools.r8.classmerging.vertical.testclasses.NoIllegalClassAccessWithAccessModificationsTestClasses.SimpleInterfaceFactory;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,10 +50,8 @@ public class NoIllegalClassAccessWithAccessModificationsTest extends VerticalCla
         .assertSuccess();
   }
 
-  private void inspectVerticallyMergedClasses(
-      DexItemFactory dexItemFactory, VerticallyMergedClasses verticallyMergedClasses) {
-    assertMergedIntoSubtype(SimpleInterface.class, dexItemFactory, verticallyMergedClasses);
-    assertMergedIntoSubtype(OtherSimpleInterface.class, dexItemFactory, verticallyMergedClasses);
+  private void inspectVerticallyMergedClasses(VerticallyMergedClassesInspector inspector) {
+    inspector.assertMergedIntoSubtype(SimpleInterface.class, OtherSimpleInterface.class);
   }
 
   private void inspect(CodeInspector inspector) {

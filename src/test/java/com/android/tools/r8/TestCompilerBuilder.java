@@ -10,8 +10,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -19,6 +17,9 @@ import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.ForwardingOutputStream;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingOutputStream;
+import com.android.tools.r8.utils.codeinspector.EnumUnboxingInspector;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedLambdaClassesInspector;
+import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import com.google.common.base.Suppliers;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -28,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -106,10 +106,34 @@ public abstract class TestCompilerBuilder<
         });
   }
 
-  public T addVerticallyMergedClassesInspector(
-      BiConsumer<DexItemFactory, VerticallyMergedClasses> inspector) {
+  public T addEnumUnboxingInspector(Consumer<EnumUnboxingInspector> inspector) {
     return addOptionsModification(
-        options -> options.testing.verticallyMergedClassesConsumer = inspector);
+        options ->
+            options.testing.unboxedEnumsConsumer =
+                ((dexItemFactory, unboxedEnums) ->
+                    inspector.accept(new EnumUnboxingInspector(dexItemFactory, unboxedEnums))));
+  }
+
+  public T addHorizontallyMergedLambdaClassesInspector(
+      Consumer<HorizontallyMergedLambdaClassesInspector> inspector) {
+    return addOptionsModification(
+        options ->
+            options.testing.horizontallyMergedLambdaClassesConsumer =
+                ((dexItemFactory, horizontallyMergedLambdaClasses) ->
+                    inspector.accept(
+                        new HorizontallyMergedLambdaClassesInspector(
+                            dexItemFactory, horizontallyMergedLambdaClasses))));
+  }
+
+  public T addVerticallyMergedClassesInspector(
+      Consumer<VerticallyMergedClassesInspector> inspector) {
+    return addOptionsModification(
+        options ->
+            options.testing.verticallyMergedClassesConsumer =
+                ((dexItemFactory, verticallyMergedClasses) ->
+                    inspector.accept(
+                        new VerticallyMergedClassesInspector(
+                            dexItemFactory, verticallyMergedClasses))));
   }
 
   public CR compile() throws CompilationFailedException {

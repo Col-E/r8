@@ -252,15 +252,16 @@ public final class LambdaMerger {
         .filter(cls -> !appView.appInfo().isPinned(cls.type))
         .filter(
             cls ->
-                cls.getKotlinInfo().isSyntheticClass()
-                    && cls.getKotlinInfo().asSyntheticClass().isLambda()
+                appView.testing().kotlinLambdaMergerFactoryForClass.apply(cls) != null
                     && KotlinLambdaGroupIdFactory.hasValidAnnotations(kotlin, cls)
                     && !appView.appInfo().getClassToFeatureSplitMap().isInFeature(cls))
         .sorted((a, b) -> a.type.slowCompareTo(b.type)) // Ensure stable ordering.
         .forEachOrdered(
             lambda -> {
               try {
-                LambdaGroupId id = KotlinLambdaGroupIdFactory.create(appView, kotlin, lambda);
+                KotlinLambdaGroupIdFactory lambdaGroupIdFactory =
+                    appView.testing().kotlinLambdaMergerFactoryForClass.apply(lambda);
+                LambdaGroupId id = lambdaGroupIdFactory.validateAndCreate(appView, kotlin, lambda);
                 LambdaGroup group = groups.computeIfAbsent(id, LambdaGroupId::createGroup);
                 group.add(lambda);
                 lambdas.put(lambda.type, group);
@@ -341,6 +342,7 @@ public final class LambdaMerger {
       ExecutorService executorService)
       throws ExecutionException {
     if (lambdas.isEmpty()) {
+      appView.setHorizontallyMergedLambdaClasses(HorizontallyMergedLambdaClasses.empty());
       return;
     }
 

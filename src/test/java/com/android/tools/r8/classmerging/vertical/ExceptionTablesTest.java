@@ -12,10 +12,9 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import java.util.stream.IntStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,10 +48,8 @@ public class ExceptionTablesTest extends VerticalClassMergerTestBase {
         .assertSuccess();
   }
 
-  private void inspectVerticallyMergedClasses(
-      DexItemFactory dexItemFactory, VerticallyMergedClasses verticallyMergedClasses) {
-    assertMergedIntoSubtype(ExceptionA.class, dexItemFactory, verticallyMergedClasses);
-    assertMergedIntoSubtype(Exception1.class, dexItemFactory, verticallyMergedClasses);
+  private void inspectVerticallyMergedClasses(VerticallyMergedClassesInspector inspector) {
+    inspector.assertMergedIntoSubtype(ExceptionA.class, Exception1.class);
   }
 
   private void inspect(CodeInspector inspector) {
