@@ -230,6 +230,7 @@ public class Retrace {
   }
 
   private static List<String> getStackTraceFromStandardInput() {
+    System.out.println("Waiting for stack-trace input on stdin...");
     Scanner sc = new Scanner(new InputStreamReader(System.in, Charsets.UTF_8));
     List<String> readLines = new ArrayList<>();
     while (sc.hasNext()) {
