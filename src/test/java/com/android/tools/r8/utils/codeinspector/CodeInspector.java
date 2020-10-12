@@ -464,14 +464,10 @@ public class CodeInspector {
   }
 
   public RetraceApi retrace() {
-    try {
-      return Retracer.create(
-          new InternalProguardMapProducer(
-              mapping == null ? ClassNameMapper.builder().build() : mapping),
-          new TestDiagnosticMessagesImpl());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    return Retracer.create(
+        new InternalProguardMapProducer(
+            mapping == null ? ClassNameMapper.builder().build() : mapping),
+        new TestDiagnosticMessagesImpl());
   }
 
   public static class InternalProguardMapProducer

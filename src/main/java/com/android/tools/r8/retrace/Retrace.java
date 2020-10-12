@@ -177,10 +177,6 @@ public class Retrace {
       if (command.printTimes()) {
         timing.report();
       }
-    } catch (IOException ex) {
-      command.diagnosticsHandler.error(
-          new StringDiagnostic("Could not open mapping input stream: " + ex.getMessage()));
-      throw new RetraceAbortException();
     } catch (InvalidMappingFileException e) {
       command.diagnosticsHandler.error(new ExceptionDiagnostic(e));
       throw e;
