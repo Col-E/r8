@@ -31,10 +31,11 @@ public class NonReboundFieldAccessWithMergedTypeTest extends HorizontalClassMerg
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
-        .addHorizontallyMergedLambdaClassesInspector(
+        .addHorizontallyMergedClassesInspector(
             inspector -> {
               if (enableHorizontalClassMerging) {
                 inspector.assertMerged(HelloGreeting.class, WorldGreeting.class);
+                inspector.assertMergedIntoDifferentType(WorldGreeting.class);
               }
             })
         .enableNeverClassInliningAnnotations()
@@ -49,15 +50,15 @@ public class NonReboundFieldAccessWithMergedTypeTest extends HorizontalClassMerg
   static class Main {
 
     public static void main(String[] args) {
-      System.out.print(new C(new HelloGreeting()).greeting);
-      System.out.println(new WorldGreeting());
+      System.out.print(new HelloGreeting());
+      System.out.println(new C(new WorldGreeting()).greeting);
     }
   }
 
   @NeverClassInline
   static class C extends NonReboundFieldAccessWithMergedTypeTestClasses.B {
 
-    public C(HelloGreeting greeting) {
+    public C(WorldGreeting greeting) {
       super(greeting);
     }
   }

@@ -26,7 +26,8 @@ public class EnumUnboxingInspector {
     return this;
   }
 
-  public EnumUnboxingInspector assertUnboxed(Class<? extends Enum<?>>... classes) {
+  @SafeVarargs
+  public final EnumUnboxingInspector assertUnboxed(Class<? extends Enum<?>>... classes) {
     for (Class<? extends Enum<?>> clazz : classes) {
       assertUnboxed(clazz);
     }

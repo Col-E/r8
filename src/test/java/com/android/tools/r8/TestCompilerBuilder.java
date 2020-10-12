@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.ForwardingOutputStream;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingOutputStream;
 import com.android.tools.r8.utils.codeinspector.EnumUnboxingInspector;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedLambdaClassesInspector;
 import com.android.tools.r8.utils.codeinspector.VerticallyMergedClassesInspector;
 import com.google.common.base.Suppliers;
@@ -112,6 +113,17 @@ public abstract class TestCompilerBuilder<
             options.testing.unboxedEnumsConsumer =
                 ((dexItemFactory, unboxedEnums) ->
                     inspector.accept(new EnumUnboxingInspector(dexItemFactory, unboxedEnums))));
+  }
+
+  public T addHorizontallyMergedClassesInspector(
+      Consumer<HorizontallyMergedClassesInspector> inspector) {
+    return addOptionsModification(
+        options ->
+            options.testing.horizontallyMergedClassesConsumer =
+                ((dexItemFactory, horizontallyMergedClasses) ->
+                    inspector.accept(
+                        new HorizontallyMergedClassesInspector(
+                            dexItemFactory, horizontallyMergedClasses))));
   }
 
   public T addHorizontallyMergedLambdaClassesInspector(

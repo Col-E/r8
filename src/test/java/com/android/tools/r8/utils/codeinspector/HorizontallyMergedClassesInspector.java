@@ -22,13 +22,27 @@ public class HorizontallyMergedClassesInspector {
   }
 
   public HorizontallyMergedClassesInspector assertMerged(Class<?> clazz) {
-    assertTrue(horizontallyMergedClasses.hasBeenMerged(toDexType(clazz, dexItemFactory)));
+    assertTrue(
+        horizontallyMergedClasses.hasBeenMergedOrIsMergeTarget(toDexType(clazz, dexItemFactory)));
     return this;
   }
 
   public HorizontallyMergedClassesInspector assertMerged(Class<?>... classes) {
     for (Class<?> clazz : classes) {
       assertMerged(clazz);
+    }
+    return this;
+  }
+
+  public HorizontallyMergedClassesInspector assertMergedIntoDifferentType(Class<?> clazz) {
+    assertTrue(
+        horizontallyMergedClasses.hasBeenMergedIntoDifferentType(toDexType(clazz, dexItemFactory)));
+    return this;
+  }
+
+  public HorizontallyMergedClassesInspector assertMergedIntoDifferentType(Class<?>... classes) {
+    for (Class<?> clazz : classes) {
+      assertMergedIntoDifferentType(clazz);
     }
     return this;
   }

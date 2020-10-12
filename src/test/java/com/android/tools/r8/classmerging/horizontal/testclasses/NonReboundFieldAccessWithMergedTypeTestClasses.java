@@ -6,7 +6,7 @@ package com.android.tools.r8.classmerging.horizontal.testclasses;
 
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
-import com.android.tools.r8.classmerging.horizontal.NonReboundFieldAccessWithMergedTypeTest.HelloGreeting;
+import com.android.tools.r8.classmerging.horizontal.NonReboundFieldAccessWithMergedTypeTest.WorldGreeting;
 
 public class NonReboundFieldAccessWithMergedTypeTestClasses {
 
@@ -14,9 +14,9 @@ public class NonReboundFieldAccessWithMergedTypeTestClasses {
   @NoVerticalClassMerging
   static class A {
 
-    public HelloGreeting greeting;
+    public WorldGreeting greeting;
 
-    A(HelloGreeting greeting) {
+    A(WorldGreeting greeting) {
       this.greeting = greeting;
     }
   }
@@ -24,7 +24,7 @@ public class NonReboundFieldAccessWithMergedTypeTestClasses {
   @NoVerticalClassMerging
   public static class B extends A {
 
-    public B(HelloGreeting greeting) {
+    public B(WorldGreeting greeting) {
       super(greeting);
     }
   }

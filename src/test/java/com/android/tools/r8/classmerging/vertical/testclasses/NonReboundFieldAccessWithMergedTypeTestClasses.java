@@ -2,18 +2,19 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.classmerging.horizontal.testclasses;
+package com.android.tools.r8.classmerging.vertical.testclasses;
 
 import com.android.tools.r8.NoVerticalClassMerging;
+import com.android.tools.r8.classmerging.vertical.NonReboundFieldAccessWithMergedTypeTest.GreetingBase;
 
-public class NonReboundFieldAccessOnMergedClassTestClasses {
+public class NonReboundFieldAccessWithMergedTypeTestClasses {
 
   @NoVerticalClassMerging
   static class A {
 
-    public String greeting;
+    public GreetingBase greeting;
 
-    A(String greeting) {
+    A(GreetingBase greeting) {
       this.greeting = greeting;
     }
   }
@@ -21,7 +22,7 @@ public class NonReboundFieldAccessOnMergedClassTestClasses {
   @NoVerticalClassMerging
   public static class B extends A {
 
-    public B(String greeting) {
+    public B(GreetingBase greeting) {
       super(greeting);
     }
   }
