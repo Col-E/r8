@@ -96,6 +96,7 @@ public class HorizontalClassMerger {
     Collection<Collection<DexProgramClass>> groups = policyExecutor.run(classes.values());
     // If there are no groups, then end horizontal class merging.
     if (groups.isEmpty()) {
+      appView.setHorizontallyMergedClasses(HorizontallyMergedClasses.empty());
       return null;
     }
 

@@ -461,6 +461,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   public void setHorizontallyMergedClasses(HorizontallyMergedClasses horizontallyMergedClasses) {
     assert this.horizontallyMergedClasses == null;
     this.horizontallyMergedClasses = horizontallyMergedClasses;
+    testing().horizontallyMergedClassesConsumer.accept(dexItemFactory(), horizontallyMergedClasses);
   }
 
   /**

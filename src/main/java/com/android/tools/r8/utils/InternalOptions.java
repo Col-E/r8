@@ -39,6 +39,7 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
+import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodProcessingId;
@@ -1229,6 +1230,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
             appView ->
                 new DefaultRepackagingConfiguration(
                     appView.dexItemFactory(), appView.options().getProguardConfiguration());
+
+    public BiConsumer<DexItemFactory, HorizontallyMergedClasses> horizontallyMergedClassesConsumer =
+        ConsumerUtils.emptyBiConsumer();
 
     public BiConsumer<DexItemFactory, HorizontallyMergedLambdaClasses>
         horizontallyMergedLambdaClassesConsumer = ConsumerUtils.emptyBiConsumer();

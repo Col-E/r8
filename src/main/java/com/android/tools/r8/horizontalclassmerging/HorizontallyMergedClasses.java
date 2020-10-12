@@ -15,10 +15,15 @@ import java.util.Map;
 import java.util.Set;
 
 public class HorizontallyMergedClasses implements MergedClasses {
+
   private final BidirectionalManyToOneMap<DexType, DexType> mergedClasses;
 
   public HorizontallyMergedClasses(BidirectionalManyToOneMap<DexType, DexType> mergedClasses) {
     this.mergedClasses = mergedClasses;
+  }
+
+  public static HorizontallyMergedClasses empty() {
+    return new HorizontallyMergedClasses(new BidirectionalManyToOneMap<>());
   }
 
   public DexType getMergeTargetOrDefault(DexType type) {
