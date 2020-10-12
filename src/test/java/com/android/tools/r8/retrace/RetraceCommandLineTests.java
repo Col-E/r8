@@ -150,7 +150,7 @@ public class RetraceCommandLineTests {
   public void testHelp() throws IOException {
     ProcessResult processResult = runRetraceCommandLine(null, Arrays.asList("--help"));
     assertEquals(0, processResult.exitCode);
-    assertEquals(Retrace.USAGE_MESSAGE, processResult.stdout);
+    assertThat(processResult.stdout, containsString(Retrace.USAGE_MESSAGE));
   }
 
   @Test
