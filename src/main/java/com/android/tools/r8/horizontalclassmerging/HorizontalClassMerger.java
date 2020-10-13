@@ -19,6 +19,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoFields;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInnerClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKeepRules;
+import com.android.tools.r8.horizontalclassmerging.policies.NoNativeMethods;
 import com.android.tools.r8.horizontalclassmerging.policies.NoRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoStaticClassInitializer;
 import com.android.tools.r8.horizontalclassmerging.policies.NotEntryPoint;
@@ -66,6 +67,7 @@ public class HorizontalClassMerger {
             new NoClassesOrMembersWithAnnotations(),
             new NoInnerClasses(),
             new NoStaticClassInitializer(),
+            new NoNativeMethods(),
             new NoKeepRules(appView),
             new NotVerticallyMergedIntoSubtype(appView),
             new NoRuntimeTypeChecks(runtimeTypeCheckInfo),
