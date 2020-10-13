@@ -1293,6 +1293,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public PrintStream whyAreYouNotInliningConsumer = System.out;
     public boolean trackDesugaredAPIConversions =
         System.getProperty("com.android.tools.r8.trackDesugaredAPIConversions") != null;
+    public boolean forceLibBackportsInL8CfToCf = false;
     public boolean enumUnboxingRewriteJavaCGeneratedMethod = false;
     // TODO(b/154793333): Enable assertions always when resolved.
     public boolean assertConsistentRenamingOfSignature = false;

@@ -214,18 +214,13 @@ public class IRConverter {
             .map(options.itemFactory::createString)
             .collect(Collectors.toList());
     if (options.isDesugaredLibraryCompilation()) {
-      // Specific L8 Settings, performs all desugaring including L8 specific desugaring.
-      // The following desugaring are required for L8 specific desugaring:
-      // - DesugaredLibraryRetargeter for retarget core library members.
-      // - InterfaceMethodRewriter for emulated interfaces,
-      // - LambdaRewriter since InterfaceMethodDesugaring does not support invokeCustom rewriting,
-      // - DesugaredLibraryAPIConverter to duplicate APIs.
-      // The following desugaring are present so all desugaring is performed cf to cf in L8, and
-      // the second L8 phase can just run with Desugar turned off:
-      // - InterfaceMethodRewriter for non L8 specific interface method desugaring,
-      // - TwrCloseResourceRewriter,
-      // - NestBaseAccessDesugaring.
-      assert options.desugarState == DesugarState.ON;
+      // Specific L8 Settings.
+      // DesugaredLibraryRetargeter is needed for retarget core library members and backports.
+      // InterfaceMethodRewriter is needed for emulated interfaces.
+      // LambdaRewriter is needed because if it is missing there are invoke custom on
+      // default/static interface methods, and this is not supported by the compiler.
+      // DesugaredLibraryAPIConverter is here to duplicate APIs.
+      // The rest is nulled out. In addition the rewriting logic fails without lambda rewriting.
       this.desugaredLibraryRetargeter =
           options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()
               ? null
@@ -237,11 +232,11 @@ public class IRConverter {
       this.lambdaRewriter = new LambdaRewriter(appView);
       this.desugaredLibraryAPIConverter =
           new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS);
-      this.backportedMethodRewriter = new BackportedMethodRewriter(appView);
-      this.twrCloseResourceRewriter =
-          enableTwrCloseResourceDesugaring() ? new TwrCloseResourceRewriter(appView, this) : null;
-      this.d8NestBasedAccessDesugaring =
-          options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
+      this.backportedMethodRewriter =
+          options.cfToCfDesugar || options.testing.forceLibBackportsInL8CfToCf
+              ? new BackportedMethodRewriter(appView)
+              : null;
+      this.twrCloseResourceRewriter = null;
       this.lambdaMerger = null;
       this.covariantReturnTypeAnnotationTransformer = null;
       this.dynamicTypeOptimization = null;
@@ -256,6 +251,7 @@ public class IRConverter {
       this.identifierNameStringMarker = null;
       this.devirtualizer = null;
       this.typeChecker = null;
+      this.d8NestBasedAccessDesugaring = null;
       this.stringSwitchRemover = null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;

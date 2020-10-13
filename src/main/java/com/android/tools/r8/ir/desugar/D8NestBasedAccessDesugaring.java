@@ -146,9 +146,6 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
   public void desugarNestBasedAccess(
       DexApplication.Builder<?> builder, ExecutorService executorService, IRConverter converter)
       throws ExecutionException {
-    if (metNestHosts.isEmpty()) {
-      return;
-    }
     processNestsConcurrently(executorService);
     addDeferredBridges();
     synthesizeNestConstructor(builder);
