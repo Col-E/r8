@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -26,8 +27,10 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.field.EmptyInstanceFieldInitializationInfoCollection;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
+import com.android.tools.r8.ir.optimize.info.field.UnknownInstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 
@@ -106,6 +109,16 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
+  boolean isInstanceFieldValueAnalysis() {
+    return true;
+  }
+
+  @Override
+  InstanceFieldValueAnalysis asInstanceFieldValueAnalysis() {
+    return this;
+  }
+
+  @Override
   boolean isSubjectToOptimization(DexEncodedField field) {
     return !field.isStatic() && field.holder() == context.getHolderType();
   }
@@ -113,11 +126,45 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
   @Override
   void updateFieldOptimizationInfo(DexEncodedField field, FieldInstruction fieldPut, Value value) {
     if (fieldNeverWrittenBetweenInstancePutAndMethodExit(field, fieldPut.asInstancePut())) {
-      recordFieldIsInitializedWithValue(field, value);
+      recordInstanceFieldIsInitializedWithValue(field, value);
+    }
+  }
+
+  void analyzeForwardingConstructorCall(InvokeDirect invoke, Value thisValue) {
+    if (invoke.getReceiver() != thisValue
+        || invoke.getInvokedMethod().getHolderType() != context.getHolderType()) {
+      // Not a forwarding constructor call.
+      return;
+    }
+
+    ProgramMethod singleTarget = invoke.lookupSingleProgramTarget(appView, context);
+    if (singleTarget == null) {
+      // Failure, should generally not happen.
+      return;
+    }
+
+    InstanceFieldInitializationInfoCollection infos =
+        singleTarget
+            .getDefinition()
+            .getOptimizationInfo()
+            .getInstanceInitializerInfo()
+            .fieldInitializationInfos();
+    for (DexEncodedField field : singleTarget.getHolder().instanceFields()) {
+      assert isSubjectToOptimization(field);
+      InstanceFieldInitializationInfo info = infos.get(field);
+      if (info.isArgumentInitializationInfo()) {
+        int argumentIndex = info.asArgumentInitializationInfo().getArgumentIndex();
+        info = getInstanceFieldInitializationInfo(field, invoke.getArgument(argumentIndex));
+      }
+      recordFieldPut(field, invoke, info);
     }
   }
 
   private void analyzeParentConstructorCall() {
+    if (parentConstructor.getHolderType() == context.getHolderType()) {
+      // Forwarding constructor calls are handled similar to instance-put instructions.
+      return;
+    }
     InstanceFieldInitializationInfoCollection infos =
         parentConstructor
             .getOptimizationInfo()
@@ -129,8 +176,8 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
           if (fieldNeverWrittenBetweenParentConstructorCallAndMethodExit(field)) {
             if (info.isArgumentInitializationInfo()) {
               int argumentIndex = info.asArgumentInitializationInfo().getArgumentIndex();
-              recordFieldIsInitializedWithValue(
-                  field, parentConstructorCall.arguments().get(argumentIndex));
+              recordInstanceFieldIsInitializedWithValue(
+                  field, parentConstructorCall.getArgument(argumentIndex));
             } else {
               assert info.isSingleValue() || info.isTypeInitializationInfo();
               builder.recordInitializationInfo(field, info);
@@ -139,32 +186,39 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
         });
   }
 
-  private void recordFieldIsInitializedWithValue(DexEncodedField field, Value value) {
+  private InstanceFieldInitializationInfo getInstanceFieldInitializationInfo(
+      DexEncodedField field, Value value) {
     Value root = value.getAliasedValue();
     if (root.isDefinedByInstructionSatisfying(Instruction::isArgument)) {
       Argument argument = root.definition.asArgument();
-      builder.recordInitializationInfo(
-          field, factory.createArgumentInitializationInfo(argument.getIndex()));
-      return;
+      return factory.createArgumentInitializationInfo(argument.getIndex());
     }
-
     AbstractValue abstractValue = value.getAbstractValue(appView, context);
     if (abstractValue.isSingleValue()) {
-      builder.recordInitializationInfo(field, abstractValue.asSingleValue());
-      return;
+      return abstractValue.asSingleValue();
     }
-
-    DexType fieldType = field.field.type;
+    DexType fieldType = field.type();
     if (fieldType.isClassType()) {
       ClassTypeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
       TypeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
       TypeElement staticFieldType = TypeElement.fromDexType(fieldType, maybeNull(), appView);
       if (dynamicLowerBoundType != null || !dynamicUpperBoundType.equals(staticFieldType)) {
-        builder.recordInitializationInfo(
-            field,
-            factory.createTypeInitializationInfo(dynamicLowerBoundType, dynamicUpperBoundType));
+        return factory.createTypeInitializationInfo(dynamicLowerBoundType, dynamicUpperBoundType);
       }
     }
+    return UnknownInstanceFieldInitializationInfo.getInstance();
+  }
+
+  void recordInstanceFieldIsInitializedWithInfo(
+      DexEncodedField field, InstanceFieldInitializationInfo info) {
+    if (!info.isUnknown()) {
+      builder.recordInitializationInfo(field, info);
+    }
+  }
+
+  void recordInstanceFieldIsInitializedWithValue(DexEncodedField field, Value value) {
+    recordInstanceFieldIsInitializedWithInfo(
+        field, getInstanceFieldInitializationInfo(field, value));
   }
 
   private boolean fieldNeverWrittenBetweenInstancePutAndMethodExit(

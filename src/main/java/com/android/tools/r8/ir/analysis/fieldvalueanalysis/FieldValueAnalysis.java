@@ -15,19 +15,35 @@ import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
+import com.android.tools.r8.ir.optimize.info.field.UnknownInstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DequeUtils;
+import com.android.tools.r8.utils.ListUtils;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.IdentityHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 public abstract class FieldValueAnalysis {
+
+  static class FieldInitializationInfo {
+
+    private final Instruction instruction;
+    private final InstanceFieldInitializationInfo instanceFieldInitializationInfo;
+
+    FieldInitializationInfo(
+        Instruction instruction, InstanceFieldInitializationInfo instanceFieldInitializationInfo) {
+      this.instruction = instruction;
+      this.instanceFieldInitializationInfo = instanceFieldInitializationInfo;
+    }
+  }
 
   final AppView<AppInfoWithLiveness> appView;
   final IRCode code;
@@ -37,7 +53,7 @@ public abstract class FieldValueAnalysis {
   private DominatorTree dominatorTree;
   private Map<BasicBlock, AbstractFieldSet> fieldsMaybeReadBeforeBlockInclusiveCache;
 
-  final Map<DexEncodedField, LinkedList<FieldInstruction>> putsPerField = new IdentityHashMap<>();
+  final Map<DexEncodedField, List<FieldInitializationInfo>> putsPerField = new IdentityHashMap<>();
 
   FieldValueAnalysis(
       AppView<AppInfoWithLiveness> appView, IRCode code, OptimizationFeedback feedback) {
@@ -61,7 +77,26 @@ public abstract class FieldValueAnalysis {
     return fieldsMaybeReadBeforeBlockInclusiveCache;
   }
 
+  boolean isInstanceFieldValueAnalysis() {
+    return false;
+  }
+
+  InstanceFieldValueAnalysis asInstanceFieldValueAnalysis() {
+    return null;
+  }
+
   abstract boolean isSubjectToOptimization(DexEncodedField field);
+
+  void recordFieldPut(DexEncodedField field, Instruction instruction) {
+    recordFieldPut(field, instruction, UnknownInstanceFieldInitializationInfo.getInstance());
+  }
+
+  void recordFieldPut(
+      DexEncodedField field, Instruction instruction, InstanceFieldInitializationInfo info) {
+    putsPerField
+        .computeIfAbsent(field, ignore -> new ArrayList<>())
+        .add(new FieldInitializationInfo(instruction, info));
+  }
 
   /** This method analyzes initializers with the purpose of computing field optimization info. */
   void computeFieldOptimizationInfo(ClassInitializerDefaultsResult classInitializerDefaultsResult) {
@@ -80,31 +115,42 @@ public abstract class FieldValueAnalysis {
           DexField field = fieldPut.getField();
           DexEncodedField encodedField = appInfo.resolveField(field).getResolvedField();
           if (encodedField != null && isSubjectToOptimization(encodedField)) {
-            putsPerField.computeIfAbsent(encodedField, ignore -> new LinkedList<>()).add(fieldPut);
+            recordFieldPut(encodedField, fieldPut);
           }
+        } else if (isInstanceFieldValueAnalysis()
+            && instruction.isInvokeConstructor(appView.dexItemFactory())) {
+          InvokeDirect invoke = instruction.asInvokeDirect();
+          asInstanceFieldValueAnalysis().analyzeForwardingConstructorCall(invoke, code.getThis());
         }
       }
     }
 
     List<BasicBlock> normalExitBlocks = code.computeNormalExitBlocks();
-    for (Entry<DexEncodedField, LinkedList<FieldInstruction>> entry : putsPerField.entrySet()) {
-      DexEncodedField encodedField = entry.getKey();
-      LinkedList<FieldInstruction> fieldPuts = entry.getValue();
+    for (Entry<DexEncodedField, List<FieldInitializationInfo>> entry : putsPerField.entrySet()) {
+      DexEncodedField field = entry.getKey();
+      List<FieldInitializationInfo> fieldPuts = entry.getValue();
       if (fieldPuts.size() > 1) {
         continue;
       }
-      FieldInstruction fieldPut = fieldPuts.getFirst();
+      FieldInitializationInfo info = ListUtils.first(fieldPuts);
+      Instruction instruction = info.instruction;
+      if (instruction.isInvokeDirect()) {
+        asInstanceFieldValueAnalysis()
+            .recordInstanceFieldIsInitializedWithInfo(field, info.instanceFieldInitializationInfo);
+        continue;
+      }
+      FieldInstruction fieldPut = instruction.asFieldInstruction();
       if (!isStraightLineCode) {
         if (!getOrCreateDominatorTree().dominatesAllOf(fieldPut.getBlock(), normalExitBlocks)) {
           continue;
         }
       }
       boolean priorReadsWillReadSameValue =
-          !classInitializerDefaultsResult.hasStaticValue(encodedField) && fieldPut.value().isZero();
-      if (!priorReadsWillReadSameValue && fieldMaybeReadBeforeInstruction(encodedField, fieldPut)) {
+          !classInitializerDefaultsResult.hasStaticValue(field) && fieldPut.value().isZero();
+      if (!priorReadsWillReadSameValue && fieldMaybeReadBeforeInstruction(field, fieldPut)) {
         continue;
       }
-      updateFieldOptimizationInfo(encodedField, fieldPut, fieldPut.value());
+      updateFieldOptimizationInfo(field, fieldPut, fieldPut.value());
     }
   }
 

@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
@@ -1238,6 +1239,10 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
 
   public InvokeCustom asInvokeCustom() {
     return null;
+  }
+
+  public boolean isInvokeConstructor(DexItemFactory dexItemFactory) {
+    return false;
   }
 
   public boolean isInvokeDirect() {

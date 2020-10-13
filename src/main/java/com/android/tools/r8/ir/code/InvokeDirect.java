@@ -8,6 +8,7 @@ import com.android.tools.r8.code.InvokeDirectRange;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -106,6 +107,11 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isInvokeDirect() && super.identicalNonValueNonPositionParts(other);
+  }
+
+  @Override
+  public boolean isInvokeConstructor(DexItemFactory dexItemFactory) {
+    return getInvokedMethod().isInstanceInitializer(dexItemFactory);
   }
 
   @Override
