@@ -126,6 +126,15 @@ public abstract class TestCompilerBuilder<
                             dexItemFactory, horizontallyMergedClasses))));
   }
 
+  public T addHorizontallyMergedClassesInspectorIf(
+      boolean condition, Consumer<HorizontallyMergedClassesInspector> inspector) {
+
+    if (condition) {
+      return addHorizontallyMergedClassesInspector(inspector);
+    }
+    return self();
+  }
+
   public T addHorizontallyMergedLambdaClassesInspector(
       Consumer<HorizontallyMergedLambdaClassesInspector> inspector) {
     return addOptionsModification(

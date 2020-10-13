@@ -255,10 +255,19 @@ public class DeadCodeRemover {
         }
 
         @Override
+        public boolean isDeadIfInValueIsDead() {
+          return true;
+        }
+
+        @Override
         public Iterable<Value> getValuesRequiredToBeDead() {
           return () -> Iterators.singletonIterator(inValueRequiredToBeDead);
         }
       };
+    }
+
+    public boolean isDeadIfInValueIsDead() {
+      return false;
     }
 
     public boolean isDeadIfOutValueIsDead() {
