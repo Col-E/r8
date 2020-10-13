@@ -3,6 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescriptor;
+import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassBinaryName;
+
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -89,6 +93,33 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
 
   DexType getSynthesizingContextType() {
     return synthesizingContextType;
+  }
+
+  void registerPrefixRewriting(DexType hygienicType, AppView<?> appView) {
+    assert hygienicType.toSourceString().startsWith(synthesizingContextType.toSourceString());
+    if (!appView.options().isDesugaredLibraryCompilation()) {
+      return;
+    }
+    DexType rewrittenContext =
+        appView
+            .options()
+            .desugaredLibraryConfiguration
+            .getEmulateLibraryInterface()
+            .get(synthesizingContextType);
+    if (rewrittenContext == null) {
+      return;
+    }
+    String contextPrefix =
+        getBinaryNameFromDescriptor(synthesizingContextType.toDescriptorString());
+    String rewrittenPrefix = getBinaryNameFromDescriptor(rewrittenContext.toDescriptorString());
+    String suffix =
+        getBinaryNameFromDescriptor(hygienicType.toDescriptorString())
+            .substring(contextPrefix.length());
+    DexType rewrittenType =
+        appView
+            .dexItemFactory()
+            .createType(getDescriptorFromClassBinaryName(rewrittenPrefix + suffix));
+    appView.rewritePrefix.rewriteType(hygienicType, rewrittenType);
   }
 
   void addIfDerivedFromMainDexClass(
