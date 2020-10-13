@@ -64,7 +64,7 @@ public class VirtualMethodMerger {
           appView
               .withLiveness()
               .appInfo()
-              .resolveMethodOnClass(template, target.superType)
+              .resolveMethodOnClass(template, target.getSuperType())
               .asSingleResolution();
       if (resolutionResult == null) {
         return null;
@@ -72,7 +72,14 @@ public class VirtualMethodMerger {
       if (resolutionResult.getResolvedMethod().isAbstract()) {
         return null;
       }
-      return resolutionResult.getResolvedMethod().method;
+      if (resolutionResult.getResolvedHolder().isInterface()) {
+        // Ensure that invoke virtual isn't called on an interface method.
+        return resolutionResult
+            .getResolvedMethod()
+            .getReference()
+            .withHolder(target.getSuperType(), appView.dexItemFactory());
+      }
+      return resolutionResult.getResolvedMethod().getReference();
     }
 
     public VirtualMethodMerger build(
