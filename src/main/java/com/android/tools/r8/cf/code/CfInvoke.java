@@ -259,7 +259,7 @@ public class CfInvoke extends CfInstruction {
       case Opcodes.INVOKEINTERFACE:
         // Could have changed to an invoke-virtual instruction due to vertical class merging
         // (if an interface is merged into a class).
-        type = graphLens.lookupMethod(target, null, Type.INTERFACE).getType();
+        type = graphLens.lookupMethod(target, context.getReference(), Type.INTERFACE).getType();
         assert type == Type.INTERFACE || type == Type.VIRTUAL;
         break;
 
@@ -269,7 +269,7 @@ public class CfInvoke extends CfInstruction {
           assert noNeedToUseGraphLens(target, type, graphLens);
         } else if (target.holder == context.getHolderType()) {
           // The method could have been publicized.
-          type = graphLens.lookupMethod(target, null, Type.DIRECT).getType();
+          type = graphLens.lookupMethod(target, context.getReference(), Type.DIRECT).getType();
           assert type == Type.DIRECT || type == Type.VIRTUAL;
         } else {
           // This is a super call. Note that the vertical class merger translates some invoke-super
@@ -287,7 +287,8 @@ public class CfInvoke extends CfInstruction {
       case Opcodes.INVOKESTATIC:
         {
           // Static invokes may have changed as a result of horizontal class merging.
-          MethodLookupResult lookup = graphLens.lookupMethod(target, null, Type.STATIC);
+          MethodLookupResult lookup =
+              graphLens.lookupMethod(target, context.getReference(), Type.STATIC);
           target = lookup.getReference();
           type = lookup.getType();
         }
@@ -306,7 +307,7 @@ public class CfInvoke extends CfInstruction {
           }
 
           // Virtual invokes may have changed to interface invokes as a result of member rebinding.
-          MethodLookupResult lookup = graphLens.lookupMethod(target, null, type);
+          MethodLookupResult lookup = graphLens.lookupMethod(target, context.getReference(), type);
           target = lookup.getReference();
           type = lookup.getType();
         }

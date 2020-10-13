@@ -380,21 +380,26 @@ public class VerticalClassMerger {
       //     * Have access to the no-arg constructor of its first non-serializable superclass
       return false;
     }
-    TraversalContinuation result =
-        sourceClass.traverseProgramInstanceInitializers(
-            method -> {
-              AbortReason reason = disallowInlining(method, targetClass);
-              if (reason != null) {
-                // Cannot guarantee that markForceInline() will work.
-                if (Log.ENABLED) {
-                  reason.printLogMessageForClass(sourceClass);
+
+    // If there is a constructor in the target, make sure that all source constructors can be
+    // inlined.
+    if (!Iterables.isEmpty(targetClass.programInstanceInitializers())) {
+      TraversalContinuation result =
+          sourceClass.traverseProgramInstanceInitializers(
+              method -> {
+                AbortReason reason = disallowInlining(method, targetClass);
+                if (reason != null) {
+                  // Cannot guarantee that markForceInline() will work.
+                  if (Log.ENABLED) {
+                    reason.printLogMessageForClass(sourceClass);
+                  }
+                  return TraversalContinuation.BREAK;
                 }
-                return TraversalContinuation.BREAK;
-              }
-              return TraversalContinuation.CONTINUE;
-            });
-    if (result.shouldBreak()) {
-      return false;
+                return TraversalContinuation.CONTINUE;
+              });
+      if (result.shouldBreak()) {
+        return false;
+      }
     }
     if (sourceClass.getEnclosingMethodAttribute() != null
         || !sourceClass.getInnerClasses().isEmpty()) {
@@ -1683,12 +1688,6 @@ public class VerticalClassMerger {
       Code code = method.getDefinition().getCode();
       if (code.isCfCode()) {
         CfCode cfCode = code.asCfCode();
-
-        // If we can't find a context to perform the inlining check on, abort.
-        if (Iterables.isEmpty(context.programInstanceInitializers())) {
-          return AbortReason.UNSAFE_INLINING;
-        }
-
         ConstraintWithTarget constraint =
             cfCode.computeInliningConstraint(
                 method,

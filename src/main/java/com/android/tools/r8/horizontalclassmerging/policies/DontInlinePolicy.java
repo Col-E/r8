@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -38,7 +37,7 @@ public class DontInlinePolicy extends SingleClassPolicy {
     CfCode cfCode = code.asCfCode();
 
     ConstraintWithTarget constraint =
-        cfCode.computeInliningConstraint(method, appView, GraphLens.getIdentityLens(), method);
+        cfCode.computeInliningConstraint(method, appView, appView.graphLens(), method);
     if (constraint == ConstraintWithTarget.NEVER) {
       return true;
     }
