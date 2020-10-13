@@ -60,10 +60,10 @@ public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
     return build(appView, null);
   }
 
-  public T build(AppView<AppInfoWithLiveness> appView, GraphLens applied) {
+  public T build(AppView<AppInfoWithLiveness> appView, GraphLens appliedGraphLens) {
     T result = factory.apply(methods.size());
     for (DexMethod oldMethod : methods) {
-      DexMethod method = appView.graphLens().getRenamedMethodSignature(oldMethod, applied);
+      DexMethod method = appView.graphLens().getRenamedMethodSignature(oldMethod, appliedGraphLens);
       DexProgramClass holder = appView.definitionForHolder(method).asProgramClass();
       result.createAndAdd(holder, holder.lookupMethod(method));
     }

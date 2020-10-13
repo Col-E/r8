@@ -35,7 +35,6 @@ public class KotlinLambdaMergingWithSmallInliningBudgetTest extends AbstractR8Ko
 
   @Test
   public void testJStyleRunnable() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(allowAccessModification);
     final String mainClassName = "lambdas_jstyle_runnable.MainKt";
     runTest("lambdas_jstyle_runnable", mainClassName, optionsModifier, null);
   }

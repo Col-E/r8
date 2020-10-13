@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
@@ -339,7 +340,8 @@ public final class LambdaMerger {
       IRConverter converter,
       OptimizationFeedback feedback,
       Builder<?> builder,
-      ExecutorService executorService)
+      ExecutorService executorService,
+      GraphLens appliedGraphLens)
       throws ExecutionException {
     if (lambdas.isEmpty()) {
       appView.setHorizontallyMergedLambdaClasses(HorizontallyMergedLambdaClasses.empty());
@@ -389,7 +391,7 @@ public final class LambdaMerger {
 
     // Rewrite lambda class references into lambda group class
     // references inside methods from the processing queue.
-    rewriteLambdaReferences(converter, executorService);
+    rewriteLambdaReferences(converter, executorService, appliedGraphLens);
     this.mode = null;
 
     appView.setHorizontallyMergedLambdaClasses(
@@ -454,12 +456,13 @@ public final class LambdaMerger {
     }
   }
 
-  private void rewriteLambdaReferences(IRConverter converter, ExecutorService executorService)
+  private void rewriteLambdaReferences(
+      IRConverter converter, ExecutorService executorService, GraphLens appliedGraphLens)
       throws ExecutionException {
     if (methodsToReprocess.isEmpty()) {
       return;
     }
-    SortedProgramMethodSet methods = methodsToReprocess.build(appView);
+    SortedProgramMethodSet methods = methodsToReprocess.build(appView, appliedGraphLens);
     converter.processMethodsConcurrently(methods, executorService);
     assert methods.stream()
         .map(DexClassAndMethod::getDefinition)
