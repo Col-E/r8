@@ -37,6 +37,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -106,7 +107,23 @@ public final class BackportedMethodRewriter {
   }
 
   public boolean desugar(ProgramMethod method, AppInfoWithClassHierarchy appInfo) {
+    return desugar(method, appInfo, synthesizedMethods::add);
+  }
+
+  public boolean desugar(
+      ProgramMethod method, AppInfoWithClassHierarchy appInfo, Consumer<ProgramMethod> consumer) {
     if (!enabled) {
+      return false;
+    }
+    if (method.getDefinition().getCode().isDexCode()) {
+      appView
+          .options()
+          .reporter
+          .error(
+              new StringDiagnostic(
+                  "Unsupported attempt to desugar DEX code",
+                  method.getOrigin(),
+                  method.getPosition()));
       return false;
     }
     CfCode code = method.getDefinition().getCode().asCfCode();
@@ -127,8 +144,7 @@ public final class BackportedMethodRewriter {
           iterator = mutableInstructions.listIterator(iterator.previousIndex());
           iterator.next();
         }
-        provider.rewriteInvoke(
-            invoke, iterator, method.getHolder(), appInfo, synthesizedMethods::add);
+        provider.rewriteInvoke(invoke, iterator, method.getHolder(), appInfo, consumer);
         replaced = true;
       }
     }

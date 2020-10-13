@@ -35,8 +35,8 @@ class SyntheticMethodReference extends SyntheticReference {
       return null;
     }
     assert clazz.isProgramClass();
-    ProgramMethod definition = clazz.asProgramClass().lookupProgramMethod(this.method);
-    return new SyntheticMethodDefinition(getContext(), definition);
+    ProgramMethod definition = clazz.asProgramClass().lookupProgramMethod(method);
+    return definition != null ? new SyntheticMethodDefinition(getContext(), definition) : null;
   }
 
   @Override

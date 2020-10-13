@@ -8,7 +8,6 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
 import java.util.Objects;
 import org.junit.Test;
@@ -51,13 +50,10 @@ public class NullCheckEnumUnboxingTest extends EnumUnboxingTestBase {
             .inspectDiagnosticMessages(
                 m -> {
                   assertEnumIsUnboxed(MyEnum.class, MyEnum.class.getSimpleName(), m);
-                  // MyEnum19 is unboxed only if minAPI > 19 because Objects#requiredNonNull is then
-                  // present.
-                  if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K)) {
-                    assertEnumIsUnboxed(MyEnum19.class, MyEnum19.class.getSimpleName(), m);
-                  } else {
-                    assertEnumIsBoxed(MyEnum19.class, MyEnum19.class.getSimpleName(), m);
-                  }
+                  // MyEnum19 is always unboxed. If minAPI > 19 the unboxer will identify
+                  // Objects#requiredNonNull usage. For 19 and prior, the backport code should not
+                  // prohibit the unboxing either.
+                  assertEnumIsUnboxed(MyEnum19.class, MyEnum19.class.getSimpleName(), m);
                 })
             .run(parameters.getRuntime(), MainNullTest.class)
             .assertSuccess();

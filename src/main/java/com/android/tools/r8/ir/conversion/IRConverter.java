@@ -269,10 +269,13 @@ public class IRConverter {
             ? new InterfaceMethodRewriter(appView, this)
             : null;
     this.twrCloseResourceRewriter =
-        ((options.desugarState == DesugarState.ON) && enableTwrCloseResourceDesugaring())
+        (options.desugarState == DesugarState.ON && enableTwrCloseResourceDesugaring())
             ? new TwrCloseResourceRewriter(appView, this)
             : null;
-    this.backportedMethodRewriter = new BackportedMethodRewriter(appView);
+    this.backportedMethodRewriter =
+        (options.desugarState == DesugarState.ON && !appView.enableWholeProgramOptimizations())
+            ? new BackportedMethodRewriter(appView)
+            : null;
     this.desugaredLibraryRetargeter =
         options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()
             ? null

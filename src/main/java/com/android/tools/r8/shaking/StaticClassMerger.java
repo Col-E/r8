@@ -248,6 +248,12 @@ public class StaticClassMerger {
   }
 
   private MergeGroup getMergeGroup(DexProgramClass clazz) {
+    if (appView.getSyntheticItems().isSyntheticClass(clazz)) {
+      // In principle it would be valid to merge synthetic classes into program classes.
+      // Doing so may however increase size as static methods will not be de-duplicated
+      // at synthetic finalization.
+      return MergeGroup.DONT_MERGE;
+    }
     if (appView.appInfo().getNoStaticClassMergingSet().contains(clazz.type)) {
       return MergeGroup.DONT_MERGE;
     }

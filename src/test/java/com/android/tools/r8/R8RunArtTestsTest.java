@@ -1032,6 +1032,12 @@ public abstract class R8RunArtTestsTest {
           .put("552-checker-primitive-typeprop", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Test with invalid register usage: invoke-static {v0,v0}, foo(IL)V
           .put("557-checker-ref-equivalent", TestCondition.match(TestCondition.R8DEX_COMPILER))
+          // Test with smali code that calls a method that needs to be desugared.
+          // The smali code is only present in the non-legacy test distrubution, so this only fails
+          // when running the "default" runtime.
+          .put(
+              "567-checker-compare",
+              TestCondition.match(TestCondition.runtimes(Runtime.ART_DEFAULT)))
           // This test is starting from invalid dex code. It splits up a double value and uses
           // the first register of a double with the second register of another double.
           .put("800-smali", TestCondition.match(TestCondition.R8DEX_COMPILER))
@@ -2398,7 +2404,7 @@ public abstract class R8RunArtTestsTest {
       CompilationMode compilationMode)
       throws Throwable {
     if (specification.expectedToFailWithX8) {
-      expectException(CompilationError.class);
+      expectedException = true;
       try {
         executeCompilerUnderTest(
             compilerUnderTest,
@@ -2406,7 +2412,8 @@ public abstract class R8RunArtTestsTest {
             resultDir.getCanonicalPath(),
             compilationMode,
             new CompilationOptions(specification));
-      } catch (CompilationFailedException e) {
+      } catch (CompilationFailedException | CompilationError e) {
+        expectException(CompilationError.class);
         throw new CompilationError(e.getMessage(), e);
       }
       System.err.println("Should have failed R8/D8 compilation with a CompilationError.");

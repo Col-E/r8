@@ -7,6 +7,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
@@ -19,6 +20,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -69,7 +71,7 @@ public class BackportDuplicationTest extends TestBase {
         .minification(minify)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
-        .inspect(this::checkNoInternalSyntheticNames);
+        .inspect(this::checkNoOriginalsAndNoInternalSynthetics);
   }
 
   @Test
@@ -79,7 +81,7 @@ public class BackportDuplicationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
-        .inspect(this::checkNoInternalSyntheticNames)
+        .inspect(this::checkNoOriginalsAndNoInternalSynthetics)
         .inspect(this::checkExpectedSynthetics);
   }
 
@@ -133,7 +135,7 @@ public class BackportDuplicationTest extends TestBase {
         .writeToZip(out3)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
-        .inspect(this::checkNoInternalSyntheticNames)
+        .inspect(this::checkNoOriginalsAndNoInternalSynthetics)
         .inspect(inspector -> assertEquals(syntheticsInParts, getSyntheticMethods(inspector)));
 
     // Finally do a non-intermediate merge.
@@ -142,7 +144,7 @@ public class BackportDuplicationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
-        .inspect(this::checkNoInternalSyntheticNames)
+        .inspect(this::checkNoOriginalsAndNoInternalSynthetics)
         .inspect(
             inspector -> {
               if (intermediate) {
@@ -179,16 +181,28 @@ public class BackportDuplicationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
-        .inspect(this::checkNoInternalSyntheticNames)
+        .inspect(this::checkNoOriginalsAndNoInternalSynthetics)
         .inspect(this::checkExpectedSynthetics);
   }
 
-  private void checkNoInternalSyntheticNames(CodeInspector inspector) {
+  private void checkNoOriginalsAndNoInternalSynthetics(CodeInspector inspector) {
     inspector.forAllClasses(
         clazz -> {
           assertThat(
               clazz.getFinalName(),
               not(containsString(SyntheticItems.INTERNAL_SYNTHETIC_CLASS_SEPARATOR)));
+          if (!clazz.getOriginalName().equals(MiniAssert.class.getTypeName())) {
+            clazz.forAllMethods(
+                method ->
+                    assertTrue(
+                        "Unexpected static invoke to java.lang method:\n"
+                            + method.getMethod().codeToString(),
+                        method
+                            .streamInstructions()
+                            .filter(InstructionSubject::isInvokeStatic)
+                            .noneMatch(
+                                i -> i.getMethod().qualifiedName().startsWith("java.lang"))));
+          }
         });
   }
 

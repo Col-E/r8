@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.MethodPosition;
 
 /** Type representing a method definition in the programs compilation unit and its holder. */
 public final class ProgramMethod extends DexClassAndMethod
@@ -80,5 +81,9 @@ public final class ProgramMethod extends DexClassAndMethod
     DexClass holder = super.getHolder();
     assert holder.isProgramClass();
     return holder.asProgramClass();
+  }
+
+  public MethodPosition getPosition() {
+    return getDefinition().getPosition();
   }
 }

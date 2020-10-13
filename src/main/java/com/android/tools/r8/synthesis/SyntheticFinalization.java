@@ -418,6 +418,10 @@ public class SyntheticFinalization {
       SyntheticMethodDefinition method = (SyntheticMethodDefinition) definition;
       if (SyntheticMethodBuilder.isValidSyntheticMethod(method.getMethod().getDefinition())) {
         methods.add(method);
+      } else {
+        // Failing this check indicates that an optimization has modified the synthetic in a
+        // disruptive way.
+        assert false;
       }
     }
     return methods;

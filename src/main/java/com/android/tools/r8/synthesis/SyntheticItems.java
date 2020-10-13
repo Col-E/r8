@@ -308,7 +308,15 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     ImmutableMap.Builder<DexType, SyntheticReference> rewrittenItems = ImmutableMap.builder();
     for (SyntheticReference reference : nonLecacySyntheticItems.values()) {
       SyntheticReference rewritten = reference.rewrite(lens);
-      rewrittenItems.put(rewritten.getHolder(), rewritten);
+      // If the reference has been rewritten the compiler has changed it and we drop it from the
+      // set of synthetics.
+      if (reference == rewritten) {
+        rewrittenItems.put(rewritten.getHolder(), rewritten);
+      } else {
+        // If the item is rewritten, it should be moved to another holder as the synthetic holder
+        // is no longer part of the synthetic collection.
+        assert reference.getHolder() != rewritten.getHolder();
+      }
     }
     // No pending item should need rewriting.
     assert legacyPendingClasses.keySet().equals(lens.rewriteTypes(legacyPendingClasses.keySet()));

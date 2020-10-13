@@ -67,6 +67,7 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -1364,6 +1365,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public DexMethod toReference() {
     checkIfObsolete();
     return method;
+  }
+
+  public MethodPosition getPosition() {
+    return new MethodPosition(method.asMethodReference());
   }
 
   @Override

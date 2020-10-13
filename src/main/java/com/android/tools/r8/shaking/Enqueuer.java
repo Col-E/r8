@@ -78,6 +78,7 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
@@ -340,11 +341,13 @@ public class Enqueuer {
   private final GraphReporter graphReporter;
 
   private final LambdaRewriter lambdaRewriter;
+  private final BackportedMethodRewriter backportRewriter;
   private final DesugaredLibraryConversionWrapperAnalysis desugaredLibraryWrapperAnalysis;
   private final Map<DexType, Pair<LambdaClass, ProgramMethod>> lambdaClasses =
       new IdentityHashMap<>();
   private final Map<DexEncodedMethod, Map<DexCallSite, LambdaClass>> lambdaCallSites =
       new IdentityHashMap<>();
+  private final Map<DexMethod, ProgramMethod> methodsWithBackports = new IdentityHashMap<>();
   private final Set<DexProgramClass> classesWithSerializableLambdas = Sets.newIdentityHashSet();
 
   Enqueuer(
@@ -383,6 +386,8 @@ public class Enqueuer {
     liveMethods = new LiveMethodsSet(graphReporter::registerMethod);
     liveFields = new LiveFieldsSet(graphReporter::registerField);
     lambdaRewriter = options.desugarState == DesugarState.ON ? new LambdaRewriter(appView) : null;
+    backportRewriter =
+        options.desugarState == DesugarState.ON ? new BackportedMethodRewriter(appView) : null;
 
     objectAllocationInfoCollection =
         ObjectAllocationInfoCollectionImpl.builder(mode.isInitialTreeShaking(), graphReporter);
@@ -1077,6 +1082,10 @@ public class Enqueuer {
 
   private void traceInvokeDirect(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
+    if (registerBackportInvoke(invokedMethod, context)) {
+      return;
+    }
+
     if (!registerMethodWithTargetAndContext(
         methodAccessInfoCollection::registerInvokeDirectInContext, invokedMethod, context)) {
       return;
@@ -1098,6 +1107,10 @@ public class Enqueuer {
 
   private void traceInvokeInterface(
       DexMethod method, ProgramMethod context, KeepReason keepReason) {
+    if (registerBackportInvoke(method, context)) {
+      return;
+    }
+
     if (!registerMethodWithTargetAndContext(
         methodAccessInfoCollection::registerInvokeInterfaceInContext, method, context)) {
       return;
@@ -1117,8 +1130,20 @@ public class Enqueuer {
     traceInvokeStatic(invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context));
   }
 
+  private boolean registerBackportInvoke(DexMethod invokedMethod, ProgramMethod context) {
+    if (backportRewriter != null && backportRewriter.needsDesugaring(invokedMethod)) {
+      methodsWithBackports.putIfAbsent(context.getReference(), context);
+      return true;
+    }
+    return false;
+  }
+
   private void traceInvokeStatic(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
+    if (registerBackportInvoke(invokedMethod, context)) {
+      return;
+    }
+
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     if (dexItemFactory.classMethods.isReflectiveClassLookup(invokedMethod)
         || dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod)) {
@@ -1150,6 +1175,9 @@ public class Enqueuer {
   }
 
   void traceInvokeSuper(DexMethod invokedMethod, ProgramMethod context) {
+    if (registerBackportInvoke(invokedMethod, context)) {
+      return;
+    }
     // We have to revisit super invokes based on the context they are found in. The same
     // method descriptor will hit different targets, depending on the context it is used in.
     DexMethod actualTarget = getInvokeSuperTarget(invokedMethod, context);
@@ -1174,6 +1202,10 @@ public class Enqueuer {
 
   private void traceInvokeVirtual(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
+    if (registerBackportInvoke(invokedMethod, context)) {
+      return;
+    }
+
     if (invokedMethod == appView.dexItemFactory().classMethods.newInstance
         || invokedMethod == appView.dexItemFactory().constructorMethods.newInstance) {
       pendingReflectiveUses.add(context);
@@ -2892,6 +2924,7 @@ public class Enqueuer {
     synthesizeInterfaceMethodBridges(additions);
     synthesizeLambdas(additions);
     synthesizeLibraryConversionWrappers(additions);
+    synthesizeBackports(additions);
     if (additions.isEmpty()) {
       return;
     }
@@ -2921,6 +2954,12 @@ public class Enqueuer {
       additions.addLiveMethodWithKeepAction(bridge, KeepMethodInfo.Joiner::pin);
     }
     syntheticInterfaceMethodBridges.clear();
+  }
+
+  private void synthesizeBackports(SyntheticAdditions additions) {
+    for (ProgramMethod method : methodsWithBackports.values()) {
+      backportRewriter.desugar(method, appInfo, additions::addLiveMethod);
+    }
   }
 
   private void synthesizeLambdas(SyntheticAdditions additions) {
