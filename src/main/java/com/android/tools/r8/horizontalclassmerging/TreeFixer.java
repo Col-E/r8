@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 
 /**
  * The tree fixer traverses all program classes and finds and fixes references to old classes which
@@ -52,10 +51,6 @@ class TreeFixer {
   private final SyntheticArgumentClass syntheticArgumentClass;
   private final BiMap<Wrapper<DexMethod>, Wrapper<DexMethod>> reservedInterfaceSignatures =
       HashBiMap.create();
-
-  // Store which methods have been renamed in parent classes.
-  private final Map<DexType, Map<Wrapper<DexMethod>, DexString>> renamedVirtualMethods =
-      new IdentityHashMap<>();
 
   public TreeFixer(
       AppView<AppInfoWithLiveness> appView,
@@ -128,8 +123,13 @@ class TreeFixer {
     Iterable<DexProgramClass> classes = appView.appInfo().classesWithDeterministicOrder();
     Iterables.filter(classes, DexProgramClass::isInterface).forEach(this::fixupInterfaceClass);
 
-    forEachClassTypeTraverseHierarchy(
-        Iterables.filter(classes, clazz -> !clazz.isInterface()), this::fixupProgramClass);
+    classes.forEach(this::fixupProgramClassSuperType);
+    SubtypingForrestForClasses subtypingForrest = new SubtypingForrestForClasses(appView);
+    // TODO(b/170078037): parallelize this code segment.
+    for (DexProgramClass root : subtypingForrest.getProgramRoots()) {
+      subtypingForrest.traverseNodeDepthFirst(
+          root, new IdentityHashMap<>(), this::fixupProgramClass);
+    }
 
     lensBuilder.remapMethods(movedMethods);
 
@@ -139,14 +139,19 @@ class TreeFixer {
     return lens;
   }
 
-  private void fixupProgramClass(DexProgramClass clazz) {
+  private void fixupProgramClassSuperType(DexProgramClass clazz) {
+    clazz.superType = fixupType(clazz.superType);
+  }
+
+  private Map<Wrapper<DexMethod>, DexString> fixupProgramClass(
+      DexProgramClass clazz, Map<Wrapper<DexMethod>, DexString> remappedVirtualMethods) {
     assert !clazz.isInterface();
 
     // TODO(b/169395592): ensure merged classes have been removed using:
     //   assert !mergedClasses.hasBeenMergedIntoDifferentType(clazz.type);
 
-    Map<Wrapper<DexMethod>, DexString> renamedClassVirtualMethods =
-        new HashMap<>(renamedVirtualMethods.getOrDefault(clazz.superType, new HashMap<>()));
+    Map<Wrapper<DexMethod>, DexString> remappedClassVirtualMethods =
+        new HashMap<>(remappedVirtualMethods);
 
     Set<DexMethod> newDirectMethodReferences = new LinkedHashSet<>();
     Set<DexMethod> newVirtualMethodReferences = new LinkedHashSet<>();
@@ -155,39 +160,16 @@ class TreeFixer {
         .getMethodCollection()
         .replaceVirtualMethods(
             method ->
-                fixupVirtualMethod(renamedClassVirtualMethods, newVirtualMethodReferences, method));
+                fixupVirtualMethod(
+                    remappedClassVirtualMethods, newVirtualMethodReferences, method));
     clazz
         .getMethodCollection()
         .replaceDirectMethods(method -> fixupDirectMethod(newDirectMethodReferences, method));
 
-    if (!renamedClassVirtualMethods.isEmpty()) {
-      renamedVirtualMethods.put(clazz.type, renamedClassVirtualMethods);
-    }
     fixupFields(clazz.staticFields(), clazz::setStaticField);
     fixupFields(clazz.instanceFields(), clazz::setInstanceField);
-  }
 
-  private void traverseUp(
-      DexProgramClass clazz, Set<DexProgramClass> seenClasses, Consumer<DexProgramClass> fn) {
-    if (clazz == null || !seenClasses.add(clazz)) {
-      return;
-    }
-
-    clazz.superType = mergedClasses.getMergeTargetOrDefault(clazz.superType);
-    if (clazz.superType != null) {
-      DexProgramClass superClass = appView.programDefinitionFor(clazz.superType, clazz);
-      traverseUp(superClass, seenClasses, fn);
-    }
-
-    fn.accept(clazz);
-  }
-
-  private void forEachClassTypeTraverseHierarchy(
-      Iterable<DexProgramClass> classes, Consumer<DexProgramClass> fn) {
-    Set<DexProgramClass> seenClasses = Sets.newIdentityHashSet();
-    for (DexProgramClass clazz : classes) {
-      traverseUp(clazz, seenClasses, fn);
-    }
+    return remappedClassVirtualMethods;
   }
 
   private DexEncodedMethod fixupVirtualInterfaceMethod(DexEncodedMethod method) {

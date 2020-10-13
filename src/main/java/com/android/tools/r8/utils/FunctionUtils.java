@@ -4,10 +4,19 @@
 
 package com.android.tools.r8.utils;
 
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class FunctionUtils {
+
+  public static <S, T, R> Function<S, Function<T, R>> curry(BiFunction<S, T, R> function) {
+    return arg -> arg2 -> function.apply(arg, arg2);
+  }
+
+  public static <S, T, R> Function<T, R> apply(BiFunction<S, T, R> function, S arg) {
+    return curry(function).apply(arg);
+  }
 
   public static <T, R> void forEachApply(
       Iterable<T> list, Function<T, Consumer<R>> func, R argument) {
