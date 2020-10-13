@@ -465,7 +465,8 @@ public class RewrittenPrototypeDescription {
     if (parameters.isEmpty()) {
       return this;
     }
-    List<ExtraParameter> newExtraParameters = new ArrayList<>();
+    List<ExtraParameter> newExtraParameters =
+        new ArrayList<>(extraParameters.size() + parameters.size());
     newExtraParameters.addAll(extraParameters);
     newExtraParameters.addAll(parameters);
     return new RewrittenPrototypeDescription(

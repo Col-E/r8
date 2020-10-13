@@ -85,7 +85,6 @@ import com.android.tools.r8.shaking.AbstractMethodRemover;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ClassInitFieldSynthesizer;
-import com.android.tools.r8.shaking.ClassMergingEnqueuerExtension;
 import com.android.tools.r8.shaking.DefaultTreePrunerConfiguration;
 import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
@@ -99,6 +98,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationUtils;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 import com.android.tools.r8.shaking.StaticClassMerger;
 import com.android.tools.r8.shaking.TreePruner;
 import com.android.tools.r8.shaking.TreePrunerConfiguration;
@@ -324,8 +324,8 @@ public class R8 {
       timing.begin("Strip unused code");
       Set<DexType> classesToRetainInnerClassAttributeFor = null;
       Set<DexType> missingClasses = null;
-      ClassMergingEnqueuerExtension classMergingEnqueuerExtension =
-          new ClassMergingEnqueuerExtension(appView.dexItemFactory());
+      RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder =
+          new RuntimeTypeCheckInfo.Builder(appView.dexItemFactory());
       try {
         // TODO(b/154849103): Find a better way to determine missing classes.
         missingClasses = new SubtypingInfo(appView).getMissingClasses();
@@ -379,7 +379,8 @@ public class R8 {
                 executorService,
                 appView,
                 subtypingInfo,
-                classMergingEnqueuerExtension);
+                classMergingEnqueuerExtensionBuilder);
+
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
@@ -506,6 +507,7 @@ public class R8 {
       boolean isKotlinLibraryCompilationWithInlinePassThrough =
           options.enableCfByteCodePassThrough && appView.hasCfByteCodePassThroughMethods();
 
+      RuntimeTypeCheckInfo runtimeTypeCheckInfo = classMergingEnqueuerExtensionBuilder.build();
       if (!isKotlinLibraryCompilationWithInlinePassThrough
           && options.getProguardConfiguration().isOptimizing()) {
         if (options.enableStaticClassMerging) {
@@ -529,6 +531,7 @@ public class R8 {
           if (lens != null) {
             appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
             appView.rewriteWithLens(lens);
+            runtimeTypeCheckInfo = runtimeTypeCheckInfo.rewriteWithLens(lens);
           }
           timing.end();
         }
@@ -564,7 +567,7 @@ public class R8 {
           timing.begin("HorizontalClassMerger");
           HorizontalClassMerger merger =
               new HorizontalClassMerger(
-                  appViewWithLiveness, mainDexTracingResult, classMergingEnqueuerExtension);
+                  appViewWithLiveness, mainDexTracingResult, runtimeTypeCheckInfo);
           DirectMappedDexApplication.Builder appBuilder =
               appView.appInfo().app().asDirect().builder();
           HorizontalClassMergerGraphLens lens = merger.run(appBuilder);
@@ -572,12 +575,13 @@ public class R8 {
             DirectMappedDexApplication app = appBuilder.build();
             appView.removePrunedClasses(app, appView.horizontallyMergedClasses().getSources());
             appView.rewriteWithLens(lens);
+
+            // Only required for class merging, clear instance to save memory.
+            runtimeTypeCheckInfo = null;
           }
           timing.end();
         }
 
-        // Only required for class merging, clear instance to save memory.
-        classMergingEnqueuerExtension = null;
       }
 
       // None of the optimizations above should lead to the creation of type lattice elements.
@@ -998,7 +1002,7 @@ public class R8 {
       ExecutorService executorService,
       AppView<AppInfoWithClassHierarchy> appView,
       SubtypingInfo subtypingInfo,
-      ClassMergingEnqueuerExtension classMergingEnqueuerExtension)
+      RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder)
       throws ExecutionException {
     Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo);
     enqueuer.setAnnotationRemoverBuilder(annotationRemoverBuilder);
@@ -1012,7 +1016,7 @@ public class R8 {
     }
 
     if (options.isClassMergingExtensionRequired()) {
-      classMergingEnqueuerExtension.attach(enqueuer);
+      classMergingEnqueuerExtensionBuilder.attach(enqueuer);
     }
 
     AppView<AppInfoWithLiveness> appViewWithLiveness =

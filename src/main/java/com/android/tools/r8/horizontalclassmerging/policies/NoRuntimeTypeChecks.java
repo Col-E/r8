@@ -6,18 +6,18 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
-import com.android.tools.r8.shaking.ClassMergingEnqueuerExtension;
+import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 
 public class NoRuntimeTypeChecks extends SingleClassPolicy {
-  private final ClassMergingEnqueuerExtension classMergingEnqueuerExtension;
+  private final RuntimeTypeCheckInfo runtimeTypeCheckInfo;
 
-  public NoRuntimeTypeChecks(ClassMergingEnqueuerExtension classMergingEnqueuerExtension) {
-    this.classMergingEnqueuerExtension = classMergingEnqueuerExtension;
+  public NoRuntimeTypeChecks(RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
+    this.runtimeTypeCheckInfo = runtimeTypeCheckInfo;
   }
 
   @Override
   public boolean canMerge(DexProgramClass clazz) {
     // We currently assume we only merge classes that implement the same set of interfaces.
-    return !classMergingEnqueuerExtension.isRuntimeCheckType(clazz);
+    return !runtimeTypeCheckInfo.isRuntimeCheckType(clazz);
   }
 }
