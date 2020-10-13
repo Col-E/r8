@@ -9,7 +9,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
@@ -165,7 +164,7 @@ public class CfLogicalBinop extends CfInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexProgramClass context) {
+      InliningConstraints inliningConstraints, ProgramMethod context) {
     return inliningConstraints.forBinop();
   }
 

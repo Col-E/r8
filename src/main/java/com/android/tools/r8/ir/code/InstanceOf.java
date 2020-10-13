@@ -88,7 +88,7 @@ public class InstanceOf extends Instruction {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forInstanceOf(type, context.getHolder());
+    return inliningConstraints.forInstanceOf(type, context);
   }
 
   @Override

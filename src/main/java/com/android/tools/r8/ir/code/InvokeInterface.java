@@ -119,7 +119,7 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forInvokeInterface(getInvokedMethod(), context.getHolder());
+    return inliningConstraints.forInvokeInterface(getInvokedMethod(), context);
   }
 
   @Override

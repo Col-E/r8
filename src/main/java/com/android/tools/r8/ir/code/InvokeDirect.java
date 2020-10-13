@@ -146,7 +146,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forInvokeDirect(getInvokedMethod(), context.getHolder());
+    return inliningConstraints.forInvokeDirect(getInvokedMethod(), context);
   }
 
   @Override

@@ -1683,12 +1683,18 @@ public class VerticalClassMerger {
       Code code = method.getDefinition().getCode();
       if (code.isCfCode()) {
         CfCode cfCode = code.asCfCode();
+
+        // If we can't find a context to perform the inlining check on, abort.
+        if (Iterables.isEmpty(context.programInstanceInitializers())) {
+          return AbortReason.UNSAFE_INLINING;
+        }
+
         ConstraintWithTarget constraint =
             cfCode.computeInliningConstraint(
                 method,
                 appView,
                 new SingleTypeMapperGraphLens(method.getHolderType(), context),
-                context);
+                context.programInstanceInitializers().iterator().next());
         if (constraint == ConstraintWithTarget.NEVER) {
           return AbortReason.UNSAFE_INLINING;
         }

@@ -37,15 +37,12 @@ public class WhyAreYouKeepingAllTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  private final TestParameters parameters;
-
   public WhyAreYouKeepingAllTest(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test
   public void test() throws Throwable {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(Backend.CF)
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
         .addKeepRuleFiles(MAIN_KEEP)

@@ -20,6 +20,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -155,6 +156,18 @@ public class DexProgramClass extends DexClass
       Predicate<DexEncodedMethod> predicate, Consumer<ProgramMethod> consumer) {
     methodCollection.forEachMethodMatching(
         predicate, method -> consumer.accept(new ProgramMethod(this, method)));
+  }
+
+  public Iterable<ProgramMethod> directProgramMethods() {
+    return Iterables.transform(directMethods(), method -> new ProgramMethod(this, method));
+  }
+
+  public Iterable<ProgramMethod> directProgramMethods(Predicate<DexEncodedMethod> predicate) {
+    return Iterables.transform(directMethods(predicate), method -> new ProgramMethod(this, method));
+  }
+
+  public Iterable<ProgramMethod> programInstanceInitializers() {
+    return directProgramMethods(DexEncodedMethod::isInstanceInitializer);
   }
 
   public void forEachProgramDirectMethod(Consumer<ProgramMethod> consumer) {

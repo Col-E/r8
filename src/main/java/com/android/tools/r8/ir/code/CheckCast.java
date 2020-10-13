@@ -157,7 +157,7 @@ public class CheckCast extends Instruction {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forCheckCast(type, context.getHolder());
+    return inliningConstraints.forCheckCast(type, context);
   }
 
   @Override

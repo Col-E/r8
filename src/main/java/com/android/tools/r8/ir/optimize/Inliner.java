@@ -365,36 +365,36 @@ public class Inliner implements PostOptimization {
     }
 
     public static ConstraintWithTarget deriveConstraint(
-        DexProgramClass context, DexType targetHolder, AccessFlags<?> flags, AppView<?> appView) {
+        ProgramMethod context, DexType targetHolder, AccessFlags<?> flags, AppView<?> appView) {
       if (flags.isPublic()) {
         return ALWAYS;
       } else if (flags.isPrivate()) {
-        if (context.isInANest()) {
-          return NestUtils.sameNest(context.getType(), targetHolder, appView)
+        if (context.getHolder().isInANest()) {
+          return NestUtils.sameNest(context.getHolderType(), targetHolder, appView)
               ? new ConstraintWithTarget(Constraint.SAMENEST, targetHolder)
               : NEVER;
         }
-        return targetHolder == context.type
+        return targetHolder == context.getHolderType()
             ? new ConstraintWithTarget(Constraint.SAMECLASS, targetHolder)
             : NEVER;
       } else if (flags.isProtected()) {
-        if (targetHolder.isSamePackage(context.type)) {
+        if (targetHolder.isSamePackage(context.getHolderType())) {
           // Even though protected, this is visible via the same package from the context.
           return new ConstraintWithTarget(Constraint.PACKAGE, targetHolder);
-        } else if (appView.isSubtype(context.type, targetHolder).isTrue()) {
+        } else if (appView.isSubtype(context.getHolderType(), targetHolder).isTrue()) {
           return new ConstraintWithTarget(Constraint.SUBCLASS, targetHolder);
         }
         return NEVER;
       } else {
         /* package-private */
-        return targetHolder.isSamePackage(context.type)
+        return targetHolder.isSamePackage(context.getHolderType())
             ? new ConstraintWithTarget(Constraint.PACKAGE, targetHolder)
             : NEVER;
       }
     }
 
     public static ConstraintWithTarget classIsVisible(
-        DexProgramClass context, DexType clazz, AppView<?> appView) {
+        ProgramMethod context, DexType clazz, AppView<?> appView) {
       if (clazz.isArrayType()) {
         return classIsVisible(context, clazz.toArrayElementType(appView.dexItemFactory()), appView);
       }

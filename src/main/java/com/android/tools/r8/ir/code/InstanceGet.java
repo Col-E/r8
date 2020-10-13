@@ -144,7 +144,7 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forInstanceGet(getField(), context.getHolder());
+    return inliningConstraints.forInstanceGet(getField(), context);
   }
 
   @Override

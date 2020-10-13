@@ -103,7 +103,7 @@ public class NewInstance extends Instruction {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forNewInstance(clazz, context.getHolder());
+    return inliningConstraints.forNewInstance(clazz, context);
   }
 
   @Override

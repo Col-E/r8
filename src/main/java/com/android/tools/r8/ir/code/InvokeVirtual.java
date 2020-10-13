@@ -142,7 +142,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forInvokeVirtual(getInvokedMethod(), context.getHolder());
+    return inliningConstraints.forInvokeVirtual(getInvokedMethod(), context);
   }
 
   @Override

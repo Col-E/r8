@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
@@ -44,8 +45,6 @@ public class InliningConstraints {
   private GraphLens graphLens;
 
   public InliningConstraints(AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
-    assert graphLens.isContextFreeForMethods();
-    assert appView.graphLens() != graphLens || graphLens.isIdentityLens();
     this.appView = appView;
     this.graphLens = graphLens; // Note: Intentionally *not* appView.graphLens().
   }
@@ -90,16 +89,15 @@ public class InliningConstraints {
     return ConstraintWithTarget.ALWAYS;
   }
 
-  public ConstraintWithTarget forDexItemBasedConstString(
-      DexReference type, DexProgramClass context) {
+  public ConstraintWithTarget forDexItemBasedConstString(DexReference type, ProgramMethod context) {
     return ConstraintWithTarget.ALWAYS;
   }
 
-  public ConstraintWithTarget forCheckCast(DexType type, DexProgramClass context) {
+  public ConstraintWithTarget forCheckCast(DexType type, ProgramMethod context) {
     return ConstraintWithTarget.classIsVisible(context, type, appView);
   }
 
-  public ConstraintWithTarget forConstClass(DexType type, DexProgramClass context) {
+  public ConstraintWithTarget forConstClass(DexType type, ProgramMethod context) {
     return ConstraintWithTarget.classIsVisible(context, type, appView);
   }
 
@@ -127,23 +125,23 @@ public class InliningConstraints {
     return ConstraintWithTarget.ALWAYS;
   }
 
-  public ConstraintWithTarget forInitClass(DexType clazz, DexProgramClass context) {
+  public ConstraintWithTarget forInitClass(DexType clazz, ProgramMethod context) {
     return ConstraintWithTarget.classIsVisible(context, clazz, appView);
   }
 
-  public ConstraintWithTarget forInstanceGet(DexField field, DexProgramClass context) {
+  public ConstraintWithTarget forInstanceGet(DexField field, ProgramMethod context) {
     return forFieldInstruction(field, context);
   }
 
-  public ConstraintWithTarget forInstanceOf(DexType type, DexProgramClass context) {
+  public ConstraintWithTarget forInstanceOf(DexType type, ProgramMethod context) {
     return ConstraintWithTarget.classIsVisible(context, type, appView);
   }
 
-  public ConstraintWithTarget forInstancePut(DexField field, DexProgramClass context) {
+  public ConstraintWithTarget forInstancePut(DexField field, ProgramMethod context) {
     return forFieldInstruction(field, context);
   }
 
-  public ConstraintWithTarget forInvoke(DexMethod method, Type type, DexProgramClass context) {
+  public ConstraintWithTarget forInvoke(DexMethod method, Type type, ProgramMethod context) {
     switch (type) {
       case DIRECT:
         return forInvokeDirect(method, context);
@@ -169,8 +167,9 @@ public class InliningConstraints {
     return ConstraintWithTarget.NEVER;
   }
 
-  public ConstraintWithTarget forInvokeDirect(DexMethod method, DexProgramClass context) {
-    DexMethod lookup = graphLens.lookupMethod(method);
+  public ConstraintWithTarget forInvokeDirect(DexMethod method, ProgramMethod context) {
+    DexMethod lookup =
+        graphLens.lookupMethod(method, context.getReference(), Type.DIRECT).getReference();
     if (lookup.holder.isArrayType()) {
       return ConstraintWithTarget.ALWAYS;
     }
@@ -181,25 +180,27 @@ public class InliningConstraints {
     return forResolvedMember(resolutionResult.getInitialResolutionHolder(), context, target);
   }
 
-  public ConstraintWithTarget forInvokeInterface(DexMethod method, DexProgramClass context) {
-    DexMethod lookup = graphLens.lookupMethod(method);
+  public ConstraintWithTarget forInvokeInterface(DexMethod method, ProgramMethod context) {
+    DexMethod lookup =
+        graphLens.lookupMethod(method, context.getReference(), Type.INTERFACE).getReference();
     return forVirtualInvoke(lookup, context, true);
   }
 
-  public ConstraintWithTarget forInvokeMultiNewArray(DexType type, DexProgramClass context) {
+  public ConstraintWithTarget forInvokeMultiNewArray(DexType type, ProgramMethod context) {
     return ConstraintWithTarget.classIsVisible(context, type, appView);
   }
 
-  public ConstraintWithTarget forInvokeNewArray(DexType type, DexProgramClass context) {
+  public ConstraintWithTarget forInvokeNewArray(DexType type, ProgramMethod context) {
     return ConstraintWithTarget.classIsVisible(context, type, appView);
   }
 
-  public ConstraintWithTarget forInvokePolymorphic(DexMethod method, DexProgramClass context) {
+  public ConstraintWithTarget forInvokePolymorphic(DexMethod method, ProgramMethod context) {
     return ConstraintWithTarget.NEVER;
   }
 
-  public ConstraintWithTarget forInvokeStatic(DexMethod method, DexProgramClass context) {
-    DexMethod lookup = graphLens.lookupMethod(method);
+  public ConstraintWithTarget forInvokeStatic(DexMethod method, ProgramMethod context) {
+    DexMethod lookup =
+        graphLens.lookupMethod(method, context.getReference(), Type.STATIC).getReference();
     if (lookup.holder.isArrayType()) {
       return ConstraintWithTarget.ALWAYS;
     }
@@ -220,19 +221,21 @@ public class InliningConstraints {
   @SuppressWarnings("ConstantConditions")
   private DexEncodedMethod singleTargetWhileVerticalClassMerging(
       ResolutionResult resolutionResult,
-      DexProgramClass context,
+      ProgramMethod context,
       TriFunction<ResolutionResult, DexProgramClass, AppInfoWithClassHierarchy, DexEncodedMethod>
           lookup) {
     if (!resolutionResult.isSingleResolution()) {
       return null;
     }
-    DexEncodedMethod dexEncodedMethod = lookup.apply(resolutionResult, context, appView.appInfo());
+    DexEncodedMethod dexEncodedMethod =
+        lookup.apply(resolutionResult, context.getHolder(), appView.appInfo());
     if (!isVerticalClassMerging() || dexEncodedMethod != null) {
       return dexEncodedMethod;
     }
     assert isVerticalClassMerging();
-    assert graphLens.lookupType(context.superType) == context.type;
-    DexProgramClass superContext = appView.programDefinitionFor(context.superType, context);
+    assert graphLens.lookupType(context.getHolder().superType) == context.getHolderType();
+    DexProgramClass superContext =
+        appView.programDefinitionFor(context.getHolder().superType, context);
     if (superContext == null) {
       return null;
     }
@@ -245,13 +248,14 @@ public class InliningConstraints {
     return null;
   }
 
-  public ConstraintWithTarget forInvokeSuper(DexMethod method, DexProgramClass context) {
+  public ConstraintWithTarget forInvokeSuper(DexMethod method, ProgramMethod context) {
     // The semantics of invoke super depend on the context.
-    return new ConstraintWithTarget(Constraint.SAMECLASS, context.type);
+    return new ConstraintWithTarget(Constraint.SAMECLASS, context.getHolderType());
   }
 
-  public ConstraintWithTarget forInvokeVirtual(DexMethod method, DexProgramClass context) {
-    DexMethod lookup = graphLens.lookupMethod(method);
+  public ConstraintWithTarget forInvokeVirtual(DexMethod method, ProgramMethod context) {
+    DexMethod lookup =
+        graphLens.lookupMethod(method, context.getReference(), Type.VIRTUAL).getReference();
     return forVirtualInvoke(lookup, context, false);
   }
 
@@ -275,7 +279,7 @@ public class InliningConstraints {
     return ConstraintWithTarget.ALWAYS;
   }
 
-  public ConstraintWithTarget forNewArrayEmpty(DexType type, DexProgramClass context) {
+  public ConstraintWithTarget forNewArrayEmpty(DexType type, ProgramMethod context) {
     return ConstraintWithTarget.classIsVisible(context, type, appView);
   }
 
@@ -283,7 +287,7 @@ public class InliningConstraints {
     return ConstraintWithTarget.ALWAYS;
   }
 
-  public ConstraintWithTarget forNewInstance(DexType type, DexProgramClass context) {
+  public ConstraintWithTarget forNewInstance(DexType type, ProgramMethod context) {
     return ConstraintWithTarget.classIsVisible(context, type, appView);
   }
 
@@ -299,11 +303,11 @@ public class InliningConstraints {
     return ConstraintWithTarget.ALWAYS;
   }
 
-  public ConstraintWithTarget forStaticGet(DexField field, DexProgramClass context) {
+  public ConstraintWithTarget forStaticGet(DexField field, ProgramMethod context) {
     return forFieldInstruction(field, context);
   }
 
-  public ConstraintWithTarget forStaticPut(DexField field, DexProgramClass context) {
+  public ConstraintWithTarget forStaticPut(DexField field, ProgramMethod context) {
     return forFieldInstruction(field, context);
   }
 
@@ -331,7 +335,7 @@ public class InliningConstraints {
     return ConstraintWithTarget.NEVER;
   }
 
-  private ConstraintWithTarget forFieldInstruction(DexField field, DexProgramClass context) {
+  private ConstraintWithTarget forFieldInstruction(DexField field, ProgramMethod context) {
     DexField lookup = graphLens.lookupField(field);
     FieldResolutionResult fieldResolutionResult = appView.appInfo().resolveField(lookup);
     return forResolvedMember(
@@ -341,7 +345,7 @@ public class InliningConstraints {
   }
 
   private ConstraintWithTarget forVirtualInvoke(
-      DexMethod method, DexProgramClass context, boolean isInterface) {
+      DexMethod method, ProgramMethod context, boolean isInterface) {
     if (method.holder.isArrayType()) {
       return ConstraintWithTarget.ALWAYS;
     }
@@ -359,7 +363,7 @@ public class InliningConstraints {
 
   private ConstraintWithTarget forResolvedMember(
       DexClass initialResolutionHolder,
-      DexProgramClass context,
+      ProgramMethod context,
       DexEncodedMember<?, ?> resolvedMember) {
     if (resolvedMember == null) {
       // This will fail at runtime.

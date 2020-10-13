@@ -107,7 +107,7 @@ public class InvokeNewArray extends Invoke {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forInvokeNewArray(type, context.getHolder());
+    return inliningConstraints.forInvokeNewArray(type, context);
   }
 
   @Override

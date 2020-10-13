@@ -160,7 +160,7 @@ public class DexItemBasedConstString extends ConstInstruction {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forDexItemBasedConstString(item, context.getHolder());
+    return inliningConstraints.forDexItemBasedConstString(item, context);
   }
 
   @Override

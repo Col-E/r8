@@ -113,7 +113,7 @@ public class NewArrayEmpty extends Instruction {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forNewArrayEmpty(type, context.getHolder());
+    return inliningConstraints.forNewArrayEmpty(type, context);
   }
 
   @Override

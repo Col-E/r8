@@ -184,7 +184,7 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forInstancePut(getField(), context.getHolder());
+    return inliningConstraints.forInstancePut(getField(), context);
   }
 
   @Override

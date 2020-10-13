@@ -618,7 +618,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
       ProgramMethod method,
       AppView<AppInfoWithLiveness> appView,
       GraphLens graphLens,
-      DexProgramClass context) {
+      ProgramMethod context) {
     InliningConstraints inliningConstraints = new InliningConstraints(appView, graphLens);
     if (appView.options().isInterfaceMethodDesugaringEnabled()) {
       // TODO(b/120130831): Conservatively need to say "no" at this point if there are invocations

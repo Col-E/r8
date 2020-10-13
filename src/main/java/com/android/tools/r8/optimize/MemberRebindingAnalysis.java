@@ -248,11 +248,9 @@ public class MemberRebindingAnalysis {
       return false;
     }
     ConstraintWithTarget classVisibility =
-        ConstraintWithTarget.deriveConstraint(
-            context.getHolder(), holderType, holder.accessFlags, appView);
+        ConstraintWithTarget.deriveConstraint(context, holderType, holder.accessFlags, appView);
     ConstraintWithTarget methodVisibility =
-        ConstraintWithTarget.deriveConstraint(
-            context.getHolder(), holderType, method.accessFlags, appView);
+        ConstraintWithTarget.deriveConstraint(context, holderType, method.accessFlags, appView);
     // We may need bridge for visibility if the target class is not visible while the target method
     // is visible from the calling context.
     return classVisibility == ConstraintWithTarget.NEVER

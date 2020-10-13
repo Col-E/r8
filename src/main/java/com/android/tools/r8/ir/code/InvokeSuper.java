@@ -120,7 +120,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forInvokeSuper(getInvokedMethod(), context.getHolder());
+    return inliningConstraints.forInvokeSuper(getInvokedMethod(), context);
   }
 
   @Override

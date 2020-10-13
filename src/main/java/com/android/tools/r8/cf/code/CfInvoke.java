@@ -249,7 +249,7 @@ public class CfInvoke extends CfInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexProgramClass context) {
+      InliningConstraints inliningConstraints, ProgramMethod context) {
     GraphLens graphLens = inliningConstraints.getGraphLens();
     AppView<?> appView = inliningConstraints.getAppView();
     DexMethod target = method;
@@ -267,7 +267,7 @@ public class CfInvoke extends CfInstruction {
         if (appView.dexItemFactory().isConstructor(target)) {
           type = Type.DIRECT;
           assert noNeedToUseGraphLens(target, type, graphLens);
-        } else if (target.holder == context.type) {
+        } else if (target.holder == context.getHolderType()) {
           // The method could have been publicized.
           type = graphLens.lookupMethod(target, null, Type.DIRECT).getType();
           assert type == Type.DIRECT || type == Type.VIRTUAL;
@@ -298,7 +298,7 @@ public class CfInvoke extends CfInstruction {
           type = Type.VIRTUAL;
           // Instructions that target a private method in the same class translates to
           // invoke-direct.
-          if (target.holder == context.type) {
+          if (target.holder == context.getHolderType()) {
             DexClass clazz = appView.definitionFor(target.holder);
             if (clazz != null && clazz.lookupDirectMethod(target) != null) {
               type = Type.DIRECT;

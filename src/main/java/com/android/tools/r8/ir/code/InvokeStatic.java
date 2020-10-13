@@ -130,7 +130,7 @@ public class InvokeStatic extends InvokeMethod {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forInvokeStatic(getInvokedMethod(), context.getHolder());
+    return inliningConstraints.forInvokeStatic(getInvokedMethod(), context);
   }
 
   @Override

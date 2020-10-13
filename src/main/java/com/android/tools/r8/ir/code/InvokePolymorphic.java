@@ -140,7 +140,7 @@ public class InvokePolymorphic extends InvokeMethod {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forInvokePolymorphic(getInvokedMethod(), context.getHolder());
+    return inliningConstraints.forInvokePolymorphic(getInvokedMethod(), context);
   }
 
   @Override

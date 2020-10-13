@@ -158,7 +158,7 @@ public class ConstClass extends ConstInstruction {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forConstClass(clazz, context.getHolder());
+    return inliningConstraints.forConstClass(clazz, context);
   }
 
   @Override

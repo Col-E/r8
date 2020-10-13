@@ -158,7 +158,7 @@ public class InitClass extends Instruction {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forInitClass(clazz, context.getHolder());
+    return inliningConstraints.forInitClass(clazz, context);
   }
 
   @Override

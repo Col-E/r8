@@ -180,7 +180,7 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forStaticPut(getField(), context.getHolder());
+    return inliningConstraints.forStaticPut(getField(), context);
   }
 
   @Override

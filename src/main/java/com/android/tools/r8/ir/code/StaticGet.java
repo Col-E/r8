@@ -170,7 +170,7 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, ProgramMethod context) {
-    return inliningConstraints.forStaticGet(getField(), context.getHolder());
+    return inliningConstraints.forStaticGet(getField(), context);
   }
 
   @Override
