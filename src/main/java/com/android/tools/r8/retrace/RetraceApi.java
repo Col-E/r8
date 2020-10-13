@@ -14,11 +14,11 @@ import com.android.tools.r8.references.TypeReference;
 @Keep
 public interface RetraceApi {
 
+  RetraceClassResult retrace(ClassReference classReference);
+
   RetraceMethodResult retrace(MethodReference methodReference);
 
   RetraceFieldResult retrace(FieldReference fieldReference);
-
-  RetraceClassResult retrace(ClassReference classReference);
 
   RetraceTypeResult retrace(TypeReference typeReference);
 }

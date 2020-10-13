@@ -57,6 +57,6 @@ public class Retracer implements RetraceApi {
 
   @Override
   public RetraceTypeResult retrace(TypeReference typeReference) {
-    return new RetraceTypeResult(typeReference, this);
+    return RetraceTypeResult.create(typeReference, this);
   }
 }

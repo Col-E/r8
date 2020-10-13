@@ -523,7 +523,7 @@ public class RetraceRegularExpression {
         for (RetraceString retraceString : strings) {
           retraceResult.forEach(
               element -> {
-                final RetraceString newRetraceString =
+                RetraceString newRetraceString =
                     retraceString.updateContext(
                         context -> context.withClassContext(element, element.getRetracedClass()));
                 retraceStrings.add(newRetraceString);
@@ -761,7 +761,7 @@ public class RetraceRegularExpression {
             }
             return strings;
           }
-          String methodName = matcher.group(captureGroup);
+          String fieldName = matcher.group(captureGroup);
           List<RetraceString> retracedStrings = new ArrayList<>();
           for (RetraceString retraceString : strings) {
             if (retraceString.getClassContext() == null) {
@@ -769,7 +769,7 @@ public class RetraceRegularExpression {
               return strings;
             }
             final RetraceFieldResult retraceFieldResult =
-                retraceString.getClassContext().lookupField(methodName);
+                retraceString.getClassContext().lookupField(fieldName);
             assert !retraceFieldResult.isAmbiguous();
             retraceFieldResult.forEach(
                 element -> {

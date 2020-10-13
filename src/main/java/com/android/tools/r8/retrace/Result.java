@@ -14,4 +14,6 @@ public abstract class Result<R, RR extends Result<R, RR>> {
   public abstract Stream<R> stream();
 
   public abstract RR forEach(Consumer<R> resultConsumer);
+
+  public abstract boolean isAmbiguous();
 }

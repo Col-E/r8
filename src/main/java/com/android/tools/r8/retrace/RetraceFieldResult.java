@@ -9,79 +9,83 @@ import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Pair;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 @Keep
 public class RetraceFieldResult extends Result<RetraceFieldResult.Element, RetraceFieldResult> {
 
-  private final RetraceClassResult.Element classElement;
-  private final List<MemberNaming> memberNamings;
+  private final RetraceClassResult classResult;
+  private final List<Pair<RetraceClassResult.Element, List<MemberNaming>>> memberNamings;
   private final String obfuscatedName;
   private final RetraceApi retracer;
 
   RetraceFieldResult(
-      RetraceClassResult.Element classElement,
-      List<MemberNaming> memberNamings,
+      RetraceClassResult classResult,
+      List<Pair<RetraceClassResult.Element, List<MemberNaming>>> memberNamings,
       String obfuscatedName,
       RetraceApi retracer) {
-    this.classElement = classElement;
+    this.classResult = classResult;
     this.memberNamings = memberNamings;
     this.obfuscatedName = obfuscatedName;
     this.retracer = retracer;
-    assert classElement != null;
-    assert memberNamings == null
-        || (!memberNamings.isEmpty() && memberNamings.stream().allMatch(Objects::nonNull));
+    assert classResult != null;
+    assert !memberNamings.isEmpty();
   }
 
-  private boolean hasRetraceResult() {
-    return memberNamings != null;
-  }
-
+  @Override
   public boolean isAmbiguous() {
-    if (!hasRetraceResult()) {
+    if (memberNamings.size() > 1) {
+      return true;
+    }
+    List<MemberNaming> mappings = memberNamings.get(0).getSecond();
+    if (mappings == null) {
       return false;
     }
-    assert memberNamings != null;
-    return memberNamings.size() > 1;
-  }
-
-  public RetracedField getUnknownReference() {
-    return RetracedField.createUnknown(classElement.getRetracedClass(), obfuscatedName);
+    return mappings.size() > 1;
   }
 
   @Override
   public Stream<Element> stream() {
-    if (!hasRetraceResult()) {
-      return Stream.of(new Element(this, classElement, getUnknownReference()));
-    }
-    assert !memberNamings.isEmpty();
     return memberNamings.stream()
-        .map(
-            memberNaming -> {
-              assert memberNaming.isFieldNaming();
-              FieldSignature fieldSignature =
-                  memberNaming.getOriginalSignature().asFieldSignature();
-              RetracedClass holder =
-                  fieldSignature.isQualified()
-                      ? RetracedClass.create(
-                          Reference.classFromDescriptor(
-                              DescriptorUtils.javaTypeToDescriptor(
-                                  fieldSignature.toHolderFromQualified())))
-                      : classElement.getRetracedClass();
-              return new Element(
-                  this,
-                  classElement,
-                  RetracedField.create(
-                      holder,
-                      Reference.field(
-                          holder.getClassReference(),
-                          fieldSignature.isQualified()
-                              ? fieldSignature.toUnqualifiedName()
-                              : fieldSignature.name,
-                          Reference.typeFromTypeName(fieldSignature.type))));
+        .flatMap(
+            mappedNamePair -> {
+              RetraceClassResult.Element classElement = mappedNamePair.getFirst();
+              List<MemberNaming> memberNamings = mappedNamePair.getSecond();
+              if (memberNamings == null) {
+                return Stream.of(
+                    new RetraceFieldResult.Element(
+                        this,
+                        classElement,
+                        RetracedField.createUnknown(
+                            classElement.getRetracedClass(), obfuscatedName)));
+              }
+              return memberNamings.stream()
+                  .map(
+                      memberNaming -> {
+                        FieldSignature fieldSignature =
+                            memberNaming.getOriginalSignature().asFieldSignature();
+                        RetracedClass holder =
+                            fieldSignature.isQualified()
+                                ? RetracedClass.create(
+                                    Reference.classFromDescriptor(
+                                        DescriptorUtils.javaTypeToDescriptor(
+                                            fieldSignature.toHolderFromQualified())))
+                                : classElement.getRetracedClass();
+                        return new Element(
+                            this,
+                            classElement,
+                            RetracedField.create(
+                                holder,
+                                Reference.field(
+                                    holder.getClassReference(),
+                                    fieldSignature.isQualified()
+                                        ? fieldSignature.toUnqualifiedName()
+                                        : fieldSignature.name,
+                                    Reference.typeFromTypeName(fieldSignature.type))));
+                      });
             });
   }
 

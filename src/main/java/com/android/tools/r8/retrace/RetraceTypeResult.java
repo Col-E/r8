@@ -14,9 +14,13 @@ public class RetraceTypeResult extends Result<Element, RetraceTypeResult> {
   private final TypeReference obfuscatedType;
   private final RetraceApi retracer;
 
-  RetraceTypeResult(TypeReference obfuscatedType, RetraceApi retracer) {
+  private RetraceTypeResult(TypeReference obfuscatedType, RetraceApi retracer) {
     this.obfuscatedType = obfuscatedType;
     this.retracer = retracer;
+  }
+
+  static RetraceTypeResult create(TypeReference obfuscatedType, RetraceApi retracer) {
+    return new RetraceTypeResult(obfuscatedType, retracer);
   }
 
   @Override
@@ -36,6 +40,7 @@ public class RetraceTypeResult extends Result<Element, RetraceTypeResult> {
         .map(classElement -> new Element(classElement.getRetracedClass().getRetracedType()));
   }
 
+  @Override
   public boolean isAmbiguous() {
     return false;
   }

@@ -15,7 +15,9 @@ import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.RetraceClassResult.Element;
-import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.Pair;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -61,7 +63,7 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
           if (mappedRanges == null || mappedRanges.getMappedRanges().isEmpty()) {
             return null;
           }
-          return mappedRanges;
+          return mappedRanges.getMappedRanges();
         },
         RetraceMethodResult::new);
   }
@@ -70,17 +72,20 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
       String name,
       BiFunction<ClassNamingForNameMapper, String, T> lookupFunction,
       ResultConstructor<T, R> constructor) {
-    Box<R> elementBox = new Box<>();
+    List<Pair<Element, T>> mappings = new ArrayList<>();
     forEach(
         element -> {
-          assert !elementBox.isSet();
-          T mappedRangesForT = null;
-          if (element.mapper != null) {
-            mappedRangesForT = lookupFunction.apply(element.mapper, name);
+          if (mapper != null) {
+            assert element.mapper != null;
+            T mappedElements = lookupFunction.apply(element.mapper, name);
+            if (mappedElements != null) {
+              mappings.add(new Pair<>(element, mappedElements));
+              return;
+            }
           }
-          elementBox.set(constructor.create(element, mappedRangesForT, name, retracer));
+          mappings.add(new Pair<>(element, null));
         });
-    return elementBox.get();
+    return constructor.create(this, mappings, name, retracer);
   }
 
   boolean hasRetraceResult() {
@@ -106,9 +111,14 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
   }
 
   private interface ResultConstructor<T, R> {
-    R create(Element element, T mappings, String obfuscatedName, RetraceApi retraceApi);
+    R create(
+        RetraceClassResult classResult,
+        List<Pair<Element, T>> mappings,
+        String obfuscatedName,
+        RetraceApi retraceApi);
   }
 
+  @Override
   public boolean isAmbiguous() {
     // Currently we have no way of producing ambiguous class results.
     return false;
@@ -180,7 +190,7 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
             if (mappedRanges == null || mappedRanges.getMappedRanges().isEmpty()) {
               return null;
             }
-            return mappedRanges;
+            return mappedRanges.getMappedRanges();
           },
           RetraceMethodResult::new);
     }
@@ -189,11 +199,17 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
         String name,
         BiFunction<ClassNamingForNameMapper, String, T> lookupFunction,
         ResultConstructor<T, R> constructor) {
-      return constructor.create(
-          this,
-          mapper != null ? lookupFunction.apply(mapper, name) : null,
-          name,
-          classResult.retracer);
+      List<Pair<Element, T>> mappings = ImmutableList.of();
+      if (mapper != null) {
+        T result = lookupFunction.apply(mapper, name);
+        if (result != null) {
+          mappings = ImmutableList.of(new Pair<>(this, result));
+        }
+      }
+      if (mappings.isEmpty()) {
+        mappings = ImmutableList.of(new Pair<>(this, null));
+      }
+      return constructor.create(classResult, mappings, name, classResult.retracer);
     }
   }
 }
