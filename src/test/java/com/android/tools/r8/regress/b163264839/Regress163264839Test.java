@@ -10,6 +10,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
 import com.android.tools.r8.transformers.MethodTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -63,7 +64,7 @@ public class Regress163264839Test extends TestBase {
     String oldLambdaName = "lambda$identity$0";
     String newLambdaName = "lambda$identity$foo";
     return transformer(Function.class)
-        .renameMethod(oldLambdaName, newLambdaName)
+        .renameMethod(MethodPredicate.onName(oldLambdaName), newLambdaName)
         .addMethodTransformer(
             new MethodTransformer() {
               @Override

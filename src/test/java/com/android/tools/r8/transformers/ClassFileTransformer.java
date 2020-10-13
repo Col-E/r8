@@ -483,11 +483,24 @@ public class ClassFileTransformer {
   @FunctionalInterface
   public interface MethodPredicate {
     boolean test(int access, String name, String descriptor, String signature, String[] exceptions);
+
+    static MethodPredicate onName(String name) {
+      return (access, otherName, descriptor, signature, exceptions) -> name.equals(otherName);
+    }
   }
 
   @FunctionalInterface
   public interface FieldPredicate {
     boolean test(int access, String name, String descriptor, String signature, Object value);
+
+    static FieldPredicate onNameAndSignature(String name, String descriptor) {
+      return (access, otherName, otherDescriptor, signature, value) ->
+          name.equals(otherName) && descriptor.equals(otherDescriptor);
+    }
+
+    static FieldPredicate onName(String name) {
+      return (access, otherName, descriptor, signature, value) -> name.equals(otherName);
+    }
   }
 
   @FunctionalInterface
@@ -518,14 +531,16 @@ public class ClassFileTransformer {
         });
   }
 
-  public ClassFileTransformer renameMethod(String oldName, String newName) {
+  public ClassFileTransformer renameMethod(MethodPredicate predicate, String newName) {
     return addClassTransformer(
         new ClassTransformer() {
           @Override
           public MethodVisitor visitMethod(
               int access, String name, String descriptor, String signature, String[] exceptions) {
-            return super.visitMethod(
-                access, name.equals(oldName) ? newName : name, descriptor, signature, exceptions);
+            if (predicate.test(access, name, descriptor, signature, exceptions)) {
+              return super.visitMethod(access, newName, descriptor, signature, exceptions);
+            }
+            return super.visitMethod(access, name, descriptor, signature, exceptions);
           }
         });
   }
@@ -558,13 +573,13 @@ public class ClassFileTransformer {
         });
   }
 
-  public ClassFileTransformer renameField(FieldSignaturePredicate predicate, String newName) {
+  public ClassFileTransformer renameField(FieldPredicate predicate, String newName) {
     return addClassTransformer(
         new ClassTransformer() {
           @Override
           public FieldVisitor visitField(
               int access, String name, String descriptor, String signature, Object value) {
-            if (predicate.test(name, descriptor)) {
+            if (predicate.test(access, name, descriptor, signature, value)) {
               return super.visitField(access, newName, descriptor, signature, value);
             } else {
               return super.visitField(access, name, descriptor, signature, value);
@@ -576,7 +591,7 @@ public class ClassFileTransformer {
   public ClassFileTransformer renameAndRemapField(String oldName, String newName) {
     FieldSignaturePredicate matchPredicate = (name, signature) -> oldName.equals(name);
     remapField(matchPredicate, newName);
-    return renameField(matchPredicate, newName);
+    return renameField(FieldPredicate.onName(oldName), newName);
   }
 
   /** Abstraction of the MethodVisitor.visitMethodInsn method with its sub visitor. */
