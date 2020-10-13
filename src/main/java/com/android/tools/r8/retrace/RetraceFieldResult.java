@@ -19,17 +19,17 @@ public class RetraceFieldResult extends Result<RetraceFieldResult.Element, Retra
 
   private final RetraceClassResult classResult;
   private final List<Pair<RetraceClassResult.Element, List<MemberNaming>>> memberNamings;
-  private final String obfuscatedName;
+  private final FieldDefinition fieldDefinition;
   private final RetraceApi retracer;
 
   RetraceFieldResult(
       RetraceClassResult classResult,
       List<Pair<RetraceClassResult.Element, List<MemberNaming>>> memberNamings,
-      String obfuscatedName,
+      FieldDefinition fieldDefinition,
       RetraceApi retracer) {
     this.classResult = classResult;
     this.memberNamings = memberNamings;
-    this.obfuscatedName = obfuscatedName;
+    this.fieldDefinition = fieldDefinition;
     this.retracer = retracer;
     assert classResult != null;
     assert !memberNamings.isEmpty();
@@ -59,8 +59,9 @@ public class RetraceFieldResult extends Result<RetraceFieldResult.Element, Retra
                     new RetraceFieldResult.Element(
                         this,
                         classElement,
-                        RetracedField.createUnknown(
-                            classElement.getRetracedClass(), obfuscatedName)));
+                        RetracedField.create(
+                            fieldDefinition.substituteHolder(
+                                classElement.getRetracedClass().getClassReference()))));
               }
               return memberNamings.stream()
                   .map(
@@ -78,7 +79,6 @@ public class RetraceFieldResult extends Result<RetraceFieldResult.Element, Retra
                             this,
                             classElement,
                             RetracedField.create(
-                                holder,
                                 Reference.field(
                                     holder.getClassReference(),
                                     fieldSignature.isQualified()

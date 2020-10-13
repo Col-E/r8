@@ -4,11 +4,19 @@
 
 package com.android.tools.r8.retrace;
 
+import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
+import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetracedMethod.KnownRetracedMethod;
 import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 public class RetraceUtils {
@@ -16,7 +24,7 @@ public class RetraceUtils {
   private static final Set<String> UNKNOWN_SOURCEFILE_NAMES =
       Sets.newHashSet("", "SourceFile", "Unknown", "Unknown Source", "PG");
 
-  public static String methodDescriptionFromMethodReference(
+  public static String methodDescriptionFromRetraceMethod(
       RetracedMethod methodReference, boolean appendHolder, boolean verbose) {
     StringBuilder sb = new StringBuilder();
     if (appendHolder) {
@@ -114,5 +122,26 @@ public class RetraceUtils {
     }
     String newFileName = getClassSimpleName(retracedClassName);
     return newFileName + "." + extension;
+  }
+
+  static MethodReference methodReferenceFromMappedRange(
+      MappedRange mappedRange, ClassReference classReference) {
+    MethodSignature signature = mappedRange.signature;
+    ClassReference holder =
+        signature.isQualified()
+            ? Reference.classFromDescriptor(
+                DescriptorUtils.javaTypeToDescriptor(signature.toHolderFromQualified()))
+            : classReference;
+    List<TypeReference> formalTypes = new ArrayList<>(signature.parameters.length);
+    for (String parameter : signature.parameters) {
+      formalTypes.add(Reference.typeFromTypeName(parameter));
+    }
+    TypeReference returnType =
+        Reference.returnTypeFromDescriptor(DescriptorUtils.javaTypeToDescriptor(signature.type));
+    return Reference.method(
+        holder,
+        signature.isQualified() ? signature.toUnqualifiedName() : signature.name,
+        formalTypes,
+        returnType);
   }
 }

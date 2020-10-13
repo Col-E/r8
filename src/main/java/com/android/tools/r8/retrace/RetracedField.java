@@ -10,7 +10,7 @@ import com.android.tools.r8.references.TypeReference;
 import java.util.Objects;
 
 @Keep
-public abstract class RetracedField {
+public abstract class RetracedField implements RetracedClassMember {
 
   private RetracedField() {}
 
@@ -26,17 +26,13 @@ public abstract class RetracedField {
     return null;
   }
 
-  public abstract RetracedClass getHolderClass();
-
   public abstract String getFieldName();
 
   public static final class KnownRetracedField extends RetracedField {
 
-    private final RetracedClass classReference;
     private final FieldReference fieldReference;
 
-    private KnownRetracedField(RetracedClass classReference, FieldReference fieldReference) {
-      this.classReference = classReference;
+    private KnownRetracedField(FieldReference fieldReference) {
       this.fieldReference = fieldReference;
     }
 
@@ -52,7 +48,7 @@ public abstract class RetracedField {
 
     @Override
     public RetracedClass getHolderClass() {
-      return classReference;
+      return RetracedClass.create(fieldReference.getHolderClass());
     }
 
     @Override
@@ -77,43 +73,56 @@ public abstract class RetracedField {
         return false;
       }
       KnownRetracedField that = (KnownRetracedField) o;
-      assert !fieldReference.equals(that.fieldReference)
-          || classReference.equals(that.classReference);
       return fieldReference.equals(that.fieldReference);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(classReference, fieldReference);
+      return Objects.hash(fieldReference);
     }
   }
 
   public static final class UnknownRetracedField extends RetracedField {
 
-    private final RetracedClass classReference;
-    private final String name;
+    private final FieldDefinition fieldDefinition;
 
-    private UnknownRetracedField(RetracedClass classReference, String name) {
-      this.classReference = classReference;
-      this.name = name;
+    private UnknownRetracedField(FieldDefinition fieldDefinition) {
+      this.fieldDefinition = fieldDefinition;
     }
 
     @Override
     public RetracedClass getHolderClass() {
-      return classReference;
+      return RetracedClass.create(fieldDefinition.getHolderClass());
     }
 
     @Override
     public String getFieldName() {
-      return name;
+      return fieldDefinition.getName();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      UnknownRetracedField that = (UnknownRetracedField) o;
+      return fieldDefinition.equals(that.fieldDefinition);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(fieldDefinition);
     }
   }
 
-  static RetracedField create(RetracedClass classReference, FieldReference fieldReference) {
-    return new KnownRetracedField(classReference, fieldReference);
+  static RetracedField create(FieldReference fieldReference) {
+    return new KnownRetracedField(fieldReference);
   }
 
-  static RetracedField createUnknown(RetracedClass classReference, String name) {
-    return new UnknownRetracedField(classReference, name);
+  static RetracedField create(FieldDefinition fieldDefinition) {
+    return new UnknownRetracedField(fieldDefinition);
   }
 }

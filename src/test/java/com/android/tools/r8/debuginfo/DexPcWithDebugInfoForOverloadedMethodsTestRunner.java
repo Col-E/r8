@@ -22,7 +22,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.retrace.RetraceMethodResult;
+import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -103,7 +103,7 @@ public class DexPcWithDebugInfoForOverloadedMethodsTestRunner extends TestBase {
                           MINIFIED_LINE_POSITION,
                           20,
                           FILENAME_INLINE));
-              RetraceMethodResult retraceResult =
+              RetraceFrameResult retraceResult =
                   throwingSubject
                       .streamInstructions()
                       .filter(InstructionSubject::isThrow)

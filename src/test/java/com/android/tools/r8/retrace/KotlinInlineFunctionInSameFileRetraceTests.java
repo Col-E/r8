@@ -120,7 +120,7 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends TestBase {
       MethodSubject mainSubject,
       LinePosition inlineStack) {
     assertThat(mainSubject, isPresent());
-    RetraceMethodResult retraceResult =
+    RetraceFrameResult retraceResult =
         mainSubject
             .streamInstructions()
             .filter(InstructionSubject::isThrow)

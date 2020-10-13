@@ -50,6 +50,13 @@ public class Retracer implements RetraceApi {
   }
 
   @Override
+  public RetraceFrameResult retrace(MethodReference methodReference, int position) {
+    return retrace(methodReference.getHolderClass())
+        .lookupMethod(methodReference.getMethodName())
+        .narrowByPosition(position);
+  }
+
+  @Override
   public RetraceClassResult retrace(ClassReference classReference) {
     return RetraceClassResult.create(
         classReference, classNameMapper.getClassNaming(classReference.getTypeName()), this);

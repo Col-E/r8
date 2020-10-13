@@ -9,9 +9,12 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Keep
-public abstract class RetracedMethod {
+public abstract class RetracedMethod implements RetracedClassMember {
+
+  private static final int NO_POSITION = -1;
 
   private RetracedMethod() {}
 
@@ -27,19 +30,21 @@ public abstract class RetracedMethod {
     return null;
   }
 
-  public abstract RetracedClass getHolderClass();
-
   public abstract String getMethodName();
+
+  public abstract boolean hasPosition();
+
+  public abstract int getOriginalPositionOrDefault(int defaultPosition);
 
   public static final class KnownRetracedMethod extends RetracedMethod {
 
     private final MethodReference methodReference;
-    private final RetracedClass classReference;
+    private final int position;
 
-    private KnownRetracedMethod(RetracedClass classReference, MethodReference methodReference) {
+    private KnownRetracedMethod(MethodReference methodReference, int position) {
       assert methodReference != null;
-      this.classReference = classReference;
       this.methodReference = methodReference;
+      this.position = position;
     }
 
     @Override
@@ -58,12 +63,22 @@ public abstract class RetracedMethod {
 
     @Override
     public RetracedClass getHolderClass() {
-      return classReference;
+      return RetracedClass.create(methodReference.getHolderClass());
     }
 
     @Override
     public String getMethodName() {
       return methodReference.getMethodName();
+    }
+
+    @Override
+    public boolean hasPosition() {
+      return position != NO_POSITION;
+    }
+
+    @Override
+    public int getOriginalPositionOrDefault(int defaultPosition) {
+      return hasPosition() ? position : defaultPosition;
     }
 
     public TypeReference getReturnType() {
@@ -75,12 +90,8 @@ public abstract class RetracedMethod {
       return methodReference.getFormalTypes();
     }
 
-    public MethodReference getClassReference() {
+    public MethodReference getMethodReference() {
       return methodReference;
-    }
-
-    public boolean equalsMethodReference(MethodReference reference) {
-      return methodReference.equals(reference);
     }
 
     @Override
@@ -92,43 +103,70 @@ public abstract class RetracedMethod {
         return false;
       }
       KnownRetracedMethod that = (KnownRetracedMethod) o;
-      assert !methodReference.equals(that.methodReference)
-          || classReference.equals(that.classReference);
-      return methodReference.equals(that.methodReference);
+      return position == that.position && methodReference.equals(that.methodReference);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(methodReference, classReference);
+      return Objects.hash(methodReference, position);
     }
   }
 
   public static final class UnknownRetracedMethod extends RetracedMethod {
 
-    private final RetracedClass classReference;
-    private final String name;
+    private final MethodDefinition methodDefinition;
+    private final int position;
 
-    private UnknownRetracedMethod(RetracedClass classReference, String name) {
-      this.classReference = classReference;
-      this.name = name;
+    private UnknownRetracedMethod(MethodDefinition methodDefinition, int position) {
+      this.methodDefinition = methodDefinition;
+      this.position = position;
     }
 
     @Override
     public RetracedClass getHolderClass() {
-      return classReference;
+      return RetracedClass.create(methodDefinition.getHolderClass());
     }
 
     @Override
     public String getMethodName() {
-      return name;
+      return methodDefinition.getName();
+    }
+
+    @Override
+    public boolean hasPosition() {
+      return position != NO_POSITION;
+    }
+
+    @Override
+    public int getOriginalPositionOrDefault(int defaultPosition) {
+      return hasPosition() ? position : defaultPosition;
+    }
+
+    public Optional<MethodReference> getMethodReference() {
+      if (!methodDefinition.isFullMethodDefinition()) {
+        return Optional.empty();
+      }
+      return Optional.of(methodDefinition.asFullMethodDefinition().getMethodReference());
     }
   }
 
-  static RetracedMethod create(RetracedClass classReference, MethodReference methodReference) {
-    return new KnownRetracedMethod(classReference, methodReference);
+  static RetracedMethod create(MethodDefinition methodDefinition) {
+    return create(methodDefinition, NO_POSITION);
   }
 
-  static RetracedMethod createUnknown(RetracedClass classReference, String name) {
-    return new UnknownRetracedMethod(classReference, name);
+  static RetracedMethod create(MethodDefinition methodDefinition, int position) {
+    if (methodDefinition.isFullMethodDefinition()) {
+      return new KnownRetracedMethod(
+          methodDefinition.asFullMethodDefinition().getMethodReference(), position);
+    }
+    return new UnknownRetracedMethod(methodDefinition, position);
+  }
+
+  static RetracedMethod create(MethodReference methodReference) {
+    return create(methodReference, NO_POSITION);
+  }
+
+  static RetracedMethod create(MethodReference methodReference, int position) {
+    return new KnownRetracedMethod(methodReference, position);
   }
 }

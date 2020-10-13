@@ -14,11 +14,15 @@ import com.android.tools.r8.references.TypeReference;
 @Keep
 public interface RetraceApi {
 
+  // TODO(b/170711681): Rename these to not have overloads.
+
   RetraceClassResult retrace(ClassReference classReference);
 
   RetraceMethodResult retrace(MethodReference methodReference);
 
   RetraceFieldResult retrace(FieldReference fieldReference);
+
+  RetraceFrameResult retrace(MethodReference methodReference, int position);
 
   RetraceTypeResult retrace(TypeReference typeReference);
 }

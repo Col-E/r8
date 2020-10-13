@@ -14,6 +14,7 @@ import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassResult.Element;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
@@ -43,8 +44,28 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
   }
 
   public RetraceFieldResult lookupField(String fieldName) {
+    return lookupField(FieldDefinition.create(obfuscatedReference, fieldName));
+  }
+
+  public RetraceFieldResult lookupField(String fieldName, TypeReference fieldType) {
+    return lookupField(
+        FieldDefinition.create(Reference.field(obfuscatedReference, fieldName, fieldType)));
+  }
+
+  public RetraceMethodResult lookupMethod(String methodName) {
+    return lookupMethod(MethodDefinition.create(obfuscatedReference, methodName));
+  }
+
+  public RetraceMethodResult lookupMethod(
+      String methodName, List<TypeReference> formalTypes, TypeReference returnType) {
+    return lookupMethod(
+        MethodDefinition.create(
+            Reference.method(obfuscatedReference, methodName, formalTypes, returnType)));
+  }
+
+  private RetraceFieldResult lookupField(FieldDefinition fieldDefinition) {
     return lookup(
-        fieldName,
+        fieldDefinition,
         (mapper, name) -> {
           List<MemberNaming> memberNamings = mapper.mappedFieldNamingsByName.get(name);
           if (memberNamings == null || memberNamings.isEmpty()) {
@@ -55,9 +76,9 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
         RetraceFieldResult::new);
   }
 
-  public RetraceMethodResult lookupMethod(String methodName) {
+  private RetraceMethodResult lookupMethod(MethodDefinition methodDefinition) {
     return lookup(
-        methodName,
+        methodDefinition,
         (mapper, name) -> {
           MappedRangesOfName mappedRanges = mapper.mappedRangesByRenamedName.get(name);
           if (mappedRanges == null || mappedRanges.getMappedRanges().isEmpty()) {
@@ -68,16 +89,16 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
         RetraceMethodResult::new);
   }
 
-  private <T, R> R lookup(
-      String name,
+  private <T, R, D extends Definition> R lookup(
+      D definition,
       BiFunction<ClassNamingForNameMapper, String, T> lookupFunction,
-      ResultConstructor<T, R> constructor) {
+      ResultConstructor<T, R, D> constructor) {
     List<Pair<Element, T>> mappings = new ArrayList<>();
     forEach(
         element -> {
           if (mapper != null) {
             assert element.mapper != null;
-            T mappedElements = lookupFunction.apply(element.mapper, name);
+            T mappedElements = lookupFunction.apply(element.mapper, definition.getName());
             if (mappedElements != null) {
               mappings.add(new Pair<>(element, mappedElements));
               return;
@@ -85,7 +106,7 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
           }
           mappings.add(new Pair<>(element, null));
         });
-    return constructor.create(this, mappings, name, retracer);
+    return constructor.create(this, mappings, definition, retracer);
   }
 
   boolean hasRetraceResult() {
@@ -110,11 +131,11 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
     return this;
   }
 
-  private interface ResultConstructor<T, R> {
+  private interface ResultConstructor<T, R, D> {
     R create(
         RetraceClassResult classResult,
         List<Pair<Element, T>> mappings,
-        String obfuscatedName,
+        D definition,
         RetraceApi retraceApi);
   }
 
@@ -170,8 +191,12 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
     }
 
     public RetraceFieldResult lookupField(String fieldName) {
+      return lookupField(FieldDefinition.create(classReference.getClassReference(), fieldName));
+    }
+
+    private RetraceFieldResult lookupField(FieldDefinition fieldDefinition) {
       return lookup(
-          fieldName,
+          fieldDefinition,
           (mapper, name) -> {
             List<MemberNaming> memberNamings = mapper.mappedFieldNamingsByName.get(name);
             if (memberNamings == null || memberNamings.isEmpty()) {
@@ -183,8 +208,12 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
     }
 
     public RetraceMethodResult lookupMethod(String methodName) {
+      return lookupMethod(MethodDefinition.create(classReference.getClassReference(), methodName));
+    }
+
+    private RetraceMethodResult lookupMethod(MethodDefinition methodDefinition) {
       return lookup(
-          methodName,
+          methodDefinition,
           (mapper, name) -> {
             MappedRangesOfName mappedRanges = mapper.mappedRangesByRenamedName.get(name);
             if (mappedRanges == null || mappedRanges.getMappedRanges().isEmpty()) {
@@ -195,13 +224,13 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
           RetraceMethodResult::new);
     }
 
-    private <T, R> R lookup(
-        String name,
+    private <T, R, D extends Definition> R lookup(
+        D definition,
         BiFunction<ClassNamingForNameMapper, String, T> lookupFunction,
-        ResultConstructor<T, R> constructor) {
+        ResultConstructor<T, R, D> constructor) {
       List<Pair<Element, T>> mappings = ImmutableList.of();
       if (mapper != null) {
-        T result = lookupFunction.apply(mapper, name);
+        T result = lookupFunction.apply(mapper, definition.getName());
         if (result != null) {
           mappings = ImmutableList.of(new Pair<>(this, result));
         }
@@ -209,7 +238,7 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
       if (mappings.isEmpty()) {
         mappings = ImmutableList.of(new Pair<>(this, null));
       }
-      return constructor.create(classResult, mappings, name, classResult.retracer);
+      return constructor.create(classResult, mappings, definition, classResult.retracer);
     }
   }
 }

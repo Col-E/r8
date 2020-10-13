@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import static org.hamcrest.CoreMatchers.not;
 
+import com.android.tools.r8.Collectors;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexClass;
@@ -14,14 +15,11 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.retrace.RetraceMethodResult;
-import com.android.tools.r8.retrace.RetraceMethodResult.Element;
-import com.android.tools.r8.retrace.RetracedMethod;
+import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.Visibility;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -483,11 +481,12 @@ public class Matchers {
     };
   }
 
-  public static Matcher<RetraceMethodResult> isInlineFrame() {
-    return new TypeSafeMatcher<RetraceMethodResult>() {
+  public static Matcher<RetraceFrameResult> isInlineFrame() {
+    return new TypeSafeMatcher<RetraceFrameResult>() {
       @Override
-      protected boolean matchesSafely(RetraceMethodResult item) {
-        return !item.isAmbiguous() && item.stream().count() > 1;
+      protected boolean matchesSafely(RetraceFrameResult item) {
+        return !item.isAmbiguous()
+            && item.stream().mapToLong(method -> method.getOuterFrames().size()).sum() > 0;
       }
 
       @Override
@@ -497,28 +496,29 @@ public class Matchers {
     };
   }
 
-  public static Matcher<RetraceMethodResult> isInlineStack(LinePosition startPosition) {
-    return new TypeSafeMatcher<RetraceMethodResult>() {
+  public static Matcher<RetraceFrameResult> isInlineStack(LinePosition startPosition) {
+    return new TypeSafeMatcher<RetraceFrameResult>() {
       @Override
-      protected boolean matchesSafely(RetraceMethodResult item) {
+      protected boolean matchesSafely(RetraceFrameResult item) {
+        RetraceFrameResult.Element single = item.stream().collect(Collectors.toSingle());
         Box<LinePosition> currentPosition = new Box<>(startPosition);
         Box<Boolean> returnValue = new Box<>();
-        item.forEach(
-            element -> {
+        single.visitFrames(
+            (method, __) -> {
               boolean sameMethod;
               LinePosition currentInline = currentPosition.get();
               if (currentInline == null) {
                 returnValue.set(false);
                 return;
               }
+              if (method.isUnknown()) {
+                returnValue.set(false);
+                return;
+              }
               sameMethod =
-                  element.getMethod().isKnown()
-                      && element
-                          .getMethod()
-                          .asKnown()
-                          .equalsMethodReference(currentInline.methodReference);
+                  method.asKnown().getMethodReference().equals(currentInline.methodReference);
               boolean samePosition =
-                  element.getOriginalLineNumber(currentInline.minifiedPosition)
+                  method.getOriginalPositionOrDefault(currentInline.minifiedPosition)
                       == currentInline.originalPosition;
               if (!returnValue.isSet() || returnValue.get()) {
                 returnValue.set(sameMethod & samePosition);
@@ -535,28 +535,24 @@ public class Matchers {
     };
   }
 
-  public static Matcher<RetraceMethodResult> isTopOfStackTrace(
+  public static Matcher<RetraceFrameResult> isTopOfStackTrace(
       StackTrace stackTrace, List<Integer> minifiedPositions) {
-    return new TypeSafeMatcher<RetraceMethodResult>() {
+    return new TypeSafeMatcher<RetraceFrameResult>() {
       @Override
-      protected boolean matchesSafely(RetraceMethodResult item) {
-        List<Element> retraceElements = item.stream().collect(Collectors.toList());
-        if (retraceElements.size() > stackTrace.size()
-            || retraceElements.size() != minifiedPositions.size()) {
-          return false;
-        }
-        for (int i = 0; i < retraceElements.size(); i++) {
-          Element retraceElement = retraceElements.get(i);
-          StackTraceLine stackTraceLine = stackTrace.get(i);
-          RetracedMethod methodReference = retraceElement.getMethod();
-          if (!stackTraceLine.methodName.equals(methodReference.getMethodName())
-              || !stackTraceLine.className.equals(methodReference.getHolderClass().getTypeName())
-              || stackTraceLine.lineNumber
-                  != retraceElement.getOriginalLineNumber(minifiedPositions.get(i))) {
-            return false;
-          }
-        }
-        return true;
+      protected boolean matchesSafely(RetraceFrameResult item) {
+        RetraceFrameResult.Element single = item.stream().collect(Collectors.toSingle());
+        Box<Boolean> matches = new Box<>(true);
+        single.visitFrames(
+            (method, index) -> {
+              StackTraceLine stackTraceLine = stackTrace.get(index);
+              if (!stackTraceLine.methodName.equals(method.getMethodName())
+                  || !stackTraceLine.className.equals(method.getHolderClass().getTypeName())
+                  || stackTraceLine.lineNumber
+                      != method.getOriginalPositionOrDefault(minifiedPositions.get(index))) {
+                matches.set(false);
+              }
+            });
+        return matches.get();
       }
 
       @Override

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
-import static com.android.tools.r8.retrace.RetraceUtils.methodDescriptionFromMethodReference;
+import static com.android.tools.r8.retrace.RetraceUtils.methodDescriptionFromRetraceMethod;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.DiagnosticsHandler;
@@ -418,28 +418,31 @@ public final class RetraceStackTrace {
         RetraceApi retracer, boolean verbose, List<StackTraceLine> lines, String classLoaderName) {
       ClassReference classReference = Reference.classFromTypeName(clazz);
       RetraceClassResult classResult = retracer.retrace(classReference);
-      RetraceMethodResult retraceResult = classResult.lookupMethod(method);
+      RetraceMethodResult retraceMethodResult = classResult.lookupMethod(method);
+      Result<? extends RetraceClassMemberElement<RetracedMethod>, ?> retraceResult;
       if (linePosition != NO_POSITION && linePosition != INVALID_POSITION) {
-        retraceResult = retraceResult.narrowByLine(linePosition);
+        retraceResult = retraceMethodResult.narrowByPosition(linePosition);
+      } else {
+        retraceResult = retraceMethodResult;
       }
       retraceResult.forEach(
-          methodElement -> {
-            RetracedMethod methodReference = methodElement.getMethod();
-            lines.add(
-                new AtLine(
-                    startingWhitespace,
-                    at,
-                    classLoaderName,
-                    moduleName,
-                    methodReference.getHolderClass().getTypeName(),
-                    methodReference.getMethodName(),
-                    methodDescriptionFromMethodReference(methodReference, true, verbose),
-                    methodElement.retraceSourceFile(fileName).getFilename(),
-                    hasLinePosition()
-                        ? methodElement.getOriginalLineNumber(linePosition)
-                        : linePosition,
-                    methodElement.getRetraceMethodResult().isAmbiguous()));
-          });
+          methodElement ->
+              methodElement.visitFrames(
+                  (methodReference, ignoredPosition) ->
+                      lines.add(
+                          new AtLine(
+                              startingWhitespace,
+                              at,
+                              classLoaderName,
+                              moduleName,
+                              methodReference.getHolderClass().getTypeName(),
+                              methodReference.getMethodName(),
+                              methodDescriptionFromRetraceMethod(methodReference, true, verbose),
+                              methodElement
+                                  .retraceSourceFile(methodReference, fileName)
+                                  .getFilename(),
+                              methodReference.getOriginalPositionOrDefault(linePosition),
+                              retraceResult.isAmbiguous()))));
     }
 
     @Override

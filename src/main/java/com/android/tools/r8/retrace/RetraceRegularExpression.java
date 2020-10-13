@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.retrace;
 
+import static com.android.tools.r8.retrace.RetraceUtils.methodDescriptionFromRetraceMethod;
+
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.references.ClassReference;
@@ -14,7 +16,6 @@ import com.android.tools.r8.retrace.RetraceRegularExpression.ClassNameGroup.Clas
 import com.android.tools.r8.retrace.RetracedField.KnownRetracedField;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -133,7 +134,7 @@ public class RetraceRegularExpression {
               case CLASS:
                 return line.getClassContext().getRetracedClass().getTypeName();
               case METHOD:
-                return line.getMethodContext().getMethod().getMethodName();
+                return line.getMethodContext().getMember().getMethodName();
               case SOURCE:
                 return line.getSource();
               case LINE:
@@ -241,9 +242,10 @@ public class RetraceRegularExpression {
 
   static class RetraceStringContext {
     private final Element classContext;
-    private final RetracedClass qualifiedContext;
+    private final RetraceClassMemberElement<? extends RetracedMethod> methodContext;
+    private final RetracedClass qualifiedClassContext;
+    private final RetracedMethod qualifiedMethodContext;
     private final String methodName;
-    private final RetraceMethodResult.Element methodContext;
     private final int minifiedLineNumber;
     private final int originalLineNumber;
     private final String source;
@@ -251,17 +253,19 @@ public class RetraceRegularExpression {
 
     private RetraceStringContext(
         Element classContext,
-        RetracedClass qualifiedContext,
+        RetraceClassMemberElement<? extends RetracedMethod> methodContext,
+        RetracedClass qualifiedClassContext,
+        RetracedMethod qualifiedMethodContext,
         String methodName,
-        RetraceMethodResult.Element methodContext,
         int minifiedLineNumber,
         int originalLineNumber,
         String source,
         boolean isAmbiguous) {
       this.classContext = classContext;
-      this.qualifiedContext = qualifiedContext;
-      this.methodName = methodName;
       this.methodContext = methodContext;
+      this.qualifiedClassContext = qualifiedClassContext;
+      this.qualifiedMethodContext = qualifiedMethodContext;
+      this.methodName = methodName;
       this.minifiedLineNumber = minifiedLineNumber;
       this.originalLineNumber = originalLineNumber;
       this.source = source;
@@ -269,16 +273,18 @@ public class RetraceRegularExpression {
     }
 
     private static RetraceStringContext empty() {
-      return new RetraceStringContext(null, null, null, null, NO_MATCH, NO_MATCH, null, false);
+      return new RetraceStringContext(
+          null, null, null, null, null, NO_MATCH, NO_MATCH, null, false);
     }
 
     private RetraceStringContext withClassContext(
         Element classContext, RetracedClass qualifiedContext) {
       return new RetraceStringContext(
           classContext,
-          qualifiedContext,
-          methodName,
           methodContext,
+          qualifiedContext,
+          qualifiedMethodContext,
+          methodName,
           minifiedLineNumber,
           originalLineNumber,
           source,
@@ -288,9 +294,10 @@ public class RetraceRegularExpression {
     private RetraceStringContext withMethodName(String methodName) {
       return new RetraceStringContext(
           classContext,
-          qualifiedContext,
-          methodName,
           methodContext,
+          qualifiedClassContext,
+          qualifiedMethodContext,
+          methodName,
           minifiedLineNumber,
           originalLineNumber,
           source,
@@ -298,26 +305,39 @@ public class RetraceRegularExpression {
     }
 
     private RetraceStringContext withMethodContext(
-        RetraceMethodResult.Element methodContext,
-        RetracedClass qualifiedContext,
-        boolean isAmbiguous) {
+        RetraceClassMemberElement<? extends RetracedMethod> methodContext, boolean isAmbiguous) {
       return new RetraceStringContext(
           classContext,
-          qualifiedContext,
-          methodName,
           methodContext,
+          qualifiedClassContext,
+          qualifiedMethodContext,
+          methodName,
           minifiedLineNumber,
           originalLineNumber,
           source,
           isAmbiguous);
     }
 
-    private RetraceStringContext withQualifiedContext(RetracedClass qualifiedContext) {
+    private RetraceStringContext withQualifiedClassContext(RetracedClass qualifiedContext) {
       return new RetraceStringContext(
           classContext,
+          methodContext,
+          qualifiedContext,
+          qualifiedMethodContext,
+          methodName,
+          minifiedLineNumber,
+          originalLineNumber,
+          source,
+          isAmbiguous);
+    }
+
+    private RetraceStringContext withQualifiedMethodContext(RetracedMethod qualifiedContext) {
+      return new RetraceStringContext(
+          classContext,
+          methodContext,
+          qualifiedContext.getHolderClass(),
           qualifiedContext,
           methodName,
-          methodContext,
           minifiedLineNumber,
           originalLineNumber,
           source,
@@ -327,9 +347,10 @@ public class RetraceRegularExpression {
     public RetraceStringContext withSource(String source) {
       return new RetraceStringContext(
           classContext,
-          qualifiedContext,
-          methodName,
           methodContext,
+          qualifiedClassContext,
+          qualifiedMethodContext,
+          methodName,
           minifiedLineNumber,
           originalLineNumber,
           source,
@@ -339,9 +360,10 @@ public class RetraceRegularExpression {
     public RetraceStringContext withLineNumbers(int minifiedLineNumber, int originalLineNumber) {
       return new RetraceStringContext(
           classContext,
-          qualifiedContext,
-          methodName,
           methodContext,
+          qualifiedClassContext,
+          qualifiedMethodContext,
+          methodName,
           minifiedLineNumber,
           originalLineNumber,
           source,
@@ -385,7 +407,7 @@ public class RetraceRegularExpression {
       return context.classContext;
     }
 
-    private RetraceMethodResult.Element getMethodContext() {
+    private RetraceClassMemberElement<? extends RetracedMethod> getMethodContext() {
       return context.methodContext;
     }
 
@@ -657,7 +679,7 @@ public class RetraceRegularExpression {
             if (classNameGroupHandler != null) {
               for (RetraceString string : strings) {
                 classNameGroupHandler.commitClassName(
-                    original, string, string.context.qualifiedContext, matcher);
+                    original, string, string.context.qualifiedClassContext, matcher);
               }
             }
             return strings;
@@ -669,20 +691,23 @@ public class RetraceRegularExpression {
                 retraceString,
                 methodName,
                 (element, newContext) -> {
-                  final RetraceString newRetraceString = retraceString.duplicate(newContext);
-                  if (classNameGroupHandler != null) {
-                    classNameGroupHandler.commitClassName(
-                        original, newRetraceString, element.getMethod().getHolderClass(), matcher);
-                  }
-                  retracedStrings.add(
-                      newRetraceString.appendRetracedString(
-                          original,
-                          printVerbose
-                              ? RetraceUtils.methodDescriptionFromMethodReference(
-                                  element.getMethod(), false, true)
-                              : element.getMethod().getMethodName(),
-                          startOfGroup,
-                          matcher.end(captureGroup)));
+                  element.visitFrames(
+                      (method, ignoredPosition) -> {
+                        RetraceString newRetraceString =
+                            retraceString.duplicate(newContext.withQualifiedMethodContext(method));
+                        if (classNameGroupHandler != null) {
+                          classNameGroupHandler.commitClassName(
+                              original, newRetraceString, method.getHolderClass(), matcher);
+                        }
+                        retracedStrings.add(
+                            newRetraceString.appendRetracedString(
+                                original,
+                                printVerbose
+                                    ? methodDescriptionFromRetraceMethod(method, false, true)
+                                    : method.getMethodName(),
+                                startOfGroup,
+                                matcher.end(captureGroup)));
+                      });
                 });
           }
           return retracedStrings;
@@ -703,24 +728,25 @@ public class RetraceRegularExpression {
     private static void retraceMethodForString(
         RetraceString retraceString,
         String methodName,
-        BiConsumer<RetraceMethodResult.Element, RetraceStringContext> process) {
+        BiConsumer<RetraceClassMemberElement<? extends RetracedMethod>, RetraceStringContext>
+            process) {
       if (retraceString.context.classContext == null) {
         return;
       }
       RetraceMethodResult retraceMethodResult =
           retraceString.getClassContext().lookupMethod(methodName);
+      Result<? extends RetraceClassMemberElement<RetracedMethod>, ?> retraceResult;
       if (retraceString.context.minifiedLineNumber > NO_MATCH) {
-        retraceMethodResult =
-            retraceMethodResult.narrowByLine(retraceString.context.minifiedLineNumber);
+        retraceResult =
+            retraceMethodResult.narrowByPosition(retraceString.context.minifiedLineNumber);
+      } else {
+        retraceResult = retraceMethodResult;
       }
-      retraceMethodResult.forEach(
+      retraceResult.forEach(
           element ->
               process.accept(
                   element,
-                  retraceString.context.withMethodContext(
-                      element,
-                      element.getMethod().getHolderClass(),
-                      element.getRetraceMethodResult().isAmbiguous())));
+                  retraceString.context.withMethodContext(element, retraceResult.isAmbiguous())));
     }
   }
 
@@ -756,7 +782,7 @@ public class RetraceRegularExpression {
             if (classNameGroupHandler != null) {
               for (RetraceString string : strings) {
                 classNameGroupHandler.commitClassName(
-                    original, string, string.context.qualifiedContext, matcher);
+                    original, string, string.context.qualifiedClassContext, matcher);
               }
             }
             return strings;
@@ -781,7 +807,8 @@ public class RetraceRegularExpression {
                       retraceString
                           .updateContext(
                               context ->
-                                  context.withQualifiedContext(element.getField().getHolderClass()))
+                                  context.withQualifiedClassContext(
+                                      element.getField().getHolderClass()))
                           .appendRetracedString(
                               original,
                               getFieldString(element.getField()),
@@ -829,10 +856,12 @@ public class RetraceRegularExpression {
           }
           RetraceSourceFileResult sourceFileResult =
               retraceString.getMethodContext() != null
-                  ? retraceString.getMethodContext().retraceSourceFile(fileName)
+                  ? retraceString
+                      .getMethodContext()
+                      .retraceSourceFile(retraceString.context.qualifiedMethodContext, fileName)
                   : RetraceUtils.getSourceFile(
                       retraceString.getClassContext(),
-                      retraceString.context.qualifiedContext,
+                      retraceString.context.qualifiedClassContext,
                       fileName,
                       retracer);
           retracedStrings.add(
@@ -873,7 +902,8 @@ public class RetraceRegularExpression {
           int lineNumber = Integer.parseInt(lineNumberAsString);
           List<RetraceString> retracedStrings = new ArrayList<>();
           for (RetraceString retraceString : strings) {
-            RetraceMethodResult.Element methodContext = retraceString.context.methodContext;
+            RetraceClassMemberElement<? extends RetracedMethod> methodContext =
+                retraceString.context.methodContext;
             if (methodContext == null) {
               if (retraceString.context.classContext == null
                   || retraceString.context.methodName == null) {
@@ -889,34 +919,33 @@ public class RetraceRegularExpression {
                   (element, newContext) -> {
                     // The same method can be represented multiple times if it has multiple
                     // mappings.
-                    if (element.hasNoLineNumberRange()
-                        || !element.containsMinifiedLineNumber(lineNumber)) {
-                      diagnosticsHandler.info(
-                          new StringDiagnostic(
-                              "Pruning "
-                                  + retraceString.builder.retracedString.toString()
-                                  + " from result because method is not in range on line number "
-                                  + lineNumber));
-                    }
-                    final int originalLineNumber = element.getOriginalLineNumber(lineNumber);
-                    retracedStrings.add(
-                        retraceString
-                            .updateContext(
-                                context -> context.withLineNumbers(lineNumber, originalLineNumber))
-                            .appendRetracedString(
-                                original,
-                                originalLineNumber + "",
-                                startOfGroup,
-                                matcher.end(captureGroup)));
+                    element.visitFrames(
+                        (method, ignoredPosition) -> {
+                          int originalPosition = method.getOriginalPositionOrDefault(lineNumber);
+                          retracedStrings.add(
+                              retraceString
+                                  .duplicate(
+                                      retraceString
+                                          .context
+                                          .withQualifiedMethodContext(method)
+                                          .withLineNumbers(lineNumber, originalPosition))
+                                  .appendRetracedString(
+                                      original,
+                                      originalPosition + "",
+                                      startOfGroup,
+                                      matcher.end(captureGroup)));
+                        });
                   });
               continue;
             }
             // If the method context is unknown, do nothing.
-            if (methodContext.isUnknown() || methodContext.hasNoLineNumberRange()) {
+            if (methodContext.isUnknown()) {
               retracedStrings.add(retraceString);
               continue;
             }
-            int originalLineNumber = methodContext.getOriginalLineNumber(lineNumber);
+            int originalLineNumber =
+                retraceString.context.qualifiedMethodContext.getOriginalPositionOrDefault(
+                    lineNumber);
             retracedStrings.add(
                 retraceString
                     .updateContext(
