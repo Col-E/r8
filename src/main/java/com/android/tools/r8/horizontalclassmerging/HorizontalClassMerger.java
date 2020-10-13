@@ -13,6 +13,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoAbstractClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassesOrMembersWithAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassesWithInterfaces;
+import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
 import com.android.tools.r8.horizontalclassmerging.policies.NoFields;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInnerClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
@@ -59,6 +60,7 @@ public class HorizontalClassMerger {
             new NoInterfaces(),
             new NoClassesWithInterfaces(),
             new NoAnnotations(),
+            new NoEnums(appView),
             new NoAbstractClasses(),
             new NoClassesOrMembersWithAnnotations(),
             new NoInnerClasses(),
