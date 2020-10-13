@@ -47,6 +47,7 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.GenericSignatureEnqueuerAnalysis;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.LookupLambdaTarget;
@@ -2729,6 +2730,10 @@ public class Enqueuer {
       registerAnalysis(
           new KotlinMetadataEnqueuerExtension(
               appView, enqueuerDefinitionSupplier, initialPrunedTypes));
+    }
+    if (appView.options().getProguardConfiguration() != null
+        && appView.options().getProguardConfiguration().getKeepAttributes().signature) {
+      registerAnalysis(new GenericSignatureEnqueuerAnalysis(enqueuerDefinitionSupplier));
     }
     if (mode.isInitialTreeShaking()) {
       // This is simulating the effect of the "root set" applied rules.

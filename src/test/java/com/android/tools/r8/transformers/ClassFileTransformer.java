@@ -607,6 +607,20 @@ public class ClassFileTransformer {
     return renameField(FieldPredicate.onName(oldName), newName);
   }
 
+  public ClassFileTransformer setGenericSignature(FieldPredicate predicate, String newSignature) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public FieldVisitor visitField(
+              int access, String name, String descriptor, String signature, Object value) {
+            if (predicate.test(access, name, descriptor, signature, value)) {
+              return super.visitField(access, name, descriptor, newSignature, value);
+            }
+            return super.visitField(access, name, descriptor, signature, value);
+          }
+        });
+  }
+
   /** Abstraction of the MethodVisitor.visitMethodInsn method with its sub visitor. */
   @FunctionalInterface
   public interface MethodInsnTransform {

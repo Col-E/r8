@@ -429,6 +429,8 @@ public class R8 {
           annotationRemover.ensureValid().run();
           classesToRetainInnerClassAttributeFor =
               annotationRemover.getClassesToRetainInnerClassAttributeFor();
+          new GenericSignatureRewriter(appView, NamingLens.getIdentityLens())
+              .run(appView.appInfo().classes(), executorService);
         }
       } finally {
         timing.end();

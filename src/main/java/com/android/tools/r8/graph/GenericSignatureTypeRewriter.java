@@ -38,21 +38,21 @@ public class GenericSignatureTypeRewriter {
   }
 
   public ClassSignature rewrite(ClassSignature classSignature) {
-    if (classSignature.hasNoSignature() || appView.graphLens().isIdentityLens()) {
+    if (classSignature.hasNoSignature()) {
       return classSignature;
     }
     return new ClassSignatureRewriter().run(classSignature);
   }
 
   public FieldTypeSignature rewrite(FieldTypeSignature fieldTypeSignature) {
-    if (fieldTypeSignature.hasNoSignature() || appView.graphLens().isIdentityLens()) {
+    if (fieldTypeSignature.hasNoSignature()) {
       return fieldTypeSignature;
     }
     return new TypeSignatureRewriter().run(fieldTypeSignature);
   }
 
   public MethodTypeSignature rewrite(MethodTypeSignature methodTypeSignature) {
-    if (methodTypeSignature.hasNoSignature() || appView.graphLens().isIdentityLens()) {
+    if (methodTypeSignature.hasNoSignature()) {
       return methodTypeSignature;
     }
     return new MethodTypeSignatureRewriter().run(methodTypeSignature);
