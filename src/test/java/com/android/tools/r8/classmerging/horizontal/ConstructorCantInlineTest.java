@@ -5,6 +5,7 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
 
@@ -37,7 +38,8 @@ public class ConstructorCantInlineTest extends HorizontalClassMergingTestBase {
               assertThat(codeInspector.clazz(A.class), not(isPresent()));
               assertThat(codeInspector.clazz(B.class), isPresent());
               assertThat(codeInspector.clazz(C.class), isPresent());
-              assertThat(codeInspector.clazz(D.class), isPresent());
+              assertThat(
+                  codeInspector.clazz(D.class), notIf(isPresent(), enableHorizontalClassMerging));
             });
   }
 
