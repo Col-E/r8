@@ -75,7 +75,7 @@ public final class BackportedMethodRewriter {
   }
 
   public boolean needsDesugaring(DexMethod method) {
-    return rewritableMethods.getProvider(method) != null;
+    return getMethodProviderOrNull(method) != null;
   }
 
   public static List<DexMethod> generateListOfBackportedMethods(
@@ -165,7 +165,30 @@ public final class BackportedMethodRewriter {
   private MethodProvider getMethodProviderOrNull(DexMethod method) {
     DexMethod original = appView.graphLens().getOriginalMethodSignature(method);
     assert original != null;
-    return rewritableMethods.getProvider(original);
+    MethodProvider provider = rewritableMethods.getProvider(original);
+    // TODO(b/150693139): Since the DesugarLibraryRetargeter is run during IR processing while the
+    // backported method rewriter is run in cf to cf, we need here to compute if the method is
+    // actually going to be retargeted through desugared library backports, and compute the
+    // corresponding backported method if so. This can be removed once the DesugarLibraryRetargeter
+    // has been moved as a cf to cf transformation.
+    if (provider == null
+        && appView.options().isDesugaredLibraryCompilation()
+        && appView
+            .options()
+            .desugaredLibraryConfiguration
+            .getBackportCoreLibraryMember()
+            .containsKey(method.holder)) {
+      DexType newHolder =
+          appView
+              .options()
+              .desugaredLibraryConfiguration
+              .getBackportCoreLibraryMember()
+              .get(method.holder);
+      DexMethod backportedMethod =
+          appView.dexItemFactory().createMethod(newHolder, method.proto, method.name);
+      provider = rewritableMethods.getProvider(backportedMethod);
+    }
+    return provider;
   }
 
   private static final class RewritableMethods {
@@ -174,15 +197,6 @@ public final class BackportedMethodRewriter {
     private final Map<DexMethod, MethodProvider> rewritable = new IdentityHashMap<>();
 
     RewritableMethods(InternalOptions options, AppView<?> appView) {
-
-      if (options.testing.forceLibBackportsInL8CfToCf) {
-        DexItemFactory factory = options.itemFactory;
-        initializeJava9OptionalMethodProviders(factory);
-        initializeJava10OptionalMethodProviders(factory);
-        initializeJava11OptionalMethodProviders(factory);
-        initializeStreamMethodProviders(factory);
-        return;
-      }
 
       if (!options.shouldBackportMethods()) {
         return;

@@ -7,7 +7,6 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;

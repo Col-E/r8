@@ -119,7 +119,6 @@ public class DesugaredLibraryTestBase extends TestBase {
           options -> {
             if (extraFiles) {
               options.testing.disableL8AnnotationRemoval = true;
-              options.testing.forceLibBackportsInL8CfToCf = true;
             }
             optionsModifier.accept(options);
           });
