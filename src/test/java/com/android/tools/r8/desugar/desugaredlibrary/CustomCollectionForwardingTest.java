@@ -4,15 +4,10 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static junit.framework.TestCase.assertTrue;
-
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -55,7 +50,6 @@ public class CustomCollectionForwardingTest extends DesugaredLibraryTestBase {
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
-        .inspect(this::assertForwardingMethods)
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
@@ -83,53 +77,6 @@ public class CustomCollectionForwardingTest extends DesugaredLibraryTestBase {
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(
             StringUtils.lines("false", "false", "false", "false", "false", "false"));
-  }
-
-  private void assertForwardingMethods(CodeInspector inspector) {
-    if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel()) {
-      return;
-    }
-    ClassSubject cal = inspector.clazz(CustomArrayList.class);
-    MethodSubject spliteratorCal = cal.method("j$.util.Spliterator", "spliterator");
-    assertTrue(spliteratorCal.isPresent());
-    assertTrue(
-        spliteratorCal
-            .streamInstructions()
-            .anyMatch(i -> i.isInvokeStatic() && i.toString().contains("List$-CC")));
-    MethodSubject streamCal = cal.method("j$.util.stream.Stream", "stream");
-    assertTrue(streamCal.isPresent());
-    assertTrue(
-        streamCal
-            .streamInstructions()
-            .anyMatch(i -> i.isInvokeStatic() && i.toString().contains("Collection$-CC")));
-
-    ClassSubject clhs = inspector.clazz(CustomLinkedHashSet.class);
-    MethodSubject spliteratorClhs = clhs.method("j$.util.Spliterator", "spliterator");
-    assertTrue(spliteratorClhs.isPresent());
-    assertTrue(
-        spliteratorClhs
-            .streamInstructions()
-            .anyMatch(i -> i.isInvokeStatic() && i.toString().contains("DesugarLinkedHashSet")));
-    MethodSubject streamClhs = clhs.method("j$.util.stream.Stream", "stream");
-    assertTrue(streamClhs.isPresent());
-    assertTrue(
-        streamClhs
-            .streamInstructions()
-            .anyMatch(i -> i.isInvokeStatic() && i.toString().contains("Collection$-CC")));
-
-    ClassSubject cl = inspector.clazz(CustomList.class);
-    MethodSubject spliteratorCl = cl.method("j$.util.Spliterator", "spliterator");
-    assertTrue(spliteratorCl.isPresent());
-    assertTrue(
-        spliteratorCl
-            .streamInstructions()
-            .anyMatch(i -> i.isInvokeStatic() && i.toString().contains("List$-CC")));
-    MethodSubject streamCl = cl.method("j$.util.stream.Stream", "stream");
-    assertTrue(streamCl.isPresent());
-    assertTrue(
-        streamCl
-            .streamInstructions()
-            .anyMatch(i -> i.isInvokeStatic() && i.toString().contains("Collection$-CC")));
   }
 
   static class Executor {

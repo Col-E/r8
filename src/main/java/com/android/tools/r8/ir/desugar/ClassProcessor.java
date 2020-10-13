@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -29,9 +30,12 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -79,6 +83,12 @@ final class ClassProcessor {
     boolean isEmpty() {
       return signatures.isEmpty();
     }
+
+    public MethodSignatures withoutAll(MethodSignatures other) {
+      Set<Wrapper<DexMethod>> merged = new HashSet<>(signatures);
+      merged.removeAll(other.signatures);
+      return signatures.size() == merged.size() ? this : new MethodSignatures(merged);
+    }
   }
 
   // Collection of information known at the point of a given (non-library) class.
@@ -86,7 +96,8 @@ final class ClassProcessor {
   // class hierarchy. Thus, in the case of additions the parent pointer will contain prior info.
   private static class ClassInfo {
 
-    static final ClassInfo EMPTY = new ClassInfo(null, ImmutableList.of());
+    static final ClassInfo EMPTY =
+        new ClassInfo(null, ImmutableList.of(), EmulatedInterfaceInfo.EMPTY);
 
     final ClassInfo parent;
 
@@ -94,17 +105,26 @@ final class ClassProcessor {
     // class hierarchy. This set consists of the default interface methods, i.e., the targets of the
     // forwarding methods, *not* the forwarding methods themselves.
     final ImmutableList<DexEncodedMethod> forwardedMethodTargets;
+    // If the forwarding methods for the emulated interface methods have not been added yet,
+    // this contains the information to add it in the subclasses.
+    final EmulatedInterfaceInfo emulatedInterfaceInfo;
 
-    ClassInfo(ClassInfo parent, ImmutableList<DexEncodedMethod> forwardedMethodTargets) {
+    ClassInfo(
+        ClassInfo parent,
+        ImmutableList<DexEncodedMethod> forwardedMethodTargets,
+        EmulatedInterfaceInfo emulatedInterfaceInfo) {
       this.parent = parent;
       this.forwardedMethodTargets = forwardedMethodTargets;
+      this.emulatedInterfaceInfo = emulatedInterfaceInfo;
     }
 
     static ClassInfo create(
-        ClassInfo parent, ImmutableList<DexEncodedMethod> forwardedMethodTargets) {
+        ClassInfo parent,
+        ImmutableList<DexEncodedMethod> forwardedMethodTargets,
+        EmulatedInterfaceInfo emulatedInterfaceInfo) {
       return forwardedMethodTargets.isEmpty()
           ? parent
-          : new ClassInfo(parent, forwardedMethodTargets);
+          : new ClassInfo(parent, forwardedMethodTargets, emulatedInterfaceInfo);
     }
 
     public boolean isEmpty() {
@@ -114,6 +134,107 @@ final class ClassProcessor {
     boolean isTargetedByForwards(DexEncodedMethod method) {
       return forwardedMethodTargets.contains(method)
           || (parent != null && parent.isTargetedByForwards(method));
+    }
+  }
+
+  // Collection of information on what signatures and what emulated interfaces require
+  // forwarding methods for library classes and interfaces.
+  private static class SignaturesInfo {
+
+    static final SignaturesInfo EMPTY =
+        new SignaturesInfo(MethodSignatures.EMPTY, EmulatedInterfaceInfo.EMPTY);
+
+    final MethodSignatures signatures;
+    final EmulatedInterfaceInfo emulatedInterfaceInfo;
+
+    private SignaturesInfo(
+        MethodSignatures methodsToForward, EmulatedInterfaceInfo emulatedInterfaceInfo) {
+      this.signatures = methodsToForward;
+      this.emulatedInterfaceInfo = emulatedInterfaceInfo;
+    }
+
+    public static SignaturesInfo create(MethodSignatures signatures) {
+      if (signatures.isEmpty()) {
+        return EMPTY;
+      }
+      return new SignaturesInfo(signatures, EmulatedInterfaceInfo.EMPTY);
+    }
+
+    public SignaturesInfo merge(SignaturesInfo other) {
+      if (isEmpty()) {
+        return other;
+      }
+      if (other.isEmpty()) {
+        return this;
+      }
+      return new SignaturesInfo(
+          signatures.merge(other.signatures),
+          emulatedInterfaceInfo.merge(other.emulatedInterfaceInfo));
+    }
+
+    public MethodSignatures emulatedInterfaceSignaturesToForward() {
+      return emulatedInterfaceInfo.signatures.withoutAll(signatures);
+    }
+
+    boolean isEmpty() {
+      return signatures.isEmpty() && emulatedInterfaceInfo.isEmpty();
+    }
+
+    public SignaturesInfo withSignatures(MethodSignatures additions) {
+      if (additions.isEmpty()) {
+        return this;
+      }
+      MethodSignatures newSignatures = signatures.merge(additions);
+      return new SignaturesInfo(newSignatures, emulatedInterfaceInfo);
+    }
+
+    public SignaturesInfo withEmulatedInterfaceInfo(
+        EmulatedInterfaceInfo additionalEmulatedInterfaceInfo) {
+      if (additionalEmulatedInterfaceInfo.isEmpty()) {
+        return this;
+      }
+      return new SignaturesInfo(
+          signatures, emulatedInterfaceInfo.merge(additionalEmulatedInterfaceInfo));
+    }
+  }
+
+  // List of emulated interfaces and corresponding signatures which may require forwarding methods.
+  // If one of the signatures has an override, then the class holding the override is required to
+  // add the forwarding methods for all signatures, and introduce the corresponding emulated
+  // interface in its interfaces attribute for correct emulated dispatch.
+  // If no override is present, then no forwarding methods are required, the class relies on the
+  // default behavior of the emulated dispatch.
+  private static class EmulatedInterfaceInfo {
+
+    static final EmulatedInterfaceInfo EMPTY =
+        new EmulatedInterfaceInfo(MethodSignatures.EMPTY, ImmutableSet.of());
+
+    final MethodSignatures signatures;
+    final ImmutableSet<DexType> emulatedInterfaces;
+
+    private EmulatedInterfaceInfo(
+        MethodSignatures methodsToForward, ImmutableSet<DexType> emulatedInterfaces) {
+      this.signatures = methodsToForward;
+      this.emulatedInterfaces = emulatedInterfaces;
+    }
+
+    public EmulatedInterfaceInfo merge(EmulatedInterfaceInfo other) {
+      if (isEmpty()) {
+        return other;
+      }
+      if (other.isEmpty()) {
+        return this;
+      }
+      ImmutableSet.Builder<DexType> newEmulatedInterfaces = ImmutableSet.builder();
+      newEmulatedInterfaces.addAll(emulatedInterfaces);
+      newEmulatedInterfaces.addAll(other.emulatedInterfaces);
+      return new EmulatedInterfaceInfo(
+          signatures.merge(other.signatures), newEmulatedInterfaces.build());
+    }
+
+    public boolean isEmpty() {
+      assert !emulatedInterfaces.isEmpty() || signatures.isEmpty();
+      return emulatedInterfaces.isEmpty();
     }
   }
 
@@ -181,10 +302,10 @@ final class ClassProcessor {
   private final Map<DexClass, ClassInfo> classInfo = new IdentityHashMap<>();
 
   // Mapping from library classes to their information summary.
-  private final Map<DexLibraryClass, MethodSignatures> libraryClassInfo = new IdentityHashMap<>();
+  private final Map<DexLibraryClass, SignaturesInfo> libraryClassInfo = new IdentityHashMap<>();
 
   // Mapping from arbitrary interfaces to an information summary.
-  private final Map<DexClass, MethodSignatures> interfaceInfo = new IdentityHashMap<>();
+  private final Map<DexClass, SignaturesInfo> interfaceInfo = new IdentityHashMap<>();
 
   // Mapping from actual program classes to the synthesized forwarding methods to be created.
   private final Map<DexProgramClass, ProgramMethodSet> newSyntheticMethods =
@@ -228,35 +349,113 @@ final class ClassProcessor {
   }
 
   // Computes the set of method signatures that may need forwarding methods on derived classes.
-  private MethodSignatures computeInterfaceInfo(DexClass iface, MethodSignatures signatures) {
+  private SignaturesInfo computeInterfaceInfo(DexClass iface, SignaturesInfo interfaceInfo) {
     assert iface.isInterface();
     assert iface.superType == dexItemFactory.objectType;
+    assert !rewriter.isEmulatedInterface(iface.type);
     // Add non-library default methods as well as those for desugared library classes.
     if (!iface.isLibraryClass() || (needsLibraryInfo() && rewriter.isInDesugaredLibrary(iface))) {
-      Set<Wrapper<DexMethod>> additions =
-          new HashSet<>(iface.getMethodCollection().numberOfVirtualMethods());
-      for (DexEncodedMethod method : iface.virtualMethods(DexEncodedMethod::isDefaultMethod)) {
-        additions.add(equivalence.wrap(method.method));
-      }
-      if (!additions.isEmpty()) {
-        signatures = signatures.merge(MethodSignatures.create(additions));
-      }
+      MethodSignatures signatures = getDefaultMethods(iface);
+      interfaceInfo = interfaceInfo.withSignatures(signatures);
     }
-    return signatures;
+    return interfaceInfo;
+  }
+
+  private SignaturesInfo computeEmulatedInterfaceInfo(
+      DexClass iface, SignaturesInfo interfaceInfo) {
+    assert iface.isInterface();
+    assert iface.superType == dexItemFactory.objectType;
+    assert rewriter.isEmulatedInterface(iface.type);
+    assert needsLibraryInfo();
+    MethodSignatures signatures = getDefaultMethods(iface);
+    EmulatedInterfaceInfo emulatedInterfaceInfo =
+        new EmulatedInterfaceInfo(signatures, ImmutableSet.of(iface.type));
+    return interfaceInfo.withEmulatedInterfaceInfo(emulatedInterfaceInfo);
+  }
+
+  private MethodSignatures getDefaultMethods(DexClass iface) {
+    assert iface.isInterface();
+    Set<Wrapper<DexMethod>> defaultMethods =
+        new HashSet<>(iface.getMethodCollection().numberOfVirtualMethods());
+    for (DexEncodedMethod method : iface.virtualMethods(DexEncodedMethod::isDefaultMethod)) {
+      defaultMethods.add(equivalence.wrap(method.method));
+    }
+    return MethodSignatures.create(defaultMethods);
   }
 
   // Computes the set of signatures of that may need forwarding methods on classes that derive
   // from a library class.
-  private MethodSignatures computeLibraryClassInfo(
-      DexLibraryClass clazz, MethodSignatures signatures) {
+  private SignaturesInfo computeLibraryClassInfo(DexLibraryClass clazz, SignaturesInfo signatures) {
     // The result is the identity as the library class does not itself contribute to the set.
     return signatures;
   }
 
   // The computation of a class information and the insertions of forwarding methods.
   private ClassInfo computeClassInfo(
-      DexClass clazz, ClassInfo superInfo, MethodSignatures signatures) {
+      DexClass clazz, ClassInfo superInfo, SignaturesInfo signatureInfo) {
     Builder<DexEncodedMethod> additionalForwards = ImmutableList.builder();
+    // First we deal with non-emulated interface desugaring.
+    resolveForwardingMethods(clazz, superInfo, signatureInfo.signatures, additionalForwards);
+    // Second we deal with emulated interface, if one method has override in the current class,
+    // we resolve them, else we propagate the emulated interface info down.
+    if (shouldResolveForwardingMethodsForEmulatedInterfaces(
+        clazz, signatureInfo.emulatedInterfaceInfo)) {
+      resolveForwardingMethods(
+          clazz,
+          superInfo,
+          signatureInfo.emulatedInterfaceSignaturesToForward(),
+          additionalForwards);
+      duplicateEmulatedInterfaces(clazz, signatureInfo.emulatedInterfaceInfo.emulatedInterfaces);
+      return ClassInfo.create(superInfo, additionalForwards.build(), EmulatedInterfaceInfo.EMPTY);
+    }
+    return ClassInfo.create(
+        superInfo, additionalForwards.build(), signatureInfo.emulatedInterfaceInfo);
+  }
+
+  // All classes implementing an emulated interface and overriding a default method should now
+  // implement the interface and the emulated one for correct emulated dispatch.
+  // The class signature won't include the correct type parameters for the duplicated interfaces,
+  // i.e., there will be foo.A instead of foo.A<K,V>, but such parameters are unused.
+  private void duplicateEmulatedInterfaces(
+      DexClass clazz, ImmutableSet<DexType> emulatedInterfaces) {
+    if (clazz.isNotProgramClass()) {
+      return;
+    }
+    // We need to introduce them in deterministic order for deterministic compilation.
+    ArrayList<DexType> sortedEmulatedInterfaces = new ArrayList<>(emulatedInterfaces);
+    Collections.sort(sortedEmulatedInterfaces, DexType::slowCompareTo);
+    List<GenericSignature.ClassTypeSignature> extraInterfaceSignatures = new ArrayList<>();
+    for (DexType extraInterface : sortedEmulatedInterfaces) {
+      extraInterfaceSignatures.add(
+          new GenericSignature.ClassTypeSignature(rewriter.getEmulatedInterface(extraInterface)));
+    }
+    clazz.asProgramClass().addExtraInterfaces(extraInterfaceSignatures);
+  }
+
+  // If any of the signature would lead to a different behavior than the default method on the
+  // emulated interface, we need to resolve the forwarding methods.
+  private boolean shouldResolveForwardingMethodsForEmulatedInterfaces(
+      DexClass clazz, EmulatedInterfaceInfo emulatedInterfaceInfo) {
+    AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
+    for (Wrapper<DexMethod> signature : emulatedInterfaceInfo.signatures.signatures) {
+      ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(signature.get(), clazz);
+      if (resolutionResult.isFailedResolution()) {
+        return true;
+      }
+      DexClass resolvedHolder = resolutionResult.asSingleResolution().getResolvedHolder();
+      if (!resolvedHolder.isLibraryClass()
+          && !emulatedInterfaceInfo.emulatedInterfaces.contains(resolvedHolder.type)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void resolveForwardingMethods(
+      DexClass clazz,
+      ClassInfo superInfo,
+      MethodSignatures signatures,
+      Builder<DexEncodedMethod> additionalForwards) {
     for (Wrapper<DexMethod> wrapper : signatures.signatures) {
       resolveForwardForSignature(
           clazz,
@@ -268,7 +467,6 @@ final class ClassProcessor {
             }
           });
     }
-    return ClassInfo.create(superInfo, additionalForwards.build());
   }
 
   // Looks up a method signature from the point of 'clazz', if it can dispatch to a default method
@@ -439,7 +637,10 @@ final class ClassProcessor {
     // a library class or is not, but cannot be both.
     ReportingContext thisContext = context.forClass(clazz);
     ClassInfo superInfo = visitClassInfo(clazz.superType, thisContext);
-    MethodSignatures signatures = visitLibraryClassInfo(clazz.superType);
+    SignaturesInfo signatures = visitLibraryClassInfo(clazz.superType);
+    // The class may inherit emulated interface info from its program superclass if the latter
+    // did not require to resolve the forwarding methods for emualted interfaces.
+    signatures = signatures.withEmulatedInterfaceInfo(superInfo.emulatedInterfaceInfo);
     assert superInfo.isEmpty() || signatures.isEmpty();
     for (DexType iface : clazz.interfaces.values) {
       signatures = signatures.merge(visitInterfaceInfo(iface, thisContext));
@@ -447,24 +648,24 @@ final class ClassProcessor {
     return computeClassInfo(clazz, superInfo, signatures);
   }
 
-  private MethodSignatures visitLibraryClassInfo(DexType type) {
+  private SignaturesInfo visitLibraryClassInfo(DexType type) {
     // No desugaring required, no library class analysis.
     if (ignoreLibraryInfo()) {
-      return MethodSignatures.EMPTY;
+      return SignaturesInfo.EMPTY;
     }
     DexClass clazz = definitionOrNull(type, LibraryReportingContext.LIBRARY_CONTEXT);
-    return clazz == null ? MethodSignatures.EMPTY : visitLibraryClassInfo(clazz);
+    return clazz == null ? SignaturesInfo.EMPTY : visitLibraryClassInfo(clazz);
   }
 
-  private MethodSignatures visitLibraryClassInfo(DexClass clazz) {
+  private SignaturesInfo visitLibraryClassInfo(DexClass clazz) {
     assert !clazz.isInterface();
     return clazz.isLibraryClass()
         ? libraryClassInfo.computeIfAbsent(clazz.asLibraryClass(), this::visitLibraryClassInfoRaw)
-        : MethodSignatures.EMPTY;
+        : SignaturesInfo.EMPTY;
   }
 
-  private MethodSignatures visitLibraryClassInfoRaw(DexLibraryClass clazz) {
-    MethodSignatures signatures = visitLibraryClassInfo(clazz.superType);
+  private SignaturesInfo visitLibraryClassInfoRaw(DexLibraryClass clazz) {
+    SignaturesInfo signatures = visitLibraryClassInfo(clazz.superType);
     for (DexType iface : clazz.interfaces.values) {
       signatures =
           signatures.merge(visitInterfaceInfo(iface, LibraryReportingContext.LIBRARY_CONTEXT));
@@ -472,24 +673,26 @@ final class ClassProcessor {
     return computeLibraryClassInfo(clazz, signatures);
   }
 
-  private MethodSignatures visitInterfaceInfo(DexType iface, ReportingContext context) {
+  private SignaturesInfo visitInterfaceInfo(DexType iface, ReportingContext context) {
     DexClass definition = definitionOrNull(iface, context);
-    return definition == null ? MethodSignatures.EMPTY : visitInterfaceInfo(definition, context);
+    return definition == null ? SignaturesInfo.EMPTY : visitInterfaceInfo(definition, context);
   }
 
-  private MethodSignatures visitInterfaceInfo(DexClass iface, ReportingContext context) {
+  private SignaturesInfo visitInterfaceInfo(DexClass iface, ReportingContext context) {
     if (iface.isLibraryClass() && ignoreLibraryInfo()) {
-      return MethodSignatures.EMPTY;
+      return SignaturesInfo.EMPTY;
     }
     return interfaceInfo.computeIfAbsent(iface, key -> visitInterfaceInfoRaw(key, context));
   }
 
-  private MethodSignatures visitInterfaceInfoRaw(DexClass iface, ReportingContext context) {
+  private SignaturesInfo visitInterfaceInfoRaw(DexClass iface, ReportingContext context) {
     ReportingContext thisContext = context.forClass(iface);
-    MethodSignatures signatures = MethodSignatures.EMPTY;
+    SignaturesInfo interfaceInfo = SignaturesInfo.EMPTY;
     for (DexType superiface : iface.interfaces.values) {
-      signatures = signatures.merge(visitInterfaceInfo(superiface, thisContext));
+      interfaceInfo = interfaceInfo.merge(visitInterfaceInfo(superiface, thisContext));
     }
-    return computeInterfaceInfo(iface, signatures);
+    return rewriter.isEmulatedInterface(iface.type)
+        ? computeEmulatedInterfaceInfo(iface, interfaceInfo)
+        : computeInterfaceInfo(iface, interfaceInfo);
   }
 }

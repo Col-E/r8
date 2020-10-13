@@ -24,7 +24,6 @@ import java.util.SortedSet;
 import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -60,21 +59,18 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
             .assertNoMessages()
-            .inspect(
-                inspector -> {
-                  this.assertCustomCollectionCallsCorrect(inspector, false);
-                })
+            .inspect(this::assertCustomCollectionCallsCorrect)
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
                 keepRuleConsumer.get(),
                 shrinkDesugaredLibrary)
-            .run(parameters.getRuntime(), EXECUTOR)
+            .run(parameters.getRuntime(), Executor.class)
             .assertSuccess();
-    assertResultCorrect(d8TestRunResult.getStdOut(), d8TestRunResult.getStdErr());
+    assertResultCorrect(d8TestRunResult.getStdOut());
   }
 
-  private void assertResultCorrect(String stdOut, String stdErr) {
+  private void assertResultCorrect(String stdOut) {
     if (requiresEmulatedInterfaceCoreLibDesugaring(parameters) && !shrinkDesugaredLibrary) {
       // When shrinking the class names are not printed correctly anymore due to minification.
       // Expected output is emulated interfaces expected output.
@@ -92,29 +88,20 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
             .addKeepClassAndMembersRules(Executor.class)
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
-            .inspect(
-                inspector -> {
-                  this.assertCustomCollectionCallsCorrect(inspector, true);
-                })
+            .inspect(this::assertCustomCollectionCallsCorrect)
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
                 keepRuleConsumer.get(),
                 shrinkDesugaredLibrary)
-            .run(parameters.getRuntime(), EXECUTOR)
+            .run(parameters.getRuntime(), Executor.class)
             .assertSuccess();
-    assertResultCorrect(r8TestRunResult.getStdOut(), r8TestRunResult.getStdErr());
+    assertResultCorrect(r8TestRunResult.getStdOut());
   }
 
-  private void assertCustomCollectionCallsCorrect(CodeInspector inspector, boolean r8) {
+  private void assertCustomCollectionCallsCorrect(CodeInspector inspector) {
     MethodSubject direct = inspector.clazz(EXECUTOR).uniqueMethodWithName("directTypes");
-    // TODO(b/134732760): Due to memberRebinding, R8 is not as precise as D8 regarding
-    // desugaring of invokes. This will be fixed when creation of desugared method is moved
-    // ahead of R8 compilation pipeline.
-    if (!r8) {
-      Assert.assertFalse(
-          direct.streamInstructions().anyMatch(instr -> instr.toString().contains("$-EL")));
-    } else if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+    if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
       assertTrue(
           direct
               .streamInstructions()
@@ -140,22 +127,17 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
                 instr ->
                     instr.toString().contains("$-EL")
                         || instr.toString().contains("Comparator$-CC")));
-    inherited.streamInstructions().forEach(x -> assertInheritedDispatchCorrect(x, r8));
+    inherited.streamInstructions().forEach(this::assertInheritedDispatchCorrect);
   }
 
-  private void assertInheritedDispatchCorrect(InstructionSubject instructionSubject, boolean r8) {
+  private void assertInheritedDispatchCorrect(InstructionSubject instructionSubject) {
     if (!instructionSubject.isConstString(JumboStringMode.ALLOW)) {
-      for (String s : new String[] {"stream", "parallelStream", "spliterator", "sort"}) {
+      for (String s : new String[] {">stream", "spliterator", "sort"}) {
         if (instructionSubject.toString().contains(s)) {
-          if (!r8 || instructionSubject.isInvokeStatic()) {
             assertTrue(instructionSubject.isInvokeStatic());
             assertTrue(
                 instructionSubject.toString().contains("$-EL")
                     || instructionSubject.toString().contains("Comparator$-CC"));
-          } else {
-            // Has been devirtualized.
-            assertTrue(instructionSubject.isInvokeVirtual());
-          }
         }
       }
     }

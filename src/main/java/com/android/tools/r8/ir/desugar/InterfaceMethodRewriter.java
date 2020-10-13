@@ -26,8 +26,10 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -205,6 +207,10 @@ public final class InterfaceMethodRewriter {
 
   boolean isEmulatedInterface(DexType itf) {
     return emulatedInterfaces.containsKey(itf);
+  }
+
+  DexType getEmulatedInterface(DexType itf) {
+    return emulatedInterfaces.get(itf);
   }
 
   // Rewrites the references to static and default interface methods.
@@ -430,8 +436,19 @@ public final class InterfaceMethodRewriter {
           DexMethod invokedMethod = invokeMethod.getInvokedMethod();
           DexType dexType = maximallySpecificEmulatedInterfaceOrNull(invokedMethod);
           if (dexType != null) {
-            rewriteCurrentInstructionToEmulatedInterfaceCall(
-                dexType, invokedMethod, invokeMethod, instructions);
+            // The call potentially ends up in a library class, in which case we need to rewrite,
+            // since the code may be in the desugared library.
+            SingleResolutionResult resolution =
+                appView
+                    .appInfoForDesugaring()
+                    .resolveMethod(invokedMethod, invokeMethod.getInterfaceBit())
+                    .asSingleResolution();
+            if (resolution != null
+                && (resolution.getResolvedHolder().isLibraryClass()
+                    || appView.options().isDesugaredLibraryCompilation())) {
+              rewriteCurrentInstructionToEmulatedInterfaceCall(
+                  dexType, invokedMethod, invokeMethod, instructions);
+            }
           }
         }
       }
@@ -446,17 +463,6 @@ public final class InterfaceMethodRewriter {
     DexClass dexClass = appView.definitionFor(invokedMethod.holder);
     // We cannot rewrite the invoke we do not know what the class is.
     if (dexClass == null) {
-      return null;
-    }
-    // TODO(b/120884788): Make sure program class are looked up before library class.
-    // Since program classes are desugared, no need to rewrite invokes which can target only
-    // program types.
-    if (!appView.options().isDesugaredLibraryCompilation() && !dexClass.isLibraryClass()) {
-      return null;
-    }
-    // Since desugared library classes are desugared, no need to rewrite invokes which can target
-    // only such classes program types.
-    if (appView.rewritePrefix.hasRewrittenType(dexClass.type, appView)) {
       return null;
     }
     DexEncodedMethod singleTarget = null;
@@ -934,11 +940,11 @@ public final class InterfaceMethodRewriter {
     if (appView.options().isDesugaredLibraryCompilation()) {
       generateEmulateInterfaceLibrary(builder);
     }
-    new DesugaredLibraryEmulatedInterfaceDuplicator(appView).duplicateEmulatedInterfaces();
 
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
     processClasses(builder, flavour, synthesizedMethods::add);
+    transformEmulatedInterfaces();
 
     // Process interfaces, create companion or dispatch class if needed, move static
     // methods to companion class, copy default interface methods to companion classes,
@@ -974,6 +980,40 @@ public final class InterfaceMethodRewriter {
 
     // Cached data is not needed any more.
     clear();
+  }
+
+  private void transformEmulatedInterfaces() {
+    for (DexType dexType : emulatedInterfaces.keySet()) {
+      DexClass dexClass = appView.definitionFor(dexType);
+      if (dexClass != null && dexClass.isProgramClass()) {
+        transformEmulatedInterfaces(dexClass.asProgramClass());
+      }
+    }
+  }
+
+  // The method transforms emulated interface such as they implement the rewritten version
+  // of each emulated interface they implement. Such change should have no effect on the look-up
+  // results, since each class implementing an emulated interface should also implement the
+  // rewritten one.
+  private void transformEmulatedInterfaces(DexProgramClass clazz) {
+    List<GenericSignature.ClassTypeSignature> newInterfaces = new ArrayList<>();
+    GenericSignature.ClassSignature classSignature = clazz.getClassSignature();
+    for (int i = 0; i < clazz.interfaces.size(); i++) {
+      DexType itf = clazz.interfaces.values[i];
+      assert emulatedInterfaces.containsKey(itf);
+      List<GenericSignature.FieldTypeSignature> typeArguments;
+      if (classSignature == null) {
+        typeArguments = Collections.emptyList();
+      } else {
+        GenericSignature.ClassTypeSignature classTypeSignature =
+            classSignature.superInterfaceSignatures().get(i);
+        assert itf == classTypeSignature.type();
+        typeArguments = classTypeSignature.typeArguments();
+      }
+      newInterfaces.add(
+          new GenericSignature.ClassTypeSignature(emulatedInterfaces.get(itf), typeArguments));
+    }
+    clazz.replaceInterfaces(newInterfaces);
   }
 
   private void clear() {
