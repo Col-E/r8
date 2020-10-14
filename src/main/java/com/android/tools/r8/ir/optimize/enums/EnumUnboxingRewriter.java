@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.enums;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -69,7 +70,7 @@ import java.util.function.Function;
 public class EnumUnboxingRewriter {
 
   public static final String ENUM_UNBOXING_UTILITY_METHOD_PREFIX = "$enumboxing$";
-  private static final int REQUIRED_CLASS_FILE_VERSION = 52;
+  private static final CfVersion REQUIRED_CLASS_FILE_VERSION = CfVersion.V1_8;
 
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory factory;

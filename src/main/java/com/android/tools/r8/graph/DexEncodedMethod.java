@@ -12,6 +12,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
@@ -150,7 +151,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
   private CallSiteOptimizationInfo callSiteOptimizationInfo = CallSiteOptimizationInfo.bottom();
-  private int classFileVersion;
+  private CfVersion classFileVersion = null;
   private KotlinMethodLevelInfo kotlinMemberInfo = NO_KOTLIN_INFO;
   /** Generic signature information if the attribute is present in the input */
   private MethodTypeSignature genericSignature;
@@ -242,7 +243,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         parameterAnnotationsList,
         code,
         false,
-        -1);
+        null);
   }
 
   public DexEncodedMethod(
@@ -261,7 +262,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         parameterAnnotationsList,
         code,
         d8R8Synthesized,
-        -1);
+        null);
   }
 
   public DexEncodedMethod(
@@ -272,7 +273,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
       boolean d8R8Synthesized,
-      int classFileVersion) {
+      CfVersion classFileVersion) {
     this(
         method,
         accessFlags,
@@ -293,7 +294,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
       boolean d8R8Synthesized,
-      int classFileVersion,
+      CfVersion classFileVersion,
       boolean deprecated) {
     super(annotations);
     this.method = method;
@@ -784,21 +785,21 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     code = null;
   }
 
-  public int getClassFileVersion() {
+  public CfVersion getClassFileVersion() {
     checkIfObsolete();
-    assert classFileVersion >= 0;
+    assert classFileVersion != null;
     return classFileVersion;
   }
 
   public boolean hasClassFileVersion() {
     checkIfObsolete();
-    return classFileVersion >= 0;
+    return classFileVersion != null;
   }
 
-  public void upgradeClassFileVersion(int version) {
+  public void upgradeClassFileVersion(CfVersion version) {
     checkIfObsolete();
-    assert version >= 0;
-    classFileVersion = Math.max(classFileVersion, version);
+    assert version != null;
+    classFileVersion = CfVersion.maxAllowNull(classFileVersion, version);
   }
 
   public String qualifiedName() {
@@ -1428,7 +1429,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public void copyMetadata(DexEncodedMethod from) {
     checkIfObsolete();
-    if (from.classFileVersion > classFileVersion) {
+    if (from.hasClassFileVersion()) {
       upgradeClassFileVersion(from.getClassFileVersion());
     }
   }
@@ -1466,7 +1467,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     private CompilationState compilationState;
     private MethodOptimizationInfo optimizationInfo;
     private KotlinMethodLevelInfo kotlinMemberInfo;
-    private final int classFileVersion;
+    private final CfVersion classFileVersion;
     private boolean d8R8Synthesized;
 
     private Builder(DexEncodedMethod from) {

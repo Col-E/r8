@@ -14,9 +14,9 @@ import static com.android.tools.r8.ir.analysis.type.TypeElement.getLong;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.getNull;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.getSingle;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.getWide;
-import static org.objectweb.asm.Opcodes.V1_8;
 
 import com.android.tools.r8.ApiLevelException;
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
@@ -2210,7 +2210,7 @@ public class IRBuilder {
                     local,
                     readType);
           } else {
-            assert method.getDefinition().getClassFileVersion() < V1_8;
+            assert method.getDefinition().getClassFileVersion().isLessThan(CfVersion.V1_8);
             hasIncorrectStackMapTypes = true;
           }
         }

@@ -7,6 +7,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.asProgramMethodOrNull;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult.isOverriding;
 
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexCallSite;
@@ -568,29 +569,30 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return definition;
   }
 
-  private int largestInputCfVersion = -1;
+  private CfVersion largestInputCfVersion = null;
 
   public boolean canUseConstClassInstructions(InternalOptions options) {
     if (!options.isGeneratingClassFiles()) {
       return true;
     }
-    if (largestInputCfVersion == -1) {
+    if (largestInputCfVersion == null) {
       computeLargestCfVersion();
     }
     return options.canUseConstClassInstructions(largestInputCfVersion);
   }
 
   private synchronized void computeLargestCfVersion() {
-    if (largestInputCfVersion != -1) {
+    if (largestInputCfVersion != null) {
       return;
     }
     for (DexProgramClass clazz : classes()) {
       // Skip synthetic classes which may not have a specified version.
       if (clazz.hasClassFileVersion()) {
-        largestInputCfVersion = Math.max(largestInputCfVersion, clazz.getInitialClassFileVersion());
+        largestInputCfVersion =
+            CfVersion.maxAllowNull(largestInputCfVersion, clazz.getInitialClassFileVersion());
       }
     }
-    assert largestInputCfVersion != -1;
+    assert largestInputCfVersion != null;
   }
 
   public boolean isLiveProgramClass(DexProgramClass clazz) {

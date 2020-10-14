@@ -8,12 +8,11 @@ import static org.objectweb.asm.ClassReader.SKIP_CODE;
 import static org.objectweb.asm.ClassReader.SKIP_DEBUG;
 import static org.objectweb.asm.ClassReader.SKIP_FRAMES;
 import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
-import static org.objectweb.asm.Opcodes.V1_6;
-import static org.objectweb.asm.Opcodes.V9;
 
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -198,7 +197,7 @@ public class JarClassFileReader {
     private final ReparseContext context = new ReparseContext();
 
     // DexClass data.
-    private int version;
+    private CfVersion version;
     private boolean deprecated;
     private DexType type;
     private ClassAccessFlags accessFlags;
@@ -238,7 +237,7 @@ public class JarClassFileReader {
     public void visitInnerClass(String name, String outerName, String innerName, int access) {
       if (outerName != null && innerName != null) {
         String separator = DescriptorUtils.computeInnerClassSeparator(outerName, name, innerName);
-        if (separator == null && getMajorVersion() < V9) {
+        if (separator == null && version.isLessThan(CfVersion.V9)) {
           application.options.reporter.info(
               new StringDiagnostic(
                   StringUtils.lines(
@@ -289,43 +288,54 @@ public class JarClassFileReader {
           + name;
     }
 
-    private String illegalClassFilePostfix(int version) {
+    private String illegalClassFilePostfix(CfVersion version) {
       return "Class file version " + version;
     }
 
     private String illegalClassFileMessage(
-        ClassAccessFlags accessFlags, String name, int version, String message) {
+        ClassAccessFlags accessFlags, String name, CfVersion version, String message) {
       return illegalClassFilePrefix(accessFlags, name)
           + " " + message
           + ". " + illegalClassFilePostfix(version) + ".";
     }
 
     @Override
-    public void visit(int version, int access, String name, String signature, String superName,
+    public void visit(
+        int rawVersion,
+        int access,
+        String name,
+        String signature,
+        String superName,
         String[] interfaces) {
-      this.version = version;
-      if (InternalOptions.SUPPORTED_CF_MAJOR_VERSION < getMajorVersion()) {
-        throw new CompilationError("Unsupported class file version: " + getMajorVersion(), origin);
+      version = CfVersion.fromRaw(rawVersion);
+      if (InternalOptions.SUPPORTED_CF_VERSION.isLessThan(version)) {
+        throw new CompilationError("Unsupported class file version: " + version, origin);
       }
       this.deprecated = AsmUtils.isDeprecated(access);
       accessFlags = ClassAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
       type = application.getTypeFromName(name);
       // Check if constraints from
       // https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1 are met.
-      if (!accessFlags.areValid(getMajorVersion(), name.endsWith("/package-info"))) {
+      if (!accessFlags.areValid(version, name.endsWith("/package-info"))) {
         throw new CompilationError(
-            illegalClassFileMessage(accessFlags, name, version,
-                "has invalid access flags. Found: " + accessFlags.toString()), origin);
+            illegalClassFileMessage(
+                accessFlags,
+                name,
+                version,
+                "has invalid access flags. Found: " + accessFlags.toString()),
+            origin);
       }
       if (superName == null && !name.equals(Constants.JAVA_LANG_OBJECT_NAME)) {
         throw new CompilationError(
-            illegalClassFileMessage(accessFlags, name, version,
-                "is missing a super type"), origin);
+            illegalClassFileMessage(accessFlags, name, version, "is missing a super type"), origin);
       }
       if (accessFlags.isInterface()
           && !Objects.equals(superName, Constants.JAVA_LANG_OBJECT_NAME)) {
         throw new CompilationError(
-            illegalClassFileMessage(accessFlags, name, version,
+            illegalClassFileMessage(
+                accessFlags,
+                name,
+                version,
                 "must extend class java.lang.Object. Found: " + Objects.toString(superName)),
             origin);
       }
@@ -448,7 +458,7 @@ public class JarClassFileReader {
       }
       if (enclosingMember == null
           && (clazz.isLocalClass() || clazz.isAnonymousClass())
-          && getMajorVersion() > V1_6) {
+          && CfVersion.V1_6.isLessThan(version)) {
         application.options.warningMissingEnclosingMember(clazz.type, clazz.origin, version);
       }
       if (!clazz.isLibraryClass()) {
@@ -524,14 +534,6 @@ public class JarClassFileReader {
         annotations = new ArrayList<>();
       }
       return annotations;
-    }
-
-    private int getMajorVersion() {
-      return version & 0xFFFF;
-    }
-
-    private int getMinorVersion() {
-      return ((version >> 16) & 0xFFFF);
     }
 
     public boolean isInANest() {

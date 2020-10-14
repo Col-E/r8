@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
@@ -18,7 +17,6 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
 public class GetClassLdcClassTest extends TestBase {
@@ -26,16 +24,16 @@ public class GetClassLdcClassTest extends TestBase {
   static final String EXPECTED = StringUtils.lines(Runner.class.getName());
 
   private final TestParameters parameters;
-  private final int version;
+  private final CfVersion version;
 
   @Parameterized.Parameters(name = "{0}, cf:{1}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
-        new Integer[] {Opcodes.V1_4, Opcodes.V1_5});
+        new CfVersion[] {CfVersion.V1_1, CfVersion.V1_4, CfVersion.V1_5});
   }
 
-  public GetClassLdcClassTest(TestParameters parameters, int version) {
+  public GetClassLdcClassTest(TestParameters parameters, CfVersion version) {
     this.parameters = parameters;
     this.version = version;
   }
@@ -99,11 +97,11 @@ public class GetClassLdcClassTest extends TestBase {
             inspector -> {
               if (parameters.isCfRuntime()) {
                 // We are assuming the runtimes we are testing are post CF SE 1.4 (version 48).
-                int cfVersionForRuntime = getVersion(inspector, TestClass.class);
-                assertNotEquals(Opcodes.V1_4, cfVersionForRuntime);
+                CfVersion cfVersionForRuntime = getVersion(inspector, TestClass.class);
+                assertTrue(CfVersion.V1_4.isLessThan(cfVersionForRuntime));
                 // Check that the downgraded class has been bumped to at least SE 1.5 (version 49).
-                int cfVersionAfterUpgrade = getVersion(inspector, Runner.class);
-                assertTrue(cfVersionAfterUpgrade >= Opcodes.V1_5);
+                CfVersion cfVersionAfterUpgrade = getVersion(inspector, Runner.class);
+                assertTrue(CfVersion.V1_4.isLessThan(cfVersionAfterUpgrade));
               }
               // Check that the method uses a const class instruction.
               assertTrue(
@@ -115,11 +113,11 @@ public class GetClassLdcClassTest extends TestBase {
             });
   }
 
-  private static int getVersion(CodeInspector inspector, Class<?> clazz) {
+  private static CfVersion getVersion(CodeInspector inspector, Class<?> clazz) {
     return inspector.clazz(clazz).getDexProgramClass().getInitialClassFileVersion();
   }
 
-  private static void checkVersion(CodeInspector inspector, Class<?> clazz, int version) {
+  private static void checkVersion(CodeInspector inspector, Class<?> clazz, CfVersion version) {
     assertEquals(version, getVersion(inspector, clazz));
   }
 

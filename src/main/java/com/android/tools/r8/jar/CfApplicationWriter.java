@@ -4,11 +4,10 @@
 package com.android.tools.r8.jar;
 
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
-import static org.objectweb.asm.Opcodes.V1_6;
-import static org.objectweb.asm.Opcodes.V1_8;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.CodeSizeOverflowDiagnostic;
@@ -84,6 +83,8 @@ public class CfApplicationWriter {
   private final Predicate<DexType> isTypeMissing;
 
   public final ProguardMapSupplier proguardMapSupplier;
+
+  private static final CfVersion MIN_VERSION_FOR_COMPILER_GENERATED_CODE = CfVersion.V1_6;
 
   public CfApplicationWriter(
       AppView<?> appView,
@@ -168,8 +169,8 @@ public class CfApplicationWriter {
     }
     String sourceDebug = getSourceDebugExtension(clazz.annotations());
     writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, sourceDebug);
-    int version = getClassFileVersion(clazz);
-    if (version >= V1_8) {
+    CfVersion version = getClassFileVersion(clazz);
+    if (version.isGreaterThanOrEqual(CfVersion.V1_8)) {
       // JDK8 and after ignore ACC_SUPER so unset it.
       clazz.accessFlags.unsetSuper();
     } else {
@@ -193,7 +194,7 @@ public class CfApplicationWriter {
     for (int i = 0; i < clazz.interfaces.values.length; i++) {
       interfaces[i] = namingLens.lookupInternalName(clazz.interfaces.values[i]);
     }
-    writer.visit(version, access, name, signature, superName, interfaces);
+    writer.visit(version.raw(), access, name, signature, superName, interfaces);
     writeAnnotations(writer::visitAnnotation, clazz.annotations().annotations);
     ImmutableMap<DexString, DexValue> defaults = getAnnotationDefaults(clazz.annotations());
 
@@ -238,7 +239,7 @@ public class CfApplicationWriter {
         options.reporter, handler -> consumer.accept(ByteDataView.of(result), desc, handler));
   }
 
-  private int getClassFileVersion(DexEncodedMethod method) {
+  private CfVersion getClassFileVersion(DexEncodedMethod method) {
     if (!method.hasClassFileVersion()) {
       // In this case bridges have been introduced for the Cf back-end,
       // which do not have class file version.
@@ -247,18 +248,22 @@ public class CfApplicationWriter {
           || options.cfToCfDesugar;
       // TODO(b/146424042): We may call static methods on interface classes so we have to go for
       //  Java 8.
-      return options.cfToCfDesugar ? V1_8 : 0;
+      assert MIN_VERSION_FOR_COMPILER_GENERATED_CODE.isLessThan(CfVersion.V1_8);
+      return options.cfToCfDesugar ? CfVersion.V1_8 : MIN_VERSION_FOR_COMPILER_GENERATED_CODE;
     }
     return method.getClassFileVersion();
   }
 
-  private int getClassFileVersion(DexProgramClass clazz) {
-    int version = clazz.hasClassFileVersion() ? clazz.getInitialClassFileVersion() : V1_6;
+  private CfVersion getClassFileVersion(DexProgramClass clazz) {
+    CfVersion version =
+        clazz.hasClassFileVersion()
+            ? clazz.getInitialClassFileVersion()
+            : MIN_VERSION_FOR_COMPILER_GENERATED_CODE;
     for (DexEncodedMethod method : clazz.directMethods()) {
-      version = Math.max(version, getClassFileVersion(method));
+      version = version.max(getClassFileVersion(method));
     }
     for (DexEncodedMethod method : clazz.virtualMethods()) {
-      version = Math.max(version, getClassFileVersion(method));
+      version = version.max(getClassFileVersion(method));
     }
     return version;
   }
@@ -335,7 +340,7 @@ public class CfApplicationWriter {
 
   private void writeMethod(
       ProgramMethod method,
-      int classFileVersion,
+      CfVersion classFileVersion,
       LensCodeRewriterUtils rewriter,
       ClassWriter writer,
       ImmutableMap<DexString, DexValue> defaults) {
@@ -497,7 +502,7 @@ public class CfApplicationWriter {
 
   private void writeCode(
       ProgramMethod method,
-      int classFileVersion,
+      CfVersion classFileVersion,
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
     CfCode code = method.getDefinition().getCode().asCfCode();

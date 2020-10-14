@@ -10,6 +10,7 @@ import static org.objectweb.asm.Opcodes.ASM7;
 
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.ClassAccessFlags;
@@ -241,6 +242,10 @@ public class ClassFileTransformer {
   }
 
   public ClassFileTransformer setVersion(int newVersion) {
+    return setVersion(CfVersion.fromRaw(newVersion));
+  }
+
+  public ClassFileTransformer setVersion(CfVersion newVersion) {
     return addClassTransformer(
         new ClassTransformer() {
           @Override
@@ -251,7 +256,7 @@ public class ClassFileTransformer {
               String signature,
               String superName,
               String[] interfaces) {
-            super.visit(newVersion, access, name, signature, superName, interfaces);
+            super.visit(newVersion.raw(), access, name, signature, superName, interfaces);
           }
         });
   }

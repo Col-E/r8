@@ -21,7 +21,7 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class FailCompilationOnFutureVersionsTest extends TestBase {
 
-  static final int UNSUPPORTED_CF_VERSION = InternalOptions.SUPPORTED_CF_MAJOR_VERSION + 1;
+  static final int UNSUPPORTED_CF_VERSION = InternalOptions.SUPPORTED_CF_VERSION.major() + 1;
   static final int UNSUPPORTED_DEX_VERSION = InternalOptions.SUPPORTED_DEX_VERSION + 1;
 
   private final TestParameters parameters;

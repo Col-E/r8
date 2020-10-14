@@ -4,6 +4,7 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfThrow;
@@ -148,7 +149,7 @@ public class GenerateLintFiles {
               ParameterAnnotationsList.empty(),
               code,
               false,
-              50,
+              CfVersion.V1_6,
               false);
       if (method.isStatic() || method.isDirectMethod()) {
         directMethods.add(throwingMethod);

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -105,16 +106,17 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
    * Checks whether the constraints from
    * https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1 are met.
    */
-  public boolean areValid(int majorVersion, boolean isPackageInfo) {
+  public boolean areValid(CfVersion version, boolean isPackageInfo) {
     if (isInterface()) {
       // We ignore the super flags prior to JDK 9, as so did the VM.
-      if ((majorVersion >= 53) && isSuper()) {
+      if (version.isGreaterThanOrEqual(CfVersion.V9) && isSuper()) {
         return false;
       }
       // When not coming from DEX input we require interfaces to be abstract - except for
       // package-info classes - as both old versions of javac and other tools can produce
       // package-info classes that are interfaces but not abstract.
-      if (((majorVersion > Constants.CORRESPONDING_CLASS_FILE_VERSION) && !isAbstract())
+      if (version.isGreaterThanOrEqual(Constants.CORRESPONDING_CLASS_FILE_VERSION)
+          && !isAbstract()
           && !isPackageInfo) {
         return false;
       }

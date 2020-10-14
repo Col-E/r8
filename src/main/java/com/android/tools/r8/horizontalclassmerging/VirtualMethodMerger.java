@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -154,11 +155,11 @@ public class VirtualMethodMerger {
 
     Int2ReferenceSortedMap<DexMethod> classIdToMethodMap = new Int2ReferenceAVLTreeMap<>();
 
-    int classFileVersion = -1;
+    CfVersion classFileVersion = null;
     for (ProgramMethod method : methods) {
       if (method.getDefinition().hasClassFileVersion()) {
-        classFileVersion =
-            Integer.max(classFileVersion, method.getDefinition().getClassFileVersion());
+        CfVersion methodVersion = method.getDefinition().getClassFileVersion();
+        classFileVersion = CfVersion.maxAllowNull(classFileVersion, methodVersion);
       }
       DexMethod newMethod = moveMethod(method);
       lensBuilder.mapMethod(newMethod, newMethod);

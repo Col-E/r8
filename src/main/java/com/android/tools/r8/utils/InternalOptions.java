@@ -15,6 +15,7 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Backend;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -104,7 +105,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     ON
   }
 
-  public static final int SUPPORTED_CF_MAJOR_VERSION = Opcodes.V11;
+  public static final CfVersion SUPPORTED_CF_VERSION = CfVersion.V11;
   public static final int SUPPORTED_DEX_VERSION =
       AndroidApiLevel.LATEST.getDexVersion().getIntValue();
 
@@ -705,10 +706,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   private static class TypeVersionPair {
 
-    final int version;
+    final CfVersion version;
     final DexType type;
 
-    public TypeVersionPair(int version, DexType type) {
+    public TypeVersionPair(CfVersion version, DexType type) {
       this.version = version;
       this.type = type;
     }
@@ -954,7 +955,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
   }
 
-  public void warningMissingEnclosingMember(DexType clazz, Origin origin, int version) {
+  public void warningMissingEnclosingMember(DexType clazz, Origin origin, CfVersion version) {
     TypeVersionPair pair = new TypeVersionPair(version, clazz);
     synchronized (missingEnclosingMembers) {
       missingEnclosingMembers.computeIfAbsent(origin, k -> new ArrayList<>()).add(pair);
@@ -1068,7 +1069,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
             builder.append(", ");
           }
           builder.append(pair.type);
-          printOutdatedToolchain |= pair.version < 49;
+          printOutdatedToolchain |= pair.version.isLessThan(CfVersion.V1_5);
         }
         reporter.info(new StringDiagnostic(builder.toString(), origin));
       }
@@ -1390,14 +1391,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return result;
   }
 
-  public boolean canUseConstClassInstructions(int cfVersion) {
+  public boolean canUseConstClassInstructions(CfVersion cfVersion) {
     assert isGeneratingClassFiles();
-    return cfVersion >= requiredCfVersionForConstClassInstructions();
+    return cfVersion.isGreaterThanOrEqual(requiredCfVersionForConstClassInstructions());
   }
 
-  public int requiredCfVersionForConstClassInstructions() {
+  public CfVersion requiredCfVersionForConstClassInstructions() {
     assert isGeneratingClassFiles();
-    return Opcodes.V1_5;
+    return CfVersion.V1_5;
   }
 
   public boolean canUseInvokePolymorphicOnVarHandle() {

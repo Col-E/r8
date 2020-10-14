@@ -7,10 +7,9 @@ import static com.android.tools.r8.graph.DexCode.FAKE_THIS_PREFIX;
 import static com.android.tools.r8.graph.DexCode.FAKE_THIS_SUFFIX;
 import static com.android.tools.r8.ir.conversion.CfSourceCode.canThrowHelper;
 import static org.objectweb.asm.Opcodes.ACC_STATIC;
-import static org.objectweb.asm.Opcodes.V1_5;
-import static org.objectweb.asm.Opcodes.V1_6;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfFrameVerificationHelper;
@@ -285,7 +284,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
 
   public void write(
       ProgramMethod method,
-      int classFileVersion,
+      CfVersion classFileVersion,
       AppView<?> appView,
       NamingLens namingLens,
       LensCodeRewriterUtils rewriter,
@@ -305,8 +304,9 @@ public class CfCode extends Code implements Comparable<CfCode> {
     }
     for (CfInstruction instruction : instructions) {
       if (instruction instanceof CfFrame
-          && (classFileVersion <= V1_5
-              || (classFileVersion == V1_6 && !options.shouldKeepStackMapTable()))) {
+          && (classFileVersion.isLessThan(CfVersion.V1_6)
+              || (classFileVersion.isEqual(CfVersion.V1_6)
+                  && !options.shouldKeepStackMapTable()))) {
         continue;
       }
       instruction.write(
@@ -687,7 +687,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
       stackMapStatus = StackMapStatus.INVALID_OR_NOT_PRESENT;
       return true;
     }
-    if (method.hasClassFileVersion() && method.getClassFileVersion() <= V1_6) {
+    if (method.hasClassFileVersion() && method.getClassFileVersion().isLessThan(CfVersion.V1_7)) {
       stackMapStatus = StackMapStatus.INVALID_OR_NOT_PRESENT;
       return true;
     }

@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import com.android.tools.r8.cf.CfVersion;
+
 public class Constants {
 
   public static final byte[] DEX_FILE_MAGIC_PREFIX = {'d', 'e', 'x', '\n'};
@@ -16,7 +18,7 @@ public class Constants {
   public static final int MAX_VDEX_VERSION = 11;
 
   // We apply Java 6 class file constraints on DEX files.
-  public static final int CORRESPONDING_CLASS_FILE_VERSION = 50;
+  public static final CfVersion CORRESPONDING_CLASS_FILE_VERSION = CfVersion.V1_6;
 
   public static final int DEX_MAGIC_SIZE = 8;
 

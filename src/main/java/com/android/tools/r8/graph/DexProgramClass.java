@@ -8,6 +8,7 @@ import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
@@ -48,7 +49,7 @@ public class DexProgramClass extends DexClass
 
   private final ProgramResource.Kind originKind;
   private final Collection<DexProgramClass> synthesizedFrom;
-  private int initialClassFileVersion = -1;
+  private CfVersion initialClassFileVersion = null;
   private boolean deprecated = false;
   private KotlinClassLevelInfo kotlinInfo = NO_KOTLIN_INFO;
 
@@ -565,17 +566,18 @@ public class DexProgramClass extends DexClass
     return this;
   }
 
-  public void setInitialClassFileVersion(int initialClassFileVersion) {
-    assert this.initialClassFileVersion == -1 && initialClassFileVersion > 0;
+  public void setInitialClassFileVersion(CfVersion initialClassFileVersion) {
+    assert this.initialClassFileVersion == null;
+    assert initialClassFileVersion != null;
     this.initialClassFileVersion = initialClassFileVersion;
   }
 
   public boolean hasClassFileVersion() {
-    return initialClassFileVersion > -1;
+    return initialClassFileVersion != null;
   }
 
-  public int getInitialClassFileVersion() {
-    assert initialClassFileVersion > -1;
+  public CfVersion getInitialClassFileVersion() {
+    assert initialClassFileVersion != null;
     return initialClassFileVersion;
   }
 

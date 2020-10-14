@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -139,10 +140,11 @@ public class ConstructorMerger {
     // Tree map as must be sorted.
     Int2ReferenceSortedMap<DexMethod> typeConstructorClassMap = new Int2ReferenceAVLTreeMap<>();
 
-    int classFileVersion = -1;
+    CfVersion classFileVersion = null;
     for (DexEncodedMethod constructor : constructors) {
       if (constructor.hasClassFileVersion()) {
-        classFileVersion = Integer.max(classFileVersion, constructor.getClassFileVersion());
+        classFileVersion =
+            CfVersion.maxAllowNull(classFileVersion, constructor.getClassFileVersion());
       }
       DexMethod movedConstructor = moveConstructor(constructor);
       lensBuilder.mapMethod(movedConstructor, movedConstructor);
