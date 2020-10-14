@@ -545,6 +545,19 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer setGenericSignature(MethodPredicate predicate, String newSignature) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public MethodVisitor visitMethod(
+              int access, String name, String descriptor, String signature, String[] exceptions) {
+            return predicate.test(access, name, descriptor, signature, exceptions)
+                ? super.visitMethod(access, name, descriptor, newSignature, exceptions)
+                : super.visitMethod(access, name, descriptor, signature, exceptions);
+          }
+        });
+  }
+
   public ClassFileTransformer removeFields(FieldPredicate predicate) {
     return addClassTransformer(
         new ClassTransformer() {
