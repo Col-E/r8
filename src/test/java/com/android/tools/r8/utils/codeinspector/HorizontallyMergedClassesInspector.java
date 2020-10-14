@@ -5,7 +5,6 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import static com.android.tools.r8.TestBase.toDexType;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -21,13 +20,6 @@ public class HorizontallyMergedClassesInspector {
       DexItemFactory dexItemFactory, HorizontallyMergedClasses horizontallyMergedClasses) {
     this.dexItemFactory = dexItemFactory;
     this.horizontallyMergedClasses = horizontallyMergedClasses;
-  }
-
-  public HorizontallyMergedClassesInspector assertMergedInto(Class<?> from, Class<?> target) {
-    assertEquals(
-        horizontallyMergedClasses.getMergeTargetOrDefault(toDexType(from, dexItemFactory)),
-        toDexType(target, dexItemFactory));
-    return this;
   }
 
   public HorizontallyMergedClassesInspector assertNoClassesMerged() {

@@ -36,6 +36,7 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testCompanionAndRegularObjects() throws Exception {
+    expectThrowsWithHorizontalClassMerging();
     assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
     final String mainClassName = "class_staticizer.MainKt";
 
@@ -46,6 +47,7 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
         false,
         app -> {
           CodeInspector inspector = new CodeInspector(app);
+          assertThat(inspector.clazz("class_staticizer.Regular$Companion"), isPresent());
           assertThat(inspector.clazz("class_staticizer.Derived$Companion"), isPresent());
 
           // The Util class is there, but its instance methods have been inlined.
@@ -65,6 +67,7 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
         app -> {
           CodeInspector inspector = new CodeInspector(app);
           assertThat(inspector.clazz("class_staticizer.Regular$Companion"), not(isPresent()));
+          assertThat(inspector.clazz("class_staticizer.Derived$Companion"), not(isPresent()));
 
           ClassSubject utilClass = inspector.clazz("class_staticizer.Util");
           assertThat(utilClass, isPresent());

@@ -1129,9 +1129,10 @@ public class CodeRewriter {
     BasicBlock defaultTarget = theSwitch.fallthroughBlock();
     SwitchCaseEliminator eliminator = null;
     BasicBlockBehavioralSubsumption behavioralSubsumption =
-        new BasicBlockBehavioralSubsumption(appView, code);
+        new BasicBlockBehavioralSubsumption(appView, code.context());
 
     // Compute the set of switch cases that can be removed.
+    int alwaysHitCase = -1;
     for (int i = 0; i < theSwitch.numberOfKeys(); i++) {
       BasicBlock targetBlock = theSwitch.targetBlock(i);
 
