@@ -41,7 +41,6 @@ public class SingleTargetAfterInliningTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(SingleTargetAfterInliningTest.class)
         .addKeepMainRule(TestClass.class)

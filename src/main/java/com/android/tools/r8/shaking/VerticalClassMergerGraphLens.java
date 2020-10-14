@@ -50,7 +50,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
 
   interface GraphLensLookupResultProvider {
 
-    abstract MethodLookupResult get(RewrittenPrototypeDescription prototypeChanges);
+    MethodLookupResult get(RewrittenPrototypeDescription prototypeChanges);
   }
 
   private final AppView<?> appView;
@@ -133,7 +133,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
 
   @Override
   protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
-    return super.mapVirtualInterfaceInvocationTypes(appView, newMethod, originalMethod, type);
+    return mapVirtualInterfaceInvocationTypes(appView, newMethod, originalMethod, type);
   }
 
   @Override

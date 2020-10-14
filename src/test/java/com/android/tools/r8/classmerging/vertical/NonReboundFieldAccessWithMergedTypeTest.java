@@ -30,7 +30,6 @@ public class NonReboundFieldAccessWithMergedTypeTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    thrown.expect(Throwable.class);
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addInnerClasses(NonReboundFieldAccessWithMergedTypeTestClasses.class)

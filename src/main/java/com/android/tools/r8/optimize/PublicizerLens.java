@@ -40,6 +40,11 @@ final class PublicizerLens extends NestedGraphLens {
   }
 
   @Override
+  protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
+    return previous;
+  }
+
+  @Override
   public MethodLookupResult internalDescribeLookupMethod(
       MethodLookupResult previous, DexMethod context) {
     if (previous.getType() == Type.DIRECT && publicizedMethods.contains(previous.getReference())) {

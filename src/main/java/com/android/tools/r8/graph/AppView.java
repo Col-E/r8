@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.ir.optimize.library.LibraryMemberOptimizer;
+import com.android.tools.r8.optimize.MemberRebindingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.LibraryModeledPredicate;
@@ -598,17 +599,26 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     assert application.verifyWithLens(lens);
 
     // The application has already been rewritten with the given applied lens. Therefore, we
-    // temporarily replace that lens with the identity lens to avoid the overhead of traversing
-    // the entire lens chain upon each lookup during the rewriting.
-    NonIdentityGraphLens temporaryRootLens = lens;
-    while (temporaryRootLens.getPrevious() != appliedLens) {
-      GraphLens previousLens = temporaryRootLens.getPrevious();
+    // temporarily replace that lens with a lens that does not have any rewritings to avoid the
+    // overhead of traversing the entire lens chain upon each lookup during the rewriting.
+    NonIdentityGraphLens firstUnappliedLens = lens;
+    while (firstUnappliedLens.getPrevious() != appliedLens) {
+      GraphLens previousLens = firstUnappliedLens.getPrevious();
       assert previousLens.isNonIdentityLens();
-      temporaryRootLens = previousLens.asNonIdentityLens();
+      firstUnappliedLens = previousLens.asNonIdentityLens();
     }
 
-    temporaryRootLens.withAlternativeParentLens(
-        GraphLens.getIdentityLens(),
+    // Insert a member rebinding lens above the first unapplied lens.
+    MemberRebindingLens appliedMemberRebindingLens =
+        firstUnappliedLens.findPrevious(GraphLens::isMemberRebindingLens);
+    GraphLens newMemberRebindingLens =
+        appliedMemberRebindingLens != null
+            ? appliedMemberRebindingLens.toRewrittenFieldRebindingLens(
+                appView.dexItemFactory(), appliedLens)
+            : GraphLens.getIdentityLens();
+
+    firstUnappliedLens.withAlternativeParentLens(
+        newMemberRebindingLens,
         () -> {
           appView.setAppInfo(appView.appInfo().rewrittenWithLens(application, lens));
           appView.setAppServices(appView.appServices().rewrittenWithLens(lens));

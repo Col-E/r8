@@ -21,19 +21,16 @@ public class NonReboundFieldAccessOnMergedClassTest extends HorizontalClassMergi
 
   @Test
   public void test() throws Exception {
-    if (enableHorizontalClassMerging) {
-      thrown.expect(Throwable.class);
-    }
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addInnerClasses(NonReboundFieldAccessOnMergedClassTestClasses.class)
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
-        .addHorizontallyMergedLambdaClassesInspector(
+        .addHorizontallyMergedClassesInspector(
             inspector -> {
               if (enableHorizontalClassMerging) {
-                inspector.assertMerged(C.class, D.class);
+                inspector.assertMerged(C.class, D.class).assertMergedIntoDifferentType(D.class);
               }
             })
         .enableNeverClassInliningAnnotations()

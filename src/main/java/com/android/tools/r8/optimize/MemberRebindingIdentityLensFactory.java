@@ -165,12 +165,14 @@ public class MemberRebindingIdentityLensFactory {
       synchronized (fieldAccessInfo) {
         // Record the fact that there is a non-rebound access to the given field. We don't
         // distinguish between non-rebound reads and writes, so we just record it as a read.
-        ConcreteAccessContexts accessContexts =
-            fieldAccessInfo.getReadsWithContexts().isConcrete()
-                ? fieldAccessInfo.getReadsWithContexts().asConcrete()
-                : new ConcreteAccessContexts();
+        if (fieldAccessInfo.getReadsWithContexts().isBottom()) {
+          fieldAccessInfo.setReadsWithContexts(new ConcreteAccessContexts());
+        } else {
+          assert fieldAccessInfo.getReadsWithContexts().isConcrete();
+        }
         // For the purpose of member rebinding, we don't care about the access contexts, so we
         // simply use the empty set.
+        ConcreteAccessContexts accessContexts = fieldAccessInfo.getReadsWithContexts().asConcrete();
         accessContexts.getAccessesWithContexts().put(field, ProgramMethodSet.empty());
       }
     }

@@ -8,7 +8,6 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.classmerging.vertical.NonReboundFieldAccessWithMergedTypeTest.GreetingBase;
 import com.android.tools.r8.classmerging.vertical.testclasses.NonReboundFieldAccessOnMergedClassTestClasses;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,13 +30,12 @@ public class NonReboundFieldAccessOnMergedClassTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    thrown.expect(Throwable.class);
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addInnerClasses(NonReboundFieldAccessOnMergedClassTestClasses.class)
         .addKeepMainRule(Main.class)
         .addVerticallyMergedClassesInspector(
-            inspector -> inspector.assertMergedIntoSubtype(GreetingBase.class))
+            inspector -> inspector.assertMergedIntoSubtype(C.class))
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

@@ -97,7 +97,6 @@ public class Java11R8BootstrapTest extends TestBase {
 
   @Test
   public void testHello() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     Assume.assumeTrue(!ToolHelper.isWindows());
     Path prevGeneratedJar = null;
     String prevRunResult = null;
@@ -131,7 +130,6 @@ public class Java11R8BootstrapTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     Assume.assumeTrue(!ToolHelper.isWindows());
     Assume.assumeTrue(parameters.isCfRuntime());
     Assume.assumeTrue(CfVm.JDK11 == parameters.getRuntime().asCf().getVm());

@@ -22,7 +22,6 @@ public class NestedPrivateMethodLens extends NestedGraphLens {
   private final DexType nestConstructorType;
   private final Map<DexField, DexMethod> getFieldMap;
   private final Map<DexField, DexMethod> putFieldMap;
-  private final AppView<?> appView;
 
   NestedPrivateMethodLens(
       AppView<?> appView,
@@ -43,7 +42,6 @@ public class NestedPrivateMethodLens extends NestedGraphLens {
     assert methodMap instanceof IdentityHashMap;
     assert getFieldMap instanceof IdentityHashMap;
     assert putFieldMap instanceof IdentityHashMap;
-    this.appView = appView;
     this.nestConstructorType = nestConstructorType;
     this.getFieldMap = getFieldMap;
     this.putFieldMap = putFieldMap;

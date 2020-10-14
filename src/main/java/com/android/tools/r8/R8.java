@@ -484,7 +484,7 @@ public class R8 {
       }
 
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      appView.setGraphLens(new MemberRebindingAnalysis(appViewWithLiveness).run());
+      appView.setGraphLens(new MemberRebindingAnalysis(appViewWithLiveness).run(executorService));
       appView.appInfo().withLiveness().getFieldAccessInfoCollection().restrictToProgram(appView);
 
       if (options.shouldDesugarNests()) {

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 /**
  * A GraphLens implements a virtual view on top of the graph, used to delay global rewrites until
@@ -348,15 +349,21 @@ public abstract class GraphLens {
   public DexField lookupField(DexField field) {
     // Lookup the field using the graph lens and return the (non-rebound) reference from the lookup
     // result.
-    return internalLookupField(field, FieldLookupResult::getReference);
+    return lookupFieldResult(field).getReference();
   }
 
-  protected abstract DexField internalLookupField(
+  /** Lookup a rebound or non-rebound field reference using the current graph lens. */
+  public FieldLookupResult lookupFieldResult(DexField field) {
+    // Lookup the field using the graph lens and return the lookup result.
+    return internalLookupField(field, x -> x);
+  }
+
+  protected abstract FieldLookupResult internalLookupField(
       DexField reference, LookupFieldContinuation continuation);
 
   interface LookupFieldContinuation {
 
-    DexField lookupField(FieldLookupResult previous);
+    FieldLookupResult lookupField(FieldLookupResult previous);
   }
 
   public DexMethod lookupGetFieldForMethod(DexField field, DexMethod context) {
@@ -407,6 +414,10 @@ public abstract class GraphLens {
   }
 
   public abstract boolean isIdentityLens();
+
+  public boolean isMemberRebindingLens() {
+    return false;
+  }
 
   public abstract boolean isNonIdentityLens();
 
@@ -616,6 +627,19 @@ public abstract class GraphLens {
       return previousLens;
     }
 
+    @SuppressWarnings("unchecked")
+    public final <T extends GraphLens> T findPrevious(Predicate<NonIdentityGraphLens> predicate) {
+      GraphLens current = getPrevious();
+      while (current.isNonIdentityLens()) {
+        NonIdentityGraphLens nonIdentityGraphLens = current.asNonIdentityLens();
+        if (predicate.test(nonIdentityGraphLens)) {
+          return (T) nonIdentityGraphLens;
+        }
+        current = nonIdentityGraphLens.getPrevious();
+      }
+      return null;
+    }
+
     public final void withAlternativeParentLens(GraphLens lens, Action action) {
       GraphLens oldParent = getPrevious();
       previousLens = lens;
@@ -663,7 +687,7 @@ public abstract class GraphLens {
     }
 
     @Override
-    protected DexField internalLookupField(
+    protected FieldLookupResult internalLookupField(
         DexField reference, LookupFieldContinuation continuation) {
       return previousLens.internalLookupField(
           reference, previous -> continuation.lookupField(internalDescribeLookupField(previous)));
@@ -772,7 +796,7 @@ public abstract class GraphLens {
     }
 
     @Override
-    protected DexField internalLookupField(
+    protected FieldLookupResult internalLookupField(
         DexField reference, LookupFieldContinuation continuation) {
       // Passes the field reference back to the next graph lens. The identity lens intentionally
       // does not set the rebound field reference, since it does not know what that is.
@@ -847,7 +871,7 @@ public abstract class GraphLens {
     }
 
     @Override
-    protected DexField internalLookupField(
+    protected FieldLookupResult internalLookupField(
         DexField reference, LookupFieldContinuation continuation) {
       return getIdentityLens().internalLookupField(reference, continuation);
     }
@@ -981,12 +1005,15 @@ public abstract class GraphLens {
       if (previous.hasReboundReference()) {
         // Rewrite the rebound reference and then "fixup" the non-rebound reference.
         DexField rewrittenReboundReference = previous.getRewrittenReboundReference(fieldMap);
+        DexField rewrittenNonReboundReference =
+            previous.getReference() == previous.getReboundReference()
+                ? rewrittenReboundReference
+                : rewrittenReboundReference.withHolder(
+                    internalDescribeLookupClassType(previous.getReference().getHolderType()),
+                    dexItemFactory);
         return FieldLookupResult.builder(this)
             .setReboundReference(rewrittenReboundReference)
-            .setReference(
-                rewrittenReboundReference.withHolder(
-                    internalDescribeLookupClassType(previous.getReference().getHolderType()),
-                    dexItemFactory))
+            .setReference(rewrittenNonReboundReference)
             .build();
       } else {
         // TODO(b/168282032): We should always have the rebound reference, so this should become
@@ -1011,8 +1038,8 @@ public abstract class GraphLens {
                     internalDescribeLookupClassType(previous.getReference().getHolderType()),
                     dexItemFactory);
         return MethodLookupResult.builder(this)
-            .setReboundReference(rewrittenReboundReference)
             .setReference(rewrittenReference)
+            .setReboundReference(rewrittenReboundReference)
             .setPrototypeChanges(
                 internalDescribePrototypeChanges(
                     previous.getPrototypeChanges(), rewrittenReboundReference))
@@ -1090,18 +1117,18 @@ public abstract class GraphLens {
      *
      * <p>Handle methods moved from interface to class or class to interface.
      */
-    protected final Type mapVirtualInterfaceInvocationTypes(
+    public static Type mapVirtualInterfaceInvocationTypes(
         DexDefinitionSupplier definitions,
         DexMethod newMethod,
         DexMethod originalMethod,
         Type type) {
       if (type == Type.VIRTUAL || type == Type.INTERFACE) {
         // Get the invoke type of the actual definition.
-        DexClass newTargetClass = definitions.definitionFor(newMethod.holder);
+        DexClass newTargetClass = definitions.definitionFor(newMethod.getHolderType());
         if (newTargetClass == null) {
           return type;
         }
-        DexClass originalTargetClass = definitions.definitionFor(originalMethod.holder);
+        DexClass originalTargetClass = definitions.definitionFor(originalMethod.getHolderType());
         if (originalTargetClass != null
             && (originalTargetClass.isInterface() ^ (type == Type.INTERFACE))) {
           // The invoke was wrong to start with, so we keep it wrong. This is to ensure we get

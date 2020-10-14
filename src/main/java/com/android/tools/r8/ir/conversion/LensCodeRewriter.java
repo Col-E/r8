@@ -32,16 +32,20 @@ import static com.android.tools.r8.utils.ObjectUtils.getBooleanOrElse;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.FieldLookupResult;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
@@ -374,7 +378,7 @@ public class LensCodeRewriter {
             {
               InstanceGet instanceGet = current.asInstanceGet();
               DexField field = instanceGet.getField();
-              DexField actualField = graphLens.lookupField(field);
+              DexField actualField = rewriteFieldReference(field, method, graphLens);
               DexMethod replacementMethod =
                   graphLens.lookupGetFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
@@ -399,7 +403,7 @@ public class LensCodeRewriter {
             {
               InstancePut instancePut = current.asInstancePut();
               DexField field = instancePut.getField();
-              DexField actualField = graphLens.lookupField(field);
+              DexField actualField = rewriteFieldReference(field, method, graphLens);
               DexMethod replacementMethod =
                   graphLens.lookupPutFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
@@ -421,7 +425,7 @@ public class LensCodeRewriter {
             {
               StaticGet staticGet = current.asStaticGet();
               DexField field = staticGet.getField();
-              DexField actualField = graphLens.lookupField(field);
+              DexField actualField = rewriteFieldReference(field, method, graphLens);
               DexMethod replacementMethod =
                   graphLens.lookupGetFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
@@ -445,7 +449,7 @@ public class LensCodeRewriter {
             {
               StaticPut staticPut = current.asStaticPut();
               DexField field = staticPut.getField();
-              DexField actualField = graphLens.lookupField(field);
+              DexField actualField = rewriteFieldReference(field, method, graphLens);
               DexMethod replacementMethod =
                   graphLens.lookupPutFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
@@ -579,6 +583,22 @@ public class LensCodeRewriter {
     }
     assert code.isConsistentSSABeforeTypesAreCorrect();
     assert code.hasNoVerticallyMergedClasses(appView);
+  }
+
+  private DexField rewriteFieldReference(
+      DexField reference, ProgramMethod context, GraphLens graphLens) {
+    FieldLookupResult lookup = graphLens.lookupFieldResult(reference);
+    if (lookup.hasReboundReference()) {
+      DexClass holder = appView.definitionFor(lookup.getReboundReference().getHolderType());
+      DexEncodedField definition = lookup.getReboundReference().lookupOnClass(holder);
+      if (definition != null) {
+        DexClassAndField field = DexClassAndField.create(holder, definition);
+        if (AccessControl.isMemberAccessible(field, holder, context, appView).isTrue()) {
+          return lookup.getReboundReference();
+        }
+      }
+    }
+    return lookup.getReference();
   }
 
   // If the initialValue is a default value and its type is rewritten from a reference type to a

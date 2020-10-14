@@ -21,6 +21,10 @@ public abstract class FieldResolutionResult
     return null;
   }
 
+  public DexField getResolvedFieldReference() {
+    return null;
+  }
+
   public boolean isSuccessfulResolution() {
     return false;
   }
@@ -75,6 +79,11 @@ public abstract class FieldResolutionResult
     @Override
     public DexEncodedField getResolvedField() {
       return resolvedField;
+    }
+
+    @Override
+    public DexField getResolvedFieldReference() {
+      return resolvedField.toReference();
     }
 
     @Override
