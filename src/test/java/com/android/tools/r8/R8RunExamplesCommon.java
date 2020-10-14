@@ -24,7 +24,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
@@ -187,7 +186,7 @@ public abstract class R8RunExamplesCommon {
   }
 
   @Test
-  public void outputIsIdentical() throws IOException, InterruptedException, ExecutionException {
+  public void outputIsIdentical() throws IOException {
     if (shouldCompileFail()) {
       // We expected an exception, but got none.
       // Return to ensure that this test fails due to the missing exception.

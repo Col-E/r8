@@ -12,6 +12,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -33,6 +34,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
 
   static class Sub extends Base {}
 
+  @NoHorizontalClassMerging
   static class EffectivelyFinal {}
 
   static class Reflection implements Callable<Class<?>> {
@@ -208,7 +210,6 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
   @Test
   public void testR8() throws Exception {
     boolean isRelease = mode == CompilationMode.RELEASE;
-    expectThrowsWithHorizontalClassMergingIf(isRelease);
     boolean expectCallPresent = !isRelease;
     int expectedGetClassCount = isRelease ? 0 : 5;
     int expectedConstClassCount = isRelease ? (parameters.isCfRuntime() ? 8 : 6) : 1;
@@ -216,6 +217,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
         .setMode(mode)
         .addInnerClasses(GetClassTest.class)
         .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .addKeepMainRule(MAIN)
         .noMinification()
         .addOptionsModification(this::configure)

@@ -181,10 +181,6 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
 
   @Test
   public void testStream() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary
-            && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)
-            && !parameters.getDexRuntimeVersion().isDefault());
     Assume.assumeFalse(
         "getAllFilesWithSuffixInDirectory() seems to find different files on Windows",
         ToolHelper.isWindows());

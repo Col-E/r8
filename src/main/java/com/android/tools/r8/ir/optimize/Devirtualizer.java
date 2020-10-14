@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -116,9 +117,12 @@ public class Devirtualizer {
           }
         }
 
-        if (appView.options().testing.enableInvokeSuperToInvokeVirtualRewriting) {
-          if (current.isInvokeSuper()) {
-            InvokeSuper invoke = current.asInvokeSuper();
+        if (current.isInvokeSuper()) {
+          InvokeSuper invoke = current.asInvokeSuper();
+
+          // Check if the instruction can be rewritten to invoke-super. This allows inlining of the
+          // enclosing method into contexts outside the current class.
+          if (appView.options().testing.enableInvokeSuperToInvokeVirtualRewriting) {
             DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
             if (singleTarget != null) {
               DexClass holder = appView.definitionForHolder(singleTarget, context);
@@ -134,10 +138,23 @@ public class Devirtualizer {
               if (newSingleTarget == singleTarget) {
                 it.replaceCurrentInstruction(
                     new InvokeVirtual(invokedMethod, invoke.outValue(), invoke.arguments()));
+                continue;
               }
             }
-            continue;
           }
+
+          // Rebind the invoke to the most specific target.
+          DexMethod invokedMethod = invoke.getInvokedMethod();
+          DexClassAndMethod reboundTarget = rebindSuperInvokeToMostSpecific(invokedMethod, context);
+          if (reboundTarget != null && reboundTarget.getReference() != invokedMethod) {
+            it.replaceCurrentInstruction(
+                new InvokeSuper(
+                    reboundTarget.getReference(),
+                    invoke.outValue(),
+                    invoke.arguments(),
+                    reboundTarget.getHolder().isInterface()));
+          }
+          continue;
         }
 
         if (current.isInvokeVirtual()) {
@@ -272,6 +289,33 @@ public class Devirtualizer {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
+  }
+
+  /** This rebinds invoke-super instructions to their most specific target. */
+  private DexClassAndMethod rebindSuperInvokeToMostSpecific(
+      DexMethod target, ProgramMethod context) {
+    DexEncodedMethod definition = appView.appInfo().lookupSuperTarget(target, context);
+    if (definition == null) {
+      return null;
+    }
+
+    DexClass holder = appView.definitionFor(definition.getHolderType());
+    if (holder == null) {
+      assert false;
+      return null;
+    }
+
+    if (holder.isInterface() && holder.getType() != context.getHolder().superType) {
+      // Not allowed.
+      return null;
+    }
+
+    DexClassAndMethod method = DexClassAndMethod.create(holder, definition);
+    if (AccessControl.isMemberAccessible(method, holder, context, appView).isPossiblyFalse()) {
+      return null;
+    }
+
+    return method;
   }
 
   /**

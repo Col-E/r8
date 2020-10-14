@@ -40,10 +40,6 @@ public class CustomCollectionForwardingTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testCustomCollectionD8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(
-        shrinkDesugaredLibrary
-            && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)
-            && !parameters.getDexRuntimeVersion().isDefault());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(CustomCollectionForwardingTest.class)

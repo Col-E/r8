@@ -3,12 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.assumenosideeffects;
 
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Collection;
 import org.junit.Test;
@@ -18,25 +20,6 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class AssumenosideeffectsPropagationTest extends TestBase {
   private static final Class<?> MAIN = SubsUser.class;
-
-  private static final String JVM_OUTPUT = StringUtils.lines(
-      "[Sub1, info]: message00",
-      "[Base1, debug]: message00",
-      "[Sub1, verbose]: message00",
-      "[Sub1, info]: message1",
-      "[Base1, debug]: message2",
-      "[Sub1, verbose]: message3",
-      "[Base2, info]: message08",
-      "[AnotherSub2, debug]: message08",
-      "[AnotherSub2, verbose]: message08",
-      "[Base2, info]: message4",
-      "[AnotherSub2, debug]: message5",
-      "[AnotherSub2, verbose]: message6",
-      "The end"
-  );
-  private static final String OUTPUT_WITHOUT_MESSAGES = StringUtils.lines(
-      "The end"
-  );
 
   enum TestConfig {
     SPECIFIC_RULES,
@@ -84,33 +67,40 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
       }
     }
 
-    public String expectedOutput() {
+    public String expectedOutput(boolean enableHorizontalClassMerging) {
       switch (this) {
         case SPECIFIC_RULES:
-          return StringUtils.lines(
-              // Itf#info has side effects due to the missing Base2.
-              "[Sub1, info]: message00",
-              "[Base2, info]: message08",
-              // Base2#info also has side effects.
-              "[Base2, info]: message4",
-              "The end"
-          );
+          return enableHorizontalClassMerging
+              ? StringUtils.lines(
+                  "[Base2, info]: message08",
+                  // Base2#info also has side effects.
+                  "[Base2, info]: message4",
+                  "The end")
+              : StringUtils.lines(
+                  // Itf#info has side effects due to the missing Base2.
+                  "[Sub1, info]: message00",
+                  "[Base2, info]: message08",
+                  // Base2#info also has side effects.
+                  "[Base2, info]: message4",
+                  "The end");
         case NON_SPECIFIC_RULES_PARTIAL:
-          return StringUtils.lines(
-              // TODO(b/133208961): Introduce comparison/meet of assume rules.
-              // Itf has side effects for all methods, since we don't compute the meet yet.
-              "[Sub1, info]: message00",
-              "[Base1, debug]: message00",
-              "[Sub1, verbose]: message00",
-              "[Base2, info]: message08",
-              "[AnotherSub2, debug]: message08",
-              "[AnotherSub2, verbose]: message08",
-              // Base2#debug also has side effects.
-              "[AnotherSub2, debug]: message5",
-              "The end"
-          );
+          return enableHorizontalClassMerging
+              ? StringUtils.lines(
+                  "[AnotherSub2, debug]: message08", "[AnotherSub2, debug]: message5", "The end")
+              : StringUtils.lines(
+                  // TODO(b/133208961): Introduce comparison/meet of assume rules.
+                  // Itf has side effects for all methods, since we don't compute the meet yet.
+                  "[Sub1, info]: message00",
+                  "[Base1, debug]: message00",
+                  "[Sub1, verbose]: message00",
+                  "[Base2, info]: message08",
+                  "[AnotherSub2, debug]: message08",
+                  "[AnotherSub2, verbose]: message08",
+                  // Base2#debug also has side effects.
+                  "[AnotherSub2, debug]: message5",
+                  "The end");
         case NON_SPECIFIC_RULES_ALL:
-          return OUTPUT_WITHOUT_MESSAGES;
+          return StringUtils.lines("The end");
         default:
           throw new Unreachable();
       }
@@ -119,38 +109,60 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
 
   private final TestParameters parameters;
   private final TestConfig config;
+  private final boolean enableHorizontalClassMerging;
 
   @Parameterized.Parameters(name = "{0} {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), TestConfig.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        TestConfig.values(),
+        BooleanUtils.values());
   }
 
-  public AssumenosideeffectsPropagationTest(TestParameters parameters, TestConfig config) {
+  public AssumenosideeffectsPropagationTest(
+      TestParameters parameters, TestConfig config, boolean enableHorizontalClassMerging) {
     this.parameters = parameters;
     this.config = config;
+    this.enableHorizontalClassMerging = enableHorizontalClassMerging;
   }
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue(parameters.isCfRuntime() && config == TestConfig.SPECIFIC_RULES);
+    assumeTrue(parameters.isCfRuntime());
+    assumeTrue(config == TestConfig.SPECIFIC_RULES);
+    assumeFalse(enableHorizontalClassMerging);
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(JVM_OUTPUT);
+        .assertSuccessWithOutputLines(
+            "[Sub1, info]: message00",
+            "[Base1, debug]: message00",
+            "[Sub1, verbose]: message00",
+            "[Sub1, info]: message1",
+            "[Base1, debug]: message2",
+            "[Sub1, verbose]: message3",
+            "[Base2, info]: message08",
+            "[AnotherSub2, debug]: message08",
+            "[AnotherSub2, verbose]: message08",
+            "[Base2, info]: message4",
+            "[AnotherSub2, debug]: message5",
+            "[AnotherSub2, verbose]: message6",
+            "The end");
   }
 
   @Test
   public void testR8() throws Exception {
-    expectThrowsWithHorizontalClassMergingIf(config != TestConfig.NON_SPECIFIC_RULES_ALL);
     testForR8(parameters.getBackend())
         .addInnerClasses(AssumenosideeffectsPropagationTest.class)
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRules())
+        .addOptionsModification(
+            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
         .enableInliningAnnotations()
         .noMinification()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(config.expectedOutput());
+        .assertSuccessWithOutput(config.expectedOutput(enableHorizontalClassMerging));
   }
 
   interface Itf {
