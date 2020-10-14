@@ -273,24 +273,21 @@ public class Matchers {
     };
   }
 
-  public static Matcher<MethodSubject> isFinal() {
-    return new TypeSafeMatcher<MethodSubject>() {
+  public static Matcher<ClassOrMemberSubject> isFinal() {
+    return new TypeSafeMatcher<ClassOrMemberSubject>() {
       @Override
-      public boolean matchesSafely(final MethodSubject method) {
-        return method.isPresent() && method.isFinal();
+      public boolean matchesSafely(ClassOrMemberSubject subject) {
+        return subject.isPresent() && subject.isFinal();
       }
 
       @Override
-      public void describeTo(final Description description) {
+      public void describeTo(Description description) {
         description.appendText("is final");
       }
 
       @Override
-      public void describeMismatchSafely(final MethodSubject method, Description description) {
-        description
-            .appendText("method ")
-            .appendValue(method.getOriginalName())
-            .appendText(" was not");
+      public void describeMismatchSafely(ClassOrMemberSubject subject, Description description) {
+        description.appendText("subject ").appendValue(subject.toString()).appendText(" was not");
       }
     };
   }

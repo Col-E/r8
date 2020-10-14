@@ -40,7 +40,6 @@ import java.util.Map;
 public class ClassMerger {
   public static final String CLASS_ID_FIELD_NAME = "$r8$classId";
 
-  private final AppView<AppInfoWithLiveness> appView;
   private final DexProgramClass target;
   private final Collection<DexProgramClass> toMergeGroup;
   private final DexItemFactory dexItemFactory;
@@ -63,7 +62,6 @@ public class ClassMerger {
       DexField classIdField,
       Collection<VirtualMethodMerger> virtualMethodMergers,
       Collection<ConstructorMerger> constructorMergers) {
-    this.appView = appView;
     this.lensBuilder = lensBuilder;
     this.mergedClassesBuilder = mergedClassesBuilder;
     this.fieldAccessChangesBuilder = fieldAccessChangesBuilder;
@@ -99,6 +97,10 @@ public class ClassMerger {
   }
 
   void merge(DexProgramClass toMerge) {
+    if (!toMerge.isFinal()) {
+      target.getAccessFlags().demoteFromFinal();
+    }
+
     toMerge.forEachProgramDirectMethod(
         method -> {
           DexEncodedMethod definition = method.getDefinition();

@@ -21,6 +21,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public boolean isFinal() {
+    throw new Unreachable("Cannot determine if an absent class is final");
+  }
+
+  @Override
   public boolean isPresent() {
     return false;
   }

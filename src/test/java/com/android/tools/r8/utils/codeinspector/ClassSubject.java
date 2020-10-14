@@ -27,7 +27,7 @@ import java.util.function.Predicate;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 import org.junit.rules.TemporaryFolder;
 
-public abstract class ClassSubject extends Subject {
+public abstract class ClassSubject extends ClassOrMemberSubject {
 
   protected final ClassReference reference;
   protected final CodeInspector codeInspector;

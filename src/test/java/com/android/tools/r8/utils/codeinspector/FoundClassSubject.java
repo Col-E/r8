@@ -63,6 +63,11 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public boolean isFinal() {
+    return dexClass.isFinal();
+  }
+
+  @Override
   public boolean isPresent() {
     return true;
   }
