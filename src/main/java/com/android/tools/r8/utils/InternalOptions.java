@@ -16,6 +16,7 @@ import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.dex.Marker.Backend;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
@@ -348,6 +349,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         new Marker(tool)
             .setVersion(Version.LABEL)
             .setCompilationMode(debug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
+            .setBackend(isGeneratingClassFiles() ? Backend.CF : Backend.DEX)
             .setHasChecksums(encodeChecksums);
     // Compiling with D8 and L8 is always with a min API level and desugaring to that level. If
     // desugaring is explicitly turned off for D8 the input is expected to already have been

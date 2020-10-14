@@ -9,6 +9,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -119,5 +121,25 @@ public class ExtractMarkerTest extends TestBase {
                 })
             .build());
     assertTrue(testExecuted[0]);
+  }
+
+  @Test
+  public void backendValueCompatibilityTestForMinApi() {
+    DexItemFactory factory = new DexItemFactory();
+    DexString markerString =
+        factory.createString(
+            "~~D8{\"compilation-mode\":\"debug\",\"has-checksums\":false,"
+                + "\"min-api\":21,\"sha-1\":\"engineering\",\"version\":\"master\" }");
+    assertEquals("dex", Marker.parse(markerString).getBackend());
+  }
+
+  @Test
+  public void backendValueCompatibilityTestForR8Cf() {
+    DexItemFactory factory = new DexItemFactory();
+    DexString markerString =
+        factory.createString(
+            "~~R8{\"compilation-mode\":\"release\",\"has-checksums\":true,"
+                + "\"sha-1\":\"engineering\",\"version\":\"master\" }");
+    assertEquals("cf", Marker.parse(markerString).getBackend());
   }
 }

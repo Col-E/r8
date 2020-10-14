@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.MarkerMatcher.assertMarkersMatch;
+import static com.android.tools.r8.MarkerMatcher.markerBackend;
 import static com.android.tools.r8.MarkerMatcher.markerCompilationMode;
 import static com.android.tools.r8.MarkerMatcher.markerDesugaredLibraryIdentifier;
 import static com.android.tools.r8.MarkerMatcher.markerHasChecksums;
@@ -118,6 +119,7 @@ public class MarkersTest extends TestBase {
         allOf(
             markerTool(Tool.D8),
             markerCompilationMode(compilationMode),
+            markerBackend(Backend.DEX),
             markerIsDesugared(),
             markerMinApi(apiLevel),
             not(markerHasDesugaredLibraryIdentifier()));
@@ -144,6 +146,7 @@ public class MarkersTest extends TestBase {
         allOf(
             markerTool(Tool.D8),
             markerCompilationMode(compilationMode),
+            markerBackend(Backend.CF),
             markerIsDesugared(),
             markerMinApi(apiLevel),
             not(markerHasDesugaredLibraryIdentifier()));
@@ -171,6 +174,7 @@ public class MarkersTest extends TestBase {
         allOf(
             markerTool(Tool.R8),
             markerCompilationMode(compilationMode),
+            markerBackend(Backend.DEX),
             markerIsDesugared(),
             markerMinApi(apiLevel),
             not(markerHasDesugaredLibraryIdentifier()));
@@ -196,6 +200,7 @@ public class MarkersTest extends TestBase {
         allOf(
             markerTool(Tool.R8),
             markerCompilationMode(compilationMode),
+            markerBackend(Backend.CF),
             not(markerIsDesugared()),
             not(markerHasMinApi()),
             not(markerHasDesugaredLibraryIdentifier()));
@@ -242,6 +247,7 @@ public class MarkersTest extends TestBase {
         allOf(
             markerTool(Tool.R8),
             markerCompilationMode(compilationMode),
+            markerBackend(Backend.CF),
             not(markerIsDesugared()),
             not(markerHasMinApi()),
             not(markerHasDesugaredLibraryIdentifier())));

@@ -7,6 +7,7 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -104,6 +105,20 @@ public abstract class MarkerMatcher extends TypeSafeMatcher<Marker> {
       @Override
       protected void explain(Description description) {
         description.appendText(Marker.COMPILATION_MODE + " ").appendText(compilationMode.name());
+      }
+    };
+  }
+
+  public static Matcher<Marker> markerBackend(Backend backend) {
+    return new MarkerMatcher() {
+      @Override
+      protected boolean eval(Marker marker) {
+        return marker.getBackend().equals(backend.name().toLowerCase());
+      }
+
+      @Override
+      protected void explain(Description description) {
+        description.appendText(Marker.BACKEND + " ").appendText(backend.name().toLowerCase());
       }
     };
   }

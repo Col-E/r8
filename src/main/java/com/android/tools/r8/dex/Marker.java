@@ -27,6 +27,7 @@ public class Marker {
   public static final String SHA1 = "sha-1";
   public static final String COMPILATION_MODE = "compilation-mode";
   public static final String HAS_CHECKSUMS = "has-checksums";
+  public static final String BACKEND = "backend";
   public static final String PG_MAP_ID = "pg-map-id";
   public static final String R8_MODE = "r8-mode";
   private static final String NO_LIBRARY_DESUGARING = "<no-library-desugaring>";
@@ -40,6 +41,11 @@ public class Marker {
     public static Tool[] valuesR8andD8() {
       return new Tool[] {Tool.D8, Tool.R8};
     }
+  }
+
+  public enum Backend {
+    CF,
+    DEX
   }
 
   private static final char PREFIX_CHAR = '~';
@@ -195,6 +201,24 @@ public class Marker {
   public Marker setCompilationMode(CompilationMode mode) {
     assert !jsonObject.has(COMPILATION_MODE);
     jsonObject.addProperty(COMPILATION_MODE, mode.toString().toLowerCase());
+    return this;
+  }
+
+  public boolean hasBackend() {
+    return jsonObject.has(BACKEND);
+  }
+
+  public String getBackend() {
+    if (!hasBackend()) {
+      // Before adding backend we would always compile to dex if min-api was specified.
+      return hasMinApi() ? "dex" : "cf";
+    }
+    return jsonObject.get(BACKEND).getAsString();
+  }
+
+  public Marker setBackend(Backend backend) {
+    assert !hasBackend();
+    jsonObject.addProperty(BACKEND, backend.name().toLowerCase());
     return this;
   }
 
