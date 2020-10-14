@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
@@ -174,6 +175,12 @@ public class RetraceCommandLineTests {
   public void testHelpMessageOnStdIn() throws IOException {
     ProcessResult processResult = runRetrace("", "", true);
     assertTrue(processResult.stdout.startsWith(WAITING_MESSAGE));
+  }
+
+  @Test
+  public void testHelpMessageWithQuiet() throws IOException {
+    ProcessResult processResult = runRetrace("", "", true, "--quiet");
+    assertFalse(processResult.stdout.startsWith(WAITING_MESSAGE));
   }
 
   private final String nonMappableStackTrace =

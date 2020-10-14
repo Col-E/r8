@@ -49,7 +49,8 @@ public class Retrace {
 
   public static final String USAGE_MESSAGE =
       StringUtils.lines(
-          "Usage: retrace <proguard-map> [stack-trace-file] [--regex <regexp>, --verbose, --info]",
+          "Usage: retrace <proguard-map> [stack-trace-file] "
+              + "[--regex <regexp>, --verbose, --info, --quiet]",
           "  where <proguard-map> is an r8 generated mapping file.");
 
   private static Builder parseArguments(String[] args, DiagnosticsHandler diagnosticsHandler) {
@@ -58,6 +59,7 @@ public class Retrace {
     boolean hasSetProguardMap = false;
     boolean hasSetStackTrace = false;
     boolean hasSetRegularExpression = false;
+    boolean hasSetQuiet = false;
     while (context.head() != null) {
       Boolean help = OptionsParsing.tryParseBoolean(context, "--help");
       if (help != null) {
@@ -75,6 +77,11 @@ public class Retrace {
       Boolean verbose = OptionsParsing.tryParseBoolean(context, "--verbose");
       if (verbose != null) {
         builder.setVerbose(true);
+        continue;
+      }
+      Boolean quiet = OptionsParsing.tryParseBoolean(context, "--quiet");
+      if (quiet != null) {
+        hasSetQuiet = true;
         continue;
       }
       String regex = OptionsParsing.tryParseSingle(context, "--regex", "r");
@@ -104,7 +111,7 @@ public class Retrace {
       throw new RetraceAbortException();
     }
     if (!hasSetStackTrace) {
-      builder.setStackTrace(getStackTraceFromStandardInput());
+      builder.setStackTrace(getStackTraceFromStandardInput(hasSetQuiet));
     }
     if (!hasSetRegularExpression) {
       builder.setRegularExpression(DEFAULT_REGULAR_EXPRESSION);
@@ -255,8 +262,10 @@ public class Retrace {
     withMainProgramHandler(() -> run(args));
   }
 
-  private static List<String> getStackTraceFromStandardInput() {
-    System.out.println("Waiting for stack-trace input...");
+  private static List<String> getStackTraceFromStandardInput(boolean printWaitingMessage) {
+    if (!printWaitingMessage) {
+      System.out.println("Waiting for stack-trace input...");
+    }
     Scanner sc = new Scanner(new InputStreamReader(System.in, Charsets.UTF_8));
     List<String> readLines = new ArrayList<>();
     while (sc.hasNext()) {
