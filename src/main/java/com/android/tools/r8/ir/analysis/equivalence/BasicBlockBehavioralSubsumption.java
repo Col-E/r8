@@ -162,13 +162,7 @@ public class BasicBlockBehavioralSubsumption {
     if (instruction.isInvokeConstructor(appView.dexItemFactory())) {
       DexEncodedMethod singleTarget =
           instruction.asInvokeDirect().lookupSingleTarget(appView, context);
-      if (singleTarget == null) {
-        assert false;
-        return false;
-      }
-      if (singleTarget.getOptimizationInfo().mayHaveSideEffects()) {
-        return false;
-      }
+      return singleTarget != null && !singleTarget.getOptimizationInfo().mayHaveSideEffects();
     }
     return true;
   }
