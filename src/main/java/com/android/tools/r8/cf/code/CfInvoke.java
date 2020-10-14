@@ -266,7 +266,7 @@ public class CfInvoke extends CfInstruction {
       case Opcodes.INVOKESPECIAL:
         if (appView.dexItemFactory().isConstructor(target)) {
           type = Type.DIRECT;
-          assert noNeedToUseGraphLens(target, type, graphLens);
+          assert noNeedToUseGraphLens(target, context.getReference(), type, graphLens);
         } else if (target.holder == context.getHolderType()) {
           // The method could have been publicized.
           type = graphLens.lookupMethod(target, context.getReference(), Type.DIRECT).getType();
@@ -280,7 +280,7 @@ public class CfInvoke extends CfInstruction {
           // TODO(christofferqa): Consider using graphLens.lookupMethod (to do this, we need the
           // context for the graph lens, though).
           type = Type.SUPER;
-          assert noNeedToUseGraphLens(target, type, graphLens);
+          assert noNeedToUseGraphLens(target, context.getReference(), type, graphLens);
         }
         break;
 
@@ -344,8 +344,8 @@ public class CfInvoke extends CfInstruction {
   }
 
   private static boolean noNeedToUseGraphLens(
-      DexMethod method, Invoke.Type type, GraphLens graphLens) {
-    assert graphLens.lookupMethod(method, null, type).getType() == type;
+      DexMethod method, DexMethod context, Invoke.Type type, GraphLens graphLens) {
+    assert graphLens.lookupMethod(method, context, type).getType() == type;
     return true;
   }
 
