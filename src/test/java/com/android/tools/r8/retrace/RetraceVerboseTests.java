@@ -6,6 +6,7 @@ package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.retrace.Retrace.DEFAULT_REGULAR_EXPRESSION;
 import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
@@ -57,6 +58,8 @@ public class RetraceVerboseTests extends TestBase {
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {
+    // TODO(b/170293906): Remove assumption.
+    assumeTrue(useRegExpParsing);
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
     RetraceCommand retraceCommand =
         RetraceCommand.builder(diagnosticsHandler)

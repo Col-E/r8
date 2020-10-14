@@ -165,10 +165,27 @@ public class Retrace {
                     command.isVerbose)
                 .retrace();
       } else {
-        result =
-            new RetraceStackTrace(
-                    retracer, command.stackTrace, command.diagnosticsHandler, command.isVerbose)
-                .retrace();
+        PlainStackTraceVisitor plainStackTraceVisitor =
+            new PlainStackTraceVisitor(command.stackTrace, command.diagnosticsHandler);
+        StackTraceElementProxyRetracer<StackTraceElementStringProxy> proxyRetracer =
+            new StackTraceElementProxyRetracer<>(retracer);
+        List<String> retracedStrings = new ArrayList<>();
+        plainStackTraceVisitor.forEach(
+            stackTraceElement -> {
+              List<String> retracedStringsForElement = new ArrayList<>();
+              proxyRetracer
+                  .retrace(stackTraceElement)
+                  .forEach(
+                      retracedElement -> {
+                        StackTraceElementStringProxy originalItem =
+                            retracedElement.getOriginalItem();
+                        retracedStringsForElement.add(
+                            originalItem.toRetracedItem(
+                                retracedElement, !retracedStringsForElement.isEmpty()));
+                      });
+              retracedStrings.addAll(retracedStringsForElement);
+            });
+        result = new RetraceCommandLineResult(retracedStrings);
       }
       timing.end();
       timing.begin("Report result");

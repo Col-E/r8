@@ -56,6 +56,6 @@ public class ActualIdentityStackTrace extends ActualBotStackTraceBase {
 
   @Override
   public int expectedWarnings() {
-    return 1;
+    return 0;
   }
 }
