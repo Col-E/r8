@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.MarkerMatcher.assertMarkersMatch;
+import static com.android.tools.r8.MarkerMatcher.markerBackend;
 import static com.android.tools.r8.MarkerMatcher.markerCompilationMode;
 import static com.android.tools.r8.MarkerMatcher.markerHasDesugaredLibraryIdentifier;
 import static com.android.tools.r8.MarkerMatcher.markerIsDesugared;
@@ -138,6 +139,7 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
         allOf(
             markerTool(Tool.D8),
             markerCompilationMode(CompilationMode.DEBUG),
+            markerBackend(Backend.CF),
             markerIsDesugared(),
             markerMinApi(parameters.getApiLevel()),
             not(markerHasDesugaredLibraryIdentifier()));
@@ -152,6 +154,8 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
             .writeToZip();
 
     // D8 dex file output marker has the same marker as the D8 class file output.
+    // TODO(b/166617364): They should not be the same after backend is recorded and neither has
+    //  library desugaring info.
     assertMarkersMatch(ExtractMarker.extractMarkerFromJarFile(desugaredLibDex), markerMatcher);
 
     // Build an app using library desugaring merging with library not using library desugaring.
@@ -164,7 +168,18 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
               .compile()
               .writeToZip();
 
-      assertMarkersMatch(ExtractMarker.extractMarkerFromDexFile(app), markerMatcher);
+      // When there is no class-file resources we are adding the marker for the last compilation.
+      assertMarkersMatch(
+          ExtractMarker.extractMarkerFromDexFile(app),
+          ImmutableList.of(
+              markerMatcher,
+              allOf(
+                  markerTool(Tool.D8),
+                  markerCompilationMode(CompilationMode.DEBUG),
+                  markerBackend(Backend.DEX),
+                  markerIsDesugared(),
+                  markerMinApi(parameters.getApiLevel()),
+                  not(markerHasDesugaredLibraryIdentifier()))));
     } catch (CompilationFailedException e) {
       assertTrue(someLibraryDesugaringRequired());
       return;
