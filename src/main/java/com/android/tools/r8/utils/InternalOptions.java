@@ -180,7 +180,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     protoShrinking.enableGeneratedMessageLiteShrinking = true;
     protoShrinking.enableGeneratedMessageLiteBuilderShrinking = true;
     protoShrinking.enableGeneratedExtensionRegistryShrinking = true;
-    protoShrinking.enableEnumLiteProtoShrinking = true;
+    // TODO(b/170798502): Reland enum unboxing for proto enums.
+    // protoShrinking.enableEnumLiteProtoShrinking = true;
   }
 
   void disableAllOptimizations() {
