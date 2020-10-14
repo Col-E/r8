@@ -36,7 +36,7 @@ public class SwitchCaseRemovalTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public SwitchCaseRemovalTest(TestParameters parameters) {
@@ -59,7 +59,7 @@ public class SwitchCaseRemovalTest extends TestBase {
             })
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyOutput)
         .run(parameters.getRuntime(), TestClass.class)

@@ -8,12 +8,14 @@ import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Predicates.or;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
+import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Phi;
@@ -33,11 +35,13 @@ import java.util.Set;
 public class BasicBlockBehavioralSubsumption {
 
   private final AppView<?> appView;
+  private final IRCode code;
   private final ProgramMethod context;
 
-  public BasicBlockBehavioralSubsumption(AppView<?> appView, ProgramMethod context) {
+  public BasicBlockBehavioralSubsumption(AppView<?> appView, IRCode code) {
     this.appView = appView;
-    this.context = context;
+    this.code = code;
+    this.context = code.context();
   }
 
   public boolean isSubsumedBy(BasicBlock block, BasicBlock other) {
@@ -148,7 +152,25 @@ public class BasicBlockBehavioralSubsumption {
   }
 
   private boolean isBlockLocalInstructionWithoutSideEffects(Instruction instruction) {
-    return definesBlockLocalValue(instruction) && !instructionMayHaveSideEffects(instruction);
+    if (!definesBlockLocalValue(instruction)) {
+      return false;
+    }
+    if (instruction.instructionMayHaveSideEffects(appView, context)) {
+      return false;
+    }
+    // For constructor calls include field initialization side effects.
+    if (instruction.isInvokeConstructor(appView.dexItemFactory())) {
+      DexEncodedMethod singleTarget =
+          instruction.asInvokeDirect().lookupSingleTarget(appView, context);
+      if (singleTarget == null) {
+        assert false;
+        return false;
+      }
+      if (singleTarget.getOptimizationInfo().mayHaveSideEffects()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private boolean definesBlockLocalValue(Instruction instruction) {

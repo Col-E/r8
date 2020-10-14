@@ -5,11 +5,13 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNot.not;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.classmerging.horizontal.CompanionClassMergingTest.A;
+import com.android.tools.r8.classmerging.horizontal.CompanionClassMergingTest.B;
 import org.junit.Test;
 
 public class EmptyClassTest extends HorizontalClassMergingTestBase {
@@ -26,36 +28,36 @@ public class EmptyClassTest extends HorizontalClassMergingTestBase {
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
+        .addHorizontallyMergedClassesInspectorIf(
+            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccess()
+        .assertSuccessWithOutputLines("a", "b: foo")
         .inspect(
             codeInspector -> {
-              if (enableHorizontalClassMerging) {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), not(isPresent()));
-                // TODO(b/165517236): Explicitly check classes have been merged.
-              } else {
-                assertThat(codeInspector.clazz(A.class), isPresent());
-                assertThat(codeInspector.clazz(B.class), isPresent());
-              }
+              assertThat(codeInspector.clazz(A.class), isPresent());
+              assertThat(
+                  codeInspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
             });
   }
 
   @NeverClassInline
-  public static class A {}
+  public static class A {
+    public A() {
+      System.out.println("a");
+    }
+  }
 
   @NeverClassInline
   public static class B {
-    // TODO(b/164924717): remove non overlapping constructor requirement
-    public B(String s) {}
+    public B(String s) {
+      System.out.println("b: " + s);
+    }
   }
 
   public static class Main {
     public static void main(String[] args) {
       A a = new A();
-      System.out.println(a);
-      B b = new B("");
-      System.out.println(b);
+      B b = new B("foo");
     }
   }
 }
