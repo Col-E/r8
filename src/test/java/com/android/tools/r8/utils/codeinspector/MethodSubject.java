@@ -42,6 +42,7 @@ public abstract class MethodSubject extends MemberSubject {
 
   public abstract String getOriginalSignatureAttribute();
 
+  @Override
   public abstract String getFinalSignatureAttribute();
 
   public abstract DexEncodedMethod getMethod();

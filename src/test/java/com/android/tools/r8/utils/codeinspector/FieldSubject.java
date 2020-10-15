@@ -25,6 +25,7 @@ public abstract class FieldSubject extends MemberSubject {
 
   public abstract String getOriginalSignatureAttribute();
 
+  @Override
   public abstract String getFinalSignatureAttribute();
 
   @Override
