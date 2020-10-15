@@ -262,7 +262,8 @@ public class SyntheticFinalization {
         mainDexType -> {
           derivedMainDexTypes.add(mainDexType);
           DexProgramClass mainDexClass =
-              DexProgramClass.asProgramClassOrNull(appView.definitionFor(mainDexType));
+              DexProgramClass.asProgramClassOrNull(
+                  appView.appInfo().definitionForWithoutExistenceAssert(mainDexType));
           if (mainDexClass != null) {
             derivedMainDexTypes.addAll(
                 DexAnnotation.readAnnotationSynthesizedClassMap(mainDexClass, factory));
