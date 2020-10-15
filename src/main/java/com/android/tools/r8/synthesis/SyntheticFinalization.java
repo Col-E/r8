@@ -312,7 +312,10 @@ public class SyntheticFinalization {
             // TODO(b/168584485): Remove this once class-mapping support is removed.
             DexProgramClass from =
                 DexProgramClass.asProgramClassOrNull(
-                    appView.definitionFor(member.getContext().getSynthesizingContextType()));
+                    appView
+                        .appInfo()
+                        .definitionForWithoutExistenceAssert(
+                            member.getContext().getSynthesizingContextType()));
             if (from != null) {
               externalSyntheticClass.addSynthesizedFrom(from);
             }
