@@ -11,6 +11,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.AlwaysInline;
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -51,6 +52,7 @@ public class SingleTargetAfterInliningTest extends TestBase {
             })
         .enableAlwaysInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableSideEffectAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -117,6 +119,7 @@ public class SingleTargetAfterInliningTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class C extends A {
 
     @AssumeMayHaveSideEffects // To ensure that new C() cannot be removed.
