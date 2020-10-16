@@ -149,7 +149,6 @@ public class RelocatorCommand {
                 .addAdaptResourceFilenames(ProguardPathList.builder().addFileName("**").build())
                 .build(),
             getReporter());
-    assert options.threadCount == ThreadUtils.NOT_SPECIFIED;
     options.relocatorCompilation = true;
     options.threadCount = getThreadCount();
     options.programConsumer = consumer;

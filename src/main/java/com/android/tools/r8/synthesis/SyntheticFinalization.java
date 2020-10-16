@@ -252,6 +252,7 @@ public class SyntheticFinalization {
 
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (!isSyntheticType.test(clazz.type)) {
+        assert SyntheticItems.verifyNotInternalSynthetic(clazz.type);
         normalClasses.add(clazz);
       }
     }

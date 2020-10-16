@@ -47,8 +47,17 @@ class SyntheticMethodReference extends SyntheticReference {
 
   @Override
   SyntheticReference rewrite(NonIdentityGraphLens lens) {
-    SynthesizingContext context = getContext().rewrite(lens);
     DexMethod rewritten = lens.lookupMethod(method);
+    // If the reference has been non-trivially rewritten the compiler has changed it and it can no
+    // longer be considered a synthetic. The context may or may not have changed.
+    if (method != rewritten && !lens.isSimpleRenaming(method.holder, rewritten.holder)) {
+      // If the referenced item is rewritten, it should be moved to another holder as the
+      // synthetic holder is no longer part of the synthetic collection.
+      assert method.holder != rewritten.holder;
+      assert SyntheticItems.verifyNotInternalSynthetic(rewritten.holder);
+      return null;
+    }
+    SynthesizingContext context = getContext().rewrite(lens);
     return context == getContext() && rewritten == method
         ? this
         : new SyntheticMethodReference(context, rewritten);

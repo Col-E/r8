@@ -39,6 +39,11 @@ public class RepackagingLens extends NestedGraphLens {
     return getPrevious().getOriginalType(previous);
   }
 
+  @Override
+  public boolean isSimpleRenaming(DexType from, DexType to) {
+    return originalTypes.get(to) == from || super.isSimpleRenaming(from, to);
+  }
+
   public static class Builder {
 
     protected final BiMap<DexType, DexType> originalTypes = HashBiMap.create();
