@@ -4,6 +4,7 @@
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import java.util.function.Function;
@@ -21,6 +22,8 @@ abstract class SyntheticReference {
   }
 
   abstract SyntheticDefinition lookupDefinition(Function<DexType, DexClass> definitions);
+
+  abstract DexReference getReference();
 
   final SynthesizingContext getContext() {
     return context;

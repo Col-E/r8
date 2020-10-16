@@ -5,6 +5,7 @@ package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -21,6 +22,11 @@ class SyntheticMethodReference extends SyntheticReference {
   SyntheticMethodReference(SynthesizingContext context, DexMethod method) {
     super(context);
     this.method = method;
+  }
+
+  @Override
+  DexReference getReference() {
+    return method;
   }
 
   @Override

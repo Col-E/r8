@@ -309,12 +309,12 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     for (SyntheticReference reference : nonLecacySyntheticItems.values()) {
       SyntheticReference rewritten = reference.rewrite(lens);
       // If the reference has been rewritten the compiler has changed it and we drop it from the
-      // set of synthetics.
-      if (reference == rewritten) {
+      // set of synthetics. The context may or may not have changed.
+      if (reference.getReference() == rewritten.getReference()) {
         rewrittenItems.put(rewritten.getHolder(), rewritten);
       } else {
-        // If the item is rewritten, it should be moved to another holder as the synthetic holder
-        // is no longer part of the synthetic collection.
+        // If the referenced item is rewritten, it should be moved to another holder as the
+        // synthetic holder is no longer part of the synthetic collection.
         assert reference.getHolder() != rewritten.getHolder();
       }
     }
