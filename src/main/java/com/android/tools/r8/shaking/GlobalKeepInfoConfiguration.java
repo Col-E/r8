@@ -13,4 +13,8 @@ public interface GlobalKeepInfoConfiguration {
   boolean isAccessModificationEnabled();
 
   boolean isRepackagingEnabled();
+
+  boolean isForceProguardCompatibilityEnabled();
+
+  boolean isKeepAttributesSignatureEnabled();
 }

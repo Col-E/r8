@@ -550,6 +550,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         && (isShrinking() || isMinifying());
   }
 
+  @Override
+  public boolean isForceProguardCompatibilityEnabled() {
+    return forceProguardCompatibility;
+  }
+
+  @Override
+  public boolean isKeepAttributesSignatureEnabled() {
+    return proguardConfiguration.getKeepAttributes().signature;
+  }
+
   /**
    * If any non-static class merging is enabled, information about types referred to by instanceOf
    * and check cast instructions needs to be collected.

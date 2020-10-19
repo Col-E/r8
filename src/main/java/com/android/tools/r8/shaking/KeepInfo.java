@@ -82,6 +82,12 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     return allowAccessModification;
   }
 
+  public boolean isAllowSignatureAttributeRemovalAllowed(
+      GlobalKeepInfoConfiguration configuration) {
+    return !configuration.isKeepAttributesSignatureEnabled()
+        || !(isPinned() || configuration.isForceProguardCompatibilityEnabled());
+  }
+
   public abstract boolean isTop();
 
   public abstract boolean isBottom();
