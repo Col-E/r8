@@ -5,25 +5,24 @@
 
 import apk_masseur
 import apk_utils
+import as_utils
 import golem
-import gradle
 import jdk
 import json
-import os
 import optparse
+import os
 import shutil
 import signal
 import subprocess
 import sys
 import time
-import utils
-import zipfile
-from xml.dom import minidom
-from datetime import datetime
-
-import as_utils
 import update_prebuilds_in_android
-import download_all_benchmark_dependencies
+import zipfile
+from datetime import datetime
+from xml.dom import minidom
+
+import gradle
+import utils
 
 SHRINKERS = ['r8', 'r8-full', 'r8-nolib', 'r8-nolib-full', 'pg']
 WORKING_DIR = os.path.join(utils.BUILD, 'opensource_apps')
@@ -62,7 +61,9 @@ class App(object):
       'releaseTarget': None,
       'signed_apk_name': None,
       'skip': False,
-      'has_lint_task': True
+      'has_lint_task': True,
+      'legacy_desugaring': False,
+      'compatibility': None
     }
     self.__dict__ = dict(defaults.items() + fields.items())
 
@@ -114,7 +115,9 @@ APP_REPOSITORIES = [
               'id': 'dev.dworks.apps.anexplorer.pro',
               'flavor': 'googleMobilePro',
               'signed_apk_name': 'AnExplorer-googleMobileProRelease-4.0.3.apk',
-              'min_sdk': 17
+              'min_sdk': 17,
+              'legacy_desugaring': True,
+              'compatibility': '1.7',
           })
       ]
   }),
@@ -161,7 +164,9 @@ APP_REPOSITORIES = [
       'apps': [
           App({
               'id': 'com.chanapps.four.activity',
-              'has_lint_task': False
+              'has_lint_task': False,
+              'min_sdk': 15,
+              'compatibility': '1.7',
           })
       ]
   }),
@@ -171,7 +176,9 @@ APP_REPOSITORIES = [
       'revision': '10091fa0ec37da12e66286559ad1b6098976b07b',
       'apps': [
           App({
-              'id': 'com.google.firebase.example.fireeats'
+              'id': 'com.google.firebase.example.fireeats',
+              'min_sdk': 16,
+              'compatibility': '1.7',
           })
       ]
   }),
@@ -194,7 +201,9 @@ APP_REPOSITORIES = [
       'revision': 'b8df78c96630a6537fbc07787b4990afc030cc0f',
       'apps': [
           App({
-             'id': 'com.example.instabug'
+             'id': 'com.example.instabug',
+             'min_sdk': 15,
+             'compatibility': '1.7',
           })
       ]
   }),
@@ -218,7 +227,9 @@ APP_REPOSITORIES = [
       'revision': '093da9ee0512e67192f62951c45a07a616fc3224',
       'apps': [
           App({
-              'id': 'fr.neamar.kiss'
+              'id': 'fr.neamar.kiss',
+              'min_sdk': 15,
+              'compatibility': '1.7',
           })
       ]
   }),
@@ -374,8 +385,9 @@ APP_REPOSITORIES = [
           App({
               'id': 'eu.kanade.tachiyomi',
               'flavor': 'dev',
-              'min_sdk': 16,
-              'has_lint_task': False
+              'min_sdk': 21,
+              'has_lint_task': False,
+              'compatibility': '1.7',
           })
       ]
   }),
@@ -970,7 +982,10 @@ def RebuildAppWithShrinker(
          '--pg-conf', proguard_config_file,
          '--lib', android_jar,
          '--output', zip_dest,
-         apk])
+         apk] +
+         (['--no-desugaring']
+         if app.legacy_desugaring or app.compatibility == '1.7'
+         else []))
 
   for android_optional_jar in utils.get_android_optional_jars(compile_sdk):
     cmd.append('--lib')
