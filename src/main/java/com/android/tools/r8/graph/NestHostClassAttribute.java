@@ -19,6 +19,10 @@ public class NestHostClassAttribute {
     return nestHost;
   }
 
+  public static NestHostClassAttribute none() {
+    return null;
+  }
+
   public void write(ClassWriter writer, NamingLens lens) {
     assert nestHost != null;
     writer.visitNestHost(lens.lookupInternalName(nestHost));

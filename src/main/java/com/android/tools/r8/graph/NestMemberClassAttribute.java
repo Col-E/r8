@@ -5,6 +5,8 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.naming.NamingLens;
+import java.util.Collections;
+import java.util.List;
 import org.objectweb.asm.ClassWriter;
 
 public class NestMemberClassAttribute {
@@ -13,6 +15,10 @@ public class NestMemberClassAttribute {
 
   public NestMemberClassAttribute(DexType nestMember) {
     this.nestMember = nestMember;
+  }
+
+  public static List<NestMemberClassAttribute> emptyList() {
+    return Collections.emptyList();
   }
 
   public DexType getNestMember() {

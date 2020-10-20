@@ -4,17 +4,14 @@
 
 package com.android.tools.r8.classmerging.vertical;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.errors.InternalCompilerError;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,21 +34,21 @@ public class ForceInlineConstructorWithRetargetedLibMemberTest extends TestBase 
 
   @Test
   public void test() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addInnerClasses(getClass())
-          .addKeepMainRule(TestClass.class)
-          .enableCoreLibraryDesugaring(parameters.getApiLevel())
-          .enableNeverClassInliningAnnotations()
-          .setMinApi(parameters.getApiLevel())
-          .compile();
-      assertTrue(parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N));
-    } catch (CompilationFailedException e) {
-      // TODO(b/170677722): Fix compilation failure.
-      assertTrue(parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
-      assertTrue(e.getCause() instanceof InternalCompilerError);
-      assertThat(e.getCause().getMessage(), containsString("FORCE inlining on non-inlinable"));
-    }
+    // Regression test for b/170677722.
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(TestClass.class)
+        .addVerticallyMergedClassesInspector(
+            inspector -> inspector.assertMergedIntoSubtype(A.class))
+        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .enableNeverClassInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(
+            inspector -> {
+              assertThat(inspector.clazz(A.class), not(isPresent()));
+              assertThat(inspector.clazz(B.class), isPresent());
+            });
   }
 
   static class TestClass {

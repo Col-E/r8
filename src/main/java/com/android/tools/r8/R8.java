@@ -313,6 +313,7 @@ public class R8 {
       }
       if (!options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
         DesugaredLibraryRetargeter.checkForAssumedLibraryTypes(appView);
+        DesugaredLibraryRetargeter.amendLibraryWithRetargetedMembers(appView);
       }
       InterfaceMethodRewriter.checkForAssumedLibraryTypes(appView.appInfo(), options);
       BackportedMethodRewriter.registerAssumedLibraryTypes(options);

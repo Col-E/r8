@@ -5,13 +5,12 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,14 +40,10 @@ public class InlineMethodWithRetargetedLibMemberTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
-            inspector -> {
-              // TODO(b/171197204): Method should be inlined.
-              assertThat(
-                  inspector.clazz(TestClass.class).uniqueMethodWithName("test"),
-                  notIf(
-                      isPresent(),
-                      parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)));
-            });
+            inspector ->
+                assertThat(
+                    inspector.clazz(TestClass.class).uniqueMethodWithName("test"),
+                    not(isPresent())));
   }
 
   static class TestClass {

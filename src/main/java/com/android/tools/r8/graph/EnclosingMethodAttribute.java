@@ -32,6 +32,10 @@ public final class EnclosingMethodAttribute {
     this.enclosingMethod = enclosingMethod;
   }
 
+  public static EnclosingMethodAttribute none() {
+    return null;
+  }
+
   public void write(ClassWriter writer, NamingLens lens) {
     if (enclosingMethod != null) {
       writer.visitOuterClass(

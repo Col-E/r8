@@ -250,6 +250,11 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return factory.isConstructor(this);
   }
 
+  public DexMethod withExtraArgumentPrepended(DexType type, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createMethod(
+        holder, dexItemFactory.prependTypeToProto(type, proto), name);
+  }
+
   public DexMethod withHolder(DexType holder, DexItemFactory dexItemFactory) {
     return dexItemFactory.createMethod(holder, proto, name);
   }
