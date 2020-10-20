@@ -249,7 +249,10 @@ public final class D8 {
       Marker marker = options.getMarker(Tool.D8);
       Set<Marker> markers = new HashSet<>(appView.dexItemFactory().extractMarkers());
       // TODO(b/166617364): Don't add an additional marker when desugaring is turned off.
-      if (hasClassResources && (options.desugarState != DesugarState.OFF || markers.isEmpty())) {
+      if (hasClassResources
+          && (options.desugarState != DesugarState.OFF
+              || markers.isEmpty()
+              || (markers.size() == 1 && markers.iterator().next().isL8()))) {
         markers.add(marker);
       }
       Marker.checkCompatibleDesugaredLibrary(markers, options.reporter);

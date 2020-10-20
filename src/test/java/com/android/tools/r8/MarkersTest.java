@@ -87,18 +87,18 @@ public class MarkersTest extends TestBase {
             markerCompilationMode(compilationMode),
             markerDesugaredLibraryIdentifier("com.tools.android:desugar_jdk_libs:" + version),
             markerHasChecksums(false));
-    Matcher<Marker> d8Matcher =
+    Matcher<Marker> r8Matcher =
         allOf(
             markerTool(Tool.R8),
             markerCompilationMode(compilationMode),
             markerMinApi(apiLevel),
             markerR8Mode("compatibility"));
-    Matcher<Marker> r8Matcher =
+    Matcher<Marker> d8Matcher =
         allOf(markerTool(Tool.D8), markerCompilationMode(compilationMode), markerMinApi(apiLevel));
     if (shrinkDesugaredLibrary) {
-      assertMarkersMatch(markers, ImmutableList.of(l8Matcher, d8Matcher));
-    } else {
       assertMarkersMatch(markers, ImmutableList.of(l8Matcher, r8Matcher));
+    } else {
+      assertMarkersMatch(markers, ImmutableList.of(l8Matcher, d8Matcher));
     }
   }
 

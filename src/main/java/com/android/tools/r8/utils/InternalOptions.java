@@ -352,12 +352,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
             .setCompilationMode(debug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
             .setBackend(isGeneratingClassFiles() ? Backend.CF : Backend.DEX)
             .setHasChecksums(encodeChecksums);
-    // Compiling with D8 and L8 is always with a min API level and desugaring to that level. If
-    // desugaring is explicitly turned off for D8 the input is expected to already have been
-    // desugared to the specified min API level. For R8 desugaring is optional.
-    if (tool == Tool.D8
-        || tool == Tool.L8
-        || (tool == Tool.R8 && desugarState != DesugarState.OFF)) {
+    // The marker records the min API if any desugaring happens or if the compiler generates dex
+    // since the output depends on the min API in this case. There is basically no min API entry
+    // in R8 cf to cf.
+    if (isGeneratingDex() || desugarState == DesugarState.ON) {
       marker.setMinApi(minApiLevel);
     }
     if (desugaredLibraryConfiguration.getIdentifier() != null) {
@@ -1307,7 +1305,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public PrintStream whyAreYouNotInliningConsumer = System.out;
     public boolean trackDesugaredAPIConversions =
         System.getProperty("com.android.tools.r8.trackDesugaredAPIConversions") != null;
-    public boolean forceLibBackportsInL8CfToCf = false;
     public boolean enumUnboxingRewriteJavaCGeneratedMethod = false;
     // TODO(b/154793333): Enable assertions always when resolved.
     public boolean assertConsistentRenamingOfSignature = false;

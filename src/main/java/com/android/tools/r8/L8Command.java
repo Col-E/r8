@@ -316,6 +316,7 @@ public final class L8Command extends BaseCompilerCommand {
         r8Builder.addProguardConfiguration(
             libraryConfiguration.getExtraKeepRules(), Origin.unknown());
         r8Builder.addProguardConfigurationFiles(proguardConfigFiles);
+        r8Builder.setDisableDesugaring(true);
         r8Command = r8Builder.makeCommand();
       } else if (!(getProgramConsumer() instanceof ClassFileConsumer)) {
         l8CfConsumer = new InMemoryJarContent();
@@ -333,6 +334,7 @@ public final class L8Command extends BaseCompilerCommand {
             inputs.getLibraryResourceProviders()) {
           d8Builder.addLibraryResourceProvider(libraryResourceProvider);
         }
+        d8Builder.setDisableDesugaring(true);
         d8Command = d8Builder.makeCommand();
       } else {
         assert getProgramConsumer() instanceof ClassFileConsumer;
