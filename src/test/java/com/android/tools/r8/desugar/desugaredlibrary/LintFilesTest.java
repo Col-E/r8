@@ -93,32 +93,28 @@ public class LintFilesTest extends TestBase {
             .parse(StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING));
 
     for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
-      if (apiLevel == AndroidApiLevel.R) {
-        // Skip API level 30 for now.
+      Path compileApiLevelDirectory = directory.resolve("compile_api_level_" + apiLevel.getLevel());
+      if (apiLevel.getLevel()
+          < desugaredLibraryConfiguration.getRequiredCompilationApiLevel().getLevel()) {
+        System.out.println("!Checking " + compileApiLevelDirectory);
         continue;
       }
-
-      if (apiLevel.getLevel()
-          >= desugaredLibraryConfiguration.getRequiredCompilationApiLevel().getLevel()) {
-        Path compileApiLevelDirectory =
-            directory.resolve("compile_api_level_" + apiLevel.getLevel());
-        assertTrue(Files.exists(compileApiLevelDirectory));
-        for (AndroidApiLevel minApiLevel : AndroidApiLevel.values()) {
-          String desugaredApisBaseName =
-              "desugared_apis_" + apiLevel.getLevel() + "_" + minApiLevel.getLevel();
-          if (minApiLevel == AndroidApiLevel.L || minApiLevel == AndroidApiLevel.B) {
-            assertTrue(
-                Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt")));
-            assertTrue(
-                Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".jar")));
-            checkFileContent(
-                minApiLevel, compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt"));
-          } else {
-            assertFalse(
-                Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt")));
-            assertFalse(
-                Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".jar")));
-          }
+      assertTrue(Files.exists(compileApiLevelDirectory));
+      for (AndroidApiLevel minApiLevel : AndroidApiLevel.values()) {
+        String desugaredApisBaseName =
+            "desugared_apis_" + apiLevel.getLevel() + "_" + minApiLevel.getLevel();
+        if (minApiLevel == AndroidApiLevel.L || minApiLevel == AndroidApiLevel.B) {
+          assertTrue(
+              Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt")));
+          assertTrue(
+              Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".jar")));
+          checkFileContent(
+              minApiLevel, compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt"));
+        } else {
+          assertFalse(
+              Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".txt")));
+          assertFalse(
+              Files.exists(compileApiLevelDirectory.resolve(desugaredApisBaseName + ".jar")));
         }
       }
     }

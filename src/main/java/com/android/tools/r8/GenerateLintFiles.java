@@ -356,7 +356,7 @@ public class GenerateLintFiles {
 
   private void run() throws Exception {
     // Run over all the API levels that the desugared library can be compiled with.
-    for (int apiLevel = AndroidApiLevel.Q.getLevel();
+    for (int apiLevel = AndroidApiLevel.LATEST.getLevel();
         apiLevel >= desugaredLibraryConfiguration.getRequiredCompilationApiLevel().getLevel();
         apiLevel--) {
       System.out.println("Generating lint files for compile API " + apiLevel);
