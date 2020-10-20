@@ -94,6 +94,10 @@ public abstract class TestShrinkerBuilder<
     return addKeepRules(Arrays.asList(rules));
   }
 
+  public T addDontWarn(Class<?> clazz) {
+    return addKeepRules("-dontwarn " + clazz.getTypeName());
+  }
+
   public T addKeepKotlinMetadata() {
     return addKeepRules("-keep class kotlin.Metadata { *; }");
   }
