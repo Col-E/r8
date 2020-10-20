@@ -63,7 +63,7 @@ public class B124357885Test extends TestBase {
   @Test
   public void test() throws Exception {
     R8TestCompileResult compileResult =
-        testForR8(parameters.getBackend())
+        testForR8Compat(parameters.getBackend())
             .addProgramClasses(Main.class, Service.class, Foo.class, FooImpl.class)
             .addKeepMainRule(Main.class)
             .addKeepAttributes(
