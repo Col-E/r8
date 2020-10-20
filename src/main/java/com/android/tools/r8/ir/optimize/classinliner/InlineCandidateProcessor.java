@@ -313,7 +313,7 @@ final class InlineCandidateProcessor {
 
           if (AccessControl.isClassAccessible(singleTarget.getHolder(), method, appView)
               .isPossiblyFalse()) {
-            continue;
+            return user; // Not eligible.
           }
 
           // Eligible constructor call (for new instance roots only).
