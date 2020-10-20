@@ -43,7 +43,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class D8CommandTest extends TestBase {
+public class D8CommandTest extends CommandTestBase<D8Command> {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -657,12 +657,18 @@ public class D8CommandTest extends TestBase {
     numThreadsOptionInvalid("two");
   }
 
-  private D8Command parse(String... args) throws CompilationFailedException {
+  @Override
+  String[] requiredArgsForTest() {
+    return new String[0];
+  }
+
+  @Override
+  D8Command parse(String... args) throws CompilationFailedException {
     return D8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }
 
-  private D8Command parse(DiagnosticsHandler handler, String... args)
-      throws CompilationFailedException {
+  @Override
+  D8Command parse(DiagnosticsHandler handler, String... args) throws CompilationFailedException {
     return D8Command.parse(args, EmbeddedOrigin.INSTANCE, handler).build();
   }
 }

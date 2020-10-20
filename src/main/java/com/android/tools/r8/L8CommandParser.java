@@ -55,6 +55,7 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
                       + " (json)."),
               ASSERTIONS_USAGE_MESSAGE,
               THREAD_COUNT_USAGE_MESSAGE,
+              MAP_DIAGNOSTICS_USAGE_MESSAGE,
               Arrays.asList(
                   "  --version               # Print the version of l8.",
                   "  --help                  # Print this message.")));
@@ -156,10 +157,15 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
         parsePositiveIntArgument(
             builder::error, THREAD_COUNT_FLAG, nextArg, origin, builder::setThreadCount);
       } else if (arg.startsWith("--")) {
-        if (!tryParseAssertionArgument(builder, arg, origin)) {
-          builder.error(new StringDiagnostic("Unknown option: " + arg, origin));
+        if (tryParseAssertionArgument(builder, arg, origin)) {
           continue;
         }
+        int argsConsumed = tryParseMapDiagnostics(builder, arg, expandedArgs, i, origin);
+        if (argsConsumed >= 0) {
+          i += argsConsumed;
+          continue;
+        }
+        builder.error(new StringDiagnostic("Unknown option: " + arg, origin));
       } else {
         builder.addProgramFiles(Paths.get(arg));
       }

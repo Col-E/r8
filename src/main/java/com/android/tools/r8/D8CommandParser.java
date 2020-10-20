@@ -144,6 +144,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
                   "                          # Output resulting main dex list in <file>."),
               ASSERTIONS_USAGE_MESSAGE,
               THREAD_COUNT_USAGE_MESSAGE,
+              MAP_DIAGNOSTICS_USAGE_MESSAGE,
               Arrays.asList(
                   "  --version               # Print the version of d8.",
                   "  --help                  # Print this message.")));
@@ -276,10 +277,15 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
       } else if (arg.equals("--desugared-lib")) {
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
       } else if (arg.startsWith("--")) {
-        if (!tryParseAssertionArgument(builder, arg, origin)) {
-          builder.error(new StringDiagnostic("Unknown option: " + arg, origin));
+        if (tryParseAssertionArgument(builder, arg, origin)) {
           continue;
         }
+        int argsConsumed = tryParseMapDiagnostics(builder, arg, expandedArgs, i, origin);
+        if (argsConsumed >= 0) {
+          i += argsConsumed;
+          continue;
+        }
+        builder.error(new StringDiagnostic("Unknown option: " + arg, origin));
       } else if (arg.startsWith("@")) {
         builder.error(new StringDiagnostic("Recursive @argfiles are not supported: ", origin));
       } else {

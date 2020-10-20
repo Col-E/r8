@@ -14,13 +14,16 @@ import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.utils.ListUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 
 // Helper to check that a particular error occurred.
 public class DiagnosticsChecker implements DiagnosticsHandler {
+
   public List<Diagnostic> errors = new ArrayList<>();
   public List<Diagnostic> warnings = new ArrayList<>();
   public List<Diagnostic> infos = new ArrayList<>();
@@ -41,6 +44,7 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
   }
 
   public interface FailingRunner {
+
     void run(DiagnosticsHandler handler) throws CompilationFailedException;
   }
 
@@ -56,16 +60,36 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
         diagnostics.stream().anyMatch(d -> d.getDiagnosticMessage().contains(snippet)));
   }
 
+  public void checkWarningsContains(String snippet) {
+    checkContains(snippet, warnings);
+  }
+
+  public void checkInfosContains(String snippet) {
+    checkContains(snippet, infos);
+  }
+
   public static void checkErrorsContains(String snippet, FailingRunner runner)
+      throws CompilationFailedException {
+    checkErrorsContains(ImmutableList.of(snippet), runner);
+  }
+
+  public static void checkErrorsContains(Collection<String> snippets, FailingRunner runner)
       throws CompilationFailedException {
     DiagnosticsChecker handler = new DiagnosticsChecker();
     try {
       runner.run(handler);
       fail("Failure expected");
     } catch (CompilationFailedException e) {
-      checkContains(snippet, handler.errors);
+      snippets.forEach(snippet -> checkContains(snippet, handler.errors));
       throw e;
     }
+  }
+
+  public static void checkDiagnostics(Consumer<DiagnosticsChecker> checker, FailingRunner runner)
+      throws CompilationFailedException {
+    DiagnosticsChecker handler = new DiagnosticsChecker();
+    runner.run(handler);
+    checker.accept(handler);
   }
 
   public static void checkWarningsContains(String snippet, FailingRunner runner)
@@ -73,6 +97,13 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
     DiagnosticsChecker handler = new DiagnosticsChecker();
     runner.run(handler);
     checkContains(snippet, handler.warnings);
+  }
+
+  public static void checkInfosContains(String snippet, FailingRunner runner)
+      throws CompilationFailedException {
+    DiagnosticsChecker handler = new DiagnosticsChecker();
+    runner.run(handler);
+    checkContains(snippet, handler.infos);
   }
 
   public static Diagnostic checkDiagnostic(Diagnostic diagnostic, Consumer<Origin> originChecker,

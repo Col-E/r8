@@ -100,6 +100,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
                   "                          # Output the full main-dex list in <file>."),
               ASSERTIONS_USAGE_MESSAGE,
               THREAD_COUNT_USAGE_MESSAGE,
+              MAP_DIAGNOSTICS_USAGE_MESSAGE,
               Arrays.asList(
                   "  --version               # Print the version of r8.",
                   "  --help                  # Print this message.")));
@@ -262,10 +263,15 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
       } else if (arg.equals("--no-data-resources")) {
         state.includeDataResources = false;
       } else if (arg.startsWith("--")) {
-        if (!tryParseAssertionArgument(builder, arg, argsOrigin)) {
-          builder.error(new StringDiagnostic("Unknown option: " + arg, argsOrigin));
+        if (tryParseAssertionArgument(builder, arg, argsOrigin)) {
           continue;
         }
+        int argsConsumed = tryParseMapDiagnostics(builder, arg, expandedArgs, i, argsOrigin);
+        if (argsConsumed >= 0) {
+          i += argsConsumed;
+          continue;
+        }
+        builder.error(new StringDiagnostic("Unknown option: " + arg, argsOrigin));
       } else if (arg.startsWith("@")) {
         builder.error(new StringDiagnostic("Recursive @argfiles are not supported: ", argsOrigin));
       } else {

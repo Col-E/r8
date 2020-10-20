@@ -36,7 +36,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class L8CommandTest extends TestBase {
+public class L8CommandTest extends CommandTestBase<L8Command> {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -435,12 +435,18 @@ public class L8CommandTest extends TestBase {
     numThreadsOptionInvalid("two");
   }
 
-  private L8Command parse(String... args) throws CompilationFailedException {
+  @Override
+  String[] requiredArgsForTest() {
+    return new String[] {"--desugared-lib", ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString()};
+  }
+
+  @Override
+  L8Command parse(String... args) throws CompilationFailedException {
     return L8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }
 
-  private L8Command parse(DiagnosticsHandler handler, String... args)
-      throws CompilationFailedException {
+  @Override
+  L8Command parse(DiagnosticsHandler handler, String... args) throws CompilationFailedException {
     return L8Command.parse(args, EmbeddedOrigin.INSTANCE, handler).build();
   }
 }

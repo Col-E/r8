@@ -11,10 +11,38 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.DiagnosticsLevel;
 import com.android.tools.r8.errors.Unreachable;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Reporter implements DiagnosticsHandler {
 
+  private static class DiagnosticsLevelMapping {
+    private final DiagnosticsLevel from;
+    private final DiagnosticsLevel to;
+    private final String diagnosticsClassName;
+
+    public DiagnosticsLevelMapping(
+        DiagnosticsLevel from, DiagnosticsLevel to, String diagnosticsClassName) {
+      this.from = from;
+      this.to = to;
+      this.diagnosticsClassName = diagnosticsClassName;
+    }
+
+    public DiagnosticsLevel map(DiagnosticsLevel level, Diagnostic diagnostic) {
+      if (level != from) {
+        return level;
+      }
+      if (diagnosticsClassName.length() == 0
+          || diagnosticsClassName.equals(diagnostic.getClass().getSimpleName())
+          || diagnosticsClassName.equals(diagnostic.getClass().getTypeName())) {
+        return to;
+      }
+      return level;
+    }
+  }
+
   private final DiagnosticsHandler clientHandler;
+  private final List<DiagnosticsLevelMapping> diagnosticsLevelMapping = new ArrayList<>();
   private AbortException abort = null;
 
   public Reporter() {
@@ -31,6 +59,7 @@ public class Reporter implements DiagnosticsHandler {
     if (level != null) {
       DiagnosticsLevel modifiedLevel = clientHandler.modifyDiagnosticsLevel(level, diagnostic);
       level = modifiedLevel != null ? modifiedLevel : level;
+      level = mapDiagnosticsLevel(level, diagnostic);
     } else {
       level = ERROR;
     }
@@ -53,6 +82,10 @@ public class Reporter implements DiagnosticsHandler {
   @Override
   public synchronized void info(Diagnostic info) {
     handleDiagnostic(INFO, info);
+  }
+
+  public void info(String message) {
+    info(new StringDiagnostic(message));
   }
 
   @Override
@@ -93,5 +126,17 @@ public class Reporter implements DiagnosticsHandler {
     if (abort != null) {
       throw new RuntimeException(abort);
     }
+  }
+
+  private DiagnosticsLevel mapDiagnosticsLevel(DiagnosticsLevel level, Diagnostic diagnostic) {
+    for (DiagnosticsLevelMapping diagnosticsLevelMapping : diagnosticsLevelMapping) {
+      level = diagnosticsLevelMapping.map(level, diagnostic);
+    }
+    return level;
+  }
+
+  public void addDiagnosticsLevelMapping(
+      DiagnosticsLevel from, String diagnosticsClassName, DiagnosticsLevel to) {
+    diagnosticsLevelMapping.add(new DiagnosticsLevelMapping(from, to, diagnosticsClassName));
   }
 }

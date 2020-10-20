@@ -19,6 +19,7 @@ public class BaseCompilerCommandParser<
 
   protected static final String MIN_API_FLAG = "--min-api";
   protected static final String THREAD_COUNT_FLAG = "--thread-count";
+  protected static final String MAP_DIAGNOSTICS = "--map-diagnostics";
 
   static final Iterable<String> ASSERTIONS_USAGE_MESSAGE =
       Arrays.asList(
@@ -42,6 +43,17 @@ public class BaseCompilerCommandParser<
           "                          # Number of threads to use for compilation. If not specified",
           "                          # the number will be based on heuristics taking the number",
           "                          # of cores into account.");
+
+  static final Iterable<String> MAP_DIAGNOSTICS_USAGE_MESSAGE =
+      Arrays.asList(
+          "  " + MAP_DIAGNOSTICS + "[:<type>] <from-level> <to-level>",
+          "                          # Map diagnostics of <type> (default any) reported as",
+          "                          # <from-level> to <to-level> where <from-level> and",
+          "                          # <to-level> are one of 'info', 'warning', or 'error' and the",
+          "                          # optional <type> is either the simple or fully qualified",
+          "                          # Java type name of a diagnostic. If <type> is unspecified,",
+          "                          # all diagnostics at <from-level> will be mapped.",
+          "                          # Note that fatal compiler errors cannot be mapped.");
 
   public static void parsePositiveIntArgument(
       Consumer<Diagnostic> errorConsumer,
@@ -138,6 +150,52 @@ public class BaseCompilerCommandParser<
     } else {
       return false;
     }
+  }
+
+  private DiagnosticsLevel tryParseLevel(B builder, String arg, Origin origin) {
+    if (arg.equals("error")) {
+      return DiagnosticsLevel.ERROR;
+    }
+    if (arg.equals("warning")) {
+      return DiagnosticsLevel.WARNING;
+    }
+    if (arg.equals("info")) {
+      return DiagnosticsLevel.INFO;
+    }
+    builder.error(
+        new StringDiagnostic(
+            "Invalid diagnostics level '"
+                + arg
+                + "'. Valid levels are 'error', 'warning' and 'info'.",
+            origin));
+
+    return null;
+  }
+
+  int tryParseMapDiagnostics(B builder, String arg, String[] args, int argsIndex, Origin origin) {
+    if (!arg.startsWith(MAP_DIAGNOSTICS)) {
+      return -1;
+    }
+    if (args.length <= argsIndex + 2) {
+      builder.error(new StringDiagnostic("Missing argument(s) for " + arg + ".", origin));
+      return args.length - argsIndex;
+    }
+    String remaining = arg.substring(MAP_DIAGNOSTICS.length());
+    String diagnosticsClassName = "";
+    if (remaining.length() > 0) {
+      if (remaining.length() == 1 || remaining.charAt(0) != ':') {
+        builder.error(
+            new StringDiagnostic("Invalid diagnostics type specification " + arg + ".", origin));
+        return 0;
+      }
+      diagnosticsClassName = remaining.substring(1);
+    }
+    DiagnosticsLevel from = tryParseLevel(builder, args[argsIndex + 1], origin);
+    DiagnosticsLevel to = tryParseLevel(builder, args[argsIndex + 2], origin);
+    if (from != null && to != null) {
+      builder.getReporter().addDiagnosticsLevelMapping(from, diagnosticsClassName, to);
+    }
+    return 2;
   }
 
   /**

@@ -45,7 +45,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class R8CommandTest extends TestBase {
+public class R8CommandTest extends CommandTestBase<R8Command> {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -820,12 +820,18 @@ public class R8CommandTest extends TestBase {
     numThreadsOptionInvalid("two");
   }
 
-  private R8Command parse(String... args) throws CompilationFailedException {
+  @Override
+  String[] requiredArgsForTest() {
+    return new String[0];
+  }
+
+  @Override
+  R8Command parse(String... args) throws CompilationFailedException {
     return R8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }
 
-  private R8Command parse(DiagnosticsHandler handler, String... args)
-      throws CompilationFailedException {
+  @Override
+  R8Command parse(DiagnosticsHandler handler, String... args) throws CompilationFailedException {
     return R8Command.parse(args, EmbeddedOrigin.INSTANCE, handler).build();
   }
 }
