@@ -172,8 +172,8 @@ public class TestBase {
     return JvmTestBuilder.create(new TestState(temp));
   }
 
-  public static ProguardTestBuilder testForProguard(TemporaryFolder temp) {
-    return ProguardTestBuilder.create(new TestState(temp));
+  public static ProguardTestBuilder testForProguard(ProguardVersion version, TemporaryFolder temp) {
+    return ProguardTestBuilder.create(new TestState(temp), version);
   }
 
   public static GenerateMainDexListTestBuilder testForMainDexListGenerator(TemporaryFolder temp) {
@@ -308,8 +308,14 @@ public class TestBase {
     return DesugarTestBuilder.create(state, builders.build());
   }
 
+  /** @deprecated use {@link #testForProguard(ProguardVersion)} instead. */
+  @Deprecated
   public ProguardTestBuilder testForProguard() {
-    return testForProguard(temp);
+    return testForProguard(ProguardVersion.V6_0_1);
+  }
+
+  public ProguardTestBuilder testForProguard(ProguardVersion version) {
+    return testForProguard(version, temp);
   }
 
   public GenerateMainDexListTestBuilder testForMainDexListGenerator() {

@@ -27,6 +27,9 @@ public class ProguardTestBuilder
     extends TestShrinkerBuilder<
         R8Command, Builder, ProguardTestCompileResult, ProguardTestRunResult, ProguardTestBuilder> {
 
+  // Version of Proguard to use.
+  private final ProguardVersion version;
+
   // Ordered list of injar entries.
   private List<Path> injars = new ArrayList<>();
 
@@ -39,12 +42,14 @@ public class ProguardTestBuilder
   // Additional Proguard configuration files.
   private List<Path> proguardConfigFiles = new ArrayList<>();
 
-  private ProguardTestBuilder(TestState state, Builder builder, Backend backend) {
+  private ProguardTestBuilder(
+      TestState state, ProguardVersion version, Builder builder, Backend backend) {
     super(state, builder, backend);
+    this.version = version;
   }
 
-  public static ProguardTestBuilder create(TestState state) {
-    return new ProguardTestBuilder(state, R8Command.builder(), Backend.CF);
+  public static ProguardTestBuilder create(TestState state, ProguardVersion version) {
+    return new ProguardTestBuilder(state, version, R8Command.builder(), Backend.CF);
   }
 
   @Override
@@ -63,7 +68,7 @@ public class ProguardTestBuilder
       Path mapFile = proguardOutputFolder.resolve("mapping.txt");
       FileUtils.writeTextFile(configFile, config);
       List<String> command = new ArrayList<>();
-      command.add(ToolHelper.getProguard6Script());
+      command.add(version.getProguardScript().toString());
       // Without -forceprocessing Proguard just checks the creation time on the in/out jars.
       command.add("-forceprocessing");
       for (Path injar : injars) {
