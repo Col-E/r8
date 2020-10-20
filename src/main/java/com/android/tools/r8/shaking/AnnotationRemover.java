@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
@@ -28,7 +27,6 @@ import java.util.Set;
 public class AnnotationRemover {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final InternalOptions options;
   private final Set<DexAnnotation> annotationsToRetain;
   private final Set<DexType> classesToRetainInnerClassAttributeFor;
   private final ProguardKeepAttributes keep;
@@ -40,7 +38,6 @@ public class AnnotationRemover {
       Set<DexAnnotation> annotationsToRetain,
       Set<DexType> removedClasses) {
     this.appView = appView;
-    this.options = appView.options();
     this.annotationsToRetain = annotationsToRetain;
     this.classesToRetainInnerClassAttributeFor = classesToRetainInnerClassAttributeFor;
     this.keep = appView.options().getProguardConfiguration().getKeepAttributes();
@@ -190,31 +187,25 @@ public class AnnotationRemover {
       stripAttributes(clazz);
       clazz.setAnnotations(
           clazz.annotations().rewrite(annotation -> rewriteAnnotation(clazz, annotation)));
-      clazz.forEachMethod(method -> processMethod(method, clazz));
-      clazz.forEachField(field -> processField(field, clazz));
+      clazz.forEachMethod(this::processMethod);
+      clazz.forEachField(this::processField);
     }
   }
 
-  private void processMethod(DexEncodedMethod method, DexProgramClass clazz) {
+  private void processMethod(DexEncodedMethod method) {
     method.setAnnotations(
         method.annotations().rewrite(annotation -> rewriteAnnotation(method, annotation)));
     method.parameterAnnotationsList =
         method.parameterAnnotationsList.keepIf(this::filterParameterAnnotations);
-    if (appView
-        .getKeepInfo()
-        .getMethodInfo(method, clazz)
-        .isAllowSignatureAttributeRemovalAllowed(options)) {
+    if (!keep.signature) {
       method.clearGenericSignature();
     }
   }
 
-  private void processField(DexEncodedField field, DexProgramClass clazz) {
+  private void processField(DexEncodedField field) {
     field.setAnnotations(
         field.annotations().rewrite(annotation -> rewriteAnnotation(field, annotation)));
-    if (appView
-        .getKeepInfo()
-        .getFieldInfo(field, clazz)
-        .isAllowSignatureAttributeRemovalAllowed(options)) {
+    if (!keep.signature) {
       field.clearGenericSignature();
     }
   }
@@ -330,10 +321,8 @@ public class AnnotationRemover {
       clazz.clearEnclosingMethodAttribute();
       clazz.clearInnerClasses();
     }
-    if (appView
-        .getKeepInfo()
-        .getClassInfo(clazz)
-        .isAllowSignatureAttributeRemovalAllowed(options)) {
+    // TODO(b/170077516): Prune attributes.
+    if (!keep.signature) {
       clazz.clearClassSignature();
     }
   }
