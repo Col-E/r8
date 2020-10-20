@@ -241,7 +241,6 @@ public class RepackagingTreeFixer {
     for (DexProgramClass clazz : synthesizedFrom) {
       // TODO(b/165783399): What do we want to put here if the class that this was synthesized from
       //  is no longer in the application?
-      assert appView.definitionFor(clazz.type) != null;
       DexProgramClass newClass =
           newProgramClasses.computeIfAbsent(clazz.getType(), ignore -> fixupClass(clazz));
       newSynthesizedFrom.add(newClass);

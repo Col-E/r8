@@ -21,6 +21,7 @@
 -keepattributes SourceFile, LineNumberTable, InnerClasses, EnclosingMethod, Exceptions, Signature
 
 -keeppackagenames com.android.tools.r8
+-repackageclasses com.android.tools.r8.internal
 
 # Compatibility command line program used by the Android Platform build.
 -keep public class com.android.tools.r8.compatproguard.CompatProguard { public static void main(java.lang.String[]); }

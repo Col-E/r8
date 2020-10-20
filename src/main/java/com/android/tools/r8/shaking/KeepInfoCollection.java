@@ -223,7 +223,10 @@ public abstract class KeepInfoCollection {
       keepClassInfo.forEach(
           (type, info) -> {
             DexType newType = lens.lookupType(type);
-            assert newType == type || !info.isPinned() || info.isMinificationAllowed(options);
+            assert newType == type
+                || !info.isPinned()
+                || info.isMinificationAllowed(options)
+                || info.isRepackagingAllowed(options);
             KeepClassInfo previous = newClassInfo.put(newType, info);
             assert previous == null;
           });
