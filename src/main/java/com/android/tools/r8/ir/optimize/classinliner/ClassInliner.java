@@ -27,63 +27,24 @@ import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public final class ClassInliner {
 
   enum EligibilityStatus {
-    // Used by InlineCandidateProcessor#isInstanceEligible
-    NON_CLASS_TYPE,
-    NOT_A_SINGLETON_FIELD,
-    RETRIEVAL_MAY_HAVE_SIDE_EFFECTS,
-    UNKNOWN_TYPE,
-    UNUSED_INSTANCE,
-
-    // Used by isClassEligible
-    NON_PROGRAM_CLASS,
-    ABSTRACT_OR_INTERFACE,
-    NEVER_CLASS_INLINE,
-    IS_PINNED_TYPE,
-    HAS_FINALIZER,
-    TRIGGER_CLINIT,
-
-    // Used by InlineCandidateProcessor#isClassAndUsageEligible
-    HAS_CLINIT,
-    HAS_INSTANCE_FIELDS,
-    NON_FINAL_TYPE,
-    NOT_INITIALIZED_AT_INIT,
-    PINNED_FIELD,
-
-    ELIGIBLE
+    ELIGIBLE,
+    NOT_ELIGIBLE
   }
 
   private final ConcurrentHashMap<DexClass, EligibilityStatus> knownClasses =
       new ConcurrentHashMap<>();
-
-  private void logEligibilityStatus(
-      DexEncodedMethod context, Instruction root, EligibilityStatus status) {
-    if (Log.ENABLED && Log.isLoggingEnabledFor(ClassInliner.class)) {
-      Log.info(getClass(), "At %s,", context.toSourceString());
-      Log.info(getClass(), "ClassInlining eligibility of `%s`: %s.", root, status);
-    }
-  }
-
-  private void logIneligibleUser(
-      DexEncodedMethod context, Instruction root, InstructionOrPhi ineligibleUser) {
-    if (Log.ENABLED && Log.isLoggingEnabledFor(ClassInliner.class)) {
-      Log.info(getClass(), "At %s,", context.toSourceString());
-      Log.info(getClass(), "Ineligible user of `%s`: `%s`.", root, ineligibleUser);
-    }
-  }
 
   // Process method code and inline eligible class instantiations, in short:
   //
@@ -176,9 +137,7 @@ public final class ClassInliner {
 
     // Collect all the new-instance and static-get instructions in the code before inlining.
     List<Instruction> roots =
-        Streams.stream(code.instructionIterator())
-            .filter(insn -> insn.isNewInstance() || insn.isStaticGet())
-            .collect(Collectors.toList());
+        Lists.newArrayList(code.instructions(insn -> insn.isNewInstance() || insn.isStaticGet()));
 
     // We loop inlining iterations until there was no inlining, but still use same set
     // of roots to avoid infinite inlining. Looping makes possible for some roots to
@@ -204,13 +163,11 @@ public final class ClassInliner {
         // Assess eligibility of instance and class.
         EligibilityStatus status = processor.isInstanceEligible();
         if (status != EligibilityStatus.ELIGIBLE) {
-          logEligibilityStatus(code.method(), root, status);
           // This root will never be inlined.
           rootsIterator.remove();
           continue;
         }
         status = processor.isClassAndUsageEligible();
-        logEligibilityStatus(code.method(), root, status);
         if (status != EligibilityStatus.ELIGIBLE) {
           // This root will never be inlined.
           rootsIterator.remove();
@@ -221,7 +178,6 @@ public final class ClassInliner {
         InstructionOrPhi ineligibleUser = processor.areInstanceUsersEligible(defaultOracle);
         if (ineligibleUser != null) {
           // This root may succeed if users change in future.
-          logIneligibleUser(code.method(), root, ineligibleUser);
           continue;
         }
 
@@ -309,7 +265,8 @@ public final class ClassInliner {
     }
   }
 
-  private EligibilityStatus isClassEligible(AppView<AppInfoWithLiveness> appView, DexClass clazz) {
+  private EligibilityStatus isClassEligible(
+      AppView<AppInfoWithLiveness> appView, DexProgramClass clazz) {
     EligibilityStatus eligible = knownClasses.get(clazz);
     if (eligible == null) {
       EligibilityStatus computed = computeClassEligible(appView, clazz);
@@ -325,21 +282,12 @@ public final class ClassInliner {
   //   - does not declare finalizer
   //   - does not trigger any static initializers except for its own
   private EligibilityStatus computeClassEligible(
-      AppView<AppInfoWithLiveness> appView, DexClass clazz) {
-    if (clazz == null) {
-      return EligibilityStatus.UNKNOWN_TYPE;
-    }
-    if (clazz.isNotProgramClass()) {
-      return EligibilityStatus.NON_PROGRAM_CLASS;
-    }
-    if (clazz.isAbstract() || clazz.isInterface()) {
-      return EligibilityStatus.ABSTRACT_OR_INTERFACE;
-    }
-    if (appView.appInfo().neverClassInline.contains(clazz.type)) {
-      return EligibilityStatus.NEVER_CLASS_INLINE;
-    }
-    if (appView.appInfo().isPinned(clazz.type)) {
-      return EligibilityStatus.IS_PINNED_TYPE;
+      AppView<AppInfoWithLiveness> appView, DexProgramClass clazz) {
+    if (clazz == null
+        || clazz.isAbstract()
+        || clazz.isInterface()
+        || !appView.appInfo().isClassInliningAllowed(clazz)) {
+      return EligibilityStatus.NOT_ELIGIBLE;
     }
 
     // Class must not define finalizer.
@@ -347,13 +295,13 @@ public final class ClassInliner {
     for (DexEncodedMethod method : clazz.virtualMethods()) {
       if (method.method.name == dexItemFactory.finalizeMethodName
           && method.method.proto == dexItemFactory.objectMembers.finalize.proto) {
-        return EligibilityStatus.HAS_FINALIZER;
+        return EligibilityStatus.NOT_ELIGIBLE;
       }
     }
 
     // Check for static initializers in this class or any of interfaces it implements.
     if (clazz.initializationOfParentTypesMayHaveSideEffects(appView)) {
-      return EligibilityStatus.TRIGGER_CLINIT;
+      return EligibilityStatus.NOT_ELIGIBLE;
     }
     return EligibilityStatus.ELIGIBLE;
   }
