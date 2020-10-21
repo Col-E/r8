@@ -3175,4 +3175,33 @@ public class ProguardConfigurationParserTest extends TestBase {
           }
         });
   }
+
+  @Test
+  public void parseKeepXNamesIsAllowShrinking() {
+    for (String rule : ImmutableList.of("-keep", "-keepclassmembers", "-keepclasseswithmembers")) {
+      for (String modifier :
+          ImmutableList.of("", "names", ",allowshrinking", "names,allowshrinking")) {
+        DexItemFactory dexItemFactory = new DexItemFactory();
+        ProguardConfigurationParser parser =
+            new ProguardConfigurationParser(dexItemFactory, reporter);
+        String ruleWithModifier =
+            (rule.endsWith("s") && (!modifier.startsWith(",") && !modifier.isEmpty())
+                    ? rule.substring(0, rule.length() - 1)
+                    : rule)
+                + modifier;
+        parser.parse(
+            createConfigurationForTesting(ImmutableList.of(ruleWithModifier + " class A")));
+        verifyParserEndsCleanly();
+
+        ProguardConfiguration configuration = parser.getConfig();
+        assertEquals(1, configuration.getRules().size());
+        assertEquals(
+            !modifier.isEmpty(),
+            ListUtils.first(configuration.getRules())
+                .asProguardKeepRule()
+                .getModifiers()
+                .allowsShrinking);
+      }
+    }
+  }
 }
