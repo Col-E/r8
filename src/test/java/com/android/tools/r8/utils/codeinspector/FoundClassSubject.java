@@ -31,9 +31,9 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.retrace.RetraceApi;
 import com.android.tools.r8.retrace.RetraceTypeResult;
 import com.android.tools.r8.retrace.RetracedField;
+import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
@@ -223,7 +223,7 @@ public class FoundClassSubject extends ClassSubject {
 
   // TODO(b/169882658): This should be removed when we have identity mappings for ambiguous cases.
   public FieldSubject uniqueFieldWithName(String name, TypeReference originalType) {
-    RetraceApi retracer = codeInspector.retrace();
+    Retracer retracer = codeInspector.retrace();
     Set<FoundFieldSubject> candidates = Sets.newIdentityHashSet();
     Set<FoundFieldSubject> sameTypeCandidates = Sets.newIdentityHashSet();
     for (FoundFieldSubject candidate : allFields()) {
@@ -236,7 +236,7 @@ public class FoundClassSubject extends ClassSubject {
         }
       }
       retracer
-          .retrace(fieldReference)
+          .retraceField(fieldReference)
           .forEach(
               element -> {
                 RetracedField field = element.getField();
@@ -246,7 +246,7 @@ public class FoundClassSubject extends ClassSubject {
                   TypeReference fieldOriginalType = originalType;
                   if (fieldOriginalType == null) {
                     RetraceTypeResult retraceTypeResult =
-                        retracer.retrace(fieldReference.getFieldType());
+                        retracer.retraceType(fieldReference.getFieldType());
                     assert !retraceTypeResult.isAmbiguous();
                     fieldOriginalType =
                         retraceTypeResult.stream().iterator().next().getType().getTypeReference();

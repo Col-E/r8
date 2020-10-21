@@ -6,9 +6,9 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.retrace.RetraceApi;
 import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceMethodResult;
+import com.android.tools.r8.retrace.Retracer;
 
 public interface InstructionSubject {
 
@@ -132,17 +132,17 @@ public interface InstructionSubject {
     return lineNumberTable == null ? -1 : lineNumberTable.getLineForInstruction(this);
   }
 
-  default RetraceMethodResult retrace(RetraceApi retracer) {
+  default RetraceMethodResult retrace(Retracer retracer) {
     MethodSubject methodSubject = getMethodSubject();
     assert methodSubject.isPresent();
-    return retracer.retrace(methodSubject.asFoundMethodSubject().asMethodReference());
+    return retracer.retraceMethod(methodSubject.asFoundMethodSubject().asMethodReference());
   }
 
-  default RetraceFrameResult retraceLinePosition(RetraceApi retracer) {
+  default RetraceFrameResult retraceLinePosition(Retracer retracer) {
     return retrace(retracer).narrowByPosition(getLineNumber());
   }
 
-  default RetraceFrameResult retracePcPosition(RetraceApi retracer, MethodSubject methodSubject) {
+  default RetraceFrameResult retracePcPosition(Retracer retracer, MethodSubject methodSubject) {
     return retrace(retracer).narrowByPosition(getOffset(methodSubject).offset);
   }
 }

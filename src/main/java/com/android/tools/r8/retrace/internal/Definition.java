@@ -2,11 +2,13 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.retrace;
+package com.android.tools.r8.retrace.internal;
 
-import java.util.function.Consumer;
+import com.android.tools.r8.references.ClassReference;
 
-public interface StackTraceVisitor<T extends StackTraceElementProxy<?>> {
+interface Definition {
 
-  void forEach(Consumer<T> consumer);
+  String getName();
+
+  ClassReference getHolderClass();
 }

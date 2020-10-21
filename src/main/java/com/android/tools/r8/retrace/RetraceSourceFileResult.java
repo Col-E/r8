@@ -7,21 +7,9 @@ package com.android.tools.r8.retrace;
 import com.android.tools.r8.Keep;
 
 @Keep
-public class RetraceSourceFileResult {
+public interface RetraceSourceFileResult {
 
-  private final String filename;
-  private final boolean synthesized;
+  boolean isSynthesized();
 
-  RetraceSourceFileResult(String filename, boolean synthesized) {
-    this.filename = filename;
-    this.synthesized = synthesized;
-  }
-
-  public boolean isSynthesized() {
-    return synthesized;
-  }
-
-  public String getFilename() {
-    return filename;
-  }
+  String getFilename();
 }

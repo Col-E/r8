@@ -5,6 +5,7 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
+import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.retrace.mappings.FieldsWithSameMinifiedNameMapping;
 import com.android.tools.r8.retrace.mappings.MappingForTest;
 import java.util.function.Consumer;
@@ -13,13 +14,13 @@ import org.junit.Test;
 public class RetraceFieldTests {
 
   @Test
-  public void testFieldsWithSameMinifiedName() throws Exception {
+  public void testFieldsWithSameMinifiedName() {
     FieldsWithSameMinifiedNameMapping mapping = new FieldsWithSameMinifiedNameMapping();
     runRetraceTest(mapping, mapping::inspect);
   }
 
-  private void runRetraceTest(MappingForTest mappingForTest, Consumer<RetraceApi> inspection)
-      throws Exception {
-    inspection.accept(Retracer.create(mappingForTest::mapping, new TestDiagnosticMessagesImpl()));
+  private void runRetraceTest(MappingForTest mappingForTest, Consumer<Retracer> inspection) {
+    inspection.accept(
+        RetracerImpl.create(mappingForTest::mapping, new TestDiagnosticMessagesImpl()));
   }
 }

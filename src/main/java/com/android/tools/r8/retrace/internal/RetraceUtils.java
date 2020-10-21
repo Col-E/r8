@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.retrace;
+package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -10,6 +10,10 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.retrace.RetraceClassResult.Element;
+import com.android.tools.r8.retrace.RetraceSourceFileResult;
+import com.android.tools.r8.retrace.RetracedClass;
+import com.android.tools.r8.retrace.RetracedMethod;
 import com.android.tools.r8.retrace.RetracedMethod.KnownRetracedMethod;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -68,10 +72,7 @@ public class RetraceUtils {
   }
 
   static RetraceSourceFileResult getSourceFile(
-      RetraceClassResult.Element classElement,
-      RetracedClass context,
-      String sourceFile,
-      RetraceApi retracer) {
+      Element classElement, RetracedClass context, String sourceFile, RetracerImpl retracer) {
     // If no context is specified always retrace using the found class element.
     if (context == null) {
       return classElement.retraceSourceFile(sourceFile);
@@ -79,7 +80,8 @@ public class RetraceUtils {
     if (context.equals(classElement.getRetracedClass())) {
       return classElement.retraceSourceFile(sourceFile);
     } else {
-      RetraceClassResult contextClassResult = retracer.retrace(context.getClassReference());
+      RetraceClassResultImpl contextClassResult =
+          retracer.retraceClass(context.getClassReference());
       assert !contextClassResult.isAmbiguous();
       if (contextClassResult.hasRetraceResult()) {
         Box<RetraceSourceFileResult> retraceSourceFile = new Box<>();
@@ -87,7 +89,7 @@ public class RetraceUtils {
             element -> retraceSourceFile.set(element.retraceSourceFile(sourceFile)));
         return retraceSourceFile.get();
       } else {
-        return new RetraceSourceFileResult(
+        return new RetraceSourceFileResultImpl(
             synthesizeFileName(
                 context.getTypeName(),
                 classElement.getRetracedClass().getTypeName(),

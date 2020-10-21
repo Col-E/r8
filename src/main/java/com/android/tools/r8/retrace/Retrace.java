@@ -12,6 +12,13 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
 import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
+import com.android.tools.r8.retrace.internal.PlainStackTraceVisitor;
+import com.android.tools.r8.retrace.internal.RetraceAbortException;
+import com.android.tools.r8.retrace.internal.RetraceCommandLineResult;
+import com.android.tools.r8.retrace.internal.RetraceRegularExpression;
+import com.android.tools.r8.retrace.internal.RetracerImpl;
+import com.android.tools.r8.retrace.internal.StackTraceElementProxyRetracerImpl;
+import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
@@ -157,8 +164,8 @@ public class Retrace {
     try {
       Timing timing = Timing.create("R8 retrace", command.printMemory());
       timing.begin("Read proguard map");
-      RetraceApi retracer =
-          Retracer.create(command.proguardMapProducer, command.diagnosticsHandler);
+      RetracerImpl retracer =
+          RetracerImpl.create(command.proguardMapProducer, command.diagnosticsHandler);
       timing.end();
       RetraceCommandLineResult result;
       timing.begin("Parse and Retrace");
@@ -175,7 +182,7 @@ public class Retrace {
         PlainStackTraceVisitor plainStackTraceVisitor =
             new PlainStackTraceVisitor(command.stackTrace, command.diagnosticsHandler);
         StackTraceElementProxyRetracer<StackTraceElementStringProxy> proxyRetracer =
-            new StackTraceElementProxyRetracer<>(retracer);
+            new StackTraceElementProxyRetracerImpl<>(retracer);
         List<String> retracedStrings = new ArrayList<>();
         plainStackTraceVisitor.forEach(
             stackTraceElement -> {
@@ -273,8 +280,6 @@ public class Retrace {
     }
     return readLines;
   }
-
-  static class RetraceAbortException extends RuntimeException {}
 
   private interface MainAction {
     void run() throws RetraceAbortException;

@@ -2,18 +2,25 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.retrace;
+package com.android.tools.r8.retrace.internal;
 
-import static com.android.tools.r8.retrace.RetraceUtils.methodDescriptionFromRetraceMethod;
+import static com.android.tools.r8.retrace.internal.RetraceUtils.methodDescriptionFromRetraceMethod;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.retrace.RetraceClassResult.Element;
-import com.android.tools.r8.retrace.RetraceRegularExpression.ClassNameGroup.ClassNameGroupHandler;
+import com.android.tools.r8.retrace.RetraceClassResult;
+import com.android.tools.r8.retrace.RetraceFieldResult;
+import com.android.tools.r8.retrace.RetraceFrameResult;
+import com.android.tools.r8.retrace.RetraceFrameResult.Element;
+import com.android.tools.r8.retrace.RetraceSourceFileResult;
+import com.android.tools.r8.retrace.RetracedClass;
+import com.android.tools.r8.retrace.RetracedField;
 import com.android.tools.r8.retrace.RetracedField.KnownRetracedField;
+import com.android.tools.r8.retrace.RetracedMethod;
+import com.android.tools.r8.retrace.internal.RetraceRegularExpression.ClassNameGroup.ClassNameGroupHandler;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -30,7 +37,7 @@ import java.util.stream.Collectors;
 
 public class RetraceRegularExpression {
 
-  private final RetraceApi retracer;
+  private final RetracerImpl retracer;
   private final List<String> stackTrace;
   private final DiagnosticsHandler diagnosticsHandler;
   private final String regularExpression;
@@ -52,8 +59,8 @@ public class RetraceRegularExpression {
   private static final String CAPTURE_GROUP_PREFIX = "captureGroup";
   private static final int FIRST_CAPTURE_GROUP_INDEX = 0;
 
-  RetraceRegularExpression(
-      RetraceApi retracer,
+  public RetraceRegularExpression(
+      RetracerImpl retracer,
       List<String> stackTrace,
       DiagnosticsHandler diagnosticsHandler,
       String regularExpression,
@@ -134,7 +141,7 @@ public class RetraceRegularExpression {
               case CLASS:
                 return line.getClassContext().getRetracedClass().getTypeName();
               case METHOD:
-                return line.getMethodContext().getMember().getMethodName();
+                return line.getMethodContext().getTopFrame().getMethodName();
               case SOURCE:
                 return line.getSource();
               case LINE:
@@ -241,8 +248,8 @@ public class RetraceRegularExpression {
   }
 
   static class RetraceStringContext {
-    private final Element classContext;
-    private final RetraceClassMemberElement<? extends RetracedMethod> methodContext;
+    private final RetraceClassResult.Element classContext;
+    private final RetraceFrameResult.Element methodContext;
     private final RetracedClass qualifiedClassContext;
     private final RetracedMethod qualifiedMethodContext;
     private final String methodName;
@@ -252,8 +259,8 @@ public class RetraceRegularExpression {
     private final boolean isAmbiguous;
 
     private RetraceStringContext(
-        Element classContext,
-        RetraceClassMemberElement<? extends RetracedMethod> methodContext,
+        RetraceClassResult.Element classContext,
+        RetraceFrameResult.Element methodContext,
         RetracedClass qualifiedClassContext,
         RetracedMethod qualifiedMethodContext,
         String methodName,
@@ -278,7 +285,7 @@ public class RetraceRegularExpression {
     }
 
     private RetraceStringContext withClassContext(
-        Element classContext, RetracedClass qualifiedContext) {
+        RetraceClassResult.Element classContext, RetracedClass qualifiedContext) {
       return new RetraceStringContext(
           classContext,
           methodContext,
@@ -304,8 +311,7 @@ public class RetraceRegularExpression {
           isAmbiguous);
     }
 
-    private RetraceStringContext withMethodContext(
-        RetraceClassMemberElement<? extends RetracedMethod> methodContext, boolean isAmbiguous) {
+    private RetraceStringContext withMethodContext(Element methodContext, boolean isAmbiguous) {
       return new RetraceStringContext(
           classContext,
           methodContext,
@@ -403,11 +409,11 @@ public class RetraceRegularExpression {
       this.context = context;
     }
 
-    private Element getClassContext() {
+    private RetraceClassResult.Element getClassContext() {
       return context.classContext;
     }
 
-    private RetraceClassMemberElement<? extends RetracedMethod> getMethodContext() {
+    private RetraceFrameResult.Element getMethodContext() {
       return context.methodContext;
     }
 
@@ -448,10 +454,10 @@ public class RetraceRegularExpression {
   private interface RegularExpressionGroupHandler {
 
     List<RetraceString> handleMatch(
-        String original, List<RetraceString> strings, Matcher matcher, RetraceApi retracer);
+        String original, List<RetraceString> strings, Matcher matcher, RetracerImpl retracer);
 
     default RetraceStringContext buildInitial(
-        RetraceStringContext context, Matcher matcher, RetraceApi retracer) {
+        RetraceStringContext context, Matcher matcher, RetracerImpl retracer) {
       return context;
     }
 
@@ -518,7 +524,7 @@ public class RetraceRegularExpression {
 
     static class ClassNameGroupHandler implements RegularExpressionGroupHandler {
 
-      private RetraceClassResult retraceClassResult = null;
+      private RetraceClassResultImpl retraceClassResult = null;
       private final ClassNameGroup classNameGroup;
       private final String captureGroup;
       private RegularExpressionGroupHandler qualifiedHandler;
@@ -530,15 +536,15 @@ public class RetraceRegularExpression {
 
       @Override
       public List<RetraceString> handleMatch(
-          String original, List<RetraceString> strings, Matcher matcher, RetraceApi retracer) {
+          String original, List<RetraceString> strings, Matcher matcher, RetracerImpl retracer) {
         final int startOfGroup = matcher.start(captureGroup);
         if (startOfGroup == NO_MATCH) {
           return strings;
         }
         String typeName = matcher.group(captureGroup);
-        RetraceClassResult retraceResult =
+        RetraceClassResultImpl retraceResult =
             retraceClassResult == null
-                ? retracer.retrace(classNameGroup.classFromMatch(typeName))
+                ? retracer.retraceClass(classNameGroup.classFromMatch(typeName))
                 : retraceClassResult;
         assert !retraceResult.isAmbiguous();
         List<RetraceString> retraceStrings = new ArrayList<>(strings.size());
@@ -579,14 +585,14 @@ public class RetraceRegularExpression {
 
       @Override
       public RetraceStringContext buildInitial(
-          RetraceStringContext context, Matcher matcher, RetraceApi retracer) {
+          RetraceStringContext context, Matcher matcher, RetracerImpl retracer) {
         // Reset the local class context since this the same handler is used for multiple lines.
         retraceClassResult = null;
         if (matcher.start(captureGroup) == NO_MATCH || context.classContext != null) {
           return context;
         }
         String typeName = matcher.group(captureGroup);
-        retraceClassResult = retracer.retrace(classNameGroup.classFromMatch(typeName));
+        retraceClassResult = retracer.retraceClass(classNameGroup.classFromMatch(typeName));
         assert !retraceClassResult.isAmbiguous();
         Box<RetraceStringContext> box = new Box<>();
         retraceClassResult.forEach(
@@ -673,7 +679,7 @@ public class RetraceRegularExpression {
 
         @Override
         public List<RetraceString> handleMatch(
-            String original, List<RetraceString> strings, Matcher matcher, RetraceApi retracer) {
+            String original, List<RetraceString> strings, Matcher matcher, RetracerImpl retracer) {
           final int startOfGroup = matcher.start(captureGroup);
           if (startOfGroup == NO_MATCH) {
             if (classNameGroupHandler != null) {
@@ -715,7 +721,7 @@ public class RetraceRegularExpression {
 
         @Override
         public RetraceStringContext buildInitial(
-            RetraceStringContext context, Matcher matcher, RetraceApi retracer) {
+            RetraceStringContext context, Matcher matcher, RetracerImpl retracer) {
           final int startOfGroup = matcher.start(captureGroup);
           if (startOfGroup == NO_MATCH || context.methodName != null) {
             return context;
@@ -728,25 +734,21 @@ public class RetraceRegularExpression {
     private static void retraceMethodForString(
         RetraceString retraceString,
         String methodName,
-        BiConsumer<RetraceClassMemberElement<? extends RetracedMethod>, RetraceStringContext>
-            process) {
+        BiConsumer<Element, RetraceStringContext> process) {
       if (retraceString.context.classContext == null) {
         return;
       }
-      RetraceMethodResult retraceMethodResult =
-          retraceString.getClassContext().lookupMethod(methodName);
-      Result<? extends RetraceClassMemberElement<RetracedMethod>, ?> retraceResult;
-      if (retraceString.context.minifiedLineNumber > NO_MATCH) {
-        retraceResult =
-            retraceMethodResult.narrowByPosition(retraceString.context.minifiedLineNumber);
-      } else {
-        retraceResult = retraceMethodResult;
-      }
-      retraceResult.forEach(
-          element ->
-              process.accept(
-                  element,
-                  retraceString.context.withMethodContext(element, retraceResult.isAmbiguous())));
+      RetraceClassResult.Element classContext = retraceString.getClassContext();
+      RetraceFrameResult retraceFrameResult =
+          retraceString.context.minifiedLineNumber > NO_MATCH
+              ? classContext.lookupFrame(methodName, retraceString.context.minifiedLineNumber)
+              : classContext.lookupFrame(methodName);
+      retraceFrameResult.forEach(
+          element -> {
+            process.accept(
+                element,
+                retraceString.context.withMethodContext(element, retraceFrameResult.isAmbiguous()));
+          });
     }
   }
 
@@ -776,7 +778,7 @@ public class RetraceRegularExpression {
 
         @Override
         public List<RetraceString> handleMatch(
-            String original, List<RetraceString> strings, Matcher matcher, RetraceApi retracer) {
+            String original, List<RetraceString> strings, Matcher matcher, RetracerImpl retracer) {
           final int startOfGroup = matcher.start(captureGroup);
           if (startOfGroup == NO_MATCH) {
             if (classNameGroupHandler != null) {
@@ -878,7 +880,7 @@ public class RetraceRegularExpression {
     }
   }
 
-  private class LineNumberGroup extends RegularExpressionGroup {
+  private static class LineNumberGroup extends RegularExpressionGroup {
 
     @Override
     String subExpression() {
@@ -890,7 +892,7 @@ public class RetraceRegularExpression {
       return new RegularExpressionGroupHandler() {
         @Override
         public List<RetraceString> handleMatch(
-            String original, List<RetraceString> strings, Matcher matcher, RetraceApi retracer) {
+            String original, List<RetraceString> strings, Matcher matcher, RetracerImpl retracer) {
           final int startOfGroup = matcher.start(captureGroup);
           if (startOfGroup == NO_MATCH) {
             return strings;
@@ -902,8 +904,7 @@ public class RetraceRegularExpression {
           int lineNumber = Integer.parseInt(lineNumberAsString);
           List<RetraceString> retracedStrings = new ArrayList<>();
           for (RetraceString retraceString : strings) {
-            RetraceClassMemberElement<? extends RetracedMethod> methodContext =
-                retraceString.context.methodContext;
+            Element methodContext = retraceString.context.methodContext;
             if (methodContext == null) {
               if (retraceString.context.classContext == null
                   || retraceString.context.methodName == null) {
@@ -961,7 +962,7 @@ public class RetraceRegularExpression {
 
         @Override
         public RetraceStringContext buildInitial(
-            RetraceStringContext context, Matcher matcher, RetraceApi retracer) {
+            RetraceStringContext context, Matcher matcher, RetracerImpl retracer) {
           if (matcher.start(captureGroup) == NO_MATCH || context.minifiedLineNumber > NO_MATCH) {
             return context;
           }
@@ -1015,12 +1016,12 @@ public class RetraceRegularExpression {
           return strings;
         }
         TypeReference typeReference = Reference.returnTypeFromDescriptor(descriptor);
-        RetraceTypeResult retracedType = retracer.retrace(typeReference);
+        RetraceTypeResultImpl retracedType = retracer.retraceType(typeReference);
         assert !retracedType.isAmbiguous();
         for (RetraceString retraceString : strings) {
           retracedType.forEach(
               element -> {
-                RetracedType retracedReference = element.getType();
+                RetracedTypeImpl retracedReference = element.getType();
                 retraceString.appendRetracedString(
                     original,
                     retracedReference.isVoid() ? "void" : retracedReference.getTypeName(),
@@ -1059,10 +1060,10 @@ public class RetraceRegularExpression {
                       if (!DescriptorUtils.isDescriptor(descriptor) && !"V".equals(descriptor)) {
                         return typeName;
                       }
-                      final RetraceTypeResult retraceResult =
-                          retracer.retrace(Reference.returnTypeFromDescriptor(descriptor));
+                      final RetraceTypeResultImpl retraceResult =
+                          retracer.retraceType(Reference.returnTypeFromDescriptor(descriptor));
                       assert !retraceResult.isAmbiguous();
-                      final Box<RetracedType> elementBox = new Box<>();
+                      final Box<RetracedTypeImpl> elementBox = new Box<>();
                       retraceResult.forEach(element -> elementBox.set(element.getType()));
                       return elementBox.get().getTypeName();
                     })

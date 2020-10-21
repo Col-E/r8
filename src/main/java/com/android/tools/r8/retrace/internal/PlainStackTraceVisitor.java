@@ -2,12 +2,12 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.retrace;
+package com.android.tools.r8.retrace.internal;
 
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.retrace.StackTraceElementStringProxy.StackTraceElementStringProxyBuilder;
+import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.StackTraceElementStringProxyBuilder;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.List;
 import java.util.function.Consumer;
@@ -19,7 +19,7 @@ public final class PlainStackTraceVisitor
   private final List<String> stackTrace;
   private final DiagnosticsHandler diagnosticsHandler;
 
-  PlainStackTraceVisitor(List<String> stackTrace, DiagnosticsHandler diagnosticsHandler) {
+  public PlainStackTraceVisitor(List<String> stackTrace, DiagnosticsHandler diagnosticsHandler) {
     this.stackTrace = stackTrace;
     this.diagnosticsHandler = diagnosticsHandler;
   }
@@ -209,7 +209,7 @@ public final class PlainStackTraceVisitor
   private StackTraceElementStringProxy parseLine(int lineNumber, String line) {
     if (line == null) {
       diagnosticsHandler.error(RetraceInvalidStackTraceLineDiagnostics.createNull(lineNumber));
-      throw new Retrace.RetraceAbortException();
+      throw new RetraceAbortException();
     }
     // Most lines are 'at lines' so attempt to parse it first.
     StackTraceElementStringProxy parsedLine = AtLine.tryParse(line);

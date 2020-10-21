@@ -9,8 +9,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.retrace.RetraceApi;
 import com.android.tools.r8.retrace.RetraceFieldResult;
+import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -25,7 +25,7 @@ public class FieldsWithSameMinifiedNameMapping implements MappingForTest {
         "foo.bar.Baz -> foo.bar.Baz:", "  java.lang.Object f1 -> a", "  java.lang.String f2 -> a");
   }
 
-  public void inspect(RetraceApi retracer) {
+  public void inspect(Retracer retracer) {
     FieldReference f1FieldReference =
         Reference.field(
             Reference.classFromTypeName("foo.bar.Baz"),
@@ -43,7 +43,7 @@ public class FieldsWithSameMinifiedNameMapping implements MappingForTest {
             "a",
             Reference.classFromTypeName("java.lang.Object"));
 
-    RetraceFieldResult result = retracer.retrace(mappedF1FieldReference);
+    RetraceFieldResult result = retracer.retraceField(mappedF1FieldReference);
     // TODO(b/169829306): Result should not be ambigious.
     assertTrue(result.isAmbiguous());
 

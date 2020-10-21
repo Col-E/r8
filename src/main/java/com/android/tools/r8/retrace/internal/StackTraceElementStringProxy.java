@@ -2,12 +2,13 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.retrace;
+package com.android.tools.r8.retrace.internal;
 
-import static com.android.tools.r8.retrace.PlainStackTraceVisitor.firstNonWhiteSpaceCharacterFromIndex;
-import static com.android.tools.r8.retrace.StackTraceElementStringProxy.StringIndex.noIndex;
+import static com.android.tools.r8.retrace.internal.PlainStackTraceVisitor.firstNonWhiteSpaceCharacterFromIndex;
+import static com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.StringIndex.noIndex;
 
-import com.android.tools.r8.retrace.StackTraceElementProxyRetracer.RetraceStackTraceProxy;
+import com.android.tools.r8.retrace.StackTraceElementProxy;
+import com.android.tools.r8.retrace.internal.StackTraceElementProxyRetracerImpl.RetraceStackTraceProxyImpl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -88,7 +89,8 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
   }
 
   public String toRetracedItem(
-      RetraceStackTraceProxy<StackTraceElementStringProxy> retracedProxy, boolean printAmbiguous) {
+      RetraceStackTraceProxyImpl<StackTraceElementStringProxy> retracedProxy,
+      boolean printAmbiguous) {
     StringBuilder sb = new StringBuilder();
     int lastSeenIndex = 0;
     if (retracedProxy.isAmbiguous() && printAmbiguous) {
@@ -203,7 +205,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
     private final int startIndex;
     private final int endIndex;
     private final BiFunction<
-            RetraceStackTraceProxy<StackTraceElementStringProxy>,
+            RetraceStackTraceProxyImpl<StackTraceElementStringProxy>,
             StackTraceElementStringProxy,
             String>
         retracedString;
@@ -212,7 +214,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
         int startIndex,
         int endIndex,
         BiFunction<
-                RetraceStackTraceProxy<StackTraceElementStringProxy>,
+                RetraceStackTraceProxyImpl<StackTraceElementStringProxy>,
                 StackTraceElementStringProxy,
                 String>
             retracedString) {

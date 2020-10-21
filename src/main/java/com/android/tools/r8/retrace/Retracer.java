@@ -4,66 +4,23 @@
 
 package com.android.tools.r8.retrace;
 
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
 
-/** A default implementation for the retrace api using the ClassNameMapper defined in R8. */
+/** This is the main api interface for retrace. */
 @Keep
-public class Retracer implements RetraceApi {
+public interface Retracer {
 
-  private final ClassNameMapper classNameMapper;
+  RetraceClassResult retraceClass(ClassReference classReference);
 
-  private Retracer(ClassNameMapper classNameMapper) {
-    this.classNameMapper = classNameMapper;
-    assert classNameMapper != null;
-  }
+  RetraceMethodResult retraceMethod(MethodReference methodReference);
 
-  public static RetraceApi create(
-      ProguardMapProducer proguardMapProducer, DiagnosticsHandler diagnosticsHandler) {
-    if (proguardMapProducer instanceof DirectClassNameMapperProguardMapProducer) {
-      return new Retracer(
-          ((DirectClassNameMapperProguardMapProducer) proguardMapProducer).getClassNameMapper());
-    }
-    try {
-      ClassNameMapper classNameMapper =
-          ClassNameMapper.mapperFromString(proguardMapProducer.get(), diagnosticsHandler);
-      return new Retracer(classNameMapper);
-    } catch (Throwable throwable) {
-      throw new InvalidMappingFileException(throwable);
-    }
-  }
+  RetraceFrameResult retraceFrame(MethodReference methodReference, int position);
 
-  @Override
-  public RetraceMethodResult retrace(MethodReference methodReference) {
-    return retrace(methodReference.getHolderClass()).lookupMethod(methodReference.getMethodName());
-  }
+  RetraceFieldResult retraceField(FieldReference fieldReference);
 
-  @Override
-  public RetraceFieldResult retrace(FieldReference fieldReference) {
-    return retrace(fieldReference.getHolderClass()).lookupField(fieldReference.getFieldName());
-  }
-
-  @Override
-  public RetraceFrameResult retrace(MethodReference methodReference, int position) {
-    return retrace(methodReference.getHolderClass())
-        .lookupMethod(methodReference.getMethodName())
-        .narrowByPosition(position);
-  }
-
-  @Override
-  public RetraceClassResult retrace(ClassReference classReference) {
-    return RetraceClassResult.create(
-        classReference, classNameMapper.getClassNaming(classReference.getTypeName()), this);
-  }
-
-  @Override
-  public RetraceTypeResult retrace(TypeReference typeReference) {
-    return RetraceTypeResult.create(typeReference, this);
-  }
+  RetraceTypeResult retraceType(TypeReference typeReference);
 }

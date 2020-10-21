@@ -6,50 +6,16 @@ package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.retrace.internal.RetracedTypeImpl;
 
 @Keep
-public final class RetracedClass {
+public interface RetracedClass {
 
-  private final ClassReference classReference;
+  String getTypeName();
 
-  private RetracedClass(ClassReference classReference) {
-    assert classReference != null;
-    this.classReference = classReference;
-  }
+  String getBinaryName();
 
-  public static RetracedClass create(ClassReference classReference) {
-    return new RetracedClass(classReference);
-  }
+  RetracedTypeImpl getRetracedType();
 
-  public String getTypeName() {
-    return classReference.getTypeName();
-  }
-
-  public String getBinaryName() {
-    return classReference.getBinaryName();
-  }
-
-  public RetracedType getRetracedType() {
-    return RetracedType.create(classReference);
-  }
-
-  ClassReference getClassReference() {
-    return classReference;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    return classReference.equals(((RetracedClass) o).classReference);
-  }
-
-  @Override
-  public int hashCode() {
-    return classReference.hashCode();
-  }
+  ClassReference getClassReference();
 }
