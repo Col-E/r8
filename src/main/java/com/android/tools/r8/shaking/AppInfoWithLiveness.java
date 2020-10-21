@@ -905,6 +905,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return this;
   }
 
+  public boolean isClassInliningAllowed(DexProgramClass clazz) {
+    return !isPinned(clazz) && !neverClassInline.contains(clazz.getType());
+  }
+
   public boolean isMinificationAllowed(DexReference reference) {
     return options().isMinificationEnabled()
         && keepInfo.getInfo(reference, this).isMinificationAllowed(options());
@@ -936,6 +940,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public boolean isPinned(DexReference reference) {
     assert checkIfObsolete();
     return keepInfo.isPinned(reference, this);
+  }
+
+  public boolean isPinned(DexDefinition definition) {
+    assert definition != null;
+    return isPinned(definition.toReference());
   }
 
   public boolean hasPinnedInstanceInitializer(DexType type) {
