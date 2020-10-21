@@ -12,6 +12,7 @@ import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -94,7 +95,7 @@ final class InlineCandidateProcessor {
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory dexItemFactory;
   private final Inliner inliner;
-  private final Function<DexProgramClass, EligibilityStatus> isClassEligible;
+  private final Function<DexClass, EligibilityStatus> isClassEligible;
   private final MethodProcessor methodProcessor;
   private final ProgramMethod method;
   private final Instruction root;
@@ -121,7 +122,7 @@ final class InlineCandidateProcessor {
   InlineCandidateProcessor(
       AppView<AppInfoWithLiveness> appView,
       Inliner inliner,
-      Function<DexProgramClass, EligibilityStatus> isClassEligible,
+      Function<DexClass, EligibilityStatus> isClassEligible,
       MethodProcessor methodProcessor,
       ProgramMethod method,
       Instruction root) {
@@ -156,20 +157,20 @@ final class InlineCandidateProcessor {
   EligibilityStatus isInstanceEligible() {
     eligibleInstance = root.outValue();
     if (eligibleInstance == null) {
-      return EligibilityStatus.NOT_ELIGIBLE;
+      return EligibilityStatus.UNUSED_INSTANCE;
     }
 
     if (root.isNewInstance()) {
       eligibleClass = asProgramClassOrNull(appView.definitionFor(root.asNewInstance().clazz));
       if (eligibleClass == null) {
-        return EligibilityStatus.NOT_ELIGIBLE;
+        return EligibilityStatus.UNKNOWN_TYPE;
       }
       if (eligibleClass.classInitializationMayHaveSideEffects(
           appView,
           // Types that are a super type of the current context are guaranteed to be initialized.
           type -> appView.isSubtype(method.getHolderType(), type).isTrue(),
           Sets.newIdentityHashSet())) {
-        return EligibilityStatus.NOT_ELIGIBLE;
+        return EligibilityStatus.HAS_CLINIT;
       }
       return EligibilityStatus.ELIGIBLE;
     }
@@ -178,19 +179,19 @@ final class InlineCandidateProcessor {
 
     StaticGet staticGet = root.asStaticGet();
     if (staticGet.instructionMayHaveSideEffects(appView, method)) {
-      return EligibilityStatus.NOT_ELIGIBLE;
+      return EligibilityStatus.RETRIEVAL_MAY_HAVE_SIDE_EFFECTS;
     }
     DexEncodedField field = appView.appInfo().resolveField(staticGet.getField()).getResolvedField();
     FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
     ClassTypeElement dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
     if (dynamicLowerBoundType == null
         || !dynamicLowerBoundType.equals(optimizationInfo.getDynamicUpperBoundType())) {
-      return EligibilityStatus.NOT_ELIGIBLE;
+      return EligibilityStatus.NOT_A_SINGLETON_FIELD;
     }
     eligibleClass =
         asProgramClassOrNull(appView.definitionFor(dynamicLowerBoundType.getClassType()));
     if (eligibleClass == null) {
-      return EligibilityStatus.NOT_ELIGIBLE;
+      return EligibilityStatus.UNKNOWN_TYPE;
     }
     return EligibilityStatus.ELIGIBLE;
   }
