@@ -89,6 +89,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -594,7 +595,7 @@ public class LensCodeRewriter {
       if (definition != null) {
         DexClassAndField field = DexClassAndField.create(holder, definition);
         if (AccessControl.isMemberAccessible(field, holder, context, appView).isTrue()) {
-          return lookup.getReboundReference();
+          return MemberRebindingAnalysis.validMemberRebindingTargetFor(appView, field, reference);
         }
       }
     }

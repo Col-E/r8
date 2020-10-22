@@ -5,7 +5,8 @@ package com.android.tools.r8.optimize;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexClassAndField;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -48,7 +49,7 @@ public class MemberRebindingAnalysis {
   }
 
   private DexMethod validTargetFor(DexMethod target, DexMethod original) {
-    DexClass clazz = appView.definitionFor(target.holder);
+    DexClass clazz = appView.definitionFor(target.getHolderType());
     assert clazz != null;
     if (clazz.isProgramClass()) {
       return target;
@@ -56,36 +57,38 @@ public class MemberRebindingAnalysis {
     DexType newHolder;
     if (clazz.isInterface()) {
       newHolder =
-          firstLibraryClassForInterfaceTarget(target, original.holder, DexClass::lookupMethod);
+          firstLibraryClassForInterfaceTarget(
+              appView, target, original.holder, DexClass::lookupMethod);
     } else {
-      newHolder = firstLibraryClass(target.holder, original.holder);
+      newHolder = firstLibraryClass(appView, target.getHolderType(), original.getHolderType());
     }
     return newHolder == null
         ? original
         : appView.dexItemFactory().createMethod(newHolder, original.proto, original.name);
   }
 
-  private DexField validTargetFor(DexField target, DexField original,
-      BiFunction<DexClass, DexField, DexEncodedField> lookup) {
-    DexClass clazz = appView.definitionFor(target.holder);
-    assert clazz != null;
-    if (clazz.isProgramClass()) {
-      return target;
+  public static DexField validMemberRebindingTargetFor(
+      DexDefinitionSupplier definitions, DexClassAndField field, DexField original) {
+    DexClass clazz = field.getHolder();
+    if (field.isProgramField()) {
+      return field.getReference();
     }
-    DexType newHolder;
-    if (clazz.isInterface()) {
-      newHolder = firstLibraryClassForInterfaceTarget(target, original.holder, lookup);
-    } else {
-      newHolder = firstLibraryClass(target.holder, original.holder);
-    }
-    return newHolder == null
-        ? original
-        : appView.dexItemFactory().createField(newHolder, original.type, original.name);
+    DexType newHolder =
+        clazz.isInterface()
+            ? firstLibraryClassForInterfaceTarget(
+                definitions, field.getReference(), original.getHolderType(), DexClass::lookupField)
+            : firstLibraryClass(definitions, field.getHolderType(), original.getHolderType());
+    return newHolder != null
+        ? field.getReference().withHolder(newHolder, definitions.dexItemFactory())
+        : original;
   }
 
-  private <T> DexType firstLibraryClassForInterfaceTarget(T target, DexType current,
+  private static <T> DexType firstLibraryClassForInterfaceTarget(
+      DexDefinitionSupplier definitions,
+      T target,
+      DexType current,
       BiFunction<DexClass, T, ?> lookup) {
-    DexClass clazz = appView.definitionFor(current);
+    DexClass clazz = definitions.definitionFor(current);
     if (clazz == null) {
       return null;
     }
@@ -95,14 +98,16 @@ public class MemberRebindingAnalysis {
       return current;
     }
     if (clazz.superType != null) {
-      DexType matchingSuper = firstLibraryClassForInterfaceTarget(target, clazz.superType, lookup);
+      DexType matchingSuper =
+          firstLibraryClassForInterfaceTarget(definitions, target, clazz.superType, lookup);
       if (matchingSuper != null) {
         // Found in supertype, return first library class.
         return clazz.isNotProgramClass() ? current : matchingSuper;
       }
     }
     for (DexType iface : clazz.interfaces.values) {
-      DexType matchingIface = firstLibraryClassForInterfaceTarget(target, iface, lookup);
+      DexType matchingIface =
+          firstLibraryClassForInterfaceTarget(definitions, target, iface, lookup);
       if (matchingIface != null) {
         // Found in interface, return first library class.
         return clazz.isNotProgramClass() ? current : matchingIface;
@@ -111,11 +116,12 @@ public class MemberRebindingAnalysis {
     return null;
   }
 
-  private DexType firstLibraryClass(DexType top, DexType bottom) {
-    assert appView.definitionFor(top).isNotProgramClass();
-    DexClass searchClass = appView.definitionFor(bottom);
+  private static DexType firstLibraryClass(
+      DexDefinitionSupplier definitions, DexType top, DexType bottom) {
+    assert definitions.definitionFor(top).isNotProgramClass();
+    DexClass searchClass = definitions.definitionFor(bottom);
     while (searchClass.isProgramClass()) {
-      searchClass = appView.definitionFor(searchClass.superType);
+      searchClass = definitions.definitionFor(searchClass.superType);
     }
     return searchClass.type;
   }
