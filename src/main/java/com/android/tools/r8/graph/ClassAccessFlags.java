@@ -115,7 +115,7 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
       // When not coming from DEX input we require interfaces to be abstract - except for
       // package-info classes - as both old versions of javac and other tools can produce
       // package-info classes that are interfaces but not abstract.
-      if (version.isGreaterThanOrEqual(Constants.CORRESPONDING_CLASS_FILE_VERSION)
+      if (version.isGreaterThan(Constants.CORRESPONDING_CLASS_FILE_VERSION)
           && !isAbstract()
           && !isPackageInfo) {
         return false;
