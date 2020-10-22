@@ -3,11 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.graph.DexEncodedMethod.asDexClassAndMethodOrNull;
 import static com.android.tools.r8.ir.analysis.type.TypeAnalysis.toRefinedReceiverType;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeInterfaceRange;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -95,25 +97,27 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(
+  public DexClassAndMethod lookupSingleTarget(
       AppView<?> appView,
       ProgramMethod context,
       TypeElement receiverUpperBoundType,
       ClassTypeElement receiverLowerBoundType) {
-    if (appView.appInfo().hasLiveness()) {
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      return appViewWithLiveness
-          .appInfo()
-          .lookupSingleVirtualTarget(
-              getInvokedMethod(),
-              context,
-              true,
-              appView,
-              toRefinedReceiverType(
-                  receiverUpperBoundType, getInvokedMethod(), appViewWithLiveness),
-              receiverLowerBoundType);
+    if (!appView.appInfo().hasLiveness()) {
+      return null;
     }
-    return null;
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    DexEncodedMethod result =
+        appViewWithLiveness
+            .appInfo()
+            .lookupSingleVirtualTarget(
+                getInvokedMethod(),
+                context,
+                true,
+                appView,
+                toRefinedReceiverType(
+                    receiverUpperBoundType, getInvokedMethod(), appViewWithLiveness),
+                receiverLowerBoundType);
+    return asDexClassAndMethodOrNull(result, appView);
   }
 
   @Override

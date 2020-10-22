@@ -8,7 +8,7 @@ import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Predicates.or;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -160,9 +160,10 @@ public class BasicBlockBehavioralSubsumption {
     }
     // For constructor calls include field initialization side effects.
     if (instruction.isInvokeConstructor(appView.dexItemFactory())) {
-      DexEncodedMethod singleTarget =
+      DexClassAndMethod singleTarget =
           instruction.asInvokeDirect().lookupSingleTarget(appView, context);
-      return singleTarget != null && !singleTarget.getOptimizationInfo().mayHaveSideEffects();
+      return singleTarget != null
+          && !singleTarget.getDefinition().getOptimizationInfo().mayHaveSideEffects();
     }
     return true;
   }

@@ -9,8 +9,8 @@ import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -339,13 +339,17 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       return ObjectState.empty();
     }
 
-    DexEncodedMethod singleTarget = uniqueConstructorInvoke.lookupSingleTarget(appView, context);
+    DexClassAndMethod singleTarget = uniqueConstructorInvoke.lookupSingleTarget(appView, context);
     if (singleTarget == null) {
       return ObjectState.empty();
     }
 
     InstanceFieldInitializationInfoCollection initializationInfos =
-        singleTarget.getOptimizationInfo().getInstanceInitializerInfo().fieldInitializationInfos();
+        singleTarget
+            .getDefinition()
+            .getOptimizationInfo()
+            .getInstanceInitializerInfo()
+            .fieldInitializationInfos();
     if (initializationInfos.isEmpty()) {
       return ObjectState.empty();
     }

@@ -6,8 +6,8 @@ package com.android.tools.r8.ir.analysis;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -132,13 +132,16 @@ public class InitializedClassesOnNormalExitAnalysis {
         InvokeMethod invoke = instruction.asInvokeMethod();
         DexMethod method = invoke.getInvokedMethod();
         if (method.holder.isClassType()) {
-          DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
+          DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
           if (singleTarget != null) {
-            markInitializedOnNormalExit(singleTarget.holder());
+            markInitializedOnNormalExit(singleTarget.getHolderType());
             markInitializedOnNormalExit(
-                singleTarget.getOptimizationInfo().getInitializedClassesOnNormalExit());
+                singleTarget
+                    .getDefinition()
+                    .getOptimizationInfo()
+                    .getInitializedClassesOnNormalExit());
           } else {
-            markInitializedOnNormalExit(method.holder);
+            markInitializedOnNormalExit(method.getHolderType());
           }
         }
       }

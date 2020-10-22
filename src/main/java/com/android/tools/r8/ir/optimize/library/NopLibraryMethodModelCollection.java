@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.library;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -34,6 +34,6 @@ public class NopLibraryMethodModelCollection implements LibraryMethodModelCollec
       IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
-      DexEncodedMethod singleTarget,
+      DexClassAndMethod singleTarget,
       Set<Value> affectedValues) {}
 }

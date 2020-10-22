@@ -3,9 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.graph.DexEncodedMethod.asDexClassAndMethodOrNull;
+
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeSuperRange;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -102,7 +105,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(
+  public DexClassAndMethod lookupSingleTarget(
       AppView<?> appView,
       ProgramMethod context,
       TypeElement receiverUpperBoundType,
@@ -111,7 +114,8 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfo = appViewWithLiveness.appInfo();
       if (appInfo.isSubtype(context.getHolderType(), getInvokedMethod().holder)) {
-        return appInfo.lookupSuperTarget(getInvokedMethod(), context);
+        DexEncodedMethod result = appInfo.lookupSuperTarget(getInvokedMethod(), context);
+        return asDexClassAndMethodOrNull(result, appView);
       }
     }
     return null;

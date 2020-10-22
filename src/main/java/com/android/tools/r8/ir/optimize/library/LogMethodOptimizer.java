@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.library;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -104,11 +104,11 @@ public class LogMethodOptimizer implements LibraryMethodModelCollection {
       IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
-      DexEncodedMethod singleTarget,
+      DexClassAndMethod singleTarget,
       Set<Value> affectedValues) {
     int maxRemovedAndroidLogLevel =
         appView.options().getProguardConfiguration().getMaxRemovedAndroidLogLevel();
-    if (singleTarget.method == isLoggableMethod) {
+    if (singleTarget.getReference() == isLoggableMethod) {
       Value logLevelValue = invoke.arguments().get(1).getAliasedValue();
       if (!logLevelValue.isPhi() && !logLevelValue.hasLocalInfo()) {
         Instruction definition = logLevelValue.definition;
@@ -118,27 +118,27 @@ public class LogMethodOptimizer implements LibraryMethodModelCollection {
               code, instructionIterator, invoke, maxRemovedAndroidLogLevel >= logLevel ? 0 : 1);
         }
       }
-    } else if (singleTarget.method == vMethod) {
+    } else if (singleTarget.getReference() == vMethod) {
       if (maxRemovedAndroidLogLevel >= VERBOSE) {
         replaceInvokeWithConstNumber(code, instructionIterator, invoke, 0);
       }
-    } else if (singleTarget.method == dMethod) {
+    } else if (singleTarget.getReference() == dMethod) {
       if (maxRemovedAndroidLogLevel >= DEBUG) {
         replaceInvokeWithConstNumber(code, instructionIterator, invoke, 0);
       }
-    } else if (singleTarget.method == iMethod) {
+    } else if (singleTarget.getReference() == iMethod) {
       if (maxRemovedAndroidLogLevel >= INFO) {
         replaceInvokeWithConstNumber(code, instructionIterator, invoke, 0);
       }
-    } else if (singleTarget.method == wMethod) {
+    } else if (singleTarget.getReference() == wMethod) {
       if (maxRemovedAndroidLogLevel >= WARN) {
         replaceInvokeWithConstNumber(code, instructionIterator, invoke, 0);
       }
-    } else if (singleTarget.method == eMethod) {
+    } else if (singleTarget.getReference() == eMethod) {
       if (maxRemovedAndroidLogLevel >= ERROR) {
         replaceInvokeWithConstNumber(code, instructionIterator, invoke, 0);
       }
-    } else if (singleTarget.method == wtfMethod) {
+    } else if (singleTarget.getReference() == wtfMethod) {
       if (maxRemovedAndroidLogLevel >= ASSERT) {
         replaceInvokeWithConstNumber(code, instructionIterator, invoke, 0);
       }

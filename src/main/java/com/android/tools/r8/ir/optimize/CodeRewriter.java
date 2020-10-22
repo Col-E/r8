@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -1253,9 +1254,14 @@ public class CodeRewriter {
         }
 
         // Check if the invoked method is known to return one of its arguments.
-        DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.context());
-        if (target != null && target.getOptimizationInfo().returnsArgument()) {
-          int argumentIndex = target.getOptimizationInfo().getReturnedArgument();
+        DexClassAndMethod target = invoke.lookupSingleTarget(appView, code.context());
+        if (target == null) {
+          continue;
+        }
+
+        MethodOptimizationInfo optimizationInfo = target.getDefinition().getOptimizationInfo();
+        if (optimizationInfo.returnsArgument()) {
+          int argumentIndex = optimizationInfo.getReturnedArgument();
           // Replace the out value of the invoke with the argument and ignore the out value.
           if (argumentIndex >= 0 && checkArgumentType(invoke, argumentIndex)) {
             Value argument = invoke.arguments().get(argumentIndex);
@@ -2878,13 +2884,14 @@ public class CodeRewriter {
         }
 
         InvokeMethod invoke = instruction.asInvokeMethod();
-        DexEncodedMethod singleTarget =
+        DexClassAndMethod singleTarget =
             invoke.lookupSingleTarget(appView.withLiveness(), code.context());
         if (singleTarget == null) {
           continue;
         }
 
-        MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+        MethodOptimizationInfo optimizationInfo =
+            singleTarget.getDefinition().getOptimizationInfo();
 
         // If the invoke instruction is a null check, we can remove it.
         boolean isNullCheck = false;

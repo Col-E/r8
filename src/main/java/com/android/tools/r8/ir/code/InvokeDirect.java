@@ -3,10 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.graph.DexEncodedMethod.asDexClassAndMethodOrNull;
+
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeDirectRange;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -125,22 +128,24 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(
+  public DexClassAndMethod lookupSingleTarget(
       AppView<?> appView,
       ProgramMethod context,
       TypeElement receiverUpperBoundType,
       ClassTypeElement receiverLowerBoundType) {
     DexMethod invokedMethod = getInvokedMethod();
+    DexEncodedMethod result;
     if (appView.appInfo().hasLiveness()) {
       AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
-      DexEncodedMethod result = appInfo.lookupDirectTarget(invokedMethod, context);
+      result = appInfo.lookupDirectTarget(invokedMethod, context);
       assert verifyD8LookupResult(
           result, appView.appInfo().lookupDirectTargetOnItself(invokedMethod, context));
-      return result;
+    } else {
+      // In D8, we can treat invoke-direct instructions as having a single target if the invoke is
+      // targeting a method in the enclosing class.
+      result = appView.appInfo().lookupDirectTargetOnItself(invokedMethod, context);
     }
-    // In D8, we can treat invoke-direct instructions as having a single target if the invoke is
-    // targeting a method in the enclosing class.
-    return appView.appInfo().lookupDirectTargetOnItself(invokedMethod, context);
+    return asDexClassAndMethodOrNull(result, appView);
   }
 
   @Override
@@ -189,12 +194,16 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
     // Trivial instance initializers do not read any fields.
     if (appView.dexItemFactory().isConstructor(invokedMethod)) {
-      DexEncodedMethod singleTarget = lookupSingleTarget(appView, context);
+      DexClassAndMethod singleTarget = lookupSingleTarget(appView, context);
 
       // If we have a single target in the program, then use the computed initializer info.
       // If we have a single target in the library, then fallthrough to the library modeling below.
-      if (singleTarget != null && singleTarget.isProgramMethod(appView)) {
-        return singleTarget.getOptimizationInfo().getInstanceInitializerInfo().readSet();
+      if (singleTarget != null && singleTarget.isProgramMethod()) {
+        return singleTarget
+            .getDefinition()
+            .getOptimizationInfo()
+            .getInstanceInitializerInfo()
+            .readSet();
       }
     }
 

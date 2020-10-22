@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.library;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -38,9 +38,9 @@ public class StringMethodOptimizer implements LibraryMethodModelCollection {
       IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
-      DexEncodedMethod singleTarget,
+      DexClassAndMethod singleTarget,
       Set<Value> affectedValues) {
-    if (singleTarget.method == dexItemFactory.stringMembers.equals) {
+    if (singleTarget.getReference() == dexItemFactory.stringMembers.equals) {
       optimizeEquals(code, instructionIterator, invoke);
     }
   }
@@ -74,9 +74,10 @@ public class StringMethodOptimizer implements LibraryMethodModelCollection {
       return false;
     }
 
-    DexEncodedMethod singleTarget =
+    DexClassAndMethod singleTarget =
         classNameDefinition.asInvokeVirtual().lookupSingleTarget(appView, context);
-    if (singleTarget == null || singleTarget.method != dexItemFactory.classMethods.getName) {
+    if (singleTarget == null
+        || singleTarget.getReference() != dexItemFactory.classMethods.getName) {
       return false;
     }
 

@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -222,13 +223,13 @@ public class LibraryMethodOverrideAnalysis {
         }
       }
 
-      DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
+      DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
       if (singleTarget == null) {
         return false;
       }
 
       InstanceInitializerInfo initializerInfo =
-          singleTarget.getOptimizationInfo().getInstanceInitializerInfo();
+          singleTarget.getDefinition().getOptimizationInfo().getInstanceInitializerInfo();
       return initializerInfo.receiverNeverEscapesOutsideConstructorChain();
     }
   }

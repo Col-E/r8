@@ -12,6 +12,10 @@ public class DexClassAndMethod extends DexClassAndMember<DexEncodedMethod, DexMe
     assert holder.isProgramClass() == (this instanceof ProgramMethod);
   }
 
+  public static ProgramMethod asProgramMethodOrNull(DexClassAndMethod method) {
+    return method != null ? method.asProgramMethod() : null;
+  }
+
   public static DexClassAndMethod create(DexClass holder, DexEncodedMethod method) {
     if (holder.isProgramClass()) {
       return new ProgramMethod(holder.asProgramClass(), method);

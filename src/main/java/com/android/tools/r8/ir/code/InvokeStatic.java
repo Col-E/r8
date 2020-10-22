@@ -3,10 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.graph.DexEncodedMethod.asDexClassAndMethodOrNull;
+
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeStaticRange;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -107,24 +110,27 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
+  public DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
     DexMethod invokedMethod = getInvokedMethod();
+    DexEncodedMethod result;
     if (appView.appInfo().hasLiveness()) {
       AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
-      DexEncodedMethod result = appInfo.lookupStaticTarget(invokedMethod, context);
+      result = appInfo.lookupStaticTarget(invokedMethod, context);
       assert verifyD8LookupResult(
           result, appView.appInfo().lookupStaticTargetOnItself(invokedMethod, context));
-      return result;
+    } else {
+      // Allow optimizing static library invokes in D8.
+      DexClass clazz = appView.definitionForHolder(getInvokedMethod());
+      if (clazz != null
+          && (clazz.isLibraryClass() || appView.libraryMethodOptimizer().isModeled(clazz.type))) {
+        result = clazz.lookupMethod(getInvokedMethod());
+      } else {
+        // In D8, we can treat invoke-static instructions as having a single target if the invoke is
+        // targeting a method in the enclosing class.
+        result = appView.appInfo().lookupStaticTargetOnItself(invokedMethod, context);
+      }
     }
-    // Allow optimizing static library invokes in D8.
-    DexClass clazz = appView.definitionForHolder(getInvokedMethod());
-    if (clazz != null
-        && (clazz.isLibraryClass() || appView.libraryMethodOptimizer().isModeled(clazz.type))) {
-      return clazz.lookupMethod(getInvokedMethod());
-    }
-    // In D8, we can treat invoke-static instructions as having a single target if the invoke is
-    // targeting a method in the enclosing class.
-    return appView.appInfo().lookupStaticTargetOnItself(invokedMethod, context);
+    return asDexClassAndMethodOrNull(result, appView);
   }
 
   @Override

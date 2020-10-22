@@ -37,6 +37,10 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return name;
   }
 
+  public DexType getParameter(int index) {
+    return proto.getParameter(index);
+  }
+
   public DexTypeList getParameters() {
     return proto.parameters;
   }

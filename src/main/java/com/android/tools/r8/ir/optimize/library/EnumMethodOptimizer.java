@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize.library;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -36,9 +36,9 @@ public class EnumMethodOptimizer implements LibraryMethodModelCollection {
       IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
-      DexEncodedMethod singleTarget,
+      DexClassAndMethod singleTarget,
       Set<Value> affectedValues) {
-    if (singleTarget.method == appView.dexItemFactory().enumMembers.valueOf
+    if (singleTarget.getReference() == appView.dexItemFactory().enumMembers.valueOf
         && invoke.inValues().get(0).isConstClass()) {
       insertAssumeDynamicType(code, instructionIterator, invoke);
     }

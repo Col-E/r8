@@ -425,6 +425,15 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return asProgramMethod(definitions);
   }
 
+  public DexClassAndMethod asDexClassAndMethod(DexDefinitionSupplier definitions) {
+    assert method.holder.isClassType();
+    DexClass clazz = definitions.definitionForHolder(method);
+    if (clazz != null) {
+      return DexClassAndMethod.create(clazz, this);
+    }
+    return null;
+  }
+
   public ProgramMethod asProgramMethod(DexDefinitionSupplier definitions) {
     assert method.holder.isClassType();
     DexProgramClass clazz = asProgramClassOrNull(definitions.definitionForHolder(method));
@@ -432,6 +441,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return new ProgramMethod(clazz, this);
     }
     return null;
+  }
+
+  public static DexClassAndMethod asDexClassAndMethodOrNull(
+      DexEncodedMethod method, DexDefinitionSupplier definitions) {
+    return method != null ? method.asDexClassAndMethod(definitions) : null;
   }
 
   public static ProgramMethod asProgramMethodOrNull(

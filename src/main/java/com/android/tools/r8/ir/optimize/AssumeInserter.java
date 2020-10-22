@@ -8,8 +8,8 @@ import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -225,13 +225,13 @@ public class AssumeInserter {
 
   private boolean computeAssumedValuesFromSingleTarget(
       IRCode code, InvokeMethod invoke, AssumedValues.Builder assumedValuesBuilder) {
-    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
+    DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
     if (singleTarget == null) {
       return false;
     }
 
     boolean needsAssumeInstruction = false;
-    MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+    MethodOptimizationInfo optimizationInfo = singleTarget.getDefinition().getOptimizationInfo();
 
     // Case (2), invocations that are guaranteed to return a non-null value.
     Value outValue = invoke.outValue();

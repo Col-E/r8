@@ -3,10 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.graph.DexEncodedMethod.asProgramMethodOrNull;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -73,7 +72,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   @Override
-  public final DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
+  public final DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
     TypeElement receiverUpperBoundType = null;
     ClassTypeElement receiverLowerBoundType = null;
     if (appView.enableWholeProgramOptimizations()) {
@@ -84,7 +83,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     return lookupSingleTarget(appView, context, receiverUpperBoundType, receiverLowerBoundType);
   }
 
-  public abstract DexEncodedMethod lookupSingleTarget(
+  public abstract DexClassAndMethod lookupSingleTarget(
       AppView<?> appView,
       ProgramMethod context,
       TypeElement receiverUpperBoundType,
@@ -95,9 +94,8 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       ProgramMethod context,
       TypeElement receiverUpperBoundType,
       ClassTypeElement receiverLowerBoundType) {
-    return asProgramMethodOrNull(
-        lookupSingleTarget(appView, context, receiverUpperBoundType, receiverLowerBoundType),
-        appView);
+    return DexClassAndMethod.asProgramMethodOrNull(
+        lookupSingleTarget(appView, context, receiverUpperBoundType, receiverLowerBoundType));
   }
 
   @Override
@@ -237,18 +235,19 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     }
 
     // Find the target and check if the invoke may have side effects.
-    DexEncodedMethod target = lookupSingleTarget(appViewWithLiveness, context);
-    if (target == null) {
+    DexClassAndMethod singleTarget = lookupSingleTarget(appViewWithLiveness, context);
+    if (singleTarget == null) {
       return true;
     }
 
     // Verify that the target method does not have side-effects.
-    if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
+    if (appViewWithLiveness.appInfo().noSideEffects.containsKey(singleTarget.getReference())) {
       return false;
     }
 
-    MethodOptimizationInfo optimizationInfo = target.getOptimizationInfo();
-    if (target.isInstanceInitializer()) {
+    DexEncodedMethod singleTargetDefinition = singleTarget.getDefinition();
+    MethodOptimizationInfo optimizationInfo = singleTargetDefinition.getOptimizationInfo();
+    if (singleTargetDefinition.isInstanceInitializer()) {
       InstanceInitializerInfo initializerInfo = optimizationInfo.getInstanceInitializerInfo();
       if (!initializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
         return !isInvokeDirect();

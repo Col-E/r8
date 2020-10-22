@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -75,11 +76,10 @@ public abstract class InvokeMethod extends Invoke {
   // In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
   // receiver type and calling context---the holder of the method where the current invocation is.
   // TODO(b/140204899): Refactor lookup methods to be defined in a single place.
-  public abstract DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context);
+  public abstract DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context);
 
   public final ProgramMethod lookupSingleProgramTarget(AppView<?> appView, ProgramMethod context) {
-    DexEncodedMethod singleTarget = lookupSingleTarget(appView, context);
-    return singleTarget != null ? singleTarget.asProgramMethod(appView) : null;
+    return DexClassAndMethod.asProgramMethodOrNull(lookupSingleTarget(appView, context));
   }
 
   // TODO(b/140204899): Refactor lookup methods to be defined in a single place.
@@ -209,9 +209,9 @@ public abstract class InvokeMethod extends Invoke {
   public AbstractValue getAbstractValue(
       AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     assert hasOutValue();
-    DexEncodedMethod method = lookupSingleTarget(appView, context);
+    DexClassAndMethod method = lookupSingleTarget(appView, context);
     if (method != null) {
-      return method.getOptimizationInfo().getAbstractReturnValue();
+      return method.getDefinition().getOptimizationInfo().getAbstractReturnValue();
     }
     return UnknownValue.getInstance();
   }
@@ -227,9 +227,10 @@ public abstract class InvokeMethod extends Invoke {
 
   @Override
   public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, ProgramMethod context) {
-    DexEncodedMethod singleTarget = lookupSingleTarget(appView, context);
+    DexClassAndMethod singleTarget = lookupSingleTarget(appView, context);
     if (singleTarget != null) {
-      BitSet nonNullParamOrThrow = singleTarget.getOptimizationInfo().getNonNullParamOrThrow();
+      BitSet nonNullParamOrThrow =
+          singleTarget.getDefinition().getOptimizationInfo().getNonNullParamOrThrow();
       if (nonNullParamOrThrow != null) {
         int argumentIndex = inValues.indexOf(value);
         return argumentIndex >= 0 && nonNullParamOrThrow.get(argumentIndex);

@@ -8,8 +8,8 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -43,14 +43,14 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
 
   private final InstanceFieldInitializationInfoFactory factory;
 
-  private final DexEncodedMethod parentConstructor;
+  private final DexClassAndMethod parentConstructor;
   private final InvokeDirect parentConstructorCall;
 
   private InstanceFieldValueAnalysis(
       AppView<AppInfoWithLiveness> appView,
       IRCode code,
       OptimizationFeedback feedback,
-      DexEncodedMethod parentConstructor,
+      DexClassAndMethod parentConstructor,
       InvokeDirect parentConstructorCall) {
     super(appView, code, feedback);
     this.factory = appView.instanceFieldInitializationInfoFactory();
@@ -90,7 +90,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
       return EmptyInstanceFieldInitializationInfoCollection.getInstance();
     }
 
-    DexEncodedMethod parentConstructor =
+    DexClassAndMethod parentConstructor =
         parentConstructorCall.lookupSingleTarget(appView, code.context());
     if (parentConstructor == null) {
       return EmptyInstanceFieldInitializationInfoCollection.getInstance();
@@ -167,6 +167,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     }
     InstanceFieldInitializationInfoCollection infos =
         parentConstructor
+            .getDefinition()
             .getOptimizationInfo()
             .getInstanceInitializerInfo()
             .fieldInitializationInfos();
@@ -271,7 +272,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     if (field.isFinal()) {
       return true;
     }
-    if (appView.appInfo().isFieldOnlyWrittenInMethod(field, parentConstructor)) {
+    if (appView.appInfo().isFieldOnlyWrittenInMethod(field, parentConstructor.getDefinition())) {
       return true;
     }
     // Otherwise, conservatively return false.

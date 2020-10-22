@@ -45,6 +45,7 @@ import static com.android.tools.r8.ir.code.Opcodes.XOR;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -260,11 +261,11 @@ public class MethodOptimizationInfoCollector {
         case INVOKE_STATIC:
           {
             InvokeStatic invoke = insn.asInvokeStatic();
-            DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
+            DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
             if (singleTarget == null) {
               return; // Not allowed.
             }
-            if (singleTarget.method == dexItemFactory.objectsMethods.requireNonNull) {
+            if (singleTarget.getReference() == dexItemFactory.objectsMethods.requireNonNull) {
               if (!invoke.hasOutValue() || !invoke.outValue().hasAnyUsers()) {
                 continue;
               }

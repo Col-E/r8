@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -323,10 +324,11 @@ public class ClassInitializationAnalysis {
         return false;
       }
       if (appView.appInfo().hasLiveness()) {
-        DexEncodedMethod singleTarget =
+        DexClassAndMethod singleTarget =
             instruction.lookupSingleTarget(appView.withLiveness(), context);
         if (singleTarget != null) {
-          return isTypeInitializedBy(instruction, type, singleTarget, appView, mode);
+          return isTypeInitializedBy(
+              instruction, type, singleTarget.getDefinition(), appView, mode);
         }
       }
       DexMethod method = instruction.getInvokedMethod();
@@ -350,8 +352,9 @@ public class ClassInitializationAnalysis {
         // Class initialization may fail with ExceptionInInitializerError.
         return false;
       }
-      DexEncodedMethod method = instruction.lookupSingleTarget(appView, context);
-      return method != null && isTypeInitializedBy(instruction, type, method, appView, mode);
+      DexClassAndMethod method = instruction.lookupSingleTarget(appView, context);
+      return method != null
+          && isTypeInitializedBy(instruction, type, method.getDefinition(), appView, mode);
     }
 
     public static boolean forInvokeSuper(
@@ -374,10 +377,11 @@ public class ClassInitializationAnalysis {
         return false;
       }
       if (appView.appInfo().hasLiveness()) {
-        DexEncodedMethod singleTarget =
+        DexClassAndMethod singleTarget =
             instruction.lookupSingleTarget(appView.withLiveness(), context);
         if (singleTarget != null) {
-          return isTypeInitializedBy(instruction, type, singleTarget, appView, mode);
+          return isTypeInitializedBy(
+              instruction, type, singleTarget.getDefinition(), appView, mode);
         }
       }
       DexMethod method = instruction.getInvokedMethod();
@@ -418,10 +422,11 @@ public class ClassInitializationAnalysis {
         return false;
       }
       if (appView.appInfo().hasLiveness()) {
-        DexEncodedMethod singleTarget =
+        DexClassAndMethod singleTarget =
             instruction.lookupSingleTarget(appView.withLiveness(), context);
         if (singleTarget != null) {
-          return isTypeInitializedBy(instruction, type, singleTarget, appView, mode);
+          return isTypeInitializedBy(
+              instruction, type, singleTarget.getDefinition(), appView, mode);
         }
       }
       DexMethod method = instruction.getInvokedMethod();

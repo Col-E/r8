@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -211,7 +212,7 @@ public class EnumUnboxer {
     DexMethod invokedMethod = invokeStatic.getInvokedMethod();
     DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(invokedMethod.holder);
     if (enumClass != null) {
-      DexEncodedMethod method = invokeStatic.lookupSingleTarget(appView, context);
+      DexClassAndMethod method = invokeStatic.lookupSingleTarget(appView, context);
       if (method != null) {
         eligibleEnums.add(enumClass.type);
       } else {
@@ -726,19 +727,13 @@ public class EnumUnboxer {
         }
         return Reason.INVALID_INVOKE_ON_ARRAY;
       }
-      DexEncodedMethod encodedSingleTarget =
-          invokeMethod.lookupSingleTarget(appView, code.context());
-      if (encodedSingleTarget == null) {
+      DexClassAndMethod singleTarget = invokeMethod.lookupSingleTarget(appView, code.context());
+      if (singleTarget == null) {
         return Reason.INVALID_INVOKE;
       }
-      DexMethod singleTarget = encodedSingleTarget.method;
-      DexClass dexClass = appView.definitionFor(singleTarget.holder, code.context());
-      if (dexClass == null) {
-        assert false;
-        return Reason.INVALID_INVOKE;
-      }
+      DexClass dexClass = singleTarget.getHolder();
       if (dexClass.isProgramClass()) {
-        if (dexClass.isEnum() && encodedSingleTarget.isInstanceInitializer()) {
+        if (dexClass.isEnum() && singleTarget.getDefinition().isInstanceInitializer()) {
           if (code.method().holder() == dexClass.type && code.method().isClassInitializer()) {
             // The enum instance initializer is allowed to be called only from the enum clinit.
             return Reason.ELIGIBLE;
@@ -748,10 +743,10 @@ public class EnumUnboxer {
         }
         // Check that the enum-value only flows into parameters whose type exactly matches the
         // enum's type.
-        int offset = BooleanUtils.intValue(!encodedSingleTarget.isStatic());
-        for (int i = 0; i < singleTarget.proto.parameters.size(); i++) {
+        int offset = BooleanUtils.intValue(!singleTarget.getDefinition().isStatic());
+        for (int i = 0; i < singleTarget.getReference().getParameters().size(); i++) {
           if (invokeMethod.getArgument(offset + i) == enumValue) {
-            if (singleTarget.proto.parameters.values[i].toBaseType(factory) != enumClass.type) {
+            if (singleTarget.getReference().getParameter(i).toBaseType(factory) != enumClass.type) {
               return Reason.GENERIC_INVOKE;
             }
           }
@@ -768,43 +763,44 @@ public class EnumUnboxer {
         return Reason.INVALID_INVOKE;
       }
       assert dexClass.isLibraryClass();
+      DexMethod singleTargetReference = singleTarget.getReference();
       if (dexClass.type != factory.enumType) {
         // System.identityHashCode(Object) is supported for proto enums.
         // Object#getClass without outValue and Objects.requireNonNull are supported since R8
         // rewrites explicit null checks to such instructions.
-        if (singleTarget == factory.javaLangSystemMethods.identityHashCode) {
+        if (singleTargetReference == factory.javaLangSystemMethods.identityHashCode) {
           return Reason.ELIGIBLE;
         }
-        if (singleTarget == factory.stringMembers.valueOf) {
+        if (singleTargetReference == factory.stringMembers.valueOf) {
           addRequiredNameData(enumClass.type);
           return Reason.ELIGIBLE;
         }
-        if (singleTarget == factory.objectMembers.getClass
+        if (singleTargetReference == factory.objectMembers.getClass
             && (!invokeMethod.hasOutValue() || !invokeMethod.outValue().hasAnyUsers())) {
           // This is a hidden null check.
           return Reason.ELIGIBLE;
         }
-        if (singleTarget == factory.objectsMethods.requireNonNull
-            || singleTarget == factory.objectsMethods.requireNonNullWithMessage) {
+        if (singleTargetReference == factory.objectsMethods.requireNonNull
+            || singleTargetReference == factory.objectsMethods.requireNonNullWithMessage) {
           return Reason.ELIGIBLE;
         }
         return Reason.UNSUPPORTED_LIBRARY_CALL;
       }
       // TODO(b/147860220): EnumSet and EnumMap may be interesting to model.
-      if (singleTarget == factory.enumMembers.compareTo) {
+      if (singleTargetReference == factory.enumMembers.compareTo) {
         return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMembers.equals) {
+      } else if (singleTargetReference == factory.enumMembers.equals) {
         return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMembers.nameMethod
-          || singleTarget == factory.enumMembers.toString) {
+      } else if (singleTargetReference == factory.enumMembers.nameMethod
+          || singleTargetReference == factory.enumMembers.toString) {
         assert invokeMethod.asInvokeMethodWithReceiver().getReceiver() == enumValue;
         addRequiredNameData(enumClass.type);
         return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMembers.ordinalMethod) {
+      } else if (singleTargetReference == factory.enumMembers.ordinalMethod) {
         return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMembers.hashCode) {
+      } else if (singleTargetReference == factory.enumMembers.hashCode) {
         return Reason.ELIGIBLE;
-      } else if (singleTarget == factory.enumMembers.constructor) {
+      } else if (singleTargetReference == factory.enumMembers.constructor) {
         // Enum constructor call is allowed only if called from an enum initializer.
         if (code.method().isInstanceInitializer() && code.method().holder() == enumClass.type) {
           return Reason.ELIGIBLE;

@@ -8,8 +8,8 @@ import static com.android.tools.r8.utils.PredicateUtils.not;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -352,14 +352,14 @@ public class RedundantFieldLoadElimination {
       return;
     }
 
-    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method);
-    if (singleTarget == null || !singleTarget.isInstanceInitializer()) {
+    DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, method);
+    if (singleTarget == null || !singleTarget.getDefinition().isInstanceInitializer()) {
       killAllNonFinalActiveFields();
       return;
     }
 
     InstanceInitializerInfo instanceInitializerInfo =
-        singleTarget.getOptimizationInfo().getInstanceInitializerInfo();
+        singleTarget.getDefinition().getOptimizationInfo().getInstanceInitializerInfo();
     if (instanceInitializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
       killAllNonFinalActiveFields();
     }

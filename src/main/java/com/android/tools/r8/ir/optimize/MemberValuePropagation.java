@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -103,12 +104,16 @@ public class MemberValuePropagation {
         || appView.appInfo().noSideEffects.containsKey(field.field);
   }
 
-  private boolean mayPropagateValueFor(DexEncodedMethod method) {
-    if (method.isProgramMethod(appView)) {
-      return appView.appInfo().mayPropagateValueFor(method.method);
+  private boolean mayPropagateValueFor(DexClassAndMethod method) {
+    if (method.isProgramMethod()) {
+      return appView.appInfo().mayPropagateValueFor(method.getReference());
     }
-    return appView.appInfo().assumedValues.containsKey(method.method)
-        || appView.appInfo().noSideEffects.containsKey(method.method);
+    return appView.appInfo().assumedValues.containsKey(method.getReference())
+        || appView.appInfo().noSideEffects.containsKey(method.getReference());
+  }
+
+  private ProguardMemberRuleLookup lookupMemberRule(DexClassAndMethod method) {
+    return method != null ? lookupMemberRule(method.getDefinition()) : null;
   }
 
   private ProguardMemberRuleLookup lookupMemberRule(DexDefinition definition) {
@@ -245,7 +250,7 @@ public class MemberValuePropagation {
       return;
     }
 
-    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
+    DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
     ProguardMemberRuleLookup lookup = lookupMemberRule(singleTarget);
     if (lookup == null) {
       // -assumenosideeffects rules are applied to upward visible and overriding methods, but only
@@ -264,7 +269,7 @@ public class MemberValuePropagation {
       if (singleTarget != null
           && lookup.type == RuleType.ASSUME_NO_SIDE_EFFECTS
           && !lookup.rule.hasReturnValue()) {
-        ProguardMemberRule rule = appView.appInfo().assumedValues.get(singleTarget.toReference());
+        ProguardMemberRule rule = appView.appInfo().assumedValues.get(singleTarget.getReference());
         if (rule != null) {
           lookup = new ProguardMemberRuleLookup(RuleType.ASSUME_VALUES, rule);
         }
@@ -280,7 +285,8 @@ public class MemberValuePropagation {
       return;
     }
 
-    AbstractValue abstractReturnValue = singleTarget.getOptimizationInfo().getAbstractReturnValue();
+    AbstractValue abstractReturnValue =
+        singleTarget.getDefinition().getOptimizationInfo().getAbstractReturnValue();
 
     if (abstractReturnValue.isSingleValue()) {
       SingleValue singleReturnValue = abstractReturnValue.asSingleValue();
@@ -299,7 +305,7 @@ public class MemberValuePropagation {
           replaceInstructionByNullCheckIfPossible(invoke, iterator, context);
         } else if (invoke.isInvokeStatic()) {
           replaceInstructionByInitClassIfPossible(
-              invoke, singleTarget.holder(), code, iterator, context);
+              invoke, singleTarget.getHolderType(), code, iterator, context);
         }
 
         // Insert the definition of the replacement.
@@ -309,7 +315,7 @@ public class MemberValuePropagation {
         } else {
           iterator.add(replacement);
         }
-        singleTarget.getMutableOptimizationInfo().markAsPropagated();
+        singleTarget.getDefinition().getMutableOptimizationInfo().markAsPropagated();
       }
     }
   }

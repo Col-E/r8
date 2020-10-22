@@ -7,7 +7,7 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokePolymorphicRange;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
@@ -125,7 +125,7 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
+  public DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
     // TODO(herhut): Implement lookup target for invokePolymorphic.
     return null;
   }

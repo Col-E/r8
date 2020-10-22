@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.library;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
@@ -32,9 +32,9 @@ public class ObjectsMethodOptimizer implements LibraryMethodModelCollection {
       IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
-      DexEncodedMethod singleTarget,
+      DexClassAndMethod singleTarget,
       Set<Value> affectedValues) {
-    if (dexItemFactory.objectsMethods.isRequireNonNullMethod(singleTarget.method)) {
+    if (dexItemFactory.objectsMethods.isRequireNonNullMethod(singleTarget.getReference())) {
       optimizeRequireNonNull(instructionIterator, invoke, affectedValues);
     }
   }

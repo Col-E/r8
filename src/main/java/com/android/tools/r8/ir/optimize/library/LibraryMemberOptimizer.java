@@ -5,8 +5,8 @@
 package com.android.tools.r8.ir.optimize.library;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory.LibraryMembers;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -118,7 +118,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
       Instruction instruction = instructionIterator.next();
       if (instruction.isInvokeMethod()) {
         InvokeMethod invoke = instruction.asInvokeMethod();
-        DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
+        DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
         if (singleTarget != null) {
           optimizeInvoke(code, instructionIterator, invoke, singleTarget, affectedValues);
         }
@@ -133,11 +133,11 @@ public class LibraryMemberOptimizer implements CodeOptimization {
       IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
-      DexEncodedMethod singleTarget,
+      DexClassAndMethod singleTarget,
       Set<Value> affectedValues) {
     LibraryMethodModelCollection optimizer =
         libraryMethodModelCollections.getOrDefault(
-            singleTarget.holder(), NopLibraryMethodModelCollection.getInstance());
+            singleTarget.getHolderType(), NopLibraryMethodModelCollection.getInstance());
     optimizer.optimize(code, instructionIterator, invoke, singleTarget, affectedValues);
   }
 }

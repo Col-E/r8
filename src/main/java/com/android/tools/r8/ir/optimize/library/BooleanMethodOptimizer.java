@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.library;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -39,13 +39,13 @@ public class BooleanMethodOptimizer implements LibraryMethodModelCollection {
       IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
-      DexEncodedMethod singleTarget,
+      DexClassAndMethod singleTarget,
       Set<Value> affectedValues) {
-    if (singleTarget.method == dexItemFactory.booleanMembers.booleanValue) {
+    if (singleTarget.getReference() == dexItemFactory.booleanMembers.booleanValue) {
       optimizeBooleanValue(code, instructionIterator, invoke);
-    } else if (singleTarget.method == dexItemFactory.booleanMembers.parseBoolean) {
+    } else if (singleTarget.getReference() == dexItemFactory.booleanMembers.parseBoolean) {
       optimizeParseBoolean(code, instructionIterator, invoke);
-    } else if (singleTarget.method == dexItemFactory.booleanMembers.valueOf) {
+    } else if (singleTarget.getReference() == dexItemFactory.booleanMembers.valueOf) {
       optimizeValueOf(code, instructionIterator, invoke, affectedValues);
     }
   }

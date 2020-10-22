@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis.fieldaccess;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -150,7 +151,7 @@ public class FieldAssignmentTracker {
       return;
     }
 
-    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
+    DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
     if (singleTarget == null) {
       // We just lost track.
       abstractInstanceFieldValues.remove(clazz);
@@ -158,7 +159,11 @@ public class FieldAssignmentTracker {
     }
 
     InstanceFieldInitializationInfoCollection initializationInfoCollection =
-        singleTarget.getOptimizationInfo().getInstanceInitializerInfo().fieldInitializationInfos();
+        singleTarget
+            .getDefinition()
+            .getOptimizationInfo()
+            .getInstanceInitializerInfo()
+            .fieldInitializationInfos();
 
     // Synchronize on the lattice element (abstractInstanceFieldValuesForClass) in case we process
     // another allocation site of `clazz` concurrently.

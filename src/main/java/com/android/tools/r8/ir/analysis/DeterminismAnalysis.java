@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.analysis;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -36,9 +36,10 @@ public class DeterminismAnalysis {
         return false;
       }
       if (instr.isInvokeMethod()) {
-        DexEncodedMethod target =
+        DexClassAndMethod target =
             instr.asInvokeMethod().lookupSingleTarget(appView, code.context());
-        if (target != null && target.getOptimizationInfo().returnValueOnlyDependsOnArguments()) {
+        if (target != null
+            && target.getDefinition().getOptimizationInfo().returnValueOnlyDependsOnArguments()) {
           continue;
         }
         return false;

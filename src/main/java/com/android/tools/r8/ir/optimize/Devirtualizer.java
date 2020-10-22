@@ -123,19 +123,18 @@ public class Devirtualizer {
           // Check if the instruction can be rewritten to invoke-super. This allows inlining of the
           // enclosing method into contexts outside the current class.
           if (appView.options().testing.enableInvokeSuperToInvokeVirtualRewriting) {
-            DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
+            DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
             if (singleTarget != null) {
-              DexClass holder = appView.definitionForHolder(singleTarget, context);
-              assert holder != null;
               DexMethod invokedMethod = invoke.getInvokedMethod();
-              DexEncodedMethod newSingleTarget =
+              DexClassAndMethod newSingleTarget =
                   InvokeVirtual.lookupSingleTarget(
                       appView,
                       context,
                       invoke.getReceiver().getDynamicUpperBoundType(appView),
                       invoke.getReceiver().getDynamicLowerBoundType(appView),
                       invokedMethod);
-              if (newSingleTarget == singleTarget) {
+              if (newSingleTarget != null
+                  && newSingleTarget.getReference() == singleTarget.getReference()) {
                 it.replaceCurrentInstruction(
                     new InvokeVirtual(invokedMethod, invoke.outValue(), invoke.arguments()));
                 continue;
@@ -173,12 +172,11 @@ public class Devirtualizer {
           continue;
         }
         InvokeInterface invoke = current.asInvokeInterface();
-        DexEncodedMethod target = invoke.lookupSingleTarget(appView, context);
+        DexClassAndMethod target = invoke.lookupSingleTarget(appView, context);
         if (target == null) {
           continue;
         }
-        DexType holderType = target.holder();
-        DexClass holderClass = appView.definitionFor(holderType);
+        DexClass holderClass = target.getHolder();
         // Make sure we are not landing on another interface, e.g., interface's default method.
         if (holderClass == null || holderClass.isInterface()) {
           continue;
@@ -190,7 +188,7 @@ public class Devirtualizer {
         }
 
         InvokeVirtual devirtualizedInvoke =
-            new InvokeVirtual(target.method, invoke.outValue(), invoke.inValues());
+            new InvokeVirtual(target.getReference(), invoke.outValue(), invoke.inValues());
         it.replaceCurrentInstruction(devirtualizedInvoke);
         devirtualizedCall.put(invoke, devirtualizedInvoke);
 
@@ -204,11 +202,12 @@ public class Devirtualizer {
         // CodeRewriter#removeTrivialCheckCastAndInstanceOfInstructions}.
         // a <- check-cast A i  // Otherwise ART verification error.
         // (out <-) invoke-virtual a, ... A#foo
-        if (holderType != invoke.getInvokedMethod().holder) {
+        if (holderClass.getType() != invoke.getInvokedMethod().holder) {
           Value receiver = invoke.getReceiver();
           TypeElement receiverTypeLattice = receiver.getType();
           TypeElement castTypeLattice =
-              TypeElement.fromDexType(holderType, receiverTypeLattice.nullability(), appView);
+              TypeElement.fromDexType(
+                  holderClass.getType(), receiverTypeLattice.nullability(), appView);
           // Avoid adding trivial cast and up-cast.
           // We should not use strictlyLessThan(castType, receiverType), which detects downcast,
           // due to side-casts, e.g., A (unused) < I, B < I, and cast from A to B.
@@ -224,8 +223,8 @@ public class Devirtualizer {
             // a2 <- check-cast A i  // We should be able to reuse a1 here!
             // invoke-virtual a2, ... A#m2 (from I#m2)
             if (castedReceiverCache.containsKey(receiver)
-                && castedReceiverCache.get(receiver).containsKey(holderType)) {
-              Value cachedReceiver = castedReceiverCache.get(receiver).get(holderType);
+                && castedReceiverCache.get(receiver).containsKey(holderClass.getType())) {
+              Value cachedReceiver = castedReceiverCache.get(receiver).get(holderClass.getType());
               if (dominatorTree.dominatedBy(block, cachedReceiver.definition.getBlock())) {
                 newReceiver = cachedReceiver;
               }
@@ -237,9 +236,9 @@ public class Devirtualizer {
               // Cache the new receiver with a narrower type to avoid redundant checkcast.
               if (!receiver.hasLocalInfo()) {
                 castedReceiverCache.putIfAbsent(receiver, new IdentityHashMap<>());
-                castedReceiverCache.get(receiver).put(holderType, newReceiver);
+                castedReceiverCache.get(receiver).put(holderClass.getType(), newReceiver);
               }
-              CheckCast checkCast = new CheckCast(newReceiver, receiver, holderType);
+              CheckCast checkCast = new CheckCast(newReceiver, receiver, holderClass.getType());
               checkCast.setPosition(invoke.getPosition());
               newCheckCastInstructions.add(checkCast);
 
