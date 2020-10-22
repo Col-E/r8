@@ -166,16 +166,28 @@ public abstract class ExceptionUtils {
   public static void withMainProgramHandler(MainAction action) {
     try {
       action.run();
-    } catch (CompilationFailedException | AbortException e) {
+    } catch (CompilationFailedException e) {
+      throw exitWithError(e, e.getCause());
+    } catch (RuntimeException e) {
+      throw exitWithError(e, e);
+    }
+  }
+
+  private static RuntimeException exitWithError(Throwable e, Throwable cause) {
+    if (isExpectedException(cause)) {
       // Detail of the errors were already reported
       System.err.println("Compilation failed");
       System.exit(STATUS_ERROR);
-    } catch (RuntimeException e) {
-      System.err.println("Compilation failed with an internal error.");
-      Throwable cause = e.getCause() == null ? e : e.getCause();
-      cause.printStackTrace();
-      System.exit(STATUS_ERROR);
+      throw null;
     }
+    System.err.println("Compilation failed with an internal error.");
+    e.printStackTrace();
+    System.exit(STATUS_ERROR);
+    throw null;
+  }
+
+  private static boolean isExpectedException(Throwable e) {
+    return e instanceof CompilationError || e instanceof AbortException;
   }
 
   // We should try to avoid the use of this extraction as it signifies a point where we don't have
