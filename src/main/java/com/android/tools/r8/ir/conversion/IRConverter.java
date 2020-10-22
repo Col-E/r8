@@ -48,7 +48,6 @@ import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.Mode;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor;
@@ -556,13 +555,6 @@ public class IRConverter {
       return true;
     }
     if (options.isDesugaredLibraryCompilation()) {
-      // TODO(b/169035524): Create method for evaluating if a code object needs rewriting for
-      // library desugaring.
-      return true;
-    }
-    if (options.desugaredLibraryConfiguration != DesugaredLibraryConfiguration.empty()) {
-      // TODO(b/169035524): Create method for evaluating if a code object needs rewriting for
-      // library desugaring.
       return true;
     }
 
@@ -573,14 +565,21 @@ public class IRConverter {
       return true;
     }
 
-    NeedsIRDesugarUseRegistry useRegistry =
-        new NeedsIRDesugarUseRegistry(appView, backportedMethodRewriter);
-    method.registerCodeReferences(useRegistry);
-
-    if (useRegistry.needsDesugaring()) {
+    if (desugaredLibraryAPIConverter != null
+        && desugaredLibraryAPIConverter.shouldRegisterCallback(method)) {
       return true;
     }
-    return false;
+
+    NeedsIRDesugarUseRegistry useRegistry =
+        new NeedsIRDesugarUseRegistry(
+            appView,
+            backportedMethodRewriter,
+            desugaredLibraryRetargeter,
+            interfaceMethodRewriter,
+            desugaredLibraryAPIConverter);
+    method.registerCodeReferences(useRegistry);
+
+    return useRegistry.needsDesugaring();
   }
 
   private void checkPrefixMerging(ProgramMethod method) {

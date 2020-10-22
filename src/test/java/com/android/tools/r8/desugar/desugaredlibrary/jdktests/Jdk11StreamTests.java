@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -37,14 +38,16 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
 
+  private final boolean useCf2Cf;
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{2}, shrinkDesugaredLibrary: {0}, useCf2Cf: {1}")
   public static List<Object[]> data() {
     // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required and
     // present only in ART runtimes.
     return buildParameters(
+        BooleanUtils.values(),
         BooleanUtils.values(),
         getTestParameters()
             .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
@@ -52,8 +55,10 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
             .build());
   }
 
-  public Jdk11StreamTests(boolean shrinkDesugaredLibrary, TestParameters parameters) {
+  public Jdk11StreamTests(
+      boolean shrinkDesugaredLibrary, boolean useCf2Cf, TestParameters parameters) {
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+    this.useCf2Cf = useCf2Cf;
     this.parameters = parameters;
   }
 
@@ -188,34 +193,71 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
         "Requires Java base extensions, should add it when not desugaring",
         parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel());
 
-    D8TestCompileResult compileResult = compileStreamTestsToDex();
+    D8TestCompileResult compileResult = compileStreamTestsToDex(useCf2Cf);
     runSuccessfulTests(compileResult);
     runFailingTests(compileResult);
   }
 
-  private D8TestCompileResult compileStreamTestsToDex() throws Exception {
+  private D8TestCompileResult compileStreamTestsToDex(boolean cf2cf) throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     List<Path> filesToCompile =
         Arrays.stream(JDK_11_STREAM_TEST_COMPILED_FILES)
             .filter(file -> !file.toString().contains("lang/invoke"))
             .collect(Collectors.toList());
-    return testForD8()
-        .addProgramFiles(filesToCompile)
-        .addProgramFiles(getPathsFiles())
-        .addProgramFiles(getSafeVarArgsFile())
-        .addProgramFiles(testNGSupportProgramFiles())
-        .addOptionsModification(opt -> opt.testing.trackDesugaredAPIConversions = true)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithJavaBaseExtension,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
-        .withArtFrameworks()
-        .withArt6Plus64BitsLib();
+
+    if (cf2cf) {
+      Path jar =
+          testForD8(Backend.CF)
+              .addProgramFiles(filesToCompile)
+              .addProgramFiles(getPathsFiles())
+              .addProgramFiles(getSafeVarArgsFile())
+              .addProgramFiles(testNGSupportProgramFiles())
+              .addOptionsModification(opt -> opt.testing.trackDesugaredAPIConversions = true)
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .setMinApi(parameters.getApiLevel())
+              .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+              .allowStdoutMessages()
+              .compile()
+              .writeToZip();
+      // Collection keep rules is only implemented in the DEX writer.
+      String desugaredLibraryKeepRules = keepRuleConsumer.get();
+      if (desugaredLibraryKeepRules != null) {
+        assertEquals(0, desugaredLibraryKeepRules.length());
+        desugaredLibraryKeepRules = "-keep class * { *; }";
+      }
+      return testForD8()
+          .addProgramFiles(jar)
+          .setMinApi(parameters.getApiLevel())
+          .disableDesugaring()
+          .compile()
+          .addDesugaredCoreLibraryRunClassPath(
+              this::buildDesugaredLibraryWithJavaBaseExtension,
+              parameters.getApiLevel(),
+              desugaredLibraryKeepRules,
+              shrinkDesugaredLibrary)
+          .withArtFrameworks()
+          .withArt6Plus64BitsLib();
+
+    } else {
+
+      return testForD8()
+          .addProgramFiles(filesToCompile)
+          .addProgramFiles(getPathsFiles())
+          .addProgramFiles(getSafeVarArgsFile())
+          .addProgramFiles(testNGSupportProgramFiles())
+          .addOptionsModification(opt -> opt.testing.trackDesugaredAPIConversions = true)
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+          .setMinApi(parameters.getApiLevel())
+          .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+          .compile()
+          .addDesugaredCoreLibraryRunClassPath(
+              this::buildDesugaredLibraryWithJavaBaseExtension,
+              parameters.getApiLevel(),
+              keepRuleConsumer.get(),
+              shrinkDesugaredLibrary)
+          .withArtFrameworks()
+          .withArt6Plus64BitsLib();
+    }
   }
 
   private void runSuccessfulTests(D8TestCompileResult compileResult) throws Exception {

@@ -4,11 +4,14 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Spliterator;
@@ -52,6 +55,51 @@ public class CustomCollectionSuperCallsTest extends DesugaredLibraryTestBase {
             .run(parameters.getRuntime(), Executor.class)
             .assertSuccess();
     assertLines2By2Correct(d8TestRunResult.getStdOut());
+  }
+
+  @Test
+  public void testCustomCollectionSuperCallsD8Cf2Cf() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    Path jar =
+        testForD8(Backend.CF)
+            .addInnerClasses(CustomCollectionSuperCallsTest.class)
+            .setMinApi(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .allowStdoutMessages()
+            .compile()
+            .writeToZip();
+    String desugaredLibraryKeepRules = "";
+    if (shrinkDesugaredLibrary && keepRuleConsumer.get() != null) {
+      // Collection keep rules is only implemented in the DEX writer.
+      assertEquals(0, keepRuleConsumer.get().length());
+      desugaredLibraryKeepRules = "-keep class * { *; }";
+    }
+    D8TestRunResult d8TestRunResult;
+    if (parameters.getRuntime().isDex()) {
+      d8TestRunResult =
+          testForD8()
+              .addProgramFiles(jar)
+              .setMinApi(parameters.getApiLevel())
+              .disableDesugaring()
+              .allowStdoutMessages()
+              .compile()
+              .addDesugaredCoreLibraryRunClassPath(
+                  this::buildDesugaredLibrary,
+                  parameters.getApiLevel(),
+                  desugaredLibraryKeepRules,
+                  shrinkDesugaredLibrary)
+              .run(parameters.getRuntime(), Executor.class)
+              .assertSuccess();
+      assertLines2By2Correct(d8TestRunResult.getStdOut());
+    } else {
+      testForJvm()
+          .addProgramFiles(jar)
+          .addRunClasspathFiles(getDesugaredLibraryInCF(parameters, options -> {}))
+          .run(parameters.getRuntime(), Executor.class)
+          .assertSuccess();
+    }
   }
 
   @Test

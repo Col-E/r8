@@ -268,25 +268,12 @@ public class DesugaredLibraryRetargeter {
       }
 
       InvokeMethod invoke = instruction.asInvokeMethod();
-      DexMethod retarget = getRetargetLibraryMember(invoke.getInvokedMethod());
+      DexMethod invokedMethod = invoke.getInvokedMethod();
+      boolean isInterface = invoke.getInterfaceBit();
+
+      DexMethod retarget = getRetargetedMethod(invokedMethod, isInterface);
       if (retarget == null) {
-        if (!matchesNonFinalHolderRewrite(invoke.getInvokedMethod())) {
-          continue;
-        }
-        // We need to force resolution, even on d8, to know if the invoke has to be rewritten.
-        ResolutionResult resolutionResult =
-            appView
-                .appInfoForDesugaring()
-                .resolveMethod(invoke.getInvokedMethod(), invoke.getInterfaceBit());
-        if (resolutionResult.isFailedResolution()) {
-          continue;
-        }
-        DexEncodedMethod singleTarget = resolutionResult.getSingleTarget();
-        assert singleTarget != null;
-        retarget = getRetargetLibraryMember(singleTarget.method);
-        if (retarget == null) {
-          continue;
-        }
+        continue;
       }
 
       // Due to emulated dispatch, we have to rewrite invoke-super differently or we end up in
@@ -314,6 +301,28 @@ public class DesugaredLibraryRetargeter {
       iterator.replaceCurrentInstruction(
           new InvokeStatic(retarget, invoke.outValue(), invoke.inValues()));
     }
+  }
+
+  public DexMethod getRetargetedMethod(DexMethod invokedMethod, boolean isInterface) {
+    DexMethod retarget = getRetargetLibraryMember(invokedMethod);
+    if (retarget == null) {
+      if (!matchesNonFinalHolderRewrite(invokedMethod)) {
+        return null;
+      }
+      // We need to force resolution, even on d8, to know if the invoke has to be rewritten.
+      ResolutionResult resolutionResult =
+          appView.appInfoForDesugaring().resolveMethod(invokedMethod, isInterface);
+      if (resolutionResult.isFailedResolution()) {
+        return null;
+      }
+      DexEncodedMethod singleTarget = resolutionResult.getSingleTarget();
+      assert singleTarget != null;
+      retarget = getRetargetLibraryMember(singleTarget.method);
+      if (retarget == null) {
+        return null;
+      }
+    }
+    return retarget;
   }
 
   private DexMethod getRetargetLibraryMember(DexMethod method) {

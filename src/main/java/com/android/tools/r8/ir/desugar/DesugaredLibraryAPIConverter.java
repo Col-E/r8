@@ -146,7 +146,7 @@ public class DesugaredLibraryAPIConverter {
     return true;
   }
 
-  private boolean shouldRewriteInvoke(DexMethod invokedMethod) {
+  public boolean shouldRewriteInvoke(DexMethod invokedMethod) {
     if (appView.rewritePrefix.hasRewrittenType(invokedMethod.holder, appView)
         || invokedMethod.holder.isArrayType()) {
       return false;
@@ -164,7 +164,7 @@ public class DesugaredLibraryAPIConverter {
     }
   }
 
-  private boolean shouldRegisterCallback(ProgramMethod method) {
+  public boolean shouldRegisterCallback(ProgramMethod method) {
     // Any override of a library method can be called by the library.
     // We duplicate the method to have a vivified type version callable by the library and
     // a type version callable by the program. We need to add the vivified version to the rootset

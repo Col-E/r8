@@ -16,8 +16,10 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -33,7 +35,8 @@ public class DesugaredGenericSignatureTest extends DesugaredLibraryTestBase {
   @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevels().build(), BooleanUtils.values());
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        BooleanUtils.values());
   }
 
   public DesugaredGenericSignatureTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
@@ -43,6 +46,7 @@ public class DesugaredGenericSignatureTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testD8() throws Exception {
+    Assume.assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(DesugaredGenericSignatureTest.class)
@@ -61,7 +65,53 @@ public class DesugaredGenericSignatureTest extends DesugaredLibraryTestBase {
   }
 
   @Test
+  public void testD8Cf2Cf() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+
+    Path jar =
+        testForD8(Backend.CF)
+            .addInnerClasses(DesugaredGenericSignatureTest.class)
+            .setMinApi(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .setIncludeClassesChecksum(true)
+            .setMinApi(parameters.getApiLevel())
+            .allowStdoutMessages()
+            .compile()
+            .writeToZip();
+    String desugaredLibraryKeepRules = "";
+    if (shrinkDesugaredLibrary && keepRuleConsumer.get() != null) {
+      // Collection keep rules is only implemented in the DEX writer.
+      assertEquals(0, keepRuleConsumer.get().length());
+      desugaredLibraryKeepRules = "-keep class * { *; }";
+    }
+    if (parameters.getRuntime().isDex()) {
+      testForD8()
+          .addProgramFiles(jar)
+          .setMinApi(parameters.getApiLevel())
+          .disableDesugaring()
+          .allowStdoutMessages()
+          .compile()
+          .addDesugaredCoreLibraryRunClassPath(
+              this::buildDesugaredLibrary,
+              parameters.getApiLevel(),
+              desugaredLibraryKeepRules,
+              shrinkDesugaredLibrary)
+          .run(parameters.getRuntime(), Main.class)
+          .assertSuccessWithOutput(EXPECTED);
+    } else {
+      testForJvm()
+          .addProgramFiles(jar)
+          .addRunClasspathFiles(getDesugaredLibraryInCF(parameters, options -> {}))
+          .run(parameters.getRuntime(), Main.class)
+          .assertSuccessWithOutput(EXPECTED);
+    }
+  }
+
+  @Test
   public void testR8() throws Exception {
+    Assume.assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addInnerClasses(DesugaredGenericSignatureTest.class)

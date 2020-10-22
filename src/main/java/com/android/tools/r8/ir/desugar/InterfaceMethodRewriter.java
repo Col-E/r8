@@ -209,6 +209,10 @@ public final class InterfaceMethodRewriter {
     return emulatedInterfaces.containsKey(itf);
   }
 
+  public boolean needsRewriting(DexMethod method) {
+    return emulatedMethods.contains(method.getName());
+  }
+
   DexType getEmulatedInterface(DexType itf) {
     return emulatedInterfaces.get(itf);
   }

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -77,6 +79,52 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
         .addRunClasspathFiles(CUSTOM_LIB)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
+  public void testFunctionCompositionD8Cf2Cf() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    Path jar =
+        testForD8(Backend.CF)
+            .setMinApi(parameters.getApiLevel())
+            .addProgramClasses(
+                Executor.class,
+                Executor.Object1.class,
+                Executor.Object2.class,
+                Executor.Object3.class)
+            .addLibraryClasses(CustomLibClass.class)
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .compile()
+            .writeToZip();
+    String desugaredLibraryKeepRules = "";
+    if (shrinkDesugaredLibrary && keepRuleConsumer.get() != null) {
+      // Collection keep rules is only implemented in the DEX writer.
+      assertEquals(0, keepRuleConsumer.get().length());
+      desugaredLibraryKeepRules = "-keep class * { *; }";
+    }
+    if (parameters.getRuntime().isDex()) {
+      testForD8()
+          .addProgramFiles(jar)
+          .setMinApi(parameters.getApiLevel())
+          .disableDesugaring()
+          .compile()
+          .addDesugaredCoreLibraryRunClassPath(
+              this::buildDesugaredLibrary,
+              parameters.getApiLevel(),
+              desugaredLibraryKeepRules,
+              shrinkDesugaredLibrary)
+          .addRunClasspathFiles(CUSTOM_LIB)
+          .run(parameters.getRuntime(), Executor.class)
+          .assertSuccessWithOutput(EXPECTED_RESULT);
+
+    } else {
+      testForJvm()
+          .addProgramFiles(jar)
+          .addRunClasspathFiles(getDesugaredLibraryInCF(parameters, options -> {}))
+          .addRunClasspathFiles(CUSTOM_LIB)
+          .run(parameters.getRuntime(), Executor.class)
+          .assertSuccessWithOutput(EXPECTED_RESULT);
+    }
   }
 
   @Test

@@ -4,16 +4,19 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -68,6 +71,58 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
             .run(parameters.getRuntime(), Executor.class)
             .assertSuccess();
     assertResultCorrect(d8TestRunResult.getStdOut());
+  }
+
+  @Test
+  public void testCustomCollectionD8Cf2Cf() throws Exception {
+    expectThrowsWithHorizontalClassMergingIf(
+        shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    // Use D8 to desugar with Java classfile output.
+    Path jar =
+        testForD8(Backend.CF)
+            .addInnerClasses(CustomCollectionTest.class)
+            .setMinApi(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .compile()
+            .writeToZip();
+    if (parameters.getRuntime().isDex()) {
+      // Collection keep rules is only implemented in the DEX writer.
+      String desugaredLibraryKeepRules = keepRuleConsumer.get();
+      if (desugaredLibraryKeepRules != null) {
+        assertEquals(0, desugaredLibraryKeepRules.length());
+        desugaredLibraryKeepRules = "-keep class * { *; }";
+      }
+      D8TestRunResult d8TestRunResult =
+          testForD8()
+              .addProgramFiles(jar)
+              .setMinApi(parameters.getApiLevel())
+              .disableDesugaring()
+              .compile()
+              .assertNoMessages()
+              .inspect(
+                  inspector -> {
+                    this.assertCustomCollectionCallsCorrect(inspector);
+                  })
+              .addDesugaredCoreLibraryRunClassPath(
+                  this::buildDesugaredLibrary,
+                  parameters.getApiLevel(),
+                  desugaredLibraryKeepRules,
+                  shrinkDesugaredLibrary)
+              .run(parameters.getRuntime(), EXECUTOR)
+              .assertSuccess();
+      assertResultCorrect(d8TestRunResult.getStdOut());
+    } else {
+      // Build the desugared library in class file format.
+      Path desugaredLib = getDesugaredLibraryInCF(parameters, o -> {});
+
+      // Run on the JVM with desuagred library on classpath.
+      testForJvm()
+          .addProgramFiles(jar)
+          .addRunClasspathFiles(desugaredLib)
+          .run(parameters.getRuntime(), EXECUTOR)
+          .assertSuccess();
+    }
   }
 
   private void assertResultCorrect(String stdOut) {

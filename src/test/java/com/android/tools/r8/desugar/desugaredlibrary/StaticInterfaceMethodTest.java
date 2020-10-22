@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import java.nio.file.Path;
 import java.time.chrono.Chronology;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +30,8 @@ public class StaticInterfaceMethodTest extends DesugaredLibraryTestBase {
   @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        BooleanUtils.values());
   }
 
   public StaticInterfaceMethodTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
@@ -58,6 +61,45 @@ public class StaticInterfaceMethodTest extends DesugaredLibraryTestBase {
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
+
+  @Test
+  public void testStaticInterfaceMethodsD8CfToCf() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    Path jar =
+        testForD8(Backend.CF)
+            .addInnerClasses(StaticInterfaceMethodTest.class)
+            .setMinApi(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .compile()
+            .writeToZip();
+
+    String desugaredLibraryKeepRules = "";
+    if (shrinkDesugaredLibrary && keepRuleConsumer.get() != null) {
+      // Collection keep rules is only implemented in the DEX writer.
+      assertEquals(0, keepRuleConsumer.get().length());
+      desugaredLibraryKeepRules = "-keep class * { *; }";
+    }
+    if (parameters.getRuntime().isDex()) {
+      testForD8()
+          .addProgramFiles(jar)
+          .setMinApi(parameters.getApiLevel())
+          .disableDesugaring()
+          .compile()
+          .addDesugaredCoreLibraryRunClassPath(
+              this::buildDesugaredLibrary,
+              parameters.getApiLevel(),
+              desugaredLibraryKeepRules,
+              shrinkDesugaredLibrary)
+          .run(parameters.getRuntime(), Executor.class)
+          .assertSuccessWithOutput(EXPECTED_OUTPUT);
+    } else {
+      testForJvm()
+          .addProgramFiles(jar)
+          .addRunClasspathFiles(getDesugaredLibraryInCF(parameters, options -> {}))
+          .run(parameters.getRuntime(), Executor.class)
+          .assertSuccessWithOutput(EXPECTED_OUTPUT);
+    }
   }
 
   @Test
