@@ -57,14 +57,14 @@ public class RetraceUtils {
   }
 
   public static boolean hasPredictableSourceFileName(String originalClassName, String sourceFile) {
-    String synthesizedSourceFileName = getClassSimpleName(originalClassName) + ".java";
+    String synthesizedSourceFileName = getOuterClassSimpleName(originalClassName) + ".java";
     return synthesizedSourceFileName.equals(sourceFile);
   }
 
-  private static String getClassSimpleName(String clazz) {
-    int lastIndexOfPeriod = clazz.lastIndexOf('.');
+  private static String getOuterClassSimpleName(String clazz) {
+    int lastIndexOfPeriod = clazz.lastIndexOf(DescriptorUtils.JAVA_PACKAGE_SEPARATOR);
     // Check if we can find a subclass separator.
-    int endIndex = clazz.lastIndexOf('$');
+    int endIndex = clazz.indexOf(DescriptorUtils.INNER_CLASS_SEPARATOR, lastIndexOfPeriod);
     if (lastIndexOfPeriod > endIndex || endIndex < 0) {
       endIndex = clazz.length();
     }
@@ -120,9 +120,9 @@ public class RetraceUtils {
       // We have no mapping but but file name is unknown, so the best we can do is take the
       // name of the obfuscated clazz.
       assert minifiedClassName.equals(retracedClassName);
-      return getClassSimpleName(minifiedClassName) + "." + extension;
+      return getOuterClassSimpleName(minifiedClassName) + "." + extension;
     }
-    String newFileName = getClassSimpleName(retracedClassName);
+    String newFileName = getOuterClassSimpleName(retracedClassName);
     return newFileName + "." + extension;
   }
 

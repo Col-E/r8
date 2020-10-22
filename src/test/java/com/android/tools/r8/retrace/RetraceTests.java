@@ -27,6 +27,7 @@ import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureNonVerbose
 import com.android.tools.r8.retrace.stacktraces.CircularReferenceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlineFileNameWithInnerClassesStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileContextStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
@@ -83,6 +84,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInlineFileNameStackTrace() {
     runRetraceTest(new InlineFileNameStackTrace());
+  }
+
+  @Test
+  public void testInlineFileNameWithInnerClassesStackTrace() {
+    runRetraceTest(new InlineFileNameWithInnerClassesStackTrace());
   }
 
   @Test
