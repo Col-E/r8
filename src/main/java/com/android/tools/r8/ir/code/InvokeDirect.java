@@ -207,6 +207,6 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
       }
     }
 
-    return LibraryMethodReadSetModeling.getModeledReadSetOrUnknown(this, appView.dexItemFactory());
+    return LibraryMethodReadSetModeling.getModeledReadSetOrUnknown(appView, this);
   }
 }

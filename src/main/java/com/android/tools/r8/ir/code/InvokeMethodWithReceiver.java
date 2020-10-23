@@ -25,7 +25,6 @@ import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
-import java.util.function.Predicate;
 
 public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
@@ -195,9 +194,9 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     }
 
     // Check if it is a call to one of library methods that are known to be side-effect free.
-    Predicate<InvokeMethod> noSideEffectsPredicate =
-        appView.dexItemFactory().libraryMethodsWithoutSideEffects.get(getInvokedMethod());
-    if (noSideEffectsPredicate != null && noSideEffectsPredicate.test(this)) {
+    if (appView
+        .getLibraryMethodSideEffectModelCollection()
+        .isCallToSideEffectFreeFinalMethod(this)) {
       return false;
     }
 
@@ -238,6 +237,13 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     DexClassAndMethod singleTarget = lookupSingleTarget(appViewWithLiveness, context);
     if (singleTarget == null) {
       return true;
+    }
+
+    if (singleTarget.isLibraryMethod()
+        && appView
+            .getLibraryMethodSideEffectModelCollection()
+            .isSideEffectFree(this, singleTarget.asLibraryMethod())) {
+      return false;
     }
 
     // Verify that the target method does not have side-effects.

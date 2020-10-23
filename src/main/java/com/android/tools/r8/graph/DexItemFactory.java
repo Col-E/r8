@@ -5,7 +5,6 @@ package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.ir.analysis.type.ClassTypeElement.computeLeastUpperBoundOfInterfaces;
 import static com.android.tools.r8.ir.optimize.ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME;
-import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
@@ -31,7 +30,6 @@ import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
-import com.android.tools.r8.utils.Pair;
 import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -39,7 +37,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -57,7 +54,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class DexItemFactory {
 
@@ -109,8 +105,6 @@ public class DexItemFactory {
 
   public DexItemFactory() {
     this.kotlin = new Kotlin(this);
-    assert libraryMethodsWithReturnValueDependingOnlyOnArguments.stream()
-        .allMatch(libraryMethodsWithoutSideEffects::containsKey);
   }
 
   public static boolean isInternalSentinel(DexItem item) {
@@ -604,7 +598,7 @@ public class DexItemFactory {
   }
 
   // Boxed Boxed#valueOf(Primitive), e.g., Boolean Boolean#valueOf(B)
-  private Set<DexMethod> boxedValueOfMethods() {
+  public Set<DexMethod> boxedValueOfMethods() {
     return primitiveToBoxed.entrySet().stream()
         .map(
             entry -> {
@@ -685,31 +679,6 @@ public class DexItemFactory {
           objectsMethods.requireNonNullWithMessage,
           objectsMethods.requireNonNullWithMessageSupplier,
           stringMembers.valueOf);
-
-  // We assume library methods listed here are `public`, i.e., free from visibility side effects.
-  // If not, that library method should not be added here because it literally has side effects.
-  public Map<DexMethod, Predicate<InvokeMethod>> libraryMethodsWithoutSideEffects =
-      Streams.<Pair<DexMethod, Predicate<InvokeMethod>>>concat(
-              Stream.of(new Pair<>(enumMembers.constructor, alwaysTrue())),
-              Stream.of(new Pair<>(npeMethods.init, alwaysTrue())),
-              Stream.of(new Pair<>(npeMethods.initWithMessage, alwaysTrue())),
-              Stream.of(new Pair<>(objectMembers.constructor, alwaysTrue())),
-              Stream.of(new Pair<>(objectMembers.getClass, alwaysTrue())),
-              Stream.of(new Pair<>(stringMembers.hashCode, alwaysTrue())),
-              mapToPredicate(classMethods.getNames, alwaysTrue()),
-              mapToPredicate(
-                  stringBufferMethods.constructorMethods,
-                  stringBufferMethods::constructorInvokeIsSideEffectFree),
-              mapToPredicate(
-                  stringBuilderMethods.constructorMethods,
-                  stringBuilderMethods::constructorInvokeIsSideEffectFree),
-              mapToPredicate(boxedValueOfMethods(), alwaysTrue()))
-          .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
-
-  private static Stream<Pair<DexMethod, Predicate<InvokeMethod>>> mapToPredicate(
-      Set<DexMethod> methods, Predicate<InvokeMethod> predicate) {
-    return methods.stream().map(method -> new Pair<>(method, predicate));
-  }
 
   // TODO(b/119596718): More idempotent methods? Any singleton accessors? E.g.,
   // java.util.Calendar#getInstance(...) // 4 variants
@@ -1130,7 +1099,10 @@ public class DexItemFactory {
     public final DexField clinitField = createField(objectType, intType, "$r8$clinit");
 
     public final DexMethod clone;
+    public final DexMethod equals =
+        createMethod(objectType, createProto(booleanType, objectType), "equals");
     public final DexMethod getClass;
+    public final DexMethod hashCode = createMethod(objectType, createProto(intType), "hashCode");
     public final DexMethod constructor;
     public final DexMethod finalize;
     public final DexMethod toString;
@@ -1199,7 +1171,7 @@ public class DexItemFactory {
     public final DexMethod getDeclaredMethod;
     public final DexMethod newInstance;
     private final Set<DexMethod> getMembers;
-    private final Set<DexMethod> getNames;
+    public final Set<DexMethod> getNames;
 
     private ClassMethods() {
       desiredAssertionStatus = createMethod(classDescriptor,
@@ -1561,8 +1533,6 @@ public class DexItemFactory {
     public final DexMethod toString;
 
     private final Set<DexMethod> appendMethods;
-    private final Set<DexMethod> constructorMethods;
-
     private StringBuildingMethods(DexType receiver) {
       DexString append = createString("append");
 
@@ -1610,6 +1580,8 @@ public class DexItemFactory {
           ImmutableSet.of(
               charSequenceConstructor, defaultConstructor, intConstructor, stringConstructor);
     }
+
+    public final Set<DexMethod> constructorMethods;
 
     public boolean isAppendMethod(DexMethod method) {
       return appendMethods.contains(method);

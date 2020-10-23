@@ -21,6 +21,7 @@ import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.InvokeStaticRange;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.code.MoveResult;
+import com.android.tools.r8.code.MoveResultObject;
 import com.android.tools.r8.code.MoveResultWide;
 import com.android.tools.r8.code.Return;
 import com.android.tools.r8.code.ReturnObject;
@@ -42,7 +43,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.function.Consumer;
 import org.junit.Assert;
@@ -1299,24 +1299,23 @@ public class OutlineTest extends SmaliTestBase {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
     // The result from neither the div-int is never used.
-    MethodSignature signature = builder.addStaticMethod(
-        "void",
-        DEFAULT_METHOD_NAME,
-        ImmutableList.of("int", "int"),
-        1,
-        "    div-int             v0, p0, p1",
-        "    new-instance        v0, Ljava/lang/StringBuilder;",
-        "    invoke-direct       { v0 }, Ljava/lang/StringBuilder;-><init>()V",
-        "    return-void"
-    );
+    MethodSignature signature =
+        builder.addStaticMethod(
+            "java.lang.Object",
+            DEFAULT_METHOD_NAME,
+            ImmutableList.of("int", "int"),
+            1,
+            "    div-int             v0, p0, p1",
+            "    new-instance        v0, Ljava/lang/StringBuilder;",
+            "    invoke-direct       { v0 }, Ljava/lang/StringBuilder;-><init>()V",
+            "    return-object       v0");
 
     builder.addMainMethod(
         2,
         "    const               v0, 1",
         "    const               v1, 2",
-        "    invoke-static       { v0, v1 }, LTest;->method(II)V",
-        "    return-void"
-    );
+        "    invoke-static       { v0, v1 }, LTest;->method(II)Ljava/lang/Object;",
+        "    return-void");
 
     Consumer<InternalOptions> options =
         configureOptions(
@@ -1324,20 +1323,6 @@ public class OutlineTest extends SmaliTestBase {
               opts.outline.threshold = 1;
               opts.outline.minSize = 3;
               opts.outline.maxSize = 3;
-
-              // Do not allow dead code elimination of the new-instance and invoke-direct
-              // instructions.
-              // This can be achieved by not assuming that StringBuilder is present.
-              DexItemFactory dexItemFactory = opts.itemFactory;
-              dexItemFactory.libraryTypesAssumedToBePresent =
-                  new HashSet<>(dexItemFactory.libraryTypesAssumedToBePresent);
-              dexItemFactory.libraryTypesAssumedToBePresent.remove(
-                  dexItemFactory.stringBuilderType);
-              // ... and not assuming that StringBuilder.<init>() cannot have side effects.
-              dexItemFactory.libraryMethodsWithoutSideEffects =
-                  new IdentityHashMap<>(dexItemFactory.libraryMethodsWithoutSideEffects);
-              dexItemFactory.libraryMethodsWithoutSideEffects.remove(
-                  dexItemFactory.stringBuilderMethods.defaultConstructor);
             });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
@@ -1347,9 +1332,10 @@ public class OutlineTest extends SmaliTestBase {
     // Return the processed method for inspection.
     DexEncodedMethod method = getMethod(processedApplication, signature);
     DexCode code = method.getCode().asDexCode();
-    assertEquals(2, code.instructions.length);
+    assertEquals(3, code.instructions.length);
     assertTrue(code.instructions[0] instanceof InvokeStatic);
-    assertTrue(code.instructions[1] instanceof ReturnVoid);
+    assertTrue(code.instructions[1] instanceof MoveResultObject);
+    assertTrue(code.instructions[2] instanceof ReturnObject);
     InvokeStatic invoke = (InvokeStatic) code.instructions[0];
     assertEquals(firstOutlineMethodName(), invoke.getMethod().qualifiedName());
 

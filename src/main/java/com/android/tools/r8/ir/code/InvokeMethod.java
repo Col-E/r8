@@ -202,7 +202,7 @@ public abstract class InvokeMethod extends Invoke {
 
   @Override
   public AbstractFieldSet readSet(AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
-    return LibraryMethodReadSetModeling.getModeledReadSetOrUnknown(this, appView.dexItemFactory());
+    return LibraryMethodReadSetModeling.getModeledReadSetOrUnknown(appView, this);
   }
 
   @Override

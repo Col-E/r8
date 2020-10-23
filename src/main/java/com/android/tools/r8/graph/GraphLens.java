@@ -502,15 +502,15 @@ public abstract class GraphLens {
     return result;
   }
 
-  public DexReference rewriteReference(DexReference reference) {
+  public <T extends DexReference> T rewriteReference(T reference) {
     if (reference.isDexField()) {
-      return getRenamedFieldSignature(reference.asDexField());
+      return (T) getRenamedFieldSignature(reference.asDexField());
     }
     if (reference.isDexMethod()) {
-      return getRenamedMethodSignature(reference.asDexMethod());
+      return (T) getRenamedMethodSignature(reference.asDexMethod());
     }
     assert reference.isDexType();
-    return lookupType(reference.asDexType());
+    return (T) lookupType(reference.asDexType());
   }
 
   public Set<DexReference> rewriteReferences(Set<DexReference> references) {
@@ -521,8 +521,8 @@ public abstract class GraphLens {
     return result;
   }
 
-  public <T> ImmutableMap<DexReference, T> rewriteReferenceKeys(Map<DexReference, T> map) {
-    ImmutableMap.Builder<DexReference, T> builder = ImmutableMap.builder();
+  public <R extends DexReference, T> ImmutableMap<R, T> rewriteReferenceKeys(Map<R, T> map) {
+    ImmutableMap.Builder<R, T> builder = ImmutableMap.builder();
     map.forEach((reference, value) -> builder.put(rewriteReference(reference), value));
     return builder.build();
   }

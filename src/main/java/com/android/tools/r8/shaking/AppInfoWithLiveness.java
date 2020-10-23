@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
@@ -136,9 +137,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   /** All items with assumemayhavesideeffects rule. */
   public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
   /** All items with assumenosideeffects rule. */
-  public final Map<DexReference, ProguardMemberRule> noSideEffects;
+  public final Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects;
   /** All items with assumevalues rule. */
-  public final Map<DexReference, ProguardMemberRule> assumedValues;
+  public final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues;
   /** All methods that should be inlined if possible due to a configuration directive. */
   public final Set<DexMethod> alwaysInline;
   /** All methods that *must* be inlined due to a configuration directive (testing only). */
@@ -213,8 +214,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Map<DexCallSite, ProgramMethodSet> callSites,
       KeepInfoCollection keepInfo,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
-      Map<DexReference, ProguardMemberRule> noSideEffects,
-      Map<DexReference, ProguardMemberRule> assumedValues,
+      Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects,
+      Map<DexMember<?, ?>, ProguardMemberRule> assumedValues,
       Set<DexMethod> alwaysInline,
       Set<DexMethod> forceInline,
       Set<DexMethod> neverInline,
@@ -294,8 +295,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Map<DexCallSite, ProgramMethodSet> callSites,
       KeepInfoCollection keepInfo,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
-      Map<DexReference, ProguardMemberRule> noSideEffects,
-      Map<DexReference, ProguardMemberRule> assumedValues,
+      Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects,
+      Map<DexMember<?, ?>, ProguardMemberRule> assumedValues,
       Set<DexMethod> alwaysInline,
       Set<DexMethod> forceInline,
       Set<DexMethod> neverInline,

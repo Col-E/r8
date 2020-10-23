@@ -29,7 +29,6 @@ import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.List;
-import java.util.function.Predicate;
 
 public class InvokeStatic extends InvokeMethod {
 
@@ -179,9 +178,9 @@ public class InvokeStatic extends InvokeMethod {
     }
 
     // Check if it is a call to one of library methods that are known to be side-effect free.
-    Predicate<InvokeMethod> noSideEffectsPredicate =
-        appView.dexItemFactory().libraryMethodsWithoutSideEffects.get(getInvokedMethod());
-    if (noSideEffectsPredicate != null && noSideEffectsPredicate.test(this)) {
+    if (appView
+        .getLibraryMethodSideEffectModelCollection()
+        .isCallToSideEffectFreeFinalMethod(this)) {
       return false;
     }
 

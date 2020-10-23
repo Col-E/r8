@@ -5,8 +5,8 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
-import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.AssumeNoSideEffectsRuleForObjectMembersDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -67,6 +67,7 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -109,8 +110,8 @@ public class RootSetBuilder {
   private final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule =
       new IdentityHashMap<>();
   private final Map<DexReference, ProguardMemberRule> mayHaveSideEffects = new IdentityHashMap<>();
-  private final Map<DexReference, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
-  private final Map<DexReference, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
+  private final Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
+  private final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
   private final Queue<DelayedRootSetActionItem> delayedRootSetActionItems =
       new ConcurrentLinkedQueue<>();
@@ -119,8 +120,8 @@ public class RootSetBuilder {
   private final DexStringCache dexStringCache = new DexStringCache();
   private final Set<ProguardIfRule> ifRules = Sets.newIdentityHashSet();
 
-  private final Map<OriginWithPosition, List<DexMethod>> assumeNoSideEffectsWarnings =
-      new HashMap<>();
+  private final Map<OriginWithPosition, Set<DexMethod>> assumeNoSideEffectsWarnings =
+      new LinkedHashMap<>();
 
   public RootSetBuilder(
       AppView<? extends AppInfoWithClassHierarchy> appView,
@@ -387,7 +388,7 @@ public class RootSetBuilder {
       DexType type,
       DexMethod reference,
       Set<DexType> subTypes,
-      Map<DexReference, ProguardMemberRule> assumeRulePool) {
+      Map<DexMember<?, ?>, ProguardMemberRule> assumeRulePool) {
     ProguardMemberRule ruleToBePropagated = null;
     for (DexType subType : subTypes) {
       DexMethod referenceInSubType =
@@ -1170,15 +1171,25 @@ public class RootSetBuilder {
       mayHaveSideEffects.put(item.toReference(), rule);
       context.markAsUsed();
     } else if (context instanceof ProguardAssumeNoSideEffectRule) {
-      checkAssumeNoSideEffectsWarnings(item, (ProguardAssumeNoSideEffectRule) context, rule);
-      noSideEffects.put(item.toReference(), rule);
-      context.markAsUsed();
+      if (item.isDexEncodedMember()) {
+        DexEncodedMember<?, ?> member = item.asDexEncodedMember();
+        if (member.holder() == appView.dexItemFactory().objectType) {
+          assert member.isDexEncodedMethod();
+          reportAssumeNoSideEffectsWarningForJavaLangClassMethod(
+              member.asDexEncodedMethod(), (ProguardAssumeNoSideEffectRule) context);
+        } else {
+          noSideEffects.put(member.toReference(), rule);
+        }
+        context.markAsUsed();
+      }
     } else if (context instanceof ProguardWhyAreYouKeepingRule) {
       reasonAsked.computeIfAbsent(item.toReference(), i -> i);
       context.markAsUsed();
     } else if (context instanceof ProguardAssumeValuesRule) {
-      assumedValues.put(item.toReference(), rule);
-      context.markAsUsed();
+      if (item.isDexEncodedMember()) {
+        assumedValues.put(item.asDexEncodedMember().toReference(), rule);
+        context.markAsUsed();
+      }
     } else if (context instanceof ProguardCheckDiscardRule) {
       checkDiscarded.computeIfAbsent(item.toReference(), i -> i);
       context.markAsUsed();
@@ -1683,18 +1694,13 @@ public class RootSetBuilder {
     }
   }
 
-  private void checkAssumeNoSideEffectsWarnings(
-      DexDefinition item, ProguardAssumeNoSideEffectRule context, ProguardMemberRule rule) {
-    if (rule.getRuleType() == ProguardMemberType.METHOD && rule.isSpecific()) {
-      return;
-    }
-    if (item.isDexEncodedMethod()) {
-      DexEncodedMethod method = item.asDexEncodedMethod();
-      if (method.holder() == options.itemFactory.objectType) {
-        OriginWithPosition key = new OriginWithPosition(context.getOrigin(), context.getPosition());
-        assumeNoSideEffectsWarnings.computeIfAbsent(key, k -> new ArrayList<>()).add(method.method);
-      }
-    }
+  private void reportAssumeNoSideEffectsWarningForJavaLangClassMethod(
+      DexEncodedMethod method, ProguardAssumeNoSideEffectRule context) {
+    assert method.getHolderType() == options.dexItemFactory().objectType;
+    OriginWithPosition key = new OriginWithPosition(context.getOrigin(), context.getPosition());
+    assumeNoSideEffectsWarnings
+        .computeIfAbsent(key, ignore -> new TreeSet<>(DexMethod::slowCompareTo))
+        .add(method.getReference());
   }
 
   private boolean isWaitOrNotifyMethod(DexMethod method) {
@@ -1708,50 +1714,27 @@ public class RootSetBuilder {
         options.getProguardConfiguration() != null
             ? options.getProguardConfiguration().getDontWarnPatterns()
             : ProguardClassFilter.empty();
+    if (dontWarnPatterns.matches(options.itemFactory.objectType)) {
+      // Don't report any warnings since we don't apply -assumenosideeffects rules to notify() or
+      // wait() anyway.
+      return;
+    }
 
     assumeNoSideEffectsWarnings.forEach(
         (originWithPosition, methods) -> {
-          boolean waitOrNotifyMethods = methods.stream().anyMatch(this::isWaitOrNotifyMethod);
-          boolean dontWarnObject = dontWarnPatterns.matches(options.itemFactory.objectType);
-          StringBuilder message = new StringBuilder();
-          message.append(
-              "The -assumenosideeffects rule matches methods on `java.lang.Object` with wildcards");
-          message.append(" including the method(s) ");
-          for (int i = 0; i < methods.size(); i++) {
-            if (i > 0) {
-              message.append(i < methods.size() - 1 ? ", " : " and ");
-            }
-            message.append("`");
-            message.append(methods.get(i).toSourceStringWithoutHolder());
-            message.append("`.");
+          boolean matchesWaitOrNotifyMethods =
+              methods.stream().anyMatch(this::isWaitOrNotifyMethod);
+          if (!matchesWaitOrNotifyMethods) {
+            // We model the remaining methods on java.lang.Object, and thus there should be no need
+            // to warn in this case.
+            return;
           }
-          if (waitOrNotifyMethods) {
-            message.append(" This will most likely cause problems.");
-          } else {
-            message.append(" This is most likely not intended.");
-          }
-          if (waitOrNotifyMethods && !dontWarnObject) {
-            message.append(" Specify the methods more precisely.");
-          } else {
-            message.append(" Consider specifying the methods more precisely.");
-          }
-          Diagnostic diagnostic =
-              new StringDiagnostic(
-                  message.toString(),
-                  originWithPosition.getOrigin(),
-                  originWithPosition.getPosition());
-          if (waitOrNotifyMethods) {
-            if (!dontWarnObject) {
-              options.reporter.error(diagnostic);
-            } else {
-              options.reporter.warning(diagnostic);
-            }
-
-          } else {
-            if (!dontWarnObject) {
-              options.reporter.warning(diagnostic);
-            }
-          }
+          options.reporter.warning(
+              new AssumeNoSideEffectsRuleForObjectMembersDiagnostic.Builder()
+                  .addMatchedMethods(methods)
+                  .setOrigin(originWithPosition.getOrigin())
+                  .setPosition(originWithPosition.getPosition())
+                  .build());
         });
   }
 
@@ -1773,8 +1756,8 @@ public class RootSetBuilder {
     public final Set<DexType> noStaticClassMerging;
     public final Set<DexReference> neverPropagateValue;
     public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
-    public final Map<DexReference, ProguardMemberRule> noSideEffects;
-    public final Map<DexReference, ProguardMemberRule> assumedValues;
+    public final Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects;
+    public final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues;
     public final Set<DexReference> identifierNameStrings;
     public final Set<ProguardIfRule> ifRules;
 
@@ -1800,8 +1783,8 @@ public class RootSetBuilder {
         Set<DexType> noStaticClassMerging,
         Set<DexReference> neverPropagateValue,
         Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
-        Map<DexReference, ProguardMemberRule> noSideEffects,
-        Map<DexReference, ProguardMemberRule> assumedValues,
+        Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects,
+        Map<DexMember<?, ?>, ProguardMemberRule> assumedValues,
         Map<DexReference, MutableItemsWithRules> dependentNoShrinking,
         Map<DexReference, MutableItemsWithRules> dependentSoftPinned,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
@@ -1890,11 +1873,15 @@ public class RootSetBuilder {
       if (noObfuscation.contains(original)) {
         noObfuscation.add(rewritten);
       }
-      if (noSideEffects.containsKey(original)) {
-        noSideEffects.put(rewritten, noSideEffects.get(original));
-      }
-      if (assumedValues.containsKey(original)) {
-        assumedValues.put(rewritten, assumedValues.get(original));
+      if (original.isDexMember()) {
+        assert rewritten.isDexMember();
+        DexMember<?, ?> originalMember = original.asDexMember();
+        if (noSideEffects.containsKey(originalMember)) {
+          noSideEffects.put(rewritten.asDexMember(), noSideEffects.get(originalMember));
+        }
+        if (assumedValues.containsKey(originalMember)) {
+          assumedValues.put(rewritten.asDexMember(), assumedValues.get(originalMember));
+        }
       }
     }
 

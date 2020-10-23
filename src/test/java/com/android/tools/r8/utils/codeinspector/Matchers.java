@@ -713,6 +713,10 @@ public class Matchers {
     }
   }
 
+  public static <T> Matcher<T> onlyIf(boolean condition, Matcher<T> matcher) {
+    return notIf(matcher, !condition);
+  }
+
   public static <T> Matcher<T> notIf(Matcher<T> matcher, boolean condition) {
     if (condition) {
       return not(matcher);

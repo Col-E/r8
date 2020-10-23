@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.classinliner;
 
 import static com.android.tools.r8.graph.DexEncodedMethod.asProgramMethodOrNull;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
-import static com.google.common.base.Predicates.alwaysFalse;
 
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
@@ -19,6 +18,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
@@ -302,7 +302,8 @@ final class InlineCandidateProcessor {
             return user; // Not eligible.
           }
 
-          if (isEligibleLibraryMethodCall(invokeMethod, singleTarget)) {
+          if (singleTarget.isLibraryMethod()
+              && isEligibleLibraryMethodCall(invokeMethod, singleTarget.asLibraryMethod())) {
             continue;
           }
 
@@ -648,11 +649,12 @@ final class InlineCandidateProcessor {
         }
 
         DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, method);
-        if (singleTarget != null) {
-          Predicate<InvokeMethod> noSideEffectsPredicate =
-              dexItemFactory.libraryMethodsWithoutSideEffects.getOrDefault(
-                  singleTarget.getReference(), alwaysFalse());
-          if (noSideEffectsPredicate.test(invoke)) {
+        if (singleTarget != null && singleTarget.isLibraryMethod()) {
+          boolean isSideEffectFree =
+              appView
+                  .getLibraryMethodSideEffectModelCollection()
+                  .isSideEffectFree(invoke, singleTarget.asLibraryMethod());
+          if (isSideEffectFree) {
             if (!invoke.hasOutValue() || !invoke.outValue().hasAnyUsers()) {
               removeInstruction(invoke);
               continue;
@@ -1170,10 +1172,10 @@ final class InlineCandidateProcessor {
     return true;
   }
 
-  private boolean isEligibleLibraryMethodCall(InvokeMethod invoke, DexClassAndMethod singleTarget) {
-    Predicate<InvokeMethod> noSideEffectsPredicate =
-        dexItemFactory.libraryMethodsWithoutSideEffects.get(singleTarget.getReference());
-    if (noSideEffectsPredicate != null && noSideEffectsPredicate.test(invoke)) {
+  private boolean isEligibleLibraryMethodCall(InvokeMethod invoke, LibraryMethod singleTarget) {
+    boolean isSideEffectFree =
+        appView.getLibraryMethodSideEffectModelCollection().isSideEffectFree(invoke, singleTarget);
+    if (isSideEffectFree) {
       return !invoke.hasOutValue() || !invoke.outValue().hasAnyUsers();
     }
     if (singleTarget.getReference() == dexItemFactory.objectsMethods.requireNonNull) {

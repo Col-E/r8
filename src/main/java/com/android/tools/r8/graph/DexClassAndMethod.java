@@ -20,7 +20,7 @@ public class DexClassAndMethod extends DexClassAndMember<DexEncodedMethod, DexMe
     if (holder.isProgramClass()) {
       return new ProgramMethod(holder.asProgramClass(), method);
     } else if (holder.isLibraryClass()) {
-      return new DexClassAndMethod(holder, method);
+      return new LibraryMethod(holder.asLibraryClass(), method);
     } else {
       assert holder.isClasspathClass();
       return new ClasspathMethod(holder.asClasspathClass(), method);
@@ -47,6 +47,14 @@ public class DexClassAndMethod extends DexClassAndMember<DexEncodedMethod, DexMe
   }
 
   public ClasspathMethod asClasspathMethod() {
+    return null;
+  }
+
+  public boolean isLibraryMethod() {
+    return false;
+  }
+
+  public LibraryMethod asLibraryMethod() {
     return null;
   }
 

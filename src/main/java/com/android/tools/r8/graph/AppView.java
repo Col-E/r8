@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.ir.optimize.library.LibraryMemberOptimizer;
+import com.android.tools.r8.ir.optimize.library.LibraryMethodSideEffectModelCollection;
 import com.android.tools.r8.optimize.MemberRebindingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -69,6 +70,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   // Desugared library prefix rewriter.
   public final PrefixRewritingMapper rewritePrefix;
 
+  // Modeling.
+  private final LibraryMethodSideEffectModelCollection libraryMethodSideEffectModelCollection;
+
   // Optimizations.
   private final CallSiteOptimizationInfoPropagator callSiteOptimizationInfoPropagator;
   private final LibraryMemberOptimizer libraryMemberOptimizer;
@@ -108,6 +112,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     }
 
     this.libraryMemberOptimizer = new LibraryMemberOptimizer(this);
+    this.libraryMethodSideEffectModelCollection =
+        new LibraryMethodSideEffectModelCollection(dexItemFactory());
 
     if (enableWholeProgramOptimizations() && options().protoShrinking().isProtoShrinkingEnabled()) {
       this.protoShrinker = new ProtoShrinker(withLiveness());
@@ -285,6 +291,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public LibraryMemberOptimizer libraryMethodOptimizer() {
     return libraryMemberOptimizer;
+  }
+
+  public LibraryMethodSideEffectModelCollection getLibraryMethodSideEffectModelCollection() {
+    return libraryMethodSideEffectModelCollection;
   }
 
   public ProtoShrinker protoShrinker() {

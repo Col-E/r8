@@ -223,15 +223,22 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   @Override
   public String toSourceString() {
-    return toSourceString(true);
+    return toSourceString(true, true);
   }
 
   public String toSourceStringWithoutHolder() {
-    return toSourceString(false);
+    return toSourceString(false, true);
   }
 
-  private String toSourceString(boolean includeHolder) {
-    StringBuilder builder = new StringBuilder(proto.returnType.toSourceString()).append(" ");
+  public String toSourceStringWithoutHolderAndReturnType() {
+    return toSourceString(false, false);
+  }
+
+  private String toSourceString(boolean includeHolder, boolean includeReturnType) {
+    StringBuilder builder = new StringBuilder();
+    if (includeReturnType) {
+      builder.append(getReturnType().toSourceString()).append(" ");
+    }
     if (includeHolder) {
       builder.append(holder.toSourceString()).append(".");
     }
