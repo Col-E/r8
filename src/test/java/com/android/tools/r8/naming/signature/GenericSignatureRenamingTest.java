@@ -85,6 +85,7 @@ public class GenericSignatureRenamingTest extends TestBase {
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
         .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
+        .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepMainRule(Main.class)
         .addProgramClasses(Main.class)
         .addProgramClassesAndInnerClasses(A.class, B.class, CY.class, CYY.class)
