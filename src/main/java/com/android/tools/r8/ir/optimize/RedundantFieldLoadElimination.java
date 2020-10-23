@@ -8,10 +8,11 @@ import static com.android.tools.r8.utils.PredicateUtils.not;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -148,19 +149,24 @@ public class RedundantFieldLoadElimination {
     }
   }
 
-  public boolean isFinal(DexEncodedField field) {
-    if (field.isProgramField(appView)) {
-      return field.isFinal();
+  public boolean isFinal(DexClassAndField field) {
+    if (field.isProgramField()) {
+      // Treat this field as being final if it is declared final or we have determined a constant
+      // value for it.
+      return field.getDefinition().isFinal()
+          || field.getDefinition().getOptimizationInfo().getAbstractValue().isSingleValue();
     }
-    return appView.libraryMethodOptimizer().isFinalLibraryField(field);
+    return appView.libraryMethodOptimizer().isFinalLibraryField(field.getDefinition());
   }
 
-  private DexEncodedField resolveField(DexField field) {
+  private DexClassAndField resolveField(DexField field) {
     if (appView.enableWholeProgramOptimizations()) {
-      return appView.appInfo().withLiveness().resolveField(field).getResolvedField();
+      SuccessfulFieldResolutionResult resolutionResult =
+          appView.appInfo().withLiveness().resolveField(field).asSuccessfulResolution();
+      return resolutionResult != null ? resolutionResult.getResolutionPair() : null;
     }
-    if (field.holder == method.getHolderType()) {
-      return method.getHolder().lookupField(field);
+    if (field.getHolderType() == method.getHolderType()) {
+      return method.getHolder().lookupProgramField(field);
     }
     return null;
   }
@@ -187,9 +193,9 @@ public class RedundantFieldLoadElimination {
         while (it.hasNext()) {
           Instruction instruction = it.next();
           if (instruction.isFieldInstruction()) {
-            DexField field = instruction.asFieldInstruction().getField();
-            DexEncodedField definition = resolveField(field);
-            if (definition == null || definition.isVolatile()) {
+            DexField reference = instruction.asFieldInstruction().getField();
+            DexClassAndField field = resolveField(reference);
+            if (field == null || field.getDefinition().isVolatile()) {
               killAllNonFinalActiveFields();
               continue;
             }
@@ -200,7 +206,7 @@ public class RedundantFieldLoadElimination {
                 continue;
               }
               Value object = instanceGet.object().getAliasedValue();
-              FieldAndObject fieldAndObject = new FieldAndObject(field, object);
+              FieldAndObject fieldAndObject = new FieldAndObject(reference, object);
               FieldValue replacement = activeState.getInstanceFieldValue(fieldAndObject);
               if (replacement != null) {
                 replacement.eliminateRedundantRead(it, instanceGet);
@@ -215,10 +221,11 @@ public class RedundantFieldLoadElimination {
               killNonFinalActiveFields(instancePut);
               // ... but at least we know the field value for this particular object.
               Value object = instancePut.object().getAliasedValue();
-              FieldAndObject fieldAndObject = new FieldAndObject(field, object);
+              FieldAndObject fieldAndObject = new FieldAndObject(reference, object);
               ExistingValue value = new ExistingValue(instancePut.value());
-              if (isFinal(definition)) {
-                assert method.getDefinition().isInstanceInitializer()
+              if (isFinal(field)) {
+                assert !field.getDefinition().isFinal()
+                    || method.getDefinition().isInstanceInitializer()
                     || verifyWasInstanceInitializer();
                 activeState.putFinalInstanceField(fieldAndObject, value);
               } else {
@@ -229,7 +236,7 @@ public class RedundantFieldLoadElimination {
               if (staticGet.outValue().hasLocalInfo()) {
                 continue;
               }
-              FieldValue replacement = activeState.getStaticFieldValue(field);
+              FieldValue replacement = activeState.getStaticFieldValue(reference);
               if (replacement != null) {
                 replacement.eliminateRedundantRead(it, staticGet);
               } else {
@@ -237,10 +244,10 @@ public class RedundantFieldLoadElimination {
                 // field values.
                 killNonFinalActiveFields(staticGet);
                 FieldValue value = new ExistingValue(staticGet.value());
-                if (isFinal(definition)) {
-                  activeState.putFinalStaticField(field, value);
+                if (isFinal(field)) {
+                  activeState.putFinalStaticField(reference, value);
                 } else {
-                  activeState.putNonFinalStaticField(field, value);
+                  activeState.putNonFinalStaticField(reference, value);
                 }
               }
             } else if (instruction.isStaticPut()) {
@@ -249,11 +256,11 @@ public class RedundantFieldLoadElimination {
               // field values.
               killNonFinalActiveFields(staticPut);
               ExistingValue value = new ExistingValue(staticPut.value());
-              if (definition.isFinal()) {
+              if (isFinal(field)) {
                 assert method.getDefinition().isClassInitializer();
-                activeState.putFinalStaticField(field, value);
+                activeState.putFinalStaticField(reference, value);
               } else {
-                activeState.putNonFinalStaticField(field, value);
+                activeState.putNonFinalStaticField(reference, value);
               }
             }
           } else if (instruction.isInitClass()) {
