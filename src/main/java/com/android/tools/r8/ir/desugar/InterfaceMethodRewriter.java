@@ -1004,18 +1004,19 @@ public final class InterfaceMethodRewriter {
     GenericSignature.ClassSignature classSignature = clazz.getClassSignature();
     for (int i = 0; i < clazz.interfaces.size(); i++) {
       DexType itf = clazz.interfaces.values[i];
-      assert emulatedInterfaces.containsKey(itf);
-      List<GenericSignature.FieldTypeSignature> typeArguments;
-      if (classSignature == null) {
-        typeArguments = Collections.emptyList();
-      } else {
-        GenericSignature.ClassTypeSignature classTypeSignature =
-            classSignature.superInterfaceSignatures().get(i);
-        assert itf == classTypeSignature.type();
-        typeArguments = classTypeSignature.typeArguments();
+      if (emulatedInterfaces.containsKey(itf)) {
+        List<GenericSignature.FieldTypeSignature> typeArguments;
+        if (classSignature == null) {
+          typeArguments = Collections.emptyList();
+        } else {
+          GenericSignature.ClassTypeSignature classTypeSignature =
+              classSignature.superInterfaceSignatures().get(i);
+          assert itf == classTypeSignature.type();
+          typeArguments = classTypeSignature.typeArguments();
+        }
+        newInterfaces.add(
+            new GenericSignature.ClassTypeSignature(emulatedInterfaces.get(itf), typeArguments));
       }
-      newInterfaces.add(
-          new GenericSignature.ClassTypeSignature(emulatedInterfaces.get(itf), typeArguments));
     }
     clazz.replaceInterfaces(newInterfaces);
   }
