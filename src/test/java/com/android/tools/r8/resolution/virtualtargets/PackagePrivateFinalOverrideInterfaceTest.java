@@ -53,17 +53,7 @@ public class PackagePrivateFinalOverrideInterfaceTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/171369796): Should work for ART runtimes.
-        .assertFailureWithErrorThatMatches(
-            containsString(
-                parameters.isDexRuntime()
-                        && parameters
-                            .getRuntime()
-                            .asDex()
-                            .getVm()
-                            .isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)
-                    ? "overrides final"
-                    : "NullPointerException"));
+        .apply(this::assertResult);
   }
 
   public void assertResult(TestRunResult<?> runResult) {

@@ -2128,9 +2128,10 @@ public class Enqueuer {
     worklist.addIfNotSeen(interfaces);
     // First we lookup and mark all targets on the instantiated class for each reachable method in
     // the super chain (inclusive).
+    DexClass initialClass = clazz;
     while (clazz != null) {
       if (clazz.isProgramClass()) {
-        markProgramMethodOverridesAsLive(instantiation, clazz.asProgramClass(), seen);
+        markProgramMethodOverridesAsLive(instantiation, initialClass, clazz.asProgramClass(), seen);
       } else {
         markLibraryAndClasspathMethodOverridesAsLive(instantiation, clazz);
       }
@@ -2151,7 +2152,7 @@ public class Enqueuer {
       if (iface.isNotProgramClass()) {
         markLibraryAndClasspathMethodOverridesAsLive(instantiation, iface);
       } else {
-        markProgramMethodOverridesAsLive(instantiation, iface.asProgramClass(), seen);
+        markProgramMethodOverridesAsLive(instantiation, initialClass, iface.asProgramClass(), seen);
       }
       worklist.addIfNotSeen(Arrays.asList(iface.interfaces.values));
     }
@@ -2163,18 +2164,28 @@ public class Enqueuer {
 
   private void markProgramMethodOverridesAsLive(
       InstantiatedObject instantiation,
+      DexClass initialClass,
       DexProgramClass superClass,
       Set<Wrapper<DexMethod>> seenMethods) {
     for (DexMethod method : getReachableVirtualTargets(superClass)) {
       assert method.holder == superClass.type;
-      if (seenMethods.add(MethodSignatureEquivalence.get().wrap(method))) {
+      Wrapper<DexMethod> signature = MethodSignatureEquivalence.get().wrap(method);
+      if (!seenMethods.contains(signature)) {
         SingleResolutionResult resolution =
             appInfo.resolveMethodOn(superClass, method).asSingleResolution();
         assert resolution != null;
         assert resolution.getResolvedHolder().isProgramClass();
-        if (resolution != null && resolution.getResolvedHolder().isProgramClass()) {
-          markLiveOverrides(
-              instantiation, superClass, resolution.getResolutionPair().asProgramMethod());
+        if (resolution != null) {
+          if (!initialClass.isProgramClass()
+              || resolution
+                  .isAccessibleForVirtualDispatchFrom(initialClass.asProgramClass(), appInfo)
+                  .isTrue()) {
+            seenMethods.add(signature);
+          }
+          if (resolution.getResolvedHolder().isProgramClass()) {
+            markLiveOverrides(
+                instantiation, superClass, resolution.getResolutionPair().asProgramMethod());
+          }
         }
       }
     }
