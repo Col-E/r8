@@ -532,7 +532,7 @@ public class R8 {
                   mainDexTracingResult);
           VerticalClassMergerGraphLens lens = verticalClassMerger.run();
           if (lens != null) {
-            appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
+            appView.setVerticallyMergedClasses(lens.getMergedClasses());
             appView.rewriteWithLens(lens);
             runtimeTypeCheckInfo = runtimeTypeCheckInfo.rewriteWithLens(lens);
           }

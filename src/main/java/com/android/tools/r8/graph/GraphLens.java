@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.BiMap;
@@ -272,6 +273,8 @@ public abstract class GraphLens {
   private GraphLens() {}
 
   public abstract DexType getOriginalType(DexType type);
+
+  public abstract Iterable<DexType> getOriginalTypes(DexType type);
 
   public abstract DexField getOriginalFieldSignature(DexField field);
 
@@ -761,6 +764,11 @@ public abstract class GraphLens {
     }
 
     @Override
+    public Iterable<DexType> getOriginalTypes(DexType type) {
+      return IterableUtils.singleton(type);
+    }
+
+    @Override
     public DexField getOriginalFieldSignature(DexField field) {
       return field;
     }
@@ -842,6 +850,11 @@ public abstract class GraphLens {
     @Override
     public DexType getOriginalType(DexType type) {
       return getPrevious().getOriginalType(type);
+    }
+
+    @Override
+    public Iterable<DexType> getOriginalTypes(DexType type) {
+      return getPrevious().getOriginalTypes(type);
     }
 
     @Override
@@ -965,9 +978,22 @@ public abstract class GraphLens {
       return new Builder();
     }
 
+    protected DexType internalGetOriginalType(DexType previous) {
+      return previous;
+    }
+
+    protected Iterable<DexType> internalGetOriginalTypes(DexType previous) {
+      return IterableUtils.singleton(internalGetOriginalType(previous));
+    }
+
     @Override
     public DexType getOriginalType(DexType type) {
-      return getPrevious().getOriginalType(type);
+      return getPrevious().getOriginalType(internalGetOriginalType(type));
+    }
+
+    @Override
+    public Iterable<DexType> getOriginalTypes(DexType type) {
+      return IterableUtils.flatMap(internalGetOriginalTypes(type), getPrevious()::getOriginalTypes);
     }
 
     @Override

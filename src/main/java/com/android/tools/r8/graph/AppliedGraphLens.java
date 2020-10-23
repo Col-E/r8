@@ -5,11 +5,12 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
-import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,23 +78,11 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
   private void recordOriginalTypeNames(
       DexProgramClass clazz, AppView<? extends AppInfoWithClassHierarchy> appView) {
     DexType type = clazz.getType();
-    VerticallyMergedClasses verticallyMergedClasses = appView.verticallyMergedClasses();
-    if (verticallyMergedClasses != null && verticallyMergedClasses.hasBeenMergedIntoSubtype(type)) {
-      return;
-    }
 
-    DexType original = appView.graphLens().getOriginalType(type);
-    if (verticallyMergedClasses != null) {
-      List<DexType> sources = verticallyMergedClasses.getSourcesFor(type);
-      if (!sources.isEmpty()) {
-        renamedTypeNames.put(original, type);
-        sources.forEach(source -> renamedTypeNames.put(source, type));
-        return;
-      }
-    }
-
-    if (original != type) {
-      renamedTypeNames.put(original, type);
+    List<DexType> originalTypes = Lists.newArrayList(appView.graphLens().getOriginalTypes(type));
+    boolean isIdentity = originalTypes.size() == 1 && originalTypes.get(0) == type;
+    if (!isIdentity) {
+      originalTypes.forEach(originalType -> renamedTypeNames.put(originalType, type));
     }
   }
 
@@ -109,6 +98,15 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
       return originalTypeNames.iterator().next();
     }
     return type;
+  }
+
+  @Override
+  public Iterable<DexType> getOriginalTypes(DexType type) {
+    Set<DexType> originalTypes = renamedTypeNames.getKeys(type);
+    if (originalTypes == null) {
+      return ImmutableList.of(type);
+    }
+    return originalTypes;
   }
 
   @Override

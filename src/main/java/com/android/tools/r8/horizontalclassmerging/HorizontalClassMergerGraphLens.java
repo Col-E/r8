@@ -7,9 +7,11 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
+import com.android.tools.r8.utils.IterableUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.ArrayList;
@@ -24,10 +26,11 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   private final AppView<?> appView;
   private final Map<DexMethod, List<ExtraParameter>> methodExtraParameters;
   private final Map<DexMethod, DexMethod> originalConstructorSignatures;
+  private final HorizontallyMergedClasses mergedClasses;
 
   private HorizontalClassMergerGraphLens(
       AppView<?> appView,
-      HorizontallyMergedClasses horizontallyMergedClasses,
+      HorizontallyMergedClasses mergedClasses,
       Map<DexMethod, List<ExtraParameter>> methodExtraParameters,
       Map<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
@@ -36,7 +39,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       Map<DexMethod, DexMethod> originalConstructorSignatures,
       GraphLens previousLens) {
     super(
-        horizontallyMergedClasses.getForwardMap(),
+        mergedClasses.getForwardMap(),
         methodMap,
         fieldMap,
         originalFieldSignatures,
@@ -46,6 +49,12 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
     this.appView = appView;
     this.methodExtraParameters = methodExtraParameters;
     this.originalConstructorSignatures = originalConstructorSignatures;
+    this.mergedClasses = mergedClasses;
+  }
+
+  @Override
+  protected Iterable<DexType> internalGetOriginalTypes(DexType previous) {
+    return IterableUtils.prependSingleton(previous, mergedClasses.getSourcesFor(previous));
   }
 
   @Override

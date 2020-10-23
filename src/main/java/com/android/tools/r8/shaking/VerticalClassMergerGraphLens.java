@@ -14,10 +14,14 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.utils.IterableUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +59,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
 
   private final AppView<?> appView;
 
+  private VerticallyMergedClasses mergedClasses;
   private final Map<DexType, Map<DexMethod, GraphLensLookupResultProvider>>
       contextualVirtualToDirectMethodMaps;
   private Set<DexMethod> mergedMethods;
@@ -62,7 +67,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
 
   private VerticalClassMergerGraphLens(
       AppView<?> appView,
-      Map<DexType, DexType> typeMap,
+      VerticallyMergedClasses mergedClasses,
       Map<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
       Set<DexMethod> mergedMethods,
@@ -73,7 +78,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
       Map<DexMethod, DexMethod> originalMethodSignaturesForBridges,
       GraphLens previousLens) {
     super(
-        typeMap,
+        mergedClasses.getForwardMap(),
         methodMap,
         fieldMap,
         originalFieldSignatures,
@@ -81,14 +86,24 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
         previousLens,
         appView.dexItemFactory());
     this.appView = appView;
+    this.mergedClasses = mergedClasses;
     this.contextualVirtualToDirectMethodMaps = contextualVirtualToDirectMethodMaps;
     this.mergedMethods = mergedMethods;
     this.originalMethodSignaturesForBridges = originalMethodSignaturesForBridges;
   }
 
+  public VerticallyMergedClasses getMergedClasses() {
+    return mergedClasses;
+  }
+
   @Override
-  public DexType getOriginalType(DexType type) {
-    return getPrevious().getOriginalType(type);
+  protected Iterable<DexType> internalGetOriginalTypes(DexType previous) {
+    Collection<DexType> originalTypes = mergedClasses.getSourcesFor(previous);
+    Iterable<DexType> currentType = IterableUtils.singleton(previous);
+    if (originalTypes == null) {
+      return currentType;
+    }
+    return Iterables.concat(currentType, originalTypes);
   }
 
   @Override
@@ -219,8 +234,8 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
     }
 
     public VerticalClassMergerGraphLens build(
-        AppView<?> appView, Map<DexType, DexType> mergedClasses) {
-      if (mergedClasses.isEmpty()) {
+        AppView<?> appView, VerticallyMergedClasses mergedClasses) {
+      if (mergedClasses.getForwardMap().isEmpty()) {
         return null;
       }
       BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();

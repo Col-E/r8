@@ -7,27 +7,28 @@ package com.android.tools.r8.graph.classmerging;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 public class VerticallyMergedClasses implements MergedClasses {
 
   private final Map<DexType, DexType> mergedClasses;
-  private final Map<DexType, List<DexType>> sources;
+  private final Map<DexType, Set<DexType>> mergedClassesInverse;
 
-  public VerticallyMergedClasses(Map<DexType, DexType> mergedClasses) {
-    Map<DexType, List<DexType>> sources = Maps.newIdentityHashMap();
-    mergedClasses.forEach(
-        (source, target) -> sources.computeIfAbsent(target, key -> new ArrayList<>()).add(source));
+  public VerticallyMergedClasses(
+      Map<DexType, DexType> mergedClasses, Map<DexType, Set<DexType>> mergedClassesInverse) {
     this.mergedClasses = mergedClasses;
-    this.sources = sources;
+    this.mergedClassesInverse = mergedClassesInverse;
   }
 
-  public List<DexType> getSourcesFor(DexType type) {
-    return sources.getOrDefault(type, ImmutableList.of());
+  public Map<DexType, DexType> getForwardMap() {
+    return mergedClasses;
+  }
+
+  public Collection<DexType> getSourcesFor(DexType type) {
+    return mergedClassesInverse.getOrDefault(type, Collections.emptySet());
   }
 
   public DexType getTargetFor(DexType type) {
@@ -45,7 +46,7 @@ public class VerticallyMergedClasses implements MergedClasses {
 
   @Override
   public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
-    for (List<DexType> sourcesForTarget : sources.values()) {
+    for (Collection<DexType> sourcesForTarget : mergedClassesInverse.values()) {
       for (DexType source : sourcesForTarget) {
         assert appView.appInfo().wasPruned(source)
             : "Expected vertically merged class `" + source.toSourceString() + "` to be absent";

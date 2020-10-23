@@ -241,8 +241,8 @@ public class VerticalClassMerger {
     initializeMergeCandidates(classes);
   }
 
-  public VerticallyMergedClasses getMergedClasses() {
-    return new VerticallyMergedClasses(mergedClasses);
+  private VerticallyMergedClasses getMergedClasses() {
+    return new VerticallyMergedClasses(mergedClasses, mergedClassesInverse);
   }
 
   private void initializeMergeCandidates(Iterable<DexProgramClass> classes) {
@@ -1484,7 +1484,7 @@ public class VerticalClassMerger {
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
         synthesizedBridge.updateMethodSignatures(this::fixupMethod);
       }
-      VerticalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
+      VerticalClassMergerGraphLens lens = lensBuilder.build(appView, getMergedClasses());
       if (lens != null) {
         new AnnotationFixer(lens).run(appView.appInfo().classes());
       }
@@ -1724,6 +1724,11 @@ public class VerticalClassMerger {
 
     @Override
     public DexType getOriginalType(DexType type) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public Iterable<DexType> getOriginalTypes(DexType type) {
       throw new Unreachable();
     }
 

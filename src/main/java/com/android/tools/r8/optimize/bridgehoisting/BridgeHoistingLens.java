@@ -49,6 +49,11 @@ class BridgeHoistingLens extends NonIdentityGraphLens {
   }
 
   @Override
+  public Iterable<DexType> getOriginalTypes(DexType type) {
+    return getPrevious().getOriginalTypes(type);
+  }
+
+  @Override
   public DexField getOriginalFieldSignature(DexField field) {
     return getPrevious().getOriginalFieldSignature(field);
   }

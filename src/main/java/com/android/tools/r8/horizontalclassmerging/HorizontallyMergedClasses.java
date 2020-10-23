@@ -34,6 +34,10 @@ public class HorizontallyMergedClasses implements MergedClasses {
     return mergedClasses.keySet();
   }
 
+  public Set<DexType> getSourcesFor(DexType type) {
+    return mergedClasses.getKeys(type);
+  }
+
   public boolean hasBeenMergedIntoDifferentType(DexType type) {
     return mergedClasses.hasKey(type);
   }

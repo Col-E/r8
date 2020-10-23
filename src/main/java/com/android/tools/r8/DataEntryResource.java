@@ -26,6 +26,15 @@ public interface DataEntryResource extends DataResource {
     return new ByteDataEntryResource(bytes, name, origin);
   }
 
+  static DataEntryResource fromString(String name, Origin origin, String... lines) {
+    StringBuilder sb = new StringBuilder();
+    for (String line : lines) {
+      sb.append(line);
+      sb.append("\n");
+    }
+    return new ByteDataEntryResource(sb.toString().getBytes(), name, origin);
+  }
+
   static DataEntryResource fromFile(Path dir, Path file) {
     return new LocalDataEntryResource(dir.resolve(file).toFile(),
         file.toString().replace(File.separatorChar, SEPARATOR));

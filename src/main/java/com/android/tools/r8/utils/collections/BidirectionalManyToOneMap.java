@@ -45,6 +45,10 @@ public class BidirectionalManyToOneMap<K, V> {
     return inverse.getOrDefault(value, Collections.emptySet());
   }
 
+  public Set<K> getKeysOrNull(V value) {
+    return inverse.get(value);
+  }
+
   public boolean isEmpty() {
     return backing.isEmpty();
   }
