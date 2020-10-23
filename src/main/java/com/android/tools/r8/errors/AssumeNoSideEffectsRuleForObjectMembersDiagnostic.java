@@ -5,7 +5,6 @@ package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.errors.CheckDiscardDiagnostic.Builder;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
