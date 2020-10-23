@@ -60,7 +60,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
             : "Caught j$.io.UncheckedIOException");
   }
 
-  DesugaredLibraryConfiguration configurationWithBufferedReader(
+  DesugaredLibraryConfiguration configurationAlternative3(
       InternalOptions options, boolean libraryCompilation, TestParameters parameters) {
     // Parse the current configuration and amend the configuration for BufferedReader.lines. The
     // configuration is the same for both program and library.
@@ -69,28 +69,15 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
             options.reporter,
             libraryCompilation,
             parameters.getApiLevel().getLevel())
-        .parse(
-            StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING),
-            builder -> {
-              if (parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
-                builder.putRewritePrefix(
-                    "java.io.DesugarBufferedReader", "j$.io.DesugarBufferedReader");
-                builder.putRewritePrefix(
-                    "java.io.UncheckedIOException", "j$.io.UncheckedIOException");
-                builder.putRetargetCoreLibMember(
-                    "java.io.BufferedReader#lines", "java.io.DesugarBufferedReader");
-              }
-            });
+        .parse(StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING_ALTERNATIVE_3));
   }
 
   private void configurationForProgramCompilation(InternalOptions options) {
-    options.desugaredLibraryConfiguration =
-        configurationWithBufferedReader(options, false, parameters);
+    options.desugaredLibraryConfiguration = configurationAlternative3(options, false, parameters);
   }
 
   private void configurationForLibraryCompilation(InternalOptions options) {
-    options.desugaredLibraryConfiguration =
-        configurationWithBufferedReader(options, true, parameters);
+    options.desugaredLibraryConfiguration = configurationAlternative3(options, true, parameters);
   }
 
   @Test
@@ -156,7 +143,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
         .addOptionsModification(
             options ->
                 options.desugaredLibraryConfiguration =
-                    configurationWithBufferedReader(options, false, parameters))
+                    configurationAlternative3(options, false, parameters))
         .addInnerClasses(BufferedReaderTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -184,7 +171,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
         .addOptionsModification(
             options ->
                 options.desugaredLibraryConfiguration =
-                    configurationWithBufferedReader(options, false, parameters))
+                    configurationAlternative3(options, false, parameters))
         .addInnerClasses(BufferedReaderTest.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
