@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.BaseCompilerCommand;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -34,6 +35,8 @@ import org.junit.runners.Parameterized.Parameters;
 /** Regression test for compatibility with Proguard -keepclassmember{s,names}. b/119076934. */
 @RunWith(Parameterized.class)
 public class CompatKeepClassMemberNamesTestRunner extends TestBase {
+
+  private static final ProguardVersion PG = ProguardVersion.getLatest();
 
   private static Class<?> MAIN_CLASS = CompatKeepClassMemberNamesTest.class;
   private static Class<?> BAR_CLASS = CompatKeepClassMemberNamesTest.Bar.class;
@@ -114,7 +117,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
 
   @Test
   public void testWithoutRulesPG() throws Exception {
-    testWithoutRules(testForProguard());
+    testWithoutRules(testForProguard(PG));
   }
 
   @Test
@@ -157,7 +160,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
 
   @Test
   public void testWithMembersRulePG() throws Exception {
-    assertMembersRuleCompatResult(buildWithMembersRule(testForProguard()).compile());
+    assertMembersRuleCompatResult(buildWithMembersRule(testForProguard(PG)).compile());
   }
 
   @Test
@@ -209,7 +212,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
 
   @Test
   public void testWithNonStaticMembersRulePG() throws Exception {
-    assertBarIsAbsent(buildWithNonStaticMembersRule(testForProguard()).compile());
+    assertBarIsAbsent(buildWithNonStaticMembersRule(testForProguard(PG)).compile());
   }
 
   @Test
@@ -268,7 +271,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   @Test
   public void testWithMembersRuleEnableMinificationPG() throws Exception {
     assertMembersRuleEnableMinificationCompatResult(
-        buildWithMembersRuleEnableMinification(testForProguard()).compile());
+        buildWithMembersRuleEnableMinification(testForProguard(PG)).compile());
   }
 
   @Test
@@ -313,7 +316,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
 
   @Test
   public void testWithMembersStarRulePG() throws Exception {
-    testWithMembersStarRule(testForProguard());
+    testWithMembersStarRule(testForProguard(PG));
   }
 
   @Test
@@ -362,7 +365,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
 
   @Test
   public void testWithMemberNamesRulePG() throws Exception {
-    assertMemberNamesRuleCompatResult(buildWithMemberNamesRule(testForProguard()).compile());
+    assertMemberNamesRuleCompatResult(buildWithMemberNamesRule(testForProguard(PG)).compile());
   }
 
   @Test
@@ -375,7 +378,8 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
 
   @Test
   public void testWithMemberNamesRuleFullR8() throws Exception {
-    assertBarIsAbsent(buildWithMemberNamesRule(testForR8Compat(parameters.getBackend())).compile());
+    assertMemberNamesRuleCompatResult(
+        buildWithMemberNamesRule(testForR8(parameters.getBackend())).compile());
   }
 
   // Tests for "-keepclassmembernames" and *no* minification.
@@ -419,7 +423,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   @Test
   public void testWithMemberNamesRuleEnableMinificationPG() throws Exception {
     assertMemberNamesRuleEnableMinificationCompatResult(
-        buildWithMemberNamesRuleEnableMinification(testForProguard()).compile());
+        buildWithMemberNamesRuleEnableMinification(testForProguard(PG)).compile());
   }
 
   @Test
@@ -432,7 +436,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
 
   @Test
   public void testWithMemberNamesRuleEnableMinificationFullR8() throws Exception {
-    assertBarIsAbsent(
+    assertMemberNamesRuleEnableMinificationCompatResult(
         buildWithMemberNamesRuleEnableMinification(testForR8(parameters.getBackend())).compile());
   }
 }

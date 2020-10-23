@@ -166,6 +166,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     itemFactory = proguardConfiguration.getDexItemFactory();
     enableTreeShaking = proguardConfiguration.isShrinking();
     enableMinification = proguardConfiguration.isObfuscating();
+    // TODO(b/171457102): Avoid the need for this.
     // -dontoptimize disables optimizations by flipping related flags.
     if (!proguardConfiguration.isOptimizing()) {
       disableAllOptimizations();

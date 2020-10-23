@@ -1,7 +1,7 @@
 // Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.proguard;
+package com.android.tools.r8.shaking.allowshrinking;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -54,11 +54,7 @@ public class KeepAllowShrinkingCompatibilityTest extends TestBase {
     return StringUtils.lines(
         "A::foo",
         // Reflective lookup of A::foo will only work if optimization and obfuscation are disabled.
-        Boolean.toString(
-            !allowOptimization
-                && !allowObfuscation
-                // TODO(b/171289133): Remove this exception once fixed.
-                && !shrinker.isR8()),
+        Boolean.toString(!allowOptimization && !allowObfuscation),
         "false");
   }
 
@@ -67,7 +63,7 @@ public class KeepAllowShrinkingCompatibilityTest extends TestBase {
     if (shrinker.isR8()) {
       run(
           testForR8(parameters.getBackend())
-              // TODO(b/171289133): The keep rule should not be "unmatched".
+              // Allowing all of shrinking, optimization and obfuscation will amount to a nop rule.
               .allowUnusedProguardConfigurationRules(allowOptimization && allowObfuscation));
     } else {
       run(testForProguard(shrinker.getProguardVersion()).addDontWarn(getClass()));
@@ -96,8 +92,7 @@ public class KeepAllowShrinkingCompatibilityTest extends TestBase {
               assertThat(aClass, isPresentAndRenamed(allowObfuscation));
               assertThat(bClass.uniqueMethodWithName("foo"), not(isPresent()));
               MethodSubject aFoo = aClass.uniqueMethodWithName("foo");
-              // TODO(b/171289133): Remove R8 check once fixed.
-              if (allowOptimization || shrinker.isR8()) {
+              if (allowOptimization) {
                 assertThat(aFoo, not(isPresent()));
               } else {
                 assertThat(aFoo, isPresentAndRenamed(allowObfuscation));

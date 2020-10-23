@@ -1,11 +1,12 @@
 // Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.proguard;
+package com.android.tools.r8.shaking.allowshrinking;
 
-import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.accessesField;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -15,7 +16,7 @@ import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -23,7 +24,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class KeepClassMembersAllowShrinkingCompatibilityTest extends TestBase {
+public class KeepClassFieldsAllowShrinkingCompatibilityTest extends TestBase {
 
   private final TestParameters parameters;
   private final boolean allowOptimization;
@@ -39,7 +40,7 @@ public class KeepClassMembersAllowShrinkingCompatibilityTest extends TestBase {
         ImmutableList.of(Shrinker.R8, Shrinker.PG));
   }
 
-  public KeepClassMembersAllowShrinkingCompatibilityTest(
+  public KeepClassFieldsAllowShrinkingCompatibilityTest(
       TestParameters parameters,
       boolean allowOptimization,
       boolean allowObfuscation,
@@ -52,14 +53,11 @@ public class KeepClassMembersAllowShrinkingCompatibilityTest extends TestBase {
 
   String getExpected() {
     return StringUtils.lines(
-        "A::foo",
-        // Reflective lookup of A::foo will only work if optimization and obfuscation are disabled.
-        Boolean.toString(
-            !allowOptimization
-                && !allowObfuscation
-                // TODO(b/171289133): Remove this exception once fixed.
-                && !shrinker.isR8()),
-        "false");
+        "A.foo",
+        // R8 will succeed in removing the field if allowoptimization is set.
+        Boolean.toString((shrinker.isPG() || !allowOptimization) && !allowObfuscation),
+        // R8 will always remove the unreferenced B.foo field.
+        Boolean.toString(shrinker.isPG() && !allowOptimization && !allowObfuscation));
   }
 
   @Test
@@ -67,7 +65,7 @@ public class KeepClassMembersAllowShrinkingCompatibilityTest extends TestBase {
     if (shrinker.isR8()) {
       run(
           testForR8(parameters.getBackend())
-              // TODO(b/171289133): The keep rule should not be "unmatched".
+              // Allowing all of shrinking, optimization and obfuscation will amount to a nop rule.
               .allowUnusedProguardConfigurationRules(allowOptimization && allowObfuscation));
     } else {
       run(testForProguard(shrinker.getProguardVersion()).addDontWarn(getClass()));
@@ -79,9 +77,9 @@ public class KeepClassMembersAllowShrinkingCompatibilityTest extends TestBase {
         "-keepclassmembers,allowshrinking"
             + (allowOptimization ? ",allowoptimization" : "")
             + (allowObfuscation ? ",allowobfuscation" : "")
-            + " class * { java.lang.String foo(); }";
+            + " class * { java.lang.String foo; java.lang.String bar; }";
     builder
-        .addInnerClasses(KeepClassMembersAllowShrinkingCompatibilityTest.class)
+        .addInnerClasses(KeepClassFieldsAllowShrinkingCompatibilityTest.class)
         .addKeepClassAndMembersRules(TestClass.class)
         .addKeepRules(keepRule)
         .setMinApi(parameters.getApiLevel())
@@ -91,51 +89,69 @@ public class KeepClassMembersAllowShrinkingCompatibilityTest extends TestBase {
             inspector -> {
               ClassSubject aClass = inspector.clazz(A.class);
               ClassSubject bClass = inspector.clazz(B.class);
-              // The class constants will force A and B to be retained, but not the foo methods.
-              assertThat(bClass, isPresentAndRenamed());
+              // The class constants will force A and B to be retained but renamed.
               assertThat(aClass, isPresentAndRenamed());
-              assertThat(bClass.uniqueMethodWithName("foo"), not(isPresent()));
-              MethodSubject aFoo = aClass.uniqueMethodWithName("foo");
-              // TODO(b/171289133): Remove R8 check once fixed.
-              if (allowOptimization || shrinker.isR8()) {
-                assertThat(aFoo, not(isPresent()));
+              assertThat(bClass, isPresentAndRenamed());
+
+              FieldSubject aFoo = aClass.uniqueFieldWithName("foo");
+              FieldSubject aBar = aClass.uniqueFieldWithName("bar");
+              FieldSubject bFoo = bClass.uniqueFieldWithName("foo");
+              FieldSubject bBar = bClass.uniqueFieldWithName("bar");
+
+              if (allowOptimization) {
+                // PG fails to optimize out the referenced field.
+                assertThat(aFoo, notIf(isPresent(), shrinker.isR8()));
+                assertThat(aBar, not(isPresent()));
+                assertThat(bFoo, not(isPresent()));
+                assertThat(bBar, not(isPresent()));
               } else {
                 assertThat(aFoo, isPresentAndRenamed(allowObfuscation));
-                assertThat(inspector.clazz(TestClass.class).mainMethod(), invokesMethod(aFoo));
+                // TODO(b/171459868) It is inconsistent that the unused field A.bar is retained.
+                //   This does not match the R8 behavior for an unused method, so there may be an
+                //   optimization opportunity here.
+                //   (See KeepClassMethodsAllowShrinkingCompatibilityTest regarding methods).
+                assertThat(aBar, isPresentAndRenamed(allowObfuscation));
+                assertThat(inspector.clazz(TestClass.class).mainMethod(), accessesField(aFoo));
+                if (shrinker.isR8()) {
+                  assertThat(bFoo, not(isPresent()));
+                  assertThat(bBar, not(isPresent()));
+                } else {
+                  assertThat(bFoo, isPresentAndRenamed(allowObfuscation));
+                  assertThat(bBar, isPresentAndRenamed(allowObfuscation));
+                }
               }
             });
   }
 
   static class A {
-    public String foo() {
-      return "A::foo";
-    }
+    // Note: If the fields are final PG actually allows itself to inline the values.
+    public String foo = "A.foo";
+    public String bar = "A.bar";
   }
 
   static class B {
-    public String foo() {
-      return "B::foo";
-    }
+    public String foo = "B.foo";
+    public String bar = "B.bar";
   }
 
   static class TestClass {
 
     public static boolean hasFoo(String name) {
       try {
-        return Class.forName(name).getDeclaredMethod("foo") != null;
+        return Class.forName(name).getDeclaredField("foo") != null;
       } catch (Exception e) {
         return false;
       }
     }
 
     public static void main(String[] args) {
-      // Direct call to A.foo, if optimization is not allowed it will be kept.
-      A a = new A();
-      System.out.println(a.foo());
-      // Reference to A should not retain A::foo when allowoptimization is set.
-      // Note: if using class constant A.class, PG will actually retain A::foo !?
+      // Conditional instance to prohibit class inlining of A.
+      A a = args.length == 42 ? null : new A();
+      // Direct use of A.foo, if optimization is not allowed it will be kept.
+      System.out.println(a.foo);
+      // Reference to A should not retain A.foo when allowoptimization is set.
       System.out.println(hasFoo(a.getClass().getTypeName()));
-      // Reference to B should not retain B::foo regardless of allowoptimization.
+      // Reference to B should not retain B.foo regardless of allowoptimization.
       System.out.println(hasFoo(B.class.getTypeName()));
     }
   }

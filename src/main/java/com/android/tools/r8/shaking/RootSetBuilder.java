@@ -83,6 +83,7 @@ public class RootSetBuilder {
   private final DirectMappedDexApplication application;
   private final Iterable<? extends ProguardConfigurationRule> rules;
   private final MutableItemsWithRules noShrinking = new MutableItemsWithRules();
+  private final MutableItemsWithRules softPinned = new MutableItemsWithRules();
   private final Set<DexReference> noObfuscation = Sets.newIdentityHashSet();
   private final LinkedHashMap<DexReference, DexReference> reasonAsked = new LinkedHashMap<>();
   private final LinkedHashMap<DexReference, DexReference> checkDiscarded = new LinkedHashMap<>();
@@ -102,6 +103,8 @@ public class RootSetBuilder {
   private final Set<DexType> noStaticClassMerging = Sets.newIdentityHashSet();
   private final Set<DexReference> neverPropagateValue = Sets.newIdentityHashSet();
   private final Map<DexReference, MutableItemsWithRules> dependentNoShrinking =
+      new IdentityHashMap<>();
+  private final Map<DexReference, MutableItemsWithRules> dependentSoftPinned =
       new IdentityHashMap<>();
   private final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule =
       new IdentityHashMap<>();
@@ -334,6 +337,7 @@ public class RootSetBuilder {
     assert appView.options().isMinificationEnabled() || noObfuscation.isEmpty();
     return new RootSet(
         noShrinking,
+        softPinned,
         noObfuscation,
         ImmutableList.copyOf(reasonAsked.values()),
         ImmutableList.copyOf(checkDiscarded.values()),
@@ -356,6 +360,7 @@ public class RootSetBuilder {
         noSideEffects,
         assumedValues,
         dependentNoShrinking,
+        dependentSoftPinned,
         dependentKeepClassCompatRule,
         identifierNameStrings,
         ifRules,
@@ -424,8 +429,10 @@ public class RootSetBuilder {
         neverInline,
         neverClassInline,
         noShrinking,
+        softPinned,
         noObfuscation,
         dependentNoShrinking,
+        dependentSoftPinned,
         dependentKeepClassCompatRule,
         Lists.newArrayList(delayedRootSetActionItems));
   }
@@ -1042,6 +1049,7 @@ public class RootSetBuilder {
     dependentNoShrinking
         .computeIfAbsent(item.toReference(), x -> new MutableItemsWithRules())
         .addClassWithRule(type, context);
+    // TODO(b/171289133): Test and implement allowshrinking and use of -includedescriptorclasses
     // Unconditionally add to no-obfuscation, as that is only checked for surviving items.
     if (appView.options().isMinificationEnabled()) {
       noObfuscation.add(type);
@@ -1136,6 +1144,14 @@ public class RootSetBuilder {
           noShrinking.addReferenceWithRule(item.toReference(), keepRule);
         }
         context.markAsUsed();
+      } else if (!modifiers.allowsOptimization) {
+        if (precondition != null) {
+          dependentSoftPinned
+              .computeIfAbsent(precondition.toReference(), x -> new MutableItemsWithRules())
+              .addReferenceWithRule(item.toReference(), keepRule);
+        } else {
+          softPinned.addReferenceWithRule(item.toReference(), keepRule);
+        }
       }
       if (!modifiers.allowsOptimization) {
         // The -dontoptimize flag has only effect through the keep all rule, but we still
@@ -1301,8 +1317,10 @@ public class RootSetBuilder {
     final Set<DexMethod> neverInline;
     final Set<DexType> neverClassInline;
     final MutableItemsWithRules noShrinking;
+    final MutableItemsWithRules softPinned;
     final Set<DexReference> noObfuscation;
     final Map<DexReference, MutableItemsWithRules> dependentNoShrinking;
+    final Map<DexReference, MutableItemsWithRules> dependentSoftPinned;
     final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule;
     final List<DelayedRootSetActionItem> delayedRootSetActionItems;
 
@@ -1310,15 +1328,19 @@ public class RootSetBuilder {
         Set<DexMethod> neverInline,
         Set<DexType> neverClassInline,
         MutableItemsWithRules noShrinking,
+        MutableItemsWithRules softPinned,
         Set<DexReference> noObfuscation,
         Map<DexReference, MutableItemsWithRules> dependentNoShrinking,
+        Map<DexReference, MutableItemsWithRules> dependentSoftPinned,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
         List<DelayedRootSetActionItem> delayedRootSetActionItems) {
       this.neverInline = neverInline;
       this.neverClassInline = neverClassInline;
       this.noShrinking = noShrinking;
+      this.softPinned = softPinned;
       this.noObfuscation = noObfuscation;
       this.dependentNoShrinking = dependentNoShrinking;
+      this.dependentSoftPinned = dependentSoftPinned;
       this.dependentKeepClassCompatRule = dependentKeepClassCompatRule;
       this.delayedRootSetActionItems = delayedRootSetActionItems;
     }
@@ -1445,19 +1467,20 @@ public class RootSetBuilder {
       return reference.apply(this::containsClass, this::containsField, this::containsMethod);
     }
 
-    public abstract void forEachClass(Consumer<DexType> consumer);
+    public abstract void forEachClass(Consumer<? super DexType> consumer);
 
-    public abstract void forEachClass(BiConsumer<DexType, Set<ProguardKeepRuleBase>> consumer);
+    public abstract void forEachClass(
+        BiConsumer<? super DexType, Set<ProguardKeepRuleBase>> consumer);
 
     public abstract void forEachField(Consumer<? super DexField> consumer);
 
     public abstract void forEachField(
         BiConsumer<? super DexField, Set<ProguardKeepRuleBase>> consumer);
 
-    public abstract void forEachMember(Consumer<DexMember<?, ?>> consumer);
+    public abstract void forEachMember(Consumer<? super DexMember<?, ?>> consumer);
 
     public abstract void forEachMember(
-        BiConsumer<DexMember<?, ?>, Set<ProguardKeepRuleBase>> consumer);
+        BiConsumer<? super DexMember<?, ?>, Set<ProguardKeepRuleBase>> consumer);
 
     public abstract void forEachMethod(Consumer<? super DexMethod> consumer);
 
@@ -1554,13 +1577,18 @@ public class RootSetBuilder {
       return methodsWithRules.containsKey(method);
     }
 
+    public void forEachReference(Consumer<DexReference> consumer) {
+      forEachClass(consumer);
+      forEachMember(consumer);
+    }
+
     @Override
-    public void forEachClass(Consumer<DexType> consumer) {
+    public void forEachClass(Consumer<? super DexType> consumer) {
       classesWithRules.keySet().forEach(consumer);
     }
 
     @Override
-    public void forEachClass(BiConsumer<DexType, Set<ProguardKeepRuleBase>> consumer) {
+    public void forEachClass(BiConsumer<? super DexType, Set<ProguardKeepRuleBase>> consumer) {
       classesWithRules.forEach(consumer);
     }
 
@@ -1575,13 +1603,14 @@ public class RootSetBuilder {
     }
 
     @Override
-    public void forEachMember(Consumer<DexMember<?, ?>> consumer) {
+    public void forEachMember(Consumer<? super DexMember<?, ?>> consumer) {
       forEachField(consumer);
       forEachMethod(consumer);
     }
 
     @Override
-    public void forEachMember(BiConsumer<DexMember<?, ?>, Set<ProguardKeepRuleBase>> consumer) {
+    public void forEachMember(
+        BiConsumer<? super DexMember<?, ?>, Set<ProguardKeepRuleBase>> consumer) {
       forEachField(consumer);
       forEachMethod(consumer);
     }
@@ -1752,6 +1781,7 @@ public class RootSetBuilder {
 
     private RootSet(
         MutableItemsWithRules noShrinking,
+        MutableItemsWithRules softPinned,
         Set<DexReference> noObfuscation,
         ImmutableList<DexReference> reasonAsked,
         ImmutableList<DexReference> checkDiscarded,
@@ -1774,6 +1804,7 @@ public class RootSetBuilder {
         Map<DexReference, ProguardMemberRule> noSideEffects,
         Map<DexReference, ProguardMemberRule> assumedValues,
         Map<DexReference, MutableItemsWithRules> dependentNoShrinking,
+        Map<DexReference, MutableItemsWithRules> dependentSoftPinned,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
         Set<DexReference> identifierNameStrings,
         Set<ProguardIfRule> ifRules,
@@ -1782,8 +1813,10 @@ public class RootSetBuilder {
           neverInline,
           neverClassInline,
           noShrinking,
+          softPinned,
           noObfuscation,
           dependentNoShrinking,
+          dependentSoftPinned,
           dependentKeepClassCompatRule,
           delayedRootSetActionItems);
       this.reasonAsked = reasonAsked;
@@ -1831,7 +1864,8 @@ public class RootSetBuilder {
       if (addNoShrinking) {
         noShrinking.addAll(consequentRootSet.noShrinking);
       }
-      addDependentItems(consequentRootSet.dependentNoShrinking);
+      addDependentItems(consequentRootSet.dependentNoShrinking, dependentNoShrinking);
+      addDependentItems(consequentRootSet.dependentSoftPinned, dependentSoftPinned);
       consequentRootSet.dependentKeepClassCompatRule.forEach(
           (type, rules) ->
               dependentKeepClassCompatRule.computeIfAbsent(
@@ -1840,10 +1874,12 @@ public class RootSetBuilder {
     }
 
     // Add dependent items that depend on -if rules.
-    private void addDependentItems(Map<DexReference, ? extends ItemsWithRules> dependentItems) {
-      dependentItems.forEach(
+    private static void addDependentItems(
+        Map<DexReference, ? extends ItemsWithRules> dependentItemsToAdd,
+        Map<DexReference, MutableItemsWithRules> dependentItemsToAddTo) {
+      dependentItemsToAdd.forEach(
           (reference, dependence) ->
-              dependentNoShrinking
+              dependentItemsToAddTo
                   .computeIfAbsent(reference, x -> new MutableItemsWithRules())
                   .putAll(dependence));
     }
@@ -2075,16 +2111,20 @@ public class RootSetBuilder {
         Set<DexMethod> neverInline,
         Set<DexType> neverClassInline,
         MutableItemsWithRules noShrinking,
+        MutableItemsWithRules softPinned,
         Set<DexReference> noObfuscation,
         Map<DexReference, MutableItemsWithRules> dependentNoShrinking,
+        Map<DexReference, MutableItemsWithRules> dependentSoftPinned,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
         List<DelayedRootSetActionItem> delayedRootSetActionItems) {
       super(
           neverInline,
           neverClassInline,
           noShrinking,
+          softPinned,
           noObfuscation,
           dependentNoShrinking,
+          dependentSoftPinned,
           dependentKeepClassCompatRule,
           delayedRootSetActionItems);
     }

@@ -2,11 +2,11 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.proguard;
+package com.android.tools.r8.shaking.allowshrinking;
 
-import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.accessesField;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -15,6 +15,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
@@ -25,7 +26,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class KeepStaticMethodAllowShrinkingCompatibilityTest extends TestBase {
+public class KeepStaticFieldAllowShrinkingCompatibilityTest extends TestBase {
 
   private final boolean allowOptimization;
   private final TestParameters parameters;
@@ -39,7 +40,7 @@ public class KeepStaticMethodAllowShrinkingCompatibilityTest extends TestBase {
         ImmutableList.of(Shrinker.R8, Shrinker.PG));
   }
 
-  public KeepStaticMethodAllowShrinkingCompatibilityTest(
+  public KeepStaticFieldAllowShrinkingCompatibilityTest(
       boolean allowOptimization, TestParameters parameters, Shrinker shrinker) {
     this.allowOptimization = allowOptimization;
     this.parameters = parameters;
@@ -64,31 +65,29 @@ public class KeepStaticMethodAllowShrinkingCompatibilityTest extends TestBase {
                 + (allowOptimization ? ",allowoptimization" : "")
                 + " class "
                 + Companion.class.getTypeName()
-                + " { <methods>; }")
+                + " { <fields>; }")
         .compile()
         .inspect(
             inspector -> {
               ClassSubject testClassSubject = inspector.clazz(TestClass.class);
               assertThat(testClassSubject, isPresent());
 
-              ClassSubject companionClassSubject = inspector.clazz(Companion.class);
-              // TODO(b/171289133): Remove the R8 check one fixed.
-              assertThat(
-                  companionClassSubject, notIf(isPresent(), allowOptimization || shrinker.isR8()));
-
               MethodSubject mainMethodSubject = testClassSubject.mainMethod();
-              MethodSubject getMethodSubject = companionClassSubject.uniqueMethodWithName("get");
+              ClassSubject companionClassSubject = inspector.clazz(Companion.class);
+              FieldSubject xFieldSubject = companionClassSubject.uniqueFieldWithName("x");
 
-              // TODO(b/171289133): Remove the R8 check once fixed.
-              if (allowOptimization || shrinker.isR8()) {
+              // PG fails to optimize fields regardless of keep flags.
+              if (allowOptimization && shrinker.isR8()) {
+                assertThat(companionClassSubject, not(isPresent()));
                 assertTrue(
                     testClassSubject
                         .mainMethod()
                         .streamInstructions()
                         .allMatch(InstructionSubject::isReturnVoid));
               } else {
-                assertThat(mainMethodSubject, invokesMethod(getMethodSubject));
-                assertThat(getMethodSubject, isPresent());
+                assertThat(companionClassSubject, isPresent());
+                assertThat(mainMethodSubject, accessesField(xFieldSubject));
+                assertThat(xFieldSubject, isPresent());
               }
             })
         .run(parameters.getRuntime(), TestClass.class)
@@ -98,7 +97,7 @@ public class KeepStaticMethodAllowShrinkingCompatibilityTest extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) {
-      if (Companion.get() != 42) {
+      if (Companion.x != 42) {
         System.out.println("Hello world!");
       }
     }
@@ -106,8 +105,6 @@ public class KeepStaticMethodAllowShrinkingCompatibilityTest extends TestBase {
 
   static class Companion {
 
-    static int get() {
-      return 42;
-    }
+    static int x = 42;
   }
 }

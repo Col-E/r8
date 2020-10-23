@@ -3,14 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming.b130791310;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -108,45 +107,27 @@ public class B130791310 extends TestBase {
     this.parameters = parameters;
   }
 
-  private void inspect(CodeInspector inspector, boolean isR8) {
+  private void inspect(CodeInspector inspector) {
     ClassSubject holder = inspector.clazz(SomeLogic.class);
     assertThat(holder, isPresentAndNotRenamed());
     MethodSubject someMethod = holder.uniqueMethodWithName("someMethod");
-    if (isR8) {
-      if (onlyForceInlining) {
-        assertThat(someMethod, isPresentAndNotRenamed());
-      } else {
-        assertThat(someMethod, not(isPresent()));
-      }
-    } else {
-      if (enableClassMerging) {
-        // Note that the method is not entirely gone, but merged to the implementer, along with some
-        // method signature modification.
-        assertThat(someMethod, not(isPresent()));
-      } else {
-        assertThat(someMethod, isPresentAndNotRenamed());
-      }
-    }
+    assertThat(someMethod, isPresentAndNotRenamed());
   }
 
   @Test
   public void testProguard() throws Exception {
     assumeFalse(onlyForceInlining);
     assumeTrue(parameters.isCfRuntime());
-    testForProguard()
+    testForProguard(ProguardVersion.getLatest())
         .addProgramClasses(CLASSES)
         .addKeepClassAndMembersRules(MAIN)
         .addKeepRules(RULES)
         .addTestingAnnotationsAsProgramClasses()
         .setMinApi(parameters.getApiLevel())
-        .apply(
-            builder -> {
-              if (!enableClassMerging) {
-                builder.addKeepRules("-optimizations !class/merging/*");
-              }
-            })
+        .applyIf(
+            !enableClassMerging, builder -> builder.addKeepRules("-optimizations !class/merging/*"))
         .compile()
-        .inspect(inspector -> inspect(inspector, false));
+        .inspect(this::inspect);
   }
 
   @Test
@@ -158,14 +139,12 @@ public class B130791310 extends TestBase {
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(o -> o.enableVerticalClassMerging = enableClassMerging)
-        .apply(
-            builder -> {
-              if (onlyForceInlining) {
+        .applyIf(
+            onlyForceInlining,
+            builder ->
                 builder.addOptionsModification(
-                    o -> o.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE));
-              }
-            })
+                    o -> o.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE)))
         .compile()
-        .inspect(inspector -> inspect(inspector, true));
+        .inspect(this::inspect);
   }
 }

@@ -57,6 +57,7 @@ import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
+import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.FailedResolutionResult;
@@ -93,6 +94,7 @@ import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.shaking.KeepInfoCollection.MutableKeepInfoCollection;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetBuilder.ItemsWithRules;
+import com.android.tools.r8.shaking.RootSetBuilder.MutableItemsWithRules;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.utils.Action;
@@ -2370,6 +2372,8 @@ public class Enqueuer {
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(field.getDefinition()));
 
+    checkMemberForSoftPinning(field);
+
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processNewlyLiveField(field));
   }
@@ -2385,6 +2389,8 @@ public class Enqueuer {
 
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(field.getDefinition()));
+
+    checkMemberForSoftPinning(field);
 
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processNewlyLiveField(field));
@@ -3400,12 +3406,26 @@ public class Enqueuer {
             enqueueRootItems(dependentItems);
           }
         });
+    consequentRootSet.dependentSoftPinned.forEach(
+        (reference, dependentItems) -> {
+          if (isLiveProgramReference(reference)) {
+            dependentItems.forEachReference(
+                item -> {
+                  if (isLiveProgramReference(item)) {
+                    keepInfo.joinInfo(item, appView, Joiner::pin);
+                  }
+                });
+          }
+        });
+
     // TODO(b/132600955): This modifies the root set. Should the consequent be persistent?
     rootSet.addConsequentRootSet(consequentRootSet, addNoShrinking);
     if (mode.isInitialTreeShaking()) {
       for (DexReference reference : consequentRootSet.noObfuscation) {
         keepInfo.evaluateRule(reference, appView, Joiner::disallowMinification);
       }
+      consequentRootSet.softPinned.forEachReference(
+          reference -> keepInfo.evaluateRule(reference, appView, Joiner::pin));
     }
     enqueueRootItems(consequentRootSet.noShrinking);
     // Check for compatibility rules indicating that the holder must be implicitly kept.
@@ -3417,6 +3437,18 @@ public class Enqueuer {
             compatEnqueueHolderIfDependentNonStaticMember(preconditionHolder, compatRules);
           });
     }
+  }
+
+  private boolean isLiveProgramReference(DexReference reference) {
+    if (reference.isDexType()) {
+      DexProgramClass clazz =
+          DexProgramClass.asProgramClassOrNull(definitionFor(reference.asDexType()));
+      return clazz != null && isTypeLive(clazz);
+    }
+    DexMember<?, ?> member = reference.asDexMember();
+    DexProgramClass holder = DexProgramClass.asProgramClassOrNull(definitionFor(member.holder));
+    ProgramMember<?, ?> programMember = member.lookupOnProgramClass(holder);
+    return programMember != null && isMemberLive(programMember.getDefinition());
   }
 
   private ConsequentRootSet computeDelayedInterfaceMethodSyntheticBridges() {
@@ -3608,8 +3640,26 @@ public class Enqueuer {
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(definition));
 
+    checkMemberForSoftPinning(method);
+
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processNewlyLiveMethod(method));
+  }
+
+  private void checkMemberForSoftPinning(ProgramMember<?, ?> member) {
+    DexMember<?, ?> reference = member.getDefinition().toReference();
+    Set<ProguardKeepRuleBase> softPinRules = rootSet.softPinned.getRulesForReference(reference);
+    if (softPinRules != null) {
+      assert softPinRules.stream().noneMatch(r -> r.getModifiers().allowsOptimization);
+      keepInfo.joinInfo(reference, appInfo, Joiner::pin);
+    }
+    // Identify dependent soft pinning.
+    MutableItemsWithRules items = rootSet.dependentSoftPinned.get(member.getHolderType());
+    if (items != null && items.containsReference(reference)) {
+      assert items.getRulesForReference(reference).stream()
+          .noneMatch(r -> r.getModifiers().allowsOptimization);
+      keepInfo.joinInfo(reference, appInfo, Joiner::pin);
+    }
   }
 
   private void markReferencedTypesAsLive(ProgramMethod method) {
