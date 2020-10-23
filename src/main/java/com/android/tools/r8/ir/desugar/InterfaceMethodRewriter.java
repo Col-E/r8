@@ -48,6 +48,7 @@ import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
+import com.android.tools.r8.utils.ObjectUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
@@ -1119,6 +1120,10 @@ public final class InterfaceMethodRewriter {
         || missing.isD8R8SynthesizedClassType()
         || isCompanionClassType(missing)
         || emulatedInterfaces.containsValue(missing)
+        || ObjectUtils.getBooleanOrElse(
+            options.getProguardConfiguration(),
+            configuration -> configuration.getDontWarnPatterns().matches(missing),
+            false)
         || options.desugaredLibraryConfiguration.getCustomConversions().containsValue(missing);
   }
 

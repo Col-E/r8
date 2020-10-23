@@ -62,7 +62,6 @@ public class MissingLibraryTargetTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .allowDiagnosticWarningMessages(isDesugaring())
         .addProgramClasses(PROGRAM)
         .addKeepMainRule(MAIN)
         .addClasspathClasses(LIBRARY)

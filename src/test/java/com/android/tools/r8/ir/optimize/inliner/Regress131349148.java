@@ -62,8 +62,6 @@ public class Regress131349148 extends TestBase {
                 ExistingException.class)
             .addKeepMainRule(TestClassCallingMethodWithNonExisting.class)
             .addKeepRules("-dontwarn " + NonExistingException.class.getTypeName())
-            .allowDiagnosticWarningMessages(
-                parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(AndroidApiLevel.N))
             .setMinApi(parameters.getApiLevel())
             .compile()
             .assertAllWarningMessagesMatch(
