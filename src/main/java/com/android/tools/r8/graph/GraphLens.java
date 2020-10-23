@@ -502,6 +502,7 @@ public abstract class GraphLens {
     return result;
   }
 
+  @SuppressWarnings("unchecked")
   public <T extends DexReference> T rewriteReference(T reference) {
     if (reference.isDexField()) {
       return (T) getRenamedFieldSignature(reference.asDexField());
