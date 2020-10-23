@@ -36,7 +36,7 @@ public class AssumeNoSideEffectsForLibraryMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .addKeepRules("-assumenosideeffects class java.lang.Object { int hashCode() return 42; }")
+        .addKeepRules("-assumenosideeffects class java.lang.String { int hashCode() return 42; }")
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
@@ -58,7 +58,7 @@ public class AssumeNoSideEffectsForLibraryMethodTest extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) {
-      System.out.println(new Object().hashCode());
+      System.out.println("".hashCode());
     }
   }
 }
