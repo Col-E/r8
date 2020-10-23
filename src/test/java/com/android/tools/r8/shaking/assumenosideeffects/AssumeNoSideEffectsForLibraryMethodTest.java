@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.util.ArrayList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,7 +37,8 @@ public class AssumeNoSideEffectsForLibraryMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .addKeepRules("-assumenosideeffects class java.lang.String { int hashCode() return 42; }")
+        .addKeepRules(
+            "-assumenosideeffects class java.util.ArrayList { int hashCode() return 42; }")
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
@@ -58,7 +60,7 @@ public class AssumeNoSideEffectsForLibraryMethodTest extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) {
-      System.out.println("".hashCode());
+      System.out.println(new ArrayList<>().hashCode());
     }
   }
 }
