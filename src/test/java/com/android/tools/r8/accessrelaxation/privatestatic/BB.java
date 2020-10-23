@@ -6,7 +6,9 @@ package com.android.tools.r8.accessrelaxation.privatestatic;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoHorizontalClassMerging;
 
+@NoHorizontalClassMerging
 public class BB extends A {
   @NeverInline
   @NeverPropagateValue

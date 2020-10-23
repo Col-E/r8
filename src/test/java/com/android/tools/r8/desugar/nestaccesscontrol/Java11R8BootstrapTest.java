@@ -57,11 +57,8 @@ public class Java11R8BootstrapTest extends TestBase {
 
   @BeforeClass
   public static void beforeAll() throws Exception {
-    assertThrowsWithHorizontalClassMerging(
-        () -> {
-          r8Lib11NoDesugar = compileR8(false);
-          r8Lib11Desugar = compileR8(true);
-        });
+    r8Lib11NoDesugar = compileR8(false);
+    r8Lib11Desugar = compileR8(true);
   }
 
   private static Path compileR8(boolean desugar) throws Exception {

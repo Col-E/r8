@@ -183,7 +183,6 @@ public class KeepAnnotatedMemberTest extends TestBase {
 
   @Test
   public void testConditionalEqualsKeepClassMembers() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     GraphInspector referenceInspector =
         testForR8(Backend.CF)
             .enableGraphInspector()

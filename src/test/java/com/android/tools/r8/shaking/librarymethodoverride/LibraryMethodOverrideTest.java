@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -37,13 +38,13 @@ public class LibraryMethodOverrideTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(LibraryMethodOverrideTest.class)
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.enableTreeShakingOfLibraryMethodOverrides = true)
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyOutput)
@@ -125,6 +126,7 @@ public class LibraryMethodOverrideTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class DoesNotEscape {
 
     DoesNotEscape() {
@@ -139,6 +141,7 @@ public class LibraryMethodOverrideTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class DoesNotEscapeWithSubThatDoesNotOverride {
 
     DoesNotEscapeWithSubThatDoesNotOverride() {
@@ -163,6 +166,7 @@ public class LibraryMethodOverrideTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class DoesNotEscapeWithSubThatOverrides {
 
     DoesNotEscapeWithSubThatOverrides() {
@@ -195,6 +199,7 @@ public class LibraryMethodOverrideTest extends TestBase {
   // EscapeWithSubThatOverridesAndEscapesSub is escaping from main(), unlike DoesNotEscapeWithSub-
   // ThatOverridesSub.
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class DoesNotEscapeWithSubThatOverridesAndEscapes {
 
     DoesNotEscapeWithSubThatOverridesAndEscapes() {

@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -34,7 +35,6 @@ public class PositiveBridgeHoistingTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class, A.class, B3.class, B4.class)
         .addProgramClassFileData(
@@ -53,6 +53,7 @@ public class PositiveBridgeHoistingTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -134,6 +135,7 @@ public class PositiveBridgeHoistingTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class B2 extends A {
 
     // By hoisting B1.superBridge() to A this method bridge redundant.
@@ -160,11 +162,13 @@ public class PositiveBridgeHoistingTest extends TestBase {
   // instruction targeting B3.virtualBridge() that fails with a NoSuchMethodError in the Enqueuer,
   // but this should never be the case in practice.
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class B3 extends A {}
 
   // The fact that this class declares superBridge() and virtualBridge() should not prevent
   // us from hoisting other bridges to A.
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class B4 extends A {
 
     @NeverInline
@@ -181,6 +185,7 @@ public class PositiveBridgeHoistingTest extends TestBase {
   // This class declares the same bridges, but with different (bridge) behavior. They are candidates
   // for hoisting, but will not be hoisted because it is better to hoist the bridges declared on B1.
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class B5 extends A {
 
     @NeverInline

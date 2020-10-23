@@ -4,6 +4,4 @@
 
 package com.android.tools.r8.shaking.includedescriptorclasses;
 
-public class NativeReturnType {
-
-}
+public class NativeReturnType {}

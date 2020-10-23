@@ -55,6 +55,10 @@ public class ConstructorMerger {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
+  public int getArity() {
+    return constructors.iterator().next().getReference().getArity();
+  }
+
   public static class Builder {
     private final Collection<DexEncodedMethod> constructors;
 

@@ -31,6 +31,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VmTestRunner.class)
 public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command.Builder> {
+
   private static final ArrayList<String> PROGUARD_OPTIONS = Lists.newArrayList(
       "-keepclasseswithmembers public class * {",
       "    public static void main(java.lang.String[]);",
@@ -161,7 +162,6 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
   @Override
   @Test
   public void lambdaDesugaringNPlus() throws Throwable {
-    expectThrowsWithHorizontalClassMerging();
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
@@ -179,7 +179,10 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 2, "lambdadesugaringnplus"))
+        .withDexCheck(
+            inspector ->
+                checkLambdaCount(
+                    inspector, isHorizontalClassMergingEnabled() ? 3 : 2, "lambdadesugaringnplus"))
         .run();
   }
 
@@ -207,7 +210,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .run();
   }
 
-  private void checkLambdaCount(CodeInspector inspector, int expectedCount, String prefix) {
+  private void checkLambdaCount(CodeInspector inspector, int maxExpectedCount, String prefix) {
     int count = 0;
     for (FoundClassSubject clazz : inspector.allClasses()) {
       if (clazz.isSynthesizedJavaLambdaClass() &&
@@ -215,7 +218,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         count++;
       }
     }
-    assertEquals(expectedCount, count);
+    assertEquals(maxExpectedCount, count);
   }
 
   private void checkTestMultipleInterfacesCheckCastCount(

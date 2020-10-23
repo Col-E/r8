@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -48,7 +49,6 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
 
   @Test
   public void b139769782() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     String expectedOutput = StringUtils.lines("A#foo(B)", "A#foo(B, Object)");
 
     if (parameters.isCfRuntime() && !minification && !allowAccessModification) {
@@ -63,6 +63,7 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .minification(minification)
         .allowAccessModification(allowAccessModification)
         .setMinApi(parameters.getRuntime())
@@ -122,6 +123,7 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static class B {
     @Override
     public String toString() {
@@ -129,5 +131,6 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static class C {}
 }

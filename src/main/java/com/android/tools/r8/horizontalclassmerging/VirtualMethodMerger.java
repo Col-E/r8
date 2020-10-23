@@ -90,6 +90,10 @@ public class VirtualMethodMerger {
     }
   }
 
+  public int getArity() {
+    return methods.iterator().next().getReference().getArity();
+  }
+
   private DexMethod moveMethod(ProgramMethod oldMethod) {
     DexMethod oldMethodReference = oldMethod.getReference();
     DexMethod method =

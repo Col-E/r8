@@ -15,10 +15,15 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class AssumenosideeffectsPropagationWithSuperCallTest extends TestBase {
   private static final Class<?> MAIN = DelegatesUser.class;
-  private static final String JVM_OUTPUT = StringUtils.lines(
-      "[Base] message1",
-      "The end"
-  );
+  private static final String JVM_OUTPUT =
+      StringUtils.lines("[Base] message1", "[Base] message2", "The end");
+
+  // With horizontal class merging enabled the method body for debug is cleared, because the
+  // forwarded call to the class specific implementation has no side effects. The call to the
+  // function from main persists.
+  private static final String JVM_OUTPUT_HOR_MERGING =
+      StringUtils.lines("[Base] message2", "The end");
+
   private static final String OUTPUT_WITHOUT_MESSAGES = StringUtils.lines(
       "The end"
   );
@@ -50,7 +55,7 @@ public class AssumenosideeffectsPropagationWithSuperCallTest extends TestBase {
       switch (this) {
         case SPECIFIC_RULES:
         case NON_SPECIFIC_RULES_WITH_EXTENDS:
-          return JVM_OUTPUT;
+          return isHorizontalClassMergingEnabled() ? JVM_OUTPUT_HOR_MERGING : JVM_OUTPUT;
         default:
           throw new Unreachable();
       }
@@ -73,7 +78,6 @@ public class AssumenosideeffectsPropagationWithSuperCallTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(AssumenosideeffectsPropagationWithSuperCallTest.class)
         .addKeepMainRule(MAIN)
@@ -113,6 +117,10 @@ public class AssumenosideeffectsPropagationWithSuperCallTest extends TestBase {
     public static void main(String... args) {
       BaseClass instance = createBase();
       instance.debug("message1");
+      if (System.currentTimeMillis() > 0) {
+        instance = new BaseClass();
+      }
+      instance.debug("message2");
       System.out.println("The end");
     }
   }

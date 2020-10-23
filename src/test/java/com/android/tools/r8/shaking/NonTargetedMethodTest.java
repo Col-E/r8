@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -38,10 +39,10 @@ public class NonTargetedMethodTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .addInnerClasses(NonTargetedMethodTest.class)
         .addKeepMainRule(Main.class)
@@ -72,6 +73,7 @@ public class NonTargetedMethodTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   private static class C extends A {
 
     // Non-targeted override.

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexMember;

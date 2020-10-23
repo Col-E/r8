@@ -107,12 +107,13 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
         "-assumemayhavesideeffects class adaptresourcefilenames.pkg.innerpkg.D {",
         "  void <init>();",
         "}",
-        "-neverclassinline class *");
+        "-neverclassinline class *",
+        "-nohorizontalclassmerging class adaptresourcefilenames.pkg.C",
+        "-nohorizontalclassmerging class adaptresourcefilenames.pkg.innerpkg.D");
   }
 
   @Test
   public void testEnabled() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
     compileWithR8(
         getProguardConfigWithNeverInline(true, null),

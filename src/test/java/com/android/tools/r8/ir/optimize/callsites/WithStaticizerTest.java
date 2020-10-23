@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -39,12 +40,12 @@ public class WithStaticizerTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(WithStaticizerTest.class)
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Input")
@@ -89,6 +90,7 @@ public class WithStaticizerTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class Input {
     @NeverInline
     @Override

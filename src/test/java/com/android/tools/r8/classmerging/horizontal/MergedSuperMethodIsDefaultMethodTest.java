@@ -54,6 +54,7 @@ public class MergedSuperMethodIsDefaultMethodTest extends HorizontalClassMerging
     }
   }
 
+  @NoVerticalClassMerging
   public abstract static class A implements I {}
 
   @NeverClassInline

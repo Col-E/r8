@@ -267,7 +267,6 @@ public class ClassStaticizerTest extends TestBase {
 
   @Test
   public void testMoveToHost() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     Class<?> main = MoveToHostTestClass.class;
     Class<?>[] classes = {
         NeverInline.class,
@@ -286,6 +285,7 @@ public class ClassStaticizerTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(main)
             .allowAccessModification()

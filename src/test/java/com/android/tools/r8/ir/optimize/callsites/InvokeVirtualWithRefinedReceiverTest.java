@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -41,11 +42,11 @@ public class InvokeVirtualWithRefinedReceiverTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeVirtualWithRefinedReceiverTest.class)
         .addKeepMainRule(MAIN)
         .enableNoVerticalClassMergingAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(
@@ -148,6 +149,7 @@ public class InvokeVirtualWithRefinedReceiverTest extends TestBase {
   }
 
   @NoVerticalClassMerging
+  @NoHorizontalClassMerging
   @NeverClassInline
   static class C extends A {
     @NeverInline

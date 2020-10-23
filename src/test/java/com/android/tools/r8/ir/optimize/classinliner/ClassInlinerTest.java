@@ -64,7 +64,6 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
 
   @Test
   public void testTrivial() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     Class<?> main = TrivialTestClass.class;
     Class<?>[] classes = {
         TrivialTestClass.class,
@@ -85,6 +84,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .enableSideEffectAnnotations()
             .addKeepMainRule(main)
             .addKeepAttributes("LineNumberTable")
@@ -221,7 +221,6 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
 
   @Test
   public void testInvalidatedRoot() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     Class<?> main = InvalidRootsTestClass.class;
     Class<?>[] classes = {
         InvalidRootsTestClass.class,
@@ -236,6 +235,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .addProgramClasses(classes)
             .enableProguardTestOptions()
             .enableInliningAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .addKeepMainRule(main)
             .addKeepAttributes("LineNumberTable")
             .addOptionsModification(

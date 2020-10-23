@@ -1728,17 +1728,7 @@ public class TestBase {
     }
   }
 
-  public void expectThrowsWithHorizontalClassMerging() {
-    expectThrowsWithHorizontalClassMergingIf(true);
-  }
-
-  public void expectThrowsWithHorizontalClassMergingIf(boolean condition) {
-    if (isHorizontalClassMergingEnabled() && condition) {
-      thrown.expect(Throwable.class);
-    }
-  }
-
-  private static boolean isHorizontalClassMergingEnabled() {
+  public static boolean isHorizontalClassMergingEnabled() {
     return System.getProperty("com.android.tools.r8.horizontalClassMerging") != null;
   }
 }

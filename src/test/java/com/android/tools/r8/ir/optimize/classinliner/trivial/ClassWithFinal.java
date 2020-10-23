@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.trivial;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
+
+@NoHorizontalClassMerging
 public class ClassWithFinal {
   public String doNothing() {
     return "nothing at all";

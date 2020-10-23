@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -50,10 +51,10 @@ public class InstanceOfMethodSpecializationTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(InstanceOfMethodSpecializationTest.class)
         .addKeepMainRule(TestClass.class)
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -157,6 +158,7 @@ public class InstanceOfMethodSpecializationTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   public static class C extends A {
 
     @Override

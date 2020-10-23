@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -45,7 +46,6 @@ public class AnnotationsOnFieldsTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8Compat(backend)
         .enableNeverClassInliningAnnotations()
         .addProgramClasses(CLASSES)
@@ -55,6 +55,7 @@ public class AnnotationsOnFieldsTest extends TestBase {
             "-keepclassmembers class * { @**.*Annotation <fields>; }",
             "-keepattributes *Annotation*")
         .enableSideEffectAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .compile()
         .inspect(
             inspector -> {
@@ -92,6 +93,8 @@ public class AnnotationsOnFieldsTest extends TestBase {
 }
 
 class FieldAnnotationUse {}
+
+@NoHorizontalClassMerging
 class StaticFieldAnnotationUse {}
 
 @NeverClassInline

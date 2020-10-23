@@ -7,16 +7,31 @@ package com.android.tools.r8.shaking.includedescriptorclasses;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestShrinkerBuilder;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class IncludeDescriptorClassesTest extends TestBase {
+  private final TestParameters testParameters;
+
+  public IncludeDescriptorClassesTest(TestParameters parameters) {
+    this.testParameters = parameters;
+  }
+
+  @Parameterized.Parameters(name = "{0}, horizontalClassMerging:{1}")
+  public static List<Object[]> data() {
+    return buildParameters(getTestParameters().withAllRuntimesAndApiLevels().build());
+  }
+
   private class Result {
     final CodeInspector inspector;
     final CodeInspector proguardedInspector;
@@ -26,7 +41,7 @@ public class IncludeDescriptorClassesTest extends TestBase {
       this.proguardedInspector = proguardedInspector;
     }
 
-    void assertKept(Class clazz) {
+    void assertKept(Class<?> clazz) {
       assertTrue(inspector.clazz(clazz.getCanonicalName()).isPresent());
       assertFalse(inspector.clazz(clazz.getCanonicalName()).isRenamed());
       if (proguardedInspector != null) {
@@ -35,14 +50,14 @@ public class IncludeDescriptorClassesTest extends TestBase {
     }
 
     // NOTE: 'synchronized' is supposed to disable inlining of this method.
-    synchronized void assertRemoved(Class clazz) {
+    synchronized void assertRemoved(Class<?> clazz) {
       assertFalse(inspector.clazz(clazz.getCanonicalName()).isPresent());
       if (proguardedInspector != null) {
         assertFalse(proguardedInspector.clazz(clazz).isPresent());
       }
     }
 
-    void assertRenamed(Class clazz) {
+    void assertRenamed(Class<?> clazz) {
       assertTrue(inspector.clazz(clazz.getCanonicalName()).isPresent());
       assertTrue(inspector.clazz(clazz.getCanonicalName()).isRenamed());
       if (proguardedInspector != null) {
@@ -59,22 +74,36 @@ public class IncludeDescriptorClassesTest extends TestBase {
           NativeReturnType.class,
           StaticFieldType.class,
           InstanceFieldType.class);
-  private List<Class> mainClasses = ImmutableList.of(
-      MainCallMethod1.class, MainCallMethod2.class, MainCallMethod3.class);
+  private List<Class<?>> mainClasses =
+      ImmutableList.of(MainCallMethod1.class, MainCallMethod2.class, MainCallMethod3.class);
 
-  Result runTest(Class mainClass, Path proguardConfig) throws Exception {
-    List<Class<?>> classes = new ArrayList<>(applicationClasses);
-    classes.add(mainClass);
+  Result runTest(ThrowableConsumer<TestShrinkerBuilder<?, ?, ?, ?, ?>> configure) throws Exception {
+    return runTest(configure, ignore -> {});
+  }
 
-    CodeInspector inspector = new CodeInspector(compileWithR8(classes, proguardConfig));
+  Result runTest(
+      ThrowableConsumer<TestShrinkerBuilder<?, ?, ?, ?, ?>> configure,
+      ThrowableConsumer<R8FullTestBuilder> configureR8)
+      throws Exception {
+    CodeInspector inspector =
+        testForR8(testParameters.getBackend())
+            .setMinApi(testParameters.getApiLevel())
+            .addProgramClasses(applicationClasses)
+            .apply(configure::accept)
+            .apply(configureR8)
+            .compile()
+            .inspector();
 
     CodeInspector proguardedInspector = null;
     // Actually running Proguard should only be during development.
     if (isRunProguard()) {
-      Path proguardedJar = temp.newFolder().toPath().resolve("proguarded.jar");
-      Path proguardedMap = temp.newFolder().toPath().resolve("proguarded.map");
-      ToolHelper.runProguard(jarTestClasses(classes), proguardedJar, proguardConfig, proguardedMap);
-      proguardedInspector = new CodeInspector(readJar(proguardedJar), proguardedMap);
+      proguardedInspector =
+          testForProguard()
+              .setMinApi(testParameters.getApiLevel())
+              .addProgramClasses(applicationClasses)
+              .apply(configure::accept)
+              .compile()
+              .inspector();
     }
 
     return new Result(inspector, proguardedInspector);
@@ -83,20 +112,21 @@ public class IncludeDescriptorClassesTest extends TestBase {
   @Test
   public void testNoIncludesDescriptorClasses() throws Exception {
     for (Class<?> mainClass : mainClasses) {
-      List<Class<?>> allClasses = new ArrayList<>(applicationClasses);
-      allClasses.add(mainClass);
+      List<String> proguardConfig =
+          ImmutableList.of(
+              "-keepclasseswithmembers class * {   ",
+              "  <fields>;                         ",
+              "  native <methods>;                 ",
+              "}                                   ",
+              "-allowaccessmodification            ");
 
-      Path proguardConfig = writeTextToTempFile(
-          keepMainProguardConfiguration(mainClass),
-          "-keepclasseswithmembers class * {   ",
-          "  <fields>;                         ",
-          "  native <methods>;                 ",
-          "}                                   ",
-          "-allowaccessmodification            ",
-          "-printmapping                       "
-      );
-
-      Result result = runTest(mainClass, proguardConfig);
+      Result result =
+          runTest(
+              builder ->
+                  builder
+                      .addProgramClasses(mainClass)
+                      .addKeepMainRule(mainClass)
+                      .addKeepRules(proguardConfig));
 
       result.assertKept(ClassWithNativeMethods.class);
       // Return types are not removed as they can be needed for verification.
@@ -113,17 +143,20 @@ public class IncludeDescriptorClassesTest extends TestBase {
   @Test
   public void testKeepClassesWithMembers() throws Exception {
     for (Class mainClass : mainClasses) {
-      Path proguardConfig = writeTextToTempFile(
-          keepMainProguardConfiguration(mainClass),
-          "-keepclasseswithmembers,includedescriptorclasses class * {  ",
-          "  <fields>;                                                 ",
-          "  native <methods>;                                         ",
-          "}                                                           ",
-          "-allowaccessmodification                                    ",
-          "-printmapping                                               "
-      );
-
-      Result result = runTest(mainClass, proguardConfig);
+      List<String> proguardConfig =
+          ImmutableList.of(
+              "-keepclasseswithmembers,includedescriptorclasses class * {  ",
+              "  <fields>;                                                 ",
+              "  native <methods>;                                         ",
+              "}                                                           ",
+              "-allowaccessmodification                                    ");
+      Result result =
+          runTest(
+              builder ->
+                  builder
+                      .addProgramClasses(mainClass)
+                      .addKeepMainRule(mainClass)
+                      .addKeepRules(proguardConfig));
 
       // With includedescriptorclasses return type, argument type ad field type are not renamed.
       result.assertKept(ClassWithNativeMethods.class);
@@ -137,17 +170,21 @@ public class IncludeDescriptorClassesTest extends TestBase {
   @Test
   public void testKeepClassMembers() throws Exception {
     for (Class mainClass : mainClasses) {
-      Path proguardConfig = writeTextToTempFile(
-          keepMainProguardConfiguration(mainClass),
-          "-keepclassmembers,includedescriptorclasses class * {  ",
-          "  <fields>;                                           ",
-          "  native <methods>;                                   ",
-          "}                                                     ",
-          "-allowaccessmodification                              ",
-          "-printmapping                                         "
-      );
+      List<String> proguardConfig =
+          ImmutableList.of(
+              "-keepclassmembers,includedescriptorclasses class * {  ",
+              "  <fields>;                                           ",
+              "  native <methods>;                                   ",
+              "}                                                     ",
+              "-allowaccessmodification                              ");
 
-      Result result = runTest(mainClass, proguardConfig);
+      Result result =
+          runTest(
+              builder ->
+                  builder
+                      .addProgramClasses(mainClass)
+                      .addKeepMainRule(mainClass)
+                      .addKeepRules(proguardConfig));
 
       // With includedescriptorclasses return type and argument type are not renamed.
       result.assertRenamed(ClassWithNativeMethods.class);
@@ -160,20 +197,23 @@ public class IncludeDescriptorClassesTest extends TestBase {
 
     @Test
     public void testKeepClassMemberNames() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     for (Class<?> mainClass : mainClasses) {
-        Path proguardConfig = writeTextToTempFile(
-            keepMainProguardConfiguration(mainClass),
-            // same as -keepclassmembers,allowshrinking,includedescriptorclasses
-            "-keepclassmembernames,includedescriptorclasses class * {  ",
-            "  <fields>;                                               ",
-            "  native <methods>;                                       ",
-            "}                                                         ",
-            "-allowaccessmodification                                  ",
-            "-printmapping                                             "
-        );
+      List<String> proguardConfig =
+          ImmutableList.of(
+              // same as -keepclassmembers,allowshrinking,includedescriptorclasses
+              "-keepclassmembernames,includedescriptorclasses class * {  ",
+              "  <fields>;                                               ",
+              "  native <methods>;                                       ",
+              "}                                                         ",
+              "-allowaccessmodification                                  ");
 
-        Result result = runTest(mainClass, proguardConfig);
+      Result result =
+          runTest(
+              builder ->
+                  builder
+                      .addProgramClasses(mainClass)
+                      .addKeepMainRule(mainClass)
+                      .addKeepRules(proguardConfig));
 
         boolean useNativeArgumentType =
             mainClass == MainCallMethod1.class || mainClass == MainCallMethod3.class;

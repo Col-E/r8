@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner.invalidroot;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 
 public class InvalidRootsTestClass {
   private static int ID = 0;
@@ -76,12 +77,14 @@ public class InvalidRootsTestClass {
         prefix + ", " + (a == null ? "null" : a.foo()) + "): " + next());
   }
 
+  @NoHorizontalClassMerging
   public static class NeverReturnsNormally {
     public String foo() {
       throw new RuntimeException("NeverReturnsNormally::foo(): " + next());
     }
   }
 
+  @NoHorizontalClassMerging
   public static class InitNeverReturnsNormally {
     public InitNeverReturnsNormally() {
       throw new RuntimeException("InitNeverReturnsNormally::init(): " + next());
@@ -131,6 +134,7 @@ public class InvalidRootsTestClass {
     }
   }
 
+  @NoHorizontalClassMerging
   public static class B {
     public String foo() {
       return "B::foo(" + next() + ")";

@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -43,7 +44,6 @@ public class InitializedClassesInInstanceMethodsTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     testForR8(parameters.getBackend())
         .addInnerClasses(InitializedClassesInInstanceMethodsTest.class)
         .addKeepMainRule(TestClass.class)
@@ -54,6 +54,7 @@ public class InitializedClassesInInstanceMethodsTest extends TestBase {
             })
         .allowAccessModification()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -137,6 +138,7 @@ public class InitializedClassesInInstanceMethodsTest extends TestBase {
     }
 
     @NeverClassInline
+    @NoHorizontalClassMerging
     static class B {
 
       @NeverInline

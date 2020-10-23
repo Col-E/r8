@@ -47,7 +47,6 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
 
   @Test
   public void testStaticMethodRelaxation() throws Exception {
-    expectThrowsWithHorizontalClassMerging();
     String expectedOutput =
         StringUtils.lines(
             "A::baz()",
@@ -80,6 +79,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
         testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
             .enableInliningAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(mainClass)
             .addOptionsModification(o -> o.enableArgumentRemoval = enableArgumentRemoval)
