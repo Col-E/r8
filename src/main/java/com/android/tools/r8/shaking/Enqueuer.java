@@ -128,6 +128,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -3462,7 +3463,8 @@ public class Enqueuer {
     return builder.buildConsequentRootSet();
   }
 
-  private Map<DexMethod, ProgramMethod> syntheticInterfaceMethodBridges = new IdentityHashMap<>();
+  private final Map<DexMethod, ProgramMethod> syntheticInterfaceMethodBridges =
+      new LinkedHashMap<>();
 
   private void handleInterfaceMethodSyntheticBridgeAction(
       InterfaceMethodSyntheticBridgeAction action, RootSetBuilder builder) {
