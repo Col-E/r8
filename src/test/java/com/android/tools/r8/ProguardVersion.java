@@ -20,6 +20,10 @@ public enum ProguardVersion {
     this.version = version;
   }
 
+  public static ProguardVersion getLatest() {
+    return V7_0_0;
+  }
+
   public Path getProguardScript() {
     Path scriptDirectory = Paths.get(ToolHelper.THIRD_PARTY_DIR).resolve("proguard");
     if (this == V7_0_0) {
@@ -33,8 +37,12 @@ public enum ProguardVersion {
     return scriptDirectory.resolve("bin/proguard.sh");
   }
 
+  public String getVersion() {
+    return version;
+  }
+
   @Override
   public String toString() {
-    return "Proguard " + version.toString();
+    return "Proguard " + version;
   }
 }
