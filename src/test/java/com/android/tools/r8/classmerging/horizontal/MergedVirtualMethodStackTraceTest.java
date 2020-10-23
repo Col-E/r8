@@ -64,14 +64,7 @@ public class MergedVirtualMethodStackTraceTest extends HorizontalClassMergingTes
                 StackTrace expectedStackTraceWithMergedMethod =
                     StackTrace.builder()
                         .add(expectedStackTrace)
-                        // TODO(b/171294159): remove this hack that fixes the source code file
-                        .map(
-                            0,
-                            stackTraceLine ->
-                                stackTraceLine
-                                    .builderOf()
-                                    .setFileName(getClass().getSimpleName() + "$Program.java")
-                                    .build())
+
                         .add(
                             1,
                             StackTraceLine.builder()
