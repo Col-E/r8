@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Equivalence;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.hamcrest.Description;
@@ -55,6 +56,11 @@ public class StackTrace {
     public Builder addWithoutFileNameAndLineNumber(String className, String methodName) {
       stackTraceLines.add(
           StackTraceLine.builder().setClassName(className).setMethodName(methodName).build());
+      return this;
+    }
+
+    public Builder map(int i, Function<StackTraceLine, StackTraceLine> map) {
+      stackTraceLines.set(i, map.apply(stackTraceLines.get(i)));
       return this;
     }
 
@@ -121,6 +127,14 @@ public class StackTrace {
       this.methodName = methodName;
       this.fileName = fileName;
       this.lineNumber = lineNumber;
+    }
+
+    public Builder builderOf() {
+      return new Builder()
+          .setFileName(fileName)
+          .setClassName(className)
+          .setLineNumber(lineNumber)
+          .setMethodName(methodName);
     }
 
     public static Builder builder() {

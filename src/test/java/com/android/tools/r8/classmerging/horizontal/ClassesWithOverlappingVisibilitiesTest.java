@@ -44,16 +44,20 @@ public class ClassesWithOverlappingVisibilitiesTest extends HorizontalClassMergi
 
               ClassSubject bClassSubject = codeInspector.clazz(B.class);
               assertThat(bClassSubject, isPresent());
-              methodSubject = bClassSubject.method("void", "foo");
-              assertThat(methodSubject, isPackagePrivate());
+              if (enableHorizontalClassMerging) {
+                methodSubject = bClassSubject.method("void", "foo$bridge");
+                assertThat(methodSubject, isPackagePrivate());
+              }
 
               assertThat(
                   codeInspector.clazz(C.class), notIf(isPresent(), enableHorizontalClassMerging));
 
               ClassSubject dClassSubject = codeInspector.clazz(D.class);
               assertThat(dClassSubject, isPresent());
-              methodSubject = dClassSubject.method("void", "foo");
-              assertThat(methodSubject, isPublic());
+              if (enableHorizontalClassMerging) {
+                methodSubject = dClassSubject.method("void", "foo$bridge");
+                assertThat(methodSubject, isPublic());
+              }
 
               ClassSubject eClassSubject = codeInspector.clazz(E.class);
               assertThat(eClassSubject, notIf(isPresent(), enableHorizontalClassMerging));

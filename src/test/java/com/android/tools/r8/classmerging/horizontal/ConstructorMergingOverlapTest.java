@@ -60,7 +60,7 @@ public class ConstructorMergingOverlapTest extends HorizontalClassMergingTestBas
                 assertThat(
                     otherInitSubject, writesInstanceField(classIdFieldSubject.getDexField()));
 
-                MethodSubject printSubject = aClassSubject.method("void", "print");
+                MethodSubject printSubject = aClassSubject.method("void", "print$bridge");
                 assertThat(printSubject, isPresent());
                 assertThat(printSubject, readsInstanceField(classIdFieldSubject.getDexField()));
 

@@ -175,6 +175,13 @@ public class VirtualMethodMerger {
     DexMethod templateReference = methods.iterator().next().getReference();
     DexMethod originalMethodReference =
         appView.graphLens().getOriginalMethodSignature(templateReference);
+    DexMethod bridgeMethodReference =
+        dexItemFactory.createFreshMethodName(
+            originalMethodReference.getName().toSourceString() + "$bridge",
+            null,
+            originalMethodReference.proto,
+            originalMethodReference.getHolderType(),
+            tryMethod -> target.lookupMethod(tryMethod) == null);
 
     DexMethod newMethodReference =
         dexItemFactory.createMethod(target.type, templateReference.proto, templateReference.name);
@@ -184,7 +191,7 @@ public class VirtualMethodMerger {
             classIdField,
             superMethod,
             newMethodReference,
-            originalMethodReference);
+            bridgeMethodReference);
     DexEncodedMethod newMethod =
         new DexEncodedMethod(
             newMethodReference,
@@ -200,7 +207,7 @@ public class VirtualMethodMerger {
     for (ProgramMethod oldMethod : methods) {
       lensBuilder.moveMethod(oldMethod.getReference(), newMethodReference);
     }
-    lensBuilder.recordExtraOriginalSignature(originalMethodReference, newMethodReference);
+    lensBuilder.recordExtraOriginalSignature(bridgeMethodReference, newMethodReference);
 
     target.addVirtualMethod(newMethod);
 
