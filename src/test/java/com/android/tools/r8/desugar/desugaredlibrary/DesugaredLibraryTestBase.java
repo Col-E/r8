@@ -21,6 +21,8 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
@@ -65,6 +67,11 @@ public class DesugaredLibraryTestBase extends TestBase {
 
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) {
     return buildDesugaredLibrary(apiLevel, "", false);
+  }
+
+  protected Path buildDesugaredLibrary(
+      AndroidApiLevel apiLevel, Consumer<InternalOptions> optionsModifier) {
+    return buildDesugaredLibrary(apiLevel, "", false, ImmutableList.of(), optionsModifier);
   }
 
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, String keepRules) {
@@ -184,6 +191,21 @@ public class DesugaredLibraryTestBase extends TestBase {
 
     ToolHelper.runL8(l8Builder.build(), configurationForLibraryCompilation);
     return desugaredLib;
+  }
+
+  protected DesugaredLibraryConfiguration configurationWithSupportAllCallbacksFromLibrary(
+      InternalOptions options,
+      boolean libraryCompilation,
+      TestParameters parameters,
+      boolean supportAllCallbacksFromLibrary) {
+    return new DesugaredLibraryConfigurationParser(
+            options.dexItemFactory(),
+            options.reporter,
+            libraryCompilation,
+            parameters.getApiLevel().getLevel())
+        .parse(
+            StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING),
+            builder -> builder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary));
   }
 
   public interface KeepRuleConsumer extends StringConsumer {

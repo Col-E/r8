@@ -186,6 +186,10 @@ public class DesugaredLibraryAPIConverter {
             .containsKey(method.getHolderType())) {
       return false;
     }
+    if (!appView.options().desugaredLibraryConfiguration.supportAllCallbacksFromLibrary
+        && appView.options().isDesugaredLibraryCompilation()) {
+      return false;
+    }
     return overridesLibraryMethod(method);
   }
 
@@ -212,6 +216,9 @@ public class DesugaredLibraryAPIConverter {
       if (!dexClass.isLibraryClass() && !appView.options().isDesugaredLibraryCompilation()) {
         continue;
       }
+      if (!shouldGenerateCallbacksForEmulateInterfaceAPIs(dexClass)) {
+        continue;
+      }
       DexEncodedMethod dexEncodedMethod = dexClass.lookupVirtualMethod(method.getReference());
       if (dexEncodedMethod != null) {
         // In this case, the object will be wrapped.
@@ -222,6 +229,16 @@ public class DesugaredLibraryAPIConverter {
       }
     }
     return foundOverrideToRewrite;
+  }
+
+  private boolean shouldGenerateCallbacksForEmulateInterfaceAPIs(DexClass dexClass) {
+    if (appView.options().desugaredLibraryConfiguration.supportAllCallbacksFromLibrary) {
+      return true;
+    }
+    Map<DexType, DexType> emulateLibraryInterfaces =
+        appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface();
+    return !(emulateLibraryInterfaces.containsKey(dexClass.type)
+        || emulateLibraryInterfaces.containsValue(dexClass.type));
   }
 
   private synchronized void registerCallback(ProgramMethod method) {

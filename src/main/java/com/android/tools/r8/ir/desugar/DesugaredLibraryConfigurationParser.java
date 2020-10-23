@@ -47,6 +47,7 @@ public class DesugaredLibraryConfigurationParser {
   static final String DONT_REWRITE_KEY = "dont_rewrite";
   static final String BACKPORT_KEY = "backport";
   static final String SHRINKER_CONFIG_KEY = "shrinker_config";
+  static final String SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY = "support_all_callbacks_from_library";
 
   private final DexItemFactory dexItemFactory;
   private final Reporter reporter;
@@ -107,6 +108,9 @@ public class DesugaredLibraryConfigurationParser {
       throw reporter.fatalError(
           new StringDiagnostic(
               "Unsupported desugared library configuration version, please upgrade the D8/R8"
+                  + formatVersion
+                  + " - "
+                  + MAX_SUPPORTED_VERSION
                   + " compiler.",
               origin));
     }
@@ -148,6 +152,12 @@ public class DesugaredLibraryConfigurationParser {
         extraKeepRules.add(keepRule.getAsString());
       }
       configurationBuilder.setExtraKeepRules(extraKeepRules);
+    }
+
+    if (jsonConfig.has(SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY)) {
+      boolean supportAllCallbacksFromLibrary =
+          jsonConfig.get(SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY).getAsBoolean();
+      configurationBuilder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary);
     }
     configurationAmender.accept(configurationBuilder);
     DesugaredLibraryConfiguration config = configurationBuilder.build();

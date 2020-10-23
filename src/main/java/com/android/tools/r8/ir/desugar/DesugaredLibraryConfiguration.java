@@ -36,12 +36,15 @@ import java.util.stream.Collectors;
 public class DesugaredLibraryConfiguration {
 
   public static final String FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX = "j$/";
+  public static final boolean FALL_BACK_SUPPORT_ALL_CALLBACKS_FROM_LIBRARY = true;
+
   public static final DesugaredLibraryConfiguration EMPTY_DESUGARED_LIBRARY_CONFIGURATION =
       new DesugaredLibraryConfiguration(
           AndroidApiLevel.B,
           false,
           FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
           null,
+          FALL_BACK_SUPPORT_ALL_CALLBACKS_FROM_LIBRARY,
           ImmutableMap.of(),
           ImmutableMap.of(),
           ImmutableMap.of(),
@@ -51,11 +54,18 @@ public class DesugaredLibraryConfiguration {
           ImmutableList.of(),
           ImmutableList.of());
 
-  // TODO(b/158632510): should use DexString, DexType, DexMethod or so on when possible.
   private final AndroidApiLevel requiredCompilationAPILevel;
   private final boolean libraryCompilation;
   private final String synthesizedLibraryClassesPackagePrefix;
   private final String identifier;
+  // Setting supportAllCallbacksFromLibrary reduces the number of generated call-backs,
+  // more specifically:
+  // - no call-back is generated for emulated interface method overrides (forEach, etc.)
+  // - no call-back is generated inside the desugared library itself.
+  // Such setting decreases significantly the desugared library dex file, but virtual calls from
+  // within the library to desugared library classes instances as receiver may be incorrect, for
+  // example the method forEach in Iterable may be executed over a concrete implementation.
+  public final boolean supportAllCallbacksFromLibrary;
   private final Map<String, String> rewritePrefix;
   private final Map<DexType, DexType> emulateLibraryInterface;
   private final Map<DexString, Map<DexType, DexType>> retargetCoreLibMember;
@@ -76,6 +86,7 @@ public class DesugaredLibraryConfiguration {
         true,
         FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
         "testingOnlyVersion",
+        FALL_BACK_SUPPORT_ALL_CALLBACKS_FROM_LIBRARY,
         prefix,
         ImmutableMap.of(),
         ImmutableMap.of(),
@@ -95,6 +106,7 @@ public class DesugaredLibraryConfiguration {
       boolean libraryCompilation,
       String packagePrefix,
       String identifier,
+      boolean supportAllCallbacksFromLibrary,
       Map<String, String> rewritePrefix,
       Map<DexType, DexType> emulateLibraryInterface,
       Map<DexString, Map<DexType, DexType>> retargetCoreLibMember,
@@ -107,6 +119,7 @@ public class DesugaredLibraryConfiguration {
     this.libraryCompilation = libraryCompilation;
     this.synthesizedLibraryClassesPackagePrefix = packagePrefix;
     this.identifier = identifier;
+    this.supportAllCallbacksFromLibrary = supportAllCallbacksFromLibrary;
     this.rewritePrefix = rewritePrefix;
     this.emulateLibraryInterface = emulateLibraryInterface;
     this.retargetCoreLibMember = retargetCoreLibMember;
@@ -204,6 +217,7 @@ public class DesugaredLibraryConfiguration {
     private Set<DexType> wrapperConversions = Sets.newIdentityHashSet();
     private List<Pair<DexType, DexString>> dontRewriteInvocation = new ArrayList<>();
     private List<String> extraKeepRules = Collections.emptyList();
+    private boolean supportAllCallbacksFromLibrary = FALL_BACK_SUPPORT_ALL_CALLBACKS_FROM_LIBRARY;
 
     private Builder(DexItemFactory dexItemFactory, Reporter reporter, Origin origin) {
       this.factory = dexItemFactory;
@@ -344,6 +358,10 @@ public class DesugaredLibraryConfiguration {
       return factory.createType(DescriptorUtils.javaTypeToDescriptor(stringClass));
     }
 
+    public void setSupportAllCallbacksFromLibrary(boolean supportAllCallbacksFromLibrary) {
+      this.supportAllCallbacksFromLibrary = supportAllCallbacksFromLibrary;
+    }
+
     public DesugaredLibraryConfiguration build() {
       validate();
       return new DesugaredLibraryConfiguration(
@@ -351,6 +369,7 @@ public class DesugaredLibraryConfiguration {
           libraryCompilation,
           synthesizedLibraryClassesPackagePrefix,
           identifier,
+          supportAllCallbacksFromLibrary,
           ImmutableMap.copyOf(rewritePrefix),
           ImmutableMap.copyOf(emulateLibraryInterface),
           ImmutableMap.copyOf(retargetCoreLibMember),
@@ -373,5 +392,6 @@ public class DesugaredLibraryConfiguration {
                 origin));
       }
     }
+
   }
 }

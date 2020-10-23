@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
@@ -34,6 +35,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
+  private final boolean supportAllCallbacksFromLibrary;
 
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
   private static final String EXPECTED_RESULT =
@@ -42,16 +44,24 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
           "forEach called",
           "action called from java consumer",
           "forEach called");
+  private static final String FAILING_EXPECTED_RESULT =
+      StringUtils.lines(
+          "action called from j$ consumer", "forEach called", "action called from java consumer");
   private static Path CUSTOM_LIB;
 
-  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  @Parameters(name = "{0}, shrink: {1}, supportCallbacks: {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
+        getConversionParametersUpToExcluding(MIN_SUPPORTED),
+        BooleanUtils.values(),
+        BooleanUtils.values());
   }
 
   public ConversionIntroduceInterfaceMethodTest(
-      TestParameters parameters, boolean shrinkDesugaredLibrary) {
+      TestParameters parameters,
+      boolean shrinkDesugaredLibrary,
+      boolean supportAllCallbacksFromLibrary) {
+    this.supportAllCallbacksFromLibrary = supportAllCallbacksFromLibrary;
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
@@ -75,6 +85,11 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
         .addLibraryClasses(CustomLibClass.class)
         .addOptionsModification(opt -> opt.testing.trackDesugaredAPIConversions = true)
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .addOptionsModification(
+            opt ->
+                opt.desugaredLibraryConfiguration =
+                    configurationWithSupportAllCallbacksFromLibrary(
+                        opt, false, parameters, supportAllCallbacksFromLibrary))
         .compile()
         .inspect(this::assertDoubleForEach)
         .inspect(this::assertWrapperMethodsPresent)
@@ -85,11 +100,13 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
             shrinkDesugaredLibrary)
         .addRunClasspathFiles(CUSTOM_LIB)
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .apply(
+            r ->
+                r.assertSuccessWithOutput(
+                    supportAllCallbacksFromLibrary ? EXPECTED_RESULT : FAILING_EXPECTED_RESULT));
   }
 
   private void assertDoubleForEach(CodeInspector inspector) {
-    System.out.println(inspector.allClasses().size());
     FoundClassSubject myCollection =
         inspector.allClasses().stream()
             .filter(
@@ -103,7 +120,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
             .collect(toSingle());
     assertEquals(
         "Missing duplicated forEach",
-        2,
+        supportAllCallbacksFromLibrary ? 2 : 1,
         IterableUtils.size(
             myCollection
                 .getDexProgramClass()
@@ -133,6 +150,11 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
         .addKeepMainRule(Executor.class)
         .addLibraryClasses(CustomLibClass.class)
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .addOptionsModification(
+            opt ->
+                opt.desugaredLibraryConfiguration =
+                    configurationWithSupportAllCallbacksFromLibrary(
+                        opt, false, parameters, supportAllCallbacksFromLibrary))
         .compile()
         .inspect(this::assertDoubleForEach)
         .inspect(this::assertWrapperMethodsPresent)
@@ -143,7 +165,10 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
             shrinkDesugaredLibrary)
         .addRunClasspathFiles(CUSTOM_LIB)
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .apply(
+            r ->
+                r.assertSuccessWithOutput(
+                    supportAllCallbacksFromLibrary ? EXPECTED_RESULT : FAILING_EXPECTED_RESULT));
   }
 
   static class CustomLibClass {
@@ -197,7 +222,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
 
     @Override
     public Iterator<E> iterator() {
-      return null;
+      return (Iterator<E>) Collections.singletonList(null).iterator();
     }
 
     @NotNull

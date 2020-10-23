@@ -2,9 +2,10 @@
   "configuration_format_version": 3,
   "group_id" : "com.tools.android",
   "artifact_id" : "desugar_jdk_libs",
-  "version": "1.0.12",
+  "version": "1.1.0",
   "required_compilation_api_level": 26,
   "synthesized_library_classes_package_prefix": "j$.",
+  "support_all_callbacks_from_library": true,
   "common_flags": [
     {
       "api_level_below_or_equal": 25,
