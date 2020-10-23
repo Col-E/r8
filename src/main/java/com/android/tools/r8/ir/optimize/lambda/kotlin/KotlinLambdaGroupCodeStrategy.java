@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.InitClass;
@@ -120,6 +121,12 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
   }
 
   @Override
+  public boolean isValidHolder(CodeProcessor context, DexType holder) {
+    assert group.containsLambda(holder);
+    return true;
+  }
+
+  @Override
   public void patch(ApplyStrategy context, NewInstance newInstance) {
     DexType oldType = newInstance.clazz;
     DexType newType = group.getGroupClassType();
@@ -215,6 +222,17 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     InitClass pachedInitClass =
         new InitClass(context.code.createValue(TypeElement.getInt()), group.getGroupClassType());
     context.instructions().replaceCurrentInstruction(pachedInitClass);
+  }
+
+  @Override
+  public void patch(ApplyStrategy context, Argument argument) {
+    // An argument can be a direct operand to a phi that we potentially could not remove.
+    assert argument.getIndex() == 0;
+    // The argument value will be replaced by the invoke value.
+    argument
+        .outValue()
+        .setType(TypeElement.fromDexType(group.getGroupClassType(), maybeNull(), context.appView));
+    context.recordTypeHasChanged(argument.outValue());
   }
 
   private void patchInitializer(CodeProcessor context, InvokeDirect invoke) {

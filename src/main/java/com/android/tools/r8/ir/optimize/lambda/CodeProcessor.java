@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -65,6 +66,8 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
 
     boolean isValidInitClass(CodeProcessor context, DexType clazz);
 
+    boolean isValidHolder(CodeProcessor context, DexType holder);
+
     void patch(ApplyStrategy context, NewInstance newInstance);
 
     void patch(ApplyStrategy context, InvokeMethod invoke);
@@ -74,6 +77,8 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
     void patch(ApplyStrategy context, StaticGet staticGet);
 
     void patch(ApplyStrategy context, InitClass initClass);
+
+    void patch(ApplyStrategy context, Argument argument);
   }
 
   // No-op strategy.
@@ -120,6 +125,11 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
         }
 
         @Override
+        public boolean isValidHolder(CodeProcessor context, DexType holder) {
+          return false;
+        }
+
+        @Override
         public void patch(ApplyStrategy context, NewInstance newInstance) {
           throw new Unreachable();
         }
@@ -141,6 +151,11 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
 
         @Override
         public void patch(ApplyStrategy context, InitClass initClass) {
+          throw new Unreachable();
+        }
+
+        @Override
+        public void patch(ApplyStrategy context, Argument argument) {
           throw new Unreachable();
         }
       };
@@ -383,6 +398,20 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
     return null;
   }
 
+  @Override
+  public Void visit(Argument instruction) {
+    if (instruction.outValue() != code.getThis()) {
+      return null;
+    }
+    Strategy strategy = strategyProvider.apply(method.getHolderType());
+    if (strategy.isValidHolder(this, method.getHolderType())) {
+      if (shouldRewrite(method.getHolderType())) {
+        process(strategy, instruction);
+      }
+    }
+    return null;
+  }
+
   abstract void process(Strategy strategy, InvokeMethod invokeMethod);
 
   abstract void process(Strategy strategy, NewInstance newInstance);
@@ -396,4 +425,6 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
   abstract void process(Strategy strategy, StaticGet staticGet);
 
   abstract void process(Strategy strategy, InitClass initClass);
+
+  abstract void process(Strategy strategy, Argument argument);
 }
