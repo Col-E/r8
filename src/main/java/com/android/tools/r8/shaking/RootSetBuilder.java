@@ -1049,7 +1049,6 @@ public class RootSetBuilder {
     dependentNoShrinking
         .computeIfAbsent(item.toReference(), x -> new MutableItemsWithRules())
         .addClassWithRule(type, context);
-    // TODO(b/171289133): Test and implement allowshrinking and use of -includedescriptorclasses
     // Unconditionally add to no-obfuscation, as that is only checked for surviving items.
     if (appView.options().isMinificationEnabled()) {
       noObfuscation.add(type);
