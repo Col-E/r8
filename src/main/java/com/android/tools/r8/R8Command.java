@@ -861,6 +861,7 @@ public final class R8Command extends BaseCompilerCommand {
       internal.enableClassStaticizer = false;
       internal.outline.enabled = false;
       internal.enableEnumUnboxing = false;
+      internal.enableLambdaMerging = false;
     }
     if (!internal.isShrinking()) {
       // If R8 is not shrinking, there is no point in unboxing enums since the unboxed enums

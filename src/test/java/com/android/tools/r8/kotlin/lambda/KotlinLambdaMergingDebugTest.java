@@ -3,10 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.lambda;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticException;
-import static org.junit.Assert.assertThrows;
+import static org.hamcrest.CoreMatchers.equalTo;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -35,21 +33,15 @@ public class KotlinLambdaMergingDebugTest extends AbstractR8KotlinTestBase {
   }
 
   @Test
-  public void testMergingKStyleLambdasAndReprocessingInDebug() {
-    assertThrows(
-        CompilationFailedException.class,
-        () -> {
-          testForR8(parameters.getBackend())
-              .setMode(CompilationMode.DEBUG)
-              .addProgramFiles(getKotlinJarFile(FOLDER))
-              .addProgramFiles(getJavaJarFile(FOLDER))
-              .setMinApi(parameters.getApiLevel())
-              .addKeepMainRule(MAIN_CLASS)
-              .allowDiagnosticWarningMessages()
-              .compileWithExpectedDiagnostics(
-                  diagnostics -> {
-                    diagnostics.assertErrorsMatch(diagnosticException(AssertionError.class));
-                  });
-        });
+  public void testMergingKStyleLambdasAndReprocessingInDebug() throws Exception {
+    testForR8(parameters.getBackend())
+        .setMode(CompilationMode.DEBUG)
+        .addProgramFiles(getKotlinJarFile(FOLDER))
+        .addProgramFiles(getJavaJarFile(FOLDER))
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(MAIN_CLASS)
+        .allowDiagnosticWarningMessages()
+        .compile()
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));
   }
 }
