@@ -108,9 +108,6 @@ public class DesugaredLibraryConfigurationParser {
       throw reporter.fatalError(
           new StringDiagnostic(
               "Unsupported desugared library configuration version, please upgrade the D8/R8"
-                  + formatVersion
-                  + " - "
-                  + MAX_SUPPORTED_VERSION
                   + " compiler.",
               origin));
     }
