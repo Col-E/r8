@@ -23,10 +23,10 @@ public class PreventChangingVisibility extends MultiClassPolicy {
   public PreventChangingVisibility() {}
 
   public static class TargetGroup {
-    private final Collection<DexProgramClass> group = new LinkedList<>();
+    private final List<DexProgramClass> group = new LinkedList<>();
     private final Map<Wrapper<DexMethod>, MethodAccessFlags> methodMap = new HashMap<>();
 
-    public Collection<DexProgramClass> getGroup() {
+    public List<DexProgramClass> getGroup() {
       return group;
     }
 
@@ -53,7 +53,7 @@ public class PreventChangingVisibility extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<Collection<DexProgramClass>> apply(Collection<DexProgramClass> group) {
+  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
     List<TargetGroup> groups = new ArrayList<>();
 
     for (DexProgramClass clazz : group) {
@@ -66,7 +66,7 @@ public class PreventChangingVisibility extends MultiClassPolicy {
       }
     }
 
-    Collection<Collection<DexProgramClass>> newGroups = new ArrayList<>();
+    Collection<List<DexProgramClass>> newGroups = new ArrayList<>();
     for (TargetGroup newGroup : groups) {
       if (!isTrivial(newGroup.getGroup())) {
         newGroups.add(newGroup.getGroup());

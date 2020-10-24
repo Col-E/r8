@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 public class DontMergeSynchronizedClasses extends MultiClassPolicy {
   private final AppView<AppInfoWithLiveness> appView;
@@ -25,14 +26,14 @@ public class DontMergeSynchronizedClasses extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<Collection<DexProgramClass>> apply(Collection<DexProgramClass> group) {
+  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
     // Gather all synchronized classes.
-    Collection<Collection<DexProgramClass>> synchronizedGroups = new LinkedList<>();
+    Collection<List<DexProgramClass>> synchronizedGroups = new LinkedList<>();
     group.removeIf(
         clazz -> {
           boolean synchronizationClass = isSynchronizationClass(clazz);
           if (synchronizationClass) {
-            Collection<DexProgramClass> synchronizedGroup = new LinkedList<>();
+            List<DexProgramClass> synchronizedGroup = new LinkedList<>();
             synchronizedGroup.add(clazz);
             synchronizedGroups.add(synchronizedGroup);
           }
@@ -43,7 +44,7 @@ public class DontMergeSynchronizedClasses extends MultiClassPolicy {
       return Collections.singletonList(group);
     }
 
-    Iterator<Collection<DexProgramClass>> synchronizedGroupIterator = synchronizedGroups.iterator();
+    Iterator<List<DexProgramClass>> synchronizedGroupIterator = synchronizedGroups.iterator();
     for (DexProgramClass clazz : group) {
       if (!synchronizedGroupIterator.hasNext()) {
         synchronizedGroupIterator = synchronizedGroups.iterator();

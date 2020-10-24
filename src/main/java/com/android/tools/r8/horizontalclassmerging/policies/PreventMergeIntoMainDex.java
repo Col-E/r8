@@ -30,7 +30,7 @@ public class PreventMergeIntoMainDex extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<Collection<DexProgramClass>> apply(Collection<DexProgramClass> group) {
+  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
     List<DexProgramClass> mainDexMembers = new LinkedList<>();
     Iterator<DexProgramClass> iterator = group.iterator();
     while (iterator.hasNext()) {
@@ -41,14 +41,13 @@ public class PreventMergeIntoMainDex extends MultiClassPolicy {
       }
     }
 
-    Collection<Collection<DexProgramClass>> newGroups = new LinkedList<>();
+    Collection<List<DexProgramClass>> newGroups = new LinkedList<>();
     if (!isTrivial(mainDexMembers)) {
       newGroups.add(mainDexMembers);
     }
     if (!isTrivial(group)) {
       newGroups.add(group);
     }
-
     return newGroups;
   }
 }

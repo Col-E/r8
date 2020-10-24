@@ -42,7 +42,7 @@ public class ClassMerger {
   public static final String CLASS_ID_FIELD_NAME = "$r8$classId";
 
   private final DexProgramClass target;
-  private final Collection<DexProgramClass> toMergeGroup;
+  private final List<DexProgramClass> toMergeGroup;
   private final DexItemFactory dexItemFactory;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
   private final HorizontallyMergedClasses.Builder mergedClassesBuilder;
@@ -59,7 +59,7 @@ public class ClassMerger {
       HorizontallyMergedClasses.Builder mergedClassesBuilder,
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       DexProgramClass target,
-      Collection<DexProgramClass> toMergeGroup,
+      List<DexProgramClass> toMergeGroup,
       DexField classIdField,
       Collection<VirtualMethodMerger> virtualMethodMergers,
       Collection<ConstructorMerger> constructorMergers) {
@@ -175,7 +175,7 @@ public class ClassMerger {
 
   public static class Builder {
     private final DexProgramClass target;
-    private final Collection<DexProgramClass> toMergeGroup = new ArrayList<>();
+    private final List<DexProgramClass> toMergeGroup = new ArrayList<>();
     private final Map<DexProto, ConstructorMerger.Builder> constructorMergerBuilders =
         new LinkedHashMap<>();
     private final Map<Wrapper<DexMethod>, VirtualMethodMerger.Builder> virtualMethodMergerBuilders =
@@ -192,7 +192,7 @@ public class ClassMerger {
       return this;
     }
 
-    public Builder addClassesToMerge(Collection<DexProgramClass> toMerge) {
+    public Builder addClassesToMerge(List<DexProgramClass> toMerge) {
       toMerge.forEach(this::mergeClass);
       return this;
     }

@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 public class RespectPackageBoundaries extends MultiClassPolicy {
@@ -58,7 +59,7 @@ public class RespectPackageBoundaries extends MultiClassPolicy {
   /** Sort unrestricted classes into restricted classes if they are in the same package. */
   void tryFindRestrictedPackage(
       LinkedList<DexProgramClass> unrestrictedClasses,
-      Map<String, Collection<DexProgramClass>> restrictedClasses) {
+      Map<String, List<DexProgramClass>> restrictedClasses) {
     Iterator<DexProgramClass> i = unrestrictedClasses.iterator();
     while (i.hasNext()) {
       DexProgramClass clazz = i.next();
@@ -72,8 +73,8 @@ public class RespectPackageBoundaries extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<Collection<DexProgramClass>> apply(Collection<DexProgramClass> group) {
-    Map<String, Collection<DexProgramClass>> restrictedClasses = new LinkedHashMap<>();
+  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
+    Map<String, List<DexProgramClass>> restrictedClasses = new LinkedHashMap<>();
     LinkedList<DexProgramClass> unrestrictedClasses = new LinkedList<>();
 
     // Sort all restricted classes into packages.
@@ -92,7 +93,7 @@ public class RespectPackageBoundaries extends MultiClassPolicy {
 
     // TODO(b/166577694): Add the unrestricted classes to restricted groups, but ensure they aren't
     // the merge target.
-    Collection<Collection<DexProgramClass>> groups = new ArrayList<>(restrictedClasses.size() + 1);
+    Collection<List<DexProgramClass>> groups = new ArrayList<>(restrictedClasses.size() + 1);
     if (unrestrictedClasses.size() > 1) {
       groups.add(unrestrictedClasses);
     }

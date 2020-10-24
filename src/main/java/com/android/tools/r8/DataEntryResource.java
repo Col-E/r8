@@ -30,7 +30,7 @@ public interface DataEntryResource extends DataResource {
     StringBuilder sb = new StringBuilder();
     for (String line : lines) {
       sb.append(line);
-      sb.append("\n");
+      sb.append(System.lineSeparator());
     }
     return new ByteDataEntryResource(sb.toString().getBytes(), name, origin);
   }

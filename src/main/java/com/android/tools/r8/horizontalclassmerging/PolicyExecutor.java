@@ -6,6 +6,7 @@ package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.graph.DexProgramClass;
 import java.util.Collection;
+import java.util.List;
 
 public abstract class PolicyExecutor {
   protected final Collection<Policy> policies;
@@ -19,6 +20,5 @@ public abstract class PolicyExecutor {
    * policies registered to this policy executor on the class groups yielding a new collection of
    * class groups.
    */
-  public abstract Collection<Collection<DexProgramClass>> run(
-      Collection<Collection<DexProgramClass>> classes);
+  public abstract Collection<List<DexProgramClass>> run(Collection<List<DexProgramClass>> classes);
 }

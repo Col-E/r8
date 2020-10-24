@@ -40,7 +40,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -93,7 +93,7 @@ public class HorizontalClassMerger {
 
   // TODO(b/165577835): replace Collection<DexProgramClass> with MergeGroup
   public HorizontalClassMergerGraphLens run(DirectMappedDexApplication.Builder appBuilder) {
-    Map<FieldMultiset, Collection<DexProgramClass>> classes = new HashMap<>();
+    Map<FieldMultiset, List<DexProgramClass>> classes = new LinkedHashMap<>();
 
     // Group classes by same field signature using the hash map.
     for (DexProgramClass clazz : appView.appInfo().app().classesWithDeterministicOrder()) {
@@ -101,7 +101,7 @@ public class HorizontalClassMerger {
     }
 
     // Run the policies on all collected classes to produce a final grouping.
-    Collection<Collection<DexProgramClass>> groups = policyExecutor.run(classes.values());
+    Collection<List<DexProgramClass>> groups = policyExecutor.run(classes.values());
     // If there are no groups, then end horizontal class merging.
     if (groups.isEmpty()) {
       appView.setHorizontallyMergedClasses(HorizontallyMergedClasses.empty());
@@ -116,7 +116,7 @@ public class HorizontalClassMerger {
         new FieldAccessInfoCollectionModifier.Builder();
 
     // Set up a class merger for each group.
-    Collection<ClassMerger> classMergers =
+    List<ClassMerger> classMergers =
         initializeClassMergers(
             mergedClassesBuilder, lensBuilder, fieldAccessChangesBuilder, groups);
     Iterable<DexProgramClass> allMergeClasses =
@@ -138,15 +138,15 @@ public class HorizontalClassMerger {
    * Prepare horizontal class merging by determining which virtual methods and constructors need to
    * be merged and how the merging should be performed.
    */
-  private Collection<ClassMerger> initializeClassMergers(
+  private List<ClassMerger> initializeClassMergers(
       HorizontallyMergedClasses.Builder mergedClassesBuilder,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
-      Collection<Collection<DexProgramClass>> groups) {
-    Collection<ClassMerger> classMergers = new ArrayList<>();
+      Collection<List<DexProgramClass>> groups) {
+    List<ClassMerger> classMergers = new ArrayList<>();
 
     // TODO(b/166577694): Replace Collection<DexProgramClass> with MergeGroup
-    for (Collection<DexProgramClass> group : groups) {
+    for (List<DexProgramClass> group : groups) {
       assert !group.isEmpty();
 
       DexProgramClass target = group.stream().findFirst().get();

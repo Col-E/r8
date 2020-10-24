@@ -29,7 +29,6 @@ public class R8GMSCoreLatestTreeShakeJarVerificationTest
     List<String> additionalProguardConfiguration =
         ImmutableList.of(
             ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS + "GmsCore_proguard.config");
-
     Map<String, IntSet> methodProcessingIds = new ConcurrentHashMap<>();
     AndroidApp app1 =
         buildAndTreeShakeFromDeployJar(

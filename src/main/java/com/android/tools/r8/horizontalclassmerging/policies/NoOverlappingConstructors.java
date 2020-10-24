@@ -42,7 +42,7 @@ public class NoOverlappingConstructors extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<Collection<DexProgramClass>> apply(Collection<DexProgramClass> group) {
+  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
     Map<DexProto, Set<DexProgramClass>> overlappingConstructors = new IdentityHashMap<>();
 
     for (DexProgramClass clazz : group) {
@@ -106,12 +106,10 @@ public class NoOverlappingConstructors extends MultiClassPolicy {
     }
 
     // Map to collection
-    Collection<Collection<DexProgramClass>> newGroups = new ArrayList<>();
+    Collection<List<DexProgramClass>> newGroups = new ArrayList<>();
     for (Set<DexProgramClass> newGroup : groups) {
-      List<DexProgramClass> newGroupList = new ArrayList<>(newGroup);
       newGroups.add(new ArrayList<>(newGroup));
     }
-
     return newGroups;
   }
 }

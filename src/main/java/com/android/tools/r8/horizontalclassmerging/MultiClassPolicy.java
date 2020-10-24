@@ -7,6 +7,7 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.graph.DexProgramClass;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 public abstract class MultiClassPolicy extends Policy {
 
@@ -18,7 +19,7 @@ public abstract class MultiClassPolicy extends Policy {
   /**
    * Remove all groups containing no or only a single class, as there is no point in merging these.
    */
-  protected void removeTrivialGroups(Collection<Collection<DexProgramClass>> groups) {
+  protected void removeTrivialGroups(Collection<List<DexProgramClass>> groups) {
     assert !(groups instanceof ArrayList);
     groups.removeIf(this::isTrivial);
   }
@@ -31,5 +32,5 @@ public abstract class MultiClassPolicy extends Policy {
    *     merged. If the policy detects no issues then `group` will be returned unchanged. If classes
    *     cannot be merged with any other classes they are returned as singleton lists.
    */
-  public abstract Collection<Collection<DexProgramClass>> apply(Collection<DexProgramClass> group);
+  public abstract Collection<List<DexProgramClass>> apply(List<DexProgramClass> group);
 }

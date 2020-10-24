@@ -14,7 +14,7 @@ import java.util.List;
 
 public class DontMergeIntoLessVisible extends MultiClassPolicy {
   @Override
-  public Collection<Collection<DexProgramClass>> apply(Collection<DexProgramClass> group) {
+  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
     Iterator<DexProgramClass> iterator = group.iterator();
     while (iterator.hasNext()) {
       DexProgramClass clazz = iterator.next();
