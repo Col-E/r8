@@ -1713,22 +1713,4 @@ public class TestBase {
         .compile()
         .writeToZip();
   }
-
-  public static <E extends Throwable> void assertThrowsWithHorizontalClassMerging(
-      ThrowingAction<E> action) throws E {
-    try {
-      action.execute();
-      if (isHorizontalClassMergingEnabled()) {
-        fail();
-      }
-    } catch (Throwable throwable) {
-      if (!isHorizontalClassMergingEnabled()) {
-        throw throwable;
-      }
-    }
-  }
-
-  public static boolean isHorizontalClassMergingEnabled() {
-    return System.getProperty("com.android.tools.r8.horizontalClassMerging") != null;
-  }
 }

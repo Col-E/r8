@@ -131,35 +131,32 @@ public class R8InliningTest extends TestBase {
 
   @Before
   public void generateR8Version() throws Exception {
-    assertThrowsWithHorizontalClassMerging(
-        () -> {
-          outputDir = temp.newFolder().toPath();
-          Path mapFile = outputDir.resolve(DEFAULT_MAP_FILENAME);
-          generateR8Version(outputDir, mapFile, true);
-          String output;
-          if (parameters.isDexRuntime()) {
-            output =
-                ToolHelper.runArtNoVerificationErrors(
-                    Collections.singletonList(outputDir.resolve(DEFAULT_DEX_FILENAME).toString()),
-                    "inlining.Inlining",
-                    builder -> {},
-                    parameters.getRuntime().asDex().getVm());
-          } else {
-            assert parameters.isCfRuntime();
-            output =
-                ToolHelper.runJava(
-                        parameters.getRuntime().asCf(),
-                        Collections.singletonList("-noverify"),
-                        Collections.singletonList(outputDir),
-                        "inlining.Inlining")
-                    .stdout;
-          }
+    outputDir = temp.newFolder().toPath();
+    Path mapFile = outputDir.resolve(DEFAULT_MAP_FILENAME);
+    generateR8Version(outputDir, mapFile, true);
+    String output;
+    if (parameters.isDexRuntime()) {
+      output =
+          ToolHelper.runArtNoVerificationErrors(
+              Collections.singletonList(outputDir.resolve(DEFAULT_DEX_FILENAME).toString()),
+              "inlining.Inlining",
+              builder -> {},
+              parameters.getRuntime().asDex().getVm());
+    } else {
+      assert parameters.isCfRuntime();
+      output =
+          ToolHelper.runJava(
+                  parameters.getRuntime().asCf(),
+                  Collections.singletonList("-noverify"),
+                  Collections.singletonList(outputDir),
+                  "inlining.Inlining")
+              .stdout;
+    }
 
-          // Compare result with Java to make sure we have the same behavior.
-          ProcessResult javaResult = ToolHelper.runJava(getInputFile(), "inlining.Inlining");
-          assertEquals(0, javaResult.exitCode);
-          assertEquals(javaResult.stdout, output);
-        });
+    // Compare result with Java to make sure we have the same behavior.
+    ProcessResult javaResult = ToolHelper.runJava(getInputFile(), "inlining.Inlining");
+    assertEquals(0, javaResult.exitCode);
+    assertEquals(javaResult.stdout, output);
   }
 
   private void checkAbsentBooleanMethod(ClassSubject clazz, String name) {
