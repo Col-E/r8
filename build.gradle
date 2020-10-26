@@ -1938,11 +1938,6 @@ test {
         systemProperty 'runtimes', project.property('runtimes')
     }
 
-    if (project.hasProperty('horizontalClassMerging')) {
-        println "NOTE: Running with horizontal class merging"
-        systemProperty 'com.android.tools.r8.horizontalClassMerging', 'true'
-    }
-
     if (project.hasProperty('slow_tests')) {
         systemProperty 'slow_tests', project.property('slow_tests')
     }

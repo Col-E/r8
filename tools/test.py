@@ -142,9 +142,6 @@ def ParseOptions():
   result.add_option('--worktree',
       default=False, action='store_true',
       help='Tests are run in worktree and should not use gradle user home.')
-  result.add_option('--horizontal-class-merging', '--horizontal_class_merging',
-      help='Enable horizontal class merging.',
-      default=False, action='store_true')
   result.add_option('--runtimes',
       default=None,
       help='Test parameter runtimes to use, separated by : (eg, none:jdk9).'
@@ -296,9 +293,6 @@ def Main():
     # Note: not setting -Pruntimes will run with all available runtimes.
     return_code = gradle.RunGradle(gradle_args, throw_on_failure=False)
     return archive_and_return(return_code, options)
-
-  if options.horizontal_class_merging:
-    gradle_args.append('-PhorizontalClassMerging')
 
   # Now run tests on selected runtime(s).
   if options.runtimes:
