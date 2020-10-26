@@ -8,6 +8,8 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetracedMethod;
+import com.android.tools.r8.utils.ComparatorUtils;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -32,6 +34,27 @@ public abstract class RetracedMethodImpl implements RetracedMethod {
   @Override
   public KnownRetracedMethodImpl asKnown() {
     return null;
+  }
+
+  @Override
+  public int compareTo(RetracedMethod other) {
+    return Comparator.comparing(RetracedMethod::getMethodName)
+        .thenComparing(RetracedMethod::isKnown)
+        .thenComparing(
+            RetracedMethod::asKnown,
+            Comparator.nullsFirst(
+                    Comparator.comparing(
+                        (KnownRetracedMethod m) -> {
+                          if (m == null) {
+                            return null;
+                          }
+                          return m.isVoid() ? "void" : m.getReturnType().getTypeName();
+                        }))
+                .thenComparing(
+                    KnownRetracedMethod::getFormalTypes,
+                    ComparatorUtils.listComparator(
+                        Comparator.comparing(TypeReference::getTypeName))))
+        .compare(this, other);
   }
 
   public static final class KnownRetracedMethodImpl extends RetracedMethodImpl

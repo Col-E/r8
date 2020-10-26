@@ -37,7 +37,8 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
             RetraceStackTraceProxyImpl.Builder<T> proxy =
                 RetraceStackTraceProxyImpl.builder(element)
                     .setRetracedClassElement(classElement.getRetracedClass())
-                    .setAmbiguous(classResult.isAmbiguous());
+                    .setAmbiguous(classResult.isAmbiguous())
+                    .setTopFrame(true);
             if (element.hasFileName()) {
               proxy.setSourceFile(classElement.retraceSourceFile(element.fileName()).getFilename());
             }
@@ -56,7 +57,8 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
                       RetraceStackTraceProxyImpl.builder(element)
                           .setRetracedClassElement(frame.getHolderClass())
                           .setRetracedMethodElement(frame)
-                          .setAmbiguous(frameResult.isAmbiguous() && index == 0);
+                          .setAmbiguous(frameResult.isAmbiguous() && index == 0)
+                          .setTopFrame(index == 0);
                   if (element.hasLineNumber()) {
                     proxy.setLineNumber(frame.getOriginalPositionOrDefault(element.lineNumber()));
                   }
@@ -80,6 +82,7 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
     private final String sourceFile;
     private final int lineNumber;
     private final boolean isAmbiguous;
+    private final boolean isTopFrame;
 
     private RetraceStackTraceProxyImpl(
         T originalItem,
@@ -87,7 +90,8 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
         RetracedMethod retracedMethod,
         String sourceFile,
         int lineNumber,
-        boolean isAmbiguous) {
+        boolean isAmbiguous,
+        boolean isTopFrame) {
       assert originalItem != null;
       this.originalItem = originalItem;
       this.retracedClass = retracedClass;
@@ -95,11 +99,17 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
       this.sourceFile = sourceFile;
       this.lineNumber = lineNumber;
       this.isAmbiguous = isAmbiguous;
+      this.isTopFrame = isTopFrame;
     }
 
     @Override
     public boolean isAmbiguous() {
       return isAmbiguous;
+    }
+
+    @Override
+    public boolean isTopFrame() {
+      return isTopFrame;
     }
 
     @Override
@@ -151,6 +161,49 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
       return lineNumber;
     }
 
+    @Override
+    public int compareTo(RetraceStackTraceProxy<T> other) {
+      int classCompare = Boolean.compare(hasRetracedClass(), other.hasRetracedClass());
+      if (classCompare != 0) {
+        return classCompare;
+      }
+      if (hasRetracedClass()) {
+        classCompare =
+            getRetracedClass().getTypeName().compareTo(other.getRetracedClass().getTypeName());
+        if (classCompare != 0) {
+          return classCompare;
+        }
+      }
+      int methodCompare = Boolean.compare(hasRetracedMethod(), other.hasRetracedMethod());
+      if (methodCompare != 0) {
+        return methodCompare;
+      }
+      if (hasRetracedMethod()) {
+        methodCompare = getRetracedMethod().compareTo(other.getRetracedMethod());
+        if (methodCompare != 0) {
+          return methodCompare;
+        }
+      }
+      int sourceFileCompare = Boolean.compare(hasSourceFile(), other.hasSourceFile());
+      if (sourceFileCompare != 0) {
+        return sourceFileCompare;
+      }
+      if (hasSourceFile()) {
+        sourceFileCompare = getSourceFile().compareTo(other.getSourceFile());
+        if (sourceFileCompare != 0) {
+          return sourceFileCompare;
+        }
+      }
+      int lineNumberCompare = Boolean.compare(hasLineNumber(), other.hasLineNumber());
+      if (lineNumberCompare != 0) {
+        return lineNumberCompare;
+      }
+      if (hasLineNumber()) {
+        return Integer.compare(lineNumber, other.getLineNumber());
+      }
+      return 0;
+    }
+
     private static class Builder<T extends StackTraceElementProxy<?>> {
 
       private final T originalElement;
@@ -159,6 +212,7 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
       private String sourceFile;
       private int lineNumber = -1;
       private boolean isAmbiguous;
+      private boolean isTopFrame;
 
       private Builder(T originalElement) {
         this.originalElement = originalElement;
@@ -189,6 +243,11 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
         return this;
       }
 
+      private Builder<T> setTopFrame(boolean topFrame) {
+        isTopFrame = topFrame;
+        return this;
+      }
+
       private RetraceStackTraceProxyImpl<T> build() {
         RetracedClass retracedClass = classContext;
         if (methodContext != null) {
@@ -200,7 +259,8 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
             methodContext,
             sourceFile != null ? sourceFile : null,
             lineNumber,
-            isAmbiguous);
+            isAmbiguous,
+            isTopFrame);
       }
     }
   }

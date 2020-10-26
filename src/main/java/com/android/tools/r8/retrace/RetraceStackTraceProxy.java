@@ -7,9 +7,12 @@ package com.android.tools.r8.retrace;
 import com.android.tools.r8.Keep;
 
 @Keep
-public interface RetraceStackTraceProxy<T extends StackTraceElementProxy<?>> {
+public interface RetraceStackTraceProxy<T extends StackTraceElementProxy<?>>
+    extends Comparable<RetraceStackTraceProxy<T>> {
 
   boolean isAmbiguous();
+
+  boolean isTopFrame();
 
   boolean hasRetracedClass();
 

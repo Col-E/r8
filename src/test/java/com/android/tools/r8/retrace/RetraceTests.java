@@ -10,7 +10,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
@@ -136,15 +135,11 @@ public class RetraceTests extends TestBase {
 
   @Test
   public void testAmbiguousStackTrace() {
-    // TODO(b/170797525): Remove when we have a fixed ordering.
-    assumeTrue(useRegExpParsing);
     runRetraceTest(new AmbiguousStackTrace());
   }
 
   @Test
   public void testAmbiguousMissingLineStackTrace() {
-    // TODO(b/170797525): Remove when we have a fixed ordering.
-    assumeTrue(useRegExpParsing);
     runRetraceTest(new AmbiguousMissingLineStackTrace());
   }
 
@@ -190,8 +185,6 @@ public class RetraceTests extends TestBase {
 
   @Test
   public void testUnknownSourceStackTrace() {
-    // TODO(b/170797525): Remove when we have a fixed ordering.
-    assumeTrue(useRegExpParsing);
     runRetraceTest(new UnknownSourceStackTrace());
   }
 

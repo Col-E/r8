@@ -10,7 +10,7 @@ import com.android.tools.r8.references.TypeReference;
 import java.util.List;
 
 @Keep
-public interface RetracedMethod extends RetracedClassMember {
+public interface RetracedMethod extends RetracedClassMember, Comparable<RetracedMethod> {
 
   boolean isUnknown();
 

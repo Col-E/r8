@@ -18,7 +18,9 @@ import com.android.tools.r8.retrace.internal.RetraceCommandLineResult;
 import com.android.tools.r8.retrace.internal.RetraceRegularExpression;
 import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.retrace.internal.StackTraceElementProxyRetracerImpl;
+import com.android.tools.r8.retrace.internal.StackTraceElementProxyRetracerImpl.RetraceStackTraceProxyImpl;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
@@ -35,7 +37,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 /**
@@ -186,20 +190,42 @@ public class Retrace {
         List<String> retracedStrings = new ArrayList<>();
         plainStackTraceVisitor.forEach(
             stackTraceElement -> {
-              List<String> retracedStringsForElement = new ArrayList<>();
+              Box<List<RetraceStackTraceProxyImpl<StackTraceElementStringProxy>>> currentList =
+                  new Box<>();
+              Map<
+                      RetraceStackTraceProxyImpl<StackTraceElementStringProxy>,
+                      List<RetraceStackTraceProxyImpl<StackTraceElementStringProxy>>>
+                  ambiguousBlocks = new HashMap<>();
               proxyRetracer
                   .retrace(stackTraceElement)
                   .forEach(
                       retracedElement -> {
-                        StackTraceElementStringProxy originalItem =
-                            retracedElement.getOriginalItem();
-                        retracedStringsForElement.add(
-                            originalItem.toRetracedItem(
-                                retracedElement,
-                                !retracedStringsForElement.isEmpty(),
-                                command.isVerbose));
+                        if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
+                          List<RetraceStackTraceProxyImpl<StackTraceElementStringProxy>> block =
+                              new ArrayList<>();
+                          ambiguousBlocks.put(retracedElement, block);
+                          currentList.set(block);
+                        }
+                        currentList.get().add(retracedElement);
                       });
-              retracedStrings.addAll(retracedStringsForElement);
+              ambiguousBlocks.keySet().stream()
+                  .sorted()
+                  .forEach(
+                      topFrame -> {
+                        ambiguousBlocks
+                            .get(topFrame)
+                            .forEach(
+                                frame -> {
+                                  StackTraceElementStringProxy originalItem =
+                                      frame.getOriginalItem();
+                                  retracedStrings.add(
+                                      originalItem.toRetracedItem(
+                                          frame, !currentList.isSet(), command.isVerbose));
+                                  // Use the current list as indicator for us seeing the first
+                                  // sorted element.
+                                  currentList.set(null);
+                                });
+                      });
             });
         result = new RetraceCommandLineResult(retracedStrings);
       }
