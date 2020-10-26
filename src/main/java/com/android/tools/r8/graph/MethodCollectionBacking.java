@@ -94,6 +94,10 @@ public abstract class MethodCollectionBacking {
 
   // Removal methods.
 
+  abstract void clearDirectMethods();
+
+  abstract void clearVirtualMethods();
+
   abstract DexEncodedMethod removeMethod(DexMethod method);
 
   abstract void removeMethods(Set<DexEncodedMethod> method);

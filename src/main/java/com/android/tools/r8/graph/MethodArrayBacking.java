@@ -95,6 +95,11 @@ public class MethodArrayBacking extends MethodCollectionBacking {
   }
 
   @Override
+  void clearDirectMethods() {
+    directMethods = DexEncodedMethod.EMPTY_ARRAY;
+  }
+
+  @Override
   DexEncodedMethod removeMethod(DexMethod method) {
     DexEncodedMethod removedDirectMethod =
         removeMethodHelper(
@@ -172,6 +177,11 @@ public class MethodArrayBacking extends MethodCollectionBacking {
     }
     virtualMethods = newMethods;
     assert verifyNoDuplicateMethods();
+  }
+
+  @Override
+  void clearVirtualMethods() {
+    virtualMethods = DexEncodedMethod.EMPTY_ARRAY;
   }
 
   @Override

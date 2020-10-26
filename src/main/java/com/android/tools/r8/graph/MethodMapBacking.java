@@ -195,6 +195,16 @@ public class MethodMapBacking extends MethodCollectionBacking {
   }
 
   @Override
+  void clearDirectMethods() {
+    methodMap.values().removeIf(this::belongsToDirectPool);
+  }
+
+  @Override
+  void clearVirtualMethods() {
+    methodMap.values().removeIf(this::belongsToVirtualPool);
+  }
+
+  @Override
   DexEncodedMethod removeMethod(DexMethod method) {
     return methodMap.remove(wrap(method));
   }

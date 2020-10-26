@@ -252,6 +252,11 @@ public class MethodCollection {
     backing.addDirectMethods(methods);
   }
 
+  public void clearDirectMethods() {
+    resetDirectMethodCaches();
+    backing.clearDirectMethods();
+  }
+
   public DexEncodedMethod removeMethod(DexMethod method) {
     DexEncodedMethod removed = backing.removeMethod(method);
     if (removed != null) {
@@ -281,6 +286,11 @@ public class MethodCollection {
     assert verifyCorrectnessOfMethodHolders(methods);
     resetVirtualMethodCaches();
     backing.addVirtualMethods(methods);
+  }
+
+  public void clearVirtualMethods() {
+    resetVirtualMethodCaches();
+    backing.clearVirtualMethods();
   }
 
   public void setVirtualMethods(DexEncodedMethod[] methods) {

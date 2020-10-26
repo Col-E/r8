@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
@@ -32,13 +33,12 @@ public class SubtypingForrestForClasses {
   private final AppView<AppInfoWithLiveness> appView;
 
   private final Collection<DexProgramClass> roots = new ArrayList<>();
-  private final Map<DexProgramClass, Collection<DexProgramClass>> subtypeMap =
-      new IdentityHashMap<>();
+  private final Map<DexProgramClass, List<DexProgramClass>> subtypeMap = new IdentityHashMap<>();
 
-  public SubtypingForrestForClasses(AppView<AppInfoWithLiveness> appView) {
+  public SubtypingForrestForClasses(
+      AppView<AppInfoWithLiveness> appView, List<DexProgramClass> classesWithDeterministicOrder) {
     this.appView = appView;
-
-    calculateSubtyping(appView.appInfo().classes());
+    calculateSubtyping(classesWithDeterministicOrder);
   }
 
   private DexProgramClass superClass(DexProgramClass clazz) {

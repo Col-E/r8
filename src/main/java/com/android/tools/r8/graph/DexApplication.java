@@ -103,7 +103,7 @@ public abstract class DexApplication {
     return box.getClasses();
   }
 
-  public Iterable<DexProgramClass> classesWithDeterministicOrder() {
+  public List<DexProgramClass> classesWithDeterministicOrder() {
     List<DexProgramClass> classes = new ArrayList<>(programClasses());
     // We never actually sort by anything but the DexType, this is just here in case we ever change
     // that.

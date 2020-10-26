@@ -26,6 +26,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -120,11 +121,11 @@ class TreeFixer {
    * </ul>
    */
   public HorizontalClassMergerGraphLens fixupTypeReferences() {
-    Iterable<DexProgramClass> classes = appView.appInfo().classesWithDeterministicOrder();
+    List<DexProgramClass> classes = appView.appInfo().classesWithDeterministicOrder();
     Iterables.filter(classes, DexProgramClass::isInterface).forEach(this::fixupInterfaceClass);
 
     classes.forEach(this::fixupProgramClassSuperType);
-    SubtypingForrestForClasses subtypingForrest = new SubtypingForrestForClasses(appView);
+    SubtypingForrestForClasses subtypingForrest = new SubtypingForrestForClasses(appView, classes);
     // TODO(b/170078037): parallelize this code segment.
     for (DexProgramClass root : subtypingForrest.getProgramRoots()) {
       subtypingForrest.traverseNodeDepthFirst(
@@ -153,18 +154,22 @@ class TreeFixer {
     Map<Wrapper<DexMethod>, DexString> remappedClassVirtualMethods =
         new HashMap<>(remappedVirtualMethods);
 
-    Set<DexMethod> newDirectMethodReferences = new LinkedHashSet<>();
-    Set<DexMethod> newVirtualMethodReferences = new LinkedHashSet<>();
+    Set<DexMethod> newVirtualMethodReferences = Sets.newIdentityHashSet();
+    List<DexEncodedMethod> newVirtualMethods = new ArrayList<>();
+    for (DexEncodedMethod method : clazz.virtualMethods()) {
+      newVirtualMethods.add(
+          fixupVirtualMethod(remappedClassVirtualMethods, newVirtualMethodReferences, method));
+    }
+    clazz.getMethodCollection().clearVirtualMethods();
+    clazz.getMethodCollection().addVirtualMethods(newVirtualMethods);
 
-    clazz
-        .getMethodCollection()
-        .replaceVirtualMethods(
-            method ->
-                fixupVirtualMethod(
-                    remappedClassVirtualMethods, newVirtualMethodReferences, method));
-    clazz
-        .getMethodCollection()
-        .replaceDirectMethods(method -> fixupDirectMethod(newDirectMethodReferences, method));
+    Set<DexMethod> newDirectMethodReferences = Sets.newIdentityHashSet();
+    List<DexEncodedMethod> newDirectMethods = new ArrayList<>();
+    for (DexEncodedMethod method : clazz.directMethods()) {
+      newDirectMethods.add(fixupDirectMethod(newDirectMethodReferences, method));
+    }
+    clazz.getMethodCollection().clearDirectMethods();
+    clazz.getMethodCollection().addDirectMethods(newDirectMethods);
 
     fixupFields(clazz.staticFields(), clazz::setStaticField);
     fixupFields(clazz.instanceFields(), clazz::setInstanceField);

@@ -13,6 +13,7 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class AppInfo implements DexDefinitionSupplier {
@@ -120,7 +121,7 @@ public class AppInfo implements DexDefinitionSupplier {
     return app.classes();
   }
 
-  public Iterable<DexProgramClass> classesWithDeterministicOrder() {
+  public List<DexProgramClass> classesWithDeterministicOrder() {
     assert checkIfObsolete();
     return app.classesWithDeterministicOrder();
   }
