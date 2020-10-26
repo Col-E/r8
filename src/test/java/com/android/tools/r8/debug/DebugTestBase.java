@@ -2108,6 +2108,14 @@ public abstract class DebugTestBase extends TestBase {
           }
           return false;
         }
+        if (isInLambdaClass(mirror, location)) {
+          // Lambda classes must be skipped since they are only wrappers around lambda code.
+          if (DEBUG_TESTS) {
+            System.out.println("Skipping lambda class wrapper method");
+          }
+          wrapper.enqueueCommandFirst(stepCommand);
+          return true;
+        }
         if (isSyntheticMethod(mirror, location)) {
           if (DEBUG_TESTS) {
             System.out.println("Skipping synthetic method");
@@ -2150,6 +2158,11 @@ public abstract class DebugTestBase extends TestBase {
           }
         }
         return false;
+      }
+
+      private static boolean isInLambdaClass(VmMirror mirror, Location location) {
+        String classSig = mirror.getClassSignature(location.classID);
+        return classSig.contains("$$Lambda$");
       }
 
       private static boolean isLambdaMethod(VmMirror mirror, Location location) {

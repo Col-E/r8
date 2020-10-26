@@ -233,7 +233,7 @@ public final class LambdaClass {
         new DexEncodedMethod(
             mainMethod,
             MethodAccessFlags.fromSharedAccessFlags(
-                Constants.ACC_PUBLIC | Constants.ACC_FINAL | Constants.ACC_SYNTHETIC, false),
+                Constants.ACC_PUBLIC | Constants.ACC_FINAL, false),
             MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
