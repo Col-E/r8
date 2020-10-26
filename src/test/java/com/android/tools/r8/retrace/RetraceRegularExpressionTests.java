@@ -63,6 +63,7 @@ public class RetraceRegularExpressionTests extends TestBase {
 
   @Test
   public void matchMultipleTypeNamesOnLine() {
+    // TODO(b/171691292): We are not supporting having multiple class matches for.
     runRetraceTest(
         "%c\\s%c\\s%c",
         new StackTraceForTest() {
@@ -79,7 +80,7 @@ public class RetraceRegularExpressionTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
-            return ImmutableList.of("AA.AA.AA BB.BB.BB CC.CC.CC");
+            return ImmutableList.of("AA.AA.AA b.b.b c.c.c");
           }
 
           @Override
@@ -91,6 +92,7 @@ public class RetraceRegularExpressionTests extends TestBase {
 
   @Test
   public void matchMultipleSlashNamesOnLine() {
+    // TODO(b/171691292): We are not supporting having multiple class matches for.
     runRetraceTest(
         "%C\\s%C\\s%C",
         new StackTraceForTest() {
@@ -106,7 +108,7 @@ public class RetraceRegularExpressionTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
-            return ImmutableList.of("AA/AA BB/BB CC/CC");
+            return ImmutableList.of("AA/AA b/b/b c/c/c");
           }
 
           @Override

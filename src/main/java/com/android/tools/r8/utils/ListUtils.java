@@ -7,6 +7,7 @@ package com.android.tools.r8.utils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -62,5 +63,13 @@ public class ListUtils {
       }
     }
     return true;
+  }
+
+  public static <T, R> R fold(Collection<T> items, R identity, BiFunction<R, T, R> acc) {
+    R result = identity;
+    for (T item : items) {
+      result = acc.apply(result, item);
+    }
+    return result;
   }
 }

@@ -23,6 +23,10 @@ public final class RetracedTypeImpl implements RetracedType {
     return new RetracedTypeImpl(typeReference);
   }
 
+  static RetracedType createVoid() {
+    return new RetracedTypeImpl(null);
+  }
+
   @Override
   public boolean isVoid() {
     return typeReference == null;

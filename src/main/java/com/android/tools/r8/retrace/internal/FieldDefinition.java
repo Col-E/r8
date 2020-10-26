@@ -43,7 +43,7 @@ abstract class FieldDefinition implements Definition {
 
     @Override
     FieldDefinition substituteHolder(ClassReference newHolder) {
-      return FieldDefinition.create(classReference, name);
+      return FieldDefinition.create(newHolder, name);
     }
 
     @Override

@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace.internal;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.ClassNameType;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.StackTraceElementStringProxyBuilder;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.List;
@@ -92,7 +93,7 @@ public final class PlainStackTraceVisitor
         return null;
       }
       return StackTraceElementStringProxy.builder(line)
-          .registerClassName(exceptionStartIndex, messageStartIndex)
+          .registerClassName(exceptionStartIndex, messageStartIndex, ClassNameType.TYPENAME)
           .build();
     }
   }
@@ -161,7 +162,7 @@ public final class PlainStackTraceVisitor
       }
       StackTraceElementStringProxyBuilder builder =
           StackTraceElementStringProxy.builder(line)
-              .registerClassName(classStartIndex, methodSeparator)
+              .registerClassName(classStartIndex, methodSeparator, ClassNameType.TYPENAME)
               .registerMethodName(methodSeparator + 1, parensStart);
       // Check if we have a filename and position.
       int separatorIndex = firstCharFromIndex(line, parensStart, ':');
@@ -201,7 +202,7 @@ public final class PlainStackTraceVisitor
         return null;
       }
       return StackTraceElementStringProxy.builder(line)
-          .registerClassName(exceptionStartIndex, lastBracketPosition)
+          .registerClassName(exceptionStartIndex, lastBracketPosition, ClassNameType.TYPENAME)
           .build();
     }
   }

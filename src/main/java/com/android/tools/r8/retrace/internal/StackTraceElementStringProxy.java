@@ -8,8 +8,15 @@ import static com.android.tools.r8.retrace.internal.PlainStackTraceVisitor.first
 import static com.android.tools.r8.retrace.internal.RetraceUtils.methodDescriptionFromRetraceMethod;
 import static com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.StringIndex.noIndex;
 
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.retrace.RetracedClass;
+import com.android.tools.r8.retrace.RetracedField;
+import com.android.tools.r8.retrace.RetracedType;
 import com.android.tools.r8.retrace.StackTraceElementProxy;
 import com.android.tools.r8.retrace.internal.StackTraceElementProxyRetracerImpl.RetraceStackTraceProxyImpl;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.android.tools.r8.utils.TriFunction;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,24 +25,33 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
 
   private final String line;
   private final List<StringIndex> orderedIndices;
-  private final StringIndex className;
+  private final ClassStringIndex className;
   private final StringIndex methodName;
   private final StringIndex sourceFile;
   private final StringIndex lineNumber;
+  private final StringIndex fieldName;
+  private final StringIndex fieldOrReturnType;
+  private final StringIndex methodArguments;
 
   private StackTraceElementStringProxy(
       String line,
       List<StringIndex> orderedIndices,
-      StringIndex className,
+      ClassStringIndex className,
       StringIndex methodName,
       StringIndex sourceFile,
-      StringIndex lineNumber) {
+      StringIndex lineNumber,
+      StringIndex fieldName,
+      StringIndex fieldOrReturnType,
+      StringIndex methodArguments) {
     this.line = line;
     this.orderedIndices = orderedIndices;
     this.className = className;
     this.methodName = methodName;
     this.sourceFile = sourceFile;
     this.lineNumber = lineNumber;
+    this.fieldName = fieldName;
+    this.fieldOrReturnType = fieldOrReturnType;
+    this.methodArguments = methodArguments;
   }
 
   static StackTraceElementStringProxyBuilder builder(String line) {
@@ -63,22 +79,37 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
   }
 
   @Override
-  public String className() {
-    return hasClassName() ? getEntryInLine(className) : null;
+  public boolean hasFieldName() {
+    return fieldName.hasIndex();
   }
 
   @Override
-  public String methodName() {
+  public boolean hasFieldOrReturnType() {
+    return fieldOrReturnType.hasIndex();
+  }
+
+  @Override
+  public boolean hasMethodArguments() {
+    return methodArguments.hasIndex();
+  }
+
+  @Override
+  public ClassReference getClassReference() {
+    return hasClassName() ? className.getReference(line) : null;
+  }
+
+  @Override
+  public String getMethodName() {
     return hasMethodName() ? getEntryInLine(methodName) : null;
   }
 
   @Override
-  public String fileName() {
+  public String getFileName() {
     return hasFileName() ? getEntryInLine(sourceFile) : null;
   }
 
   @Override
-  public int lineNumber() {
+  public int getLineNumber() {
     if (!hasLineNumber()) {
       return -1;
     }
@@ -87,6 +118,21 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
     } catch (NumberFormatException nfe) {
       return -1;
     }
+  }
+
+  @Override
+  public String getFieldName() {
+    return hasFieldName() ? getEntryInLine(fieldName) : null;
+  }
+
+  @Override
+  public String getFieldOrReturnType() {
+    return hasFieldOrReturnType() ? getEntryInLine(fieldOrReturnType) : null;
+  }
+
+  @Override
+  public String getMethodArguments() {
+    return hasMethodArguments() ? getEntryInLine(methodArguments) : null;
   }
 
   public String toRetracedItem(
@@ -118,30 +164,43 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
     return line.substring(index.startIndex, index.endIndex);
   }
 
+  public enum ClassNameType {
+    BINARY,
+    TYPENAME
+  }
+
   public static class StackTraceElementStringProxyBuilder {
 
     private final String line;
     private final List<StringIndex> orderedIndices = new ArrayList<>();
-    private StringIndex className = noIndex();
+    private ClassStringIndex className = noIndex();
     private StringIndex methodName = noIndex();
     private StringIndex sourceFile = noIndex();
     private StringIndex lineNumber = noIndex();
+    private StringIndex fieldName = noIndex();
+    private StringIndex fieldOrReturnType = noIndex();
+    private StringIndex methodArguments = noIndex();
     private int lastSeenStartIndex = -1;
 
     private StackTraceElementStringProxyBuilder(String line) {
       this.line = line;
     }
 
-    public StackTraceElementStringProxyBuilder registerClassName(int startIndex, int endIndex) {
+    public StackTraceElementStringProxyBuilder registerClassName(
+        int startIndex, int endIndex, ClassNameType classNameType) {
       ensureLineIndexIncreases(startIndex);
       className =
-          new StringIndex(
+          new ClassStringIndex(
               startIndex,
               endIndex,
               (retraced, original, verbose) -> {
                 assert retraced.hasRetracedClass();
-                return retraced.getRetracedClass().getTypeName();
-              });
+                RetracedClass retracedClass = retraced.getRetracedClass();
+                return classNameType == ClassNameType.BINARY
+                    ? retracedClass.getBinaryName()
+                    : retracedClass.getTypeName();
+              },
+              classNameType);
       orderedIndices.add(className);
       return this;
     }
@@ -153,7 +212,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
               endIndex,
               (retraced, original, verbose) -> {
                 if (!retraced.hasRetracedMethod()) {
-                  return original.methodName();
+                  return original.getMethodName();
                 }
                 return methodDescriptionFromRetraceMethod(
                     retraced.getRetracedMethod(), false, verbose);
@@ -168,7 +227,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
               startIndex,
               endIndex,
               (retraced, original, verbose) ->
-                  retraced.hasSourceFile() ? retraced.getSourceFile() : original.fileName());
+                  retraced.hasSourceFile() ? retraced.getSourceFile() : original.getFileName());
       orderedIndices.add(sourceFile);
       return this;
     }
@@ -186,9 +245,73 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
       return this;
     }
 
+    public StackTraceElementStringProxyBuilder registerFieldName(int startIndex, int endIndex) {
+      fieldName =
+          new StringIndex(
+              startIndex,
+              endIndex,
+              (retraced, original, verbose) -> {
+                if (!retraced.hasRetracedField()) {
+                  return original.getFieldName();
+                }
+                RetracedField retracedField = retraced.getRetracedField();
+                if (!verbose || retracedField.isUnknown()) {
+                  return retracedField.getFieldName();
+                }
+                return retracedField.asKnown().getFieldType().getTypeName()
+                    + " "
+                    + retracedField.getFieldName();
+              });
+      orderedIndices.add(fieldName);
+      return this;
+    }
+
+    public StackTraceElementStringProxyBuilder registerFieldOrReturnType(
+        int startIndex, int endIndex) {
+      fieldOrReturnType =
+          new StringIndex(
+              startIndex,
+              endIndex,
+              (retraced, original, verbose) -> {
+                if (!retraced.hasFieldOrReturnType()) {
+                  return original.getFieldOrReturnType();
+                }
+                return retraced.getRetracedFieldOrReturnType().isVoid()
+                    ? "void"
+                    : retraced.getRetracedFieldOrReturnType().getTypeName();
+              });
+      orderedIndices.add(fieldOrReturnType);
+      return this;
+    }
+
+    public StackTraceElementStringProxyBuilder registerMethodArguments(
+        int startIndex, int endIndex) {
+      methodArguments =
+          new StringIndex(
+              startIndex,
+              endIndex,
+              (retraced, original, verbose) -> {
+                if (!retraced.hasMethodArguments()) {
+                  return original.getMethodArguments();
+                }
+                return StringUtils.join(
+                    retraced.getMethodArguments(), ",", BraceType.NONE, RetracedType::getTypeName);
+              });
+      orderedIndices.add(methodArguments);
+      return this;
+    }
+
     public StackTraceElementStringProxy build() {
       return new StackTraceElementStringProxy(
-          line, orderedIndices, className, methodName, sourceFile, lineNumber);
+          line,
+          orderedIndices,
+          className,
+          methodName,
+          sourceFile,
+          lineNumber,
+          fieldName,
+          fieldOrReturnType,
+          methodArguments);
     }
 
     private void ensureLineIndexIncreases(int newStartIndex) {
@@ -199,16 +322,17 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
     }
   }
 
-  static final class StringIndex {
+  static class StringIndex {
 
-    private static final StringIndex NO_INDEX = new StringIndex(-1, -1, null);
+    private static final ClassStringIndex NO_INDEX =
+        new ClassStringIndex(-1, -1, null, ClassNameType.TYPENAME);
 
-    static StringIndex noIndex() {
+    static ClassStringIndex noIndex() {
       return NO_INDEX;
     }
 
-    private final int startIndex;
-    private final int endIndex;
+    protected final int startIndex;
+    protected final int endIndex;
     private final TriFunction<
             RetraceStackTraceProxyImpl<StackTraceElementStringProxy>,
             StackTraceElementStringProxy,
@@ -232,6 +356,32 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
 
     boolean hasIndex() {
       return this != NO_INDEX;
+    }
+  }
+
+  static final class ClassStringIndex extends StringIndex {
+
+    private final ClassNameType classNameType;
+
+    private ClassStringIndex(
+        int startIndex,
+        int endIndex,
+        TriFunction<
+                RetraceStackTraceProxyImpl<StackTraceElementStringProxy>,
+                StackTraceElementStringProxy,
+                Boolean,
+                String>
+            retracedString,
+        ClassNameType classNameType) {
+      super(startIndex, endIndex, retracedString);
+      this.classNameType = classNameType;
+    }
+
+    ClassReference getReference(String line) {
+      String className = line.substring(startIndex, endIndex);
+      return classNameType == ClassNameType.BINARY
+          ? Reference.classFromBinaryName(className)
+          : Reference.classFromTypeName(className);
     }
   }
 }

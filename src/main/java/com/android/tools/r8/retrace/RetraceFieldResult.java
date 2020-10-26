@@ -27,5 +27,7 @@ public interface RetraceFieldResult {
     RetraceFieldResult getRetraceFieldResult();
 
     RetraceClassResult.Element getClassElement();
+
+    RetraceSourceFileResult retraceSourceFile(String sourceFile);
   }
 }

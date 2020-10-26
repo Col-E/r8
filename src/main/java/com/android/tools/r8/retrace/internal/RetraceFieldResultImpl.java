@@ -9,7 +9,7 @@ import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.RetraceFieldResult;
-import com.android.tools.r8.retrace.Retracer;
+import com.android.tools.r8.retrace.RetraceSourceFileResult;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import java.util.List;
@@ -22,13 +22,13 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
   private final RetraceClassResultImpl classResult;
   private final List<Pair<RetraceClassResultImpl.ElementImpl, List<MemberNaming>>> memberNamings;
   private final FieldDefinition fieldDefinition;
-  private final Retracer retracer;
+  private final RetracerImpl retracer;
 
   RetraceFieldResultImpl(
       RetraceClassResultImpl classResult,
       List<Pair<RetraceClassResultImpl.ElementImpl, List<MemberNaming>>> memberNamings,
       FieldDefinition fieldDefinition,
-      Retracer retracer) {
+      RetracerImpl retracer) {
     this.classResult = classResult;
     this.memberNamings = memberNamings;
     this.fieldDefinition = fieldDefinition;
@@ -130,6 +130,12 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
     @Override
     public RetraceClassResultImpl.ElementImpl getClassElement() {
       return classElement;
+    }
+
+    @Override
+    public RetraceSourceFileResult retraceSourceFile(String sourceFile) {
+      return RetraceUtils.getSourceFile(
+          classElement, fieldReference.getHolderClass(), sourceFile, retraceFieldResult.retracer);
     }
   }
 }

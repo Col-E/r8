@@ -5,7 +5,6 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.retrace.internal.RetracedTypeImpl;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -21,6 +20,6 @@ public interface RetraceTypeResult {
   @Keep
   interface Element {
 
-    RetracedTypeImpl getType();
+    RetracedType getType();
   }
 }

@@ -5,6 +5,7 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.references.ClassReference;
 
 @Keep
 public abstract class StackTraceElementProxy<T> {
@@ -17,11 +18,23 @@ public abstract class StackTraceElementProxy<T> {
 
   public abstract boolean hasLineNumber();
 
-  public abstract String className();
+  public abstract boolean hasFieldName();
 
-  public abstract String methodName();
+  public abstract boolean hasFieldOrReturnType();
 
-  public abstract String fileName();
+  public abstract boolean hasMethodArguments();
 
-  public abstract int lineNumber();
+  public abstract ClassReference getClassReference();
+
+  public abstract String getMethodName();
+
+  public abstract String getFileName();
+
+  public abstract int getLineNumber();
+
+  public abstract String getFieldName();
+
+  public abstract String getFieldOrReturnType();
+
+  public abstract String getMethodArguments();
 }
