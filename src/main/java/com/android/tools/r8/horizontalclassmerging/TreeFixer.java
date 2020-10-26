@@ -26,7 +26,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -155,21 +154,17 @@ class TreeFixer {
         new HashMap<>(remappedVirtualMethods);
 
     Set<DexMethod> newVirtualMethodReferences = Sets.newIdentityHashSet();
-    List<DexEncodedMethod> newVirtualMethods = new ArrayList<>();
-    for (DexEncodedMethod method : clazz.virtualMethods()) {
-      newVirtualMethods.add(
-          fixupVirtualMethod(remappedClassVirtualMethods, newVirtualMethodReferences, method));
-    }
-    clazz.getMethodCollection().clearVirtualMethods();
-    clazz.getMethodCollection().addVirtualMethods(newVirtualMethods);
+    clazz
+        .getMethodCollection()
+        .replaceAllVirtualMethods(
+            method ->
+                fixupVirtualMethod(
+                    remappedClassVirtualMethods, newVirtualMethodReferences, method));
 
     Set<DexMethod> newDirectMethodReferences = Sets.newIdentityHashSet();
-    List<DexEncodedMethod> newDirectMethods = new ArrayList<>();
-    for (DexEncodedMethod method : clazz.directMethods()) {
-      newDirectMethods.add(fixupDirectMethod(newDirectMethodReferences, method));
-    }
-    clazz.getMethodCollection().clearDirectMethods();
-    clazz.getMethodCollection().addDirectMethods(newDirectMethods);
+    clazz
+        .getMethodCollection()
+        .replaceAllDirectMethods(method -> fixupDirectMethod(newDirectMethodReferences, method));
 
     fixupFields(clazz.staticFields(), clazz::setStaticField);
     fixupFields(clazz.instanceFields(), clazz::setInstanceField);

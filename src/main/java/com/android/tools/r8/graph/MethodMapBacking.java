@@ -8,12 +8,14 @@ import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceRBTreeMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
@@ -283,6 +285,28 @@ public class MethodMapBacking extends MethodCollectionBacking {
   @Override
   void replaceVirtualMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
     replaceMethods(method -> belongsToVirtualPool(method) ? replacement.apply(method) : method);
+  }
+
+  @Override
+  void replaceAllDirectMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    List<DexEncodedMethod> oldMethods = Lists.newArrayList(directMethods());
+    clearDirectMethods();
+    List<DexEncodedMethod> newMethods = new ArrayList<>(oldMethods.size());
+    for (DexEncodedMethod method : oldMethods) {
+      newMethods.add(replacement.apply(method));
+    }
+    addDirectMethods(newMethods);
+  }
+
+  @Override
+  void replaceAllVirtualMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    List<DexEncodedMethod> oldMethods = Lists.newArrayList(virtualMethods());
+    clearVirtualMethods();
+    List<DexEncodedMethod> newMethods = new ArrayList<>(oldMethods.size());
+    for (DexEncodedMethod method : oldMethods) {
+      newMethods.add(replacement.apply(method));
+    }
+    addVirtualMethods(newMethods);
   }
 
   @Override

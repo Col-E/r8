@@ -354,4 +354,26 @@ public class MethodArrayBacking extends MethodCollectionBacking {
       }
     }
   }
+
+  @Override
+  public void replaceAllDirectMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    DexEncodedMethod[] oldMethods = directMethods;
+    clearDirectMethods();
+    DexEncodedMethod[] newMethods = new DexEncodedMethod[oldMethods.length];
+    for (int i = 0; i < oldMethods.length; i++) {
+      newMethods[i] = replacement.apply(oldMethods[i]);
+    }
+    directMethods = newMethods;
+  }
+
+  @Override
+  public void replaceAllVirtualMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    DexEncodedMethod[] oldMethods = virtualMethods;
+    clearVirtualMethods();
+    DexEncodedMethod[] newMethods = new DexEncodedMethod[oldMethods.length];
+    for (int i = 0; i < oldMethods.length; i++) {
+      newMethods[i] = replacement.apply(oldMethods[i]);
+    }
+    virtualMethods = newMethods;
+  }
 }
