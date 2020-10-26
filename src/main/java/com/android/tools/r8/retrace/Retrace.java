@@ -195,7 +195,9 @@ public class Retrace {
                             retracedElement.getOriginalItem();
                         retracedStringsForElement.add(
                             originalItem.toRetracedItem(
-                                retracedElement, !retracedStringsForElement.isEmpty()));
+                                retracedElement,
+                                !retracedStringsForElement.isEmpty(),
+                                command.isVerbose));
                       });
               retracedStrings.addAll(retracedStringsForElement);
             });

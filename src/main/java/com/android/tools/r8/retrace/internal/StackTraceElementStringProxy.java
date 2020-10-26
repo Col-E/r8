@@ -5,13 +5,14 @@
 package com.android.tools.r8.retrace.internal;
 
 import static com.android.tools.r8.retrace.internal.PlainStackTraceVisitor.firstNonWhiteSpaceCharacterFromIndex;
+import static com.android.tools.r8.retrace.internal.RetraceUtils.methodDescriptionFromRetraceMethod;
 import static com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.StringIndex.noIndex;
 
 import com.android.tools.r8.retrace.StackTraceElementProxy;
 import com.android.tools.r8.retrace.internal.StackTraceElementProxyRetracerImpl.RetraceStackTraceProxyImpl;
+import com.android.tools.r8.utils.TriFunction;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiFunction;
 
 public final class StackTraceElementStringProxy extends StackTraceElementProxy<String> {
 
@@ -90,7 +91,8 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
 
   public String toRetracedItem(
       RetraceStackTraceProxyImpl<StackTraceElementStringProxy> retracedProxy,
-      boolean printAmbiguous) {
+      boolean printAmbiguous,
+      boolean verbose) {
     StringBuilder sb = new StringBuilder();
     int lastSeenIndex = 0;
     if (retracedProxy.isAmbiguous() && printAmbiguous) {
@@ -100,7 +102,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
     }
     for (StringIndex index : orderedIndices) {
       sb.append(line, lastSeenIndex, index.startIndex);
-      sb.append(index.retracedString.apply(retracedProxy, this));
+      sb.append(index.retracedString.apply(retracedProxy, this, verbose));
       lastSeenIndex = index.endIndex;
     }
     sb.append(line, lastSeenIndex, line.length());
@@ -136,7 +138,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
           new StringIndex(
               startIndex,
               endIndex,
-              (retraced, original) -> {
+              (retraced, original, verbose) -> {
                 assert retraced.hasRetracedClass();
                 return retraced.getRetracedClass().getTypeName();
               });
@@ -149,10 +151,13 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
           new StringIndex(
               startIndex,
               endIndex,
-              (retraced, original) ->
-                  retraced.hasRetracedMethod()
-                      ? retraced.getRetracedMethod().getMethodName()
-                      : original.methodName());
+              (retraced, original, verbose) -> {
+                if (!retraced.hasRetracedMethod()) {
+                  return original.methodName();
+                }
+                return methodDescriptionFromRetraceMethod(
+                    retraced.getRetracedMethod(), false, verbose);
+              });
       orderedIndices.add(methodName);
       return this;
     }
@@ -162,7 +167,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
           new StringIndex(
               startIndex,
               endIndex,
-              (retraced, original) ->
+              (retraced, original, verbose) ->
                   retraced.hasSourceFile() ? retraced.getSourceFile() : original.fileName());
       orderedIndices.add(sourceFile);
       return this;
@@ -173,7 +178,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
           new StringIndex(
               startIndex,
               endIndex,
-              (retraced, original) ->
+              (retraced, original, verbose) ->
                   retraced.hasLineNumber()
                       ? retraced.getLineNumber() + ""
                       : original.lineNumberAsString());
@@ -204,18 +209,20 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
 
     private final int startIndex;
     private final int endIndex;
-    private final BiFunction<
+    private final TriFunction<
             RetraceStackTraceProxyImpl<StackTraceElementStringProxy>,
             StackTraceElementStringProxy,
+            Boolean,
             String>
         retracedString;
 
     private StringIndex(
         int startIndex,
         int endIndex,
-        BiFunction<
+        TriFunction<
                 RetraceStackTraceProxyImpl<StackTraceElementStringProxy>,
                 StackTraceElementStringProxy,
+                Boolean,
                 String>
             retracedString) {
       this.startIndex = startIndex;
