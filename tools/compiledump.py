@@ -275,7 +275,8 @@ def run1(out, args, otherargs):
         print "=" * 80
         print " RETRACED OUTPUT"
         print "=" * 80
-        retrace.run(local_map, hash_or_version, stacktrace, is_hash(version))
+        retrace.run(
+          local_map, hash_or_version, stacktrace, is_hash(version), no_r8lib=False)
       return 1
 
 def run(args, otherargs):
