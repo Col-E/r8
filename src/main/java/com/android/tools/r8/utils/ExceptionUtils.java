@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -76,6 +77,15 @@ public abstract class ExceptionUtils {
 
   private static CompilationFailedException failCompilation(
       Reporter reporter, Throwable topMostException) {
+    return failWithFakeEntry(
+        reporter, topMostException, CompilationFailedException::new, AbortException.class);
+  }
+
+  public static <T extends Exception, A extends Exception> T failWithFakeEntry(
+      DiagnosticsHandler diagnosticsHandler,
+      Throwable topMostException,
+      BiFunction<String, Throwable, T> newException,
+      Class<A> abortException) {
     // Find inner-most cause of the failure and compute origin, position and reported for the path.
     boolean hasBeenReported = false;
     Origin origin = Origin.unknown();
@@ -83,7 +93,7 @@ public abstract class ExceptionUtils {
     List<Throwable> suppressed = new ArrayList<>();
     Throwable innerMostCause = topMostException;
     while (true) {
-      hasBeenReported |= innerMostCause instanceof AbortException;
+      hasBeenReported |= abortException.isAssignableFrom(innerMostCause.getClass());
       Origin nextOrigin = getOrigin(innerMostCause);
       if (nextOrigin != Origin.unknown()) {
         origin = nextOrigin;
@@ -105,7 +115,7 @@ public abstract class ExceptionUtils {
 
     // If no abort is seen, the exception is not reported, so report it now.
     if (!hasBeenReported) {
-      reporter.error(new ExceptionDiagnostic(innerMostCause, origin, position));
+      diagnosticsHandler.error(new ExceptionDiagnostic(innerMostCause, origin, position));
     }
 
     // Build the top-level compiler exception and version stack.
@@ -117,8 +127,7 @@ public abstract class ExceptionUtils {
       message.append(", origin: ").append(origin);
     }
     // Create the final exception object.
-    CompilationFailedException rethrow =
-        new CompilationFailedException(message.toString(), innerMostCause);
+    T rethrow = newException.apply(message.toString(), innerMostCause);
     // Replace its stack by the cause stack and insert version info at the top.
     String filename = "Version_" + Version.LABEL + ".java";
     StackTraceElement versionElement =

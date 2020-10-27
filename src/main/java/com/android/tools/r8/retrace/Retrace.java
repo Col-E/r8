@@ -5,6 +5,7 @@
 package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.utils.ExceptionUtils.STATUS_ERROR;
+import static com.android.tools.r8.utils.ExceptionUtils.failWithFakeEntry;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
@@ -234,7 +235,7 @@ public class Retrace {
     }
   }
 
-  public static void run(String[] args) {
+  public static void run(String[] args) throws RetraceFailedException {
     // To be compatible with standard retrace and remapper, we translate -arg into --arg.
     String[] mappedArgs = new String[args.length];
     boolean printInfo = false;
@@ -255,14 +256,23 @@ public class Retrace {
     }
     RetraceDiagnosticsHandler retraceDiagnosticsHandler =
         new RetraceDiagnosticsHandler(new DiagnosticsHandler() {}, printInfo);
-    Builder builder = parseArguments(mappedArgs, retraceDiagnosticsHandler);
+    try {
+      run(mappedArgs, retraceDiagnosticsHandler);
+    } catch (Throwable t) {
+      throw failWithFakeEntry(
+          retraceDiagnosticsHandler, t, RetraceFailedException::new, RetraceAbortException.class);
+    }
+  }
+
+  private static void run(String[] args, DiagnosticsHandler diagnosticsHandler) {
+    Builder builder = parseArguments(args, diagnosticsHandler);
     if (builder == null) {
       // --help or --version was an argument to list
-      if (Arrays.asList(mappedArgs).contains("--version")) {
+      if (Arrays.asList(args).contains("--version")) {
         System.out.println("Retrace " + Version.getVersionString());
         return;
       }
-      assert Arrays.asList(mappedArgs).contains("--help");
+      assert Arrays.asList(args).contains("--help");
       System.out.println("Retrace " + Version.getVersionString());
       System.out.print(USAGE_MESSAGE);
       return;
@@ -274,7 +284,7 @@ public class Retrace {
               printStream.println(line);
             }
           } catch (UnsupportedEncodingException e) {
-            retraceDiagnosticsHandler.error(new StringDiagnostic(e.getMessage()));
+            diagnosticsHandler.error(new StringDiagnostic(e.getMessage()));
           }
         });
     run(builder.build());
@@ -302,21 +312,20 @@ public class Retrace {
   }
 
   private interface MainAction {
-    void run() throws RetraceAbortException;
+    void run() throws RetraceFailedException;
   }
 
   private static void withMainProgramHandler(MainAction action) {
     try {
       action.run();
-    } catch (RetraceAbortException e) {
+    } catch (RetraceFailedException | RetraceAbortException e) {
       // Detail of the errors were already reported
-      System.err.println(StringUtils.LINE_SEPARATOR + USAGE_MESSAGE + StringUtils.LINE_SEPARATOR);
+      System.err.println("Retrace failed");
       System.exit(STATUS_ERROR);
-    } catch (RuntimeException e) {
+      throw null;
+    } catch (Throwable t) {
       System.err.println("Retrace failed with an internal error.");
-      System.err.println(StringUtils.LINE_SEPARATOR + USAGE_MESSAGE + StringUtils.LINE_SEPARATOR);
-      Throwable cause = e.getCause() == null ? e : e.getCause();
-      cause.printStackTrace();
+      t.printStackTrace();
       System.exit(STATUS_ERROR);
     }
   }
