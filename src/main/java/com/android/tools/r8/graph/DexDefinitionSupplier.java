@@ -54,12 +54,12 @@ public interface DexDefinitionSupplier {
 
   default <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
       DexClass definitionForHolder(DexEncodedMember<D, R> member, ProgramMethod context) {
-    return definitionForHolder(member.toReference(), context.getHolder());
+    return definitionForHolder(member.getReference(), context.getHolder());
   }
 
   default <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
       DexClass definitionForHolder(DexEncodedMember<D, R> member, DexProgramClass context) {
-    return definitionForHolder(member.toReference(), context);
+    return definitionForHolder(member.getReference(), context);
   }
 
   default <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>

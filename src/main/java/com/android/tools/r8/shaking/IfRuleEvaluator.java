@@ -219,7 +219,7 @@ public class IfRuleEvaluator {
       ProguardIfRule rule, DexClass sourceClass, DexClass targetClass) {
     Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
     if (memberKeepRules.isEmpty()) {
-      materializeIfRule(rule, ImmutableSet.of(sourceClass.toReference()));
+      materializeIfRule(rule, ImmutableSet.of(sourceClass.getReference()));
       return true;
     }
 
@@ -270,7 +270,7 @@ public class IfRuleEvaluator {
                           || rootSetBuilder.ruleSatisfiedByMethods(
                               memberRule, methodsInCombination));
       if (satisfied) {
-        materializeIfRule(rule, ImmutableSet.of(sourceClass.toReference()));
+        materializeIfRule(rule, ImmutableSet.of(sourceClass.getReference()));
         if (canRemoveSubsequentKeepRule(rule)) {
           return true;
         }

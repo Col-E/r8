@@ -53,7 +53,7 @@ public class ProgramFieldSet implements Iterable<ProgramField> {
   }
 
   public boolean contains(DexEncodedField field) {
-    return backing.containsKey(field.toReference());
+    return backing.containsKey(field.getReference());
   }
 
   public boolean contains(ProgramField field) {
@@ -79,7 +79,7 @@ public class ProgramFieldSet implements Iterable<ProgramField> {
   }
 
   public boolean remove(DexEncodedField field) {
-    return remove(field.toReference());
+    return remove(field.getReference());
   }
 
   public int size() {

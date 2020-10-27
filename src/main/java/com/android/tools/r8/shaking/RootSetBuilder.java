@@ -1048,7 +1048,7 @@ public class RootSetBuilder {
     }
     // Keep the type if the item is also kept.
     dependentNoShrinking
-        .computeIfAbsent(item.toReference(), x -> new MutableItemsWithRules())
+        .computeIfAbsent(item.getReference(), x -> new MutableItemsWithRules())
         .addClassWithRule(type, context);
     // Unconditionally add to no-obfuscation, as that is only checked for surviving items.
     if (appView.options().isMinificationEnabled()) {
@@ -1138,19 +1138,19 @@ public class RootSetBuilder {
       if (!modifiers.allowsShrinking) {
         if (precondition != null) {
           dependentNoShrinking
-              .computeIfAbsent(precondition.toReference(), x -> new MutableItemsWithRules())
-              .addReferenceWithRule(item.toReference(), keepRule);
+              .computeIfAbsent(precondition.getReference(), x -> new MutableItemsWithRules())
+              .addReferenceWithRule(item.getReference(), keepRule);
         } else {
-          noShrinking.addReferenceWithRule(item.toReference(), keepRule);
+          noShrinking.addReferenceWithRule(item.getReference(), keepRule);
         }
         context.markAsUsed();
       } else if (!modifiers.allowsOptimization) {
         if (precondition != null) {
           dependentSoftPinned
-              .computeIfAbsent(precondition.toReference(), x -> new MutableItemsWithRules())
-              .addReferenceWithRule(item.toReference(), keepRule);
+              .computeIfAbsent(precondition.getReference(), x -> new MutableItemsWithRules())
+              .addReferenceWithRule(item.getReference(), keepRule);
         } else {
-          softPinned.addReferenceWithRule(item.toReference(), keepRule);
+          softPinned.addReferenceWithRule(item.getReference(), keepRule);
         }
       }
       if (!modifiers.allowsOptimization) {
@@ -1160,7 +1160,7 @@ public class RootSetBuilder {
       }
 
       if (appView.options().isMinificationEnabled() && !modifiers.allowsObfuscation) {
-        noObfuscation.add(item.toReference());
+        noObfuscation.add(item.getReference());
         context.markAsUsed();
       }
       if (modifiers.includeDescriptorClasses) {
@@ -1168,7 +1168,7 @@ public class RootSetBuilder {
         context.markAsUsed();
       }
     } else if (context instanceof ProguardAssumeMayHaveSideEffectsRule) {
-      mayHaveSideEffects.put(item.toReference(), rule);
+      mayHaveSideEffects.put(item.getReference(), rule);
       context.markAsUsed();
     } else if (context instanceof ProguardAssumeNoSideEffectRule) {
       if (item.isDexEncodedMember()) {
@@ -1178,20 +1178,20 @@ public class RootSetBuilder {
           reportAssumeNoSideEffectsWarningForJavaLangClassMethod(
               member.asDexEncodedMethod(), (ProguardAssumeNoSideEffectRule) context);
         } else {
-          noSideEffects.put(member.toReference(), rule);
+          noSideEffects.put(member.getReference(), rule);
         }
         context.markAsUsed();
       }
     } else if (context instanceof ProguardWhyAreYouKeepingRule) {
-      reasonAsked.computeIfAbsent(item.toReference(), i -> i);
+      reasonAsked.computeIfAbsent(item.getReference(), i -> i);
       context.markAsUsed();
     } else if (context instanceof ProguardAssumeValuesRule) {
       if (item.isDexEncodedMember()) {
-        assumedValues.put(item.asDexEncodedMember().toReference(), rule);
+        assumedValues.put(item.asDexEncodedMember().getReference(), rule);
         context.markAsUsed();
       }
     } else if (context instanceof ProguardCheckDiscardRule) {
-      checkDiscarded.computeIfAbsent(item.toReference(), i -> i);
+      checkDiscarded.computeIfAbsent(item.getReference(), i -> i);
       context.markAsUsed();
     } else if (context instanceof InlineRule) {
       if (item.isDexEncodedMethod()) {
@@ -1224,7 +1224,7 @@ public class RootSetBuilder {
             "Unexpected -"
                 + classInlineRule.typeString()
                 + " rule for a non-class type: `"
-                + item.toReference().toSourceString()
+                + item.getReference().toSourceString()
                 + "`");
       }
       switch (classInlineRule.getType()) {
@@ -1452,7 +1452,7 @@ public class RootSetBuilder {
     }
 
     ItemsWithRules getDependentItems(DexDefinition item) {
-      ItemsWithRules found = dependentNoShrinking.get(item.toReference());
+      ItemsWithRules found = dependentNoShrinking.get(item.getReference());
       return found != null ? found : ItemsWithRules.empty();
     }
 
@@ -2034,7 +2034,7 @@ public class RootSetBuilder {
               // Create a Set of the fields to avoid quadratic behavior.
               fields =
                   Streams.stream(clazz.fields())
-                      .map(DexEncodedField::toReference)
+                      .map(DexEncodedField::getReference)
                       .collect(Collectors.toSet());
             }
             assert fields.contains(requiredField)
@@ -2047,7 +2047,7 @@ public class RootSetBuilder {
               // Create a Set of the methods to avoid quadratic behavior.
               methods =
                   Streams.stream(clazz.methods())
-                      .map(DexEncodedMethod::toReference)
+                      .map(DexEncodedMethod::getReference)
                       .collect(Collectors.toSet());
             }
             assert methods.contains(requiredMethod)

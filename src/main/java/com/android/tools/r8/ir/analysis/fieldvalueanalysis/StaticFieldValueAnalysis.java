@@ -365,7 +365,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
           // only written in their corresponding instance initializers. This is needed since we
           // don't analyze these instance initializers in the Enqueuer, as they are in the library.
           if (!appView.appInfo().isInstanceFieldWrittenOnlyInInstanceInitializers(field)
-              && !appView.dexItemFactory().enumMembers.isNameOrOrdinalField(field.toReference())) {
+              && !appView.dexItemFactory().enumMembers.isNameOrOrdinalField(field.getReference())) {
             return;
           }
           if (initializationInfo.isArgumentInitializationInfo()) {

@@ -40,7 +40,7 @@ public abstract class DexClassAndMember<
   }
 
   public R getReference() {
-    return definition.toReference();
+    return definition.getReference();
   }
 
   public Origin getOrigin() {

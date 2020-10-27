@@ -120,7 +120,7 @@ public class MemberValuePropagation {
     if (definition == null) {
       return null;
     }
-    DexReference reference = definition.toReference();
+    DexReference reference = definition.getReference();
     ProguardMemberRule rule = appView.appInfo().noSideEffects.get(reference);
     if (rule != null) {
       return new ProguardMemberRuleLookup(RuleType.ASSUME_NO_SIDE_EFFECTS, rule);

@@ -30,7 +30,7 @@ public class CheckDiscardDiagnostic implements Diagnostic {
       for (DexDefinition definition : failed) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         whyAreYouKeepingConsumer.printWhyAreYouKeeping(
-            graphReporter.getGraphNode(definition.toReference()), new PrintStream(baos));
+            graphReporter.getGraphNode(definition.getReference()), new PrintStream(baos));
         messagesBuilder.add(
             "Item " + definition.toSourceString() + " was not discarded.\n" + baos.toString());
       }

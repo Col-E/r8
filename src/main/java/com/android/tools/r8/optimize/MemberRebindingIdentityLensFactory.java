@@ -155,7 +155,7 @@ public class MemberRebindingIdentityLensFactory {
       if (resolutionResult == null) {
         return;
       }
-      DexField reboundReference = resolutionResult.getResolvedField().toReference();
+      DexField reboundReference = resolutionResult.getResolvedField().getReference();
       if (field == reboundReference) {
         // For the purpose of member rebinding, we don't care about already rebound references.
         return;

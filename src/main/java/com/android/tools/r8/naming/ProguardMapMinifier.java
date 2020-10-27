@@ -516,7 +516,7 @@ public class ProguardMapMinifier {
     private DexString getReservedName(DexDefinition definition, DexString name, DexClass holder) {
       assert definition.isDexEncodedMethod() || definition.isDexEncodedField();
       // Always consult the mapping for renamed members that are not on program path.
-      DexReference reference = definition.toReference();
+      DexReference reference = definition.getReference();
       if (holder.isNotProgramClass()) {
         if (mappedNames.containsKey(reference)) {
           return factory.createString(mappedNames.get(reference).getRenamedName());

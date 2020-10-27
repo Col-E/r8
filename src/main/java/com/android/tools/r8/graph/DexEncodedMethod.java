@@ -371,7 +371,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return getReference().proto;
   }
 
+  @Override
   public DexMethod getReference() {
+    checkIfObsolete();
     return method;
   }
 
@@ -1374,12 +1376,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public String codeToString() {
     checkIfObsolete();
     return code == null ? "<no code>" : code.toString(this, null);
-  }
-
-  @Override
-  public DexMethod toReference() {
-    checkIfObsolete();
-    return method;
   }
 
   public MethodPosition getPosition() {

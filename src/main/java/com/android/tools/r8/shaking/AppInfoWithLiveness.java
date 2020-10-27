@@ -945,7 +945,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean isPinned(DexDefinition definition) {
     assert definition != null;
-    return isPinned(definition.toReference());
+    return isPinned(definition.getReference());
   }
 
   public boolean hasPinnedInstanceInitializer(DexType type) {
@@ -1344,7 +1344,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   public boolean isPinnedNotProgramOrLibraryOverride(DexDefinition definition) {
-    if (isPinned(definition.toReference())) {
+    if (isPinned(definition.getReference())) {
       return true;
     }
     if (definition.isDexEncodedMethod()) {

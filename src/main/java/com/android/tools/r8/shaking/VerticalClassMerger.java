@@ -356,7 +356,7 @@ public class VerticalClassMerger {
     }
 
     assert Streams.stream(Iterables.concat(sourceClass.fields(), sourceClass.methods()))
-        .map(DexEncodedMember::toReference)
+        .map(DexEncodedMember::getReference)
         .noneMatch(appInfo::isPinned);
 
     if (!appInfo
@@ -1309,13 +1309,13 @@ public class VerticalClassMerger {
 
     private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> void add(
         Map<Wrapper<R>, D> map, D item, Equivalence<R> equivalence) {
-      map.put(equivalence.wrap(item.toReference()), item);
+      map.put(equivalence.wrap(item.getReference()), item);
     }
 
     private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> void addAll(
         Collection<Wrapper<R>> collection, Iterable<D> items, Equivalence<R> equivalence) {
       for (D item : items) {
-        collection.add(equivalence.wrap(item.toReference()));
+        collection.add(equivalence.wrap(item.getReference()));
       }
     }
 

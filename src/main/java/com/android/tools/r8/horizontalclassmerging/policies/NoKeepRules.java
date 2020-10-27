@@ -30,7 +30,7 @@ public class NoKeepRules extends SingleClassPolicy {
     boolean pinProgramClass = appView.appInfo().isPinned(type);
 
     for (DexEncodedMember<?, ?> member : programClass.members()) {
-      DexMember<?, ?> reference = member.toReference();
+      DexMember<?, ?> reference = member.getReference();
       if (appView.appInfo().isPinned(reference)) {
         pinProgramClass = true;
         Iterables.addAll(

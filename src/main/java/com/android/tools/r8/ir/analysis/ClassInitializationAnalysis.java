@@ -498,7 +498,7 @@ public class ClassInitializationAnalysis {
           return definition.asDexClass().type == typeToBeInitialized;
         }
         if (definition.isDexEncodedMember()) {
-          return definition.asDexEncodedMember().toReference().holder == typeToBeInitialized;
+          return definition.asDexEncodedMember().getReference().holder == typeToBeInitialized;
         }
         throw new Unreachable();
       }

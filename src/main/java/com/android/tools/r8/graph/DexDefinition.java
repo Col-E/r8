@@ -80,25 +80,13 @@ public abstract class DexDefinition extends DexItem {
     return null;
   }
 
-  public static Stream<DexDefinition> filterDexDefinition(Stream<DexItem> stream) {
-    return DexItem.filter(stream, DexDefinition.class);
-  }
-
-  public abstract DexReference toReference();
-
-  public static Stream<DexReference> mapToReference(Stream<DexDefinition> definitions) {
-    return definitions.map(DexDefinition::toReference);
-  }
+  public abstract DexReference getReference();
 
   private static <T extends DexDefinition> Stream<T> filter(
       Stream<DexDefinition> stream,
       Predicate<DexDefinition> pred,
       Function<DexDefinition, T> f) {
     return stream.filter(pred).map(f);
-  }
-
-  public static Stream<DexClass> filterDexClass(Stream<DexDefinition> stream) {
-    return filter(stream, DexDefinition::isDexClass, DexDefinition::asDexClass);
   }
 
   public static Stream<DexEncodedField> filterDexEncodedField(Stream<DexDefinition> stream) {

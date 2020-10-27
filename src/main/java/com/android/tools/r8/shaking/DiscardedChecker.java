@@ -34,7 +34,7 @@ public class DiscardedChecker {
   }
 
   private void checkItem(DexDefinition item, List<DexDefinition> failed) {
-    DexReference reference = item.toReference();
+    DexReference reference = item.getReference();
     if (checkDiscarded.contains(reference)) {
       failed.add(item);
     }

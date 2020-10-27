@@ -131,7 +131,7 @@ public class RepackagingTreeFixer {
   }
 
   private DexEncodedField fixupField(DexEncodedField field) {
-    DexField fieldReference = field.toReference();
+    DexField fieldReference = field.getReference();
     DexField newFieldReference = fixupFieldReference(fieldReference);
     if (newFieldReference != fieldReference) {
       lensBuilder.recordMove(fieldReference, newFieldReference);
@@ -182,7 +182,7 @@ public class RepackagingTreeFixer {
   }
 
   private DexEncodedMethod fixupMethod(DexEncodedMethod method) {
-    DexMethod methodReference = method.toReference();
+    DexMethod methodReference = method.getReference();
     DexMethod newMethodReference = fixupMethodReference(methodReference);
     if (newMethodReference != methodReference) {
       lensBuilder.recordMove(methodReference, newMethodReference);

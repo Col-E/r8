@@ -83,7 +83,7 @@ public abstract class FieldResolutionResult
 
     @Override
     public DexField getResolvedFieldReference() {
-      return resolvedField.toReference();
+      return resolvedField.getReference();
     }
 
     @Override

@@ -20,6 +20,6 @@ public class NotMatchedByNoHorizontalClassMerging extends SingleClassPolicy {
 
   @Override
   public boolean canMerge(DexProgramClass program) {
-    return !neverMergeClassHorizontally.contains(program.toReference());
+    return !neverMergeClassHorizontally.contains(program.getReference());
   }
 }

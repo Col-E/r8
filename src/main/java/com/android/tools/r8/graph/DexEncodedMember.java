@@ -11,11 +11,11 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
   }
 
   public DexType holder() {
-    return toReference().holder;
+    return getReference().holder;
   }
 
   @Override
-  public abstract R toReference();
+  public abstract R getReference();
 
   @Override
   public boolean isDexEncodedMember() {
@@ -35,11 +35,11 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
       return true;
     }
     return other.getClass() == getClass()
-        && ((DexEncodedMember<?, ?>) other).toReference().equals(toReference());
+        && ((DexEncodedMember<?, ?>) other).getReference().equals(getReference());
   }
 
   @Override
   public final int hashCode() {
-    return toReference().hashCode();
+    return getReference().hashCode();
   }
 }

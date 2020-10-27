@@ -1737,7 +1737,7 @@ public class Enqueuer {
   private void processAnnotation(
       DexProgramClass holder, DexDefinition annotatedItem, DexAnnotation annotation) {
     assert annotatedItem == holder
-        || annotatedItem.asDexEncodedMember().toReference().holder == holder.type;
+        || annotatedItem.asDexEncodedMember().getReference().holder == holder.type;
     assert !holder.isDexClass() || holder.asDexClass().isProgramClass();
     DexType type = annotation.annotation.type;
     recordTypeReference(type);
@@ -1943,7 +1943,7 @@ public class Enqueuer {
     KeepReasonWitness keepReasonWitness = graphReporter.registerClass(clazz, keepReason);
     markClassAsInstantiatedWithCompatRule(clazz.asProgramClass(), keepReasonWitness);
     keepInfo.keepClass(clazz);
-    shouldNotBeMinified(clazz.toReference());
+    shouldNotBeMinified(clazz.getReference());
     clazz.forEachProgramField(
         field -> {
           keepInfo.keepField(field);
@@ -2606,7 +2606,7 @@ public class Enqueuer {
             (type, subTypeConsumer, lambdaConsumer) ->
                 objectAllocationInfoCollection.forEachInstantiatedSubType(
                     type, subTypeConsumer, lambdaConsumer, appInfo),
-            definition -> keepInfo.isPinned(definition.toReference(), appInfo))
+            definition -> keepInfo.isPinned(definition.getReference(), appInfo))
         .forEach(
             target ->
                 markVirtualDispatchTargetAsLive(
@@ -3281,7 +3281,7 @@ public class Enqueuer {
     ImmutableSortedSet.Builder<R> builder =
         new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompareTo);
     for (D item : set) {
-      builder.add(item.toReference());
+      builder.add(item.getReference());
     }
     return builder.build();
   }
@@ -3660,7 +3660,7 @@ public class Enqueuer {
   }
 
   private void checkMemberForSoftPinning(ProgramMember<?, ?> member) {
-    DexMember<?, ?> reference = member.getDefinition().toReference();
+    DexMember<?, ?> reference = member.getDefinition().getReference();
     Set<ProguardKeepRuleBase> softPinRules = rootSet.softPinned.getRulesForReference(reference);
     if (softPinRules != null) {
       assert softPinRules.stream().noneMatch(r -> r.getModifiers().allowsOptimization);

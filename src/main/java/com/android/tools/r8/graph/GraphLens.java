@@ -452,7 +452,7 @@ public abstract class GraphLens {
 
   public <T extends DexDefinition> boolean assertDefinitionsNotModified(Iterable<T> definitions) {
     for (DexDefinition definition : definitions) {
-      DexReference reference = definition.toReference();
+      DexReference reference = definition.getReference();
       // We allow changes to bridge methods as these get retargeted even if they are kept.
       boolean isBridge =
           definition.isDexEncodedMethod() && definition.asDexEncodedMethod().accessFlags.isBridge();
@@ -597,7 +597,7 @@ public abstract class GraphLens {
         }
 
         // TODO(b/167947782): Should be a general check to see if the field is D8/R8 synthesized.
-        if (field.toReference().name.toSourceString().equals(ClassMerger.CLASS_ID_FIELD_NAME)) {
+        if (field.getReference().name.toSourceString().equals(ClassMerger.CLASS_ID_FIELD_NAME)) {
           continue;
         }
 

@@ -24,8 +24,8 @@ class UnusedItemsPrinter {
     }
 
     void sort() {
-      fields.sort((a, b) -> a.toReference().slowCompareTo(b.toReference()));
-      methods.sort((a, b) -> a.toReference().slowCompareTo(b.toReference()));
+      fields.sort((a, b) -> a.getReference().slowCompareTo(b.getReference()));
+      methods.sort((a, b) -> a.getReference().slowCompareTo(b.getReference()));
     }
   }
 

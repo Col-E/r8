@@ -393,7 +393,7 @@ public class MemberRebindingAnalysis {
                     SuccessfulFieldResolutionResult resolutionResult =
                         appView.appInfo().resolveField(field).asSuccessfulResolution();
                     if (resolutionResult != null
-                        && resolutionResult.getResolvedField().toReference() != field) {
+                        && resolutionResult.getResolvedField().getReference() != field) {
                       nonReboundFieldReferences.add(field);
                     }
                   }

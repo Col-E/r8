@@ -130,7 +130,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   @Override
-  public DexField toReference() {
+  public DexField getReference() {
     return field;
   }
 

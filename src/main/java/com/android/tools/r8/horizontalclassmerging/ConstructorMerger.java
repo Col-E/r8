@@ -91,7 +91,7 @@ public class ConstructorMerger {
             tryMethod -> target.lookupMethod(tryMethod) == null);
 
     if (constructor.holder() == target.type) {
-      target.removeMethod(constructor.toReference());
+      target.removeMethod(constructor.getReference());
     }
 
     DexEncodedMethod encodedMethod = constructor.toTypeSubstitutedMethod(method);

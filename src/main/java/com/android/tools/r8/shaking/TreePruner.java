@@ -281,7 +281,7 @@ public class TreePruner {
     }
     for (int i = firstUnreachable; i < methods.size(); i++) {
       DexEncodedMethod method = methods.get(i);
-      if (appInfo.liveMethods.contains(method.toReference())) {
+      if (appInfo.liveMethods.contains(method.getReference())) {
         reachableMethods.add(method);
       } else if (options.configurationDebugging) {
         // Keep the method but rewrite its body, if it has one.
@@ -290,7 +290,7 @@ public class TreePruner {
                 ? method
                 : method.toMethodThatLogsError(appView));
         methodsToKeepForConfigurationDebugging.add(method.method);
-      } else if (appInfo.targetedMethods.contains(method.toReference())) {
+      } else if (appInfo.targetedMethods.contains(method.getReference())) {
         // If the method is already abstract, and doesn't have code, let it be.
         if (method.shouldNotHaveCode() && !method.hasCode()) {
           reachableMethods.add(method);

@@ -520,7 +520,7 @@ public abstract class DexClass extends DexDefinition {
   public abstract void addDependencies(MixedSectionCollection collector);
 
   @Override
-  public DexReference toReference() {
+  public DexReference getReference() {
     return getType();
   }
 

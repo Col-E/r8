@@ -487,7 +487,7 @@ public class GraphReporter {
     if (rule instanceof ProguardKeepRule) {
       Set<GraphNode> preconditions =
           precondition != null
-              ? Collections.singleton(getGraphNode(precondition.toReference()))
+              ? Collections.singleton(getGraphNode(precondition.getReference()))
               : Collections.emptySet();
       return ruleNodes.computeIfAbsent(rule, key -> new KeepRuleGraphNode(rule, preconditions));
     }
