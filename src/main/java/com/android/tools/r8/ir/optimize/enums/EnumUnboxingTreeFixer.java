@@ -116,28 +116,30 @@ class EnumUnboxingTreeFixer {
     return encodedMethod.toTypeSubstitutedMethod(newMethod);
   }
 
-  private DexEncodedMethod fixupEncodedMethod(DexEncodedMethod encodedMethod) {
-    DexProto newProto = fixupProto(encodedMethod.proto());
-    if (newProto == encodedMethod.proto()) {
-      return encodedMethod;
+  private DexEncodedMethod fixupEncodedMethod(DexEncodedMethod method) {
+    DexProto newProto = fixupProto(method.proto());
+    if (newProto == method.proto()) {
+      return method;
     }
-    assert !encodedMethod.isClassInitializer();
+    assert !method.isClassInitializer();
     // We add the $enumunboxing$ suffix to make sure we do not create a library override.
     String newMethodName =
-        encodedMethod.getName().toString()
-            + (encodedMethod.isNonPrivateVirtualMethod() ? "$enumunboxing$" : "");
-    DexMethod newMethod = factory.createMethod(encodedMethod.holder(), newProto, newMethodName);
-    newMethod = ensureUniqueMethod(encodedMethod, newMethod);
-    int numberOfExtraNullParameters = newMethod.getArity() - encodedMethod.method.getArity();
-    boolean isStatic = encodedMethod.isStatic();
-    lensBuilder.move(
-        encodedMethod.method, newMethod, isStatic, isStatic, numberOfExtraNullParameters);
-    DexEncodedMethod newEncodedMethod = encodedMethod.toTypeSubstitutedMethod(newMethod);
-    assert !encodedMethod.isLibraryMethodOverride().isTrue()
+        method.getName().toString() + (method.isNonPrivateVirtualMethod() ? "$enumunboxing$" : "");
+    DexMethod newMethod = factory.createMethod(method.getHolderType(), newProto, newMethodName);
+    newMethod = ensureUniqueMethod(method, newMethod);
+    int numberOfExtraNullParameters = newMethod.getArity() - method.method.getArity();
+    boolean isStatic = method.isStatic();
+    lensBuilder.move(method.method, newMethod, isStatic, isStatic, numberOfExtraNullParameters);
+    DexEncodedMethod newEncodedMethod =
+        method.toTypeSubstitutedMethod(
+            newMethod,
+            builder ->
+                builder
+                    .setCompilationState(method.getCompilationState())
+                    .setIsLibraryMethodOverrideIf(
+                        method.isNonPrivateVirtualMethod(), OptionalBool.FALSE));
+    assert !method.isLibraryMethodOverride().isTrue()
         : "Enum unboxing is changing the signature of a library override in a non unboxed class.";
-    if (newEncodedMethod.isNonPrivateVirtualMethod()) {
-      newEncodedMethod.setLibraryMethodOverride(OptionalBool.FALSE);
-    }
     return newEncodedMethod;
   }
 
