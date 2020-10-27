@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -53,6 +52,18 @@ public class ConstructorMerger {
     assert constructors.stream().map(constructor -> constructor.proto()).distinct().count() == 1;
 
     this.dexItemFactory = appView.dexItemFactory();
+  }
+
+  /**
+   * The method reference template describes which arguments the constructor must have, and is used
+   * to generate the final reference by appending null arguments until it is fresh.
+   */
+  private DexMethod generateReferenceMethodTemplate() {
+    DexMethod methodTemplate = constructors.iterator().next().getReference();
+    if (!isTrivialMerge()) {
+      methodTemplate = dexItemFactory.appendTypeToMethod(methodTemplate, dexItemFactory.intType);
+    }
+    return methodTemplate;
   }
 
   public int getArity() {
@@ -104,31 +115,6 @@ public class ConstructorMerger {
     return method;
   }
 
-  private DexProto getNewConstructorProto(SyntheticArgumentClass syntheticArgumentClass) {
-    DexEncodedMethod firstConstructor = constructors.iterator().next();
-    DexProto oldProto = firstConstructor.getProto();
-
-    if (isTrivialMerge() && syntheticArgumentClass == null) {
-      return oldProto;
-    }
-
-    List<DexType> parameters = new ArrayList<>();
-    Collections.addAll(parameters, oldProto.parameters.values);
-    if (!isTrivialMerge()) {
-      parameters.add(dexItemFactory.intType);
-    }
-    if (syntheticArgumentClass != null) {
-      parameters.add(syntheticArgumentClass.getArgumentClass());
-    }
-    // TODO(b/165783587): add synthesised class to prevent constructor merge conflict
-    return dexItemFactory.createProto(oldProto.returnType, parameters);
-  }
-
-  private DexMethod getNewConstructorReference(SyntheticArgumentClass syntheticArgumentClass) {
-    DexProto proto = getNewConstructorProto(syntheticArgumentClass);
-    return appView.dexItemFactory().createMethod(target.type, proto, dexItemFactory.initMethodName);
-  }
-
   private MethodAccessFlags getAccessFlags() {
     // TODO(b/164998929): ensure this behaviour is correct, should probably calculate upper bound
     return MethodAccessFlags.fromSharedAccessFlags(
@@ -157,12 +143,13 @@ public class ConstructorMerger {
           classIdentifiers.getInt(constructor.getHolderType()), movedConstructor);
     }
 
-    DexMethod newConstructorReference = getNewConstructorReference(null);
-    boolean addExtraNull = target.lookupMethod(newConstructorReference) != null;
-    if (addExtraNull) {
-      newConstructorReference = getNewConstructorReference(syntheticArgumentClass);
-      assert target.lookupMethod(newConstructorReference) == null;
-    }
+    DexMethod methodReferenceTemplate = generateReferenceMethodTemplate();
+    DexMethod newConstructorReference =
+        dexItemFactory.createInstanceInitializerWithFreshProto(
+            methodReferenceTemplate,
+            syntheticArgumentClass.getArgumentClass(),
+            tryMethod -> target.lookupMethod(tryMethod) == null);
+    int extraNulls = newConstructorReference.getArity() - methodReferenceTemplate.getArity();
 
     DexMethod representativeConstructorReference = constructors.iterator().next().method;
     ConstructorEntryPointSynthesizedCode synthesizedCode =
@@ -186,9 +173,9 @@ public class ConstructorMerger {
       // The constructor does not require the additional argument, just map it like a regular
       // method.
       DexEncodedMethod oldConstructor = constructors.iterator().next();
-      if (addExtraNull) {
+      if (extraNulls > 0) {
         List<ExtraParameter> extraParameters = new LinkedList<>();
-        extraParameters.add(new ExtraUnusedNullParameter());
+        extraParameters.addAll(Collections.nCopies(extraNulls, new ExtraUnusedNullParameter()));
         lensBuilder.moveMergedConstructor(
             oldConstructor.method, newConstructorReference, extraParameters);
       } else {
@@ -201,9 +188,7 @@ public class ConstructorMerger {
 
         List<ExtraParameter> extraParameters = new LinkedList<>();
         extraParameters.add(new ExtraConstantIntParameter(classIdentifier));
-        if (addExtraNull) {
-          extraParameters.add(new ExtraUnusedNullParameter());
-        }
+        extraParameters.addAll(Collections.nCopies(extraNulls, new ExtraUnusedNullParameter()));
 
         lensBuilder.moveMergedConstructor(
             oldConstructor.method, newConstructorReference, extraParameters);

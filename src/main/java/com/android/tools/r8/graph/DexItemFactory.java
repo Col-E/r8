@@ -2019,6 +2019,11 @@ public class DexItemFactory {
     return createProto(initialProto.returnType, parameterTypes);
   }
 
+  public DexMethod appendTypeToMethod(DexMethod initialMethod, DexType extraLastType) {
+    DexProto newProto = appendTypeToProto(initialMethod.proto, extraLastType);
+    return createMethod(initialMethod.holder, newProto, initialMethod.name);
+  }
+
   public DexProto applyClassMappingToProto(
       DexProto proto, Function<DexType, DexType> mapping, Map<DexProto, DexProto> cache) {
     assert cache != null;
