@@ -4,6 +4,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -101,6 +102,7 @@ public class DesugaredLibraryDumpInputsTest extends DesugaredLibraryTestBase {
   private void verifyDumpDir(Path dumpDir) throws IOException {
     assertTrue(Files.isDirectory(dumpDir));
     List<Path> paths = Files.walk(dumpDir, 1).collect(Collectors.toList());
+    assertEquals(3, paths.size());
     boolean hasVerified = false;
     for (Path path : paths) {
       if (!path.equals(dumpDir)) {

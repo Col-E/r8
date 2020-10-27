@@ -73,6 +73,7 @@ public final class D8Command extends BaseCompilerCommand {
     private String synthesizedClassPrefix = "";
     private boolean enableMainDexListCheck = true;
     private boolean minimalMainDex = false;
+    private boolean skipDump = false;
 
     private Builder() {
       this(new DefaultD8DiagnosticsHandler());
@@ -160,6 +161,15 @@ public final class D8Command extends BaseCompilerCommand {
      */
     public Builder setDesugarGraphConsumer(DesugarGraphConsumer desugarGraphConsumer) {
       this.desugarGraphConsumer = desugarGraphConsumer;
+      return self();
+    }
+
+    /**
+     * Allow to skip to dump into file and dump into directory instruction, this is primarily used
+     * for chained compilation in L8 so there are no duplicated dumps.
+     */
+    Builder skipDump() {
+      skipDump = true;
       return self();
     }
 
@@ -255,6 +265,7 @@ public final class D8Command extends BaseCompilerCommand {
           getAssertionsConfiguration(),
           getOutputInspections(),
           synthesizedClassPrefix,
+          skipDump,
           enableMainDexListCheck,
           minimalMainDex,
           getThreadCount(),
@@ -269,6 +280,7 @@ public final class D8Command extends BaseCompilerCommand {
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
   private final DesugaredLibraryConfiguration libraryConfiguration;
   private final String synthesizedClassPrefix;
+  private final boolean skipDump;
   private final boolean enableMainDexListCheck;
   private final boolean minimalMainDex;
   private final DexItemFactory factory;
@@ -331,6 +343,7 @@ public final class D8Command extends BaseCompilerCommand {
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
       String synthesizedClassPrefix,
+      boolean skipDump,
       boolean enableMainDexListCheck,
       boolean minimalMainDex,
       int threadCount,
@@ -354,6 +367,7 @@ public final class D8Command extends BaseCompilerCommand {
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
     this.libraryConfiguration = libraryConfiguration;
     this.synthesizedClassPrefix = synthesizedClassPrefix;
+    this.skipDump = skipDump;
     this.enableMainDexListCheck = enableMainDexListCheck;
     this.minimalMainDex = minimalMainDex;
     this.factory = factory;
@@ -366,6 +380,7 @@ public final class D8Command extends BaseCompilerCommand {
     desugaredLibraryKeepRuleConsumer = null;
     libraryConfiguration = null;
     synthesizedClassPrefix = null;
+    skipDump = false;
     enableMainDexListCheck = true;
     minimalMainDex = false;
     factory = null;
@@ -428,6 +443,11 @@ public final class D8Command extends BaseCompilerCommand {
     if (!DETERMINISTIC_DEBUGGING) {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
       internal.threadCount = getThreadCount();
+    }
+
+    if (skipDump) {
+      internal.dumpInputToDirectory = null;
+      internal.dumpInputToFile = null;
     }
 
     return internal;

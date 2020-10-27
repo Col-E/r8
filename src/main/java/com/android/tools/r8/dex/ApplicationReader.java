@@ -100,6 +100,15 @@ public class ApplicationReader {
         ProgramClassCollection.defaultConflictResolver(options.reporter));
   }
 
+  public final LazyLoadedDexApplication readWithoutDumping(ExecutorService executorService)
+      throws IOException {
+    return read(
+        inputApp.getProguardMapInputData(),
+        executorService,
+        ProgramClassCollection.defaultConflictResolver(options.reporter),
+        false);
+  }
+
   public final LazyLoadedDexApplication read(
       StringResource proguardMap,
       ExecutorService executorService)
@@ -115,31 +124,18 @@ public class ApplicationReader {
       ExecutorService executorService,
       ProgramClassConflictResolver resolver)
       throws IOException {
+    return read(proguardMap, executorService, resolver, true);
+  }
+
+  public final LazyLoadedDexApplication read(
+      StringResource proguardMap,
+      ExecutorService executorService,
+      ProgramClassConflictResolver resolver,
+      boolean shouldDump)
+      throws IOException {
     assert verifyMainDexOptionsCompatible(inputApp, options);
-    Path dumpOutput = null;
-    boolean cleanDump = false;
-    if (options.dumpInputToFile != null) {
-      dumpOutput = Paths.get(options.dumpInputToFile);
-    } else if (options.dumpInputToDirectory != null) {
-      dumpOutput =
-          Paths.get(options.dumpInputToDirectory).resolve("dump" + System.nanoTime() + ".zip");
-    } else if (options.testing.dumpAll) {
-      cleanDump = true;
-      dumpOutput = Paths.get("/tmp").resolve("dump" + System.nanoTime() + ".zip");
-    }
-    if (dumpOutput != null) {
-      timing.begin("ApplicationReader.dump");
-      dumpInputToFile(inputApp, dumpOutput, options);
-      if (cleanDump) {
-        Files.delete(dumpOutput);
-      }
-      timing.end();
-      Diagnostic message = new StringDiagnostic("Dumped compilation inputs to: " + dumpOutput);
-      if (options.dumpInputToFile != null) {
-        throw options.reporter.fatalError(message);
-      } else if (!cleanDump) {
-        options.reporter.info(message);
-      }
+    if (shouldDump) {
+      dumpApplication();
     }
     timing.begin("DexApplication.read");
     final LazyLoadedDexApplication.Builder builder =
@@ -172,6 +168,34 @@ public class ApplicationReader {
       timing.end();
     }
     return builder.build();
+  }
+
+  private void dumpApplication() throws IOException {
+    Path dumpOutput = null;
+    boolean cleanDump = false;
+    if (options.dumpInputToFile != null) {
+      dumpOutput = Paths.get(options.dumpInputToFile);
+    } else if (options.dumpInputToDirectory != null) {
+      dumpOutput =
+          Paths.get(options.dumpInputToDirectory).resolve("dump" + System.nanoTime() + ".zip");
+    } else if (options.testing.dumpAll) {
+      cleanDump = true;
+      dumpOutput = Paths.get("/tmp").resolve("dump" + System.nanoTime() + ".zip");
+    }
+    if (dumpOutput != null) {
+      timing.begin("ApplicationReader.dump");
+      dumpInputToFile(inputApp, dumpOutput, options);
+      if (cleanDump) {
+        Files.delete(dumpOutput);
+      }
+      timing.end();
+      Diagnostic message = new StringDiagnostic("Dumped compilation inputs to: " + dumpOutput);
+      if (options.dumpInputToFile != null) {
+        throw options.reporter.fatalError(message);
+      } else if (!cleanDump) {
+        options.reporter.info(message);
+      }
+    }
   }
 
   public MainDexClasses readMainDexClasses(DexApplication app) {

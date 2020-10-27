@@ -907,7 +907,7 @@ public class R8 {
               .verifyMappingToOriginalProgram(
                   appView,
                   new ApplicationReader(inputApp.withoutMainDexList(), options, timing)
-                      .read(executorService));
+                      .readWithoutDumping(executorService));
 
       // Report synthetic rules (only for testing).
       // TODO(b/120959039): Move this to being reported through the graph consumer.

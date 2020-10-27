@@ -107,6 +107,7 @@ public final class R8Command extends BaseCompilerCommand {
     private BiFunction<String, Long, Boolean> dexClassChecksumFilter = (name, checksum) -> true;
     private final List<FeatureSplit> featureSplits = new ArrayList<>();
     private String synthesizedClassPrefix = "";
+    private boolean skipDump = false;
 
     private boolean allowPartiallyImplementedProguardOptions = false;
     private boolean allowTestProguardOptions =
@@ -266,6 +267,15 @@ public final class R8Command extends BaseCompilerCommand {
      */
     public Builder setDesugaredLibraryKeepRuleConsumer(StringConsumer keepRuleConsumer) {
       this.desugaredLibraryKeepRuleConsumer = keepRuleConsumer;
+      return self();
+    }
+
+    /**
+     * Allow to skip to dump into file and dump into directory instruction, this is primarily used
+     * for chained compilation in L8 so there are no duplicated dumps.
+     */
+    Builder skipDump() {
+      skipDump = true;
       return self();
     }
 
@@ -584,6 +594,7 @@ public final class R8Command extends BaseCompilerCommand {
               getAssertionsConfiguration(),
               getOutputInspections(),
               synthesizedClassPrefix,
+              skipDump,
               getThreadCount());
 
       return command;
@@ -667,6 +678,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final DesugaredLibraryConfiguration libraryConfiguration;
   private final FeatureSplitConfiguration featureSplitConfiguration;
   private final String synthesizedClassPrefix;
+  private final boolean skipDump;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -745,6 +757,7 @@ public final class R8Command extends BaseCompilerCommand {
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
       String synthesizedClassPrefix,
+      boolean skipDump,
       int threadCount) {
     super(
         inputApp,
@@ -779,6 +792,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.libraryConfiguration = libraryConfiguration;
     this.featureSplitConfiguration = featureSplitConfiguration;
     this.synthesizedClassPrefix = synthesizedClassPrefix;
+    this.skipDump = skipDump;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -800,6 +814,7 @@ public final class R8Command extends BaseCompilerCommand {
     libraryConfiguration = null;
     featureSplitConfiguration = null;
     synthesizedClassPrefix = null;
+    skipDump = false;
   }
 
   /** Get the enable-tree-shaking state. */
@@ -953,6 +968,11 @@ public final class R8Command extends BaseCompilerCommand {
     if (!DETERMINISTIC_DEBUGGING) {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
       internal.threadCount = getThreadCount();
+    }
+
+    if (skipDump) {
+      internal.dumpInputToDirectory = null;
+      internal.dumpInputToFile = null;
     }
 
     return internal;
