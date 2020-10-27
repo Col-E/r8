@@ -70,9 +70,8 @@ public class OptionalTestClass {
       return Optional.of(delegate.read(in));
     }
 
-    @SuppressWarnings("unchecked")
-    public static OptionalAdapter getInstance(TypeToken typeToken) {
-      TypeAdapter delegate;
+    public static OptionalAdapter<?> getInstance(TypeToken<?> typeToken) {
+      TypeAdapter<?> delegate;
       Type type = typeToken.getType();
       assert type instanceof ParameterizedType;
       Type innerType = ((ParameterizedType) type).getActualTypeArguments()[0];
@@ -88,7 +87,8 @@ public class OptionalTestClass {
     Gson gson = builder.create();
     Optional<Data> optionalData = Optional.of(new Data(1, "a"));
     String optionalDataSerialized = gson.toJson(optionalData);
-    Optional<Data> optionalDataDeserialized = gson.fromJson(optionalDataSerialized, Optional.class);
+    Optional<Data> optionalDataDeserialized =
+        gson.<Optional<Data>>fromJson(optionalDataSerialized, Optional.class);
     System.out.println(optionalData.getClass() == optionalDataDeserialized.getClass());
     System.out.println(optionalData.equals(optionalDataDeserialized));
   }

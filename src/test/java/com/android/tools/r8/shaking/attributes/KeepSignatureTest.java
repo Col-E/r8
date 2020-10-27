@@ -155,6 +155,7 @@ public class KeepSignatureTest extends TestBase {
     private T keptField;
     private T notKeptField;
 
+    @SuppressWarnings("unchecked")
     public <R> R keptMethod(T t) {
       if (keptField == null) {
         keptField = t;
@@ -163,6 +164,7 @@ public class KeepSignatureTest extends TestBase {
     }
 
     @NeverInline
+    @SuppressWarnings("unchecked")
     public <R> R notKeptMethod(T t) {
       if (notKeptField == null) {
         notKeptField = t;

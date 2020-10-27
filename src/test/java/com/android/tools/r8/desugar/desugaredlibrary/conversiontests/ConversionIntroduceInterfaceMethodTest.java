@@ -173,8 +173,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
 
   static class CustomLibClass {
 
-    @SuppressWarnings({"unchecked", "WeakerAccess"})
-    public static void callForeach(Iterable iterable) {
+    public static void callForEach(Iterable<?> iterable) {
       iterable.forEach(x -> System.out.println("action called from java consumer"));
     }
   }
@@ -187,7 +186,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
       // Call foreach with j$ consumer.
       strings.forEach(x -> System.out.println("action called from j$ consumer"));
       // Call foreach with java consumer.
-      CustomLibClass.callForeach(strings);
+      CustomLibClass.callForEach(strings);
     }
   }
 
@@ -222,7 +221,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
 
     @Override
     public Iterator<E> iterator() {
-      return (Iterator<E>) Collections.singletonList(null).iterator();
+      return Collections.<E>singletonList(null).iterator();
     }
 
     @NotNull
