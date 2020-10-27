@@ -46,6 +46,7 @@ public abstract class TestCompilerBuilder<
       options -> {
         options.testing.allowClassInlinerGracefulExit = false;
         options.testing.reportUnusedProguardConfigurationRules = true;
+        options.enableHorizontalClassMerging = true;
       };
 
   final Backend backend;
