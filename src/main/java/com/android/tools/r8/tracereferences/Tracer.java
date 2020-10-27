@@ -255,6 +255,7 @@ class Tracer {
 
   class UseCollector extends UseRegistry {
 
+    private DexItemFactory factory;
     private final TraceReferencesConsumer consumer;
     private DexProgramClass context;
     private final DiagnosticsHandler diagnostics;
@@ -263,6 +264,7 @@ class Tracer {
     UseCollector(
         DexItemFactory factory, TraceReferencesConsumer consumer, DiagnosticsHandler diagnostics) {
       super(factory);
+      this.factory = factory;
       this.consumer = consumer;
       this.diagnostics = diagnostics;
     }
@@ -272,12 +274,20 @@ class Tracer {
     }
 
     private void addType(DexType type) {
-      if (isTargetType(type)) {
-        DexClass clazz = appInfo.definitionFor(type);
-        TracedClassImpl tracedClass = new TracedClassImpl(type, clazz);
+      if (type.isArrayType()) {
+        addType(type.toBaseType(factory));
+        return;
+      }
+      if (type.isPrimitiveType() || type.isVoidType()) {
+        return;
+      }
+      DexClass clazz = appInfo.definitionFor(type);
+      TracedClassImpl tracedClass = new TracedClassImpl(type, clazz);
+      checkDiagnostics(tracedClass);
+      if (isTargetType(type) || tracedClass.isMissingDefinition()) {
         consumer.acceptType(tracedClass);
-        checkDiagnostics(tracedClass);
-        if (clazz != null && clazz.accessFlags.isVisibilityDependingOnPackage()) {
+        if (!tracedClass.isMissingDefinition()
+            && clazz.accessFlags.isVisibilityDependingOnPackage()) {
           consumer.acceptPackage(Reference.packageFromString(clazz.type.getPackageName()));
         }
       }
@@ -290,11 +300,12 @@ class Tracer {
         field = baseField.field;
       }
       addType(field.holder);
-      if (isTargetType(field.holder)) {
-        TracedFieldImpl tracedField = new TracedFieldImpl(field, baseField);
+      TracedFieldImpl tracedField = new TracedFieldImpl(field, baseField);
+      checkDiagnostics(tracedField);
+      if (isTargetType(field.holder) || tracedField.isMissingDefinition()) {
         consumer.acceptField(tracedField);
-        checkDiagnostics(tracedField);
-        if (baseField != null && baseField.accessFlags.isVisibilityDependingOnPackage()) {
+        if (!tracedField.isMissingDefinition()
+            && baseField.accessFlags.isVisibilityDependingOnPackage()) {
           consumer.acceptPackage(Reference.packageFromString(baseField.holder().getPackageName()));
         }
       }
@@ -306,13 +317,14 @@ class Tracer {
         addType(parameterType);
       }
       addType(method.proto.returnType);
-      if (isTargetType(method.holder)) {
-        DexClass holder = appInfo.definitionForHolder(method);
-        DexEncodedMethod definition = method.lookupOnClass(holder);
-        TracedMethodImpl tracedMethod = new TracedMethodImpl(method, definition);
+      DexClass holder = appInfo.definitionForHolder(method);
+      DexEncodedMethod definition = method.lookupOnClass(holder);
+      TracedMethodImpl tracedMethod = new TracedMethodImpl(method, definition);
+      if (isTargetType(method.holder) || tracedMethod.isMissingDefinition()) {
         consumer.acceptMethod(tracedMethod);
         checkDiagnostics(tracedMethod);
-        if (definition != null && definition.accessFlags.isVisibilityDependingOnPackage()) {
+        if (!tracedMethod.isMissingDefinition()
+            && definition.accessFlags.isVisibilityDependingOnPackage()) {
           consumer.acceptPackage(Reference.packageFromString(definition.holder().getPackageName()));
         }
       }

@@ -11,7 +11,7 @@ import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -37,18 +37,6 @@ public class TraceReferences {
   }
 
   private static void runInternal(TraceReferencesCommand command) throws Exception {
-    if (command.getLibrary().isEmpty()) {
-      throw new TraceReferencesException("No library specified");
-    }
-    if (command.getTarget().isEmpty()) {
-      throw new TraceReferencesException("No target specified");
-    }
-    if (command.getSource().isEmpty()) {
-      throw new TraceReferencesException("No source specified");
-    }
-    if (command.getConsumer() == null) {
-      throw new TraceReferencesException("No consumer specified");
-    }
     AndroidApp.Builder builder = AndroidApp.builder();
     command.getLibrary().forEach(builder::addLibraryResourceProvider);
     command.getTarget().forEach(builder::addLibraryResourceProvider);
@@ -85,13 +73,14 @@ public class TraceReferences {
   }
 
   public static void run(String... args) throws CompilationFailedException {
-    TraceReferencesCommand command = TraceReferencesCommand.parse(args, Origin.root()).build();
+    TraceReferencesCommand command =
+        TraceReferencesCommand.parse(args, CommandLineOrigin.INSTANCE).build();
     if (command.isPrintHelp()) {
       System.out.println(TraceReferencesCommandParser.USAGE_MESSAGE);
       return;
     }
     if (command.isPrintVersion()) {
-      System.out.println("referencetrace " + Version.getVersionString());
+      System.out.println("tracereferences " + Version.getVersionString());
       return;
     }
     run(command);

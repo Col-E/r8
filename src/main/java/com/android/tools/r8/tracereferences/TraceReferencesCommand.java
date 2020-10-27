@@ -7,10 +7,12 @@ import static com.android.tools.r8.utils.FileUtils.isArchive;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
@@ -87,6 +89,7 @@ public class TraceReferencesCommand {
 
   public static class Builder {
 
+    private boolean errors = false;
     private boolean printHelp = false;
     private boolean printVersion = false;
     private final DiagnosticsHandler diagnosticsHandler;
@@ -196,23 +199,34 @@ public class TraceReferencesCommand {
       return this;
     }
 
-    public final TraceReferencesCommand build() {
+    public final TraceReferencesCommand build() throws CompilationFailedException {
+      ImmutableList<ClassFileResourceProvider> library = libraryBuilder.build();
       ImmutableList<ClassFileResourceProvider> traceTarget = traceTargetBuilder.build();
       ImmutableList<ProgramResourceProvider> traceSource = traceSourceBuilder.build();
+
+      if (library.isEmpty()) {
+        error(new StringDiagnostic("No library specified"));
+      }
+      if (traceTarget.isEmpty()) {
+        // Target can be empty for tracing references from source outside of library.
+      }
+      if (traceSource.isEmpty()) {
+        error(new StringDiagnostic("No source specified"));
+      }
+      if (consumer == null) {
+        error(new StringDiagnostic("No consumer specified"));
+      }
+      if (errors) {
+        throw new CompilationFailedException(new CompilationError(""));
+      }
       return new TraceReferencesCommand(
-          printHelp,
-          printVersion,
-          diagnosticsHandler,
-          libraryBuilder.build(),
-          traceTarget,
-          traceSource,
-          consumer);
+          printHelp, printVersion, diagnosticsHandler, library, traceTarget, traceSource, consumer);
     }
 
     void error(Diagnostic diagnostic) {
+      errors = true;
       diagnosticsHandler.error(diagnostic);
       // For now all errors are fatal.
-      throw new TraceReferencesAbortException();
     }
   }
 

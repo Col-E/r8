@@ -72,7 +72,7 @@ public interface TraceReferencesConsumer {
   interface TracedMethod extends TracedReference<MethodReference, MethodAccessFlags> {}
 
   /** Class has been traced. */
-  void acceptType(TracedClass tracedClazz);
+  void acceptType(TracedClass tracedClass);
 
   /** Field has been traced. */
   void acceptField(TracedField tracedField);
@@ -80,11 +80,11 @@ public interface TraceReferencesConsumer {
   /** Method has been traced. */
   void acceptMethod(TracedMethod tracedMethod);
 
-  /** Package which is required for package privatge access has been traced. */
-  void acceptPackage(PackageReference pkg);
+  /** Package which is required for package private access has been traced. */
+  default void acceptPackage(PackageReference pkg) {}
 
   /**
    * Tracing has finished. There will be no more calls to any of the <code>acceptXXX</code> methods.
    */
-  void finished();
+  default void finished() {}
 }

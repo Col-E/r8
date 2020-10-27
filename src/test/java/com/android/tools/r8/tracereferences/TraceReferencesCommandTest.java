@@ -4,7 +4,6 @@
 package com.android.tools.r8.tracereferences;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -45,16 +44,9 @@ public class TraceReferencesCommandTest extends TestBase {
 
   public TraceReferencesCommandTest(TestParameters parameters) {}
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void emptyBuilder() throws Throwable {
-    verifyEmptyCommand(TraceReferencesCommand.builder().build());
-  }
-
-  private void verifyEmptyCommand(TraceReferencesCommand command) {
-    assertEquals(0, command.getLibrary().size());
-    assertEquals(0, command.getTarget().size());
-    assertEquals(0, command.getSource().size());
-    assertNull(command.getConsumer());
+    TraceReferencesCommand.builder().build();
   }
 
   @Test(expected = CompilationFailedException.class)
@@ -79,7 +71,7 @@ public class TraceReferencesCommandTest extends TestBase {
   @Test(expected = CompilationFailedException.class)
   public void onlyLibrarySpecified() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "No target specified",
+        "No source specified",
         handler -> {
           TraceReferences.run(
               TraceReferencesCommand.builder(handler)
@@ -91,13 +83,50 @@ public class TraceReferencesCommandTest extends TestBase {
   @Test(expected = CompilationFailedException.class)
   public void onlyLibrarySpecifiedCommandLine() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "No target specified",
+        "No source specified",
         handler -> {
           TraceReferences.run(
               TraceReferencesCommand.parse(
                       new String[] {
                         "--lib", ToolHelper.getAndroidJar(AndroidApiLevel.P).toString()
                       },
+                      Origin.unknown(),
+                      handler)
+                  .build());
+        });
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void invalidFormatCommandLine() throws Throwable {
+    DiagnosticsChecker.checkErrorsContains(
+        "Unsupported format 'xxx'",
+        handler -> {
+          TraceReferences.run(
+              TraceReferencesCommand.parse(
+                      new String[] {"--format", "xxx"}, Origin.unknown(), handler)
+                  .build());
+        });
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void missingFormatCommandLine() throws Throwable {
+    DiagnosticsChecker.checkErrorsContains(
+        "Missing parameter for --format",
+        handler -> {
+          TraceReferences.run(
+              TraceReferencesCommand.parse(new String[] {"--format"}, Origin.unknown(), handler)
+                  .build());
+        });
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void multipleFormatsCommandLine() throws Throwable {
+    DiagnosticsChecker.checkErrorsContains(
+        "--format specified multiple times",
+        handler -> {
+          TraceReferences.run(
+              TraceReferencesCommand.parse(
+                      new String[] {"--format", "printuses", "--format", "keep"},
                       Origin.unknown(),
                       handler)
                   .build());
@@ -114,11 +143,6 @@ public class TraceReferencesCommandTest extends TestBase {
     assertSame(
         format, TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION);
     return "keepallowobfuscation";
-  }
-
-  public void runAndCheckOutput(
-      Path targetJar, Path sourceJar, OutputFormat format, String expected) throws Throwable {
-    runAndCheckOutput(targetJar, sourceJar, format, expected, null);
   }
 
   public void runAndCheckOutput(
@@ -168,6 +192,16 @@ public class TraceReferencesCommandTest extends TestBase {
       OutputFormat format,
       String expected)
       throws Throwable {
+    runAndCheckOutput(targetClasses, sourceClasses, format, expected, null);
+  }
+
+  public void runAndCheckOutput(
+      List<Class<?>> targetClasses,
+      List<Class<?>> sourceClasses,
+      OutputFormat format,
+      String expected,
+      Consumer<DiagnosticsChecker> diagnosticsCheckerConsumer)
+      throws Throwable {
     Path dir = temp.newFolder().toPath();
     Path targetJar = dir.resolve("target.jar");
     Path sourceJar = dir.resolve("source.jar");
@@ -183,7 +217,7 @@ public class TraceReferencesCommandTest extends TestBase {
         sourceClasses.stream()
             .map(ToolHelper::getClassFileForTestClass)
             .collect(Collectors.toList()));
-    runAndCheckOutput(targetJar, sourceJar, format, expected);
+    runAndCheckOutput(targetJar, sourceJar, format, expected, diagnosticsCheckerConsumer);
   }
 
   @Test
@@ -235,29 +269,65 @@ public class TraceReferencesCommandTest extends TestBase {
 
   @Test
   public void testNoReferences_printUses() throws Throwable {
+    String targetTypeName = Target.class.getTypeName();
     runAndCheckOutput(
         ImmutableList.of(OtherTarget.class),
         ImmutableList.of(Source.class),
         TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE,
-        StringUtils.lines(ImmutableList.of()));
+        StringUtils.lines(
+            ImmutableList.of(
+                "# Error: Could not find definition for type " + targetTypeName,
+                "# Error: Could not find definition for method void "
+                    + targetTypeName
+                    + ".target(int)",
+                "# Error: Could not find definition for field int " + targetTypeName + ".field")),
+        diagnosticsChecker -> {
+          assertEquals(0, diagnosticsChecker.errors.size());
+          assertEquals(3, diagnosticsChecker.warnings.size());
+          assertEquals(0, diagnosticsChecker.infos.size());
+        });
   }
 
   @Test
   public void testMissingReference_keepRules() throws Throwable {
+    String targetTypeName = Target.class.getTypeName();
     runAndCheckOutput(
         ImmutableList.of(OtherTarget.class),
         ImmutableList.of(Source.class),
         TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES,
-        StringUtils.lines(ImmutableList.of()));
+        StringUtils.lines(
+            ImmutableList.of(
+                "# Error: Could not find definition for type " + targetTypeName,
+                "# Error: Could not find definition for method void "
+                    + targetTypeName
+                    + ".target(int)",
+                "# Error: Could not find definition for field int " + targetTypeName + ".field")),
+        diagnosticsChecker -> {
+          assertEquals(0, diagnosticsChecker.errors.size());
+          assertEquals(3, diagnosticsChecker.warnings.size());
+          assertEquals(0, diagnosticsChecker.infos.size());
+        });
   }
 
   @Test
   public void testNoReferences_keepRulesAllowObfuscation() throws Throwable {
+    String targetTypeName = Target.class.getTypeName();
     runAndCheckOutput(
         ImmutableList.of(OtherTarget.class),
         ImmutableList.of(Source.class),
         TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
-        StringUtils.lines(ImmutableList.of()));
+        StringUtils.lines(
+            ImmutableList.of(
+                "# Error: Could not find definition for type " + targetTypeName,
+                "# Error: Could not find definition for method void "
+                    + targetTypeName
+                    + ".target(int)",
+                "# Error: Could not find definition for field int " + targetTypeName + ".field")),
+        diagnosticsChecker -> {
+          assertEquals(0, diagnosticsChecker.errors.size());
+          assertEquals(3, diagnosticsChecker.warnings.size());
+          assertEquals(0, diagnosticsChecker.infos.size());
+        });
   }
 
   public static void zip(Path zipFile, String path, byte[] data) throws IOException {

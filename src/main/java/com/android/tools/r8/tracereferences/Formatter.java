@@ -15,6 +15,7 @@ import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -123,47 +124,50 @@ abstract class Formatter {
     List<TracedClass> sortedTypes = new ArrayList<>(types);
     sortedTypes.sort(Comparator.comparing(tracedClass -> tracedClass.getReference().getTypeName()));
     for (TracedClass type : sortedTypes) {
-      if (missingDefinition.contains(type)) {
+      Set<TracedMethod> methodsForClass =
+          methods.getOrDefault(type.getReference(), Collections.emptySet());
+      Set<TracedField> fieldsForClass =
+          fields.getOrDefault(type.getReference(), Collections.emptySet());
+      boolean typeMissing = missingDefinition.contains(type.getReference());
+      if (typeMissing) {
         printError("Could not find definition for type " + type.getReference().getTypeName());
+        appendLine();
         errors++;
-        continue;
+      } else {
+        printTypeHeader(type);
       }
-      printTypeHeader(type);
-      Set<TracedMethod> methodsForClass = methods.get(type.getReference());
-      if (methodsForClass != null) {
-        List<TracedMethod> sortedMethods = new ArrayList<>(methods.get(type.getReference()).size());
-        for (TracedMethod method : methods.get(type.getReference())) {
-          if (method.isMissingDefinition()) {
-            printError("Could not find definition for method ");
-            printMethodError(method.getReference());
-            errors++;
-            continue;
-          }
-          assert method.getAccessFlags() != null;
-          sortedMethods.add(method);
+      List<TracedMethod> sortedMethods = new ArrayList<>(methodsForClass.size());
+      for (TracedMethod method : methodsForClass) {
+        assert method.isMissingDefinition() || !typeMissing;
+        if (method.isMissingDefinition()) {
+          printError("Could not find definition for method ");
+          printMethodError(method.getReference());
+          errors++;
+          continue;
         }
-        sortedMethods.sort(
-            Comparator.comparing(tracedMethod -> tracedMethod.getReference().toString()));
-        for (TracedMethod method : sortedMethods) {
-          printMethod(method);
-        }
+        assert method.getAccessFlags() != null;
+        sortedMethods.add(method);
       }
-      Set<TracedField> fieldsForClass = fields.get(type.getReference());
-      if (fieldsForClass != null) {
-        List<TracedField> sortedFields = new ArrayList<>(fieldsForClass);
-        sortedFields.sort(
-            Comparator.comparing(tracedField -> tracedField.getReference().toString()));
-        for (TracedField field : sortedFields) {
-          if (field.isMissingDefinition()) {
-            printError("Could not find definition for field ");
-            printFieldError(field.getReference());
-            errors++;
-            continue;
-          }
-          printField(field);
-        }
+      sortedMethods.sort(
+          Comparator.comparing(tracedMethod -> tracedMethod.getReference().toString()));
+      for (TracedMethod method : sortedMethods) {
+        printMethod(method);
       }
-      printTypeFooter();
+      List<TracedField> sortedFields = new ArrayList<>(fieldsForClass);
+      sortedFields.sort(Comparator.comparing(tracedField -> tracedField.getReference().toString()));
+      for (TracedField field : sortedFields) {
+        assert field.isMissingDefinition() || !typeMissing;
+        if (field.isMissingDefinition()) {
+          printError("Could not find definition for field ");
+          printFieldError(field.getReference());
+          errors++;
+          continue;
+        }
+        printField(field);
+      }
+      if (!typeMissing) {
+        printTypeFooter();
+      }
     }
     List<String> packageNamesToKeep =
         keepPackageNames.stream()

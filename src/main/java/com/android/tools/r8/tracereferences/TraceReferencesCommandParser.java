@@ -28,37 +28,41 @@ class TraceReferencesCommandParser {
       String.join(
           "\n",
           Arrays.asList(
-              "Usage: referencetrace [options] [@<argfile>]",
+              "Usage: tracereferences [options] [@<argfile>]",
               " Each <argfile> is a file containing additional arguments (one per line)",
               " and options are:",
-              "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
-              "  --target <file>         # Add <file> as a classpath resource.",
-              "  --source <file>         # Add <file> as a classpath resource.",
+              "  --lib <file|jdk-home>   # Add <file|jdk-home> runtime library.",
+              "  --source <file>         # Add <file> as a source for tracing references.",
+              "  [--target <file>]       # Add <file> as a target for tracing references. When",
+              "                          # target is not specified all references from source",
+              "                          # outside of library are treated as a missing references.",
+              "  [--format printuses|keep|keepallowobfuscation]",
+              "                          # Format of the output. Default is 'printuses'.",
               "  --output <file>         # Output result in <outfile>.",
-              "  --version               # Print the version of referencetrace.",
+              "  --version               # Print the version of tracereferences.",
               "  --help                  # Print this message."));
   /**
-   * Parse the referencetrace command-line.
+   * Parse the tracereferences command-line.
    *
    * <p>Parsing will set the supplied options or their default value if they have any.
    *
    * @param args Command-line arguments array.
    * @param origin Origin description of the command-line arguments.
-   * @return referencetrace command builder with state set up according to parsed command line.
+   * @return tracereferences command builder with state set up according to parsed command line.
    */
   static TraceReferencesCommand.Builder parse(String[] args, Origin origin) {
     return new TraceReferencesCommandParser().parse(args, origin, TraceReferencesCommand.builder());
   }
 
   /**
-   * Parse the referencetrace command-line.
+   * Parse the tracereferences command-line.
    *
    * <p>Parsing will set the supplied options or their default value if they have any.
    *
    * @param args Command-line arguments array.
    * @param origin Origin description of the command-line arguments.
    * @param handler Custom defined diagnostics handler.
-   * @return referencetrace command builder with state set up according to parsed command line.
+   * @return tracereferences command builder with state set up according to parsed command line.
    */
   static TraceReferencesCommand.Builder parse(
       String[] args, Origin origin, DiagnosticsHandler handler) {
@@ -70,7 +74,7 @@ class TraceReferencesCommandParser {
       String[] args, Origin origin, TraceReferencesCommand.Builder builder) {
     String[] expandedArgs = FlagFile.expandFlagFiles(args, builder::error);
     Path output = null;
-    OutputFormat format = TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE;
+    OutputFormat format = null;
     for (int i = 0; i < expandedArgs.length; i++) {
       String arg = expandedArgs[i].trim();
       String nextArg = null;
@@ -96,6 +100,9 @@ class TraceReferencesCommandParser {
       } else if (arg.equals("--source")) {
         builder.addSourceFiles(Paths.get(nextArg));
       } else if (arg.equals("--format")) {
+        if (format != null) {
+          builder.error(new StringDiagnostic("--format specified multiple times"));
+        }
         if (nextArg.equals("printuses")) {
           format = TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE;
         }
@@ -115,6 +122,9 @@ class TraceReferencesCommandParser {
       } else {
         builder.error(new StringDiagnostic("Unsupported argument '" + arg + "'"));
       }
+    }
+    if (format == null) {
+      format = TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE;
     }
     final Path finalOutput = output;
     builder.setConsumer(

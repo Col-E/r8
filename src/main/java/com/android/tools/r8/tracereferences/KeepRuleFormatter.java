@@ -19,6 +19,10 @@ class KeepRuleFormatter extends Formatter {
 
   @Override
   protected void printTypeHeader(TracedClass tracedClass) {
+    if (tracedClass.isMissingDefinition()) {
+      appendLine("# Missing class: " + tracedClass.getReference().getTypeName());
+      return;
+    }
     append(allowObfuscation ? "-keep,allowobfuscation" : "-keep");
     if (tracedClass.getAccessFlags().isInterface()) {
       appendLine(" interface " + tracedClass.getReference().getTypeName() + " {");
