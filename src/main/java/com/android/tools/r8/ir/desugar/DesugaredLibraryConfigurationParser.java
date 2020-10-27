@@ -93,14 +93,17 @@ public class DesugaredLibraryConfigurationParser {
     } else {
       configurationBuilder.setProgramCompilation();
     }
+    String jsonConfigString;
     JsonObject jsonConfig;
     try {
-      String jsonConfigString = stringResource.getString();
+      jsonConfigString = stringResource.getString();
       JsonParser parser = new JsonParser();
       jsonConfig = parser.parse(jsonConfigString).getAsJsonObject();
     } catch (Exception e) {
       throw reporter.fatalError(new ExceptionDiagnostic(e, origin));
     }
+
+    configurationBuilder.setJsonSource(jsonConfigString);
 
     JsonElement formatVersionElement = required(jsonConfig, CONFIGURATION_FORMAT_VERSION_KEY);
     int formatVersion = formatVersionElement.getAsInt();

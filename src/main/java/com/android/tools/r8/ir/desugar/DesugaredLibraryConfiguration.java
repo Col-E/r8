@@ -1,7 +1,6 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
@@ -34,15 +33,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DesugaredLibraryConfiguration {
-
   public static final String FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX = "j$/";
   public static final boolean FALL_BACK_SUPPORT_ALL_CALLBACKS_FROM_LIBRARY = true;
-
   public static final DesugaredLibraryConfiguration EMPTY_DESUGARED_LIBRARY_CONFIGURATION =
       new DesugaredLibraryConfiguration(
           AndroidApiLevel.B,
           false,
           FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
+          null,
           null,
           FALL_BACK_SUPPORT_ALL_CALLBACKS_FROM_LIBRARY,
           ImmutableMap.of(),
@@ -53,11 +51,11 @@ public class DesugaredLibraryConfiguration {
           ImmutableSet.of(),
           ImmutableList.of(),
           ImmutableList.of());
-
   private final AndroidApiLevel requiredCompilationAPILevel;
   private final boolean libraryCompilation;
   private final String synthesizedLibraryClassesPackagePrefix;
   private final String identifier;
+  private final String jsonSource;
   // Setting supportAllCallbacksFromLibrary reduces the number of generated call-backs,
   // more specifically:
   // - no call-back is generated for emulated interface method overrides (forEach, etc.)
@@ -86,6 +84,7 @@ public class DesugaredLibraryConfiguration {
         true,
         FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
         "testingOnlyVersion",
+        null,
         FALL_BACK_SUPPORT_ALL_CALLBACKS_FROM_LIBRARY,
         prefix,
         ImmutableMap.of(),
@@ -106,6 +105,7 @@ public class DesugaredLibraryConfiguration {
       boolean libraryCompilation,
       String packagePrefix,
       String identifier,
+      String jsonSource,
       boolean supportAllCallbacksFromLibrary,
       Map<String, String> rewritePrefix,
       Map<DexType, DexType> emulateLibraryInterface,
@@ -119,6 +119,7 @@ public class DesugaredLibraryConfiguration {
     this.libraryCompilation = libraryCompilation;
     this.synthesizedLibraryClassesPackagePrefix = packagePrefix;
     this.identifier = identifier;
+    this.jsonSource = jsonSource;
     this.supportAllCallbacksFromLibrary = supportAllCallbacksFromLibrary;
     this.rewritePrefix = rewritePrefix;
     this.emulateLibraryInterface = emulateLibraryInterface;
@@ -159,7 +160,6 @@ public class DesugaredLibraryConfiguration {
   public Map<DexType, DexType> getEmulateLibraryInterface() {
     return emulateLibraryInterface;
   }
-
   // If the method is retargeted, answers the retargeted method, else null.
   public DexMethod retargetMethod(DexEncodedMethod method, AppView<?> appView) {
     Map<DexType, DexType> typeMap = retargetCoreLibMember.get(method.getName());
@@ -198,17 +198,20 @@ public class DesugaredLibraryConfiguration {
     return extraKeepRules;
   }
 
-  public static class Builder {
+  public String getJsonSource() {
+    return jsonSource;
+  }
 
+  public static class Builder {
     private final DexItemFactory factory;
     private final Reporter reporter;
     private final Origin origin;
-
     private AndroidApiLevel requiredCompilationAPILevel;
     private boolean libraryCompilation = false;
     private String synthesizedLibraryClassesPackagePrefix =
         FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX;
     private String identifier;
+    private String jsonSource;
     private Map<String, String> rewritePrefix = new HashMap<>();
     private Map<DexType, DexType> emulateLibraryInterface = new IdentityHashMap<>();
     private Map<DexString, Map<DexType, DexType>> retargetCoreLibMember = new IdentityHashMap<>();
@@ -224,7 +227,6 @@ public class DesugaredLibraryConfiguration {
       this.reporter = reporter;
       this.origin = origin;
     }
-
     // Utility to set values. Currently assumes the key is fresh.
     private <K, V> void put(Map<K, V> map, K key, V value, String desc) {
       if (map.containsKey(key)) {
@@ -248,6 +250,11 @@ public class DesugaredLibraryConfiguration {
 
     public Builder setDesugaredLibraryIdentifier(String identifier) {
       this.identifier = identifier;
+      return this;
+    }
+
+    public Builder setJsonSource(String jsonSource) {
+      this.jsonSource = jsonSource;
       return this;
     }
 
@@ -369,6 +376,7 @@ public class DesugaredLibraryConfiguration {
           libraryCompilation,
           synthesizedLibraryClassesPackagePrefix,
           identifier,
+          jsonSource,
           supportAllCallbacksFromLibrary,
           ImmutableMap.copyOf(rewritePrefix),
           ImmutableMap.copyOf(emulateLibraryInterface),
@@ -392,6 +400,5 @@ public class DesugaredLibraryConfiguration {
                 origin));
       }
     }
-
   }
 }

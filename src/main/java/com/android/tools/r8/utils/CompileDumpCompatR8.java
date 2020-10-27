@@ -11,6 +11,8 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8Command.Builder;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -66,6 +68,7 @@ public class CompileDumpCompatR8 {
     OutputMode outputMode = OutputMode.DexIndexed;
     Path outputPath = null;
     Path pgMapOutput = null;
+    Path desugaredLibJson = null;
     CompilationMode compilationMode = CompilationMode.RELEASE;
     List<Path> program = new ArrayList<>();
     Map<Path, Path> features = new LinkedHashMap<>();
@@ -134,6 +137,11 @@ public class CompileDumpCompatR8 {
               pgMapOutput = Paths.get(operand);
               break;
             }
+          case "--desugared-lib":
+            {
+              desugaredLibJson = Paths.get(operand);
+              break;
+            }
           case "--threads":
             {
               threads = Integer.parseInt(operand);
@@ -172,6 +180,9 @@ public class CompileDumpCompatR8 {
             .addProguardConfigurationFiles(config)
             .setOutput(outputPath, outputMode)
             .setMode(compilationMode);
+    if (desugaredLibJson != null) {
+      commandBuilder.addDesugaredLibraryConfiguration(readAllBytesJava7(desugaredLibJson));
+    }
     if (outputMode != OutputMode.ClassFile) {
       commandBuilder.setMinApiLevel(minApi);
     }
@@ -197,5 +208,19 @@ public class CompileDumpCompatR8 {
     } else {
       R8.run(command);
     }
+  }
+
+  // We cannot use StringResource since this class is added to the class path and has access only
+  // to the public APIs.
+  private static String readAllBytesJava7(Path filePath) {
+    String content = "";
+
+    try {
+      content = new String(Files.readAllBytes(filePath));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return content;
   }
 }

@@ -78,6 +78,10 @@ def make_parser():
       help='Set min-api (default read from dump properties file)',
       default=None)
   parser.add_argument(
+    '--desugared-lib',
+    help='Set desugared-library (default set from dump)',
+    default=None)
+  parser.add_argument(
     '--loop',
     help='Run the compilation in a loop',
     default=False,
@@ -118,6 +122,9 @@ class Dump(object):
 
   def classpath_jar(self):
     return self.if_exists('classpath.jar')
+
+  def desugared_library_json(self):
+    return self.if_exists('desugared-library.json')
 
   def build_properties_file(self):
     return self.if_exists('build.properties')
@@ -252,6 +259,8 @@ def run1(out, args, otherargs):
       cmd.extend(['--lib', dump.library_jar()])
     if dump.classpath_jar():
       cmd.extend(['--classpath', dump.classpath_jar()])
+    if dump.desugared_library_json():
+      cmd.extend(['--desugared-lib', dump.desugared_library_json()])
     if compiler != 'd8' and dump.config_file():
       cmd.extend(['--pg-conf', dump.config_file()])
     if compiler != 'd8':

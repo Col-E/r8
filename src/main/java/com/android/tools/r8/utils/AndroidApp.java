@@ -83,6 +83,7 @@ public class AndroidApp {
 
   private static final String dumpVersionFileName = "r8-version";
   private static final String dumpBuildPropertiesFileName = "build.properties";
+  private static final String dumpDesugaredLibraryFileName = "desugared-library.json";
   private static final String dumpProgramFileName = "program.jar";
   private static final String dumpClasspathFileName = "classpath.jar";
   private static final String dumpLibraryFileName = "library.jar";
@@ -465,6 +466,18 @@ public class AndroidApp {
           dumpBuildPropertiesFileName,
           getBuildPropertiesContents(options).getBytes(),
           ZipEntry.DEFLATED);
+      if (options.desugaredLibraryConfiguration.getJsonSource() != null) {
+        writeToZipStream(
+            out,
+            dumpDesugaredLibraryFileName,
+            options.desugaredLibraryConfiguration.getJsonSource().getBytes(),
+            ZipEntry.DEFLATED);
+        if (options.dumpInputToFile != null) {
+          options.reporter.warning(
+              "Dumping a compilation with desugared library on a file may prevent reproduction,"
+                  + " use dumpInputToDirectory property instead.");
+        }
+      }
       if (options.getProguardConfiguration() != null) {
         String proguardConfig = options.getProguardConfiguration().getParsedConfiguration();
         writeToZipStream(out, dumpConfigFileName, proguardConfig.getBytes(), ZipEntry.DEFLATED);
