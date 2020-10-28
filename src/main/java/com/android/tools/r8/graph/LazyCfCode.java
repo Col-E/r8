@@ -211,6 +211,11 @@ public class LazyCfCode extends Code {
   }
 
   @Override
+  public int estimatedDexCodeSizeUpperBoundInBytes() {
+    return asCfCode().estimatedDexCodeSizeUpperBoundInBytes();
+  }
+
+  @Override
   public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
     return asCfCode().buildIR(method, appView, origin);
   }

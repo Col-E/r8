@@ -1605,6 +1605,11 @@ public class Outliner {
     }
 
     @Override
+    public int estimatedDexCodeSizeUpperBoundInBytes() {
+      return Integer.MAX_VALUE;
+    }
+
+    @Override
     public OutlineCode asOutlineCode() {
       return this;
     }

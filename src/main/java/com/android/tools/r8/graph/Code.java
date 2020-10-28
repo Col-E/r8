@@ -71,6 +71,8 @@ public abstract class Code extends CachedHashValueDexItem {
     return estimatedSizeForInlining() <= threshold;
   }
 
+  public abstract int estimatedDexCodeSizeUpperBoundInBytes();
+
   public CfCode asCfCode() {
     throw new Unreachable(getClass().getCanonicalName() + ".asCfCode()");
   }

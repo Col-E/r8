@@ -174,6 +174,7 @@ public class ClassMerger {
   }
 
   public static class Builder {
+    private final AppView<AppInfoWithLiveness> appView;
     private final DexProgramClass target;
     private final List<DexProgramClass> toMergeGroup = new ArrayList<>();
     private final Map<DexProto, ConstructorMerger.Builder> constructorMergerBuilders =
@@ -181,7 +182,8 @@ public class ClassMerger {
     private final Map<Wrapper<DexMethod>, VirtualMethodMerger.Builder> virtualMethodMergerBuilders =
         new LinkedHashMap<>();
 
-    public Builder(DexProgramClass target) {
+    public Builder(AppView<AppInfoWithLiveness> appView, DexProgramClass target) {
+      this.appView = appView;
       this.target = target;
       setupForMethodMerging(target);
     }
@@ -215,7 +217,7 @@ public class ClassMerger {
       assert method.getDefinition().isInstanceInitializer();
       constructorMergerBuilders
           .computeIfAbsent(
-              method.getDefinition().getProto(), ignore -> new ConstructorMerger.Builder())
+              method.getDefinition().getProto(), ignore -> new ConstructorMerger.Builder(appView))
           .add(method.getDefinition());
     }
 
@@ -250,7 +252,7 @@ public class ClassMerger {
       List<ConstructorMerger> constructorMergers =
           new ArrayList<>(constructorMergerBuilders.size());
       for (ConstructorMerger.Builder builder : constructorMergerBuilders.values()) {
-        constructorMergers.add(builder.build(appView, target, classIdField));
+        constructorMergers.addAll(builder.build(appView, target, classIdField));
       }
 
       // Try and merge the functions with the most arguments first, to avoid using synthetic

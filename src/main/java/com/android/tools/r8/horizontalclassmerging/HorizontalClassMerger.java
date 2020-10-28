@@ -155,7 +155,7 @@ public class HorizontalClassMerger {
       group.remove(target);
 
       ClassMerger merger =
-          new ClassMerger.Builder(target)
+          new ClassMerger.Builder(appView, target)
               .addClassesToMerge(group)
               .build(appView, mergedClassesBuilder, lensBuilder, fieldAccessChangesBuilder);
       classMergers.add(merger);

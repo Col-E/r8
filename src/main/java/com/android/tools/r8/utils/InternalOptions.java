@@ -275,6 +275,13 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return isGeneratingClassFiles() ? 65534 : 16383;
   }
 
+  public int minimumVerificationSizeLimitInBytes() {
+    if (testing.verificationSizeLimitInBytesOverride > -1) {
+      return testing.verificationSizeLimitInBytesOverride;
+    }
+    return 16383;
+  }
+
   // TODO(b/141719453): The inlining limit at least should be consistent with normal inlining.
   public int classInliningInstructionLimit = 10;
   public int classInliningInstructionAllowance = 50;

@@ -101,6 +101,11 @@ public class DexCode extends Code implements Comparable<DexCode> {
   }
 
   @Override
+  public int estimatedDexCodeSizeUpperBoundInBytes() {
+    return codeSizeInBytes();
+  }
+
+  @Override
   public DexCode asDexCode() {
     return this;
   }

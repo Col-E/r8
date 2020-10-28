@@ -20,7 +20,9 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.conversion.ExtraConstantIntParameter;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
+import com.android.tools.r8.utils.ListUtils;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -71,20 +73,41 @@ public class ConstructorMerger {
   }
 
   public static class Builder {
-    private final Collection<DexEncodedMethod> constructors;
+    private int estimatedDexCodeSize;
+    private final List<List<DexEncodedMethod>> constructorGroups = new ArrayList<>();
+    private AppView<AppInfoWithLiveness> appView;
 
-    public Builder() {
-      constructors = new ArrayList<>();
+    public Builder(AppView<AppInfoWithLiveness> appView) {
+      this.appView = appView;
+
+      createNewGroup();
+    }
+
+    private void createNewGroup() {
+      estimatedDexCodeSize = 0;
+      constructorGroups.add(new ArrayList<>());
     }
 
     public Builder add(DexEncodedMethod constructor) {
-      constructors.add(constructor);
+      int estimatedMaxSizeInBytes = constructor.getCode().estimatedDexCodeSizeUpperBoundInBytes();
+      // If the constructor gets too large, then the constructor should be merged into a new group.
+      if (estimatedDexCodeSize + estimatedMaxSizeInBytes
+              > appView.options().minimumVerificationSizeLimitInBytes() / 2
+          && estimatedDexCodeSize > 0) {
+        createNewGroup();
+      }
+
+      ListUtils.last(constructorGroups).add(constructor);
+      estimatedDexCodeSize += estimatedMaxSizeInBytes;
       return this;
     }
 
-    public ConstructorMerger build(
+    public List<ConstructorMerger> build(
         AppView<?> appView, DexProgramClass target, DexField classIdField) {
-      return new ConstructorMerger(appView, target, constructors, classIdField);
+      assert constructorGroups.stream().noneMatch(List::isEmpty);
+      return ListUtils.map(
+          constructorGroups,
+          constructors -> new ConstructorMerger(appView, target, constructors, classIdField));
     }
   }
 

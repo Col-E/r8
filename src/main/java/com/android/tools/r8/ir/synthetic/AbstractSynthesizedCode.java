@@ -95,4 +95,9 @@ public abstract class AbstractSynthesizedCode extends Code {
   public final String toString(DexEncodedMethod method, ClassNameMapper naming) {
     return this.getClass().getSimpleName();
   }
+
+  @Override
+  public int estimatedDexCodeSizeUpperBoundInBytes() {
+    return Integer.MAX_VALUE;
+  }
 }
