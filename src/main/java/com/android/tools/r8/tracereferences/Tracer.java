@@ -43,6 +43,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -226,12 +227,11 @@ class Tracer {
   private final AppInfoWithClassHierarchy appInfo;
 
   Tracer(Set<String> descriptors, AndroidApp inputApp, DiagnosticsHandler diagnostics)
-      throws Exception {
+      throws IOException {
     this.descriptors = descriptors;
     this.diagnostics = diagnostics;
     InternalOptions options = new InternalOptions();
-    application =
-        new ApplicationReader(inputApp, options, new Timing("ReferenceTrace")).read().toDirect();
+    application = new ApplicationReader(inputApp, options, Timing.empty()).read().toDirect();
     appInfo =
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
             application,

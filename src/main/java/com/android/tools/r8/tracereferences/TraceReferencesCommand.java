@@ -12,11 +12,13 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.ProgramResourceProvider;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
+import com.android.tools.r8.utils.ExceptionUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -31,7 +33,7 @@ import java.util.List;
 public class TraceReferencesCommand {
   private final boolean printHelp;
   private final boolean printVersion;
-  private final DiagnosticsHandler diagnosticsHandler;
+  private final Reporter reporter;
   private final ImmutableList<ClassFileResourceProvider> library;
   private final ImmutableList<ClassFileResourceProvider> traceTarget;
   private final ImmutableList<ProgramResourceProvider> traceSource;
@@ -40,18 +42,28 @@ public class TraceReferencesCommand {
   TraceReferencesCommand(
       boolean printHelp,
       boolean printVersion,
-      DiagnosticsHandler diagnosticsHandler,
+      Reporter reporter,
       ImmutableList<ClassFileResourceProvider> library,
       ImmutableList<ClassFileResourceProvider> traceTarget,
       ImmutableList<ProgramResourceProvider> traceSource,
       TraceReferencesConsumer consumer) {
     this.printHelp = printHelp;
     this.printVersion = printVersion;
-    this.diagnosticsHandler = diagnosticsHandler;
+    this.reporter = reporter;
     this.library = library;
     this.traceTarget = traceTarget;
     this.traceSource = traceSource;
     this.consumer = consumer;
+  }
+
+  TraceReferencesCommand(boolean printHelp, boolean printVersion) {
+    this.printHelp = printHelp;
+    this.printVersion = printVersion;
+    this.reporter = null;
+    this.library = null;
+    this.traceTarget = null;
+    this.traceSource = null;
+    this.consumer = null;
   }
 
   /**
@@ -68,7 +80,7 @@ public class TraceReferencesCommand {
    * diagnostics handler.
    */
   public static Builder builder() {
-    return new Builder(new DiagnosticsHandler() {});
+    return new Builder();
   }
 
   public static Builder parse(String[] args, Origin origin) {
@@ -89,10 +101,9 @@ public class TraceReferencesCommand {
 
   public static class Builder {
 
-    private boolean errors = false;
     private boolean printHelp = false;
     private boolean printVersion = false;
-    private final DiagnosticsHandler diagnosticsHandler;
+    private final Reporter reporter;
     private final ImmutableList.Builder<ClassFileResourceProvider> libraryBuilder =
         ImmutableList.builder();
     private final ImmutableList.Builder<ClassFileResourceProvider> traceTargetBuilder =
@@ -101,10 +112,24 @@ public class TraceReferencesCommand {
         ImmutableList.builder();
     private TraceReferencesConsumer consumer;
 
-    private Builder(DiagnosticsHandler diagnosticsHandler) {
-      this.diagnosticsHandler = diagnosticsHandler;
+    private Builder() {
+      this(new DiagnosticsHandler() {});
     }
 
+    private Builder(DiagnosticsHandler diagnosticsHandler) {
+      this.reporter = new Reporter(diagnosticsHandler);
+    }
+
+    Reporter getReporter() {
+      return reporter;
+    }
+
+    /** True if the print-help flag is enabled. */
+    public boolean isPrintHelp() {
+      return printHelp;
+    }
+
+    /** Set the value of the print-help flag. */
     public Builder setPrintHelp(boolean printHelp) {
       this.printHelp = printHelp;
       return this;
@@ -199,7 +224,11 @@ public class TraceReferencesCommand {
       return this;
     }
 
-    public final TraceReferencesCommand build() throws CompilationFailedException {
+    private TraceReferencesCommand makeCommand() {
+      if (isPrintHelp() || isPrintVersion()) {
+        return new TraceReferencesCommand(isPrintHelp(), isPrintVersion());
+      }
+
       ImmutableList<ClassFileResourceProvider> library = libraryBuilder.build();
       ImmutableList<ClassFileResourceProvider> traceTarget = traceTargetBuilder.build();
       ImmutableList<ProgramResourceProvider> traceSource = traceSourceBuilder.build();
@@ -216,22 +245,29 @@ public class TraceReferencesCommand {
       if (consumer == null) {
         error(new StringDiagnostic("No consumer specified"));
       }
-      if (errors) {
-        throw new CompilationFailedException(new CompilationError(""));
-      }
       return new TraceReferencesCommand(
-          printHelp, printVersion, diagnosticsHandler, library, traceTarget, traceSource, consumer);
+          printHelp, printVersion, reporter, library, traceTarget, traceSource, consumer);
+    }
+
+    public final TraceReferencesCommand build() throws CompilationFailedException {
+      Box<TraceReferencesCommand> box = new Box<>(null);
+      ExceptionUtils.withCompilationHandler(
+          reporter,
+          () -> {
+            box.set(makeCommand());
+            reporter.failIfPendingErrors();
+          });
+      return box.get();
     }
 
     void error(Diagnostic diagnostic) {
-      errors = true;
-      diagnosticsHandler.error(diagnostic);
+      reporter.error(diagnostic);
       // For now all errors are fatal.
     }
   }
 
-  DiagnosticsHandler getDiagnosticsHandler() {
-    return diagnosticsHandler;
+  Reporter getReporter() {
+    return reporter;
   }
 
   List<ClassFileResourceProvider> getLibrary() {
