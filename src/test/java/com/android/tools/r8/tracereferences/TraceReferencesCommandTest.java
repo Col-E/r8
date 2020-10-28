@@ -5,6 +5,7 @@ package com.android.tools.r8.tracereferences;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DiagnosticsChecker;
@@ -156,20 +157,27 @@ public class TraceReferencesCommandTest extends TestBase {
     Path output = dir.resolve("output.txt");
     DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
     TraceReferencesFormattingConsumer consumer = new TraceReferencesFormattingConsumer(format);
-    TraceReferences.run(
-        TraceReferencesCommand.builder(diagnosticsChecker)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .addTargetFiles(targetJar)
-            .addSourceFiles(sourceJar)
-            .setConsumer(consumer)
-            .build());
-    assertEquals(expected, consumer.get());
-    if (diagnosticsCheckerConsumer != null) {
-      diagnosticsCheckerConsumer.accept(diagnosticsChecker);
-    } else {
-      assertEquals(0, diagnosticsChecker.errors.size());
-      assertEquals(0, diagnosticsChecker.warnings.size());
-      assertEquals(0, diagnosticsChecker.infos.size());
+    try {
+      TraceReferences.run(
+          TraceReferencesCommand.builder(diagnosticsChecker)
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .addTargetFiles(targetJar)
+              .addSourceFiles(sourceJar)
+              .setConsumer(consumer)
+              .build());
+      assertEquals(expected, consumer.get());
+      if (diagnosticsCheckerConsumer != null) {
+        diagnosticsCheckerConsumer.accept(diagnosticsChecker);
+      } else {
+        assertEquals(0, diagnosticsChecker.errors.size());
+        assertEquals(0, diagnosticsChecker.warnings.size());
+        assertEquals(0, diagnosticsChecker.infos.size());
+      }
+    } catch (CompilationFailedException e) {
+      if (diagnosticsCheckerConsumer != null) {
+        diagnosticsCheckerConsumer.accept(diagnosticsChecker);
+      }
+      throw e;
     }
 
     TraceReferences.run(
@@ -270,64 +278,60 @@ public class TraceReferencesCommandTest extends TestBase {
   @Test
   public void testNoReferences_printUses() throws Throwable {
     String targetTypeName = Target.class.getTypeName();
-    runAndCheckOutput(
-        ImmutableList.of(OtherTarget.class),
-        ImmutableList.of(Source.class),
-        TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE,
-        StringUtils.lines(
-            ImmutableList.of(
-                "# Error: Could not find definition for type " + targetTypeName,
-                "# Error: Could not find definition for method void "
-                    + targetTypeName
-                    + ".target(int)",
-                "# Error: Could not find definition for field int " + targetTypeName + ".field")),
-        diagnosticsChecker -> {
-          assertEquals(0, diagnosticsChecker.errors.size());
-          assertEquals(3, diagnosticsChecker.warnings.size());
-          assertEquals(0, diagnosticsChecker.infos.size());
-        });
+    try {
+      runAndCheckOutput(
+          ImmutableList.of(OtherTarget.class),
+          ImmutableList.of(Source.class),
+          TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE,
+          StringUtils.lines(),
+          diagnosticsChecker -> {
+            assertEquals(3, diagnosticsChecker.errors.size());
+            assertEquals(0, diagnosticsChecker.warnings.size());
+            assertEquals(0, diagnosticsChecker.infos.size());
+          });
+      fail("Expected compilation to fail");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
   }
 
   @Test
   public void testMissingReference_keepRules() throws Throwable {
     String targetTypeName = Target.class.getTypeName();
-    runAndCheckOutput(
-        ImmutableList.of(OtherTarget.class),
-        ImmutableList.of(Source.class),
-        TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES,
-        StringUtils.lines(
-            ImmutableList.of(
-                "# Error: Could not find definition for type " + targetTypeName,
-                "# Error: Could not find definition for method void "
-                    + targetTypeName
-                    + ".target(int)",
-                "# Error: Could not find definition for field int " + targetTypeName + ".field")),
-        diagnosticsChecker -> {
-          assertEquals(0, diagnosticsChecker.errors.size());
-          assertEquals(3, diagnosticsChecker.warnings.size());
-          assertEquals(0, diagnosticsChecker.infos.size());
-        });
+    try {
+      runAndCheckOutput(
+          ImmutableList.of(OtherTarget.class),
+          ImmutableList.of(Source.class),
+          TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES,
+          StringUtils.lines(),
+          diagnosticsChecker -> {
+            assertEquals(3, diagnosticsChecker.errors.size());
+            assertEquals(0, diagnosticsChecker.warnings.size());
+            assertEquals(0, diagnosticsChecker.infos.size());
+          });
+      fail("Expected compilation to fail");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
   }
 
   @Test
   public void testNoReferences_keepRulesAllowObfuscation() throws Throwable {
-    String targetTypeName = Target.class.getTypeName();
-    runAndCheckOutput(
-        ImmutableList.of(OtherTarget.class),
-        ImmutableList.of(Source.class),
-        TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
-        StringUtils.lines(
-            ImmutableList.of(
-                "# Error: Could not find definition for type " + targetTypeName,
-                "# Error: Could not find definition for method void "
-                    + targetTypeName
-                    + ".target(int)",
-                "# Error: Could not find definition for field int " + targetTypeName + ".field")),
-        diagnosticsChecker -> {
-          assertEquals(0, diagnosticsChecker.errors.size());
-          assertEquals(3, diagnosticsChecker.warnings.size());
-          assertEquals(0, diagnosticsChecker.infos.size());
-        });
+    try {
+      runAndCheckOutput(
+          ImmutableList.of(OtherTarget.class),
+          ImmutableList.of(Source.class),
+          TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
+          StringUtils.lines(),
+          diagnosticsChecker -> {
+            assertEquals(3, diagnosticsChecker.errors.size());
+            assertEquals(0, diagnosticsChecker.warnings.size());
+            assertEquals(0, diagnosticsChecker.infos.size());
+          });
+      fail("Expected compilation to fail");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
   }
 
   public static void zip(Path zipFile, String path, byte[] data) throws IOException {
@@ -350,24 +354,23 @@ public class TraceReferencesCommandTest extends TestBase {
         sourceJar,
         ToolHelper.getClassPathForTests(),
         ToolHelper.getClassFileForTestClass(Source.class));
-    runAndCheckOutput(
-        targetJar,
-        sourceJar,
-        TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE,
-        StringUtils.lines(
-            ImmutableList.of(
-                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target",
-                "# Error: Could not find definition for method void"
-                    + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target"
-                    + ".target(int)",
-                "# Error: Could not find definition for field int"
-                    + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target"
-                    + ".field")),
-        diagnosticsChecker -> {
-          assertEquals(0, diagnosticsChecker.errors.size());
-          assertEquals(2, diagnosticsChecker.warnings.size());
-          assertEquals(0, diagnosticsChecker.infos.size());
-        });
+    try {
+      runAndCheckOutput(
+          targetJar,
+          sourceJar,
+          TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE,
+          StringUtils.lines(
+              ImmutableList.of(
+                  "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target")),
+          diagnosticsChecker -> {
+            assertEquals(2, diagnosticsChecker.errors.size());
+            assertEquals(0, diagnosticsChecker.warnings.size());
+            assertEquals(0, diagnosticsChecker.infos.size());
+          });
+      fail("Expected compilation to fail");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
   }
 
   @Test
@@ -380,27 +383,27 @@ public class TraceReferencesCommandTest extends TestBase {
         sourceJar,
         ToolHelper.getClassPathForTests(),
         ToolHelper.getClassFileForTestClass(Source.class));
-    runAndCheckOutput(
-        targetJar,
-        sourceJar,
-        TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES,
-        StringUtils.lines(
-            ImmutableList.of(
-                "-keep class com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target"
-                    + " {",
-                "# Error: Could not find definition for method void"
-                    + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target"
-                    + ".target(int)",
-                "# Error: Could not find definition for field int"
-                    + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target"
-                    + ".field",
-                "}",
-                "-keeppackagenames com.android.tools.r8.tracereferences")),
-        diagnosticsChecker -> {
-          assertEquals(0, diagnosticsChecker.errors.size());
-          assertEquals(2, diagnosticsChecker.warnings.size());
-          assertEquals(0, diagnosticsChecker.infos.size());
-        });
+    try {
+      runAndCheckOutput(
+          targetJar,
+          sourceJar,
+          TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES,
+          StringUtils.lines(
+              ImmutableList.of(
+                  "-keep class"
+                      + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target"
+                      + " {",
+                  "}",
+                  "-keeppackagenames com.android.tools.r8.tracereferences")),
+          diagnosticsChecker -> {
+            assertEquals(2, diagnosticsChecker.errors.size());
+            assertEquals(0, diagnosticsChecker.warnings.size());
+            assertEquals(0, diagnosticsChecker.infos.size());
+          });
+      fail("Expected compilation to fail");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
   }
 
   @Test
@@ -413,25 +416,26 @@ public class TraceReferencesCommandTest extends TestBase {
         sourceJar,
         ToolHelper.getClassPathForTests(),
         ToolHelper.getClassFileForTestClass(Source.class));
-    runAndCheckOutput(
-        targetJar,
-        sourceJar,
-        TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
-        StringUtils.lines(
-            ImmutableList.of(
-                "-keep,allowobfuscation class"
-                    + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target {",
-                "# Error: Could not find definition for method void"
-                    + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target.target(int)",
-                "# Error: Could not find definition for field int"
-                    + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target.field",
-                "}",
-                "-keeppackagenames com.android.tools.r8.tracereferences")),
-        diagnosticsChecker -> {
-          assertEquals(0, diagnosticsChecker.errors.size());
-          assertEquals(2, diagnosticsChecker.warnings.size());
-          assertEquals(0, diagnosticsChecker.infos.size());
-        });
+    try {
+      runAndCheckOutput(
+          targetJar,
+          sourceJar,
+          TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
+          StringUtils.lines(
+              ImmutableList.of(
+                  "-keep,allowobfuscation class"
+                      + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target {",
+                  "}",
+                  "-keeppackagenames com.android.tools.r8.tracereferences")),
+          diagnosticsChecker -> {
+            assertEquals(2, diagnosticsChecker.errors.size());
+            assertEquals(0, diagnosticsChecker.warnings.size());
+            assertEquals(0, diagnosticsChecker.infos.size());
+          });
+      fail("Expected compilation to fail");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
   }
 
   private byte[] getClassWithTargetRemoved() throws IOException {

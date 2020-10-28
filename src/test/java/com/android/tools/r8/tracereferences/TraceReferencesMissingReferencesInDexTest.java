@@ -6,7 +6,9 @@ package com.android.tools.r8.tracereferences;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DiagnosticsChecker;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -69,12 +71,17 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
     DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
     MissingReferencesConsumer consumer = new MissingReferencesConsumer();
 
-    TraceReferences.run(
-        TraceReferencesCommand.builder(diagnosticsChecker)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .addSourceFiles(sourceDex)
-            .setConsumer(consumer)
-            .build());
+    try {
+      TraceReferences.run(
+          TraceReferencesCommand.builder(diagnosticsChecker)
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .addSourceFiles(sourceDex)
+              .setConsumer(consumer)
+              .build());
+      fail("Expected compilation to fail");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
 
     assertTrue(consumer.acceptTypeCalled);
     assertTrue(consumer.acceptFieldCalled);
@@ -93,12 +100,17 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
     DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
     MissingReferencesConsumer consumer = new MissingReferencesConsumer();
 
-    TraceReferences.run(
-        TraceReferencesCommand.builder(diagnosticsChecker)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .addSourceFiles(sourceDex)
-            .setConsumer(consumer)
-            .build());
+    try {
+      TraceReferences.run(
+          TraceReferencesCommand.builder(diagnosticsChecker)
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .addSourceFiles(sourceDex)
+              .setConsumer(consumer)
+              .build());
+      fail("Expected compilation to fail");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
 
     assertFalse(consumer.acceptTypeCalled);
     assertTrue(consumer.acceptFieldCalled);

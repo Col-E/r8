@@ -332,7 +332,7 @@ class Tracer {
 
     private void checkDiagnostics(TracedReferenceBase<?, ?> tracedReference) {
       if (tracedReference.isMissingDefinition() && missingDefinitionReported.add(tracedReference)) {
-        diagnostics.warning(
+        diagnostics.error(
             new StringDiagnostic(
                 "Missing definition of " + tracedReference.getKindName() + " " + tracedReference));
       }
