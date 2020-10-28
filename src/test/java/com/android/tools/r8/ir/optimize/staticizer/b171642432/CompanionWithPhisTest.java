@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.staticizer.b171642432;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticException;
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -43,21 +39,15 @@ public class CompanionWithPhisTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assertThrows(
-        CompilationFailedException.class,
-        () -> {
-          testForR8(parameters.getBackend())
-              .addProgramClasses(Main.class, CompanionUser.class)
-              .addProgramClassesAndInnerClasses(ClassWithCompanion.class)
-              .setMinApi(parameters.getApiLevel())
-              .enableNeverClassInliningAnnotations()
-              .enableInliningAnnotations()
-              .addKeepMainRule(Main.class)
-              .compileWithExpectedDiagnostics(
-                  diagnostics -> {
-                    diagnostics.assertErrorsMatch(diagnosticException(AssertionError.class));
-                  });
-        });
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Main.class, CompanionUser.class)
+        .addProgramClassesAndInnerClasses(ClassWithCompanion.class)
+        .setMinApi(parameters.getApiLevel())
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .addKeepMainRule(Main.class)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class Main {

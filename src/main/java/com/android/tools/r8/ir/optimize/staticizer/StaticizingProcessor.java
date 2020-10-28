@@ -609,6 +609,7 @@ final class StaticizingProcessor {
           }
         }
       }
+      chainedPhis.addAll(phi.uniquePhiUsers());
       if (!chainedPhis.isEmpty()) {
         if (!testAndCollectPhisComposedOfSameMember(visited, chainedPhis, dexMember, trivialPhis)) {
           return false;
