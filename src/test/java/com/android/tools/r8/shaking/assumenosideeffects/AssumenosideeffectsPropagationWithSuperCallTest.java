@@ -15,14 +15,11 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class AssumenosideeffectsPropagationWithSuperCallTest extends TestBase {
   private static final Class<?> MAIN = DelegatesUser.class;
-  private static final String EXPECTED_OUTPUT =
-      StringUtils.lines("[Base] message1", "[Base] message2", "The end");
 
   // With horizontal class merging enabled the method body for debug is cleared, because the
   // forwarded call to the class specific implementation has no side effects. The call to the
   // function from main persists.
-  private static final String EXPECTED_OUTPUT_WITH_HORIZONTAL_CLASS_MERGING =
-      StringUtils.lines("[Base] message2", "The end");
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("[Base] message2", "The end");
 
   enum TestConfig {
     SPECIFIC_RULES,
@@ -51,9 +48,7 @@ public class AssumenosideeffectsPropagationWithSuperCallTest extends TestBase {
       switch (this) {
         case SPECIFIC_RULES:
         case NON_SPECIFIC_RULES_WITH_EXTENDS:
-          return parameters.isCfRuntime()
-              ? EXPECTED_OUTPUT
-              : EXPECTED_OUTPUT_WITH_HORIZONTAL_CLASS_MERGING;
+          return EXPECTED_OUTPUT;
         default:
           throw new Unreachable();
       }
