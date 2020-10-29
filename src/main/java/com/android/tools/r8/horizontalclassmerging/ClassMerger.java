@@ -49,6 +49,7 @@ public class ClassMerger {
   private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
 
   private final Reference2IntMap<DexType> classIdentifiers = new Reference2IntOpenHashMap<>();
+  private final ClassStaticFieldsMerger classStaticFieldsMerger;
   private final Collection<VirtualMethodMerger> virtualMethodMergers;
   private final Collection<ConstructorMerger> constructorMergers;
   private final DexField classIdField;
@@ -73,6 +74,7 @@ public class ClassMerger {
     this.constructorMergers = constructorMergers;
 
     this.dexItemFactory = appView.dexItemFactory();
+    this.classStaticFieldsMerger = new ClassStaticFieldsMerger(appView, lensBuilder, target);
 
     buildClassIdentifierMap();
   }
@@ -114,6 +116,8 @@ public class ClassMerger {
             lensBuilder.moveMethod(definition.getReference(), newMethod);
           }
         });
+
+    classStaticFieldsMerger.addFields(toMerge);
 
     // Clear the members of the class to be merged since they have now been moved to the target.
     toMerge.setVirtualMethods(null);
@@ -161,6 +165,10 @@ public class ClassMerger {
     target.appendInstanceField(encodedField);
   }
 
+  void mergeStaticFields() {
+    classStaticFieldsMerger.merge(target);
+  }
+
   public void mergeGroup(SyntheticArgumentClass syntheticArgumentClass) {
     appendClassIdField();
 
@@ -171,6 +179,7 @@ public class ClassMerger {
 
     mergeConstructors(syntheticArgumentClass);
     mergeVirtualMethods();
+    mergeStaticFields();
   }
 
   public static class Builder {

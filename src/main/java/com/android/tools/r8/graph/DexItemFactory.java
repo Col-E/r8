@@ -1845,6 +1845,23 @@ public class DexItemFactory {
             holder);
     return method;
   }
+  /**
+   * Tries to find a method name for insertion into the class {@code target} of the form
+   * baseName$holder$n, where {@code baseName} and {@code holder} are supplied by the user, and
+   * {@code n} is picked to be the first number so that {@code isFresh.apply(method)} returns {@code
+   * true}.
+   *
+   * @param holder indicates where the method originates from.
+   */
+  public DexField createFreshFieldName(
+      DexField template, DexType holder, Predicate<DexField> isFresh) {
+    DexField field =
+        createFreshMember(
+            name -> Optional.of(template.withName(name, this)).filter(isFresh),
+            template.name.toSourceString(),
+            holder);
+    return field;
+  }
 
   public DexMethod createInstanceInitializerWithFreshProto(
       DexMethod method, DexType extraType, Predicate<DexMethod> isFresh) {

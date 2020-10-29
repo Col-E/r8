@@ -123,6 +123,10 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
     }
 
     public Builder mapField(DexField from, DexField to) {
+      DexField previousFrom = fieldMap.inverse().remove(from);
+      if (previousFrom != null) {
+        from = previousFrom;
+      }
       fieldMap.put(from, to);
       return this;
     }

@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assume.assumeFalse;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -50,6 +51,7 @@ public class ReservedFieldNameInSuperClassTest extends TestBase {
                 reserveName
                     ? "-keepclassmembernames class " + A.class.getTypeName() + "{ <fields>; }"
                     : "")
+            .enableNoHorizontalClassMergingAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
@@ -78,6 +80,7 @@ public class ReservedFieldNameInSuperClassTest extends TestBase {
         .addLibraryClasses(A.class)
         .addLibraryFiles(runtimeJar(Backend.DEX))
         .addKeepMainRule(TestClass.class)
+        .enableNoHorizontalClassMergingAnnotations()
         .compile()
         .addRunClasspathFiles(testForD8().addProgramClasses(A.class).compile().writeToZip())
         .run(TestClass.class)
@@ -128,6 +131,7 @@ public class ReservedFieldNameInSuperClassTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static class ASub2 extends A {
 
     static String bar;

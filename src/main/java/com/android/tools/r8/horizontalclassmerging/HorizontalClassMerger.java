@@ -17,8 +17,8 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassesOrMembersWithAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassesWithInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
-import com.android.tools.r8.horizontalclassmerging.policies.NoFields;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInnerClasses;
+import com.android.tools.r8.horizontalclassmerging.policies.NoInstanceFields;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKeepRules;
 import com.android.tools.r8.horizontalclassmerging.policies.NoNativeMethods;
@@ -59,7 +59,7 @@ public class HorizontalClassMerger {
     List<Policy> policies =
         ImmutableList.of(
             new NotMatchedByNoHorizontalClassMerging(appView),
-            new NoFields(),
+            new NoInstanceFields(),
             // TODO(b/166071504): Allow merging of classes that implement interfaces.
             new NoInterfaces(),
             new NoClassesWithInterfaces(),
