@@ -14,6 +14,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.tracereferences.TraceReferencesFormattingConsumer.OutputFormat;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -23,6 +24,8 @@ import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -135,14 +138,13 @@ public class TraceReferencesCommandTest extends TestBase {
   }
 
   private String formatName(OutputFormat format) {
-    if (format == TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE) {
+    if (format == OutputFormat.PRINTUSAGE) {
       return "printuses";
     }
-    if (format == TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES) {
+    if (format == OutputFormat.KEEP_RULES) {
       return "keep";
     }
-    assertSame(
-        format, TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION);
+    assertSame(format, OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION);
     return "keepallowobfuscation";
   }
 
@@ -233,12 +235,12 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(
         ImmutableList.of(Target.class),
         ImmutableList.of(Source.class),
-        TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE,
+        OutputFormat.PRINTUSAGE,
         StringUtils.lines(
             ImmutableList.of(
                 "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target",
                 "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: void"
-                    + " target(int)",
+                    + " method(int)",
                 "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: int"
                     + " field")));
   }
@@ -248,12 +250,12 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(
         ImmutableList.of(Target.class),
         ImmutableList.of(Source.class),
-        TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES,
+        OutputFormat.KEEP_RULES,
         StringUtils.lines(
             ImmutableList.of(
                 "-keep class com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target"
                     + " {",
-                "  public static void target(int);",
+                "  public static void method(int);",
                 "  int field;",
                 "}",
                 "-keeppackagenames com.android.tools.r8.tracereferences")));
@@ -264,31 +266,43 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(
         ImmutableList.of(Target.class),
         ImmutableList.of(Source.class),
-        TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
+        OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
         StringUtils.lines(
             ImmutableList.of(
                 "-keep,allowobfuscation class"
                     + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target {",
-                "  public static void target(int);",
+                "  public static void method(int);",
                 "  int field;",
                 "}",
                 "-keeppackagenames com.android.tools.r8.tracereferences")));
   }
 
+  private void checkTargetMissing(DiagnosticsChecker diagnosticsChecker) {
+    Field field;
+    Method method;
+    try {
+      field = Target.class.getField("field");
+      method = Target.class.getMethod("method", int.class);
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
+    assertEquals(1, diagnosticsChecker.errors.size());
+    assertEquals(0, diagnosticsChecker.warnings.size());
+    assertEquals(0, diagnosticsChecker.infos.size());
+    diagnosticsChecker.checkErrorsContains(Reference.classFromClass(Target.class).toString());
+    diagnosticsChecker.checkErrorsContains(Reference.fieldFromField(field).toString());
+    diagnosticsChecker.checkErrorsContains(Reference.methodFromMethod(method).toString());
+  }
+
   @Test
   public void testNoReferences_printUses() throws Throwable {
-    String targetTypeName = Target.class.getTypeName();
     try {
       runAndCheckOutput(
           ImmutableList.of(OtherTarget.class),
           ImmutableList.of(Source.class),
-          TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE,
+          OutputFormat.PRINTUSAGE,
           StringUtils.lines(),
-          diagnosticsChecker -> {
-            assertEquals(3, diagnosticsChecker.errors.size());
-            assertEquals(0, diagnosticsChecker.warnings.size());
-            assertEquals(0, diagnosticsChecker.infos.size());
-          });
+          this::checkTargetMissing);
       fail("Expected compilation to fail");
     } catch (CompilationFailedException e) {
       // Expected.
@@ -297,18 +311,15 @@ public class TraceReferencesCommandTest extends TestBase {
 
   @Test
   public void testMissingReference_keepRules() throws Throwable {
-    String targetTypeName = Target.class.getTypeName();
+    Field field = Target.class.getField("field");
+    Method method = Target.class.getMethod("method", int.class);
     try {
       runAndCheckOutput(
           ImmutableList.of(OtherTarget.class),
           ImmutableList.of(Source.class),
-          TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES,
+          OutputFormat.KEEP_RULES,
           StringUtils.lines(),
-          diagnosticsChecker -> {
-            assertEquals(3, diagnosticsChecker.errors.size());
-            assertEquals(0, diagnosticsChecker.warnings.size());
-            assertEquals(0, diagnosticsChecker.infos.size());
-          });
+          this::checkTargetMissing);
       fail("Expected compilation to fail");
     } catch (CompilationFailedException e) {
       // Expected.
@@ -316,18 +327,14 @@ public class TraceReferencesCommandTest extends TestBase {
   }
 
   @Test
-  public void testNoReferences_keepRulesAllowObfuscation() throws Throwable {
+  public void testMissingReference_keepRulesAllowObfuscation() throws Throwable {
     try {
       runAndCheckOutput(
           ImmutableList.of(OtherTarget.class),
           ImmutableList.of(Source.class),
-          TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
+          OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
           StringUtils.lines(),
-          diagnosticsChecker -> {
-            assertEquals(3, diagnosticsChecker.errors.size());
-            assertEquals(0, diagnosticsChecker.warnings.size());
-            assertEquals(0, diagnosticsChecker.infos.size());
-          });
+          this::checkTargetMissing);
       fail("Expected compilation to fail");
     } catch (CompilationFailedException e) {
       // Expected.
@@ -344,6 +351,22 @@ public class TraceReferencesCommandTest extends TestBase {
     }
   }
 
+  private void checkTargetPartlyMissing(DiagnosticsChecker diagnosticsChecker) {
+    Field field;
+    Method method;
+    try {
+      field = Target.class.getField("field");
+      method = Target.class.getMethod("method", int.class);
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
+    assertEquals(1, diagnosticsChecker.errors.size());
+    assertEquals(0, diagnosticsChecker.warnings.size());
+    assertEquals(0, diagnosticsChecker.infos.size());
+    diagnosticsChecker.checkErrorsContains(Reference.fieldFromField(field).toString());
+    diagnosticsChecker.checkErrorsContains(Reference.methodFromMethod(method).toString());
+  }
+
   @Test
   public void testMissingDefinition_printUses() throws Throwable {
     Path dir = temp.newFolder().toPath();
@@ -358,15 +381,11 @@ public class TraceReferencesCommandTest extends TestBase {
       runAndCheckOutput(
           targetJar,
           sourceJar,
-          TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE,
+          OutputFormat.PRINTUSAGE,
           StringUtils.lines(
               ImmutableList.of(
                   "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target")),
-          diagnosticsChecker -> {
-            assertEquals(2, diagnosticsChecker.errors.size());
-            assertEquals(0, diagnosticsChecker.warnings.size());
-            assertEquals(0, diagnosticsChecker.infos.size());
-          });
+          this::checkTargetPartlyMissing);
       fail("Expected compilation to fail");
     } catch (CompilationFailedException e) {
       // Expected.
@@ -387,7 +406,7 @@ public class TraceReferencesCommandTest extends TestBase {
       runAndCheckOutput(
           targetJar,
           sourceJar,
-          TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES,
+          OutputFormat.KEEP_RULES,
           StringUtils.lines(
               ImmutableList.of(
                   "-keep class"
@@ -395,11 +414,7 @@ public class TraceReferencesCommandTest extends TestBase {
                       + " {",
                   "}",
                   "-keeppackagenames com.android.tools.r8.tracereferences")),
-          diagnosticsChecker -> {
-            assertEquals(2, diagnosticsChecker.errors.size());
-            assertEquals(0, diagnosticsChecker.warnings.size());
-            assertEquals(0, diagnosticsChecker.infos.size());
-          });
+          this::checkTargetPartlyMissing);
       fail("Expected compilation to fail");
     } catch (CompilationFailedException e) {
       // Expected.
@@ -420,18 +435,14 @@ public class TraceReferencesCommandTest extends TestBase {
       runAndCheckOutput(
           targetJar,
           sourceJar,
-          TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
+          OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION,
           StringUtils.lines(
               ImmutableList.of(
                   "-keep,allowobfuscation class"
                       + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target {",
                   "}",
                   "-keeppackagenames com.android.tools.r8.tracereferences")),
-          diagnosticsChecker -> {
-            assertEquals(2, diagnosticsChecker.errors.size());
-            assertEquals(0, diagnosticsChecker.warnings.size());
-            assertEquals(0, diagnosticsChecker.infos.size());
-          });
+          this::checkTargetPartlyMissing);
       fail("Expected compilation to fail");
     } catch (CompilationFailedException e) {
       // Expected.
@@ -440,7 +451,7 @@ public class TraceReferencesCommandTest extends TestBase {
 
   private byte[] getClassWithTargetRemoved() throws IOException {
     return transformer(Target.class)
-        .removeMethods((access, name, descriptor, signature, exceptions) -> name.equals("target"))
+        .removeMethods((access, name, descriptor, signature, exceptions) -> name.equals("method"))
         .removeFields((access, name, descriptor, signature, value) -> name.equals("field"))
         .transform();
   }
@@ -448,16 +459,16 @@ public class TraceReferencesCommandTest extends TestBase {
   static class Target {
     public static int field;
 
-    public static void target(int i) {}
+    public static void method(int i) {}
   }
 
   static class OtherTarget {
-    public static void target() {}
+    public static void method() {}
   }
 
   static class Source {
     public static void source() {
-      Target.target(Target.field);
+      Target.method(Target.field);
     }
   }
 }

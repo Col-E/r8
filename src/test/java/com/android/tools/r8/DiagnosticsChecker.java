@@ -60,6 +60,10 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
         diagnostics.stream().anyMatch(d -> d.getDiagnosticMessage().contains(snippet)));
   }
 
+  public void checkErrorsContains(String snippet) {
+    checkContains(snippet, errors);
+  }
+
   public void checkWarningsContains(String snippet) {
     checkContains(snippet, warnings);
   }

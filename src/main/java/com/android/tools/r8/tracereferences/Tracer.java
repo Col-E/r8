@@ -41,7 +41,6 @@ import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedMethod
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.TracedReference;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.util.HashSet;
@@ -251,6 +250,7 @@ class Tracer {
       clazz.forEachField(useCollector::registerField);
     }
     consumer.finished();
+    useCollector.reportMissingDefinitions();
   }
 
   class UseCollector extends UseRegistry {
@@ -259,7 +259,9 @@ class Tracer {
     private final TraceReferencesConsumer consumer;
     private DexProgramClass context;
     private final DiagnosticsHandler diagnostics;
-    private Set<TracedReference<?, ?>> missingDefinitionReported = new HashSet<>();
+    private final Set<TracedClassImpl> missingClasses = new HashSet<>();
+    private final Set<TracedFieldImpl> missingFields = new HashSet<>();
+    private final Set<TracedMethodImpl> missingMethods = new HashSet<>();
 
     UseCollector(
         DexItemFactory factory, TraceReferencesConsumer consumer, DiagnosticsHandler diagnostics) {
@@ -283,7 +285,7 @@ class Tracer {
       }
       DexClass clazz = appInfo.definitionFor(type);
       TracedClassImpl tracedClass = new TracedClassImpl(type, clazz);
-      checkDiagnostics(tracedClass);
+      checkMissingDefinition(tracedClass);
       if (isTargetType(type) || tracedClass.isMissingDefinition()) {
         consumer.acceptType(tracedClass);
         if (!tracedClass.isMissingDefinition()
@@ -301,7 +303,7 @@ class Tracer {
       }
       addType(field.holder);
       TracedFieldImpl tracedField = new TracedFieldImpl(field, baseField);
-      checkDiagnostics(tracedField);
+      checkMissingDefinition(tracedField);
       if (isTargetType(field.holder) || tracedField.isMissingDefinition()) {
         consumer.acceptField(tracedField);
         if (!tracedField.isMissingDefinition()
@@ -322,7 +324,7 @@ class Tracer {
       TracedMethodImpl tracedMethod = new TracedMethodImpl(method, definition);
       if (isTargetType(method.holder) || tracedMethod.isMissingDefinition()) {
         consumer.acceptMethod(tracedMethod);
-        checkDiagnostics(tracedMethod);
+        checkMissingDefinition(tracedMethod);
         if (!tracedMethod.isMissingDefinition()
             && definition.accessFlags.isVisibilityDependingOnPackage()) {
           consumer.acceptPackage(Reference.packageFromString(definition.holder().getPackageName()));
@@ -330,11 +332,29 @@ class Tracer {
       }
     }
 
-    private void checkDiagnostics(TracedReferenceBase<?, ?> tracedReference) {
-      if (tracedReference.isMissingDefinition() && missingDefinitionReported.add(tracedReference)) {
+    private void checkMissingDefinition(TracedClassImpl tracedClass) {
+      collectMissing(tracedClass, missingClasses);
+    }
+
+    private void checkMissingDefinition(TracedFieldImpl tracedField) {
+      collectMissing(tracedField, missingFields);
+    }
+
+    private void checkMissingDefinition(TracedMethodImpl tracedMethod) {
+      collectMissing(tracedMethod, missingMethods);
+    }
+
+    private <T extends TracedReferenceBase<?, ?>> void collectMissing(
+        T tracedReference, Set<T> missingCollection) {
+      if (tracedReference.isMissingDefinition()) {
+        missingCollection.add(tracedReference);
+      }
+    }
+
+    private void reportMissingDefinitions() {
+      if (missingClasses.size() > 0 || missingFields.size() > 0 || missingMethods.size() > 0) {
         diagnostics.error(
-            new StringDiagnostic(
-                "Missing definition of " + tracedReference.getKindName() + " " + tracedReference));
+            new MissingDefinitionsDiagnostic(missingClasses, missingFields, missingMethods));
       }
     }
 
