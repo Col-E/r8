@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
+import com.android.tools.r8.BaseCompilerCommandParser;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.JdkClassFileProvider;
 import com.android.tools.r8.origin.Origin;
@@ -11,6 +12,7 @@ import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -27,20 +29,24 @@ class TraceReferencesCommandParser {
   static final String USAGE_MESSAGE =
       String.join(
           "\n",
-          Arrays.asList(
-              "Usage: tracereferences [options] [@<argfile>]",
-              " Each <argfile> is a file containing additional arguments (one per line)",
-              " and options are:",
-              "  --lib <file|jdk-home>   # Add <file|jdk-home> runtime library.",
-              "  --source <file>         # Add <file> as a source for tracing references.",
-              "  [--target <file>]       # Add <file> as a target for tracing references. When",
-              "                          # target is not specified all references from source",
-              "                          # outside of library are treated as a missing references.",
-              "  [--format printuses|keep|keepallowobfuscation]",
-              "                          # Format of the output. Default is 'printuses'.",
-              "  --output <file>         # Output result in <outfile>.",
-              "  --version               # Print the version of tracereferences.",
-              "  --help                  # Print this message."));
+          Iterables.concat(
+              Arrays.asList(
+                  "Usage: tracereferences [options] [@<argfile>]",
+                  " Each <argfile> is a file containing additional arguments (one per line)",
+                  " and options are:",
+                  "  --lib <file|jdk-home>   # Add <file|jdk-home> runtime library.",
+                  "  --source <file>         # Add <file> as a source for tracing references.",
+                  "  [--target <file>]       # Add <file> as a target for tracing references. When",
+                  "                          # target is not specified all references from source",
+                  "                          # outside of library are treated as a missing"
+                      + " references.",
+                  "  [--format printuses|keep|keepallowobfuscation]",
+                  "                          # Format of the output. Default is 'printuses'.",
+                  "  --output <file>         # Output result in <outfile>."),
+              BaseCompilerCommandParser.MAP_DIAGNOSTICS_USAGE_MESSAGE,
+              Arrays.asList(
+                  "  --version               # Print the version of tracereferences.",
+                  "  --help                  # Print this message.")));
   /**
    * Parse the tracereferences command-line.
    *
@@ -120,6 +126,13 @@ class TraceReferencesCommandParser {
       } else if (arg.startsWith("@")) {
         builder.error(new StringDiagnostic("Recursive @argfiles are not supported: ", origin));
       } else {
+        int argsConsumed =
+            BaseCompilerCommandParser.tryParseMapDiagnostics(
+                builder::error, builder.getReporter(), arg, expandedArgs, i, origin);
+        if (argsConsumed >= 0) {
+          i += argsConsumed;
+          continue;
+        }
         builder.error(new StringDiagnostic("Unsupported argument '" + arg + "'"));
       }
     }

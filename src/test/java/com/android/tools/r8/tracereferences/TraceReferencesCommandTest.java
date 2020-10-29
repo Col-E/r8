@@ -341,6 +341,47 @@ public class TraceReferencesCommandTest extends TestBase {
     }
   }
 
+  @Test
+  public void testMissingReference_errorToWarning() throws Throwable {
+    Path dir = temp.newFolder().toPath();
+    Path targetJar = dir.resolve("target.jar");
+    Path sourceJar = dir.resolve("source.jar");
+    Path output = dir.resolve("output.txt");
+    ZipUtils.zip(
+        targetJar,
+        ToolHelper.getClassPathForTests(),
+        ToolHelper.getClassFileForTestClass(OtherTarget.class));
+    ZipUtils.zip(
+        sourceJar,
+        ToolHelper.getClassPathForTests(),
+        ToolHelper.getClassFileForTestClass(Source.class));
+    DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
+    TraceReferences.run(
+        TraceReferencesCommand.parse(
+                new String[] {
+                  "--lib",
+                  ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+                  "--target",
+                  targetJar.toString(),
+                  "--source",
+                  sourceJar.toString(),
+                  "--output",
+                  output.toString(),
+                  "--format",
+                  formatName(OutputFormat.PRINTUSAGE),
+                  "--map-diagnostics:MissingDefinitionsDiagnostic",
+                  "error",
+                  "warning"
+                },
+                Origin.unknown(),
+                diagnosticsChecker)
+            .build());
+
+    assertEquals(0, diagnosticsChecker.errors.size());
+    assertEquals(1, diagnosticsChecker.warnings.size());
+    assertEquals(0, diagnosticsChecker.infos.size());
+  }
+
   public static void zip(Path zipFile, String path, byte[] data) throws IOException {
     try (ZipOutputStream stream =
         new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(zipFile)))) {

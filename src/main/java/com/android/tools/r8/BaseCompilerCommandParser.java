@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -44,7 +45,7 @@ public class BaseCompilerCommandParser<
           "                          # the number will be based on heuristics taking the number",
           "                          # of cores into account.");
 
-  static final Iterable<String> MAP_DIAGNOSTICS_USAGE_MESSAGE =
+  public static final Iterable<String> MAP_DIAGNOSTICS_USAGE_MESSAGE =
       Arrays.asList(
           "  " + MAP_DIAGNOSTICS + "[:<type>] <from-level> <to-level>",
           "                          # Map diagnostics of <type> (default any) reported as",
@@ -152,7 +153,13 @@ public class BaseCompilerCommandParser<
     }
   }
 
-  private DiagnosticsLevel tryParseLevel(B builder, String arg, Origin origin) {
+  int tryParseMapDiagnostics(B builder, String arg, String[] args, int argsIndex, Origin origin) {
+    return tryParseMapDiagnostics(
+        builder::error, builder.getReporter(), arg, args, argsIndex, origin);
+  }
+
+  private static DiagnosticsLevel tryParseLevel(
+      Consumer<Diagnostic> errorHandler, String arg, Origin origin) {
     if (arg.equals("error")) {
       return DiagnosticsLevel.ERROR;
     }
@@ -162,7 +169,7 @@ public class BaseCompilerCommandParser<
     if (arg.equals("info")) {
       return DiagnosticsLevel.INFO;
     }
-    builder.error(
+    errorHandler.accept(
         new StringDiagnostic(
             "Invalid diagnostics level '"
                 + arg
@@ -172,28 +179,34 @@ public class BaseCompilerCommandParser<
     return null;
   }
 
-  int tryParseMapDiagnostics(B builder, String arg, String[] args, int argsIndex, Origin origin) {
+  public static int tryParseMapDiagnostics(
+      Consumer<Diagnostic> errorHandler,
+      Reporter reporter,
+      String arg,
+      String[] args,
+      int argsIndex,
+      Origin origin) {
     if (!arg.startsWith(MAP_DIAGNOSTICS)) {
       return -1;
     }
     if (args.length <= argsIndex + 2) {
-      builder.error(new StringDiagnostic("Missing argument(s) for " + arg + ".", origin));
+      errorHandler.accept(new StringDiagnostic("Missing argument(s) for " + arg + ".", origin));
       return args.length - argsIndex;
     }
     String remaining = arg.substring(MAP_DIAGNOSTICS.length());
     String diagnosticsClassName = "";
     if (remaining.length() > 0) {
       if (remaining.length() == 1 || remaining.charAt(0) != ':') {
-        builder.error(
+        errorHandler.accept(
             new StringDiagnostic("Invalid diagnostics type specification " + arg + ".", origin));
         return 0;
       }
       diagnosticsClassName = remaining.substring(1);
     }
-    DiagnosticsLevel from = tryParseLevel(builder, args[argsIndex + 1], origin);
-    DiagnosticsLevel to = tryParseLevel(builder, args[argsIndex + 2], origin);
+    DiagnosticsLevel from = tryParseLevel(errorHandler, args[argsIndex + 1], origin);
+    DiagnosticsLevel to = tryParseLevel(errorHandler, args[argsIndex + 2], origin);
     if (from != null && to != null) {
-      builder.getReporter().addDiagnosticsLevelMapping(from, diagnosticsClassName, to);
+      reporter.addDiagnosticsLevelMapping(from, diagnosticsClassName, to);
     }
     return 2;
   }
