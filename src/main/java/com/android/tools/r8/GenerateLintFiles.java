@@ -432,6 +432,7 @@ public class GenerateLintFiles {
       return this;
     }
 
+    @Override
     public String toString() {
       return builder.toString();
     }
@@ -473,7 +474,7 @@ public class GenerateLintFiles {
       return self();
     }
 
-    protected String typeInPackage(String packageName, String typeName) {
+    protected String typeInPackage(String typeName, String packageName) {
       if (typeName.startsWith(packageName)
           && typeName.length() > packageName.length()
           && typeName.charAt(packageName.length()) == '.'
@@ -484,9 +485,9 @@ public class GenerateLintFiles {
     }
 
     protected String typeInPackage(String typeName) {
-      String result = typeInPackage(packageName, typeName);
+      String result = typeInPackage(typeName, packageName);
       if (result == null) {
-        result = typeInPackage("java.lang", typeName);
+        result = typeInPackage(typeName, "java.lang");
       }
       if (result == null) {
         result = typeName;
@@ -663,10 +664,12 @@ public class GenerateLintFiles {
       this.parallelMethods = parallelMethods;
     }
 
+    @Override
     public HTMLSourceBuilder self() {
       return this;
     }
 
+    @Override
     public String toString() {
       HTMLBuilder builder = new HTMLBuilder();
       builder.start("tr");
