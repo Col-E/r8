@@ -13,22 +13,26 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
@@ -45,6 +49,7 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.io.File;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -58,6 +63,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
+import java.util.stream.StreamSupport;
 
 public class GenerateLintFiles {
 
@@ -208,8 +214,10 @@ public class GenerateLintFiles {
   private SupportedMethods collectSupportedMethods(
       AndroidApiLevel compilationApiLevel, Predicate<DexEncodedMethod> supported) throws Exception {
 
+    // Read the android.jar for the compilation API level. Read it as program instead of library
+    // to get the local information for parameter names.
     AndroidApp library =
-        AndroidApp.builder().addLibraryFiles(getAndroidJarPath(compilationApiLevel)).build();
+        AndroidApp.builder().addProgramFiles(getAndroidJarPath(compilationApiLevel)).build();
     DirectMappedDexApplication dexApplication =
         new ApplicationReader(library, options, Timing.empty()).read().toDirect();
 
@@ -221,7 +229,7 @@ public class GenerateLintFiles {
     // Collect all the methods that the library desugar configuration adds support for.
     Set<DexClass> classesWithAllMethodsSupported = Sets.newIdentityHashSet();
     Map<DexClass, List<DexEncodedMethod>> supportedMethods = new LinkedHashMap<>();
-    for (DexLibraryClass clazz : dexApplication.libraryClasses()) {
+    for (DexProgramClass clazz : dexApplication.classes()) {
       String className = clazz.toSourceString();
       // All the methods with the rewritten prefix are supported.
       for (String prefix : desugaredLibraryConfiguration.getRewritePrefix().keySet()) {
@@ -400,13 +408,392 @@ public class GenerateLintFiles {
         });
   }
 
-  public static void main(String[] args) throws Exception {
-    if (args.length != 3) {
-      System.out.println(
-          "Usage: GenerateLineFiles <desugar configuration> <desugar implementation> <output"
-              + " directory>");
-      System.exit(1);
+  private static class StringBuilderWithIndent {
+    String NL = System.lineSeparator();
+    StringBuilder builder = new StringBuilder();
+    String indent = "";
+
+    StringBuilderWithIndent() {}
+
+    StringBuilderWithIndent indent(String indent) {
+      this.indent = indent;
+      return this;
     }
-    new GenerateLintFiles(args[0], args[1], args[2]).run();
+
+    StringBuilderWithIndent appendLine(String line) {
+      builder.append(indent);
+      builder.append(line);
+      builder.append(NL);
+      return this;
+    }
+
+    StringBuilderWithIndent emptyLine() {
+      builder.append(NL);
+      return this;
+    }
+
+    public String toString() {
+      return builder.toString();
+    }
+  }
+
+  private abstract static class SourceBuilder<B extends SourceBuilder> {
+
+    protected final DexClass clazz;
+    protected final boolean newClass;
+    protected List<DexEncodedField> fields = new ArrayList<>();
+    protected List<DexEncodedMethod> constructors = new ArrayList<>();
+    protected List<DexEncodedMethod> methods = new ArrayList<>();
+
+    String className;
+    String packageName;
+
+    private SourceBuilder(DexClass clazz, boolean newClass) {
+      this.clazz = clazz;
+      this.newClass = newClass;
+      this.className = clazz.type.toSourceString();
+      int index = this.className.lastIndexOf('.');
+      this.packageName = index > 0 ? this.className.substring(0, index) : "";
+    }
+
+    public abstract B self();
+
+    private B addField(DexEncodedField field) {
+      fields.add(field);
+      return self();
+    }
+
+    private B addMethod(DexEncodedMethod method) {
+      assert !method.isClassInitializer();
+      if (method.isInitializer()) {
+        constructors.add(method);
+      } else {
+        methods.add(method);
+      }
+      return self();
+    }
+
+    protected String typeInPackage(String packageName, String typeName) {
+      if (typeName.startsWith(packageName)
+          && typeName.length() > packageName.length()
+          && typeName.charAt(packageName.length()) == '.'
+          && typeName.indexOf('.', packageName.length() + 1) == -1) {
+        return typeName.substring(packageName.length() + 1);
+      }
+      return null;
+    }
+
+    protected String typeInPackage(String typeName) {
+      String result = typeInPackage(packageName, typeName);
+      if (result == null) {
+        result = typeInPackage("java.lang", typeName);
+      }
+      if (result == null) {
+        result = typeName;
+      }
+      return result.replace('$', '.');
+    }
+
+    protected String typeInPackage(DexType type) {
+      if (type.isPrimitiveType()) {
+        return type.toSourceString();
+      }
+      return typeInPackage(type.toSourceString());
+    }
+
+    protected String accessFlags(ClassAccessFlags accessFlags) {
+      List<String> flags = new ArrayList<>();
+      if (accessFlags.isPublic()) {
+        flags.add("public");
+      }
+      if (accessFlags.isProtected()) {
+        flags.add("protected");
+      }
+      if (accessFlags.isPrivate()) {
+        assert false;
+        flags.add("private");
+      }
+      if (accessFlags.isPackagePrivate()) {
+        assert false;
+        flags.add("/* package */");
+      }
+      if (accessFlags.isAbstract() && !accessFlags.isInterface()) {
+        flags.add("abstract");
+      }
+      if (accessFlags.isStatic()) {
+        flags.add("static");
+      }
+      if (accessFlags.isFinal()) {
+        flags.add("final");
+      }
+      return String.join(" ", flags);
+    }
+
+    protected String accessFlags(FieldAccessFlags accessFlags) {
+      List<String> flags = new ArrayList<>();
+      if (accessFlags.isPublic()) {
+        flags.add("public");
+      }
+      if (accessFlags.isProtected()) {
+        flags.add("protected");
+      }
+      if (accessFlags.isPrivate()) {
+        assert false;
+        flags.add("private");
+      }
+      if (accessFlags.isPackagePrivate()) {
+        assert false;
+        flags.add("/* package */");
+      }
+      if (accessFlags.isStatic()) {
+        flags.add("static");
+      }
+      if (accessFlags.isFinal()) {
+        flags.add("final");
+      }
+      return String.join(" ", flags);
+    }
+
+    protected String accessFlags(MethodAccessFlags accessFlags) {
+      List<String> flags = new ArrayList<>();
+      if (accessFlags.isPublic()) {
+        flags.add("public");
+      }
+      if (accessFlags.isProtected()) {
+        flags.add("protected");
+      }
+      if (accessFlags.isPrivate()) {
+        assert false;
+        flags.add("private");
+      }
+      if (accessFlags.isPackagePrivate()) {
+        assert false;
+        flags.add("/* package */");
+      }
+      if (accessFlags.isAbstract()) {
+        flags.add("abstract");
+      }
+      if (accessFlags.isStatic()) {
+        flags.add("static");
+      }
+      if (accessFlags.isFinal()) {
+        flags.add("final");
+      }
+      return String.join(" ", flags);
+    }
+
+    public String arguments(DexEncodedMethod method) {
+      DexProto proto = method.method.proto;
+      StringBuilder argsBuilder = new StringBuilder();
+      boolean firstArg = true;
+      int argIndex = method.isVirtualMethod() || method.accessFlags.isConstructor() ? 1 : 0;
+      int argNumber = 0;
+      argsBuilder.append("(");
+      for (DexType type : proto.parameters.values) {
+        if (!firstArg) {
+          argsBuilder.append(", ");
+        }
+        if (method.hasCode()) {
+          String name = "p" + argNumber;
+          for (LocalVariableInfo localVariable : method.getCode().asCfCode().getLocalVariables()) {
+            if (localVariable.getIndex() == argIndex) {
+              assert !localVariable.getLocal().name.toString().equals("this");
+              name = localVariable.getLocal().name.toString();
+            }
+          }
+          argsBuilder.append(typeInPackage(type)).append(" ").append(name);
+        } else {
+          argsBuilder.append(typeInPackage(type)).append(" p").append(argNumber);
+        }
+        firstArg = false;
+        argIndex += type.isWideType() ? 2 : 1;
+        argNumber++;
+      }
+      argsBuilder.append(")");
+      return argsBuilder.toString();
+    }
+  }
+
+  private static class HTMLBuilder extends StringBuilderWithIndent {
+    private String indent = "";
+
+    private void increaseIndent() {
+      indent += "  ";
+      indent(indent);
+    }
+
+    private void decreaseIndent() {
+      indent = indent.substring(0, indent.length() - 2);
+      indent(indent);
+    }
+
+    HTMLBuilder appendTdCode(String s) {
+      appendLine("<td><code>" + s + "</code></td>");
+      return this;
+    }
+
+    HTMLBuilder appendTdP(String s) {
+      appendLine("<td><p>" + s + "</p></td>");
+      return this;
+    }
+
+    HTMLBuilder appendLiCode(String s) {
+      appendLine("<li><code>" + s + "</code></li>");
+      return this;
+    }
+
+    HTMLBuilder start(String tag) {
+      appendLine("<" + tag + ">");
+      increaseIndent();
+      return this;
+    }
+
+    HTMLBuilder end(String tag) {
+      decreaseIndent();
+      appendLine("</" + tag + ">");
+      return this;
+    }
+  }
+
+  public static class HTMLSourceBuilder extends SourceBuilder<HTMLSourceBuilder> {
+    private final Set<DexMethod> parallelMethods;
+
+    public HTMLSourceBuilder(DexClass clazz, boolean newClass, Set<DexMethod> parallelMethods) {
+      super(clazz, newClass);
+      this.parallelMethods = parallelMethods;
+    }
+
+    public HTMLSourceBuilder self() {
+      return this;
+    }
+
+    public String toString() {
+      HTMLBuilder builder = new HTMLBuilder();
+      builder.start("tr");
+      if (packageName.length() > 0) {
+        builder.appendTdCode(packageName);
+      }
+      builder.appendTdCode(typeInPackage(className));
+      builder.start("td").start("ul");
+      if (!fields.isEmpty()) {
+        assert newClass; // Currently no fields are added to existing classes.
+        for (DexEncodedField field : fields) {
+          builder.appendLiCode(
+              accessFlags(field.accessFlags)
+                  + " "
+                  + typeInPackage(field.field.type)
+                  + " "
+                  + field.field.name);
+        }
+      }
+      if (!constructors.isEmpty()) {
+        for (DexEncodedMethod constructor : constructors) {
+          builder.appendLiCode(
+              accessFlags(constructor.accessFlags)
+                  + " "
+                  + typeInPackage(className)
+                  + arguments(constructor));
+        }
+      }
+      List<String> parallelM = new ArrayList<>();
+      if (!methods.isEmpty()) {
+        for (DexEncodedMethod method : methods) {
+          builder.appendLiCode(
+              accessFlags(method.accessFlags)
+                  + " "
+                  + typeInPackage(method.method.proto.returnType)
+                  + " "
+                  + method.method.name
+                  + arguments(method));
+          if (parallelMethods.contains(method.method)) {
+            parallelM.add(method.method.name.toString());
+          }
+        }
+      }
+      builder.end("ul").end("td");
+      StringBuilder commentBuilder = new StringBuilder();
+      if (newClass) {
+        commentBuilder.append("Fully implemented class.");
+      } else {
+        commentBuilder.append("Additional methods on existing class.");
+      }
+      if (!parallelM.isEmpty()) {
+        commentBuilder.append(newClass ? "" : "<br>");
+        if (parallelM.size() == 1) {
+          commentBuilder
+              .append("The method <code>")
+              .append(parallelM.get(0))
+              .append("</code> is only supported from API level 21.");
+        } else {
+          commentBuilder.append("The following methods are only supported from API level 21:<br>");
+          for (int i = 0; i < parallelM.size(); i++) {
+            commentBuilder.append("<code>").append(parallelM.get(i)).append("</code><br>");
+          }
+        }
+      }
+      builder.appendTdP(commentBuilder.toString());
+      builder.end("tr");
+      return builder.toString();
+    }
+  }
+
+  private void generateClassHTML(
+      PrintStream ps,
+      DexClass clazz,
+      boolean newClass,
+      Predicate<DexEncodedField> fieldsFilter,
+      Predicate<DexEncodedMethod> methodsFilter) {
+    SourceBuilder builder = new HTMLSourceBuilder(clazz, newClass, parallelMethods);
+    StreamSupport.stream(clazz.fields().spliterator(), false)
+        .filter(fieldsFilter)
+        .filter(field -> field.accessFlags.isPublic() || field.accessFlags.isProtected())
+        .sorted(Comparator.comparing(DexEncodedField::toSourceString))
+        .forEach(builder::addField);
+    StreamSupport.stream(clazz.methods().spliterator(), false)
+        .filter(methodsFilter)
+        .filter(
+            method ->
+                (method.accessFlags.isPublic() || method.accessFlags.isProtected())
+                    && !method.accessFlags.isBridge())
+        .sorted(Comparator.comparing(DexEncodedMethod::toSourceString))
+        .forEach(builder::addMethod);
+    ps.println(builder);
+  }
+
+  private void generateDesugaredLibraryApisDocumetation() throws Exception {
+    PrintStream ps = new PrintStream(Files.newOutputStream(outputDirectory.resolve("apis.html")));
+    // Full classes added.
+    SupportedMethods supportedMethods = collectSupportedMethods(AndroidApiLevel.Q, x -> true);
+    supportedMethods.classesWithAllMethodsSupported.stream()
+        .sorted(Comparator.comparing(clazz -> clazz.type.toSourceString()))
+        .forEach(clazz -> generateClassHTML(ps, clazz, true, field -> true, method -> true));
+
+    // Methods added to existing classes.
+    supportedMethods.supportedMethods.keySet().stream()
+        .filter(clazz -> !supportedMethods.classesWithAllMethodsSupported.contains(clazz))
+        .sorted(Comparator.comparing(clazz -> clazz.type.toSourceString()))
+        .forEach(
+            clazz ->
+                generateClassHTML(
+                    ps,
+                    clazz,
+                    false,
+                    field -> false,
+                    method -> supportedMethods.supportedMethods.get(clazz).contains(method)));
+  }
+
+  public static void main(String[] args) throws Exception {
+    if (args.length == 3) {
+      new GenerateLintFiles(args[0], args[1], args[2]).run();
+      return;
+    }
+    if (args.length == 4 && args[0].equals("--generate-api-docs")) {
+      new GenerateLintFiles(args[1], args[2], args[3]).generateDesugaredLibraryApisDocumetation();
+      return;
+    }
+    System.out.println(
+        "Usage: GenerateLineFiles [--generate-api-docs] "
+            + "<desugar configuration> <desugar implementation> <output directory>");
+    System.exit(1);
   }
 }
