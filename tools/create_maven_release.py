@@ -341,7 +341,8 @@ def generate_r8_maven_zip(out, is_r8lib=False):
 #        desugar.json
 #        lint/
 #          <lint files>
-def generate_jar_with_desugar_configuration(configuration, conversions, destination):
+def generate_jar_with_desugar_configuration(
+    configuration, implementation, conversions, destination):
   with utils.TempDir() as tmp_dir:
     # Add conversion classes.
     with zipfile.ZipFile(conversions, 'r') as conversions_zip:
@@ -361,6 +362,7 @@ def generate_jar_with_desugar_configuration(configuration, conversions, destinat
         utils.R8_JAR,
         'com.android.tools.r8.GenerateLintFiles',
         configuration,
+        implementation,
         lint_dir]
     utils.PrintCmd(cmd)
     subprocess.check_call(cmd)
@@ -379,6 +381,7 @@ def generate_desugar_configuration_maven_zip(out):
     jar_file = join(tmp_dir, 'desugar_configuration.jar')
     generate_jar_with_desugar_configuration(
         utils.DESUGAR_CONFIGURATION,
+        utils.DESUGAR_IMPLEMENTATION,
         utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP,
         jar_file)
     # Write the maven zip file.
