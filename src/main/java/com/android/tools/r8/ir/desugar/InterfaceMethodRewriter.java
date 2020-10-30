@@ -52,6 +52,7 @@ import com.android.tools.r8.utils.ObjectUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -109,7 +110,7 @@ public final class InterfaceMethodRewriter {
   private final IRConverter converter;
   private final InternalOptions options;
   final DexItemFactory factory;
-  private final Map<DexType, DexType> emulatedInterfaces = new IdentityHashMap<>();
+  private final Map<DexType, DexType> emulatedInterfaces;
   // The emulatedMethod set is there to avoid doing the emulated look-up too often.
   private final Set<DexString> emulatedMethods = Sets.newIdentityHashSet();
 
@@ -144,6 +145,7 @@ public final class InterfaceMethodRewriter {
     this.converter = converter;
     this.options = appView.options();
     this.factory = appView.dexItemFactory();
+    this.emulatedInterfaces = options.desugaredLibraryConfiguration.getEmulateLibraryInterface();
     initializeEmulatedInterfaceVariables();
   }
 
@@ -182,7 +184,6 @@ public final class InterfaceMethodRewriter {
     Map<DexType, DexType> emulateLibraryInterface =
         options.desugaredLibraryConfiguration.getEmulateLibraryInterface();
     for (DexType interfaceType : emulateLibraryInterface.keySet()) {
-      emulatedInterfaces.put(interfaceType, emulateLibraryInterface.get(interfaceType));
       addRewritePrefix(interfaceType, emulateLibraryInterface.get(interfaceType).toSourceString());
       DexClass emulatedInterfaceClass = appView.definitionFor(interfaceType);
       if (emulatedInterfaceClass != null) {
@@ -565,9 +566,11 @@ public final class InterfaceMethodRewriter {
   }
 
   private Map<DexType, List<DexType>> processEmulatedInterfaceHierarchy() {
-    // TODO(b/134732760): deal with retarget-core-library-member.
     Map<DexType, List<DexType>> emulatedInterfacesHierarchy = new IdentityHashMap<>();
     Set<DexType> processed = Sets.newIdentityHashSet();
+    // We require the emulated interfaces to be iterated in deterministic order for the compilation
+    // to be deterministic, currently that property is guaranteed by ImmutableMap.
+    assert emulatedInterfaces instanceof ImmutableMap;
     for (DexType interfaceType : emulatedInterfaces.keySet()) {
       processEmulatedInterfaceHierarchy(interfaceType, processed, emulatedInterfacesHierarchy);
     }
