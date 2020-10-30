@@ -244,6 +244,7 @@ def Main():
                                                             jar_version_name)
           create_maven_release.generate_jar_with_desugar_configuration(
               utils.DESUGAR_CONFIGURATION,
+              utils.DESUGAR_IMPLEMENTATION,
               utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP,
               desugar_jdk_libs_configuration_jar)
 
