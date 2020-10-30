@@ -37,6 +37,9 @@ public class LintFilesTest extends TestBase {
     assertTrue(methods.contains("java/util/Optional"));
     assertTrue(methods.contains("java/util/OptionalInt"));
 
+    // ConcurrentHashMap is not fully supported.
+    assertFalse(methods.contains("java/util/concurrent/ConcurrentHashMap"));
+
     // No parallel* methods pre L, and all stream methods supported from L.
     assertEquals(
         minApiLevel == AndroidApiLevel.L,
@@ -62,6 +65,22 @@ public class LintFilesTest extends TestBase {
         methods.contains(
             "java/util/stream/IntStream#allMatch(Ljava/util/function/IntPredicate;)Z"));
 
+    // Supported methods on ConcurrentHashMap.
+    assertTrue(
+        methods.contains(
+            "java/util/concurrent/ConcurrentHashMap#getOrDefault(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"));
+
+    // Don't include constructors.
+    assertFalse(methods.contains("java/util/concurrent/ConcurrentHashMap#<init>()V"));
+
+    // Unsupported methods on ConcurrentHashMap.
+    assertFalse(
+        methods.contains(
+            "java/util/concurrent/ConcurrentHashMap#reduce(JLjava/util/function/BiFunction;Ljava/util/function/BiFunction;)Ljava/lang/Object;"));
+    assertFalse(
+        methods.contains(
+            "java/util/concurrent/ConcurrentHashMap#newKeySet()Ljava/util/concurrent/ConcurrentHashMap$KeySetView;"));
+
     // Emulated interface default method.
     assertTrue(methods.contains("java/util/List#spliterator()Ljava/util/Spliterator;"));
 
@@ -85,7 +104,11 @@ public class LintFilesTest extends TestBase {
 
     Path directory = temp.newFolder().toPath();
     GenerateLintFiles.main(
-        new String[] {ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(), directory.toString()});
+        new String[] {
+          ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+          ToolHelper.DESUGAR_JDK_LIBS,
+          directory.toString()
+        });
     InternalOptions options = new InternalOptions(new DexItemFactory(), new Reporter());
     DesugaredLibraryConfiguration desugaredLibraryConfiguration =
         new DesugaredLibraryConfigurationParser(

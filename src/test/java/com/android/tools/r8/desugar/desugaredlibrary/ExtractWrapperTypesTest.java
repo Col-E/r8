@@ -271,7 +271,10 @@ public class ExtractWrapperTypesTest extends TestBase {
   private CodeInspector getDesugaredApiJar() throws Exception {
     Path out = temp.newFolder().toPath();
     GenerateLintFiles desugaredApi =
-        new GenerateLintFiles(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(), out.toString());
+        new GenerateLintFiles(
+            ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+            ToolHelper.DESUGAR_JDK_LIBS,
+            out.toString());
     desugaredApi.run(targetApi.getLevel());
     return new CodeInspector(
         out.resolve("compile_api_level_" + targetApi.getLevel())

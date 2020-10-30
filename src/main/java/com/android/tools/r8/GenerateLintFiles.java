@@ -30,6 +30,7 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
 import com.android.tools.r8.jar.CfApplicationWriter;
@@ -44,7 +45,6 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -56,7 +56,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
@@ -69,15 +68,21 @@ public class GenerateLintFiles {
   private final InternalOptions options = new InternalOptions(factory, reporter);
 
   private final DesugaredLibraryConfiguration desugaredLibraryConfiguration;
-  private final String outputDirectory;
+  private final Path desugaredLibraryImplementation;
+  private final Path outputDirectory;
 
   private final Set<DexMethod> parallelMethods = Sets.newIdentityHashSet();
 
-  public GenerateLintFiles(String desugarConfigurationPath, String outputDirectory) {
+  public GenerateLintFiles(
+      String desugarConfigurationPath, String desugarImplementationPath, String outputDirectory)
+      throws Exception {
     this.desugaredLibraryConfiguration =
         readDesugaredLibraryConfiguration(desugarConfigurationPath);
-    this.outputDirectory =
-        outputDirectory.endsWith("/") ? outputDirectory : outputDirectory + File.separator;
+    this.desugaredLibraryImplementation = Paths.get(desugarImplementationPath);
+    this.outputDirectory = Paths.get(outputDirectory);
+    if (!Files.isDirectory(this.outputDirectory)) {
+      throw new Exception("Output directory " + outputDirectory + " is not a directory");
+    }
 
     DexType streamType = factory.createType(factory.createString("Ljava/util/stream/Stream;"));
     DexMethod parallelMethod =
@@ -201,14 +206,17 @@ public class GenerateLintFiles {
   }
 
   private SupportedMethods collectSupportedMethods(
-      AndroidApiLevel compilationApiLevel, Predicate<DexEncodedMethod> supported)
-      throws IOException, ExecutionException {
+      AndroidApiLevel compilationApiLevel, Predicate<DexEncodedMethod> supported) throws Exception {
 
-    // Read the android.jar for the compilation API level.
     AndroidApp library =
         AndroidApp.builder().addLibraryFiles(getAndroidJarPath(compilationApiLevel)).build();
     DirectMappedDexApplication dexApplication =
         new ApplicationReader(library, options, Timing.empty()).read().toDirect();
+
+    AndroidApp implementation =
+        AndroidApp.builder().addProgramFiles(desugaredLibraryImplementation).build();
+    DirectMappedDexApplication implementationApplication =
+        new ApplicationReader(implementation, options, Timing.empty()).read().toDirect();
 
     // Collect all the methods that the library desugar configuration adds support for.
     Set<DexClass> classesWithAllMethodsSupported = Sets.newIdentityHashSet();
@@ -218,9 +226,20 @@ public class GenerateLintFiles {
       // All the methods with the rewritten prefix are supported.
       for (String prefix : desugaredLibraryConfiguration.getRewritePrefix().keySet()) {
         if (clazz.accessFlags.isPublic() && className.startsWith(prefix)) {
+          DexProgramClass implementationClass =
+              implementationApplication.programDefinitionFor(clazz.getType());
+          if (implementationClass == null) {
+            throw new Exception("Implementation class not found for " + clazz.toSourceString());
+          }
           boolean allMethodsAddad = true;
           for (DexEncodedMethod method : clazz.methods()) {
-            if (supported.test(method)) {
+            if (!method.isPublic()) {
+              continue;
+            }
+            ProgramMethod implementationMethod =
+                implementationClass.lookupProgramMethod(method.method);
+            // Don't include methods which are not implemented by the desugared library.
+            if (supported.test(method) && implementationMethod != null) {
               supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(method);
             } else {
               allMethodsAddad = false;
@@ -274,8 +293,7 @@ public class GenerateLintFiles {
   private Path lintFile(
       AndroidApiLevel compilationApiLevel, AndroidApiLevel minApiLevel, String extension)
       throws Exception {
-    Path directory =
-        Paths.get(outputDirectory + "compile_api_level_" + compilationApiLevel.getLevel());
+    Path directory = outputDirectory.resolve("compile_api_level_" + compilationApiLevel.getLevel());
     Files.createDirectories(directory);
     return Paths.get(
         directory
@@ -299,6 +317,10 @@ public class GenerateLintFiles {
               DescriptorUtils.getClassBinaryNameFromDescriptor(clazz.type.descriptor.toString());
           if (!supportedMethods.classesWithAllMethodsSupported.contains(clazz)) {
             for (DexEncodedMethod method : methods) {
+              if (method.isInstanceInitializer() || method.isClassInitializer()) {
+                // No new constructors are added.
+                continue;
+              }
               desugaredApisSignatures.add(
                   classBinaryName
                       + '#'
@@ -379,10 +401,12 @@ public class GenerateLintFiles {
   }
 
   public static void main(String[] args) throws Exception {
-    if (args.length != 2) {
-      System.out.println("Usage: GenerateLineFiles <desuage configuration> <output directory>");
+    if (args.length != 3) {
+      System.out.println(
+          "Usage: GenerateLineFiles <desugar configuration> <desugar implementation> <output"
+              + " directory>");
       System.exit(1);
     }
-    new GenerateLintFiles(args[0], args[1]).run();
+    new GenerateLintFiles(args[0], args[1], args[2]).run();
   }
 }
