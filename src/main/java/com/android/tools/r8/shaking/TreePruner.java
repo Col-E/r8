@@ -73,8 +73,9 @@ public class TreePruner {
   }
 
   private DirectMappedDexApplication.Builder removeUnused(DirectMappedDexApplication application) {
-    return application.builder()
-        .replaceProgramClasses(getNewProgramClasses(application.classes()));
+    return application
+        .builder()
+        .replaceProgramClasses(getNewProgramClasses(application.classesWithDeterministicOrder()));
   }
 
   private List<DexProgramClass> getNewProgramClasses(List<DexProgramClass> classes) {
@@ -120,27 +121,35 @@ public class TreePruner {
   }
 
   private void pruneUnusedInterfaces(DexProgramClass clazz) {
-    boolean implementsUnusedInterfaces = false;
-    for (DexType type : clazz.interfaces.values) {
-      // TODO(christofferqa): Extend unused interface removal to library classes.
-      if (!isTypeLive(type)) {
-        implementsUnusedInterfaces = true;
-        break;
-      }
-    }
-
-    if (!implementsUnusedInterfaces) {
-      return;
-    }
-
     Set<DexType> reachableInterfaces = new LinkedHashSet<>();
     for (DexType type : clazz.interfaces.values) {
       retainReachableInterfacesFrom(type, reachableInterfaces);
+    }
+    if (!reachableInterfaces.isEmpty()) {
+      removeInterfacesImplementedDirectlyAndIndirectlyByClassFromSet(
+          clazz.superType, reachableInterfaces);
     }
     if (reachableInterfaces.isEmpty()) {
       clazz.interfaces = DexTypeList.empty();
     } else {
       clazz.interfaces = new DexTypeList(reachableInterfaces.toArray(DexType.EMPTY_ARRAY));
+    }
+  }
+
+  private void removeInterfacesImplementedDirectlyAndIndirectlyByClassFromSet(
+      DexType type, Set<DexType> interfaces) {
+    DexClass clazz = appView.definitionFor(type);
+    if (clazz == null) {
+      return;
+    }
+    for (DexType itf : clazz.interfaces) {
+      if (interfaces.remove(itf) && interfaces.isEmpty()) {
+        return;
+      }
+    }
+    if (clazz.superType != null) {
+      assert !interfaces.isEmpty();
+      removeInterfacesImplementedDirectlyAndIndirectlyByClassFromSet(clazz.superType, interfaces);
     }
   }
 

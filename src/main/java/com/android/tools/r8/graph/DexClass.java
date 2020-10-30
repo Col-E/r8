@@ -123,6 +123,10 @@ public abstract class DexClass extends DexDefinition {
     return accessFlags;
   }
 
+  public DexTypeList getInterfaces() {
+    return interfaces;
+  }
+
   public DexString getSourceFile() {
     return sourceFile;
   }
