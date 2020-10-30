@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -55,6 +56,17 @@ public class AppServices {
   public Set<DexType> allServiceTypes() {
     assert verifyRewrittenWithLens();
     return services.keySet();
+  }
+
+  public Set<DexType> computeAllServiceImplementations() {
+    assert verifyRewrittenWithLens();
+    Set<DexType> serviceImplementations = Sets.newIdentityHashSet();
+    services.forEach(
+        (serviceType, featureSplitListMap) ->
+            featureSplitListMap.forEach(
+                (feature, featureServiceImplementations) ->
+                    serviceImplementations.addAll(featureServiceImplementations)));
+    return serviceImplementations;
   }
 
   public List<DexType> serviceImplementationsFor(DexType serviceType) {
