@@ -63,4 +63,9 @@ class SyntheticMethodDefinition extends SyntheticDefinition
         .thenComparing(m -> m.method.getDefinition(), DexEncodedMethod::syntheticCompareTo)
         .compare(this, other);
   }
+
+  @Override
+  public String toString() {
+    return "SyntheticMethodDefinition{" + method + '}';
+  }
 }

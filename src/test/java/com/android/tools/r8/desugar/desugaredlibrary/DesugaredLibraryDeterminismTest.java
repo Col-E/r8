@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -45,9 +46,8 @@ public class DesugaredLibraryDeterminismTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(minApiLevel.isLessThan(AndroidApiLevel.O));
     Path libDexFile1 = buildDesugaredLibraryToBytes(minApiLevel);
     Path libDexFile2 = buildDesugaredLibraryToBytes(minApiLevel);
-    // TODO(b/171962708): enable the assertions.
-    //    assertIdenticalInspectors(libDexFile1, libDexFile2);
-    //    assertArrayEquals(getDexBytes(libDexFile1), getDexBytes(libDexFile2));
+    assertIdenticalInspectors(libDexFile1, libDexFile2);
+    assertArrayEquals(getDexBytes(libDexFile1), getDexBytes(libDexFile2));
   }
 
   private void assertIdenticalInspectors(Path libDexFile1, Path libDexFile2) throws IOException {

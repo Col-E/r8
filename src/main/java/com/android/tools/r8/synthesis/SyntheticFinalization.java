@@ -340,30 +340,20 @@ public class SyntheticFinalization {
     Map<DexType, List<EquivalenceGroup<T>>> groupsPerContext = new IdentityHashMap<>();
     potentialEquivalences.forEach(
         members -> {
-          // Get a representative member and add to its group.
-          T representative = findDeterministicRepresentative(members);
-          List<T> group = new ArrayList<>(members.size());
-          group.add(representative);
-          // Each other member is in the shared group if it is actually equal to the first member.
-          for (T member : members) {
-            if (member != representative) {
-              if (member.isEquivalentTo(representative)) {
-                group.add(member);
-              } else {
-                // The member becomes a new singleton group.
-                // TODO(b/158159959): Consider checking for sub-groups of matching members.
-                groupsPerContext
-                    .computeIfAbsent(
-                        member.getContext().getSynthesizingContextType(), k -> new ArrayList<>())
-                    .add(new EquivalenceGroup<>(member));
-              }
-            }
+          List<List<T>> groups = groupEquivalent(members);
+          for (List<T> group : groups) {
+            T representative = findDeterministicRepresentative(group);
+            // The representative is required to be the first element of the group.
+            group.remove(representative);
+            group.add(0, representative);
+            groupsPerContext
+                .computeIfAbsent(
+                    representative.getContext().getSynthesizingContextType(),
+                    k -> new ArrayList<>())
+                .add(new EquivalenceGroup<>(representative, group));
           }
-          groupsPerContext
-              .computeIfAbsent(
-                  representative.getContext().getSynthesizingContextType(), k -> new ArrayList<>())
-              .add(new EquivalenceGroup<>(representative, group));
         });
+
     Map<DexType, EquivalenceGroup<T>> equivalences = new IdentityHashMap<>();
     groupsPerContext.forEach(
         (context, groups) -> {
@@ -375,6 +365,28 @@ public class SyntheticFinalization {
           }
         });
     return equivalences;
+  }
+
+  private static <T extends SyntheticDefinition & Comparable<T>> List<List<T>> groupEquivalent(
+      List<T> potentialEquivalence) {
+    List<List<T>> groups = new ArrayList<>();
+    // Each other member is in a shared group if it is actually equivalent to the first member.
+    for (T synthetic : potentialEquivalence) {
+      boolean requireNewGroup = true;
+      for (List<T> group : groups) {
+        if (synthetic.isEquivalentTo(group.get(0))) {
+          requireNewGroup = false;
+          group.add(synthetic);
+          break;
+        }
+      }
+      if (requireNewGroup) {
+        List<T> newGroup = new ArrayList<>();
+        newGroup.add(synthetic);
+        groups.add(newGroup);
+      }
+    }
+    return groups;
   }
 
   private static <T extends SyntheticDefinition & Comparable<T>> T findDeterministicRepresentative(
