@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -26,6 +27,7 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -77,6 +79,7 @@ public class EnumUnboxingRewriter {
   private final EnumValueInfoMapCollection enumsToUnbox;
   private final EnumInstanceFieldDataMap unboxedEnumsInstanceFieldData;
   private final UnboxedEnumMemberRelocator relocator;
+  private NestedGraphLens enumUnboxingLens;
 
   private final Map<DexMethod, DexEncodedMethod> utilityMethods = new ConcurrentHashMap<>();
   private final Map<DexField, DexEncodedField> utilityFields = new ConcurrentHashMap<>();
@@ -140,6 +143,10 @@ public class EnumUnboxingRewriter {
             ENUM_UNBOXING_UTILITY_METHOD_PREFIX + "zeroCheckMessage");
   }
 
+  public void setEnumUnboxingLens(NestedGraphLens enumUnboxingLens) {
+    this.enumUnboxingLens = enumUnboxingLens;
+  }
+
   public EnumValueInfoMapCollection getEnumsToUnbox() {
     return enumsToUnbox;
   }
@@ -151,6 +158,7 @@ public class EnumUnboxingRewriter {
       return Sets.newIdentityHashSet();
     }
     assert code.isConsistentSSABeforeTypesAreCorrect();
+    ProgramMethod context = code.context();
     Map<Instruction, DexType> convertedEnums = new IdentityHashMap<>();
     Set<Phi> affectedPhis = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blocks = code.listIterator();
@@ -162,18 +170,23 @@ public class EnumUnboxingRewriter {
       while (iterator.hasNext()) {
         Instruction instruction = iterator.next();
         // Rewrites specific enum methods, such as ordinal, into their corresponding enum unboxed
-        // counterpart.
+        // counterpart. The rewriting (== or match) is based on the following:
+        // - name, ordinal and compareTo are final and implemented only on java.lang.Enum,
+        // - equals, hashCode are final and implemented in java.lang.Enum and java.lang.Object,
+        // - getClass is final and implemented only in java.lang.Object,
+        // - toString is non-final, implemented in java.lang.Object, java.lang.Enum and possibly
+        //   also in the unboxed enum class.
         if (instruction.isInvokeMethodWithReceiver()) {
           InvokeMethodWithReceiver invokeMethod = instruction.asInvokeMethodWithReceiver();
-          DexMethod invokedMethod = invokeMethod.getInvokedMethod();
           DexType enumType = getEnumTypeOrNull(invokeMethod.getReceiver(), convertedEnums);
           if (enumType != null) {
+            DexMethod invokedMethod = invokeMethod.getInvokedMethod();
             if (invokedMethod == factory.enumMembers.ordinalMethod
-                || invokedMethod == factory.enumMembers.hashCode) {
+                || invokedMethod.match(factory.enumMembers.hashCode)) {
               replaceEnumInvoke(
                   iterator, invokeMethod, ordinalUtilityMethod, m -> synthesizeOrdinalMethod());
               continue;
-            } else if (invokedMethod == factory.enumMembers.equals) {
+            } else if (invokedMethod.match(factory.enumMembers.equals)) {
               replaceEnumInvoke(
                   iterator, invokeMethod, equalsUtilityMethod, m -> synthesizeEqualsMethod());
               continue;
@@ -181,14 +194,18 @@ public class EnumUnboxingRewriter {
               replaceEnumInvoke(
                   iterator, invokeMethod, compareToUtilityMethod, m -> synthesizeCompareToMethod());
               continue;
-            } else if (invokedMethod == factory.enumMembers.nameMethod
-                || invokedMethod == factory.enumMembers.toString) {
-              DexMethod toStringMethod =
-                  computeInstanceFieldUtilityMethod(enumType, factory.enumMembers.nameField);
-              iterator.replaceCurrentInstruction(
-                  new InvokeStatic(
-                      toStringMethod, invokeMethod.outValue(), invokeMethod.arguments()));
+            } else if (invokedMethod == factory.enumMembers.nameMethod) {
+              rewriteNameMethod(iterator, invokeMethod, enumType);
               continue;
+            } else if (invokedMethod.match(factory.enumMembers.toString)) {
+              DexMethod lookupMethod = enumUnboxingLens.lookupMethod(invokedMethod);
+              // If the lookupMethod is different, then a toString method was on the enumType
+              // class, which was moved, and the lens code rewriter will rewrite the invoke to
+              // that method.
+              if (invokeMethod.isInvokeSuper() || lookupMethod == invokedMethod) {
+                rewriteNameMethod(iterator, invokeMethod, enumType);
+                continue;
+              }
             } else if (invokedMethod == factory.objectMembers.getClass) {
               assert !invokeMethod.hasOutValue() || !invokeMethod.outValue().hasAnyUsers();
               replaceEnumInvoke(
@@ -197,11 +214,15 @@ public class EnumUnboxingRewriter {
           }
         } else if (instruction.isInvokeStatic()) {
           InvokeStatic invokeStatic = instruction.asInvokeStatic();
-          DexMethod invokedMethod = invokeStatic.getInvokedMethod();
+          DexClassAndMethod singleTarget = invokeStatic.lookupSingleTarget(appView, context);
+          if (singleTarget == null) {
+            continue;
+          }
+          DexMethod invokedMethod = singleTarget.getReference();
           if (invokedMethod == factory.enumMembers.valueOf
-              && invokeStatic.inValues().get(0).isConstClass()) {
+              && invokeStatic.getArgument(0).isConstClass()) {
             DexType enumType =
-                invokeStatic.inValues().get(0).getConstInstruction().asConstClass().getValue();
+                invokeStatic.getArgument(0).getConstInstruction().asConstClass().getValue();
             if (enumsToUnbox.containsEnum(enumType)) {
               DexMethod valueOfMethod = computeValueOfUtilityMethod(enumType);
               Value outValue = invokeStatic.outValue();
@@ -322,6 +343,9 @@ public class EnumUnboxingRewriter {
           ArrayAccess arrayAccess = instruction.asArrayAccess();
           DexType enumType = getEnumTypeOrNull(arrayAccess);
           if (enumType != null) {
+            if (arrayAccess.hasOutValue()) {
+              affectedPhis.addAll(arrayAccess.outValue().uniquePhiUsers());
+            }
             instruction = arrayAccess.withMemberType(MemberType.INT);
             iterator.replaceCurrentInstruction(instruction);
             convertedEnums.put(instruction, enumType);
@@ -332,6 +356,14 @@ public class EnumUnboxingRewriter {
     }
     assert code.isConsistentSSABeforeTypesAreCorrect();
     return affectedPhis;
+  }
+
+  private void rewriteNameMethod(
+      InstructionListIterator iterator, InvokeMethodWithReceiver invokeMethod, DexType enumType) {
+    DexMethod toStringMethod =
+        computeInstanceFieldUtilityMethod(enumType, factory.enumMembers.nameField);
+    iterator.replaceCurrentInstruction(
+        new InvokeStatic(toStringMethod, invokeMethod.outValue(), invokeMethod.arguments()));
   }
 
   private Value fixNullsInBlockPhis(IRCode code, BasicBlock block, Value zeroConstValue) {

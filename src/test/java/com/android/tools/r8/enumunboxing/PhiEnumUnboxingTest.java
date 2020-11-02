@@ -65,6 +65,8 @@ public class PhiEnumUnboxingTest extends EnumUnboxingTestBase {
     public static void main(String[] args) {
       nonNullTest();
       nullTest();
+      arrayGetAndPhiTest();
+      argumentsAndPhiTest();
     }
 
     private static void nonNullTest() {
@@ -79,6 +81,21 @@ public class PhiEnumUnboxingTest extends EnumUnboxingTestBase {
       System.out.println(1);
       System.out.println(switchOnWithNull(2) == null);
       System.out.println(true);
+    }
+
+    private static void arrayGetAndPhiTest() {
+      MyEnum[] values = MyEnum.values();
+      System.out.println(arrayGetAndPhi(values, true));
+      System.out.println(values[1].ordinal());
+      System.out.println(arrayGetAndPhi(values, false));
+      System.out.println(values[0].ordinal());
+    }
+
+    private static void argumentsAndPhiTest() {
+      System.out.println(argumentsAndPhi(MyEnum.A, MyEnum.B, true));
+      System.out.println(MyEnum.B.ordinal());
+      System.out.println(argumentsAndPhi(MyEnum.A, MyEnum.B, false));
+      System.out.println(MyEnum.A.ordinal());
     }
 
     @NeverInline
@@ -111,6 +128,16 @@ public class PhiEnumUnboxingTest extends EnumUnboxingTestBase {
           returnValue = null;
       }
       return returnValue;
+    }
+
+    @NeverInline
+    static int arrayGetAndPhi(MyEnum[] enums, boolean b) {
+      return (b ? enums[1] : enums[0]).ordinal();
+    }
+
+    @NeverInline
+    static int argumentsAndPhi(MyEnum e0, MyEnum e1, boolean b) {
+      return (b ? e1 : e0).ordinal();
     }
   }
 }

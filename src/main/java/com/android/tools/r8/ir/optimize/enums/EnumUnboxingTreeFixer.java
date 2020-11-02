@@ -113,7 +113,8 @@ class EnumUnboxingTreeFixer {
     encodedMethod.accessFlags.promoteToStatic();
     encodedMethod.clearAnnotations();
     encodedMethod.clearParameterAnnotations();
-    return encodedMethod.toTypeSubstitutedMethod(newMethod);
+    return encodedMethod.toTypeSubstitutedMethod(
+        newMethod, builder -> builder.setCompilationState(encodedMethod.getCompilationState()));
   }
 
   private DexEncodedMethod fixupEncodedMethod(DexEncodedMethod method) {
