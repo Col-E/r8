@@ -177,4 +177,53 @@ public class ZipUtils {
     }
     return name.endsWith(CLASS_EXTENSION);
   }
+
+  public static class ZipBuilder {
+    private final Path zipFile;
+    private final ZipOutputStream stream;
+
+    private ZipBuilder(Path zipFile) throws IOException {
+      this.zipFile = zipFile;
+      stream = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(zipFile)));
+    }
+
+    public static ZipBuilder builder(Path zipFile) throws IOException {
+      return new ZipBuilder(zipFile);
+    }
+
+    public ZipBuilder addFilesRelative(Path basePath, Collection<Path> filesToAdd)
+        throws IOException {
+      for (Path path : filesToAdd) {
+        ZipEntry zipEntry =
+            new ZipEntry(
+                StreamSupport.stream(
+                        Spliterators.spliteratorUnknownSize(
+                            basePath.relativize(path).iterator(), Spliterator.ORDERED),
+                        false)
+                    .map(Path::toString)
+                    .collect(Collectors.joining("/")));
+        stream.putNextEntry(zipEntry);
+        Files.copy(path, stream);
+        stream.closeEntry();
+      }
+      return this;
+    }
+
+    public ZipBuilder addFilesRelative(Path basePath, Path... filesToAdd) throws IOException {
+      return addFilesRelative(basePath, Arrays.asList(filesToAdd));
+    }
+
+    public ZipBuilder addBytes(String path, byte[] bytes) throws IOException {
+      ZipEntry zipEntry = new ZipEntry(path);
+      stream.putNextEntry(zipEntry);
+      stream.write(bytes);
+      stream.closeEntry();
+      return this;
+    }
+
+    public Path build() throws IOException {
+      stream.close();
+      return zipFile;
+    }
+  }
 }
