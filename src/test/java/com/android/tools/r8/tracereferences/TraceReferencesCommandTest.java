@@ -21,18 +21,15 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
+import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.google.common.collect.ImmutableList;
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 import kotlin.text.Charsets;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -213,20 +210,22 @@ public class TraceReferencesCommandTest extends TestBase {
       Consumer<DiagnosticsChecker> diagnosticsCheckerConsumer)
       throws Throwable {
     Path dir = temp.newFolder().toPath();
-    Path targetJar = dir.resolve("target.jar");
-    Path sourceJar = dir.resolve("source.jar");
-    ZipUtils.zip(
-        targetJar,
-        ToolHelper.getClassPathForTests(),
-        targetClasses.stream()
-            .map(ToolHelper::getClassFileForTestClass)
-            .collect(Collectors.toList()));
-    ZipUtils.zip(
-        sourceJar,
-        ToolHelper.getClassPathForTests(),
-        sourceClasses.stream()
-            .map(ToolHelper::getClassFileForTestClass)
-            .collect(Collectors.toList()));
+    Path targetJar =
+        ZipBuilder.builder(dir.resolve("target.jar"))
+            .addFilesRelative(
+                ToolHelper.getClassPathForTests(),
+                targetClasses.stream()
+                    .map(ToolHelper::getClassFileForTestClass)
+                    .collect(Collectors.toList()))
+            .build();
+    Path sourceJar =
+        ZipBuilder.builder(dir.resolve("source.jar"))
+            .addFilesRelative(
+                ToolHelper.getClassPathForTests(),
+                sourceClasses.stream()
+                    .map(ToolHelper::getClassFileForTestClass)
+                    .collect(Collectors.toList()))
+            .build();
     runAndCheckOutput(targetJar, sourceJar, format, expected, diagnosticsCheckerConsumer);
   }
 
@@ -344,17 +343,19 @@ public class TraceReferencesCommandTest extends TestBase {
   @Test
   public void testMissingReference_errorToWarning() throws Throwable {
     Path dir = temp.newFolder().toPath();
-    Path targetJar = dir.resolve("target.jar");
-    Path sourceJar = dir.resolve("source.jar");
+    Path targetJar =
+        ZipBuilder.builder(dir.resolve("target.jar"))
+            .addFilesRelative(
+                ToolHelper.getClassPathForTests(),
+                ToolHelper.getClassFileForTestClass(OtherTarget.class))
+            .build();
+    Path sourceJar =
+        ZipBuilder.builder(dir.resolve("source.jar"))
+            .addFilesRelative(
+                ToolHelper.getClassPathForTests(),
+                ToolHelper.getClassFileForTestClass(Source.class))
+            .build();
     Path output = dir.resolve("output.txt");
-    ZipUtils.zip(
-        targetJar,
-        ToolHelper.getClassPathForTests(),
-        ToolHelper.getClassFileForTestClass(OtherTarget.class));
-    ZipUtils.zip(
-        sourceJar,
-        ToolHelper.getClassPathForTests(),
-        ToolHelper.getClassFileForTestClass(Source.class));
     DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
     TraceReferences.run(
         TraceReferencesCommand.parse(
@@ -382,16 +383,6 @@ public class TraceReferencesCommandTest extends TestBase {
     assertEquals(0, diagnosticsChecker.infos.size());
   }
 
-  public static void zip(Path zipFile, String path, byte[] data) throws IOException {
-    try (ZipOutputStream stream =
-        new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(zipFile)))) {
-      ZipEntry zipEntry = new ZipEntry(path);
-      stream.putNextEntry(zipEntry);
-      stream.write(data);
-      stream.closeEntry();
-    }
-  }
-
   private void checkTargetPartlyMissing(DiagnosticsChecker diagnosticsChecker) {
     Field field;
     Method method;
@@ -411,13 +402,17 @@ public class TraceReferencesCommandTest extends TestBase {
   @Test
   public void testMissingDefinition_printUses() throws Throwable {
     Path dir = temp.newFolder().toPath();
-    Path targetJar = dir.resolve("target.jar");
-    Path sourceJar = dir.resolve("source.jar");
-    zip(targetJar, DescriptorUtils.getPathFromJavaType(Target.class), getClassWithTargetRemoved());
-    ZipUtils.zip(
-        sourceJar,
-        ToolHelper.getClassPathForTests(),
-        ToolHelper.getClassFileForTestClass(Source.class));
+    Path targetJar =
+        ZipBuilder.builder(dir.resolve("target.jar"))
+            .addBytes(
+                DescriptorUtils.getPathFromJavaType(Target.class), getClassWithTargetRemoved())
+            .build();
+    Path sourceJar =
+        ZipBuilder.builder(dir.resolve("source.jar"))
+            .addFilesRelative(
+                ToolHelper.getClassPathForTests(),
+                ToolHelper.getClassFileForTestClass(Source.class))
+            .build();
     try {
       runAndCheckOutput(
           targetJar,
@@ -436,9 +431,17 @@ public class TraceReferencesCommandTest extends TestBase {
   @Test
   public void testMissingDefinition_keepRules() throws Throwable {
     Path dir = temp.newFolder().toPath();
-    Path targetJar = dir.resolve("target.jar");
-    Path sourceJar = dir.resolve("source.jar");
-    zip(targetJar, DescriptorUtils.getPathFromJavaType(Target.class), getClassWithTargetRemoved());
+    Path targetJar =
+        ZipBuilder.builder(dir.resolve("target.jar"))
+            .addBytes(
+                DescriptorUtils.getPathFromJavaType(Target.class), getClassWithTargetRemoved())
+            .build();
+    Path sourceJar =
+        ZipBuilder.builder(dir.resolve("source.jar"))
+            .addFilesRelative(
+                ToolHelper.getClassPathForTests(),
+                ToolHelper.getClassFileForTestClass(Source.class))
+            .build();
     ZipUtils.zip(
         sourceJar,
         ToolHelper.getClassPathForTests(),
@@ -465,13 +468,17 @@ public class TraceReferencesCommandTest extends TestBase {
   @Test
   public void testMissingDefinition_keepRulesAllowObfuscation() throws Throwable {
     Path dir = temp.newFolder().toPath();
-    Path targetJar = dir.resolve("target.jar");
-    Path sourceJar = dir.resolve("source.jar");
-    zip(targetJar, DescriptorUtils.getPathFromJavaType(Target.class), getClassWithTargetRemoved());
-    ZipUtils.zip(
-        sourceJar,
-        ToolHelper.getClassPathForTests(),
-        ToolHelper.getClassFileForTestClass(Source.class));
+    Path targetJar =
+        ZipBuilder.builder(dir.resolve("target.jar"))
+            .addBytes(
+                DescriptorUtils.getPathFromJavaType(Target.class), getClassWithTargetRemoved())
+            .build();
+    Path sourceJar =
+        ZipBuilder.builder(dir.resolve("source.jar"))
+            .addFilesRelative(
+                ToolHelper.getClassPathForTests(),
+                ToolHelper.getClassFileForTestClass(Source.class))
+            .build();
     try {
       runAndCheckOutput(
           targetJar,
