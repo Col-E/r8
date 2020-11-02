@@ -61,6 +61,11 @@ def make_parser():
     default=False,
     action='store_true')
   parser.add_argument(
+    '--classfile',
+    help='Run with classfile output',
+    default=False,
+    action='store_true')
+  parser.add_argument(
       '--debug-agent',
       help='Enable Java debug agent and suspend compilation (default disabled)',
       default=False,
@@ -189,6 +194,18 @@ def determine_min_api(args, build_properties):
 def determine_feature_output(feature_jar, temp):
   return os.path.join(temp, os.path.basename(feature_jar)[:-4] + ".out.jar")
 
+def determine_program_jar(args, dump):
+  if hasattr(args, 'program_jar') and args.program_jar:
+    return args.program_jar
+  return dump.program_jar()
+
+def determine_class_file(args, build_properties):
+  if args.classfile:
+    return args.classfile
+  if 'classfile' in build_properties:
+    return True
+  return None
+
 def download_distribution(args, version, temp):
   if version == 'master':
     return utils.R8_JAR if args.nolib else utils.R8LIB_JAR
@@ -229,6 +246,7 @@ def run1(out, args, otherargs):
     compiler = determine_compiler(args, dump)
     out = determine_output(args, temp)
     min_api = determine_min_api(args, build_properties)
+    classfile = determine_class_file(args, build_properties)
     jar = args.r8_jar if args.r8_jar else download_distribution(args, version, temp)
     wrapper_dir = prepare_wrapper(jar, temp)
     cmd = [jdk.GetJavaExecutable()]
@@ -250,7 +268,8 @@ def run1(out, args, otherargs):
       cmd.append('com.android.tools.r8.utils.CompileDumpCompatR8')
     if compiler == 'r8':
       cmd.append('--compat')
-    cmd.append(dump.program_jar())
+    # For recompilation of dumps run_on_app_dumps pass in a program jar.
+    cmd.append(determine_program_jar(args, dump))
     cmd.extend(['--output', out])
     for feature_jar in dump.feature_jars():
       cmd.extend(['--feature-jar', feature_jar,
@@ -267,6 +286,8 @@ def run1(out, args, otherargs):
       cmd.extend(['--pg-map-output', '%s.map' % out])
     if min_api:
       cmd.extend(['--min-api', min_api])
+    if classfile:
+      cmd.extend(['--classfile'])
     if args.threads:
       cmd.extend(['--threads', args.threads])
     cmd.extend(otherargs)
