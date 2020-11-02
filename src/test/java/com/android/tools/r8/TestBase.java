@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static com.google.common.collect.Lists.cartesianProduct;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
@@ -77,7 +76,6 @@ import com.android.tools.r8.utils.ReflectiveBuildPathUtils.ExamplesClass;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
-import com.android.tools.r8.utils.ThrowingAction;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -581,6 +579,12 @@ public class TestBase {
       }
       builder.addLibraryResourceProvider(libraryBuilder.build());
     }
+    return builder;
+  }
+
+  protected static AndroidApp.Builder buildInnerClasses(Class<?> clazz) throws IOException {
+    AndroidApp.Builder builder = AndroidApp.builder();
+    builder.addProgramFiles(ToolHelper.getClassFilesForInnerClasses(clazz));
     return builder;
   }
 
