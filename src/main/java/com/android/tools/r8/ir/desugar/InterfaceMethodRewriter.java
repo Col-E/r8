@@ -52,7 +52,6 @@ import com.android.tools.r8.utils.ObjectUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -568,10 +567,9 @@ public final class InterfaceMethodRewriter {
   private Map<DexType, List<DexType>> processEmulatedInterfaceHierarchy() {
     Map<DexType, List<DexType>> emulatedInterfacesHierarchy = new IdentityHashMap<>();
     Set<DexType> processed = Sets.newIdentityHashSet();
-    // We require the emulated interfaces to be iterated in deterministic order for the compilation
-    // to be deterministic, currently that property is guaranteed by ImmutableMap.
-    assert emulatedInterfaces instanceof ImmutableMap;
-    for (DexType interfaceType : emulatedInterfaces.keySet()) {
+    ArrayList<DexType> emulatedInterfacesSorted = new ArrayList<>(emulatedInterfaces.keySet());
+    emulatedInterfacesSorted.sort(DexType::slowCompareTo);
+    for (DexType interfaceType : emulatedInterfacesSorted) {
       processEmulatedInterfaceHierarchy(interfaceType, processed, emulatedInterfacesHierarchy);
     }
     return emulatedInterfacesHierarchy;
