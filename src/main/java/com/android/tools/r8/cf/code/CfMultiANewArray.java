@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Comparator;
+import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -75,7 +76,8 @@ public class CfMultiANewArray extends CfInstruction {
   }
 
   @Override
-  void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
+  void internalRegisterUse(
+      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerTypeReference(type);
   }
 

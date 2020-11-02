@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
 import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
@@ -343,6 +344,7 @@ public class DexItemFactory {
       createStaticallyKnownType(referenceFieldUpdaterDescriptor);
 
   public final DexType classType = createStaticallyKnownType(classDescriptor);
+  public final DexType packageType = createStaticallyKnownType(Package.class);
   public final DexType classLoaderType = createStaticallyKnownType(classLoaderDescriptor);
   public final DexType fieldType = createStaticallyKnownType(fieldDescriptor);
   public final DexType methodType = createStaticallyKnownType(methodDescriptor);
@@ -1160,6 +1162,8 @@ public class DexItemFactory {
     public final DexMethod desiredAssertionStatus;
     public final DexMethod forName;
     public final DexMethod forName3;
+    public final DexMethod getClassLoader =
+        createMethod(classType, createProto(classLoaderType), "getClassLoader");
     public final DexMethod getName;
     public final DexMethod getCanonicalName;
     public final DexMethod getSimpleName;
@@ -1169,6 +1173,8 @@ public class DexItemFactory {
     public final DexMethod getDeclaredField;
     public final DexMethod getMethod;
     public final DexMethod getDeclaredMethod;
+    public final DexMethod getPackage =
+        createMethod(classType, createProto(packageType), "getPackage");
     public final DexMethod newInstance;
     private final Set<DexMethod> getMembers;
     public final Set<DexMethod> getNames;
@@ -1924,6 +1930,11 @@ public class DexItemFactory {
 
   private DexType createStaticallyKnownType(String descriptor) {
     return createStaticallyKnownType(createString(descriptor));
+  }
+
+  private DexType createStaticallyKnownType(Class<?> clazz) {
+    return createStaticallyKnownType(
+        createString(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName())));
   }
 
   private DexType createStaticallyKnownType(DexString descriptor) {

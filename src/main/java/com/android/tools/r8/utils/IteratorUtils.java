@@ -50,6 +50,16 @@ public class IteratorUtils {
     };
   }
 
+  public static <T> T nextUntil(Iterator<T> iterator, Predicate<T> predicate) {
+    while (iterator.hasNext()) {
+      T element = iterator.next();
+      if (predicate.test(element)) {
+        return element;
+      }
+    }
+    return null;
+  }
+
   public static <T> T peekPrevious(ListIterator<T> iterator) {
     T previous = iterator.previous();
     T next = iterator.next();

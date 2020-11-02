@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
+import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.DexCallSite;
@@ -21,7 +22,7 @@ import com.android.tools.r8.utils.StringUtils;
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
 
-public abstract class Instruction implements Comparable<Instruction> {
+public abstract class Instruction implements CfOrDexInstruction, Comparable<Instruction> {
   public static final Instruction[] EMPTY_ARRAY = {};
 
   public final static int[] NO_TARGETS = null;
@@ -132,6 +133,16 @@ public abstract class Instruction implements Comparable<Instruction> {
 
   public void setOffset(int offset) {
     this.offset = offset;
+  }
+
+  @Override
+  public CfInstruction asCfInstruction() {
+    return null;
+  }
+
+  @Override
+  public boolean isCfInstruction() {
+    return false;
   }
 
   public CheckCast asCheckCast() {

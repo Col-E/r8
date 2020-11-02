@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
+import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -112,7 +113,8 @@ public class CfNewArray extends CfInstruction {
   }
 
   @Override
-  void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
+  void internalRegisterUse(
+      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     if (!type.isPrimitiveArrayType()) {
       registry.registerTypeReference(type);
     }

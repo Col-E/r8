@@ -165,8 +165,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private final Set<DexType> noHorizontalClassMerging;
   private final Set<DexType> noStaticClassMerging;
 
-  /** Set of const-class references. */
-  public final Set<DexType> constClassReferences;
+  /**
+   * Set of lock candidates (i.e., types whose class reference may flow to a monitor instruction).
+   */
+  public final Set<DexType> lockCandidates;
   /**
    * A map from seen init-class references to the minimum required visibility of the corresponding
    * static field.
@@ -234,7 +236,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       EnumValueInfoMapCollection enumValueInfoMaps,
-      Set<DexType> constClassReferences,
+      Set<DexType> lockCandidates,
       Map<DexType, Visibility> initClassReferences) {
     super(syntheticItems, classToFeatureSplitMap, mainDexClasses);
     this.deadProtoTypes = deadProtoTypes;
@@ -273,7 +275,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.prunedTypes = prunedTypes;
     this.switchMaps = switchMaps;
     this.enumValueInfoMaps = enumValueInfoMaps;
-    this.constClassReferences = constClassReferences;
+    this.lockCandidates = lockCandidates;
     this.initClassReferences = initClassReferences;
   }
 
@@ -315,7 +317,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       EnumValueInfoMapCollection enumValueInfoMaps,
-      Set<DexType> constClassReferences,
+      Set<DexType> lockCandidates,
       Map<DexType, Visibility> initClassReferences) {
     super(
         appInfoWithClassHierarchy.getSyntheticItems().commit(appInfoWithClassHierarchy.app()),
@@ -357,7 +359,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.prunedTypes = prunedTypes;
     this.switchMaps = switchMaps;
     this.enumValueInfoMaps = enumValueInfoMaps;
-    this.constClassReferences = constClassReferences;
+    this.lockCandidates = lockCandidates;
     this.initClassReferences = initClassReferences;
   }
 
@@ -404,7 +406,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.prunedTypes,
         previous.switchMaps,
         previous.enumValueInfoMaps,
-        previous.constClassReferences,
+        previous.lockCandidates,
         previous.initClassReferences);
   }
 
@@ -457,7 +459,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             : CollectionUtils.mergeSets(previous.prunedTypes, removedClasses),
         previous.switchMaps,
         previous.enumValueInfoMaps,
-        previous.constClassReferences,
+        previous.lockCandidates,
         previous.initClassReferences);
     assert keepInfo.verifyNoneArePinned(removedClasses, previous);
   }
@@ -543,7 +545,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.prunedTypes = previous.prunedTypes;
     this.switchMaps = switchMaps;
     this.enumValueInfoMaps = enumValueInfoMaps;
-    this.constClassReferences = previous.constClassReferences;
+    this.lockCandidates = previous.lockCandidates;
     this.initClassReferences = previous.initClassReferences;
     previous.markObsolete();
   }
@@ -700,7 +702,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * merge any const-class classes. More info at b/142438687.
    */
   public boolean isLockCandidate(DexType type) {
-    return constClassReferences.contains(type);
+    return lockCandidates.contains(type);
   }
 
   public Set<DexType> getDeadProtoTypes() {
@@ -1042,7 +1044,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         prunedTypes,
         lens.rewriteFieldKeys(switchMaps),
         enumValueInfoMaps.rewrittenWithLens(lens),
-        lens.rewriteTypes(constClassReferences),
+        lens.rewriteTypes(lockCandidates),
         lens.rewriteTypeKeys(initClassReferences));
   }
 

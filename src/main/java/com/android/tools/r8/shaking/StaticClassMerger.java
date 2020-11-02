@@ -337,7 +337,7 @@ public class StaticClassMerger {
         // We are not allowed to merge synchronized classes with synchronized methods.
         return;
       }
-      if (appView.appInfo().constClassReferences.contains(clazz.type)) {
+      if (appView.appInfo().lockCandidates.contains(clazz.type)) {
         // Since the type is const-class referenced (and the static merger does not create a lens
         // to map the merged type) the class will likely remain and there is no gain from merging.
         return;

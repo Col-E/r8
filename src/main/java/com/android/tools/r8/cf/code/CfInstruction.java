@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.ClasspathMethod;
@@ -21,9 +22,10 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 
-public abstract class CfInstruction {
+public abstract class CfInstruction implements CfOrDexInstruction {
 
   public abstract void write(
       AppView<?> appView,
@@ -72,20 +74,33 @@ public abstract class CfInstruction {
     return printer.toString();
   }
 
-  public void registerUse(UseRegistry registry, ProgramMethod context) {
-    internalRegisterUse(registry, context);
+  public void registerUse(
+      UseRegistry registry, ProgramMethod context, ListIterator<CfInstruction> iterator) {
+    internalRegisterUse(registry, context, iterator);
   }
 
-  public void registerUseForDesugaring(UseRegistry registry, ClasspathMethod context) {
-    internalRegisterUse(registry, context);
+  public void registerUseForDesugaring(
+      UseRegistry registry, ClasspathMethod context, ListIterator<CfInstruction> iterator) {
+    internalRegisterUse(registry, context, iterator);
   }
 
-  void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
+  void internalRegisterUse(
+      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     // Intentionally empty.
   }
 
   public CfLabel getTarget() {
     return null;
+  }
+
+  @Override
+  public CfInstruction asCfInstruction() {
+    return this;
+  }
+
+  @Override
+  public boolean isCfInstruction() {
+    return true;
   }
 
   public CfConstString asConstString() {

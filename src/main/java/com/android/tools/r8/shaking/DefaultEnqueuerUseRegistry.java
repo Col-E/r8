@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -14,6 +15,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
+import java.util.ListIterator;
 
 public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
@@ -114,8 +116,9 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
   }
 
   @Override
-  public void registerConstClass(DexType type) {
-    enqueuer.traceConstClass(type, context);
+  public void registerConstClass(
+      DexType type, ListIterator<? extends CfOrDexInstruction> iterator) {
+    enqueuer.traceConstClass(type, context, iterator);
   }
 
   @Override

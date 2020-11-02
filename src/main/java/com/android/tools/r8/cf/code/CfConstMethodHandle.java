@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfConstMethodHandle extends CfInstruction {
@@ -68,7 +69,8 @@ public class CfConstMethodHandle extends CfInstruction {
   }
 
   @Override
-  void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
+  void internalRegisterUse(
+      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerMethodHandle(handle, MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
   }
 

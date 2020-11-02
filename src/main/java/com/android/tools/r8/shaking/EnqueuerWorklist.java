@@ -176,7 +176,7 @@ public class EnqueuerWorklist {
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.traceConstClass(type, context);
+      enqueuer.traceConstClass(type, context, null);
     }
   }
 

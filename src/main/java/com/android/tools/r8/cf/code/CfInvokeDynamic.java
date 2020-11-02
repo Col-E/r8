@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -112,7 +113,8 @@ public class CfInvokeDynamic extends CfInstruction {
   }
 
   @Override
-  void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
+  void internalRegisterUse(
+      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerCallSite(callSite);
   }
 

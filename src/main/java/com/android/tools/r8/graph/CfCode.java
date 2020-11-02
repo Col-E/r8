@@ -56,6 +56,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiPredicate;
@@ -511,16 +512,20 @@ public class CfCode extends Code implements Comparable<CfCode> {
 
   @Override
   public void registerCodeReferences(ProgramMethod method, UseRegistry registry) {
-    for (CfInstruction instruction : instructions) {
-      instruction.registerUse(registry, method);
+    ListIterator<CfInstruction> iterator = instructions.listIterator();
+    while (iterator.hasNext()) {
+      CfInstruction instruction = iterator.next();
+      instruction.registerUse(registry, method, iterator);
     }
     tryCatchRanges.forEach(tryCatch -> tryCatch.internalRegisterUse(registry, method));
   }
 
   @Override
   public void registerCodeReferencesForDesugaring(ClasspathMethod method, UseRegistry registry) {
-    for (CfInstruction instruction : instructions) {
-      instruction.registerUseForDesugaring(registry, method);
+    ListIterator<CfInstruction> iterator = instructions.listIterator();
+    while (iterator.hasNext()) {
+      CfInstruction instruction = iterator.next();
+      instruction.registerUseForDesugaring(registry, method, iterator);
     }
     tryCatchRanges.forEach(tryCatch -> tryCatch.guards.forEach(registry::registerTypeReference));
   }

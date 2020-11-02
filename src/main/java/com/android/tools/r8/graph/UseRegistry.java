@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.code.CfOrDexInstruction;
+import java.util.ListIterator;
 
 public abstract class UseRegistry {
 
@@ -67,7 +69,8 @@ public abstract class UseRegistry {
 
   public abstract void registerInstanceOf(DexType type);
 
-  public void registerConstClass(DexType type) {
+  public void registerConstClass(
+      DexType type, ListIterator<? extends CfOrDexInstruction> iterator) {
     registerTypeReference(type);
   }
 

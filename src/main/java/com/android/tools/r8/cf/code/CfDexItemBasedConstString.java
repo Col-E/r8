@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
+import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfDexItemBasedConstString extends CfInstruction {
@@ -89,7 +90,8 @@ public class CfDexItemBasedConstString extends CfInstruction {
   }
 
   @Override
-  void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
+  void internalRegisterUse(
+      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     if (nameComputationInfo.needsToRegisterReference()) {
       assert item.isDexType();
       registry.registerTypeReference(item.asDexType());

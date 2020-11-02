@@ -10,6 +10,9 @@ import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflection
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
 
 import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
@@ -31,6 +34,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexItemFactory.ClassMethods;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
@@ -101,6 +105,7 @@ import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
@@ -131,6 +136,7 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -314,10 +320,10 @@ public class Enqueuer {
   private final MutableKeepInfoCollection keepInfo = new MutableKeepInfoCollection();
 
   /**
-   * A set of seen const-class references that both serve as an initial lock-candidate set and will
-   * prevent statically merging the classes referenced.
+   * A set of seen const-class references that serve as an initial lock-candidate set and will
+   * prevent class merging.
    */
-  private final Set<DexType> constClassReferences = Sets.newIdentityHashSet();
+  private final Set<DexType> lockCandidates = Sets.newIdentityHashSet();
 
   /**
    * A map from seen init-class references to the minimum required visibility of the corresponding
@@ -926,17 +932,63 @@ public class Enqueuer {
     traceConstClassOrCheckCast(type, currentMethod);
   }
 
-  void traceConstClass(DexType type, ProgramMethod currentMethod) {
+  void traceConstClass(
+      DexType type,
+      ProgramMethod currentMethod,
+      ListIterator<? extends CfOrDexInstruction> iterator) {
+    handleLockCandidate(type, currentMethod, iterator);
+    traceConstClassOrCheckCast(type, currentMethod);
+  }
+
+  private void handleLockCandidate(
+      DexType type,
+      ProgramMethod currentMethod,
+      ListIterator<? extends CfOrDexInstruction> iterator) {
     // We conservatively group T.class and T[].class to ensure that we do not merge T with S if
     // potential locks on T[].class and S[].class exists.
     DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (baseType.isClassType()) {
       DexProgramClass baseClass = getProgramClassOrNull(baseType);
-      if (baseClass != null) {
-        constClassReferences.add(baseType);
+      if (baseClass != null && isConstClassMaybeUsedAsLock(currentMethod, iterator)) {
+        lockCandidates.add(baseType);
       }
     }
-    traceConstClassOrCheckCast(type, currentMethod);
+  }
+
+  /**
+   * Returns true if the const-class value may flow into a monitor instruction.
+   *
+   * <p>Some common usages of const-class values are handled, such as calls to Class.get*Name().
+   */
+  private boolean isConstClassMaybeUsedAsLock(
+      ProgramMethod currentMethod, ListIterator<? extends CfOrDexInstruction> iterator) {
+    if (iterator == null) {
+      return true;
+    }
+    boolean result = true;
+    if (currentMethod.getDefinition().getCode().isCfCode()) {
+      CfInstruction nextInstruction =
+          IteratorUtils.nextUntil(
+                  iterator,
+                  instruction ->
+                      !instruction.asCfInstruction().isLabel()
+                          && !instruction.asCfInstruction().isPosition())
+              .asCfInstruction();
+      assert nextInstruction != null;
+      if (nextInstruction.isInvoke()) {
+        CfInvoke invoke = nextInstruction.asInvoke();
+        DexMethod invokedMethod = invoke.getMethod();
+        ClassMethods classMethods = appView.dexItemFactory().classMethods;
+        if (classMethods.isReflectiveNameLookup(invokedMethod)
+            || invokedMethod == classMethods.desiredAssertionStatus
+            || invokedMethod == classMethods.getClassLoader
+            || invokedMethod == classMethods.getPackage) {
+          result = false;
+        }
+      }
+      iterator.previous();
+    }
+    return result;
   }
 
   private void traceConstClassOrCheckCast(DexType type, ProgramMethod currentMethod) {
@@ -3137,7 +3189,7 @@ public class Enqueuer {
             Collections.emptySet(),
             Collections.emptyMap(),
             EnumValueInfoMapCollection.empty(),
-            constClassReferences,
+            lockCandidates,
             initClassReferences);
     appInfo.markObsolete();
     return appInfoWithLiveness;

@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import org.hamcrest.Matcher;
 
@@ -40,7 +39,7 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
 
   public abstract RR disassemble() throws IOException, ExecutionException;
 
-  public RR apply(Consumer<RR> fn) {
+  public <E extends Throwable> RR apply(ThrowingConsumer<RR, E> fn) throws E {
     fn.accept(self());
     return self();
   }
