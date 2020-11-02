@@ -87,4 +87,56 @@ public interface TraceReferencesConsumer {
    * Tracing has finished. There will be no more calls to any of the <code>acceptXXX</code> methods.
    */
   default void finished() {}
+
+  static TraceReferencesConsumer emptyConsumer() {
+    return ForwardingConsumer.EMPTY_CONSUMER;
+  }
+
+  /** Forwarding consumer to delegate to an optional existing consumer. */
+  @Keep
+  class ForwardingConsumer implements TraceReferencesConsumer {
+
+    private static final TraceReferencesConsumer EMPTY_CONSUMER = new ForwardingConsumer(null);
+
+    private final TraceReferencesConsumer consumer;
+
+    public ForwardingConsumer(TraceReferencesConsumer consumer) {
+      this.consumer = consumer;
+    }
+
+    @Override
+    public void acceptType(TracedClass tracedClass) {
+      if (consumer != null) {
+        consumer.acceptType(tracedClass);
+      }
+    }
+
+    @Override
+    public void acceptField(TracedField tracedField) {
+      if (consumer != null) {
+        consumer.acceptField(tracedField);
+      }
+    }
+
+    @Override
+    public void acceptMethod(TracedMethod tracedMethod) {
+      if (consumer != null) {
+        consumer.acceptMethod(tracedMethod);
+      }
+    }
+
+    @Override
+    public void acceptPackage(PackageReference pkg) {
+      if (consumer != null) {
+        consumer.acceptPackage(pkg);
+      }
+    }
+
+    @Override
+    public void finished() {
+      if (consumer != null) {
+        consumer.finished();
+      }
+    }
+  }
 }
