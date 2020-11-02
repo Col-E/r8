@@ -528,6 +528,7 @@ public class MemberValuePropagation {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
+    assert code.verifyTypes(appView);
   }
 
   public void run(
