@@ -360,6 +360,9 @@ public class SyntheticFinalization {
           groups.sort(EquivalenceGroup::compareTo);
           for (int i = 0; i < groups.size(); i++) {
             EquivalenceGroup<T> group = groups.get(i);
+            // Two equivalence groups in same context type must be distinct otherwise the assignment
+            // of the synthetic name will be non-deterministic between the two.
+            assert i == 0 || checkGroupsAreDistict(groups.get(i - 1), group);
             DexType representativeType = createExternalType(context, i, factory);
             equivalences.put(representativeType, group);
           }
@@ -387,6 +390,12 @@ public class SyntheticFinalization {
       }
     }
     return groups;
+  }
+
+  private static <T extends SyntheticDefinition & Comparable<T>> boolean checkGroupsAreDistict(
+      EquivalenceGroup<T> g1, EquivalenceGroup<T> g2) {
+    assert g1.compareTo(g2) != 0;
+    return true;
   }
 
   private static <T extends SyntheticDefinition & Comparable<T>> T findDeterministicRepresentative(
