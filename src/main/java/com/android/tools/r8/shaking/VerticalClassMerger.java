@@ -371,7 +371,9 @@ public class VerticalClassMerger {
       }
       return false;
     }
-    if (targetClass.isSerializable(appView) && !appInfo.isSerializable(sourceClass.type)) {
+    if (!sourceClass.isInterface()
+        && targetClass.isSerializable(appView)
+        && !appInfo.isSerializable(sourceClass.type)) {
       // https://docs.oracle.com/javase/8/docs/platform/serialization/spec/serial-arch.html
       //   1.10 The Serializable Interface
       //   ...
