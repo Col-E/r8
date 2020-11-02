@@ -129,6 +129,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
             TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, this);
         assert receiverLowerBoundType.getClassType() == refinedReceiverType
                 || appView.options().testing.allowTypeErrors
+                || receiver.getDynamicUpperBoundType(appViewWithLiveness).isNullType()
                 || receiverLowerBoundType.isBasedOnMissingClass(appViewWithLiveness)
                 || upperBoundAssumedByCallSiteOptimizationAndNoLongerInstantiated(
                     appViewWithLiveness, refinedReceiverType, receiverLowerBoundType.getClassType())
