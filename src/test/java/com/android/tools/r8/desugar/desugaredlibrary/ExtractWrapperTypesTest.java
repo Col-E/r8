@@ -74,6 +74,9 @@ public class ExtractWrapperTypesTest extends TestBase {
   // Types not in API docs, referenced in android.jar but need not be wrapped.
   private static final Set<String> NOT_NEEDED_NOT_IN_DOCS =
       ImmutableSet.of(
+          "java.util.function.ToDoubleBiFunction",
+          "java.util.function.ToIntBiFunction",
+          "java.util.function.ToLongBiFunction",
           "java.util.Base64$Decoder",
           "java.util.Base64$Encoder",
           "java.util.Calendar$Builder",
