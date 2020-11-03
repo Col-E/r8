@@ -369,6 +369,10 @@ class Tracer {
 
     @Override
     public void registerInvokeVirtual(DexMethod method) {
+      if (method.holder.isArrayType()) {
+        addType(method.holder);
+        return;
+      }
       ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
       DexEncodedMethod target =
           resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;

@@ -81,7 +81,9 @@ public class TraceReferencesArrayTypesTest extends TestBase {
                 ToolHelper.getClassFileForTestClass(TargetReturnType.class),
                 ToolHelper.getClassFileForTestClass(TargetInstantiatedType.class),
                 ToolHelper.getClassFileForTestClass(TargetInstanceOfType.class),
-                ToolHelper.getClassFileForTestClass(TargetCheckCastType.class))
+                ToolHelper.getClassFileForTestClass(TargetCheckCastType.class),
+                ToolHelper.getClassFileForTestClass(TargetArrayCloneType.class),
+                ToolHelper.getClassFileForTestClass(TargetArrayCloneType2.class))
             .build();
     Path sourceJar =
         ZipBuilder.builder(dir.resolve("source.jar"))
@@ -101,7 +103,6 @@ public class TraceReferencesArrayTypesTest extends TestBase {
             .build());
 
     assertEquals(
-        consumer.tracedTypes,
         ImmutableSet.of(
             Reference.classFromClass(Target.class),
             Reference.classFromClass(TargetFieldType.class),
@@ -109,7 +110,10 @@ public class TraceReferencesArrayTypesTest extends TestBase {
             Reference.classFromClass(TargetReturnType.class),
             Reference.classFromClass(TargetInstantiatedType.class),
             Reference.classFromClass(TargetInstanceOfType.class),
-            Reference.classFromClass(TargetCheckCastType.class)));
+            Reference.classFromClass(TargetCheckCastType.class),
+            Reference.classFromClass(TargetArrayCloneType.class),
+            Reference.classFromClass(TargetArrayCloneType2.class)),
+        consumer.tracedTypes);
     assertTrue(consumer.acceptFieldCalled);
     assertTrue(consumer.acceptMethodCalled);
   }
@@ -126,6 +130,10 @@ public class TraceReferencesArrayTypesTest extends TestBase {
 
   static class TargetCheckCastType {}
 
+  static class TargetArrayCloneType {}
+
+  static class TargetArrayCloneType2 {}
+
   static class Target {
     public static TargetFieldType[] field;
 
@@ -141,6 +149,8 @@ public class TraceReferencesArrayTypesTest extends TestBase {
       Object x = new TargetInstantiatedType[] {};
       boolean y = null instanceof TargetInstanceOfType;
       Object z = (TargetCheckCastType) null;
+      Object c = ((TargetArrayCloneType[]) null).clone();
+      Object c2 = ((TargetArrayCloneType2[][][][]) null).clone();
     }
   }
 }
