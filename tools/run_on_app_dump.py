@@ -57,7 +57,6 @@ APPS = [
     'url': 'https://github.com/mkj-gram/applymapping',
     'revision': 'e3ae14b8c16fa4718e5dea8f7ad00937701b3c48',
     'folder': 'applymapping',
-    'skip_recompilation': True,
   })
 ]
 
