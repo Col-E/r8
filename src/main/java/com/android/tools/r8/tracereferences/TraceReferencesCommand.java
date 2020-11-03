@@ -4,6 +4,7 @@
 package com.android.tools.r8.tracereferences;
 
 import static com.android.tools.r8.utils.FileUtils.isArchive;
+import static com.android.tools.r8.utils.FileUtils.isDexFile;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
@@ -11,7 +12,10 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
@@ -27,6 +31,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Keep
@@ -173,6 +178,16 @@ public class TraceReferencesCommand {
       }
       if (isArchive(file)) {
         traceSourceBuilder.add(ArchiveResourceProvider.fromArchive(file, false));
+      } else if (isDexFile(file)) {
+        traceSourceBuilder.add(
+            new ProgramResourceProvider() {
+              ProgramResource dexResource = ProgramResource.fromFile(Kind.DEX, file);
+
+              @Override
+              public Collection<ProgramResource> getProgramResources() throws ResourceException {
+                return Collections.singletonList(dexResource);
+              }
+            });
       } else {
         error(new StringDiagnostic("Unsupported source file type", new PathOrigin(file)));
       }

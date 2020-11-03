@@ -267,6 +267,17 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  public Path writeToDirectory() throws IOException {
+    Path directory = state.getNewTempFolder();
+    writeToDirectory(directory);
+    return directory;
+  }
+
+  public CR writeToDirectory(Path directory) throws IOException {
+    app.writeToDirectory(directory, getOutputMode());
+    return self();
+  }
+
   public CodeInspector inspector() throws IOException, ExecutionException {
     return new CodeInspector(app);
   }

@@ -64,10 +64,7 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
     }
   }
 
-  @Test
-  public void missingClassReferenced() throws Throwable {
-    Path sourceDex = testForD8(Backend.DEX).addProgramClasses(Source.class).compile().writeToZip();
-
+  private void missingClassReferenced(Path sourceDex) throws Throwable {
     DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
     MissingReferencesConsumer consumer = new MissingReferencesConsumer();
 
@@ -89,14 +86,22 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
   }
 
   @Test
-  public void missingFieldAndMethodReferenced() throws Throwable {
-    Path sourceDex =
+  public void missingClassReferencedInDexArchive() throws Throwable {
+    missingClassReferenced(
+        testForD8(Backend.DEX).addProgramClasses(Source.class).compile().writeToZip());
+  }
+
+  @Test
+  public void missingClassReferencedInDexFile() throws Throwable {
+    missingClassReferenced(
         testForD8(Backend.DEX)
             .addProgramClasses(Source.class)
-            .addProgramClassFileData(getClassWithTargetRemoved())
             .compile()
-            .writeToZip();
+            .writeToDirectory()
+            .resolve("classes.dex"));
+  }
 
+  private void missingFieldAndMethodReferenced(Path sourceDex) throws Throwable {
     DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
     MissingReferencesConsumer consumer = new MissingReferencesConsumer();
 
@@ -115,6 +120,27 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
     assertFalse(consumer.acceptTypeCalled);
     assertTrue(consumer.acceptFieldCalled);
     assertTrue(consumer.acceptMethodCalled);
+  }
+
+  @Test
+  public void missingFieldAndMethodReferencedInDexArchive() throws Throwable {
+    missingFieldAndMethodReferenced(
+        testForD8(Backend.DEX)
+            .addProgramClasses(Source.class)
+            .addProgramClassFileData(getClassWithTargetRemoved())
+            .compile()
+            .writeToZip());
+  }
+
+  @Test
+  public void missingFieldAndMethodReferencedInDexFile() throws Throwable {
+    missingFieldAndMethodReferenced(
+        testForD8(Backend.DEX)
+            .addProgramClasses(Source.class)
+            .addProgramClassFileData(getClassWithTargetRemoved())
+            .compile()
+            .writeToDirectory()
+            .resolve("classes.dex"));
   }
 
   private byte[] getClassWithTargetRemoved() throws IOException {

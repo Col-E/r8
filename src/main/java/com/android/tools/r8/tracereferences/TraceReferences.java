@@ -16,12 +16,12 @@ import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Consumer;
 
 @Keep
 public class TraceReferences {
@@ -30,38 +30,43 @@ public class TraceReferences {
     ExceptionUtils.withCompilationHandler(command.getReporter(), () -> runInternal(command));
   }
 
+  private static void forEachDescriptor(ProgramResourceProvider provider, Consumer<String> consumer)
+      throws ResourceException, IOException {
+    for (ProgramResource programResource : provider.getProgramResources()) {
+      if (programResource.getKind() == Kind.DEX) {
+        assert programResource.getClassDescriptors() == null;
+        for (DexProgramClass clazz :
+            new ApplicationReader(
+                    AndroidApp.builder()
+                        .addDexProgramData(ImmutableList.of(programResource.getBytes()))
+                        .build(),
+                    new InternalOptions(),
+                    Timing.empty())
+                .read()
+                .classes()) {
+          consumer.accept(clazz.getType().toDescriptorString());
+        }
+      } else {
+        assert programResource.getClassDescriptors() != null;
+        programResource.getClassDescriptors().forEach(consumer);
+      }
+    }
+  }
+
   private static void runInternal(TraceReferencesCommand command)
       throws IOException, ResourceException {
     AndroidApp.Builder builder = AndroidApp.builder();
     command.getLibrary().forEach(builder::addLibraryResourceProvider);
     command.getTarget().forEach(builder::addLibraryResourceProvider);
     command.getSource().forEach(builder::addProgramResourceProvider);
-    Set<String> tagetDescriptors = new HashSet<>();
+    Set<String> targetDescriptors = new HashSet<>();
     command
         .getTarget()
-        .forEach(provider -> tagetDescriptors.addAll(provider.getClassDescriptors()));
+        .forEach(provider -> targetDescriptors.addAll(provider.getClassDescriptors()));
     for (ProgramResourceProvider provider : command.getSource()) {
-      for (ProgramResource programResource : provider.getProgramResources()) {
-        if (programResource.getKind() == Kind.DEX) {
-          command.getReporter().warning(new StringDiagnostic("DEX files not fully supported"));
-          assert programResource.getClassDescriptors() == null;
-          for (DexProgramClass clazz :
-              new ApplicationReader(
-                      AndroidApp.builder()
-                          .addDexProgramData(ImmutableList.of(programResource.getBytes()))
-                          .build(),
-                      new InternalOptions(),
-                      Timing.empty())
-                  .read()
-                  .classes()) {
-            tagetDescriptors.remove(clazz.getType().toDescriptorString());
-          }
-        } else {
-          tagetDescriptors.removeAll(programResource.getClassDescriptors());
-        }
-      }
+      forEachDescriptor(provider, targetDescriptors::remove);
     }
-    Tracer tracer = new Tracer(tagetDescriptors, builder.build(), command.getReporter());
+    Tracer tracer = new Tracer(targetDescriptors, builder.build(), command.getReporter());
     tracer.run(command.getConsumer());
   }
 
