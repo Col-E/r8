@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.resolution.virtualtargets.package_a;
 
+import com.android.tools.r8.NeverInline;
+
 public abstract class ViewModel {
 
+  @NeverInline
   final void clear() {
     System.out.println("ViewModel.clear()");
   }
