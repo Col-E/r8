@@ -10,6 +10,7 @@ import com.android.tools.r8.position.Position;
 import com.android.tools.r8.tracereferences.Tracer.TracedClassImpl;
 import com.android.tools.r8.tracereferences.Tracer.TracedFieldImpl;
 import com.android.tools.r8.tracereferences.Tracer.TracedMethodImpl;
+import com.android.tools.r8.tracereferences.Tracer.TracedReferenceBase;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -40,18 +41,27 @@ public class MissingDefinitionsDiagnostic implements Diagnostic {
     return Position.UNKNOWN;
   }
 
+  private <T extends TracedReferenceBase<?, ?>> void appendSorted(
+      StringBuilder builder, Set<T> missing) {
+    missing.stream()
+        .map(element -> element.getReference())
+        .map(Object::toString)
+        .sorted()
+        .forEach(item -> builder.append("  ").append(item).append(System.lineSeparator()));
+  }
+
   @Override
   public String getDiagnosticMessage() {
     StringBuilder builder = new StringBuilder("Tracereferences found ");
     List<String> components = new ArrayList<>();
     if (missingClasses.size() > 0) {
-      components.add("" + missingClasses.size() + " classes");
+      components.add("" + missingClasses.size() + " classe(s)");
     }
     if (missingFields.size() > 0) {
-      components.add("" + missingClasses.size() + " fields");
+      components.add("" + missingFields.size() + " field(s)");
     }
     if (missingMethods.size() > 0) {
-      components.add("" + missingClasses.size() + " methods");
+      components.add("" + missingMethods.size() + " method(s)");
     }
     assert components.size() > 0;
     for (int i = 0; i < components.size(); i++) {
@@ -63,27 +73,12 @@ public class MissingDefinitionsDiagnostic implements Diagnostic {
     builder.append(" without definition");
     builder.append(System.lineSeparator());
     builder.append(System.lineSeparator());
-    builder.append("Classes without definition:");
-    missingClasses.forEach(
-        clazz ->
-            builder
-                .append("  ")
-                .append(clazz.getReference().toString())
-                .append(System.lineSeparator()));
-    builder.append("Fields without definition");
-    missingFields.forEach(
-        field ->
-            builder
-                .append("  ")
-                .append(field.getReference().toString())
-                .append(System.lineSeparator()));
-    builder.append("Methods without definition");
-    missingMethods.forEach(
-        method ->
-            builder
-                .append("  ")
-                .append(method.getReference().toString())
-                .append(System.lineSeparator()));
+    builder.append("Classe(s) without definition:" + System.lineSeparator());
+    appendSorted(builder, missingClasses);
+    builder.append("Field(s) without definition:" + System.lineSeparator());
+    appendSorted(builder, missingFields);
+    builder.append("Method(s) without definition:" + System.lineSeparator());
+    appendSorted(builder, missingMethods);
     return builder.toString();
   }
 }
