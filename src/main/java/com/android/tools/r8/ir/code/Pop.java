@@ -16,8 +16,9 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 
 public class Pop extends Instruction {
 
-  public Pop(StackValue src) {
+  public Pop(Value src) {
     super(null, src);
+    assert src.isValueOnStack();
   }
 
   @Override

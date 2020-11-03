@@ -57,7 +57,6 @@ import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
-import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -590,7 +589,7 @@ public class DexBuilder {
   private static boolean isNonMaterializingConstNumber(
       com.android.tools.r8.ir.code.Instruction instruction) {
     return instruction.isConstNumber()
-        && !(instruction.outValue() instanceof StackValue)
+        && !(instruction.outValue().isValueOnStack())
         && !(instruction.outValue().needsRegister());
   }
 

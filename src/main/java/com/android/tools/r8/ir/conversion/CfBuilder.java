@@ -107,7 +107,7 @@ public class CfBuilder {
     }
 
     void push(Value value) {
-      assert value instanceof StackValue;
+      assert value.isValueOnStack();
       height += value.requiredRegisters();
       maxHeight = Math.max(maxHeight, height);
     }

@@ -407,12 +407,14 @@ public class BasicBlock {
           // Iterate in reverse order to ensure that POP instructions are inserted in correct order.
           for (int i = instruction.inValues().size() - 1; i >= 0; i--) {
             Value value = instruction.inValues().get(i);
-            if (value instanceof StackValue) {
-              if (value.definition.isLoad() && value.definition.getBlock() == this) {
+            if (value.isValueOnStack()) {
+              if (!value.isPhi()
+                  && (value.definition.isLoad() && value.definition.getBlock() == this)) {
                 assert hasLinearFlow(this, value.definition.getBlock());
                 value.definition.getBlock().removeInstruction(value.definition);
               } else {
-                Pop pop = new Pop((StackValue) value);
+                assert !(value instanceof StackValues);
+                Pop pop = new Pop(value);
                 pop.setBlock(this);
                 pop.setPosition(instruction.getPosition());
                 getInstructions().addLast(pop);
