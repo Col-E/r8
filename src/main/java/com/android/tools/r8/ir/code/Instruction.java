@@ -1543,4 +1543,29 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
       };
     }
   }
+
+  public abstract static class BuilderBase<B extends BuilderBase<B, I>, I extends Instruction> {
+
+    protected Position position;
+
+    public abstract I build();
+
+    public abstract B self();
+
+    final I amend(I instruction) {
+      if (position != null) {
+        instruction.setPosition(position);
+      }
+      return instruction;
+    }
+
+    public B setPosition(Position position) {
+      this.position = position;
+      return self();
+    }
+
+    public B setPosition(Instruction other) {
+      return setPosition(other.getPosition());
+    }
+  }
 }

@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.shaking.clinit;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -45,10 +45,15 @@ public class ClassNotInitializedByCheckCastTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    // Check that A.<clinit>() is removed.
-    ClassSubject aClassSubject = inspector.clazz(A.class);
-    assertThat(aClassSubject, isPresent());
-    assertThat(aClassSubject.clinit(), not(isPresent()));
+    if (parameters.isCfRuntime()) {
+      // Check that A.<clinit>() is removed.
+      ClassSubject aClassSubject = inspector.clazz(A.class);
+      assertThat(aClassSubject, isPresent());
+      assertThat(aClassSubject.clinit(), isAbsent());
+    } else {
+      // Check that A is removed.
+      assertThat(inspector.clazz(A.class), isAbsent());
+    }
   }
 
   static class TestClass {

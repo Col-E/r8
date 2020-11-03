@@ -16,10 +16,9 @@ import java.util.concurrent.ExecutorService;
  * A {@link MethodProcessor} that doesn't persist; rather just processes the given methods one-time,
  * along with a default abstraction of concurrent processing.
  */
-public class OneTimeMethodProcessor implements MethodProcessor {
+public class OneTimeMethodProcessor extends MethodProcessor {
 
   private final MethodProcessingId.Factory methodProcessingIdFactory;
-  private final SortedProgramMethodSet wave;
 
   private OneTimeMethodProcessor(
       MethodProcessingId.Factory methodProcessingIdFactory, SortedProgramMethodSet wave) {
@@ -58,28 +57,29 @@ public class OneTimeMethodProcessor implements MethodProcessor {
     return Phase.ONE_TIME;
   }
 
-  @Override
-  public boolean isProcessedConcurrently(ProgramMethod method) {
-    return wave != null && wave.contains(method);
-  }
-
-  public <E extends Exception> void forEachWave(
+  public <E extends Exception> void forEachWaveWithExtension(
       ThrowingBiConsumer<ProgramMethod, MethodProcessingId, E> consumer) throws E {
-    ReservedMethodProcessingIds methodProcessingIds = methodProcessingIdFactory.reserveIds(wave);
-    int i = 0;
-    for (ProgramMethod method : wave) {
-      consumer.accept(method, methodProcessingIds.get(method, i++));
+    while (!wave.isEmpty()) {
+      ReservedMethodProcessingIds methodProcessingIds = methodProcessingIdFactory.reserveIds(wave);
+      int i = 0;
+      for (ProgramMethod method : wave) {
+        consumer.accept(method, methodProcessingIds.get(method, i++));
+      }
+      prepareForWaveExtensionProcessing();
     }
   }
 
-  public <E extends Exception> void forEachWave(
+  public <E extends Exception> void forEachWaveWithExtension(
       ThrowingBiConsumer<ProgramMethod, MethodProcessingId, E> consumer,
       ExecutorService executorService)
       throws ExecutionException {
-    ReservedMethodProcessingIds methodProcessingIds = methodProcessingIdFactory.reserveIds(wave);
-    ThreadUtils.processItems(
-        wave,
-        (method, index) -> consumer.accept(method, methodProcessingIds.get(method, index)),
-        executorService);
+    while (!wave.isEmpty()) {
+      ReservedMethodProcessingIds methodProcessingIds = methodProcessingIdFactory.reserveIds(wave);
+      ThreadUtils.processItems(
+          wave,
+          (method, index) -> consumer.accept(method, methodProcessingIds.get(method, index)),
+          executorService);
+      prepareForWaveExtensionProcessing();
+    }
   }
 }

@@ -100,6 +100,10 @@ public class Matchers {
     };
   }
 
+  public static Matcher<Subject> isAbsent() {
+    return not(isPresent());
+  }
+
   public static Matcher<Subject> isPresent() {
     return new TypeSafeMatcher<Subject>() {
       @Override

@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexClasses;
 import java.util.Comparator;
@@ -37,10 +38,11 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
   private final DexType inputContextType;
   private final Origin inputContextOrigin;
 
-  static SynthesizingContext fromNonSyntheticInputClass(DexProgramClass clazz) {
+  static SynthesizingContext fromNonSyntheticInputContext(ProgramDefinition context) {
     // A context that is itself non-synthetic is the single context, thus both the input context
     // and synthesizing context coincide.
-    return new SynthesizingContext(clazz.type, clazz.type, clazz.origin);
+    return new SynthesizingContext(
+        context.getContextType(), context.getContextType(), context.getOrigin());
   }
 
   static SynthesizingContext fromSyntheticInputClass(
@@ -73,7 +75,7 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
     return inputContextOrigin;
   }
 
-  DexType createHygienicType(int syntheticId, DexItemFactory factory) {
+  DexType createHygienicType(String syntheticId, DexItemFactory factory) {
     // If the context is a synthetic input, then use its annotated context as the hygienic context.
     String contextDesc = synthesizingContextType.toDescriptorString();
     String prefix = contextDesc.substring(0, contextDesc.length() - 1);

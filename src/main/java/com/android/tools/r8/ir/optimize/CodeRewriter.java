@@ -82,6 +82,9 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessingId;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.controlflow.SwitchCaseAnalyzer;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
@@ -1302,7 +1305,11 @@ public class CodeRewriter {
     REMOVED_CAST_DO_NARROW
   }
 
-  public void removeTrivialCheckCastAndInstanceOfInstructions(IRCode code) {
+  public void removeTrivialCheckCastAndInstanceOfInstructions(
+      IRCode code,
+      ProgramMethod context,
+      MethodProcessor methodProcessor,
+      MethodProcessingId methodProcessingId) {
     if (!appView.enableWholeProgramOptimizations()) {
       return;
     }
@@ -1346,7 +1353,14 @@ public class CodeRewriter {
         boolean hasPhiUsers = current.outValue().hasPhiUsers();
         RemoveCheckCastInstructionIfTrivialResult removeResult =
             removeCheckCastInstructionIfTrivial(
-                appViewWithLiveness, current.asCheckCast(), it, code, affectedValues);
+                appViewWithLiveness,
+                current.asCheckCast(),
+                it,
+                code,
+                context,
+                affectedValues,
+                methodProcessor,
+                methodProcessingId);
         if (removeResult != RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS) {
           assert removeResult == RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW;
           needToRemoveTrivialPhis |= hasPhiUsers;
@@ -1382,7 +1396,10 @@ public class CodeRewriter {
       CheckCast checkCast,
       InstructionListIterator it,
       IRCode code,
-      Set<Value> affectedValues) {
+      ProgramMethod context,
+      Set<Value> affectedValues,
+      MethodProcessor methodProcessor,
+      MethodProcessingId methodProcessingId) {
     Value inValue = checkCast.object();
     Value outValue = checkCast.outValue();
     DexType castType = checkCast.getType();
@@ -1436,6 +1453,39 @@ public class CodeRewriter {
       removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
       affectedValues.addAll(inValue.affectedValues());
       return RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW;
+    }
+
+    // If values of cast type are guaranteed to be null, then the out-value must be null if the cast
+    // succeeds. After removing all usages of the out-value, the check-cast instruction is replaced
+    // by a call to throwClassCastExceptionIfNotNull() to allow dead code elimination of the cast
+    // type.
+    if (castType.isClassType()
+        && castType.isAlwaysNull(appViewWithLiveness)
+        && !outValue.hasDebugUsers()) {
+      // Replace all usages of the out-value by null.
+      it.previous();
+      Value nullValue = it.insertConstNullInstruction(code, options);
+      it.next();
+      checkCast.outValue().replaceUsers(nullValue);
+      affectedValues.addAll(nullValue.affectedValues());
+
+      // Replace the check-cast instruction by throwClassCastExceptionIfNotNull().
+      UtilityMethodForCodeOptimizations throwClassCastExceptionIfNotNullMethod =
+          UtilityMethodsForCodeOptimizations.synthesizeThrowClassCastExceptionIfNotNullMethod(
+              appView, context, methodProcessingId);
+      // TODO(b/172194277): Allow synthetics when generating CF.
+      if (throwClassCastExceptionIfNotNullMethod != null) {
+        throwClassCastExceptionIfNotNullMethod.optimize(methodProcessor);
+        InvokeStatic replacement =
+            InvokeStatic.builder()
+                .setMethod(throwClassCastExceptionIfNotNullMethod.getMethod())
+                .setSingleArgument(checkCast.object())
+                .setPosition(checkCast)
+                .build();
+        it.replaceCurrentInstruction(replacement);
+        assert replacement.lookupSingleTarget(appView, context) != null;
+        return RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW;
+      }
     }
 
     // Otherwise, keep the checkcast to preserve verification errors. E.g., down-cast:

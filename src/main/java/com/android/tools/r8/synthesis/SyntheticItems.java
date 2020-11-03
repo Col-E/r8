@@ -16,7 +16,9 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.synthesis.SyntheticFinalization.Result;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -32,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class SyntheticItems implements SyntheticDefinitionsProvider {
 
@@ -175,17 +178,12 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   // Internal synthetic id creation helpers.
 
-  private synchronized int getNextSyntheticId() {
+  private synchronized String getNextSyntheticId() {
     if (nextSyntheticId == INVALID_ID_AFTER_SYNTHETIC_FINALIZATION) {
       throw new InternalCompilerError(
           "Unexpected attempt to synthesize classes after synthetic finalization.");
     }
-    return nextSyntheticId++;
-  }
-
-  private static DexType hygienicType(
-      DexItemFactory factory, int syntheticId, SynthesizingContext context) {
-    return context.createHygienicType(syntheticId, factory);
+    return Integer.toString(nextSyntheticId++);
   }
 
   // Predicates and accessors.
@@ -244,15 +242,15 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return Collections.unmodifiableCollection(legacyPendingClasses.values());
   }
 
-  private SynthesizingContext getSynthesizingContext(DexProgramClass context) {
-    SyntheticDefinition pendingItemContext = pendingDefinitions.get(context.type);
+  private SynthesizingContext getSynthesizingContext(ProgramDefinition context) {
+    SyntheticDefinition pendingItemContext = pendingDefinitions.get(context.getContextType());
     if (pendingItemContext != null) {
       return pendingItemContext.getContext();
     }
-    SyntheticReference committedItemContext = nonLecacySyntheticItems.get(context.type);
+    SyntheticReference committedItemContext = nonLecacySyntheticItems.get(context.getContextType());
     return committedItemContext != null
         ? committedItemContext.getContext()
-        : SynthesizingContext.fromNonSyntheticInputClass(context);
+        : SynthesizingContext.fromNonSyntheticInputContext(context);
   }
 
   // Addition and creation of synthetic items.
@@ -267,11 +265,28 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   /** Create a single synthetic method item. */
   public ProgramMethod createMethod(
-      DexProgramClass context, DexItemFactory factory, Consumer<SyntheticMethodBuilder> fn) {
+      ProgramDefinition context, DexItemFactory factory, Consumer<SyntheticMethodBuilder> fn) {
+    return createMethod(context, factory, fn, this::getNextSyntheticId);
+  }
+
+  public ProgramMethod createMethod(
+      ProgramDefinition context,
+      DexItemFactory factory,
+      Consumer<SyntheticMethodBuilder> fn,
+      MethodProcessingId methodProcessingId) {
+    return createMethod(context, factory, fn, methodProcessingId::getFullyQualifiedIdAndIncrement);
+  }
+
+  private ProgramMethod createMethod(
+      ProgramDefinition context,
+      DexItemFactory factory,
+      Consumer<SyntheticMethodBuilder> fn,
+      Supplier<String> syntheticIdSupplier) {
+    assert nextSyntheticId != INVALID_ID_AFTER_SYNTHETIC_FINALIZATION;
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
     // This is to ensure a flat input-type -> synthetic-item mapping.
     SynthesizingContext outerContext = getSynthesizingContext(context);
-    DexType type = outerContext.createHygienicType(getNextSyntheticId(), factory);
+    DexType type = outerContext.createHygienicType(syntheticIdSupplier.get(), factory);
     SyntheticClassBuilder classBuilder = new SyntheticClassBuilder(type, outerContext, factory);
     DexProgramClass clazz = classBuilder.addMethod(fn).build();
     ProgramMethod method = new ProgramMethod(clazz, clazz.methods().iterator().next());

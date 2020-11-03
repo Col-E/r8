@@ -71,6 +71,11 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
     return this;
   }
 
+  public static MethodAccessFlags createPublicStaticSynthetic() {
+    return fromSharedAccessFlags(
+        Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false);
+  }
+
   public static MethodAccessFlags fromSharedAccessFlags(int access, boolean isConstructor) {
     assert (access & SHARED_FLAGS) == access;
     assert CF_FLAGS == SHARED_FLAGS;

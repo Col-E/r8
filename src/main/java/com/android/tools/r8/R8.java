@@ -60,6 +60,7 @@ import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector.UnusedArguments
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingCfMethods;
 import com.android.tools.r8.ir.optimize.enums.EnumValueInfoMapCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.android.tools.r8.ir.optimize.templates.CfUtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.kotlin.KotlinMetadataUtils;
@@ -318,8 +319,10 @@ public class R8 {
       InterfaceMethodRewriter.checkForAssumedLibraryTypes(appView.appInfo(), options);
       BackportedMethodRewriter.registerAssumedLibraryTypes(options);
       if (options.enableEnumUnboxing) {
-        EnumUnboxingCfMethods.registerSynthesizedCodeReferences(options.itemFactory);
+        EnumUnboxingCfMethods.registerSynthesizedCodeReferences(appView.dexItemFactory());
       }
+      CfUtilityMethodsForCodeOptimizations.registerSynthesizedCodeReferences(
+          appView.dexItemFactory());
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
       timing.begin("Strip unused code");

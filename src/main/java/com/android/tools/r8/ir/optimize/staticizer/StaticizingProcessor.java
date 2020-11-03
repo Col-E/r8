@@ -364,7 +364,7 @@ final class StaticizingProcessor {
       OptimizationFeedback feedback, ExecutorService executorService) throws ExecutionException {
     OneTimeMethodProcessor methodProcessor =
         OneTimeMethodProcessor.create(methodsToReprocess, appView);
-    methodProcessor.forEachWave(
+    methodProcessor.forEachWaveWithExtension(
         (method, methodProcessingId) ->
             forEachMethod(
                 method,

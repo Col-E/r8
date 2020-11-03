@@ -156,7 +156,7 @@ public class GeneratedExtensionRegistryShrinker {
     SortedProgramMethodSet wave =
         SortedProgramMethodSet.create(this::forEachFindLiteExtensionByNumberMethod);
     OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
-    methodProcessor.forEachWave(
+    methodProcessor.forEachWaveWithExtension(
         (method, methodProcessingId) ->
             converter.processMethod(
                 method,

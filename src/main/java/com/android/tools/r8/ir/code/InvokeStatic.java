@@ -27,7 +27,9 @@ import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import java.util.Collections;
 import java.util.List;
 
 public class InvokeStatic extends InvokeMethod {
@@ -42,6 +44,10 @@ public class InvokeStatic extends InvokeMethod {
   public InvokeStatic(DexMethod target, Value result, List<Value> arguments, boolean isInterface) {
     super(target, result, arguments);
     this.isInterface = isInterface;
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   @Override
@@ -233,5 +239,51 @@ public class InvokeStatic extends InvokeMethod {
             // already.
             type -> appInfoWithLiveness.isSubtype(context.getHolderType(), type),
             Sets.newIdentityHashSet());
+  }
+
+  public static class Builder extends BuilderBase<Builder, InvokeStatic> {
+
+    private DexMethod method;
+    private Value outValue;
+    private List<Value> arguments = Collections.emptyList();
+
+    public Builder setArguments(List<Value> arguments) {
+      assert arguments != null;
+      this.arguments = arguments;
+      return this;
+    }
+
+    public Builder setSingleArgument(Value argument) {
+      return setArguments(ImmutableList.of(argument));
+    }
+
+    public Builder setMethod(DexMethod method) {
+      this.method = method;
+      return this;
+    }
+
+    public Builder setMethod(DexClassAndMethod method) {
+      return setMethod(method.getReference());
+    }
+
+    public Builder setOutValue(Value outValue) {
+      this.outValue = outValue;
+      return this;
+    }
+
+    @Override
+    public InvokeStatic build() {
+      assert arguments != null;
+      assert method != null;
+      assert method.getArity() == arguments.size();
+      assert outValue == null || !method.getReturnType().isVoidType();
+      InvokeStatic result = new InvokeStatic(method, outValue, arguments);
+      return amend(result);
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

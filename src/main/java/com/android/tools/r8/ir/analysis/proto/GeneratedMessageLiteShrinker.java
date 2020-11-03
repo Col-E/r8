@@ -80,7 +80,7 @@ public class GeneratedMessageLiteShrinker {
     timing.begin("[Proto] Post optimize dynamic methods");
     SortedProgramMethodSet wave = SortedProgramMethodSet.create(this::forEachDynamicMethod);
     OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
-    methodProcessor.forEachWave(
+    methodProcessor.forEachWaveWithExtension(
         (method, methodProcessingId) ->
             converter.processMethod(
                 method,

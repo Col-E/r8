@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -132,6 +133,7 @@ public final class ClassInliner {
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
+      MethodProcessingId methodProcessingId,
       Inliner inliner,
       Supplier<InliningOracle> defaultOracle) {
 
@@ -250,7 +252,8 @@ public final class ClassInliner {
       // If a method was inlined we may be able to remove check-cast instructions because we may
       // have more information about the types of the arguments at the call site. This is
       // particularly important for bridge methods.
-      codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
+      codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
+          code, method, methodProcessor, methodProcessingId);
       // If a method was inlined we may be able to prune additional branches.
       codeRewriter.simplifyControlFlow(code);
       // If a method was inlined we may see more trivial computation/conversion of String.

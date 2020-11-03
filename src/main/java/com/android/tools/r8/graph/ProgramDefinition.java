@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.origin.Origin;
+
 public interface ProgramDefinition {
 
   DexProgramClass getContextClass();
@@ -13,6 +15,8 @@ public interface ProgramDefinition {
   DexType getContextType();
 
   DexDefinition getDefinition();
+
+  Origin getOrigin();
 
   default boolean isProgramClass() {
     return false;

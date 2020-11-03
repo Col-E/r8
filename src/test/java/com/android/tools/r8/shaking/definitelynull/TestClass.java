@@ -7,11 +7,15 @@ public class TestClass {
 
   // Reflectively allocate A such that its instantiation cannot be identified.
   public static A getInstance() throws ReflectiveOperationException {
-    return (A)
-        Class.forName(
-                TestClass.class.getPackage().getName() + (System.nanoTime() > 0 ? ".A" : ".B"))
-            .getConstructor()
-            .newInstance();
+    try {
+      return (A)
+          Class.forName(
+                  TestClass.class.getPackage().getName() + (System.nanoTime() > 0 ? ".A" : ".B"))
+              .getConstructor()
+              .newInstance();
+    } catch (ClassCastException e) {
+      return null;
+    }
   }
 
   public static void main(String[] args) throws ReflectiveOperationException {

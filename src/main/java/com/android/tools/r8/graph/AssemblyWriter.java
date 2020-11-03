@@ -178,7 +178,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
     IRConverter converter = new IRConverter(appInfo, timing, printer);
     OneTimeMethodProcessor methodProcessor =
         OneTimeMethodProcessor.create(method, methodProcessingIdFactory);
-    methodProcessor.forEachWave(
+    methodProcessor.forEachWaveWithExtension(
         (ignore, methodProcesingId) ->
             converter.processMethod(
                 method,

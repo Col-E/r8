@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.IROrdering;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
@@ -32,21 +31,23 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-public class PostMethodProcessor implements MethodProcessor {
+public class PostMethodProcessor extends MethodProcessor {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final Collection<CodeOptimization> defaultCodeOptimizations;
   private final Map<DexEncodedMethod, Collection<CodeOptimization>> methodsMap;
   private final Deque<SortedProgramMethodSet> waves;
-  private SortedProgramMethodSet wave;
   private final ProgramMethodSet processed = ProgramMethodSet.create();
 
   private PostMethodProcessor(
       AppView<AppInfoWithLiveness> appView,
+      Collection<CodeOptimization> defaultCodeOptimizations,
       Map<DexEncodedMethod, Collection<CodeOptimization>> methodsMap,
       CallGraph callGraph) {
     this.appView = appView;
+    this.defaultCodeOptimizations = defaultCodeOptimizations;
     this.methodsMap = methodsMap;
-    this.waves = createWaves(appView, callGraph);
+    this.waves = createWaves(callGraph);
   }
 
   @Override
@@ -145,14 +146,13 @@ public class PostMethodProcessor implements MethodProcessor {
           new PartialCallGraphBuilder(
                   appView, methodsToReprocess.build(appView, appView.graphLens()))
               .build(executorService, timing);
-      return new PostMethodProcessor(appView, optimizationsMap, callGraph);
+      return new PostMethodProcessor(
+          appView, defaultCodeOptimizations, optimizationsMap, callGraph);
     }
   }
 
-  private Deque<SortedProgramMethodSet> createWaves(AppView<?> appView, CallGraph callGraph) {
-    IROrdering shuffle = appView.options().testing.irOrdering;
+  private Deque<SortedProgramMethodSet> createWaves(CallGraph callGraph) {
     Deque<SortedProgramMethodSet> waves = new ArrayDeque<>();
-
     int waveCount = 1;
     while (!callGraph.isEmpty()) {
       SortedProgramMethodSet wave = callGraph.extractRoots();
@@ -161,32 +161,37 @@ public class PostMethodProcessor implements MethodProcessor {
         Log.info(getClass(), "Wave #%d: %d", waveCount++, wave.size());
       }
     }
-
     return waves;
   }
 
   @Override
-  public boolean isProcessedConcurrently(ProgramMethod method) {
-    return wave != null && wave.contains(method);
+  public void scheduleMethodForProcessingAfterCurrentWave(ProgramMethod method) {
+    super.scheduleMethodForProcessingAfterCurrentWave(method);
+    methodsMap.put(method.getDefinition(), defaultCodeOptimizations);
   }
 
-  void forEachWave(OptimizationFeedback feedback, ExecutorService executorService)
+  void forEachWaveWithExtension(OptimizationFeedback feedback, ExecutorService executorService)
       throws ExecutionException {
     while (!waves.isEmpty()) {
       wave = waves.removeFirst();
-      assert wave.size() > 0;
-      ReservedMethodProcessingIds methodProcessingIds =
-          appView.methodProcessingIdFactory().reserveIds(wave);
-      ThreadUtils.processItems(
-          wave,
-          (method, index) -> {
-            Collection<CodeOptimization> codeOptimizations = methodsMap.get(method.getDefinition());
-            assert codeOptimizations != null && !codeOptimizations.isEmpty();
-            forEachMethod(
-                method, codeOptimizations, feedback, methodProcessingIds.get(method, index));
-          },
-          executorService);
-      processed.addAll(wave);
+      assert !wave.isEmpty();
+      assert waveExtension.isEmpty();
+      do {
+        ReservedMethodProcessingIds methodProcessingIds =
+            appView.methodProcessingIdFactory().reserveIds(wave);
+        ThreadUtils.processItems(
+            wave,
+            (method, index) -> {
+              Collection<CodeOptimization> codeOptimizations =
+                  methodsMap.get(method.getDefinition());
+              assert codeOptimizations != null && !codeOptimizations.isEmpty();
+              forEachMethod(
+                  method, codeOptimizations, feedback, methodProcessingIds.get(method, index));
+            },
+            executorService);
+        processed.addAll(wave);
+        prepareForWaveExtensionProcessing();
+      } while (!wave.isEmpty());
     }
   }
 

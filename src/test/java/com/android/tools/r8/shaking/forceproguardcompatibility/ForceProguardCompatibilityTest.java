@@ -67,7 +67,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     this.forceProguardCompatibility = forceProguardCompatibility;
   }
 
-  private void test(Class mainClass, Class mentionedClass) throws Exception {
+  private void test(Class<?> mainClass, Class<?> mentionedClass) throws Exception {
     CodeInspector inspector =
         testForR8Compat(parameters.getBackend(), forceProguardCompatibility)
             .noMinification()
@@ -96,9 +96,9 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
   private void runAnnotationsTest(boolean keepAnnotations) throws Exception {
     // Add application classes including the annotation class.
-    Class mainClass = TestMain.class;
-    Class mentionedClassWithAnnotations = TestMain.MentionedClassWithAnnotation.class;
-    Class annotationClass = TestAnnotation.class;
+    Class<?> mainClass = TestMain.class;
+    Class<?> mentionedClassWithAnnotations = TestMain.MentionedClassWithAnnotation.class;
+    Class<?> annotationClass = TestAnnotation.class;
 
     CodeInspector inspector =
         testForR8Compat(parameters.getBackend(), forceProguardCompatibility)
@@ -173,13 +173,14 @@ public class ForceProguardCompatibilityTest extends TestBase {
     runDefaultConstructorTest(TestClassWithoutDefaultConstructor.class, false);
   }
 
-  public void testCheckCast(Class mainClass, Class instantiatedClass, boolean containsCheckCast)
-      throws Exception {
-    List<String> proguardConfig = ImmutableList.of(
-        "-keep class " + mainClass.getCanonicalName() + " {",
-        "  public static void main(java.lang.String[]);",
-        "}",
-        "-dontobfuscate");
+  public void testCheckCast(
+      Class<?> mainClass, Class<?> instantiatedClass, boolean containsCheckCast) throws Exception {
+    List<String> proguardConfig =
+        ImmutableList.of(
+            "-keep class " + mainClass.getTypeName() + " {",
+            "  public static void main(java.lang.String[]);",
+            "}",
+            "-dontobfuscate");
 
     CodeInspector inspector =
         testForR8Compat(parameters.getBackend(), forceProguardCompatibility)
@@ -191,7 +192,6 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
     assertTrue(inspector.clazz(mainClass).isPresent());
     ClassSubject clazz = inspector.clazz(instantiatedClass);
-    assertEquals(containsCheckCast, clazz.isPresent());
     assertEquals(containsCheckCast, clazz.isPresent());
     if (clazz.isPresent()) {
       assertEquals(forceProguardCompatibility && containsCheckCast, !clazz.isAbstract());
@@ -212,15 +212,18 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
   @Test
   public void checkCastTest() throws Exception {
-    testCheckCast(TestMainWithCheckCast.class, TestClassWithDefaultConstructor.class, true);
+    testCheckCast(
+        TestMainWithCheckCast.class,
+        TestClassWithDefaultConstructor.class,
+        forceProguardCompatibility || parameters.isCfRuntime());
     testCheckCast(TestMainWithoutCheckCast.class, TestClassWithDefaultConstructor.class, false);
   }
 
   public void testClassForName(boolean allowObfuscation) throws Exception {
-    Class mainClass = TestMainWithClassForName.class;
-    Class forNameClass1 = TestClassWithDefaultConstructor.class;
-    Class forNameClass2 = TestClassWithoutDefaultConstructor.class;
-    List<Class> forNameClasses = ImmutableList.of(forNameClass1, forNameClass2);
+    Class<?> mainClass = TestMainWithClassForName.class;
+    Class<?> forNameClass1 = TestClassWithDefaultConstructor.class;
+    Class<?> forNameClass2 = TestClassWithoutDefaultConstructor.class;
+    List<Class<?>> forNameClasses = ImmutableList.of(forNameClass1, forNameClass2);
     ImmutableList.Builder<String> proguardConfigurationBuilder = ImmutableList.builder();
     proguardConfigurationBuilder.add(
         "-keep class " + mainClass.getCanonicalName() + " {",
@@ -259,7 +262,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       CodeInspector proguardedInspector = new CodeInspector(readJar(proguardedJar), proguardMapFile);
       assertEquals(3, proguardedInspector.allClasses().size());
       assertTrue(proguardedInspector.clazz(mainClass).isPresent());
-      for (Class clazz : ImmutableList.of(forNameClass1, forNameClass2)) {
+      for (Class<?> clazz : ImmutableList.of(forNameClass1, forNameClass2)) {
         assertTrue(proguardedInspector.clazz(clazz).isPresent());
         assertEquals(allowObfuscation, proguardedInspector.clazz(clazz).isRenamed());
       }
@@ -273,8 +276,8 @@ public class ForceProguardCompatibilityTest extends TestBase {
   }
 
   public void testClassGetMembers(boolean allowObfuscation) throws Exception {
-    Class mainClass = TestMainWithGetMembers.class;
-    Class withMemberClass = TestClassWithMembers.class;
+    Class<?> mainClass = TestMainWithGetMembers.class;
+    Class<?> withMemberClass = TestClassWithMembers.class;
 
     ImmutableList.Builder<String> proguardConfigurationBuilder = ImmutableList.builder();
     proguardConfigurationBuilder.add(
@@ -338,8 +341,8 @@ public class ForceProguardCompatibilityTest extends TestBase {
   }
 
   public void testAtomicFieldUpdaters(boolean allowObfuscation) throws Exception {
-    Class mainClass = TestMainWithAtomicFieldUpdater.class;
-    Class withVolatileFields = TestClassWithVolatileFields.class;
+    Class<?> mainClass = TestMainWithAtomicFieldUpdater.class;
+    Class<?> withVolatileFields = TestClassWithVolatileFields.class;
 
     ImmutableList.Builder<String> proguardConfigurationBuilder = ImmutableList.builder();
     proguardConfigurationBuilder.add(
@@ -469,7 +472,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
       assert parameters.getApiLevel().getLevel() >= AndroidApiLevel.O.getLevel();
     }
 
-    Class mainClass = TestClass.class;
+    Class<?> mainClass = TestClass.class;
     R8TestCompileResult compileResult =
         testForR8Compat(parameters.getBackend(), forceProguardCompatibility)
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))

@@ -29,7 +29,7 @@ import java.util.function.Consumer;
  * A {@link MethodProcessor} that processes methods in the whole program in a bottom-up manner,
  * i.e., from leaves to roots.
  */
-class PrimaryMethodProcessor implements MethodProcessor {
+class PrimaryMethodProcessor extends MethodProcessor {
 
   interface WaveStartAction {
 
@@ -40,7 +40,6 @@ class PrimaryMethodProcessor implements MethodProcessor {
   private final MethodProcessingId.Factory methodProcessingIdFactory;
   private final PostMethodProcessor.Builder postMethodProcessorBuilder;
   private final Deque<SortedProgramMethodSet> waves;
-  private SortedProgramMethodSet wave;
 
   private PrimaryMethodProcessor(
       AppView<AppInfoWithLiveness> appView,
@@ -105,11 +104,6 @@ class PrimaryMethodProcessor implements MethodProcessor {
     return waves;
   }
 
-  @Override
-  public boolean isProcessedConcurrently(ProgramMethod method) {
-    return wave != null && wave.contains(method);
-  }
-
   /**
    * Applies the given method to all leaf nodes of the graph.
    *
@@ -127,20 +121,25 @@ class PrimaryMethodProcessor implements MethodProcessor {
         timing.beginMerger("primary-processor", ThreadUtils.getNumberOfThreads(executorService));
     while (!waves.isEmpty()) {
       wave = waves.removeFirst();
-      assert wave.size() > 0;
-      waveStartAction.notifyWaveStart(wave);
-      ReservedMethodProcessingIds methodProcessingIds = methodProcessingIdFactory.reserveIds(wave);
-      Collection<Timing> timings =
-          ThreadUtils.processItemsWithResults(
-              wave,
-              (method, index) -> {
-                Timing time = consumer.apply(method, methodProcessingIds.get(method, index));
-                time.end();
-                return time;
-              },
-              executorService);
-      merger.add(timings);
-      waveDone.accept(wave);
+      assert !wave.isEmpty();
+      assert waveExtension.isEmpty();
+      do {
+        waveStartAction.notifyWaveStart(wave);
+        ReservedMethodProcessingIds methodProcessingIds =
+            methodProcessingIdFactory.reserveIds(wave);
+        Collection<Timing> timings =
+            ThreadUtils.processItemsWithResults(
+                wave,
+                (method, index) -> {
+                  Timing time = consumer.apply(method, methodProcessingIds.get(method, index));
+                  time.end();
+                  return time;
+                },
+                executorService);
+        merger.add(timings);
+        waveDone.accept(wave);
+        prepareForWaveExtensionProcessing();
+      } while (!wave.isEmpty());
     }
     merger.end();
   }

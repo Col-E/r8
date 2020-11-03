@@ -4,30 +4,49 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 
-public interface MethodProcessor {
+public abstract class MethodProcessor {
 
-  enum Phase {
+  public enum Phase {
     ONE_TIME,
     PRIMARY,
     POST
   }
 
-  Phase getPhase();
+  protected SortedProgramMethodSet wave;
+  protected SortedProgramMethodSet waveExtension = SortedProgramMethodSet.createConcurrent();
 
-  boolean shouldApplyCodeRewritings(ProgramMethod method);
+  public abstract Phase getPhase();
 
-  default boolean isPrimary() {
+  public abstract boolean shouldApplyCodeRewritings(ProgramMethod method);
+
+  public boolean isPrimary() {
     return getPhase() == Phase.PRIMARY;
   }
 
-  default boolean isPost() {
+  public boolean isPost() {
     return getPhase() == Phase.POST;
   }
 
-  default CallSiteInformation getCallSiteInformation() {
+  public CallSiteInformation getCallSiteInformation() {
     return CallSiteInformation.empty();
   }
 
-  boolean isProcessedConcurrently(ProgramMethod method);
+  public boolean isProcessedConcurrently(ProgramMethod method) {
+    return wave != null && wave.contains(method);
+  }
+
+  public void scheduleMethodForProcessingAfterCurrentWave(ProgramMethod method) {
+    waveExtension.add(method);
+  }
+
+  protected final void prepareForWaveExtensionProcessing() {
+    if (waveExtension.isEmpty()) {
+      wave = SortedProgramMethodSet.empty();
+    } else {
+      wave = waveExtension;
+      waveExtension = SortedProgramMethodSet.createConcurrent();
+    }
+  }
 }

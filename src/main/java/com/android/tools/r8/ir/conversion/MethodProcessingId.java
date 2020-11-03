@@ -25,10 +25,20 @@ public class MethodProcessingId {
     return id;
   }
 
+  public String getFullyQualifiedIdAndIncrement() {
+    String id = getFullyQualifiedId();
+    secondaryId++;
+    return id;
+  }
+
   public String getId() {
     if (secondaryId == 1) {
       return Integer.toString(primaryId);
     }
+    return getFullyQualifiedId();
+  }
+
+  public String getFullyQualifiedId() {
     return primaryId + "$" + secondaryId;
   }
 

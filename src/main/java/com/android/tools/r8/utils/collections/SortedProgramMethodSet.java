@@ -9,17 +9,23 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.ForEachable;
 import com.android.tools.r8.utils.ForEachableUtils;
 import java.util.Comparator;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Supplier;
 
 public class SortedProgramMethodSet extends ProgramMethodSet {
 
-  private SortedProgramMethodSet(Supplier<TreeMap<DexMethod, ProgramMethod>> backingFactory) {
+  private static final SortedProgramMethodSet EMPTY =
+      new SortedProgramMethodSet(() -> new TreeMap<>(ComparatorUtils.unreachableComparator()));
+
+  private SortedProgramMethodSet(Supplier<SortedMap<DexMethod, ProgramMethod>> backingFactory) {
     super(backingFactory);
   }
 
@@ -38,6 +44,14 @@ public class SortedProgramMethodSet extends ProgramMethodSet {
         new SortedProgramMethodSet(() -> new TreeMap<>(DexMethod::slowCompareTo));
     methods.forEach(result::add);
     return result;
+  }
+
+  public static SortedProgramMethodSet createConcurrent() {
+    return new SortedProgramMethodSet(() -> new ConcurrentSkipListMap<>(DexMethod::slowCompareTo));
+  }
+
+  public static SortedProgramMethodSet empty() {
+    return EMPTY;
   }
 
   @Override

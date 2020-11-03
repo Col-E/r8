@@ -728,7 +728,7 @@ public class IRConverter {
         postMethodProcessorBuilder.build(appView.withLiveness(), executorService, timing);
     if (postMethodProcessor != null) {
       assert !options.debug;
-      postMethodProcessor.forEachWave(feedback, executorService);
+      postMethodProcessor.forEachWaveWithExtension(feedback, executorService);
       feedback.updateVisibleOptimizationInfo();
       assert graphLensForIR == appView.graphLens();
     }
@@ -1033,7 +1033,7 @@ public class IRConverter {
       // Process the generated method, but don't apply any outlining.
       OneTimeMethodProcessor methodProcessor =
           OneTimeMethodProcessor.create(synthesizedMethod, appView);
-      methodProcessor.forEachWave(
+      methodProcessor.forEachWaveWithExtension(
           (method, methodProcessingId) ->
               processMethod(
                   method, delayedOptimizationFeedback, methodProcessor, methodProcessingId));
@@ -1044,7 +1044,7 @@ public class IRConverter {
       SortedProgramMethodSet wave, ExecutorService executorService) throws ExecutionException {
     if (!wave.isEmpty()) {
       OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
-      methodProcessor.forEachWave(
+      methodProcessor.forEachWaveWithExtension(
           (method, methodProcessingId) ->
               processMethod(
                   method, delayedOptimizationFeedback, methodProcessor, methodProcessingId),
@@ -1342,7 +1342,8 @@ public class IRConverter {
     assert code.verifyTypes(appView);
 
     timing.begin("Remove trivial type checks/casts");
-    codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
+    codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
+        code, context, methodProcessor, methodProcessingId);
     timing.end();
 
     if (enumValueOptimizer != null) {
@@ -1388,7 +1389,8 @@ public class IRConverter {
     timing.begin("Simplify control flow");
     if (codeRewriter.simplifyControlFlow(code)) {
       timing.begin("Remove trivial type checks/casts");
-      codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
+      codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
+          code, context, methodProcessor, methodProcessingId);
       timing.end();
     }
     timing.end();
@@ -1466,6 +1468,7 @@ public class IRConverter {
           code,
           feedback,
           methodProcessor,
+          methodProcessingId,
           inliner,
           Suppliers.memoize(
               () ->
