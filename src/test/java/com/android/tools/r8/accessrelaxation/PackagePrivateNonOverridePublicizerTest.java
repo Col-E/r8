@@ -5,7 +5,6 @@
 package com.android.tools.r8.accessrelaxation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -14,7 +13,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.resolution.virtualtargets.package_a.ViewModel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -50,7 +48,7 @@ public class PackagePrivateNonOverridePublicizerTest extends TestBase {
     testForRuntime(parameters)
         .addProgramClasses(ViewModel.class, SubViewModel.class, Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::assertSuccessOutput);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
@@ -64,7 +62,7 @@ public class PackagePrivateNonOverridePublicizerTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .applyIf(allowAccessModification, TestShrinkerBuilder::allowAccessModification)
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::assertSuccessOutput)
+        .assertSuccessWithOutputLines(EXPECTED)
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(ViewModel.class);
@@ -76,14 +74,6 @@ public class PackagePrivateNonOverridePublicizerTest extends TestBase {
                 assertThat(clazz, isPresent());
               }
             });
-  }
-
-  private void assertSuccessOutput(TestRunResult<?> result) {
-    if (parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isDalvik()) {
-      result.assertFailureWithErrorThatMatches(containsString("overrides final"));
-    } else {
-      result.assertSuccessWithOutputLines(EXPECTED);
-    }
   }
 
   @NeverClassInline
