@@ -32,11 +32,17 @@ public class Sub2 extends Base implements Itf2 {
     return bar2(2);
   }
 
+  @NeverInline
+  private String foo3() {
+    return "Sub2::foo3()";
+  }
+
   @Override
   public void dump() {
     System.out.println(foo2());
     System.out.println(foo2(0));
     System.out.println(bar2(0));
+    System.out.println(foo3());
     try {
       bar1(0);
     } catch (AssertionError e) {

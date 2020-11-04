@@ -139,12 +139,15 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             "Base::foo()",
             "Base::foo1()",
             "Base::foo2()",
+            "Base::foo3()",
             "Sub1::foo1()",
             "Itf1::foo1(0) >> Sub1::foo1()",
             "Sub1::bar1(0)",
+            "Sub1::foo3()",
             "Sub2::foo2()",
             "Itf2::foo2(0) >> Sub2::foo2()",
-            "Sub2::bar2(0)");
+            "Sub2::bar2(0)",
+            "Sub2::foo3()");
     Class<?> mainClass = TestMain.class;
     if (parameters.isCfRuntime()) {
       // Only run JVM reference on CF runtimes.

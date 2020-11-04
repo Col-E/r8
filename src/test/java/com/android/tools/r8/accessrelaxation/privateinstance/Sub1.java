@@ -23,11 +23,17 @@ public class Sub1 extends Base implements Itf1 {
     return bar1(1);
   }
 
+  @NeverInline
+  private String foo3() {
+    return "Sub1::foo3()";
+  }
+
   @Override
   public void dump() {
     System.out.println(foo1());
     System.out.println(foo1(0));
     System.out.println(bar1(0));
+    System.out.println(foo3());
   }
 
 }

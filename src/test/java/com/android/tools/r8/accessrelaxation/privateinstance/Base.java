@@ -38,10 +38,17 @@ public class Base {
     return foo2();
   }
 
+  @NeverPropagateValue
+  @NeverInline
+  private String foo3() {
+    return "Base::foo3()";
+  }
+
   @NeverInline
   public void dump() {
     System.out.println(foo());
     System.out.println(foo1());
     System.out.println(foo2());
+    System.out.println(foo3());
   }
 }
