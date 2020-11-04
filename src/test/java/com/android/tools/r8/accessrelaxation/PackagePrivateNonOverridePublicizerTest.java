@@ -4,33 +4,45 @@
 
 package com.android.tools.r8.accessrelaxation;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.resolution.virtualtargets.package_a.ViewModel;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class PackagePrivateOverridePublicizerTest extends TestBase {
+public class PackagePrivateNonOverridePublicizerTest extends TestBase {
 
   private final TestParameters parameters;
-  private final String[] EXPECTED = new String[] {"SubViewModel.clear()", "ViewModel.clear()"};
+  private final boolean allowAccessModification;
+  private final String[] EXPECTED =
+      new String[] {"SubViewModel.clearNotOverriding()", "ViewModel.clear()"};
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameters(name = "{0}, allowAccessModification: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public PackagePrivateOverridePublicizerTest(TestParameters parameters) {
+  public PackagePrivateNonOverridePublicizerTest(
+      TestParameters parameters, boolean allowAccessModification) {
     this.parameters = parameters;
+    this.allowAccessModification = allowAccessModification;
   }
 
   @Test
@@ -49,9 +61,21 @@ public class PackagePrivateOverridePublicizerTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
-        .allowAccessModification()
+        .enableNoVerticalClassMergingAnnotations()
+        .applyIf(allowAccessModification, TestShrinkerBuilder::allowAccessModification)
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::assertSuccessOutput);
+        .apply(this::assertSuccessOutput)
+        .inspect(
+            inspector -> {
+              ClassSubject clazz = inspector.clazz(ViewModel.class);
+              // ViewModel.clear() is package private. When we publicize the method, we can inline
+              // the clearBridge() into Main and thereby remove the ViewModel class entirely.
+              if (allowAccessModification) {
+                assertThat(clazz, not(isPresent()));
+              } else {
+                assertThat(clazz, isPresent());
+              }
+            });
   }
 
   private void assertSuccessOutput(TestRunResult<?> result) {
@@ -63,11 +87,12 @@ public class PackagePrivateOverridePublicizerTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoVerticalClassMerging
   public static class SubViewModel extends ViewModel {
 
     @NeverInline
-    public void clear() {
-      System.out.println("SubViewModel.clear()");
+    public void clearNotOverriding() {
+      System.out.println("SubViewModel.clearNotOverriding()");
     }
   }
 
@@ -75,7 +100,7 @@ public class PackagePrivateOverridePublicizerTest extends TestBase {
 
     public static void main(String[] args) {
       SubViewModel subViewModel = new SubViewModel();
-      subViewModel.clear();
+      subViewModel.clearNotOverriding();
       subViewModel.clearBridge();
     }
   }

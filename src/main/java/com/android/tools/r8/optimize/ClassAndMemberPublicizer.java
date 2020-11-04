@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
@@ -21,12 +22,15 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SubtypingInfo;
+import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLens.PublicizedLensBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
+import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.base.Equivalence.Wrapper;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -159,12 +163,27 @@ public final class ClassAndMemberPublicizer {
       }
     }
 
-    if (!accessFlags.isPrivate() || appView.dexItemFactory().isConstructor(method.getReference())) {
-      // TODO(b/150589374): This should check for dispatch targets or just abandon in
-      //  package-private.
+    if (method.getDefinition().isInstanceInitializer() || accessFlags.isProtected()) {
       doPublicize(method);
       return false;
     }
+
+    if (accessFlags.isPackagePrivate()) {
+      // If we publicize a package private method we have to ensure there is no overrides of it. We
+      // could potentially publicize a method if it only has package-private overrides, but for know
+      // we just check if it is seen below.
+      // Note that we will not publize private methods if there exists a package-private override,
+      // and there is therefore no need to check the hierarchy above.
+      MemberPool<DexMethod> memberPool = methodPoolCollection.get(method.getHolder());
+      Wrapper<DexMethod> methodKey = MethodSignatureEquivalence.get().wrap(method.getReference());
+      if (memberPool.hasSeenStrictlyBelow(methodKey)) {
+        return false;
+      }
+      doPublicize(method);
+      return false;
+    }
+
+    assert accessFlags.isPrivate();
 
     if (accessFlags.isStatic()) {
       // For private static methods we can just relax the access to public, since
