@@ -99,6 +99,7 @@ public class RootSetBuilder {
   private final Set<DexMethod> neverReprocess = Sets.newIdentityHashSet();
   private final PredicateSet<DexType> alwaysClassInline = new PredicateSet<>();
   private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
+  private final Set<DexType> noUnusedInterfaceRemoval = Sets.newIdentityHashSet();
   private final Set<DexType> noVerticalClassMerging = Sets.newIdentityHashSet();
   private final Set<DexType> noHorizontalClassMerging = Sets.newIdentityHashSet();
   private final Set<DexType> noStaticClassMerging = Sets.newIdentityHashSet();
@@ -246,6 +247,7 @@ public class RootSetBuilder {
         || rule instanceof WhyAreYouNotInliningRule) {
       markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
     } else if (rule instanceof ClassInlineRule
+        || rule instanceof NoUnusedInterfaceRemovalRule
         || rule instanceof NoVerticalClassMergingRule
         || rule instanceof NoHorizontalClassMergingRule
         || rule instanceof NoStaticClassMergingRule
@@ -353,6 +355,7 @@ public class RootSetBuilder {
         neverReprocess,
         alwaysClassInline,
         neverClassInline,
+        noUnusedInterfaceRemoval,
         noVerticalClassMerging,
         noHorizontalClassMerging,
         noStaticClassMerging,
@@ -1238,6 +1241,9 @@ public class RootSetBuilder {
           throw new Unreachable();
       }
       context.markAsUsed();
+    } else if (context instanceof NoUnusedInterfaceRemovalRule) {
+      noUnusedInterfaceRemoval.add(item.asDexClass().type);
+      context.markAsUsed();
     } else if (context instanceof NoVerticalClassMergingRule) {
       noVerticalClassMerging.add(item.asDexClass().type);
       context.markAsUsed();
@@ -1751,6 +1757,7 @@ public class RootSetBuilder {
     public final Set<DexMethod> reprocess;
     public final Set<DexMethod> neverReprocess;
     public final PredicateSet<DexType> alwaysClassInline;
+    public final Set<DexType> noUnusedInterfaceRemoval;
     public final Set<DexType> noVerticalClassMerging;
     public final Set<DexType> noHorizontalClassMerging;
     public final Set<DexType> noStaticClassMerging;
@@ -1778,6 +1785,7 @@ public class RootSetBuilder {
         Set<DexMethod> neverReprocess,
         PredicateSet<DexType> alwaysClassInline,
         Set<DexType> neverClassInline,
+        Set<DexType> noUnusedInterfaceRemoval,
         Set<DexType> noVerticalClassMerging,
         Set<DexType> noHorizontalClassMerging,
         Set<DexType> noStaticClassMerging,
@@ -1812,6 +1820,7 @@ public class RootSetBuilder {
       this.reprocess = reprocess;
       this.neverReprocess = neverReprocess;
       this.alwaysClassInline = alwaysClassInline;
+      this.noUnusedInterfaceRemoval = noUnusedInterfaceRemoval;
       this.noVerticalClassMerging = noVerticalClassMerging;
       this.noHorizontalClassMerging = noHorizontalClassMerging;
       this.noStaticClassMerging = noStaticClassMerging;
@@ -1893,6 +1902,7 @@ public class RootSetBuilder {
     }
 
     public void pruneDeadItems(DexDefinitionSupplier definitions, Enqueuer enqueuer) {
+      pruneDeadReferences(noUnusedInterfaceRemoval, definitions, enqueuer);
       pruneDeadReferences(noVerticalClassMerging, definitions, enqueuer);
       pruneDeadReferences(noHorizontalClassMerging, definitions, enqueuer);
       pruneDeadReferences(noStaticClassMerging, definitions, enqueuer);

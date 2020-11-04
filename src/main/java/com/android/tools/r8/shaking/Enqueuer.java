@@ -1723,7 +1723,9 @@ public class Enqueuer {
       return;
     }
 
-    if (!appView.options().enableUnusedInterfaceRemoval || mode.isTracingMainDex()) {
+    if (!appView.options().enableUnusedInterfaceRemoval
+        || rootSet.noUnusedInterfaceRemoval.contains(type)
+        || mode.isTracingMainDex()) {
       markTypeAsLive(clazz, graphReporter.reportClassReferencedFrom(clazz, implementer));
     } else {
       if (liveTypes.contains(clazz)) {
@@ -3181,6 +3183,7 @@ public class Enqueuer {
             rootSet.neverReprocess,
             rootSet.alwaysClassInline,
             rootSet.neverClassInline,
+            rootSet.noUnusedInterfaceRemoval,
             rootSet.noVerticalClassMerging,
             rootSet.noHorizontalClassMerging,
             rootSet.noStaticClassMerging,

@@ -469,6 +469,11 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
+        if (acceptString(NoUnusedInterfaceRemovalRule.RULE_NAME)) {
+          ProguardConfigurationRule rule = parseNoUnusedInterfaceRemovalRule(optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
         if (acceptString(NoVerticalClassMergingRule.RULE_NAME)) {
           ProguardConfigurationRule rule = parseNoVerticalClassMergingRule(optionStart);
           configurationBuilder.addRule(rule);
@@ -744,6 +749,17 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       ClassInlineRule.Builder keepRuleBuilder =
           ClassInlineRule.builder().setOrigin(origin).setStart(start).setType(type);
+      parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
+      return keepRuleBuilder.build();
+    }
+
+    private NoUnusedInterfaceRemovalRule parseNoUnusedInterfaceRemovalRule(Position start)
+        throws ProguardRuleParserException {
+      NoUnusedInterfaceRemovalRule.Builder keepRuleBuilder =
+          NoUnusedInterfaceRemovalRule.builder().setOrigin(origin).setStart(start);
       parseClassSpec(keepRuleBuilder, false);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));

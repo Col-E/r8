@@ -18,6 +18,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
 import com.android.tools.r8.shaking.NoStaticClassMergingRule;
+import com.android.tools.r8.shaking.NoUnusedInterfaceRemovalRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
@@ -60,6 +61,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   private boolean enableConstantArgumentAnnotations = false;
   private boolean enableInliningAnnotations = false;
   private boolean enableMemberValuePropagationAnnotations = false;
+  private boolean enableNoUnusedInterfaceRemovalAnnotations = false;
   private boolean enableNoVerticalClassMergingAnnotations = false;
   private boolean enableNoHorizontalClassMergingAnnotations = false;
   private boolean enableNoStaticClassMergingAnnotations = false;
@@ -83,6 +85,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     if (enableConstantArgumentAnnotations
         || enableInliningAnnotations
         || enableMemberValuePropagationAnnotations
+        || enableNoUnusedInterfaceRemovalAnnotations
         || enableNoVerticalClassMergingAnnotations
         || enableNoHorizontalClassMergingAnnotations
         || enableNoStaticClassMergingAnnotations
@@ -423,6 +426,15 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     sb.append(matchInterface.getTypeName());
     sb.append(" class *");
     addInternalKeepRules(sb.toString());
+  }
+
+  public T enableNoUnusedInterfaceRemovalAnnotations() {
+    if (!enableNoUnusedInterfaceRemovalAnnotations) {
+      enableNoUnusedInterfaceRemovalAnnotations = true;
+      addInternalMatchInterfaceRule(
+          NoUnusedInterfaceRemovalRule.RULE_NAME, NoUnusedInterfaceRemoval.class);
+    }
+    return self();
   }
 
   public T enableNoVerticalClassMergingAnnotations() {

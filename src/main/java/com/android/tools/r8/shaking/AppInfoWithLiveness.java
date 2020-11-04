@@ -161,6 +161,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   /** All types that *must* never be inlined due to a configuration directive (testing only). */
   public final Set<DexType> neverClassInline;
 
+  private final Set<DexType> noUnusedInterfaceRemoval;
   private final Set<DexType> noVerticalClassMerging;
   private final Set<DexType> noHorizontalClassMerging;
   private final Set<DexType> noStaticClassMerging;
@@ -228,6 +229,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> neverReprocess,
       PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverClassInline,
+      Set<DexType> noUnusedInterfaceRemoval,
       Set<DexType> noVerticalClassMerging,
       Set<DexType> noHorizontalClassMerging,
       Set<DexType> noStaticClassMerging,
@@ -267,6 +269,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.neverReprocess = neverReprocess;
     this.alwaysClassInline = alwaysClassInline;
     this.neverClassInline = neverClassInline;
+    this.noUnusedInterfaceRemoval = noUnusedInterfaceRemoval;
     this.noVerticalClassMerging = noVerticalClassMerging;
     this.noHorizontalClassMerging = noHorizontalClassMerging;
     this.noStaticClassMerging = noStaticClassMerging;
@@ -309,6 +312,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> neverReprocess,
       PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverClassInline,
+      Set<DexType> noUnusedInterfaceRemoval,
       Set<DexType> noVerticalClassMerging,
       Set<DexType> noHorizontalClassMerging,
       Set<DexType> noStaticClassMerging,
@@ -351,6 +355,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.neverReprocess = neverReprocess;
     this.alwaysClassInline = alwaysClassInline;
     this.neverClassInline = neverClassInline;
+    this.noUnusedInterfaceRemoval = noUnusedInterfaceRemoval;
     this.noVerticalClassMerging = noVerticalClassMerging;
     this.noHorizontalClassMerging = noHorizontalClassMerging;
     this.noStaticClassMerging = noStaticClassMerging;
@@ -398,6 +403,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.neverReprocess,
         previous.alwaysClassInline,
         previous.neverClassInline,
+        previous.noUnusedInterfaceRemoval,
         previous.noVerticalClassMerging,
         previous.noHorizontalClassMerging,
         previous.noStaticClassMerging,
@@ -449,6 +455,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.neverReprocess,
         previous.alwaysClassInline,
         previous.neverClassInline,
+        previous.noUnusedInterfaceRemoval,
         previous.noVerticalClassMerging,
         previous.noHorizontalClassMerging,
         previous.noStaticClassMerging,
@@ -537,6 +544,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.neverReprocess = previous.neverReprocess;
     this.alwaysClassInline = previous.alwaysClassInline;
     this.neverClassInline = previous.neverClassInline;
+    this.noUnusedInterfaceRemoval = previous.noUnusedInterfaceRemoval;
     this.noVerticalClassMerging = previous.noVerticalClassMerging;
     this.noHorizontalClassMerging = previous.noHorizontalClassMerging;
     this.noStaticClassMerging = previous.noStaticClassMerging;
@@ -1035,6 +1043,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteMethods(neverReprocess),
         alwaysClassInline.rewriteItems(lens::lookupType),
         lens.rewriteTypes(neverClassInline),
+        lens.rewriteTypes(noUnusedInterfaceRemoval),
         lens.rewriteTypes(noVerticalClassMerging),
         lens.rewriteTypes(noHorizontalClassMerging),
         lens.rewriteTypes(noStaticClassMerging),
@@ -1403,6 +1412,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             },
             this)
         .shouldBreak();
+  }
+
+  /** All unused interface types that *must* never be pruned. */
+  public Set<DexType> getNoUnusedInterfaceRemovalSet() {
+    return noUnusedInterfaceRemoval;
   }
 
   /**
