@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -98,13 +97,10 @@ public class SyntheticFinalization {
         lookupSyntheticMethodDefinitions(application);
 
     Collection<List<SyntheticMethodDefinition>> potentialEquivalences =
-        // Don't share synthetics in intermediate mode builds.
-        options.intermediate
-            ? ListUtils.map(methodDefinitions, Collections::singletonList)
-            : computePotentialEquivalences(methodDefinitions);
+        computePotentialEquivalences(methodDefinitions, options.intermediate);
 
     Map<DexType, EquivalenceGroup<SyntheticMethodDefinition>> equivalences =
-        computeActualEquivalences(potentialEquivalences, options.itemFactory);
+        computeActualEquivalences(potentialEquivalences, options.intermediate, options.itemFactory);
 
     Builder lensBuilder = NestedGraphLens.builder();
     List<DexProgramClass> newProgramClasses = new ArrayList<>();
@@ -336,11 +332,11 @@ public class SyntheticFinalization {
 
   private static <T extends SyntheticDefinition & Comparable<T>>
       Map<DexType, EquivalenceGroup<T>> computeActualEquivalences(
-          Collection<List<T>> potentialEquivalences, DexItemFactory factory) {
+          Collection<List<T>> potentialEquivalences, boolean intermediate, DexItemFactory factory) {
     Map<DexType, List<EquivalenceGroup<T>>> groupsPerContext = new IdentityHashMap<>();
     potentialEquivalences.forEach(
         members -> {
-          List<List<T>> groups = groupEquivalent(members);
+          List<List<T>> groups = groupEquivalent(members, intermediate);
           for (List<T> group : groups) {
             T representative = findDeterministicRepresentative(group);
             // The representative is required to be the first element of the group.
@@ -360,6 +356,9 @@ public class SyntheticFinalization {
           groups.sort(EquivalenceGroup::compareTo);
           for (int i = 0; i < groups.size(); i++) {
             EquivalenceGroup<T> group = groups.get(i);
+            // Two equivalence groups in same context type must be distinct otherwise the assignment
+            // of the synthetic name will be non-deterministic between the two.
+            assert i == 0 || checkGroupsAreDistict(groups.get(i - 1), group);
             DexType representativeType = createExternalType(context, i, factory);
             equivalences.put(representativeType, group);
           }
@@ -368,13 +367,13 @@ public class SyntheticFinalization {
   }
 
   private static <T extends SyntheticDefinition & Comparable<T>> List<List<T>> groupEquivalent(
-      List<T> potentialEquivalence) {
+      List<T> potentialEquivalence, boolean intermediate) {
     List<List<T>> groups = new ArrayList<>();
     // Each other member is in a shared group if it is actually equivalent to the first member.
     for (T synthetic : potentialEquivalence) {
       boolean requireNewGroup = true;
       for (List<T> group : groups) {
-        if (synthetic.isEquivalentTo(group.get(0))) {
+        if (synthetic.isEquivalentTo(group.get(0), intermediate)) {
           requireNewGroup = false;
           group.add(synthetic);
           break;
@@ -387,6 +386,12 @@ public class SyntheticFinalization {
       }
     }
     return groups;
+  }
+
+  private static <T extends SyntheticDefinition & Comparable<T>> boolean checkGroupsAreDistict(
+      EquivalenceGroup<T> g1, EquivalenceGroup<T> g2) {
+    assert g1.compareTo(g2) != 0;
+    return true;
   }
 
   private static <T extends SyntheticDefinition & Comparable<T>> T findDeterministicRepresentative(
@@ -412,10 +417,10 @@ public class SyntheticFinalization {
   }
 
   private static <T extends SyntheticDefinition> Collection<List<T>> computePotentialEquivalences(
-      List<T> definitions) {
+      List<T> definitions, boolean intermediate) {
     Map<HashCode, List<T>> equivalences = new HashMap<>(definitions.size());
     for (T definition : definitions) {
-      HashCode hash = definition.computeHash();
+      HashCode hash = definition.computeHash(intermediate);
       equivalences.computeIfAbsent(hash, k -> new ArrayList<>()).add(definition);
     }
     return equivalences.values();

@@ -41,15 +41,27 @@ class SyntheticMethodDefinition extends SyntheticDefinition
   }
 
   @Override
-  HashCode computeHash() {
+  HashCode computeHash(boolean intermediate) {
     Hasher hasher = Hashing.sha256().newHasher();
+    if (intermediate) {
+      // If in intermediate mode, include the context type as sharing is restricted to within a
+      // single context.
+      hasher.putInt(getContext().getSynthesizingContextType().hashCode());
+    }
     method.getDefinition().hashSyntheticContent(hasher);
     return hasher.hash();
   }
 
   @Override
-  boolean isEquivalentTo(SyntheticDefinition other) {
+  boolean isEquivalentTo(SyntheticDefinition other, boolean intermediate) {
     if (!(other instanceof SyntheticMethodDefinition)) {
+      return false;
+    }
+    if (intermediate
+        && getContext().getSynthesizingContextType()
+            != other.getContext().getSynthesizingContextType()) {
+      // If in intermediate mode, only synthetics within the same context should be considered
+      // equal.
       return false;
     }
     SyntheticMethodDefinition o = (SyntheticMethodDefinition) other;

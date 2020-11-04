@@ -26,7 +26,7 @@ abstract class SyntheticDefinition {
 
   abstract DexProgramClass getHolder();
 
-  abstract HashCode computeHash();
+  abstract HashCode computeHash(boolean intermediate);
 
-  abstract boolean isEquivalentTo(SyntheticDefinition other);
+  abstract boolean isEquivalentTo(SyntheticDefinition other, boolean intermediate);
 }

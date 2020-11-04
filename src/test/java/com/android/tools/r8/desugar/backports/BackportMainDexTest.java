@@ -147,8 +147,9 @@ public class BackportMainDexTest extends TestBase {
             .writeToZip();
     GenerateMainDexListRunResult mainDexListFromDex =
         traceMainDex(Collections.emptyList(), Collections.singleton(out));
-    // Compiling in intermediate will not share the synthetics so there is one per call site.
-    assertEquals(MAIN_DEX_LIST_CLASSES.size() + 6, mainDexListFromDex.getMainDexList().size());
+    // Compiling in intermediate will share the synthetics within the context types so there is one
+    // synthetic class per backport in User2: Character.compare and Integer.compare.
+    assertEquals(MAIN_DEX_LIST_CLASSES.size() + 2, mainDexListFromDex.getMainDexList().size());
   }
 
   @Test
