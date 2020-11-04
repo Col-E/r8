@@ -1934,7 +1934,7 @@ public class DexItemFactory {
 
   private DexType createStaticallyKnownType(Class<?> clazz) {
     return createStaticallyKnownType(
-        createString(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName())));
+        createString(DescriptorUtils.javaTypeToDescriptor(clazz.getName())));
   }
 
   private DexType createStaticallyKnownType(DexString descriptor) {
