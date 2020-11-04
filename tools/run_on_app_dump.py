@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-# Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
-# for details. All rights reserved. Use of this source code is governed by a
-# BSD-style license that can be found in the LICENSE file.
+#  Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
+#  for details. All rights reserved. Use of this source code is governed by a
+#  BSD-style license that can be found in the LICENSE file.
 
+import adb
+import apk_masseur
 import compiledump
 import gradle
 import jdk
@@ -22,7 +24,6 @@ class AttrDict(dict):
   def __getattr__(self, name):
     return self.get(name, None)
 
-
 # To generate the files for a new app, navigate to the app source folder and
 # run:
 # ./gradlew clean :app:assembleRelease -Dcom.android.tools.r8.dumpinputtodirectory=<path>
@@ -38,6 +39,7 @@ class App(object):
       'id': None,
       'name': None,
       'dump_app': None,
+      'apk_app': None,
       'skip': False,
       'url': None,  # url is not used but nice to have for updating apps
       'revision': None,
@@ -54,6 +56,7 @@ APPS = [
     'id': 'com.example.applymapping',
     'name': 'applymapping',
     'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release.apk',
     'url': 'https://github.com/mkj-gram/applymapping',
     'revision': 'e3ae14b8c16fa4718e5dea8f7ad00937701b3c48',
     'folder': 'applymapping',
@@ -63,6 +66,14 @@ APPS = [
 
 def download_app(app_sha):
   utils.DownloadFromGoogleCloudStorage(app_sha)
+
+
+def is_logging_enabled_for(app, options):
+  if options.no_logging:
+    return False
+  if options.app_logging_filter and app.name not in options.app_logging_filter:
+    return False
+  return True
 
 
 def is_minified_r8(shrinker):
@@ -164,7 +175,6 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
           and not is_last_build(compilation_step, compilation_steps)):
         result['recompilation_status'] = 'failed'
         warn('Failed to build {} with {}'.format(app.name, shrinker))
-        results.append(result)
         break
       recomp_jar = new_recomp_jar
     except Exception as e:
@@ -174,7 +184,25 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
       result['build_status'] = 'failed'
       status = 'failed'
 
+    if result.get('build_status') == 'success' and options.monkey:
+      # Make a copy of the given APK, move the newly generated dex files into the
+      # copied APK, and then sign the APK.
+      original_app_apk = os.path.join(app_dir, app.apk_app)
+      app_apk = os.path.join(temp_dir,
+                             "{}_{}.apk".format(app.id, compilation_step))
+      apk_masseur.masseur(
+        original_app_apk, dex=app_jar, resources='META-INF/services/*',
+        out=app_apk,
+        quiet=options.quiet, logging=is_logging_enabled_for(app, options),
+        keystore=options.keystore)
+
+      result['monkey_status'] = 'success' if adb.run_monkey(
+        app.id, options.emulator_id, app_apk, options.monkey_events,
+        options.quiet, is_logging_enabled_for(app, options)) else 'failed'
+
     results.append(result)
+    if result.get('recompilation_status') != 'success':
+      break
 
 
 def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
@@ -287,6 +315,14 @@ def log_comparison_results_for_app(app, result_per_shrinker, options):
       else:
         print(msg)
 
+      if options.monkey:
+        monkey_status = result.get('monkey_status')
+        if monkey_status != 'success':
+          app_error = True
+          warn('    monkey: {}'.format(monkey_status))
+        else:
+          success('    monkey: {}'.format(monkey_status))
+
       recompilation_status = result.get('recompilation_status', '')
       if recompilation_status == 'failed':
         app_error = True
@@ -318,6 +354,9 @@ def parse_options(argv):
                     help='Disable assertions when compiling',
                     default=False,
                     action='store_true')
+  result.add_option('--emulator-id', '--emulator_id',
+                    help='Id of the emulator to use',
+                    default='emulator-5554')
   result.add_option('--golem',
                     help='Running on golem, do not download',
                     default=False,
@@ -419,7 +458,6 @@ def main(argv):
     options.r8_compilation_steps = 1
     options.quiet = True
     options.no_logging = True
-
 
   with utils.TempDir() as temp_dir:
     if options.hash:
