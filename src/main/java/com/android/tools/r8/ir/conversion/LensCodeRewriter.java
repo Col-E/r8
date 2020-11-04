@@ -273,7 +273,7 @@ public class LensCodeRewriter {
                         .setLocalInfo(invoke.outValue().getLocalInfo());
                   }
                   invoke.outValue().replaceUsers(constantReturnMaterializingInstruction.outValue());
-                  if (graphLens.lookupType(invoke.getReturnType()) != invoke.getReturnType()) {
+                  if (invoke.getOutType() != constantReturnMaterializingInstruction.getOutType()) {
                     affectedPhis.addAll(
                         constantReturnMaterializingInstruction.outValue().uniquePhiUsers());
                   }
