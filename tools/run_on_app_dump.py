@@ -40,6 +40,7 @@ class App(object):
       'name': None,
       'dump_app': None,
       'apk_app': None,
+      'apk_test': None,
       'skip': False,
       'url': None,  # url is not used but nice to have for updating apps
       'revision': None,
@@ -57,6 +58,9 @@ APPS = [
     'name': 'applymapping',
     'dump_app': 'dump_app.zip',
     'apk_app': 'app-release.apk',
+    'id_test': 'com.example.applymapping.test',
+    'dump_test': 'dump_test.zip',
+    'apk_test': 'app-release-androidTest.apk',
     'url': 'https://github.com/mkj-gram/applymapping',
     'revision': 'e3ae14b8c16fa4718e5dea8f7ad00937701b3c48',
     'folder': 'applymapping',
@@ -95,6 +99,10 @@ def compute_size_of_dex_files_in_package(path):
 
 def dump_for_app(app_dir, app):
   return os.path.join(app_dir, app.dump_app)
+
+
+def dump_test_for_app(app_dir, app):
+  return os.path.join(app_dir, app.dump_test)
 
 
 def get_results_for_app(app, options, temp_dir):
@@ -156,11 +164,11 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
   for compilation_step in range(0, compilation_steps):
     if status != 'success':
       break
-    print('Compiling {} of {}'.format(compilation_step, compilation_steps))
+    print('Compiling {} of {}'.format(compilation_step + 1, compilation_steps))
     result = {}
     try:
       start = time.time()
-      (app_jar, new_recomp_jar) = \
+      (app_jar, mapping, new_recomp_jar) = \
         build_app_with_shrinker(
           app, options, temp_dir, app_dir, shrinker, compilation_step,
           compilation_steps, recomp_jar)
@@ -169,6 +177,7 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
       result['build_status'] = 'success'
       result['recompilation_status'] = 'success'
       result['output_jar'] = app_jar
+      result['output_mapping'] = mapping
       result['dex_size'] = dex_size
       result['duration'] = int((end - start) * 1000)  # Wall time
       if (new_recomp_jar is None
@@ -184,21 +193,47 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
       result['build_status'] = 'failed'
       status = 'failed'
 
+    original_app_apk = os.path.join(app_dir, app.apk_app)
+    app_apk_destination = os.path.join(
+      temp_dir,"{}_{}.apk".format(app.id, compilation_step))
+
     if result.get('build_status') == 'success' and options.monkey:
       # Make a copy of the given APK, move the newly generated dex files into the
       # copied APK, and then sign the APK.
-      original_app_apk = os.path.join(app_dir, app.apk_app)
-      app_apk = os.path.join(temp_dir,
-                             "{}_{}.apk".format(app.id, compilation_step))
       apk_masseur.masseur(
         original_app_apk, dex=app_jar, resources='META-INF/services/*',
-        out=app_apk,
+        out=app_apk_destination,
         quiet=options.quiet, logging=is_logging_enabled_for(app, options),
         keystore=options.keystore)
 
       result['monkey_status'] = 'success' if adb.run_monkey(
-        app.id, options.emulator_id, app_apk, options.monkey_events,
+        app.id, options.emulator_id, app_apk_destination, options.monkey_events,
         options.quiet, is_logging_enabled_for(app, options)) else 'failed'
+
+    if result.get('build_status') == 'success' and options.run_tests:
+      if not os.path.isfile(app_apk_destination):
+        apk_masseur.masseur(
+          original_app_apk, dex=app_jar, resources='META-INF/services/*',
+          out=app_apk_destination,
+          quiet=options.quiet, logging=is_logging_enabled_for(app, options),
+          keystore=options.keystore)
+
+      # Compile the tests with the mapping file.
+      test_jar = build_test_with_shrinker(
+        app, options, temp_dir, app_dir,shrinker, compilation_step,
+        result['output_mapping'])
+      original_test_apk = os.path.join(app_dir, app.apk_test)
+      test_apk_destination = os.path.join(
+        temp_dir,"{}_{}.test.apk".format(app.id_test, compilation_step))
+      apk_masseur.masseur(
+        original_test_apk, dex=test_jar, resources='META-INF/services/*',
+        out=test_apk_destination,
+        quiet=options.quiet, logging=is_logging_enabled_for(app, options),
+        keystore=options.keystore)
+      result['instrumentation_test_status'] = 'success' if adb.run_instrumented(
+        app.id, app.id_test, options.emulator_id, app_apk_destination,
+        test_apk_destination, options.quiet,
+        is_logging_enabled_for(app, options)) else 'failed'
 
     results.append(result)
     if result.get('recompilation_status') != 'success':
@@ -222,15 +257,21 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     'nolib': not is_minified_r8(shrinker)
   })
 
-  out_jar = os.path.join(temp_dir, "out.jar")
   compile_result = compiledump.run1(temp_dir, args, [])
+
+  out_jar = os.path.join(temp_dir, "out.jar")
+  out_mapping = os.path.join(temp_dir, "out.jar.map")
   app_jar = os.path.join(
     temp_dir, '{}_{}_{}_dex_out.jar'.format(
+      app.name, shrinker, compilation_step_index))
+  app_mapping = os.path.join(
+    temp_dir, '{}_{}_{}_dex_out.jar.map'.format(
       app.name, shrinker, compilation_step_index))
 
   if compile_result != 0 or not os.path.isfile(out_jar):
     assert False, "Compilation of app_jar failed"
   shutil.move(out_jar, app_jar)
+  shutil.move(out_mapping, app_mapping)
 
   recomp_jar = None
   if compilation_step_index < compilation_steps - 1:
@@ -243,7 +284,48 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
           app.name, shrinker, compilation_step_index))
       shutil.move(out_jar, recomp_jar)
 
-  return (app_jar, recomp_jar)
+  return (app_jar, app_mapping, recomp_jar)
+
+
+def build_test_with_shrinker(app, options, temp_dir, app_dir, shrinker,
+                             compilation_step_index, mapping):
+  r8jar = os.path.join(
+    temp_dir, 'r8lib.jar' if is_minified_r8(shrinker) else 'r8.jar')
+
+  def rewrite_file(file):
+    with open(file) as f:
+      lines = f.readlines()
+    with open(file, 'w') as f:
+      for line in lines:
+        if '-applymapping' not in line:
+          f.write(line + '\n')
+      f.write("-applymapping " + mapping + '\n')
+
+  args = AttrDict({
+    'dump': dump_test_for_app(app_dir, app),
+    'r8_jar': r8jar,
+    'ea': False if options.disable_assertions else True,
+    'version': 'master',
+    'compiler': 'r8full' if is_full_r8(shrinker) else 'r8',
+    'debug_agent': options.debug_agent,
+    'nolib': not is_minified_r8(shrinker),
+    # The config file will have an -applymapping reference to an old map.
+    # Update it to point to mapping file build in the compilation of the app.
+    'config_file_consumer': rewrite_file
+  })
+
+  compile_result = compiledump.run1(temp_dir, args, [])
+
+  out_jar = os.path.join(temp_dir, "out.jar")
+  test_jar = os.path.join(
+    temp_dir, '{}_{}_{}_test_out.jar'.format(
+      app.name, shrinker, compilation_step_index))
+
+  if compile_result != 0 or not os.path.isfile(out_jar):
+    assert False, "Compilation of test_jar failed"
+  shutil.move(out_jar, test_jar)
+
+  return test_jar
 
 
 def log_results_for_apps(result_per_shrinker_per_app, options):
@@ -322,6 +404,13 @@ def log_comparison_results_for_app(app, result_per_shrinker, options):
           warn('    monkey: {}'.format(monkey_status))
         else:
           success('    monkey: {}'.format(monkey_status))
+
+      if options.run_tests and 'instrumentation_test_status' in result:
+        test_status = result.get('instrumentation_test_status')
+        if test_status != 'success':
+          warn('    instrumentation_tests: {}'.format(test_status))
+        else:
+          success('    instrumentation_tests: {}'.format(test_status))
 
       recompilation_status = result.get('recompilation_status', '')
       if recompilation_status == 'failed':

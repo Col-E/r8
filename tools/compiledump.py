@@ -281,6 +281,8 @@ def run1(out, args, otherargs):
     if dump.desugared_library_json():
       cmd.extend(['--desugared-lib', dump.desugared_library_json()])
     if compiler != 'd8' and dump.config_file():
+      if hasattr(args, 'config_file_consumer') and args.config_file_consumer:
+        args.config_file_consumer(dump.config_file())
       cmd.extend(['--pg-conf', dump.config_file()])
     if compiler != 'd8':
       cmd.extend(['--pg-map-output', '%s.map' % out])

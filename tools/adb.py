@@ -7,7 +7,6 @@ import subprocess
 import time
 import utils
 
-
 def install_apk_on_emulator(apk, emulator_id, quiet=False):
   cmd = ['adb', '-s', emulator_id, 'install', '-r', '-d', apk]
   if quiet:
@@ -80,6 +79,31 @@ def run_monkey(app_id, emulator_id, apk, monkey_events, quiet, enable_logging):
   except subprocess.CalledProcessError as e:
     succeeded = False
 
+  uninstall_apk_on_emulator(app_id, emulator_id)
+
+  return succeeded
+
+
+def run_instrumented(app_id, test_id, emulator_id, apk, test_apk, quiet,
+                     enable_logging,
+                     test_runner='androidx.test.runner.AndroidJUnitRunner'):
+  if not wait_for_emulator(emulator_id):
+    return None
+
+  install_apk_on_emulator(apk, emulator_id, quiet)
+  install_apk_on_emulator(test_apk, emulator_id, quiet)
+
+  cmd = ['adb', '-s', emulator_id, 'shell', 'am', 'instrument', '-w',
+         '{}/{}'.format(test_id, test_runner)]
+
+  try:
+    stdout = utils.RunCmd(cmd, quiet=quiet, logging=enable_logging)
+    # The runner will print OK (X tests) if completed succesfully
+    succeeded = any("OK (" in s for s in stdout)
+  except subprocess.CalledProcessError as e:
+    succeeded = False
+
+  uninstall_apk_on_emulator(test_id, emulator_id)
   uninstall_apk_on_emulator(app_id, emulator_id)
 
   return succeeded
