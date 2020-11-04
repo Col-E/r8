@@ -69,6 +69,15 @@ APPS = [
     'folder': 'android-suite-calculator',
   }),
   App({
+    'id': 'dev.dworks.apps.anexplorer.pro',
+    'name': 'AnExplorer',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'AnExplorer-googleMobileProRelease-4.0.3.apk',
+    'url': 'https://github.com/christofferqa/AnExplorer',
+    'revision': '365927477b8eab4052a1882d5e358057ae3dee4d',
+    'folder': 'anexplorer',
+  }),
+  App({
     'id': 'com.example.applymapping',
     'name': 'applymapping',
     'dump_app': 'dump_app.zip',
