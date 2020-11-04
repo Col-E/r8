@@ -156,6 +156,10 @@ public abstract class Invoke extends Instruction {
     return arguments().get(index);
   }
 
+  public Value getFirstArgument() {
+    return getArgument(0);
+  }
+
   public int requiredArgumentRegisters() {
     int registers = 0;
     for (Value inValue : inValues) {

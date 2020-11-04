@@ -99,11 +99,9 @@ import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.WorkList;
-import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -841,15 +839,14 @@ public class MethodOptimizationInfoCollector {
           if (!currentBlock.hasCatchHandlers() && isNullCheck(instr, value)) {
             return InstructionEffect.CONDITIONAL_EFFECT;
           }
-          if (isKotlinNullCheck(instr, value, appView)) {
-            DexMethod invokedMethod = instr.asInvokeStatic().getInvokedMethod();
-            // Kotlin specific way of throwing NPE: throwParameterIsNullException.
-            // Similarly, combined with the above CONDITIONAL_EFFECT, the code checks on NPE on
-            // the value.
-            if (invokedMethod.name
-                == appView.dexItemFactory().kotlin.intrinsics.throwParameterIsNullException.name) {
-              // We found a NPE (or similar exception) throwing code.
-              // Combined with the above CONDITIONAL_EFFECT, the code checks NPE on the value.
+          if (instr.isInvokeStatic()) {
+            InvokeStatic invoke = instr.asInvokeStatic();
+            if (isKotlinCheckParameterIsNotNull(appView, invoke, value)) {
+              return InstructionEffect.DESIRED_EFFECT;
+            }
+            if (isKotlinThrowParameterIsNullException(appView, invoke)) {
+              // Kotlin specific way of throwing NPE. Combined with the above CONDITIONAL_EFFECT,
+              // the code acts as a null check for the given value.
               for (BasicBlock predecessor : currentBlock.getPredecessors()) {
                 if (isNullCheck(predecessor.exit(), value)) {
                   return InstructionEffect.DESIRED_EFFECT;
@@ -858,11 +855,6 @@ public class MethodOptimizationInfoCollector {
               // Hitting here means that this call might be used for other parameters. If we don't
               // bail out, it will be regarded as side effects for the current value.
               return InstructionEffect.NO_EFFECT;
-            } else {
-              // Kotlin specific way of checking parameter nullness: checkParameterIsNotNull.
-              assert invokedMethod.name
-                  == appView.dexItemFactory().kotlin.intrinsics.checkParameterIsNotNull.name;
-              return InstructionEffect.DESIRED_EFFECT;
             }
           }
           if (isInstantiationOfNullPointerException(instr, it, appView.dexItemFactory())) {
@@ -912,32 +904,40 @@ public class MethodOptimizationInfoCollector {
   }
 
   // Note that this method may have false positives, since the application could in principle
-  // declare a method called checkParameterIsNotNull(parameter, message) or
-  // throwParameterIsNullException(parameterName) in a package that starts with "kotlin".
-  private static boolean isKotlinNullCheck(Instruction instr, Value value, AppView<?> appView) {
+  // declare a method called checkParameterIsNotNull(parameter, message) in a package that starts
+  // with "kotlin".
+  private static boolean isKotlinCheckParameterIsNotNull(
+      AppView<?> appView, InvokeStatic invoke, Value value) {
     if (appView.options().kotlinOptimizationOptions().disableKotlinSpecificOptimizations) {
       return false;
     }
-    if (!instr.isInvokeStatic()) {
+    // We need to ignore the holder, since Kotlin adds different versions of null-check machinery,
+    // e.g., kotlin.collections.ArraysKt___ArraysKt... or kotlin.jvm.internal.ArrayIteratorKt...
+    DexMethod checkParameterIsNotNullMethod =
+        appView.dexItemFactory().kotlin.intrinsics.checkParameterIsNotNull;
+    DexMethod originalInvokedMethod =
+        appView.graphLens().getOriginalMethodSignature(invoke.getInvokedMethod());
+    return originalInvokedMethod.match(checkParameterIsNotNullMethod)
+        && invoke.getFirstArgument() == value
+        && originalInvokedMethod.getHolderType().getPackageDescriptor().startsWith(Kotlin.NAME);
+  }
+
+  // Note that this method may have false positives, since the application could in principle
+  // declare a method called throwParameterIsNullException(parameterName) in a package that starts
+  // with "kotlin".
+  private static boolean isKotlinThrowParameterIsNullException(
+      AppView<?> appView, InvokeStatic invoke) {
+    if (appView.options().kotlinOptimizationOptions().disableKotlinSpecificOptimizations) {
       return false;
     }
-    // We need to strip the holder, since Kotlin adds different versions of null-check machinery,
+    // We need to ignore the holder, since Kotlin adds different versions of null-check machinery,
     // e.g., kotlin.collections.ArraysKt___ArraysKt... or kotlin.jvm.internal.ArrayIteratorKt...
-    MethodSignatureEquivalence wrapper = MethodSignatureEquivalence.get();
-    Wrapper<DexMethod> checkParameterIsNotNull =
-        wrapper.wrap(appView.dexItemFactory().kotlin.intrinsics.checkParameterIsNotNull);
-    Wrapper<DexMethod> throwParamIsNullException =
-        wrapper.wrap(appView.dexItemFactory().kotlin.intrinsics.throwParameterIsNullException);
-    DexMethod invokedMethod =
-        appView.graphLens().getOriginalMethodSignature(instr.asInvokeStatic().getInvokedMethod());
-    Wrapper<DexMethod> methodWrap = wrapper.wrap(invokedMethod);
-    if (methodWrap.equals(throwParamIsNullException)
-        || (methodWrap.equals(checkParameterIsNotNull) && instr.inValues().get(0).equals(value))) {
-      if (invokedMethod.holder.getPackageDescriptor().startsWith(Kotlin.NAME)) {
-        return true;
-      }
-    }
-    return false;
+    DexMethod throwParameterIsNullExceptionMethod =
+        appView.dexItemFactory().kotlin.intrinsics.throwParameterIsNullException;
+    DexMethod originalInvokedMethod =
+        appView.graphLens().getOriginalMethodSignature(invoke.getInvokedMethod());
+    return originalInvokedMethod.match(throwParameterIsNullExceptionMethod)
+        && originalInvokedMethod.getHolderType().getPackageDescriptor().startsWith(Kotlin.NAME);
   }
 
   private static boolean isNullCheck(Instruction instr, Value value) {
