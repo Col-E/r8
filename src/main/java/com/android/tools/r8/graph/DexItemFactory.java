@@ -346,6 +346,7 @@ public class DexItemFactory {
   public final DexType classType = createStaticallyKnownType(classDescriptor);
   public final DexType packageType = createStaticallyKnownType(Package.class);
   public final DexType classLoaderType = createStaticallyKnownType(classLoaderDescriptor);
+  public final DexType constructorType = createStaticallyKnownType(constructorDescriptor);
   public final DexType fieldType = createStaticallyKnownType(fieldDescriptor);
   public final DexType methodType = createStaticallyKnownType(methodDescriptor);
   public final DexType autoCloseableType = createStaticallyKnownType(autoCloseableDescriptor);
@@ -1168,6 +1169,7 @@ public class DexItemFactory {
     public final DexMethod getCanonicalName;
     public final DexMethod getSimpleName;
     public final DexMethod getTypeName;
+    public final DexMethod getConstructor;
     public final DexMethod getDeclaredConstructor;
     public final DexMethod getField;
     public final DexMethod getDeclaredField;
@@ -1201,6 +1203,8 @@ public class DexItemFactory {
           classDescriptor, getSimpleNameName, stringDescriptor, DexString.EMPTY_ARRAY);
       getTypeName = createMethod(
           classDescriptor, getTypeNameName, stringDescriptor, DexString.EMPTY_ARRAY);
+      getConstructor =
+          createMethod(classType, createProto(constructorType, classArrayType), "getConstructor");
       getDeclaredConstructor =
           createMethod(
               classDescriptor,

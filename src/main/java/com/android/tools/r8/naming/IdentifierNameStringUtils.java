@@ -10,12 +10,14 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
@@ -28,6 +30,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -196,26 +199,28 @@ public final class IdentifierNameStringUtils {
    * @return {@link DexReference} corresponding to the first constant string argument that matches a
    *     class or member name, or {@code null} if no such constant was found.
    */
-  public static DexReference identifyIdentifier(
-      InvokeMethod invoke, DexDefinitionSupplier definitions) {
+  public static IdentifierNameStringLookupResult<?> identifyIdentifier(
+      InvokeMethod invoke, DexDefinitionSupplier definitions, ProgramMethod context) {
+    DexItemFactory dexItemFactory = definitions.dexItemFactory();
     List<Value> ins = invoke.arguments();
     // The only static calls: Class#forName,
     //   which receive either (String) or (String, boolean, ClassLoader) as ins.
     if (invoke.isInvokeStatic()) {
       InvokeStatic invokeStatic = invoke.asInvokeStatic();
-      if (definitions.dexItemFactory().classMethods
-          .isReflectiveClassLookup(invokeStatic.getInvokedMethod())) {
-        return ConstantValueUtils.getDexTypeFromClassForName(invokeStatic, definitions);
+      if (dexItemFactory.classMethods.isReflectiveClassLookup(invokeStatic.getInvokedMethod())) {
+        return IdentifierNameStringLookupResult.fromClassForName(
+            ConstantValueUtils.getDexTypeFromClassForName(invokeStatic, definitions));
       }
     }
 
     if (invoke.isInvokeVirtual()) {
       InvokeVirtual invokeVirtual = invoke.asInvokeVirtual();
-      if (isClassNameComparison(invokeVirtual, definitions.dexItemFactory())) {
+      if (isClassNameComparison(invokeVirtual, dexItemFactory)) {
         int argumentIndex = getPositionOfFirstConstString(invokeVirtual);
         if (argumentIndex >= 0) {
-          return inferTypeFromConstStringValue(
-              definitions, invokeVirtual.inValues().get(argumentIndex));
+          return IdentifierNameStringLookupResult.fromClassNameComparison(
+              inferTypeFromConstStringValue(
+                  definitions, invokeVirtual.inValues().get(argumentIndex)));
         }
       }
     }
@@ -226,8 +231,7 @@ public final class IdentifierNameStringUtils {
     }
 
     boolean isReferenceFieldUpdater =
-        invoke.getReturnType().descriptor
-            == definitions.dexItemFactory().referenceFieldUpdaterDescriptor;
+        invoke.getReturnType().descriptor == dexItemFactory.referenceFieldUpdaterDescriptor;
     int positionOfIdentifier = isReferenceFieldUpdater ? 2 : 1;
     Value in = ins.get(positionOfIdentifier);
     if (in.isConstString()) {
@@ -241,7 +245,7 @@ public final class IdentifierNameStringUtils {
         // declared in the library. Hence there is no need to handle this case.
         return null;
       }
-      DexClass holder = definitions.definitionFor(holderType);
+      DexClass holder = definitions.definitionFor(holderType, context);
       if (holder == null) {
         return null;
       }
@@ -253,22 +257,29 @@ public final class IdentifierNameStringUtils {
           return null;
         }
         DexType fieldType = fieldTypeValue.getConstInstruction().asConstClass().getValue();
-        return inferFieldInHolder(holder, dexString.toString(), fieldType);
+        return IdentifierNameStringLookupResult.fromUncategorized(
+            inferFieldInHolder(holder, dexString.toString(), fieldType));
       }
       if (numOfParams == 2) {
-        return inferFieldInHolder(holder, dexString.toString(), null);
+        return IdentifierNameStringLookupResult.fromUncategorized(
+            inferFieldInHolder(holder, dexString.toString(), null));
       }
       assert numOfParams == 3;
-      DexTypeList arguments =
-          retrieveDexTypeListFromClassList(invoke, ins.get(2), definitions.dexItemFactory());
+      DexTypeList arguments = retrieveDexTypeListFromClassList(invoke, ins.get(2), dexItemFactory);
       if (arguments == null) {
         return null;
       }
-      return inferMethodInHolder(holder, dexString.toString(), arguments);
+      return IdentifierNameStringLookupResult.fromUncategorized(
+          inferMethodInHolder(holder, dexString.toString(), arguments));
     }
     if (in.isDexItemBasedConstString()) {
       DexItemBasedConstString constString = in.getConstInstruction().asDexItemBasedConstString();
-      return constString.getItem();
+      if (constString.getItem().isDexType()) {
+        return IdentifierNameStringLookupResult.fromDexTypeBasedConstString(
+            constString.getItem().asDexType());
+      }
+      return IdentifierNameStringLookupResult.fromDexMemberBasedConstString(
+          constString.getItem().asDexMember());
     }
     return null;
   }
@@ -364,7 +375,7 @@ public final class IdentifierNameStringUtils {
     return itemBasedString;
   }
 
-  private static DexReference inferFieldInHolder(DexClass holder, String name, DexType fieldType) {
+  private static DexField inferFieldInHolder(DexClass holder, String name, DexType fieldType) {
     for (DexEncodedField encodedField : holder.fields()) {
       if (encodedField.field.name.toString().equals(name)
           && (fieldType == null || encodedField.field.type == fieldType)) {
@@ -374,7 +385,7 @@ public final class IdentifierNameStringUtils {
     return null;
   }
 
-  private static DexReference inferMethodNameInHolder(DexClass holder, String name) {
+  private static DexMethod inferMethodNameInHolder(DexClass holder, String name) {
     for (DexEncodedMethod encodedMethod : holder.methods()) {
       if (encodedMethod.method.name.toString().equals(name)) {
         return encodedMethod.method;
@@ -383,7 +394,7 @@ public final class IdentifierNameStringUtils {
     return null;
   }
 
-  private static DexReference inferMethodInHolder(
+  private static DexMethod inferMethodInHolder(
       DexClass holder, String name, DexTypeList arguments) {
     assert arguments != null;
     for (DexEncodedMethod encodedMethod : holder.methods()) {

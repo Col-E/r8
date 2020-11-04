@@ -91,6 +91,8 @@ import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
+import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringTypeLookupResult;
 import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
 import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
@@ -1579,14 +1581,16 @@ public class Enqueuer {
       // Ignore primitive types.
       return;
     }
-    DexProgramClass holder = getProgramClassOrNull(type);
-    if (holder == null) {
+    DexProgramClass clazz = getProgramClassOrNull(type);
+    if (clazz == null) {
       return;
     }
-    markTypeAsLive(
-        holder,
-        scopedMethodsForLiveTypes.computeIfAbsent(type, ignore -> new ScopedDexMethodSet()),
-        graphReporter.registerClass(holder, reason));
+    markTypeAsLive(clazz, reason);
+  }
+
+  private void markTypeAsLive(DexProgramClass clazz, KeepReason reason) {
+    assert clazz != null;
+    markTypeAsLive(clazz, graphReporter.registerClass(clazz, reason));
   }
 
   private void markTypeAsLive(DexType type, Function<DexProgramClass, KeepReasonWitness> reason) {
@@ -3813,18 +3817,22 @@ public class Enqueuer {
     if (!isReflectionMethod(dexItemFactory, invokedMethod)) {
       return;
     }
-    DexReference identifierItem = identifyIdentifier(invoke, appView);
-    if (identifierItem == null) {
+    IdentifierNameStringLookupResult<?> identifierLookupResult =
+        identifyIdentifier(invoke, appView, method);
+    if (identifierLookupResult == null) {
       return;
     }
-    if (identifierItem.isDexType()) {
-      DexProgramClass clazz = getProgramClassOrNullFromReflectiveAccess(identifierItem.asDexType());
+    DexReference referencedItem = identifierLookupResult.getReference();
+    if (referencedItem.isDexType()) {
+      assert identifierLookupResult.isTypeResult();
+      IdentifierNameStringTypeLookupResult identifierTypeLookupResult =
+          identifierLookupResult.asTypeResult();
+      DexProgramClass clazz = getProgramClassOrNullFromReflectiveAccess(referencedItem.asDexType());
       if (clazz == null) {
         return;
       }
-      if (clazz.isAnnotation() || clazz.isInterface()) {
-        markTypeAsLive(clazz.type, KeepReason.reflectiveUseIn(method));
-      } else {
+      markTypeAsLive(clazz, KeepReason.reflectiveUseIn(method));
+      if (identifierTypeLookupResult.isTypeInstantiatedFromUse(options)) {
         workList.enqueueMarkInstantiatedAction(
             clazz, null, InstantiationReason.REFLECTION, KeepReason.reflectiveUseIn(method));
         if (clazz.hasDefaultInitializer()) {
@@ -3833,9 +3841,11 @@ public class Enqueuer {
           markMethodAsTargeted(initializer, reason);
           markDirectStaticOrConstructorMethodAsLive(initializer, reason);
         }
+      } else if (identifierTypeLookupResult.isTypeInitializedFromUse()) {
+        markDirectAndIndirectClassInitializersAsLive(clazz);
       }
-    } else if (identifierItem.isDexField()) {
-      DexField field = identifierItem.asDexField();
+    } else if (referencedItem.isDexField()) {
+      DexField field = referencedItem.asDexField();
       DexProgramClass clazz = getProgramClassOrNull(field.holder);
       if (clazz == null) {
         return;
@@ -3862,8 +3872,8 @@ public class Enqueuer {
         markFieldAsKept(programField, KeepReason.reflectiveUseIn(method));
       }
     } else {
-      assert identifierItem.isDexMethod();
-      DexMethod targetedMethodReference = identifierItem.asDexMethod();
+      assert referencedItem.isDexMethod();
+      DexMethod targetedMethodReference = referencedItem.asDexMethod();
       DexProgramClass clazz = getProgramClassOrNull(targetedMethodReference.holder);
       if (clazz == null) {
         return;
@@ -3927,8 +3937,9 @@ public class Enqueuer {
     }
 
     InvokeVirtual constructorDefinition = constructorValue.definition.asInvokeVirtual();
-    if (constructorDefinition.getInvokedMethod()
-        != appView.dexItemFactory().classMethods.getDeclaredConstructor) {
+    DexMethod invokedMethod = constructorDefinition.getInvokedMethod();
+    if (invokedMethod != appView.dexItemFactory().classMethods.getConstructor
+        && invokedMethod != appView.dexItemFactory().classMethods.getDeclaredConstructor) {
       // Give up, we can't tell which constructor is being invoked.
       return;
     }
@@ -3942,7 +3953,7 @@ public class Enqueuer {
       return;
     }
 
-    DexProgramClass clazz = getProgramClassOrNull(instantiatedType);
+    DexProgramClass clazz = getProgramClassOrNullFromReflectiveAccess(instantiatedType);
     if (clazz == null) {
       return;
     }

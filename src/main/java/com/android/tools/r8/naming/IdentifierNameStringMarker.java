@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo;
+import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -207,8 +208,9 @@ public class IdentifierNameStringMarker {
     List<Value> ins = invoke.arguments();
     Value[] changes = new Value[ins.size()];
     if (isReflectionMethod(appView.dexItemFactory(), invokedMethod) || isClassNameComparison) {
-      DexReference itemBasedString = identifyIdentifier(invoke, appView);
-      if (itemBasedString == null) {
+      IdentifierNameStringLookupResult<?> identifierLookupResult =
+          identifyIdentifier(invoke, appView, code.context());
+      if (identifierLookupResult == null) {
         warnUndeterminedIdentifierIfNecessary(invokedMethod, code.context(), invoke, null);
         return iterator;
       }
@@ -225,7 +227,10 @@ public class IdentifierNameStringMarker {
       Value newIn = code.createValue(in.getType(), in.getLocalInfo());
       DexItemBasedConstString decoupled =
           new DexItemBasedConstString(
-              newIn, itemBasedString, ClassNameComputationInfo.none(), throwingInfo);
+              newIn,
+              identifierLookupResult.getReference(),
+              ClassNameComputationInfo.none(),
+              throwingInfo);
       changes[identifierPosition] = newIn;
 
       if (in.numberOfAllUsers() == 1) {

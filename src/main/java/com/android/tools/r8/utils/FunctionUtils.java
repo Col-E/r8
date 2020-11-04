@@ -10,6 +10,10 @@ import java.util.function.Function;
 
 public class FunctionUtils {
 
+  public static <S, T> T applyOrElse(S object, Function<S, T> fn, T orElse) {
+    return object != null ? fn.apply(object) : orElse;
+  }
+
   public static <S, T, R> Function<S, Function<T, R>> curry(BiFunction<S, T, R> function) {
     return arg -> arg2 -> function.apply(arg, arg2);
   }
