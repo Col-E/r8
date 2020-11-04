@@ -78,6 +78,21 @@ APPS = [
     'folder': 'anexplorer',
   }),
   App({
+    'id': 'de.danoeh.antennapod',
+    'name': 'AntennaPod',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-free-release.apk',
+    # TODO(b/172452102): Tests and monkey do not work
+    'id_test': 'de.danoeh.antennapod.test',
+    'dump_test': 'dump_test.zip',
+    'apk_test': 'app-free-release-androidTest.apk',
+    'url': 'https://github.com/christofferqa/AntennaPod.git',
+    'revision': '77e94f4783a16abe9cc5b78dc2d2b2b1867d8c06',
+    'folder': 'antennapod',
+    # TODO(b/172450929): Fix recompilation
+    'skip_recompilation': True
+  }),
+  App({
     'id': 'com.example.applymapping',
     'name': 'applymapping',
     'dump_app': 'dump_app.zip',
