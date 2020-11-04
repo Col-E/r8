@@ -4,21 +4,37 @@
 
 package com.android.tools.r8.repackage;
 
+import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
+import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class RepackageWithDexItemBasedConstStringTest extends RepackageTestBase {
+
+  @Parameters(name = "{1}, kind: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        ImmutableList.of(FLATTEN_PACKAGE_HIERARCHY, REPACKAGE_CLASSES),
+        getTestParameters()
+            .withAllRuntimes()
+            .withApiLevelsEndingAtExcluding(AndroidApiLevel.L)
+            .build());
+  }
 
   public RepackageWithDexItemBasedConstStringTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
@@ -30,6 +46,7 @@ public class RepackageWithDexItemBasedConstStringTest extends RepackageTestBase 
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
+        .addMainDexClassRules(TestClass.class)
         .apply(this::configureRepackaging)
         .setMinApi(parameters.getApiLevel())
         .compile()

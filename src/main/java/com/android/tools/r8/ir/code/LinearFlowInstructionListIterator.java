@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -51,6 +52,12 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
   @Override
   public Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value) {
     return currentBlockIterator.insertConstStringInstruction(appView, code, value);
+  }
+
+  @Override
+  public void replaceCurrentInstructionWithConstClass(
+      AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo) {
+    currentBlockIterator.replaceCurrentInstructionWithConstClass(appView, code, type, localInfo);
   }
 
   @Override

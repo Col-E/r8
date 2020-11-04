@@ -27,8 +27,7 @@ public class AccessControl {
       return OptionalBool.FALSE;
     }
     if (clazz.isProgramClass()
-        && !classToFeatureSplitMap.isInBaseOrSameFeatureAs(
-            clazz.asProgramClass(), context.getContextClass())) {
+        && !classToFeatureSplitMap.isInBaseOrSameFeatureAs(clazz.asProgramClass(), context)) {
       return OptionalBool.UNKNOWN;
     }
     return OptionalBool.TRUE;

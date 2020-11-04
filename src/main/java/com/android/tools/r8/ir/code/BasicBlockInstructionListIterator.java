@@ -4,11 +4,13 @@
 
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -244,6 +246,19 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
         appView.options().debug ? current.getPosition() : Position.none());
     add(constStringInstruction);
     return constStringInstruction.outValue();
+  }
+
+  @Override
+  public void replaceCurrentInstructionWithConstClass(
+      AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo) {
+    if (current == null) {
+      throw new IllegalStateException();
+    }
+
+    TypeElement typeElement = TypeElement.classClassType(appView, definitelyNotNull());
+    Value value = code.createValue(typeElement, localInfo);
+    ConstClass constClass = new ConstClass(value, type);
+    replaceCurrentInstruction(constClass);
   }
 
   @Override

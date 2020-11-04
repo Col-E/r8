@@ -244,7 +244,6 @@ public class InvokeStatic extends InvokeMethod {
   public static class Builder extends BuilderBase<Builder, InvokeStatic> {
 
     private DexMethod method;
-    private Value outValue;
     private List<Value> arguments = Collections.emptyList();
 
     public Builder setArguments(List<Value> arguments) {
@@ -266,19 +265,13 @@ public class InvokeStatic extends InvokeMethod {
       return setMethod(method.getReference());
     }
 
-    public Builder setOutValue(Value outValue) {
-      this.outValue = outValue;
-      return this;
-    }
-
     @Override
     public InvokeStatic build() {
       assert arguments != null;
       assert method != null;
       assert method.getArity() == arguments.size();
       assert outValue == null || !method.getReturnType().isVoidType();
-      InvokeStatic result = new InvokeStatic(method, outValue, arguments);
-      return amend(result);
+      return amend(new InvokeStatic(method, outValue, arguments));
     }
 
     @Override

@@ -55,7 +55,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class IRCode {
+public class IRCode implements ValueFactory {
 
   private static final int MAX_MARKING_COLOR = 0x40000000;
 
@@ -1097,12 +1097,9 @@ public class IRCode {
     return thisValue;
   }
 
-  public Value createValue(TypeElement typeLattice, DebugLocalInfo local) {
-    return new Value(valueNumberGenerator.next(), typeLattice, local);
-  }
-
-  public Value createValue(TypeElement typeLattice) {
-    return createValue(typeLattice, null);
+  @Override
+  public Value createValue(TypeElement type, DebugLocalInfo local) {
+    return new Value(valueNumberGenerator.next(), type, local);
   }
 
   public ConstNumber createNumberConstant(long value, TypeElement type) {

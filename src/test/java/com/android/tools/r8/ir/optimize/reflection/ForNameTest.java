@@ -161,7 +161,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 2, 2);
+    test(result, 1, 3);
 
     // R8 release, minification.
     result =
@@ -173,6 +173,6 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
             .setMinApi(parameters.getApiLevel())
             // We are not checking output because it can't be matched due to minification. Just run.
             .run(parameters.getRuntime(), MAIN);
-    test(result, 2, 2);
+    test(result, 1, 3);
   }
 }

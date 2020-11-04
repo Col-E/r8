@@ -87,7 +87,7 @@ public class KeepParameterNamesUnsortedLocalVariablesTableTest extends TestBase 
   @Test
   public void test() throws Exception {
     String expectedOutput = StringUtils.lines("In Api.api1 6", "Result 6");
-    testForR8(parameters.getBackend())
+    testForR8Compat(parameters.getBackend())
         .addInnerClasses(KeepParameterNamesUnsortedLocalVariablesTableTest.class)
         .addProgramClassFileData(dumpApi())
         .addKeepMainRule(TestClass.class)

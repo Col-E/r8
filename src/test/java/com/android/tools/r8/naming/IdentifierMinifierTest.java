@@ -115,19 +115,19 @@ public class IdentifierMinifierTest extends TestBase {
 
   // Without -adaptclassstrings
   private static void test1_rule1(TestParameters parameters, CodeInspector inspector) {
-    int expectedRenamedIdentifierInMain = parameters.isCfRuntime() ? 2 : 1;
+    int expectedRenamedIdentifierInMain = parameters.isCfRuntime() ? 0 : 0;
     test1_rules(inspector, expectedRenamedIdentifierInMain, 0, 0);
   }
 
   // With -adaptclassstrings *.*A
   private static void test1_rule2(TestParameters parameters, CodeInspector inspector) {
-    int expectedRenamedIdentifierInMain = parameters.isCfRuntime() ? 2 : 1;
+    int expectedRenamedIdentifierInMain = parameters.isCfRuntime() ? 0 : 0;
     test1_rules(inspector, expectedRenamedIdentifierInMain, 1, 1);
   }
 
   // With -adaptclassstrings (no filter)
   private static void test1_rule3(TestParameters parameters, CodeInspector inspector) {
-    int expectedRenamedIdentifierInMain = parameters.isCfRuntime() ? 3 : 2;
+    int expectedRenamedIdentifierInMain = parameters.isCfRuntime() ? 1 : 1;
     test1_rules(inspector, expectedRenamedIdentifierInMain, 1, 1);
   }
 

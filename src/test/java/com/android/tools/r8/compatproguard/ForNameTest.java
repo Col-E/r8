@@ -12,11 +12,10 @@ import com.android.tools.r8.code.InvokeStatic;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.smali.SmaliBuilder;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
-import java.util.List;
 import org.junit.Test;
 
 public class ForNameTest extends CompatProguardSmaliTestBase {
@@ -35,11 +34,17 @@ public class ForNameTest extends CompatProguardSmaliTestBase {
         "return-void");
     builder.addClass(BOO);
 
-    List<String> pgConfigs = ImmutableList.of(
-        keepMainProguardConfiguration(CLASS_NAME),
-        "-dontshrink",
-        "-dontoptimize");
-    CodeInspector inspector = runCompatProguard(builder, pgConfigs);
+    CodeInspector inspector =
+        runCompatProguard(
+            builder,
+            testBuilder ->
+                testBuilder
+                    .addKeepMainRule(CLASS_NAME)
+                    // Add main dex rule to disable Class.forName() optimization.
+                    .addMainDexRules("-keep class " + CLASS_NAME)
+                    .noOptimization()
+                    .noTreeShaking()
+                    .setMinApi(AndroidApiLevel.B));
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
@@ -65,12 +70,18 @@ public class ForNameTest extends CompatProguardSmaliTestBase {
         "return-void");
     builder.addClass(BOO);
 
-    List<String> pgConfigs = ImmutableList.of(
-        keepMainProguardConfiguration(CLASS_NAME),
-        "-dontshrink",
-        "-dontoptimize",
-        "-dontobfuscate");
-    CodeInspector inspector = runCompatProguard(builder, pgConfigs);
+    CodeInspector inspector =
+        runCompatProguard(
+            builder,
+            testBuilder ->
+                testBuilder
+                    .addKeepMainRule(CLASS_NAME)
+                    // Add main dex rule to disable Class.forName() optimization.
+                    .addMainDexRules("-keep class " + CLASS_NAME)
+                    .noOptimization()
+                    .noMinification()
+                    .noTreeShaking()
+                    .setMinApi(AndroidApiLevel.B));
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());

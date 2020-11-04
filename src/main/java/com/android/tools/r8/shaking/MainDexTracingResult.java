@@ -6,8 +6,8 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -76,6 +76,17 @@ public class MainDexTracingResult {
     this.classes = Sets.union(roots, dependencies);
   }
 
+  public boolean canReferenceItemFromContextWithoutIncreasingMainDexSize(
+      ProgramDefinition item, ProgramDefinition context) {
+    // If the context is not a root, then additional references from inside the context will not
+    // increase the size of the main dex.
+    if (!isRoot(context)) {
+      return true;
+    }
+    // Otherwise, require that the item is a root itself.
+    return isRoot(item);
+  }
+
   public boolean isEmpty() {
     assert !roots.isEmpty() || dependencies.isEmpty();
     return roots.isEmpty();
@@ -93,8 +104,8 @@ public class MainDexTracingResult {
     return classes;
   }
 
-  public boolean contains(DexProgramClass clazz) {
-    return contains(clazz.type);
+  public boolean contains(ProgramDefinition clazz) {
+    return contains(clazz.getContextType());
   }
 
   public boolean contains(DexType type) {
@@ -109,6 +120,14 @@ public class MainDexTracingResult {
             consumer.accept(type);
           }
         });
+  }
+
+  public boolean isRoot(ProgramDefinition definition) {
+    return getRoots().contains(definition.getContextType());
+  }
+
+  public boolean isDependency(ProgramDefinition definition) {
+    return getDependencies().contains(definition.getContextType());
   }
 
   public MainDexTracingResult prunedCopy(AppInfoWithLiveness appInfo) {

@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
@@ -57,6 +58,12 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value) {
+      throw new Unimplemented();
+    }
+
+    @Override
+    public void replaceCurrentInstructionWithConstClass(
+        AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo) {
       throw new Unimplemented();
     }
 

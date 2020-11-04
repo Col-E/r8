@@ -36,6 +36,10 @@ public class InitClass extends Instruction {
     this.clazz = clazz;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   public DexType getClassValue() {
     return clazz;
   }
@@ -174,5 +178,27 @@ public class InitClass extends Instruction {
   @Override
   public String toString() {
     return super.toString() + "; " + clazz.toSourceString();
+  }
+
+  public static class Builder extends BuilderBase<Builder, InitClass> {
+
+    private DexType type;
+
+    private Builder() {}
+
+    public Builder setType(DexType type) {
+      this.type = type;
+      return this;
+    }
+
+    @Override
+    public InitClass build() {
+      return amend(new InitClass(outValue, type));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

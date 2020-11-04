@@ -111,7 +111,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -124,7 +123,7 @@ public class IRConverter {
   private static final int PEEPHOLE_OPTIMIZATION_PASSES = 2;
 
   public final AppView<?> appView;
-  public final Set<DexType> mainDexClasses;
+  public final MainDexTracingResult mainDexClasses;
 
   private final Timing timing;
   private final Outliner outliner;
@@ -196,7 +195,7 @@ public class IRConverter {
     this.appView = appView;
     this.options = appView.options();
     this.printer = printer;
-    this.mainDexClasses = mainDexClasses.getClasses();
+    this.mainDexClasses = mainDexClasses;
     this.codeRewriter = new CodeRewriter(appView, this);
     this.constantCanonicalizer = new ConstantCanonicalizer(codeRewriter);
     this.classInitializerDefaultsOptimization =
@@ -1305,7 +1304,8 @@ public class IRConverter {
     if (appView.appInfo().hasLiveness()) {
       // Reflection optimization 1. getClass() / forName() -> const-class
       timing.begin("Rewrite to const class");
-      ReflectionOptimizer.rewriteGetClassOrForNameToConstClass(appView.withLiveness(), code);
+      ReflectionOptimizer.rewriteGetClassOrForNameToConstClass(
+          appView.withLiveness(), code, mainDexClasses);
       timing.end();
     }
 

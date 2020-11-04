@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.TraversalContinuation;
@@ -657,6 +658,16 @@ public abstract class DexClass extends DexDefinition {
   public boolean classInitializationMayHaveSideEffects(AppView<?> appView) {
     return classInitializationMayHaveSideEffects(
         appView, Predicates.alwaysFalse(), Sets.newIdentityHashSet());
+  }
+
+  public boolean classInitializationMayHaveSideEffectsInContext(
+      AppView<AppInfoWithLiveness> appView, ProgramDefinition context) {
+    return classInitializationMayHaveSideEffects(
+        appView,
+        // Types that are a super type of the current context are guaranteed to be initialized
+        // already.
+        type -> appView.appInfo().isSubtype(context.getContextType(), type),
+        Sets.newIdentityHashSet());
   }
 
   public boolean classInitializationMayHaveSideEffects(

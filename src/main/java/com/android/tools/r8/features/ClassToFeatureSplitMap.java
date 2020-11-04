@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
@@ -76,8 +77,8 @@ public class ClassToFeatureSplitMap {
     return result;
   }
 
-  public FeatureSplit getFeatureSplit(DexProgramClass clazz) {
-    return getFeatureSplit(clazz.getType());
+  public FeatureSplit getFeatureSplit(ProgramDefinition clazz) {
+    return getFeatureSplit(clazz.getContextType());
   }
 
   public FeatureSplit getFeatureSplit(DexType type) {
@@ -92,7 +93,7 @@ public class ClassToFeatureSplitMap {
     return getFeatureSplit(clazz).isBase();
   }
 
-  public boolean isInBaseOrSameFeatureAs(DexProgramClass clazz, DexProgramClass context) {
+  public boolean isInBaseOrSameFeatureAs(DexProgramClass clazz, ProgramDefinition context) {
     FeatureSplit split = getFeatureSplit(clazz);
     return split.isBase() || split == getFeatureSplit(context);
   }

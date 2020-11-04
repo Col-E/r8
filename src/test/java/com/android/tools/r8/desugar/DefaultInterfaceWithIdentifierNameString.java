@@ -60,7 +60,8 @@ public class DefaultInterfaceWithIdentifierNameString extends TestBase {
     companionClassSubject
         .allMethods()
         .forEach(
-            method -> assertTrue(method.streamInstructions().anyMatch(this::isInvokeClassForName)));
+            method ->
+                assertTrue(method.streamInstructions().noneMatch(this::isInvokeClassForName)));
   }
 
   @Test

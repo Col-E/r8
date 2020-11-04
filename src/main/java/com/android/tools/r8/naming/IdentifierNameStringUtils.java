@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -299,7 +300,7 @@ public final class IdentifierNameStringUtils {
       AppView<AppInfoWithLiveness> appView, DexString dexString) {
     // "fully.qualified.ClassName.fieldOrMethodName"
     // "fully.qualified.ClassName#fieldOrMethodName"
-    DexReference itemBasedString = inferMemberFromNameString(appView, dexString);
+    DexMember<?, ?> itemBasedString = inferMemberFromNameString(appView, dexString);
     if (itemBasedString == null) {
       // "fully.qualified.ClassName"
       return inferTypeFromNameString(appView, dexString);
@@ -333,7 +334,7 @@ public final class IdentifierNameStringUtils {
     return null;
   }
 
-  private static DexReference inferMemberFromNameString(
+  private static DexMember<?, ?> inferMemberFromNameString(
       AppView<AppInfoWithLiveness> appView, DexString dexString) {
     String identifier = dexString.toString();
     String typeIdentifier = null;
@@ -368,7 +369,7 @@ public final class IdentifierNameStringUtils {
     if (holder == null) {
       return null;
     }
-    DexReference itemBasedString = inferFieldInHolder(holder, memberIdentifier, null);
+    DexMember<?, ?> itemBasedString = inferFieldInHolder(holder, memberIdentifier, null);
     if (itemBasedString == null) {
       itemBasedString = inferMethodNameInHolder(holder, memberIdentifier);
     }

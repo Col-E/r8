@@ -3,26 +3,25 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compatproguard;
 
-import com.android.tools.r8.CompatProguardCommandBuilder;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.R8CompatTestBuilder;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.nio.file.Path;
 import java.util.List;
 
 class CompatProguardSmaliTestBase extends SmaliTestBase {
-  CodeInspector runCompatProguard(SmaliBuilder builder, List<String> proguardConfigurations)
-      throws Exception {
-    Path dexOutputDir = temp.newFolder().toPath();
-    R8Command.Builder commandBuilder =
-        new CompatProguardCommandBuilder(true)
-            .setOutput(dexOutputDir, OutputMode.DexIndexed)
-            .addProguardConfiguration(proguardConfigurations, Origin.unknown());
-    ToolHelper.getAppBuilder(commandBuilder).addDexProgramData(builder.compile(), Origin.unknown());
-    return new CodeInspector(ToolHelper.runR8(commandBuilder.build()));
+
+  CodeInspector runCompatProguard(SmaliBuilder builder, List<String> keepRules) throws Exception {
+    return runCompatProguard(builder, testBuilder -> testBuilder.addKeepRules(keepRules));
+  }
+
+  CodeInspector runCompatProguard(
+      SmaliBuilder builder, ThrowableConsumer<R8CompatTestBuilder> configuration) throws Exception {
+    return testForR8Compat(Backend.DEX)
+        .addProgramDexFileData(builder.compile())
+        .applyIf(configuration != null, configuration)
+        .compile()
+        .inspector();
   }
 }
