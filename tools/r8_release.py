@@ -10,7 +10,7 @@ import re
 import subprocess
 import sys
 import urllib
-import xml
+import xml.etree.ElementTree
 import zipfile
 
 import utils
