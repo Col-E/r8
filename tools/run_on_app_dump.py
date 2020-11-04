@@ -83,6 +83,15 @@ APPS = [
 ]
 
 
+def remove_print_lines(file):
+  with open(file) as f:
+    lines = f.readlines()
+  with open(file, 'w') as f:
+    for line in lines:
+      if '-printconfiguration' not in line:
+        f.write(line)
+
+
 def download_app(app_sha):
   utils.DownloadFromGoogleCloudStorage(app_sha)
 
@@ -269,7 +278,8 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     'compiler': 'r8full' if is_full_r8(shrinker) else 'r8',
     'debug_agent': options.debug_agent,
     'program_jar': prev_recomp_jar,
-    'nolib': not is_minified_r8(shrinker)
+    'nolib': not is_minified_r8(shrinker),
+    'config_file_consumer': remove_print_lines,
   })
 
   compile_result = compiledump.run1(temp_dir, args, [])
@@ -301,13 +311,13 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
 
   return (app_jar, app_mapping, recomp_jar)
 
-
 def build_test_with_shrinker(app, options, temp_dir, app_dir, shrinker,
                              compilation_step_index, mapping):
   r8jar = os.path.join(
     temp_dir, 'r8lib.jar' if is_minified_r8(shrinker) else 'r8.jar')
 
   def rewrite_file(file):
+    remove_print_lines(file)
     with open(file) as f:
       lines = f.readlines()
     with open(file, 'w') as f:
