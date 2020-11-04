@@ -54,6 +54,21 @@ class App(object):
 
 APPS = [
   App({
+    'id': 'com.numix.calculator',
+    'name': 'Calculator',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release.apk',
+    # Compiling tests fail: Library class android.content.res.XmlResourceParser
+    # implements program class org.xmlpull.v1.XmlPullParser. Nothing to really
+    # do about that.
+    'id_test': 'com.numix.calculator.test',
+    'dump_test': 'dump_test.zip',
+    'apk_test': 'app-release-androidTest.apk',
+    'url': 'https://github.com/numixproject/android-suite/tree/master/Calculator',
+    'revision': 'f58e1b53f7278c9b675d5855842c6d8a44cccb1f',
+    'folder': 'android-suite-calculator',
+  }),
+  App({
     'id': 'com.example.applymapping',
     'name': 'applymapping',
     'dump_app': 'dump_app.zip',
