@@ -3845,7 +3845,8 @@ public class Enqueuer {
         return;
       }
       markTypeAsLive(clazz, KeepReason.reflectiveUseIn(method));
-      if (identifierTypeLookupResult.isTypeInstantiatedFromUse(options)) {
+      if (clazz.canBeInstantiatedByNewInstance()
+          && identifierTypeLookupResult.isTypeInstantiatedFromUse(options)) {
         workList.enqueueMarkInstantiatedAction(
             clazz, null, InstantiationReason.REFLECTION, KeepReason.reflectiveUseIn(method));
         if (clazz.hasDefaultInitializer()) {

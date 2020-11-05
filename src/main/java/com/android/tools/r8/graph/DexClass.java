@@ -498,6 +498,10 @@ public abstract class DexClass extends DexDefinition {
     return null;
   }
 
+  public boolean canBeInstantiatedByNewInstance() {
+    return !isAbstract() && !isAnnotation() && !isInterface();
+  }
+
   public boolean isAbstract() {
     return accessFlags.isAbstract();
   }
