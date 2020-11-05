@@ -126,6 +126,21 @@ APPS = [
     'folder': 'friendlyeats',
   }),
   App({
+    'id': 'com.google.samples.apps.sunflower',
+    'name': 'Sunflower',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-debug.apk',
+    # TODO(b/172549283): Compiling tests fails
+    'id_test': 'com.example.applymapping.test',
+    'dump_test': 'dump_test.zip',
+    'apk_test': 'app-debug-androidTest.apk',
+    'url': 'https://github.com/android/sunflower',
+    'revision': '0c4c88fdad2a74791199dffd1a6559559b1dbd4a',
+    'folder': 'sunflower',
+    # TODO(b/172548728): Fix recompilation
+    'skip_recompilation': True
+  }),
+  App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
     'dump_app': 'dump_app.zip',
@@ -262,7 +277,6 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
           and not is_last_build(compilation_step, compilation_steps)):
         result['recompilation_status'] = 'failed'
         warn('Failed to build {} with {}'.format(app.name, shrinker))
-        break
       recomp_jar = new_recomp_jar
     except Exception as e:
       warn('Failed to build {} with {}'.format(app.name, shrinker))
@@ -300,18 +314,21 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
       test_jar = build_test_with_shrinker(
         app, options, temp_dir, app_dir,shrinker, compilation_step,
         result['output_mapping'])
-      original_test_apk = os.path.join(app_dir, app.apk_test)
-      test_apk_destination = os.path.join(
-        temp_dir,"{}_{}.test.apk".format(app.id_test, compilation_step))
-      apk_masseur.masseur(
-        original_test_apk, dex=test_jar, resources='META-INF/services/*',
-        out=test_apk_destination,
-        quiet=options.quiet, logging=is_logging_enabled_for(app, options),
-        keystore=options.keystore)
-      result['instrumentation_test_status'] = 'success' if adb.run_instrumented(
-        app.id, app.id_test, options.emulator_id, app_apk_destination,
-        test_apk_destination, options.quiet,
-        is_logging_enabled_for(app, options)) else 'failed'
+      if not test_jar:
+        result['instrumentation_test_status'] = 'compilation_failed'
+      else:
+        original_test_apk = os.path.join(app_dir, app.apk_test)
+        test_apk_destination = os.path.join(
+          temp_dir,"{}_{}.test.apk".format(app.id_test, compilation_step))
+        apk_masseur.masseur(
+          original_test_apk, dex=test_jar, resources='META-INF/services/*',
+          out=test_apk_destination,
+          quiet=options.quiet, logging=is_logging_enabled_for(app, options),
+          keystore=options.keystore)
+        result['instrumentation_test_status'] = 'success' if adb.run_instrumented(
+          app.id, app.id_test, options.emulator_id, app_apk_destination,
+          test_apk_destination, options.quiet,
+          is_logging_enabled_for(app, options)) else 'failed'
 
     results.append(result)
     if result.get('recompilation_status') != 'success':
@@ -365,6 +382,7 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
 
   return (app_jar, app_mapping, recomp_jar)
 
+
 def build_test_with_shrinker(app, options, temp_dir, app_dir, shrinker,
                              compilation_step_index, mapping):
   r8jar = os.path.join(
@@ -401,7 +419,8 @@ def build_test_with_shrinker(app, options, temp_dir, app_dir, shrinker,
       app.name, shrinker, compilation_step_index))
 
   if compile_result != 0 or not os.path.isfile(out_jar):
-    assert False, "Compilation of test_jar failed"
+    return None
+
   shutil.move(out_jar, test_jar)
 
   return test_jar
