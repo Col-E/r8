@@ -7,21 +7,13 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.L8Command;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingSupplier;
 import com.android.tools.r8.utils.codeinspector.CheckCastInstructionSubject;
@@ -32,13 +24,10 @@ import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.android.tools.r8.utils.codeinspector.TryCatchSubject;
 import com.android.tools.r8.utils.codeinspector.TypeSubject;
-import com.google.common.base.Charsets;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.junit.Assume;
 import org.junit.Test;
@@ -131,46 +120,6 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     assertEquals(expectedCatchGuards, foundCatchGuards);
   }
 
-  // Build the desugared library in class file format.
-  private Path buildDesugaredLibraryClassFile() throws Exception {
-    Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs.jar");
-    L8Command.Builder l8Builder =
-        L8Command.builder()
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
-            .setMode(CompilationMode.DEBUG)
-            .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
-            .setMinApiLevel(parameters.getApiLevel().getLevel())
-            .setOutput(desugaredLib, OutputMode.ClassFile);
-    ToolHelper.runL8(l8Builder.build());
-    return desugaredLib;
-  }
-
-  Supplier<Path> desugaredLibraryClassFile =
-      Suppliers.memoize(
-          () -> {
-            try {
-              return buildDesugaredLibraryClassFile();
-            } catch (Exception e) {
-              fail("Unexpected");
-              return null;
-            }
-          });
-
-  private String collectKeepRulesWithTraceReferences(
-      Path desugaredProgramClassFile, Path desugaredLibraryClassFile) throws Exception {
-    Path generatedKeepRules = temp.newFile().toPath();
-    TraceReferences.run(
-        "--format", "keep",
-        "--lib", ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
-        "--target", desugaredLibraryClassFile.toString(),
-        "--source", desugaredProgramClassFile.toString(),
-        "--output", generatedKeepRules.toString());
-    return FileUtils.readTextFile(generatedKeepRules, Charsets.UTF_8);
-  }
-
   private String desugaredLibraryKeepRules(
       KeepRuleConsumer keepRuleConsumer, ThrowingSupplier<Path, Exception> programSupplier)
       throws Exception {
@@ -181,7 +130,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
         if (traceReferencesKeepRules) {
           desugaredLibraryKeepRules =
               collectKeepRulesWithTraceReferences(
-                  programSupplier.get(), desugaredLibraryClassFile.get());
+                  programSupplier.get(), buildDesugaredLibraryClassFile(parameters.getApiLevel()));
         }
       }
     }
@@ -231,7 +180,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
       // Run on the JVM with desugared library on classpath.
       testForJvm()
           .addProgramFiles(jar)
-          .addRunClasspathFiles(desugaredLibraryClassFile.get())
+          .addRunClasspathFiles(buildDesugaredLibraryClassFile(parameters.getApiLevel()))
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(expectedOutput);
     }

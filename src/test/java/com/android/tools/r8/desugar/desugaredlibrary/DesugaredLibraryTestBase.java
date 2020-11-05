@@ -24,15 +24,20 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class DesugaredLibraryTestBase extends TestBase {
@@ -206,6 +211,50 @@ public class DesugaredLibraryTestBase extends TestBase {
         .parse(
             StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING),
             builder -> builder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary));
+  }
+
+  private Map<AndroidApiLevel, Path> desugaredLibraryClassFileCache = new HashMap<>();
+
+  // Build the desugared library in class file format.
+  public Path buildDesugaredLibraryClassFile(AndroidApiLevel apiLevel) throws Exception {
+    Path desugaredLib = desugaredLibraryClassFileCache.get(apiLevel);
+    if (desugaredLib != null) {
+      return desugaredLib;
+    }
+    desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs.jar");
+    L8Command.Builder l8Builder =
+        L8Command.builder()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
+            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
+            .setMode(CompilationMode.DEBUG)
+            .addDesugaredLibraryConfiguration(
+                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+            .setMinApiLevel(apiLevel.getLevel())
+            .setOutput(desugaredLib, OutputMode.ClassFile);
+    ToolHelper.runL8(l8Builder.build());
+    desugaredLibraryClassFileCache.put(apiLevel, desugaredLib);
+    return desugaredLib;
+  }
+
+  public String collectKeepRulesWithTraceReferences(
+      Path desugaredProgramClassFile, Path desugaredLibraryClassFile) throws Exception {
+    Path generatedKeepRules = temp.newFile().toPath();
+    TraceReferences.run(
+        "--format",
+        "keep",
+        "--lib",
+        ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+        "--target",
+        desugaredLibraryClassFile.toString(),
+        "--source",
+        desugaredProgramClassFile.toString(),
+        "--output",
+        generatedKeepRules.toString(),
+        "--map-diagnostics",
+        "error",
+        "info");
+    return FileUtils.readTextFile(generatedKeepRules, Charsets.UTF_8);
   }
 
   public interface KeepRuleConsumer extends StringConsumer {

@@ -102,6 +102,37 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
   }
 
   @Test
+  public void testCallBackD8Cf() throws Exception {
+    // Use D8 to desugar with Java classfile output.
+    Path jar =
+        testForD8(Backend.CF)
+            .setMinApi(parameters.getApiLevel())
+            .addProgramClasses(Impl.class)
+            .addLibraryClasses(CustomLibClass.class)
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), new AbsentKeepRuleConsumer())
+            .compile()
+            .inspect(CallBackConversionTest::assertDuplicatedAPI)
+            .writeToZip();
+
+    // Convert to DEX without desugaring and run.
+    testForD8()
+        .addProgramFiles(jar)
+        .setMinApi(parameters.getApiLevel())
+        .disableDesugaring()
+        .compile()
+        .inspect(CallBackConversionTest::assertDuplicatedAPI)
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            collectKeepRulesWithTraceReferences(
+                jar, buildDesugaredLibraryClassFile(parameters.getApiLevel())),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), Impl.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
   public void testCallBackR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
