@@ -24,10 +24,9 @@ import java.util.function.Consumer;
 import kotlinx.metadata.InconsistentKotlinMetadataException;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
+import kotlinx.metadata.jvm.KotlinClassMetadata.SyntheticClass;
 
 public final class KotlinClassMetadataReader {
-
-  private static int KOTLIN_METADATA_KIND_LAMBDA = 3;
 
   public static KotlinClassLevelInfo getKotlinInfo(
       Kotlin kotlin,
@@ -53,7 +52,7 @@ public final class KotlinClassMetadataReader {
       DexAnnotation annotation) {
     try {
       KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, annotation.annotation);
-      if (onlyProcessLambda && kMetadata.getHeader().getKind() != KOTLIN_METADATA_KIND_LAMBDA) {
+      if (onlyProcessLambda && !isSyntheticLambda(kMetadata)) {
         return NO_KOTLIN_INFO;
       }
       return createKotlinInfo(kotlin, clazz, kMetadata, factory, reporter, keepByteCode);
@@ -74,6 +73,14 @@ public final class KotlinClassMetadataReader {
                   + e.getMessage()));
       return INVALID_KOTLIN_INFO;
     }
+  }
+
+  private static boolean isSyntheticLambda(KotlinClassMetadata kMetadata) {
+    if (kMetadata instanceof SyntheticClass) {
+      SyntheticClass syntheticClass = (SyntheticClass) kMetadata;
+      return syntheticClass.isLambda();
+    }
+    return false;
   }
 
   public static boolean hasKotlinClassMetadataAnnotation(
