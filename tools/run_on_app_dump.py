@@ -140,6 +140,16 @@ APPS = [
     # TODO(b/172548728): Fix recompilation
     'skip_recompilation': True
   }),
+  # TODO(b/172565385): Monkey runner fails on recompilation
+  App({
+    'id': 'com.google.samples.apps.iosched',
+    'name': 'iosched',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'mobile-release.apk',
+    'url': 'https://github.com/christofferqa/iosched.git',
+    'revision': '581cbbe2253711775dbccb753cdb53e7e506cb02',
+    'folder': 'iosched',
+  }),
   App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
