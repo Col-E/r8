@@ -1497,7 +1497,7 @@ public class IRConverter {
 
     if (interfaceMethodRewriter != null) {
       timing.begin("Rewrite interface methods");
-      interfaceMethodRewriter.rewriteMethodReferences(method, code);
+      interfaceMethodRewriter.rewriteMethodReferences(code);
       timing.end();
       assert code.isConsistentSSA();
     }

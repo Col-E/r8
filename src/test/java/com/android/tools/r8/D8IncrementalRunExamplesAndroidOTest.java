@@ -15,6 +15,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -67,7 +68,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       List<String> classFiles = collectClassFiles(testJarFile);
       for (String classFile : classFiles) {
         AndroidApp app =
-            compileClassFiles(
+            compileClassFilesInIntermediate(
                 testJarFile, Collections.singletonList(classFile), null, OutputMode.DexIndexed);
         assert app.getDexProgramResourcesForTesting().size() == 1;
         fileToResource.put(
@@ -83,7 +84,8 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       TreeMap<String, ProgramResource> fileToResource = new TreeMap<>();
       List<String> classFiles = collectClassFiles(testJarFile);
       AndroidApp app =
-          compileClassFiles(testJarFile, classFiles, output, OutputMode.DexFilePerClassFile);
+          compileClassFilesInIntermediate(
+              testJarFile, classFiles, output, OutputMode.DexFilePerClassFile);
       for (ProgramResource resource : app.getDexProgramResourcesForTesting()) {
         Set<String> descriptors = resource.getClassDescriptors();
         String mainClassDescriptor = app.getPrimaryClassDescriptor(resource);
@@ -91,11 +93,13 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
         for (String descriptor : descriptors) {
           // classes are either lambda classes used by the main class, companion classes of the main
           // interface, the main class/interface, or for JDK9, desugaring of try-with-resources.
-          Assert.assertTrue(descriptor.contains(LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX)
-              || descriptor.endsWith(InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX + ";")
-              || descriptor.endsWith(InterfaceMethodRewriter.DISPATCH_CLASS_NAME_SUFFIX + ";")
-              || descriptor.equals(TwrCloseResourceRewriter.UTILITY_CLASS_DESCRIPTOR)
-              || descriptor.equals(mainClassDescriptor));
+          Assert.assertTrue(
+              descriptor.contains(LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX)
+                  || descriptor.endsWith(InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX + ";")
+                  || descriptor.endsWith(InterfaceMethodRewriter.DISPATCH_CLASS_NAME_SUFFIX + ";")
+                  || descriptor.equals(TwrCloseResourceRewriter.UTILITY_CLASS_DESCRIPTOR)
+                  || descriptor.contains(SyntheticItems.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR)
+                  || descriptor.equals(mainClassDescriptor));
         }
         String classDescriptor =
             DescriptorUtils.getClassBinaryNameFromDescriptor(mainClassDescriptor);
@@ -159,7 +163,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       }
     }
 
-    AndroidApp compileClassFiles(
+    AndroidApp compileClassFilesInIntermediate(
         Path testJarFile, List<String> inputFiles, Path outputPath, OutputMode outputMode)
         throws Throwable {
       D8Command.Builder builder = D8Command.builder();
@@ -179,6 +183,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
       } else {
         throw new Unreachable("Unexpected output mode " + outputMode);
       }
+      builder.setIntermediate(true);
       addLibraryReference(builder, ToolHelper.getAndroidJar(
           androidJarVersion == null ? builder.getMinApiLevel() : androidJarVersion.getLevel()));
       try {
@@ -312,7 +317,6 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
 
     // TODO(b/123504206): This test throws an index out of bounds exception.
     // Re-write or verify running fails in the expected way.
-
     Assert.assertArrayEquals(
         readResource(mergedFromCompiledSeparately.getDexProgramResourcesForTesting().get(0)),
         readResource(mergedFromCompiledTogether.getDexProgramResourcesForTesting().get(0)));

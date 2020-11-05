@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.DesugarGraphConsumer;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
@@ -18,7 +19,6 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -41,6 +42,7 @@ import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.Collection;
 import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
+import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.position.MethodPosition;
@@ -61,10 +63,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
@@ -119,10 +119,6 @@ public final class InterfaceMethodRewriter {
 
   // Caches default interface method info for already processed interfaces.
   private final Map<DexType, DefaultMethodsHelper.Collection> cache = new ConcurrentHashMap<>();
-
-  /** Interfaces requiring dispatch classes to be created, and appropriate callers. */
-  private final ConcurrentMap<DexLibraryClass, Set<DexProgramClass>> requiredDispatchClasses =
-      new ConcurrentHashMap<>();
 
   /**
    * Defines a minor variation in desugaring.
@@ -220,7 +216,9 @@ public final class InterfaceMethodRewriter {
 
   // Rewrites the references to static and default interface methods.
   // NOTE: can be called for different methods concurrently.
-  public void rewriteMethodReferences(DexEncodedMethod encodedMethod, IRCode code) {
+  public void rewriteMethodReferences(IRCode code) {
+    ProgramMethod context = code.context();
+    DexEncodedMethod encodedMethod = context.getDefinition();
     if (synthesizedMethods.contains(encodedMethod)) {
       return;
     }
@@ -278,14 +276,36 @@ public final class InterfaceMethodRewriter {
                 // so the user class is not rejected because it make this call directly.
                 // TODO(b/166247515): If this an incorrect invoke-static without the interface bit
                 //  we end up "fixing" the code and remove and ICCE error.
+                ProgramMethod newProgramMethod =
+                    appView
+                        .getSyntheticItems()
+                        .createMethod(
+                            context.getHolder(),
+                            factory,
+                            syntheticMethodBuilder -> {
+                              syntheticMethodBuilder
+                                  .setProto(method.proto)
+                                  .setAccessFlags(
+                                      MethodAccessFlags.fromSharedAccessFlags(
+                                          Constants.ACC_PUBLIC
+                                              | Constants.ACC_STATIC
+                                              | Constants.ACC_SYNTHETIC,
+                                          false))
+                                  .setCode(
+                                      m ->
+                                          ForwardMethodBuilder.builder(factory)
+                                              .setStaticTarget(method, true)
+                                              .setStaticSource(m)
+                                              .build());
+                            });
                 instructions.replaceCurrentInstruction(
                     new InvokeStatic(
-                        staticAsMethodOfDispatchClass(method),
+                        newProgramMethod.getReference(),
                         invokeStatic.outValue(),
                         invokeStatic.arguments()));
-                requiredDispatchClasses
-                    .computeIfAbsent(clazz.asLibraryClass(), k -> Sets.newConcurrentHashSet())
-                    .add(appInfo.definitionFor(encodedMethod.holder()).asProgramClass());
+                synchronized (synthesizedMethods) {
+                  synthesizedMethods.add(newProgramMethod);
+                }
               }
             } else {
               instructions.replaceCurrentInstruction(
@@ -1026,7 +1046,6 @@ public final class InterfaceMethodRewriter {
   private void clear() {
     this.cache.clear();
     this.synthesizedMethods.clear();
-    this.requiredDispatchClasses.clear();
   }
 
   private static boolean shouldProcess(
@@ -1044,10 +1063,6 @@ public final class InterfaceMethodRewriter {
       if (shouldProcess(clazz, flavour, true)) {
         processor.process(clazz, graphLensBuilder);
       }
-    }
-    for (Entry<DexLibraryClass, Set<DexProgramClass>> entry : requiredDispatchClasses.entrySet()) {
-      DexProgramClass dispatchClass = processor.process(entry.getKey(), entry.getValue());
-      dispatchClass.forEachProgramMethod(synthesizedMethods::add);
     }
     return processor.syntheticClasses;
   }

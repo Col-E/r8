@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugaring.interfacemethods;
 
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -48,11 +45,7 @@ public class Regress171867367 extends TestBase {
             .addAndroidBuildVersion()
             .addProgramClasses(TestClass2.class)
             .setMinApi(parameters.getApiLevel());
-    if (parameters.getApiLevel().isLessThan(AndroidApiLevel.L)) {
-      // TODO(b/171867367): Make us not fail when desugaring mixed (desugared and non desugared)
-      // inputs introduce a synthetic already present in the program input.
-      assertThrows(CompilationFailedException.class, d8TestBuilder::compile);
-    } else if (parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
+    if (parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
       d8TestBuilder
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("42", "45", "43");
