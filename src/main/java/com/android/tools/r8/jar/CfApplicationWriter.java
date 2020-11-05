@@ -48,9 +48,11 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.PredicateUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.Sets;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Optional;
+import java.util.SortedSet;
 import java.util.function.Predicate;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
@@ -67,6 +69,7 @@ import org.objectweb.asm.util.Textifier;
 import org.objectweb.asm.util.TraceMethodVisitor;
 
 public class CfApplicationWriter {
+
   private static final boolean RUN_VERIFIER = false;
   private static final boolean PRINT_CF = false;
 
@@ -222,7 +225,17 @@ public class CfApplicationWriter {
     for (DexEncodedField field : clazz.instanceFields()) {
       writeField(field, writer);
     }
-    clazz.forEachProgramMethod(method -> writeMethod(method, version, rewriter, writer, defaults));
+    if (options.desugarSpecificOptions().sortMethodsOnCfOutput) {
+      SortedSet<ProgramMethod> programMethodSortedSet =
+          Sets.newTreeSet(
+              (a, b) -> a.getDefinition().method.slowCompareTo(b.getDefinition().method));
+      clazz.forEachProgramMethod(programMethodSortedSet::add);
+      programMethodSortedSet.forEach(
+          method -> writeMethod(method, version, rewriter, writer, defaults));
+    } else {
+      clazz.forEachProgramMethod(
+          method -> writeMethod(method, version, rewriter, writer, defaults));
+    }
     writer.visitEnd();
 
     byte[] result = writer.toByteArray();
