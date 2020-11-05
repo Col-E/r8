@@ -381,6 +381,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return method;
   }
 
+  public DexMethodSignature getSignature() {
+    return new DexMethodSignature(method);
+  }
+
   public DexTypeList parameters() {
     return method.proto.parameters;
   }

@@ -110,6 +110,10 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return proto.parameters.size();
   }
 
+  public DexMethodSignature getSignature() {
+    return new DexMethodSignature(this);
+  }
+
   @Override
   public void collectIndexedItems(IndexedItemCollection indexedItems) {
     if (collectIndexedItemsExceptName(indexedItems)) {
