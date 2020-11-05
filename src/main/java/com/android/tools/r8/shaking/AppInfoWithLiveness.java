@@ -107,7 +107,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   /**
    * Set of program methods that are used as the bootstrap method for an invoke-dynamic instruction.
    */
-  public final SortedSet<DexMethod> bootstrapMethods;
+  private final Set<DexMethod> bootstrapMethods;
+
   /** Set of methods that are the immediate target of an invoke-dynamic. */
   public final SortedSet<DexMethod> methodsTargetedByInvokeDynamic;
   /** Set of virtual methods that are the immediate target of an invoke-direct. */
@@ -207,7 +208,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> instantiatedAppServices,
       Set<DexMethod> targetedMethods,
       Set<DexMethod> failedResolutionTargets,
-      SortedSet<DexMethod> bootstrapMethods,
+      Set<DexMethod> bootstrapMethods,
       SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
       SortedSet<DexMethod> liveMethods,
@@ -290,7 +291,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> instantiatedAppServices,
       Set<DexMethod> targetedMethods,
       Set<DexMethod> failedResolutionTargets,
-      SortedSet<DexMethod> bootstrapMethods,
+      Set<DexMethod> bootstrapMethods,
       SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
       SortedSet<DexMethod> liveMethods,
@@ -628,6 +629,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean isTargetedMethod(DexMethod method) {
     return targetedMethods.contains(method);
+  }
+
+  public boolean isBootstrapMethod(DexMethod method) {
+    return bootstrapMethods.contains(method);
   }
 
   public Collection<DexClass> computeReachableInterfaces() {
@@ -1025,7 +1030,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteTypes(instantiatedAppServices),
         lens.rewriteMethods(targetedMethods),
         lens.rewriteMethodsSorted(failedResolutionTargets),
-        lens.rewriteMethodsSorted(bootstrapMethods),
+        lens.rewriteMethods(bootstrapMethods),
         lens.rewriteMethodsSorted(methodsTargetedByInvokeDynamic),
         lens.rewriteMethodsSorted(virtualMethodsTargetedByInvokeDirect),
         lens.rewriteMethodsSorted(liveMethods),

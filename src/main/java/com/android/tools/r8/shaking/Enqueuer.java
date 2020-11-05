@@ -3176,7 +3176,7 @@ public class Enqueuer {
             Collections.unmodifiableSet(instantiatedAppServices),
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),
             Collections.unmodifiableSet(failedResolutionTargets),
-            ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, bootstrapMethods),
+            Collections.unmodifiableSet(bootstrapMethods),
             ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, methodsTargetedByInvokeDynamic),
             ImmutableSortedSet.copyOf(
                 DexMethod::slowCompareTo, virtualMethodsTargetedByInvokeDirect),
