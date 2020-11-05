@@ -599,6 +599,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return accessFlags.isSynthetic();
   }
 
+  @Override
   public KotlinMethodLevelInfo getKotlinMemberInfo() {
     return kotlinMemberInfo;
   }

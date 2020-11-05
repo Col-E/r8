@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.kotlin.KotlinMemberLevelInfo;
+
 public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
     extends DexDefinition {
 
@@ -13,6 +15,8 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
   public DexType holder() {
     return getReference().holder;
   }
+
+  public abstract KotlinMemberLevelInfo getKotlinMemberInfo();
 
   @Override
   public abstract R getReference();

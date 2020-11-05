@@ -95,6 +95,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     optimizationInfo = info;
   }
 
+  @Override
   public KotlinFieldLevelInfo getKotlinMemberInfo() {
     return kotlinMemberInfo;
   }

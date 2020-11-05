@@ -4,9 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
-import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
-
-public interface KotlinMethodLevelInfo extends EnqueuerMetadataTraceable {
+public interface KotlinMethodLevelInfo extends KotlinMemberLevelInfo {
 
   default boolean isConstructor() {
     return false;

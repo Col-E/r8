@@ -4,9 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
-import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
-
-public interface KotlinFieldLevelInfo extends EnqueuerMetadataTraceable {
+public interface KotlinFieldLevelInfo extends KotlinMemberLevelInfo {
 
   default boolean isCompanion() {
     return false;
