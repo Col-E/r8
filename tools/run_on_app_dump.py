@@ -115,6 +115,16 @@ APPS = [
     # TODO(b/172535996): Fix recompilation
     'skip_recompilation': True
   }),
+  # TODO(b/172539375): Monkey runner fails on recompilation.
+  App({
+    'id': 'com.google.firebase.example.fireeats',
+    'name': 'FriendlyEats',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release-unsigned.apk',
+    'url': 'https://github.com/firebase/friendlyeats-android',
+    'revision': '7c6dd016fc31ea5ecb948d5166b8479efc3775cc',
+    'folder': 'friendlyeats',
+  }),
   App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
