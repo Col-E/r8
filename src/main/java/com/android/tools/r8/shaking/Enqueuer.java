@@ -543,9 +543,22 @@ public class Enqueuer {
   }
 
   private DexClass definitionFor(DexType type) {
-    DexClass clazz = appView.definitionFor(type);
+    return internalDefinitionFor(type, false);
+  }
+
+  private DexClass definitionForFromReflectiveAccess(DexType type) {
+    return internalDefinitionFor(type, true);
+  }
+
+  private DexClass internalDefinitionFor(DexType type, boolean fromReflectiveAccess) {
+    DexClass clazz =
+        fromReflectiveAccess
+            ? appView.appInfo().definitionForWithoutExistenceAssert(type)
+            : appView.appInfo().definitionFor(type);
     if (clazz == null) {
-      reportMissingClass(type);
+      if (!fromReflectiveAccess) {
+        reportMissingClass(type);
+      }
       return null;
     }
     if (clazz.isNotProgramClass()) {
@@ -618,9 +631,9 @@ public class Enqueuer {
   }
 
   private DexProgramClass getProgramClassOrNullFromReflectiveAccess(DexType type) {
-    // This is using appInfo.definitionForWithoutExistenceAssert() to avoid that we report
-    // reflectively accessed types as missing.
-    return asProgramClassOrNull(appInfo().definitionForWithoutExistenceAssert(type));
+    // To avoid that we report reflectively accessed types as missing.
+    DexClass clazz = definitionForFromReflectiveAccess(type);
+    return clazz != null && clazz.isProgramClass() ? clazz.asProgramClass() : null;
   }
 
   private void warnIfLibraryTypeInheritsFromProgramType(DexLibraryClass clazz) {
