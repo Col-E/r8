@@ -103,7 +103,16 @@ APPS = [
     'url': 'https://github.com/mkj-gram/applymapping',
     'revision': 'e3ae14b8c16fa4718e5dea8f7ad00937701b3c48',
     'folder': 'applymapping',
-  })
+  }),
+  App({
+    'id': 'org.wikipedia',
+    'name': 'Wikipedia',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-prod-release.apk',
+    'url': 'https://github.com/wikimedia/apps-android-wikipedia',
+    'revision': '0fa7cad843c66313be8e25790ef084cf1a1fa67e',
+    'folder': 'wikipedia',
+  }),
 ]
 
 
