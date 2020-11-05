@@ -3174,7 +3174,7 @@ public class Enqueuer {
                 : missingTypes,
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Collections.unmodifiableSet(instantiatedAppServices),
-            Enqueuer.toSortedDescriptorSet(targetedMethods.getItems()),
+            Enqueuer.toDescriptorSet(targetedMethods.getItems()),
             Collections.unmodifiableSet(failedResolutionTargets),
             ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, bootstrapMethods),
             ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, methodsTargetedByInvokeDynamic),
@@ -3352,6 +3352,15 @@ public class Enqueuer {
       SortedSet<R> toSortedDescriptorSet(Set<D> set) {
     ImmutableSortedSet.Builder<R> builder =
         new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompareTo);
+    for (D item : set) {
+      builder.add(item.getReference());
+    }
+    return builder.build();
+  }
+
+  private static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+      Set<R> toDescriptorSet(Set<D> set) {
+    ImmutableSet.Builder<R> builder = new ImmutableSet.Builder<>();
     for (D item : set) {
       builder.add(item.getReference());
     }

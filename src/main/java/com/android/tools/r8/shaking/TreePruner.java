@@ -299,7 +299,7 @@ public class TreePruner {
                 ? method
                 : method.toMethodThatLogsError(appView));
         methodsToKeepForConfigurationDebugging.add(method.method);
-      } else if (appInfo.targetedMethods.contains(method.getReference())) {
+      } else if (appInfo.isTargetedMethod(method.getReference())) {
         // If the method is already abstract, and doesn't have code, let it be.
         if (method.shouldNotHaveCode() && !method.hasCode()) {
           reachableMethods.add(method);

@@ -99,7 +99,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * contained in {@link #liveMethods}, it may be marked as abstract and its implementation may be
    * removed.
    */
-  final SortedSet<DexMethod> targetedMethods;
+  private final Set<DexMethod> targetedMethods;
 
   /** Set of targets that lead to resolution errors, such as non-existing or invalid targets. */
   public final Set<DexMethod> failedResolutionTargets;
@@ -205,7 +205,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,
       Set<DexType> instantiatedAppServices,
-      SortedSet<DexMethod> targetedMethods,
+      Set<DexMethod> targetedMethods,
       Set<DexMethod> failedResolutionTargets,
       SortedSet<DexMethod> bootstrapMethods,
       SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
@@ -288,7 +288,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,
       Set<DexType> instantiatedAppServices,
-      SortedSet<DexMethod> targetedMethods,
+      Set<DexMethod> targetedMethods,
       Set<DexMethod> failedResolutionTargets,
       SortedSet<DexMethod> bootstrapMethods,
       SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
@@ -624,6 +624,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     }
     DexClass clazz = definitionFor(type);
     return clazz == null || !clazz.isProgramClass();
+  }
+
+  public boolean isTargetedMethod(DexMethod method) {
+    return targetedMethods.contains(method);
   }
 
   public Collection<DexClass> computeReachableInterfaces() {
@@ -1020,11 +1024,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteTypes(liveTypes),
         lens.rewriteTypes(instantiatedAppServices),
         lens.rewriteMethods(targetedMethods),
-        lens.rewriteMethods(failedResolutionTargets),
-        lens.rewriteMethods(bootstrapMethods),
-        lens.rewriteMethods(methodsTargetedByInvokeDynamic),
-        lens.rewriteMethods(virtualMethodsTargetedByInvokeDirect),
-        lens.rewriteMethods(liveMethods),
+        lens.rewriteMethodsSorted(failedResolutionTargets),
+        lens.rewriteMethodsSorted(bootstrapMethods),
+        lens.rewriteMethodsSorted(methodsTargetedByInvokeDynamic),
+        lens.rewriteMethodsSorted(virtualMethodsTargetedByInvokeDirect),
+        lens.rewriteMethodsSorted(liveMethods),
         fieldAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         methodAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         objectAllocationInfoCollection.rewrittenWithLens(definitionSupplier, lens),
@@ -1033,14 +1037,14 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteReferenceKeys(mayHaveSideEffects),
         lens.rewriteReferenceKeys(noSideEffects),
         lens.rewriteReferenceKeys(assumedValues),
-        lens.rewriteMethods(alwaysInline),
-        lens.rewriteMethods(forceInline),
-        lens.rewriteMethods(neverInline),
-        lens.rewriteMethods(whyAreYouNotInlining),
-        lens.rewriteMethods(keepConstantArguments),
-        lens.rewriteMethods(keepUnusedArguments),
-        lens.rewriteMethods(reprocess),
-        lens.rewriteMethods(neverReprocess),
+        lens.rewriteMethodsSorted(alwaysInline),
+        lens.rewriteMethodsSorted(forceInline),
+        lens.rewriteMethodsSorted(neverInline),
+        lens.rewriteMethodsSorted(whyAreYouNotInlining),
+        lens.rewriteMethodsSorted(keepConstantArguments),
+        lens.rewriteMethodsSorted(keepUnusedArguments),
+        lens.rewriteMethodsSorted(reprocess),
+        lens.rewriteMethodsSorted(neverReprocess),
         alwaysClassInline.rewriteItems(lens::lookupType),
         lens.rewriteTypes(neverClassInline),
         lens.rewriteTypes(noUnusedInterfaceRemoval),
