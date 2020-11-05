@@ -105,6 +105,17 @@ APPS = [
     'folder': 'applymapping',
   }),
   App({
+    'id': 'com.chanapps.four.activity',
+    'name': 'chanu',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release.apk',
+    'url': 'https://github.com/mkj-gram/chanu.git',
+    'revision': '6e53458f167b6d78398da60c20fd0da01a232617',
+    'folder': 'chanu',
+    # TODO(b/172535996): Fix recompilation
+    'skip_recompilation': True
+  }),
+  App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
     'dump_app': 'dump_app.zip',
