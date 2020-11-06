@@ -284,7 +284,7 @@ public class StaticClassMerger {
                     || appView.appInfo().isPinned(method.method)
                     // TODO(christofferqa): Remove the invariant that the graph lens should not
                     // modify any methods from the sets alwaysInline and noSideEffects.
-                    || appView.appInfo().alwaysInline.contains(method.method)
+                    || appView.appInfo().isAlwaysInlineMethod(method.method)
                     || appView.appInfo().noSideEffects.keySet().contains(method.method))) {
       return MergeGroup.DONT_MERGE;
     }

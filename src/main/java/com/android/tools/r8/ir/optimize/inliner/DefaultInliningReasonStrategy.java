@@ -36,12 +36,12 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
     DexMethod targetReference = target.getReference();
     if (targetMethod.getOptimizationInfo().forceInline()
         || (appView.appInfo().hasLiveness()
-            && appView.withLiveness().appInfo().forceInline.contains(targetReference))) {
-      assert !appView.appInfo().neverInline.contains(targetReference);
+            && appView.withLiveness().appInfo().isForceInlineMethod(targetReference))) {
+      assert !appView.appInfo().isNeverInlineMethod(targetReference);
       return Reason.FORCE;
     }
     if (appView.appInfo().hasLiveness()
-        && appView.withLiveness().appInfo().alwaysInline.contains(targetReference)) {
+        && appView.withLiveness().appInfo().isAlwaysInlineMethod(targetReference)) {
       return Reason.ALWAYS;
     }
     if (appView.options().disableInliningOfLibraryMethodOverrides

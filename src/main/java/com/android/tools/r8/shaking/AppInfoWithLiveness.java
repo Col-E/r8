@@ -142,11 +142,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   /** All items with assumevalues rule. */
   public final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues;
   /** All methods that should be inlined if possible due to a configuration directive. */
-  public final Set<DexMethod> alwaysInline;
+  private final Set<DexMethod> alwaysInline;
   /** All methods that *must* be inlined due to a configuration directive (testing only). */
-  public final Set<DexMethod> forceInline;
+  private final Set<DexMethod> forceInline;
   /** All methods that *must* never be inlined due to a configuration directive (testing only). */
-  public final Set<DexMethod> neverInline;
+  private final Set<DexMethod> neverInline;
   /** Items for which to print inlining decisions for (testing only). */
   public final Set<DexMethod> whyAreYouNotInlining;
   /** All methods that may not have any parameters with a constant value removed. */
@@ -655,6 +655,26 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return virtualMethodsTargetedByInvokeDirect;
   }
 
+  public boolean isAlwaysInlineMethod(DexMethod method) {
+    return alwaysInline.contains(method);
+  }
+
+  public boolean hasNoAlwaysInlineMethods() {
+    return alwaysInline.isEmpty();
+  }
+
+  public boolean isForceInlineMethod(DexMethod method) {
+    return forceInline.contains(method);
+  }
+
+  public boolean hasNoForceInlineMethods() {
+    return forceInline.isEmpty();
+  }
+
+  public boolean isNeverInlineMethod(DexMethod method) {
+    return neverInline.contains(method);
+  }
+
   public Collection<DexClass> computeReachableInterfaces() {
     Set<DexClass> interfaces = Sets.newIdentityHashSet();
     WorkList<DexType> worklist = WorkList.newIdentityWorkList();
@@ -1062,9 +1082,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteReferenceKeys(mayHaveSideEffects),
         lens.rewriteReferenceKeys(noSideEffects),
         lens.rewriteReferenceKeys(assumedValues),
-        lens.rewriteMethodsSorted(alwaysInline),
-        lens.rewriteMethodsSorted(forceInline),
-        lens.rewriteMethodsSorted(neverInline),
+        lens.rewriteMethods(alwaysInline),
+        lens.rewriteMethods(forceInline),
+        lens.rewriteMethods(neverInline),
         lens.rewriteMethodsSorted(whyAreYouNotInlining),
         lens.rewriteMethodsSorted(keepConstantArguments),
         lens.rewriteMethodsSorted(keepUnusedArguments),

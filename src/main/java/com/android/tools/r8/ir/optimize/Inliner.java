@@ -126,7 +126,7 @@ public class Inliner implements PostOptimization {
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod singleTargetReference = singleTarget.getReference();
     if (singleTarget.getDefinition().getOptimizationInfo().forceInline()
-        && appInfo.neverInline.contains(singleTargetReference)) {
+        && appInfo.isNeverInlineMethod(singleTargetReference)) {
       throw new Unreachable();
     }
 
@@ -143,7 +143,7 @@ public class Inliner implements PostOptimization {
       return true;
     }
 
-    if (appInfo.neverInline.contains(singleTargetReference)) {
+    if (appInfo.isNeverInlineMethod(singleTargetReference)) {
       whyAreYouNotInliningReporter.reportMarkedAsNeverInline();
       return true;
     }
@@ -1091,8 +1091,8 @@ public class Inliner implements PostOptimization {
 
           if (inlineeMayHaveInvokeMethod && options.applyInliningToInlinee) {
             if (inlineeStack.size() + 1 > options.applyInliningToInlineeMaxDepth
-                && appView.appInfo().alwaysInline.isEmpty()
-                && appView.appInfo().forceInline.isEmpty()) {
+                && appView.appInfo().hasNoAlwaysInlineMethods()
+                && appView.appInfo().hasNoForceInlineMethods()) {
               continue;
             }
             // Record that we will be inside the inlinee until the next block.
