@@ -297,7 +297,7 @@ public class VerticalClassMerger {
     }
 
     // The set of targets that must remain for proper resolution error cases should not be merged.
-    for (DexMethod method : appInfo.failedResolutionTargets) {
+    for (DexMethod method : appInfo.getFailedResolutionTargets()) {
       markTypeAsPinned(method.holder, AbortReason.RESOLUTION_FOR_METHODS_MAY_CHANGE);
     }
   }

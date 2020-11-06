@@ -224,7 +224,7 @@ public class UnusedArgumentsCollector {
 
               // If this is a method with known resolution issues, then don't remove any unused
               // arguments.
-              if (appView.appInfo().failedResolutionTargets.contains(method.method)) {
+              if (appView.appInfo().isFailedResolutionTarget(method.method)) {
                 return method;
               }
 

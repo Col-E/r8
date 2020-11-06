@@ -58,7 +58,6 @@ import com.android.tools.r8.graph.LookupLambdaTarget;
 import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
-import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMember;
@@ -119,7 +118,6 @@ import com.android.tools.r8.utils.collections.ProgramFieldSet;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -141,7 +139,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
@@ -3417,16 +3414,6 @@ public class Enqueuer {
     assert !callSites.isEmpty();
     int replaced = LambdaRewriter.desugarLambdas(method, callSites::get);
     assert replaced == callSites.size();
-  }
-
-  private static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
-      SortedSet<R> toSortedDescriptorSet(Set<D> set) {
-    ImmutableSortedSet.Builder<R> builder =
-        new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompareTo);
-    for (D item : set) {
-      builder.add(item.getReference());
-    }
-    return builder.build();
   }
 
   private static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>

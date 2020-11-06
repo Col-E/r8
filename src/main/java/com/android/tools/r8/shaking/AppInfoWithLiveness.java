@@ -102,7 +102,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private final Set<DexMethod> targetedMethods;
 
   /** Set of targets that lead to resolution errors, such as non-existing or invalid targets. */
-  public final Set<DexMethod> failedResolutionTargets;
+  private final Set<DexMethod> failedResolutionTargets;
 
   /**
    * Set of program methods that are used as the bootstrap method for an invoke-dynamic instruction.
@@ -635,6 +635,14 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return targetedMethods.contains(method);
   }
 
+  public boolean isFailedResolutionTarget(DexMethod method) {
+    return failedResolutionTargets.contains(method);
+  }
+
+  public Set<DexMethod> getFailedResolutionTargets() {
+    return failedResolutionTargets;
+  }
+
   public boolean isBootstrapMethod(DexMethod method) {
     return bootstrapMethods.contains(method);
   }
@@ -1041,7 +1049,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteTypes(liveTypes),
         lens.rewriteTypes(instantiatedAppServices),
         lens.rewriteMethods(targetedMethods),
-        lens.rewriteMethodsSorted(failedResolutionTargets),
+        lens.rewriteMethods(failedResolutionTargets),
         lens.rewriteMethods(bootstrapMethods),
         lens.rewriteMethods(methodsTargetedByInvokeDynamic),
         lens.rewriteMethods(virtualMethodsTargetedByInvokeDirect),

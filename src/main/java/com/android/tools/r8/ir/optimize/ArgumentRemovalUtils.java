@@ -15,7 +15,7 @@ public class ArgumentRemovalUtils {
   public static boolean isPinned(DexEncodedMethod method, AppView<AppInfoWithLiveness> appView) {
     return appView.appInfo().isPinned(method.method)
         || appView.appInfo().isBootstrapMethod(method.method)
-        || appView.appInfo().failedResolutionTargets.contains(method.method)
+        || appView.appInfo().isFailedResolutionTarget(method.method)
         || appView.appInfo().isMethodTargetedByInvokeDynamic(method.method)
         || method.accessFlags.isNative();
   }
