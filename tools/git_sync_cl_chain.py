@@ -135,7 +135,7 @@ def main(argv):
           utils.RunCmd(
               ['git', 'cl', 'upload', '-m', options.message], quiet=True)
 
-    if len(closed_branches) > 0 and get_delete_branches_option(options):
+    if get_delete_branches_option(closed_branches, options):
       delete_branches(closed_branches)
 
     utils.RunCmd(['git', 'cl', 'issue'])
@@ -150,7 +150,9 @@ def get_branch_with_name(name, branches):
       return branch
   return None
 
-def get_delete_branches_option(options):
+def get_delete_branches_option(closed_branches, options):
+  if len(closed_branches) == 0:
+    return False
   if options.leave_upstream:
     return False
   if options.delete == 'y':
