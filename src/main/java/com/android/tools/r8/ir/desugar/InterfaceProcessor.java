@@ -273,7 +273,7 @@ public final class InterfaceProcessor {
       List<DexEncodedMethod> companionMethods,
       InterfaceProcessorNestedGraphLens.Builder graphLensBuilder) {
     DexEncodedMethod clinit = null;
-    for (DexEncodedMethod method : iface.directMethods(DexEncodedMethod::isInstanceInitializer)) {
+    for (DexEncodedMethod method : iface.directMethods()) {
       if (method.isClassInitializer()) {
         clinit = method;
         continue;
