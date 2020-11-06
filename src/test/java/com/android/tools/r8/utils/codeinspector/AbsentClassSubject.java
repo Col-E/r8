@@ -96,6 +96,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public boolean isImplementing(ClassSubject subject) {
+    throw new Unreachable("Cannot determine if an absent class is implementing a given interface");
+  }
+
+  @Override
   public DexProgramClass getDexProgramClass() {
     return null;
   }

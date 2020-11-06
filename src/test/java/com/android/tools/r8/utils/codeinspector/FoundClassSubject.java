@@ -300,6 +300,17 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public boolean isImplementing(ClassSubject subject) {
+    assertTrue(subject.isPresent());
+    for (DexType itf : getDexProgramClass().interfaces) {
+      if (itf.toSourceString().equals(subject.getFinalName())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
   public boolean isAnnotation() {
     return dexClass.accessFlags.isAnnotation();
   }

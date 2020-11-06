@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking.clinit;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -49,6 +50,7 @@ public class InterfaceWithDefaultMethodNotInitializedByInvokeStaticOnSubInterfac
         .allowStdoutMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
+        .inspect(inspector -> assertEquals(1, inspector.allClasses().size()))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithEmptyOutput();
   }

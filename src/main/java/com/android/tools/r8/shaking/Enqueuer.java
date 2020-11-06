@@ -104,7 +104,6 @@ import com.android.tools.r8.shaking.RootSetBuilder.MutableItemsWithRules;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.utils.Action;
-import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -233,10 +232,25 @@ public class Enqueuer {
    * Set of types that are mentioned in the program. We at least need an empty abstract class item
    * for these.
    */
-  private final SetWithReportedReason<DexProgramClass> liveTypes;
+  private final SetWithReportedReason<DexProgramClass> liveTypes = new SetWithReportedReason<>();
 
-  /** Set of types whose class initializer may execute. */
-  private final SetWithReportedReason<DexProgramClass> initializedTypes;
+  /** Set of classes whose initializer may execute. */
+  private final SetWithReportedReason<DexProgramClass> initializedClasses =
+      new SetWithReportedReason<>();
+
+  /**
+   * Set of interfaces whose interface initializer may execute directly in response to a static
+   * field or method access on the interface.
+   */
+  private final SetWithReportedReason<DexProgramClass> directlyInitializedInterfaces =
+      new SetWithReportedReason<>();
+
+  /**
+   * Set of interfaces whose interface initializer may execute indirectly as a side-effect of the
+   * class initialization of a (non-interface) subclass.
+   */
+  private final SetWithReportedReason<DexProgramClass> indirectlyInitializedInterfaces =
+      new SetWithReportedReason<>();
 
   /**
    * Set of live types defined in the library and classpath.
@@ -387,9 +401,6 @@ public class Enqueuer {
           shrinker -> registerAnalysis(shrinker.createEnqueuerAnalysis()));
     }
 
-
-    liveTypes = new SetWithReportedReason<>();
-    initializedTypes = new SetWithReportedReason<>();
     targetedMethods = new SetWithReason<>(graphReporter::registerMethod);
     // This set is only populated in edge cases due to multiple default interface methods.
     // The set is generally expected to be empty and in the unlikely chance it is not, it will
@@ -1884,36 +1895,97 @@ public class Enqueuer {
   }
 
   private void markDirectAndIndirectClassInitializersAsLive(DexProgramClass clazz) {
-    Deque<DexProgramClass> worklist = DequeUtils.newArrayDeque(clazz);
-    Set<DexProgramClass> visited = SetUtils.newIdentityHashSet(clazz);
-    while (!worklist.isEmpty()) {
-      DexProgramClass current = worklist.removeFirst();
-      assert visited.contains(current);
+    if (clazz.isInterface()) {
+      // Accessing a static field or method on an interface does not trigger the class initializer
+      // of any parent interfaces.
+      markInterfaceInitializedDirectly(clazz);
+      return;
+    }
 
-      if (!markDirectClassInitializerAsLive(current)) {
-        continue;
+    WorkList<DexProgramClass> worklist = WorkList.newIdentityWorkList(clazz);
+    while (worklist.hasNext()) {
+      DexProgramClass current = worklist.next();
+      if (current.isInterface()) {
+        if (!markInterfaceInitializedIndirectly(current)) {
+          continue;
+        }
+      } else {
+        if (!markDirectClassInitializerAsLive(current)) {
+          continue;
+        }
       }
 
       // Mark all class initializers in all super types as live.
-      for (DexType superType : clazz.allImmediateSupertypes()) {
+      for (DexType superType : current.allImmediateSupertypes()) {
         DexProgramClass superClass = getProgramClassOrNull(superType);
-        if (superClass != null && visited.add(superClass)) {
-          worklist.add(superClass);
+        if (superClass != null) {
+          worklist.addIfNotSeen(superClass);
         }
       }
     }
   }
 
-  /** Returns true if the class initializer became live for the first time. */
+  /** Returns true if the class became initialized for the first time. */
   private boolean markDirectClassInitializerAsLive(DexProgramClass clazz) {
     ProgramMethod clinit = clazz.getProgramClassInitializer();
     KeepReasonWitness witness = graphReporter.reportReachableClassInitializer(clazz, clinit);
-    if (!initializedTypes.add(clazz, witness)) {
+    if (!initializedClasses.add(clazz, witness)) {
       return false;
     }
     if (clinit != null && clinit.getDefinition().getOptimizationInfo().mayHaveSideEffects()) {
       markDirectStaticOrConstructorMethodAsLive(clinit, witness);
     }
+    return true;
+  }
+
+  /**
+   * Marks the interface as initialized directly and promotes the interface initializer to being
+   * live if it isn't already.
+   */
+  private void markInterfaceInitializedDirectly(DexProgramClass clazz) {
+    ProgramMethod clinit = clazz.getProgramClassInitializer();
+    // Mark the interface as initialized directly.
+    KeepReasonWitness witness = graphReporter.reportReachableClassInitializer(clazz, clinit);
+    if (!directlyInitializedInterfaces.add(clazz, witness)) {
+      return;
+    }
+    // Promote the interface initializer to being live if it isn't already.
+    if (clinit == null || !clinit.getDefinition().getOptimizationInfo().mayHaveSideEffects()) {
+      return;
+    }
+    if (indirectlyInitializedInterfaces.contains(clazz)
+        && clazz.getMethodCollection().hasVirtualMethods(DexEncodedMethod::isDefaultMethod)) {
+      assert liveMethods.contains(clinit);
+      return;
+    }
+    markDirectStaticOrConstructorMethodAsLive(clinit, witness);
+  }
+
+  /**
+   * Marks the interface as initialized indirectly and promotes the interface initializer to being
+   * live if the interface has a default interface method and is not already live.
+   *
+   * @return true if the interface became initialized indirectly for the first time.
+   */
+  private boolean markInterfaceInitializedIndirectly(DexProgramClass clazz) {
+    ProgramMethod clinit = clazz.getProgramClassInitializer();
+    // Mark the interface as initialized indirectly.
+    KeepReasonWitness witness = graphReporter.reportReachableClassInitializer(clazz, clinit);
+    if (!indirectlyInitializedInterfaces.add(clazz, witness)) {
+      return false;
+    }
+    // Promote the interface initializer to being live if it has a default interface method and
+    // isn't already live.
+    if (clinit == null
+        || !clinit.getDefinition().getOptimizationInfo().mayHaveSideEffects()
+        || !clazz.getMethodCollection().hasVirtualMethods(DexEncodedMethod::isDefaultMethod)) {
+      return true;
+    }
+    if (directlyInitializedInterfaces.contains(clazz)) {
+      assert liveMethods.contains(clinit);
+      return true;
+    }
+    markDirectStaticOrConstructorMethodAsLive(clinit, witness);
     return true;
   }
 

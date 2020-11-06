@@ -1682,6 +1682,13 @@ public class TestBase {
     return AndroidApiLevel.N;
   }
 
+  public static boolean hasDefaultInterfaceMethodsSupport(TestParameters parameters) {
+    return parameters.isCfRuntime()
+        || parameters
+            .getApiLevel()
+            .isGreaterThanOrEqualTo(apiLevelWithDefaultInterfaceMethodsSupport());
+  }
+
   public static AndroidApiLevel apiLevelWithStaticInterfaceMethodsSupport() {
     return AndroidApiLevel.N;
   }

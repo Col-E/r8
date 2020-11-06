@@ -167,6 +167,8 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract boolean isPublic();
 
+  public abstract boolean isImplementing(ClassSubject subject);
+
   public String dumpMethods() {
     StringBuilder dump = new StringBuilder();
     forAllMethods(
