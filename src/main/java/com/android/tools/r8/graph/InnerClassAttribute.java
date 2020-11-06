@@ -107,7 +107,7 @@ public class InnerClassAttribute {
           context = enclosingMethodAttribute.getEnclosingClass();
         } else {
           DexMethod enclosingMethod = enclosingMethodAttribute.getEnclosingMethod();
-          if (!appView.appInfo().liveMethods.contains(enclosingMethod)) {
+          if (!appView.appInfo().isLiveMethod(enclosingMethod)) {
             // EnclosingMethodAttribute will be pruned as it references the pruned method.
             // Hence, the current InnerClassAttribute will be removed too. No live context.
             return null;

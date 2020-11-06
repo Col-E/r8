@@ -3179,7 +3179,7 @@ public class Enqueuer {
             Collections.unmodifiableSet(bootstrapMethods),
             Collections.unmodifiableSet(methodsTargetedByInvokeDynamic),
             Collections.unmodifiableSet(virtualMethodsTargetedByInvokeDirect),
-            toSortedDescriptorSet(liveMethods.getItems()),
+            toDescriptorSet(liveMethods.getItems()),
             // Filter out library fields and pinned fields, because these are read by default.
             fieldAccessInfoCollection,
             methodAccessInfoCollection.build(),

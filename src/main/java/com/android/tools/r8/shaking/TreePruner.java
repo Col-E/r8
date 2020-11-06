@@ -249,8 +249,7 @@ public class TreePruner {
   private boolean isAttributeReferencingPrunedItem(EnclosingMethodAttribute attr) {
     AppInfoWithLiveness appInfo = appView.appInfo();
     return (attr.getEnclosingClass() != null && !isTypeLive(attr.getEnclosingClass()))
-        || (attr.getEnclosingMethod() != null
-            && !appInfo.liveMethods.contains(attr.getEnclosingMethod()));
+        || (attr.getEnclosingMethod() != null && !appInfo.isLiveMethod(attr.getEnclosingMethod()));
   }
 
   private boolean isAttributeReferencingMissingOrPrunedType(InnerClassAttribute attr) {
@@ -279,7 +278,7 @@ public class TreePruner {
     AppInfoWithLiveness appInfo = appView.appInfo();
     InternalOptions options = appView.options();
     int firstUnreachable =
-        firstUnreachableIndex(methods, method -> appInfo.liveMethods.contains(method.method));
+        firstUnreachableIndex(methods, method -> appInfo.isLiveMethod(method.method));
     // Return the original array if all methods are used.
     if (firstUnreachable == -1) {
       return null;
@@ -290,7 +289,7 @@ public class TreePruner {
     }
     for (int i = firstUnreachable; i < methods.size(); i++) {
       DexEncodedMethod method = methods.get(i);
-      if (appInfo.liveMethods.contains(method.getReference())) {
+      if (appInfo.isLiveMethod(method.getReference())) {
         reachableMethods.add(method);
       } else if (options.configurationDebugging) {
         // Keep the method but rewrite its body, if it has one.

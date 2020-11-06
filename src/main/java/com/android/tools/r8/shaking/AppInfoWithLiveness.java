@@ -117,7 +117,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * Set of methods that belong to live classes and can be reached by invokes. These need to be
    * kept.
    */
-  public final SortedSet<DexMethod> liveMethods;
+  private final Set<DexMethod> liveMethods;
   /**
    * Information about all fields that are accessed by the program. The information includes whether
    * a given field is read/written by the program, and it also includes all indirect accesses to
@@ -211,7 +211,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> bootstrapMethods,
       Set<DexMethod> methodsTargetedByInvokeDynamic,
       Set<DexMethod> virtualMethodsTargetedByInvokeDirect,
-      SortedSet<DexMethod> liveMethods,
+      Set<DexMethod> liveMethods,
       FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
       MethodAccessInfoCollection methodAccessInfoCollection,
       ObjectAllocationInfoCollectionImpl objectAllocationInfoCollection,
@@ -625,6 +625,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     }
     DexClass clazz = definitionFor(type);
     return clazz == null || !clazz.isProgramClass();
+  }
+
+  public boolean isLiveMethod(DexMethod method) {
+    return liveMethods.contains(method);
   }
 
   public boolean isTargetedMethod(DexMethod method) {
@@ -1041,7 +1045,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteMethods(bootstrapMethods),
         lens.rewriteMethods(methodsTargetedByInvokeDynamic),
         lens.rewriteMethods(virtualMethodsTargetedByInvokeDirect),
-        lens.rewriteMethodsSorted(liveMethods),
+        lens.rewriteMethods(liveMethods),
         fieldAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         methodAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         objectAllocationInfoCollection.rewrittenWithLens(definitionSupplier, lens),

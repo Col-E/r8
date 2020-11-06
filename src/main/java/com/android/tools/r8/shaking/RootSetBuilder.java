@@ -1975,7 +1975,7 @@ public class RootSetBuilder {
             DexEncodedMethod method =
                 appInfo.definitionForHolder(reference).lookupMethod(reference);
             if (!method.isAbstract() && isKeptDirectlyOrIndirectly(method.holder(), appInfo)) {
-              assert appInfo.liveMethods.contains(reference)
+              assert appInfo.isLiveMethod(reference)
                   : "Expected non-abstract kept method `"
                       + reference.toSourceString()
                       + "` to be live";
