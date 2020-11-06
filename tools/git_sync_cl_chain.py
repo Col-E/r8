@@ -40,21 +40,35 @@ class Repo(object):
 
 def ParseOptions(argv):
   result = optparse.OptionParser()
-  result.add_option('--message', '-m', help='Message for patchset')
+  result.add_option('--delete', '-d',
+                    help='Delete closed branches',
+                    choices=['y', 'n', 'ask'],
+                    default='ask')
+  result.add_option('--leave_upstream', '--leave-upstream',
+                    help='To not update the upstream of the first open branch',
+                    action='store_true')
+  result.add_option('--message', '-m',
+                    help='Message for patchset', default='Sync')
   result.add_option('--rebase',
                     help='To use `git pull --rebase` instead of `git pull`',
                     action='store_true')
   result.add_option('--no_upload', '--no-upload',
                     help='Disable uploading to Gerrit', action='store_true')
+  result.add_option('--skip_master', '--skip-master',
+                    help='Disable syncing for master',
+                    action='store_true')
   (options, args) = result.parse_args(argv)
   options.upload = not options.no_upload
+  assert options.delete != 'y' or not options.leave_upstream, (
+      'Inconsistent options: cannot leave the upstream of the first open ' +
+      'branch (--leave_upstream) and delete the closed branches at the same ' +
+      'time (--delete).')
   assert options.message, 'A message for the patchset is required.'
   assert len(args) == 0
   return options
 
 def main(argv):
   options = ParseOptions(argv)
-  rebase_args = ['--rebase'] if options.rebase else []
   with utils.ChangedWorkingDirectory(REPO_ROOT, quiet=True):
     branches = [
         parse(line)
@@ -74,25 +88,92 @@ def main(argv):
     stack = []
     while current_branch:
       stack.append(current_branch)
-      if current_branch.upstream is None or current_branch.upstream == 'master':
+      if current_branch.upstream is None:
         break
       current_branch = get_branch_with_name(current_branch.upstream, branches)
 
+    closed_branches = []
+    has_seen_local_branch = False # A branch that is not uploaded.
+    has_seen_open_branch = False # A branch that is not closed.
     while len(stack) > 0:
       branch = stack.pop()
-      print('Syncing ' + branch.name)
+
       utils.RunCmd(['git', 'checkout', branch.name], quiet=True)
-      utils.RunCmd(['git', 'pull'] + rebase_args, quiet=True)
+
+      status = get_status_for_current_branch()
+      print('Syncing %s (status: %s)' % (branch.name, status))
+
+      pull_for_current_branch(branch, options)
+
+      if branch.name == 'master':
+        continue
+
+      if status == 'closed':
+        assert not has_seen_local_branch, (
+            'Unexpected closed branch %s after new branch' % branch.name)
+        assert not has_seen_open_branch, (
+            'Unexpected closed branch %s after open branch' % branch.name)
+        closed_branches.append(branch.name)
+        continue
+
+      if not options.leave_upstream:
+        if not has_seen_open_branch and len(closed_branches) > 0:
+          print(
+              'Setting upstream for first open branch %s to master'
+                  % branch.name)
+          set_upstream_for_current_branch_to_master()
+
+      has_seen_open_branch = True
+      has_seen_local_branch = has_seen_local_branch or (status == 'None')
+
       if options.upload:
-        utils.RunCmd(['git', 'cl', 'upload', '-m', options.message], quiet=True)
+        if has_seen_local_branch:
+          print(
+              'Cannot upload branch %s since it comes after a local branch'
+                  % branch.name)
+        else:
+          utils.RunCmd(
+              ['git', 'cl', 'upload', '-m', options.message], quiet=True)
+
+    if len(closed_branches) > 0 and get_delete_branches_option(options):
+      delete_branches(closed_branches)
 
     utils.RunCmd(['git', 'cl', 'issue'])
+
+def delete_branches(branches):
+  assert len(branches) > 0
+  utils.RunCmd(['git', 'branch', '-D'].extend(branches), quiet=True)
 
 def get_branch_with_name(name, branches):
   for branch in branches:
     if branch.name == name:
       return branch
   return None
+
+def get_delete_branches_option(options):
+  if options.leave_upstream:
+    return False
+  if options.delete == 'y':
+    return True
+  if options.delete == 'n':
+    return False
+  assert options.delete == 'ask'
+  print('Delete closed branches: %s (Y/N)?' % ", ".join(closed_branches))
+  answer = sys.stdin.read(1)
+  return answer.lower() == 'y'
+
+def get_status_for_current_branch():
+  return utils.RunCmd(['git', 'cl', 'status', '--field', 'status'], quiet=True)[0].strip()
+
+def pull_for_current_branch(branch, options):
+  if branch.name == 'master' and options.skip_master:
+    return
+  rebase_args = ['--rebase'] if options.rebase else []
+  utils.RunCmd(['git', 'pull'] + rebase_args, quiet=True)
+
+
+def set_upstream_for_current_branch_to_master():
+  utils.RunCmd(['git', 'cl', 'upstream', 'master'], quiet=True)
 
 # Parses a line from the output of `git branch -vv`.
 #
