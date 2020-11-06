@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;

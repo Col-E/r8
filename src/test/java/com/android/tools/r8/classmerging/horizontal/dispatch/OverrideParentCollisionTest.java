@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.shaking.horizontalclassmerging;
+package com.android.tools.r8.classmerging.horizontal.dispatch;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -14,9 +14,9 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.HorizontalClassMergingTestBase;
 import org.junit.Test;
 
-public class VirtualMethodOverrideParentCollisionTest extends HorizontalClassMergingTestBase {
+public class OverrideParentCollisionTest extends HorizontalClassMergingTestBase {
 
-  public VirtualMethodOverrideParentCollisionTest(
+  public OverrideParentCollisionTest(
       TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
   }

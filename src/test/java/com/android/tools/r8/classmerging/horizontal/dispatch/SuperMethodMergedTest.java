@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.classmerging.horizontal;
+package com.android.tools.r8.classmerging.horizontal.dispatch;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -12,11 +12,11 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.classmerging.horizontal.HorizontalClassMergingTestBase;
 import org.junit.Test;
 
-public class VirtualMethodSuperMergedTest extends HorizontalClassMergingTestBase {
-  public VirtualMethodSuperMergedTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
+public class SuperMethodMergedTest extends HorizontalClassMergingTestBase {
+  public SuperMethodMergedTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
   }
 
