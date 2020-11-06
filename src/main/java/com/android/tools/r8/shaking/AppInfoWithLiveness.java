@@ -110,9 +110,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private final Set<DexMethod> bootstrapMethods;
 
   /** Set of methods that are the immediate target of an invoke-dynamic. */
-  public final SortedSet<DexMethod> methodsTargetedByInvokeDynamic;
+  private final Set<DexMethod> methodsTargetedByInvokeDynamic;
   /** Set of virtual methods that are the immediate target of an invoke-direct. */
-  final SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect;
+  private final Set<DexMethod> virtualMethodsTargetedByInvokeDirect;
   /**
    * Set of methods that belong to live classes and can be reached by invokes. These need to be
    * kept.
@@ -209,8 +209,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> targetedMethods,
       Set<DexMethod> failedResolutionTargets,
       Set<DexMethod> bootstrapMethods,
-      SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
-      SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
+      Set<DexMethod> methodsTargetedByInvokeDynamic,
+      Set<DexMethod> virtualMethodsTargetedByInvokeDirect,
       SortedSet<DexMethod> liveMethods,
       FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
       MethodAccessInfoCollection methodAccessInfoCollection,
@@ -292,7 +292,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> targetedMethods,
       Set<DexMethod> failedResolutionTargets,
       Set<DexMethod> bootstrapMethods,
-      SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
+      Set<DexMethod> methodsTargetedByInvokeDynamic,
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
       SortedSet<DexMethod> liveMethods,
       FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
@@ -633,6 +633,14 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean isBootstrapMethod(DexMethod method) {
     return bootstrapMethods.contains(method);
+  }
+
+  public boolean isMethodTargetedByInvokeDynamic(DexMethod method) {
+    return methodsTargetedByInvokeDynamic.contains(method);
+  }
+
+  public Set<DexMethod> getVirtualMethodsTargetedByInvokeDirect() {
+    return virtualMethodsTargetedByInvokeDirect;
   }
 
   public Collection<DexClass> computeReachableInterfaces() {
@@ -1031,8 +1039,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteMethods(targetedMethods),
         lens.rewriteMethodsSorted(failedResolutionTargets),
         lens.rewriteMethods(bootstrapMethods),
-        lens.rewriteMethodsSorted(methodsTargetedByInvokeDynamic),
-        lens.rewriteMethodsSorted(virtualMethodsTargetedByInvokeDirect),
+        lens.rewriteMethods(methodsTargetedByInvokeDynamic),
+        lens.rewriteMethods(virtualMethodsTargetedByInvokeDirect),
         lens.rewriteMethodsSorted(liveMethods),
         fieldAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         methodAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),

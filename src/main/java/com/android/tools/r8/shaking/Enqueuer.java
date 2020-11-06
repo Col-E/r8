@@ -3177,9 +3177,8 @@ public class Enqueuer {
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),
             Collections.unmodifiableSet(failedResolutionTargets),
             Collections.unmodifiableSet(bootstrapMethods),
-            ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, methodsTargetedByInvokeDynamic),
-            ImmutableSortedSet.copyOf(
-                DexMethod::slowCompareTo, virtualMethodsTargetedByInvokeDirect),
+            Collections.unmodifiableSet(methodsTargetedByInvokeDynamic),
+            Collections.unmodifiableSet(virtualMethodsTargetedByInvokeDirect),
             toSortedDescriptorSet(liveMethods.getItems()),
             // Filter out library fields and pinned fields, because these are read by default.
             fieldAccessInfoCollection,

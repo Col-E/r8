@@ -16,7 +16,7 @@ public class ArgumentRemovalUtils {
     return appView.appInfo().isPinned(method.method)
         || appView.appInfo().isBootstrapMethod(method.method)
         || appView.appInfo().failedResolutionTargets.contains(method.method)
-        || appView.appInfo().methodsTargetedByInvokeDynamic.contains(method.method)
+        || appView.appInfo().isMethodTargetedByInvokeDynamic(method.method)
         || method.accessFlags.isNative();
   }
 }

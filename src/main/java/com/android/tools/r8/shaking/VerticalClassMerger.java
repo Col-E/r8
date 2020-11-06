@@ -292,7 +292,7 @@ public class VerticalClassMerger {
     // another default method in the same interface (see InterfaceMethodDesugaringTests.testInvoke-
     // SpecialToDefaultMethod). However, in a class, that would lead to a verification error.
     // Therefore, we disallow merging such interfaces into their subtypes.
-    for (DexMethod signature : appInfo.virtualMethodsTargetedByInvokeDirect) {
+    for (DexMethod signature : appInfo.getVirtualMethodsTargetedByInvokeDirect()) {
       markTypeAsPinned(signature.holder, AbortReason.UNHANDLED_INVOKE_DIRECT);
     }
 
