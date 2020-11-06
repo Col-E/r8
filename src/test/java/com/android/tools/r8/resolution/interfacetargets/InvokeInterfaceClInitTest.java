@@ -81,9 +81,6 @@ public class InvokeInterfaceClInitTest extends TestBase {
     if (dexRuntime.getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
       return containsString("NoSuchMethodError");
     }
-    if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
-      return containsString("java.lang.ClassNotFoundException");
-    }
     return containsString("java.lang.VerifyError");
   }
 
