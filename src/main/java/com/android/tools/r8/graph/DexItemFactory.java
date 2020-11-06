@@ -1855,6 +1855,16 @@ public class DexItemFactory {
             holder);
     return method;
   }
+
+  /**
+   * Tries to find a method name for insertion into the class {@code target} of the form baseName$n,
+   * where {@code baseName} is supplied by the user, and {@code n} is picked to be the first number
+   * so that {@code isFresh.apply(method)} returns {@code true}.
+   */
+  public DexField createFreshFieldName(DexField template, Predicate<DexField> isFresh) {
+    return internalCreateFreshFieldName(template, null, isFresh);
+  }
+
   /**
    * Tries to find a method name for insertion into the class {@code target} of the form
    * baseName$holder$n, where {@code baseName} and {@code holder} are supplied by the user, and
@@ -1863,14 +1873,17 @@ public class DexItemFactory {
    *
    * @param holder indicates where the method originates from.
    */
-  public DexField createFreshFieldName(
+  public DexField createFreshFieldNameWithHolderSuffix(
       DexField template, DexType holder, Predicate<DexField> isFresh) {
-    DexField field =
-        createFreshMember(
-            name -> Optional.of(template.withName(name, this)).filter(isFresh),
-            template.name.toSourceString(),
-            holder);
-    return field;
+    return internalCreateFreshFieldName(template, holder, isFresh);
+  }
+
+  private DexField internalCreateFreshFieldName(
+      DexField template, DexType holder, Predicate<DexField> isFresh) {
+    return createFreshMember(
+        name -> Optional.of(template.withName(name, this)).filter(isFresh),
+        template.name.toSourceString(),
+        holder);
   }
 
   public DexMethod createInstanceInitializerWithFreshProto(
@@ -2144,6 +2157,10 @@ public class DexItemFactory {
     DexProto proto = createProto(returnType, parameterTypes);
 
     return createMethod(clazz, proto, name);
+  }
+
+  public DexMethod createClinitMethod(DexType holder) {
+    return createMethod(holder, createProto(voidType), classConstructorMethodName);
   }
 
   public AdvanceLine createAdvanceLine(int delta) {

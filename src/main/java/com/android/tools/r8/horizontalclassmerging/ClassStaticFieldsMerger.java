@@ -42,7 +42,8 @@ public class ClassStaticFieldsMerger {
     DexField oldFieldReference = field.getReference();
     DexField templateReference = field.getReference().withHolder(target.type, dexItemFactory);
     DexField newFieldReference =
-        dexItemFactory.createFreshFieldName(templateReference, field.holder(), this::isFresh);
+        dexItemFactory.createFreshFieldNameWithHolderSuffix(
+            templateReference, field.holder(), this::isFresh);
 
     field = field.toTypeSubstitutedField(newFieldReference);
     targetFields.put(newFieldReference, field);

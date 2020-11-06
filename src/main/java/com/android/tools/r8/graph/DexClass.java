@@ -11,6 +11,7 @@ import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.base.MoreObjects;
@@ -261,6 +262,10 @@ public abstract class DexClass extends DexDefinition {
       return Collections.unmodifiableList(Arrays.asList(staticFields));
     }
     return Arrays.asList(staticFields);
+  }
+
+  public Iterable<DexEncodedField> staticFields(Predicate<DexEncodedField> predicate) {
+    return IterableUtils.filter(staticFields(), predicate);
   }
 
   public void appendStaticField(DexEncodedField field) {

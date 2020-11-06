@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking.clinit;
 
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
@@ -35,22 +34,7 @@ public class InterfaceInitializedByInvokeStaticOnSubInterfaceTest
     testForDesugaring(parameters)
         .addInnerClasses(getClass())
         .run(parameters.getRuntime(), TestClass.class)
-        .applyIf(
-            DesugarTestConfiguration::isJavac,
-            runResult -> runResult.assertSuccessWithOutputLines("J"))
-        .applyIf(
-            DesugarTestConfiguration::isNotJavac,
-            runResult -> {
-              if (parameters
-                  .getApiLevel()
-                  .isGreaterThanOrEqualTo(apiLevelWithStaticInterfaceMethodsSupport())) {
-                runResult.assertSuccessWithOutputLines("J");
-              } else {
-                // TODO(b/172050082): Calling greet() on the companion class of J should trigger J's
-                //  class initializer.
-                runResult.assertSuccessWithEmptyOutput();
-              }
-            });
+        .assertSuccessWithOutputLines("J");
   }
 
   @Test

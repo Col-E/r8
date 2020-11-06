@@ -292,6 +292,10 @@ public class MethodCollection {
     backing.setDirectMethods(methods);
   }
 
+  public void setSingleDirectMethod(DexEncodedMethod method) {
+    setDirectMethods(new DexEncodedMethod[] {method});
+  }
+
   public void addVirtualMethods(Collection<DexEncodedMethod> methods) {
     assert verifyCorrectnessOfMethodHolders(methods);
     resetVirtualMethodCaches();

@@ -981,7 +981,7 @@ public final class InterfaceMethodRewriter {
     InterfaceProcessorNestedGraphLens.Builder graphLensBuilder =
         InterfaceProcessorNestedGraphLens.builder();
     Map<DexClass, DexProgramClass> classMapping =
-        processInterfaces(builder, flavour, graphLensBuilder);
+        processInterfaces(builder, flavour, graphLensBuilder, synthesizedMethods::add);
     InterfaceProcessorNestedGraphLens graphLens =
         graphLensBuilder.build(appView.dexItemFactory(), appView.graphLens());
     if (appView.enableWholeProgramOptimizations() && graphLens != null) {
@@ -1057,11 +1057,12 @@ public final class InterfaceMethodRewriter {
   private Map<DexClass, DexProgramClass> processInterfaces(
       Builder<?> builder,
       Flavor flavour,
-      InterfaceProcessorNestedGraphLens.Builder graphLensBuilder) {
+      InterfaceProcessorNestedGraphLens.Builder graphLensBuilder,
+      Consumer<ProgramMethod> newSynthesizedMethodConsumer) {
     InterfaceProcessor processor = new InterfaceProcessor(appView, this);
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, true)) {
-        processor.process(clazz, graphLensBuilder);
+        processor.process(clazz, graphLensBuilder, newSynthesizedMethodConsumer);
       }
     }
     return processor.syntheticClasses;

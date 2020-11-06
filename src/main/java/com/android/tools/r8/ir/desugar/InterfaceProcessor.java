@@ -4,14 +4,21 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import static com.android.tools.r8.utils.PredicateUtils.not;
+
+import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeSuper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -26,18 +33,24 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.DexValue.DexValueNull;
+import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,6 +60,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+import org.objectweb.asm.Opcodes;
 
 // Default and static method interface desugaring processor for interfaces.
 //
@@ -68,126 +83,22 @@ public final class InterfaceProcessor {
     this.rewriter = rewriter;
   }
 
-  void process(DexProgramClass iface, InterfaceProcessorNestedGraphLens.Builder graphLensBuilder) {
+  void process(
+      DexProgramClass iface,
+      InterfaceProcessorNestedGraphLens.Builder graphLensBuilder,
+      Consumer<ProgramMethod> newSynthesizedMethodConsumer) {
     assert iface.isInterface();
     // The list of methods to be created in companion class.
     List<DexEncodedMethod> companionMethods = new ArrayList<>();
 
+    ensureCompanionClassInitializesInterface(iface, companionMethods);
+
     // Process virtual interface methods first.
-    List<DexEncodedMethod> remainingMethods = new ArrayList<>();
-    for (DexEncodedMethod virtual : iface.virtualMethods()) {
-      if (rewriter.isDefaultMethod(virtual)) {
-        if (!canMoveToCompanionClass(virtual)) {
-          throw new CompilationError("One or more instruction is preventing default interface "
-              + "method from being desugared: " + virtual.method.toSourceString(), iface.origin);
-        }
-
-        // Create a new method in a companion class to represent default method implementation.
-        DexMethod companionMethod = rewriter.defaultAsMethodOfCompanionClass(virtual.method);
-
-        Code code = virtual.getCode();
-        if (code == null) {
-          throw new CompilationError("Code is missing for default "
-              + "interface method: " + virtual.method.toSourceString(), iface.origin);
-        }
-
-        MethodAccessFlags newFlags = virtual.accessFlags.copy();
-        newFlags.unsetBridge();
-        newFlags.promoteToStatic();
-        DexEncodedMethod.setDebugInfoWithFakeThisParameter(
-            code, companionMethod.getArity(), appView);
-        DexEncodedMethod implMethod =
-            new DexEncodedMethod(
-                companionMethod,
-                newFlags,
-                virtual.getGenericSignature(),
-                virtual.annotations(),
-                virtual.parameterAnnotationsList,
-                code,
-                true);
-        implMethod.copyMetadata(virtual);
-        virtual.setDefaultInterfaceMethodImplementation(implMethod);
-        companionMethods.add(implMethod);
-        graphLensBuilder.recordCodeMovedToCompanionClass(virtual.method, implMethod.method);
-      }
-
-      // Remove bridge methods.
-      if (interfaceMethodRemovalChangesApi(virtual, iface)) {
-        remainingMethods.add(virtual);
-      }
-    }
-
-    // If at least one bridge method was removed then update the table.
-    if (remainingMethods.size() < iface.getMethodCollection().numberOfVirtualMethods()) {
-      iface.setVirtualMethods(remainingMethods.toArray(DexEncodedMethod.EMPTY_ARRAY));
-    }
-    remainingMethods.clear();
+    processVirtualInterfaceMethods(iface, companionMethods, graphLensBuilder);
 
     // Process static and private methods, move them into companion class as well,
     // make private instance methods public static.
-    for (DexEncodedMethod direct : iface.directMethods()) {
-      MethodAccessFlags originalFlags = direct.accessFlags;
-      MethodAccessFlags newFlags = originalFlags.copy();
-      if (originalFlags.isPrivate()) {
-        newFlags.promoteToPublic();
-      }
-      DexMethod oldMethod = direct.method;
-      if (isStaticMethod(direct)) {
-        assert originalFlags.isPrivate() || originalFlags.isPublic()
-            : "Static interface method " + direct.toSourceString() + " is expected to "
-            + "either be public or private in " + iface.origin;
-        DexMethod companionMethod = rewriter.staticAsMethodOfCompanionClass(oldMethod);
-        DexEncodedMethod implMethod =
-            new DexEncodedMethod(
-                companionMethod,
-                newFlags,
-                direct.getGenericSignature(),
-                direct.annotations(),
-                direct.parameterAnnotationsList,
-                direct.getCode(),
-                true);
-        implMethod.copyMetadata(direct);
-        companionMethods.add(implMethod);
-        graphLensBuilder.move(oldMethod, companionMethod);
-      } else {
-        if (originalFlags.isPrivate()) {
-          assert !rewriter.factory.isClassConstructor(oldMethod)
-              : "Unexpected private constructor " + direct.toSourceString()
-              + " in " + iface.origin;
-          newFlags.promoteToStatic();
-
-          DexMethod companionMethod = rewriter.privateAsMethodOfCompanionClass(oldMethod);
-
-          Code code = direct.getCode();
-          if (code == null) {
-            throw new CompilationError("Code is missing for private instance "
-                + "interface method: " + oldMethod.toSourceString(), iface.origin);
-          }
-          DexEncodedMethod.setDebugInfoWithFakeThisParameter(
-              code, companionMethod.getArity(), appView);
-          DexEncodedMethod implMethod =
-              new DexEncodedMethod(
-                  companionMethod,
-                  newFlags,
-                  direct.getGenericSignature(),
-                  direct.annotations(),
-                  direct.parameterAnnotationsList,
-                  code,
-                  true);
-          implMethod.copyMetadata(direct);
-          companionMethods.add(implMethod);
-          graphLensBuilder.move(oldMethod, companionMethod);
-        } else {
-          // Since there are no interface constructors at this point,
-          // this should only be class constructor.
-          assert rewriter.factory.isClassConstructor(oldMethod);
-          remainingMethods.add(direct);
-        }
-      }
-    }
-    if (remainingMethods.size() < iface.getMethodCollection().numberOfDirectMethods()) {
-      iface.setDirectMethods(remainingMethods.toArray(DexEncodedMethod.EMPTY_ARRAY));
-    }
+    processDirectInterfaceMethods(iface, companionMethods, graphLensBuilder);
 
     if (companionMethods.isEmpty()) {
       return; // No methods to create, companion class not needed.
@@ -227,6 +138,218 @@ public final class InterfaceProcessor {
             getChecksumSupplier(iface),
             Collections.singletonList(iface));
     syntheticClasses.put(iface, companionClass);
+    if (companionClass.hasClassInitializer()) {
+      newSynthesizedMethodConsumer.accept(companionClass.getProgramClassInitializer());
+    }
+  }
+
+  private void ensureCompanionClassInitializesInterface(
+      DexProgramClass iface, List<DexEncodedMethod> companionMethods) {
+    if (!hasStaticMethodThatTriggersNonTrivialClassInitializer(iface)) {
+      return;
+    }
+    DexEncodedField clinitField =
+        findExistingStaticClinitFieldToTriggerInterfaceInitialization(iface);
+    if (clinitField == null) {
+      clinitField = createStaticClinitFieldToTriggerInterfaceInitialization(iface);
+      iface.appendStaticField(clinitField);
+    }
+    companionMethods.add(createCompanionClassInitializer(iface, clinitField));
+  }
+
+  private boolean hasStaticMethodThatTriggersNonTrivialClassInitializer(DexProgramClass iface) {
+    return iface.hasClassInitializer()
+        && iface
+            .getMethodCollection()
+            .hasDirectMethods(method -> method.isStatic() && !method.isClassInitializer());
+  }
+
+  private DexEncodedField findExistingStaticClinitFieldToTriggerInterfaceInitialization(
+      DexProgramClass iface) {
+    for (DexEncodedField field : iface.staticFields(not(DexEncodedField::isPrivate))) {
+      return field;
+    }
+    return null;
+  }
+
+  private DexEncodedField createStaticClinitFieldToTriggerInterfaceInitialization(
+      DexProgramClass iface) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexField clinitFieldTemplateReference =
+        dexItemFactory.createField(iface.getType(), dexItemFactory.intType, "$desugar$clinit");
+    DexField clinitFieldReference =
+        dexItemFactory.createFreshFieldName(
+            clinitFieldTemplateReference, candidate -> iface.lookupField(candidate) != null);
+    return new DexEncodedField(
+        clinitFieldReference,
+        FieldAccessFlags.builder().setPackagePrivate().setStatic().setSynthetic().build(),
+        FieldTypeSignature.noSignature(),
+        DexAnnotationSet.empty(),
+        DexValueNull.NULL);
+  }
+
+  private DexEncodedMethod createCompanionClassInitializer(
+      DexProgramClass iface, DexEncodedField clinitField) {
+    DexType companionType = rewriter.getCompanionClassType(iface.getType());
+    DexMethod clinitMethodReference = appView.dexItemFactory().createClinitMethod(companionType);
+    CfCode code =
+        new CfCode(
+            companionType,
+            1,
+            0,
+            ImmutableList.of(
+                new CfFieldInstruction(
+                    Opcodes.GETSTATIC, clinitField.getReference(), clinitField.getReference()),
+                new CfStackInstruction(Opcode.Pop),
+                new CfReturnVoid()),
+            ImmutableList.of(),
+            ImmutableList.of());
+    return new DexEncodedMethod(
+        clinitMethodReference,
+        MethodAccessFlags.builder().setConstructor().setPackagePrivate().setStatic().build(),
+        MethodTypeSignature.noSignature(),
+        DexAnnotationSet.empty(),
+        ParameterAnnotationsList.empty(),
+        code,
+        true,
+        iface.hasClassFileVersion() ? iface.getInitialClassFileVersion() : null);
+  }
+
+  private void processVirtualInterfaceMethods(
+      DexProgramClass iface,
+      List<DexEncodedMethod> companionMethods,
+      InterfaceProcessorNestedGraphLens.Builder graphLensBuilder) {
+    List<DexEncodedMethod> newVirtualMethods = new ArrayList<>();
+    for (DexEncodedMethod virtual : iface.virtualMethods()) {
+      if (rewriter.isDefaultMethod(virtual)) {
+        if (!canMoveToCompanionClass(virtual)) {
+          throw new CompilationError("One or more instruction is preventing default interface "
+              + "method from being desugared: " + virtual.method.toSourceString(), iface.origin);
+        }
+
+        // Create a new method in a companion class to represent default method implementation.
+        DexMethod companionMethod = rewriter.defaultAsMethodOfCompanionClass(virtual.method);
+
+        Code code = virtual.getCode();
+        if (code == null) {
+          throw new CompilationError("Code is missing for default "
+              + "interface method: " + virtual.method.toSourceString(), iface.origin);
+        }
+
+        MethodAccessFlags newFlags = virtual.accessFlags.copy();
+        newFlags.unsetBridge();
+        newFlags.promoteToStatic();
+        DexEncodedMethod.setDebugInfoWithFakeThisParameter(
+            code, companionMethod.getArity(), appView);
+        DexEncodedMethod implMethod =
+            new DexEncodedMethod(
+                companionMethod,
+                newFlags,
+                virtual.getGenericSignature(),
+                virtual.annotations(),
+                virtual.parameterAnnotationsList,
+                code,
+                true);
+        implMethod.copyMetadata(virtual);
+        virtual.setDefaultInterfaceMethodImplementation(implMethod);
+        companionMethods.add(implMethod);
+        graphLensBuilder.recordCodeMovedToCompanionClass(virtual.method, implMethod.method);
+      }
+
+      // Remove bridge methods.
+      if (interfaceMethodRemovalChangesApi(virtual, iface)) {
+        newVirtualMethods.add(virtual);
+      }
+    }
+
+    // If at least one bridge method was removed then update the table.
+    if (newVirtualMethods.size() < iface.getMethodCollection().numberOfVirtualMethods()) {
+      iface.setVirtualMethods(newVirtualMethods.toArray(DexEncodedMethod.EMPTY_ARRAY));
+    }
+  }
+
+  private void processDirectInterfaceMethods(
+      DexProgramClass iface,
+      List<DexEncodedMethod> companionMethods,
+      InterfaceProcessorNestedGraphLens.Builder graphLensBuilder) {
+    DexEncodedMethod clinit = null;
+    for (DexEncodedMethod method : iface.directMethods(DexEncodedMethod::isInstanceInitializer)) {
+      if (method.isClassInitializer()) {
+        clinit = method;
+        continue;
+      }
+      if (method.isInstanceInitializer()) {
+        assert false
+            : "Unexpected interface instance initializer: "
+                + method.getReference().toSourceString();
+        continue;
+      }
+
+      MethodAccessFlags originalFlags = method.getAccessFlags();
+      MethodAccessFlags newFlags = originalFlags.copy();
+      if (originalFlags.isPrivate()) {
+        newFlags.promoteToPublic();
+      }
+
+      DexMethod oldMethod = method.getReference();
+      if (isStaticMethod(method)) {
+        assert originalFlags.isPrivate() || originalFlags.isPublic()
+            : "Static interface method "
+                + method.toSourceString()
+                + " is expected to "
+                + "either be public or private in "
+                + iface.origin;
+        DexMethod companionMethod = rewriter.staticAsMethodOfCompanionClass(oldMethod);
+        DexEncodedMethod implMethod =
+            new DexEncodedMethod(
+                companionMethod,
+                newFlags,
+                method.getGenericSignature(),
+                method.annotations(),
+                method.parameterAnnotationsList,
+                method.getCode(),
+                true);
+        implMethod.copyMetadata(method);
+        companionMethods.add(implMethod);
+        graphLensBuilder.move(oldMethod, companionMethod);
+        continue;
+      }
+
+      assert originalFlags.isPrivate();
+
+      newFlags.promoteToStatic();
+
+      DexMethod companionMethod = rewriter.privateAsMethodOfCompanionClass(oldMethod);
+
+      Code code = method.getCode();
+      if (code == null) {
+        throw new CompilationError(
+            "Code is missing for private instance "
+                + "interface method: "
+                + oldMethod.toSourceString(),
+            iface.origin);
+      }
+      DexEncodedMethod.setDebugInfoWithFakeThisParameter(code, companionMethod.getArity(), appView);
+      DexEncodedMethod implMethod =
+          new DexEncodedMethod(
+              companionMethod,
+              newFlags,
+              method.getGenericSignature(),
+              method.annotations(),
+              method.parameterAnnotationsList,
+              code,
+              true);
+      implMethod.copyMetadata(method);
+      companionMethods.add(implMethod);
+      graphLensBuilder.move(oldMethod, companionMethod);
+    }
+
+    MethodCollection methodCollection = iface.getMethodCollection();
+    if (clinit != null) {
+      methodCollection.setSingleDirectMethod(clinit);
+    } else {
+      methodCollection.clearDirectMethods();
+    }
   }
 
   private ChecksumSupplier getChecksumSupplier(DexProgramClass iface) {

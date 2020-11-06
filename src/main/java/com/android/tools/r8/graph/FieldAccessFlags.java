@@ -44,6 +44,10 @@ public class FieldAccessFlags extends AccessFlags<FieldAccessFlags> {
     super(originalFlags, modifiedFlags);
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public FieldAccessFlags copy() {
     return new FieldAccessFlags(originalFlags, modifiedFlags);
@@ -99,5 +103,17 @@ public class FieldAccessFlags extends AccessFlags<FieldAccessFlags> {
 
   public void setEnum() {
     set(Constants.ACC_ENUM);
+  }
+
+  public static class Builder extends BuilderBase<Builder, FieldAccessFlags> {
+
+    public Builder() {
+      super(FieldAccessFlags.fromSharedAccessFlags(0));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }
