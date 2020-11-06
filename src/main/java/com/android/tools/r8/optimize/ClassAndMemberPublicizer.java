@@ -176,7 +176,8 @@ public final class ClassAndMemberPublicizer {
       // and there is therefore no need to check the hierarchy above.
       MemberPool<DexMethod> memberPool = methodPoolCollection.get(method.getHolder());
       Wrapper<DexMethod> methodKey = MethodSignatureEquivalence.get().wrap(method.getReference());
-      if (memberPool.hasSeenStrictlyBelow(methodKey)) {
+      if (memberPool.hasSeenStrictlyBelow(methodKey)
+          && appView.options().enablePackagePrivateAwarePublicization) {
         return false;
       }
       doPublicize(method);

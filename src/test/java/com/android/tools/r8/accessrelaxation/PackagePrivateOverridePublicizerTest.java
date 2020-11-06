@@ -50,6 +50,10 @@ public class PackagePrivateOverridePublicizerTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .allowAccessModification()
+        .addOptionsModification(
+            options -> {
+              options.enablePackagePrivateAwarePublicization = true;
+            })
         .run(parameters.getRuntime(), Main.class)
         .apply(this::assertSuccessOutput);
   }
