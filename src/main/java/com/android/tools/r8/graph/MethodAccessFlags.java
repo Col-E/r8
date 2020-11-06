@@ -187,6 +187,12 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
     set(Constants.ACC_CONSTRUCTOR);
   }
 
+  public void setConstructor(DexMethod method, DexItemFactory dexItemFactory) {
+    if (dexItemFactory.isConstructor(method) || dexItemFactory.isClassConstructor(method)) {
+      setConstructor();
+    }
+  }
+
   public void unsetConstructor() {
     unset(Constants.ACC_CONSTRUCTOR);
   }

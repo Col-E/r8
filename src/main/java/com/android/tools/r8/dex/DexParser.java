@@ -674,6 +674,7 @@ public class DexParser {
         code = codes.get(codeOff);
       }
       DexMethod method = indexedItems.getMethod(methodIndex);
+      accessFlags.setConstructor(method, dexItemFactory);
       DexAnnotationSet methodAnnotations = annotationIterator.getNextFor(method);
       String methodSignature = DexAnnotation.getSignature(methodAnnotations, dexItemFactory);
       if (methodSignature != null) {
