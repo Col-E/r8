@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -22,6 +23,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class LibraryOverrideClassInliningTest extends TestBase {
 
+  @NoHorizontalClassMerging
   public static class SimpleLibraryOverride implements Runnable {
 
     @NeverInline
@@ -90,6 +92,7 @@ public class LibraryOverrideClassInliningTest extends TestBase {
             .addProgramClasses(
                 Main.class, SimpleLibraryOverride.class, NonSimpleLibraryOverride.class)
             .addKeepMainRule(Main.class)
+            .enableNoHorizontalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), Main.class)
             .assertSuccessWithOutputLines("running...", "Hello world!")

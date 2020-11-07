@@ -669,19 +669,19 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       List<DexType> interfaces,
       MaximallySpecificMethodsBuilder builder) {
     for (DexType iface : interfaces) {
-      DexClass definiton = definitionFor(iface);
-      if (definiton == null) {
+      DexClass definition = definitionFor(iface);
+      if (definition == null) {
         // Ignore missing interface definitions.
         continue;
       }
-      assert definiton.isInterface();
-      DexEncodedMethod result = definiton.lookupMethod(method);
+      assert definition.isInterface();
+      DexEncodedMethod result = definition.lookupMethod(method);
       if (isMaximallySpecificCandidate(result)) {
         // The candidate is added and doing so will prohibit shadowed methods from being in the set.
-        builder.addCandidate(definiton, result, this);
+        builder.addCandidate(definition, result, this);
       } else {
         // Look at the super-interfaces of this class and keep searching.
-        resolveMethodStep3Helper(method, definiton, builder);
+        resolveMethodStep3Helper(method, definition, builder);
       }
     }
     // Now look at indirect super interfaces.

@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -82,6 +83,7 @@ public class KeepInterfaceMethodTest extends TestBase {
         .addProgramClasses(I.class, A.class, B.class, Main.class)
         .addKeepRules("-keepclassmembers class " + I.class.getTypeName() + " { void foo(); }")
         .addKeepMainRule(Main.class)
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.foo")
@@ -110,6 +112,7 @@ public class KeepInterfaceMethodTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   public static class B implements I {
 
     @Override

@@ -46,6 +46,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static class GetClassTestMain implements Callable<Class<?>> {
 
     @NeverInline

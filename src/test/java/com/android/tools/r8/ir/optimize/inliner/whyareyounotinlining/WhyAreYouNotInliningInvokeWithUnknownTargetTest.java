@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.inliner.whyareyounotinlining;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.StringUtils;
@@ -44,6 +45,7 @@ public class WhyAreYouNotInliningInvokeWithUnknownTargetTest extends TestBase {
         .addKeepRules("-whyareyounotinlining class " + A.class.getTypeName() + " { void m(); }")
         .addOptionsModification(options -> options.testing.whyAreYouNotInliningConsumer = out)
         .enableProguardTestOptions()
+        .enableNoHorizontalClassMergingAnnotations()
         .compile();
     out.close();
 
@@ -78,6 +80,7 @@ public class WhyAreYouNotInliningInvokeWithUnknownTargetTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static class B implements I {
 
     @Override

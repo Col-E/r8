@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.regress.b63935662;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
+
 public class TestClass {
 
   interface Top {
@@ -20,31 +22,36 @@ public class TestClass {
 
   interface Bottom extends Left, Right {}
 
+  @NoHorizontalClassMerging
   static class X1 implements Bottom {
     void test() {
       System.out.println(name());
     }
   }
 
-  static class X2 implements Left, Right  {
+  @NoHorizontalClassMerging
+  static class X2 implements Left, Right {
     void test() {
       System.out.println(name());
     }
   }
 
-  static class X3 implements Right, Left   {
+  @NoHorizontalClassMerging
+  static class X3 implements Right, Left {
     void test() {
       System.out.println(name());
     }
   }
 
-  static class X4 implements Left, Right, Top  {
+  @NoHorizontalClassMerging
+  static class X4 implements Left, Right, Top {
     void test() {
       System.out.println(name());
     }
   }
 
-  static class X5 implements Right, Left, Top   {
+  @NoHorizontalClassMerging
+  static class X5 implements Right, Left, Top {
     void test() {
       System.out.println(name());
     }

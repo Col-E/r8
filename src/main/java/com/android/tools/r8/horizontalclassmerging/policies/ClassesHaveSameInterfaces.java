@@ -5,12 +5,13 @@
 package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
+import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
 
-public class NoClassesWithInterfaces extends SingleClassPolicy {
+public class ClassesHaveSameInterfaces extends MultiClassSameReferencePolicy<DexTypeList> {
 
   @Override
-  public boolean canMerge(DexProgramClass program) {
-    return program.interfaces.isEmpty();
+  public DexTypeList getMergeKey(DexProgramClass clazz) {
+    return clazz.interfaces.getSorted();
   }
 }

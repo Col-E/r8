@@ -4,14 +4,12 @@
 
 package com.android.tools.r8.regress.b63935662;
 
-import com.android.tools.r8.R8Command;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.OffOrAuto;
-import java.nio.file.Path;
-import org.junit.Assert;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -19,58 +17,63 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class Regress63935662 extends TestBase {
 
-  private Backend backend;
+  private TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public Regress63935662(Backend backend) {
-    this.backend = backend;
+  public Regress63935662(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
-  void run(AndroidApp app, Class mainClass) throws Exception {
-    Path proguardConfig =
-        writeTextToTempFile(keepMainProguardConfiguration(mainClass, true, false));
-    R8Command.Builder builder =
-        ToolHelper.prepareR8CommandBuilder(app, emptyConsumer(backend))
-            .addLibraryFiles(runtimeJar(backend))
-            .addProguardConfigurationFiles(proguardConfig);
-    if (backend == Backend.DEX) {
-      builder.setMinApiLevel(AndroidApiLevel.L.getLevel());
-    }
-    String resultFromJava = runOnJava(mainClass);
-    app =
-        ToolHelper.runR8(
-            builder.build(), options -> options.interfaceMethodDesugaring = OffOrAuto.Auto);
-    String result;
-    if (backend == Backend.DEX) {
-      result = runOnArt(app, mainClass);
-    } else {
-      assert backend == Backend.CF;
-      result = runOnJava(app, mainClass);
-    }
-    Assert.assertEquals(resultFromJava, result);
+  void run(R8FullTestBuilder testBuilder, Class<?> mainClass) throws Exception {
+    testBuilder
+        .addKeepRuleFiles()
+        .allowAccessModification()
+        .noMinification()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), mainClass)
+        .assertSuccessWithOutput(runOnJava(mainClass));
   }
 
   @Test
   public void test() throws Exception {
-    Class mainClass = TestClass.class;
-    AndroidApp app = readClasses(
-        TestClass.Top.class, TestClass.Left.class, TestClass.Right.class, TestClass.Bottom.class,
-        TestClass.X1.class, TestClass.X2.class, TestClass.X3.class, TestClass.X4.class, TestClass.X5.class,
+    Class<?> mainClass = TestClass.class;
+    List<Class<?>> app =
+        ImmutableList.of(
+            TestClass.Top.class,
+            TestClass.Left.class,
+            TestClass.Right.class,
+            TestClass.Bottom.class,
+            TestClass.X1.class,
+            TestClass.X2.class,
+            TestClass.X3.class,
+            TestClass.X4.class,
+            TestClass.X5.class,
+            mainClass);
+    run(
+        testForR8(parameters.getBackend())
+            .addProgramClasses(app)
+            .addKeepMainRule(mainClass)
+            .enableNoHorizontalClassMergingAnnotations(),
         mainClass);
-    run(app, mainClass);
   }
 
   @Test
   public void test2() throws Exception {
-    Class mainClass = TestFromBug.class;
-    AndroidApp app = readClasses(
-        TestFromBug.Map.class, TestFromBug.AbstractMap.class,
-        TestFromBug.ConcurrentMap.class, TestFromBug.ConcurrentHashMap.class,
+    Class<?> mainClass = TestFromBug.class;
+    List<Class<?>> app =
+        ImmutableList.of(
+            TestFromBug.Map.class,
+            TestFromBug.AbstractMap.class,
+            TestFromBug.ConcurrentMap.class,
+            TestFromBug.ConcurrentHashMap.class,
+            mainClass);
+    run(
+        testForR8(parameters.getBackend()).addProgramClasses(app).addKeepMainRule(mainClass),
         mainClass);
-    run(app, mainClass);
   }
 }

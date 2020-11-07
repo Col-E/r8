@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -40,6 +41,7 @@ public class UnusedInterfaceRemovalTest extends TestBase {
         .addInnerClasses(UnusedInterfaceRemovalTest.class)
         .addKeepMainRule(TestClass.class)
         .enableNoVerticalClassMergingAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -106,6 +108,7 @@ public class UnusedInterfaceRemovalTest extends TestBase {
 
   // To prevent that we detect a single target and start inlining or rewriting the signature in the
   // invoke.
+  @NoHorizontalClassMerging
   static class B implements K {
 
     @Override

@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -48,6 +49,7 @@ public class InterfaceMethodTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
@@ -95,6 +97,7 @@ public class InterfaceMethodTest extends TestBase {
   // The purpose of this class is merely to avoid that the invoke-interface instruction in
   // TestClass.test() gets devirtualized to an invoke-virtual instruction. Otherwise the method
   // I.m() would not be present in the output.
+  @NoHorizontalClassMerging
   static class B implements I {
 
     @Override

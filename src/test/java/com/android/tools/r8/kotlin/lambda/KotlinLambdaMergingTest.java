@@ -528,6 +528,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     runTest(
         "lambdas_singleton",
         mainClassName,
+        "-nohorizontalclassmerging class *",
         getOptionsModifier(),
         app -> {
           Verifier verifier = new Verifier(app);

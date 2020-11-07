@@ -2,20 +2,20 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.classmerging.horizontal.dispatch;
+package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.classmerging.horizontal.HorizontalClassMergingTestBase;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 
-public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
-  public OverrideDefaultMethodTest(
+public class ClassesWithDifferentInterfacesTest extends HorizontalClassMergingTestBase {
+  public ClassesWithDifferentInterfacesTest(
       TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
   }
@@ -28,58 +28,75 @@ public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
         .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, HorizontallyMergedClassesInspector::assertNoClassesMerged)
+        .addHorizontallyMergedClassesInspector(
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("I", "B", "J")
+        .assertSuccessWithOutputLines("bar", "foo y", "bar")
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(I.class), isPresent());
-              assertThat(codeInspector.clazz(J.class), isPresent());
-              assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(codeInspector.clazz(B.class), isPresent());
-              assertThat(codeInspector.clazz(C.class), isPresent());
+              assertThat(codeInspector.clazz(X.class), isPresent());
+              assertThat(codeInspector.clazz(Y.class), isPresent());
+              assertThat(codeInspector.clazz(Z.class), isPresent());
             });
   }
 
-  interface I {
-    @NeverInline
-    default void m() {
-      System.out.println("I");
-    }
-  }
-
-  public static class A implements I {}
-
-  public static class B implements I {
-    @NeverInline
-    @Override
-    public void m() {
-      System.out.println("B");
-    }
+  @NoVerticalClassMerging
+  public interface I {
+    void foo();
   }
 
   @NoVerticalClassMerging
-  interface J extends I {
-    default void m() {
-      System.out.println("J");
+  public interface J {
+    void bar();
+  }
+
+  @NeverClassInline
+  public static class X {
+    @NeverInline
+    public void bar() {
+      System.out.println("bar");
     }
   }
 
-  public static class C extends A implements J {}
+  @NeverClassInline
+  public static class Y extends X implements I {
+    @NeverInline
+    @Override
+    public void foo() {
+      System.out.println("foo y");
+    }
+  }
+
+  @NeverClassInline
+  public static class Z extends X implements J {
+    @NeverInline
+    public void foo() {
+      System.out.println("foo z");
+    }
+  }
 
   public static class Main {
     @NeverInline
-    public static void doI(I i) {
-      i.m();
+    public static void foo(I i) {
+      i.foo();
+    }
+
+    @NeverInline
+    public static void bar(J j) {
+      j.bar();
     }
 
     public static void main(String[] args) {
-      doI(new A());
-      doI(new B());
-      doI(new C());
+      X x = new X();
+      x.bar();
+      Y y = new Y();
+      Z z = new Z();
+      foo(y);
+      bar(z);
     }
   }
 }

@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -44,6 +45,7 @@ public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends
     testForR8(parameters.getBackend())
         .addInnerClasses(AssumenosideeffectsPropagationWithoutMatchingDefinitionTest.class)
         .enableNoVerticalClassMergingAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules(
@@ -99,6 +101,7 @@ public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends
   }
 
   // To bother single target resolution. In fact, not used at all.
+  @NoHorizontalClassMerging
   static class AnotherLogger implements LoggerInterface {
     @Override
     public void debug(String message) {

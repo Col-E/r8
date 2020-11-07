@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -45,6 +46,7 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
         .addInnerClasses(InvokeInterfaceWithRefinedReceiverTest.class)
         .addKeepMainRule(MAIN)
         .enableNoVerticalClassMergingAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(
@@ -149,6 +151,7 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   @NoVerticalClassMerging
   @NeverClassInline
   static class C implements I {

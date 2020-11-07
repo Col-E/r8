@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -44,6 +45,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .addOptionsModification(
             o -> {
               // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single
@@ -111,6 +113,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class B implements I {
     @NeverInline
     @Override

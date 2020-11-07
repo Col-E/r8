@@ -129,4 +129,14 @@ public class DexTypeList extends DexItem implements Iterable<DexType> {
   public Iterator<DexType> iterator() {
     return Iterators.forArray(values);
   }
+
+  public DexTypeList getSorted() {
+    if (values.length <= 1) {
+      return this;
+    }
+
+    DexType[] newValues = values.clone();
+    Arrays.sort(newValues, DexType::slowCompareTo);
+    return new DexTypeList(newValues);
+  }
 }

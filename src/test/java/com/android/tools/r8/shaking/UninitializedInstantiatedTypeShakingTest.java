@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -37,6 +38,7 @@ public class UninitializedInstantiatedTypeShakingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(UninitializedInstantiatedTypeShakingTest.class)
         .addKeepMainRule(TestClass.class)
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(UninitializedInstantiatedTypeShakingTest::verifyOutput)
@@ -83,6 +85,7 @@ public class UninitializedInstantiatedTypeShakingTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static class B implements I {
 
     @Override
@@ -91,6 +94,7 @@ public class UninitializedInstantiatedTypeShakingTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static class C implements I {
 
     @Override

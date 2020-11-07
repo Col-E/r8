@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin.lambda;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -48,6 +49,7 @@ public class KStyleKotlinLambdaMergingWithEnumUnboxingTest extends TestBase {
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(EnumUnboxingCandidate.class))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .noMinification()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -112,6 +114,7 @@ public class KStyleKotlinLambdaMergingWithEnumUnboxingTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   public static final class Lambda2 extends kotlin.jvm.internal.Lambda<kotlin.Unit>
       implements kotlin.jvm.functions.Function0<kotlin.Unit> {
 
