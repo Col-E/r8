@@ -5,7 +5,6 @@
 package com.android.tools.r8.classmerging.horizontal.dispatch;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
@@ -13,6 +12,7 @@ import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.HorizontalClassMergingTestBase;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 
 public class OverrideDefaultOnSuperMethodTest extends HorizontalClassMergingTestBase {
@@ -33,19 +33,16 @@ public class OverrideDefaultOnSuperMethodTest extends HorizontalClassMergingTest
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
+            enableHorizontalClassMerging, HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/167981556): Should succeed with I, B, J.
-        .assertSuccessWithOutputLinesIf(enableHorizontalClassMerging, "I", "B", "I")
-        .assertSuccessWithOutputLinesIf(!enableHorizontalClassMerging, "I", "B", "J")
+        .assertSuccessWithOutputLines("I", "B", "J")
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(I.class), isPresent());
               assertThat(codeInspector.clazz(J.class), isPresent());
               assertThat(codeInspector.clazz(Parent.class), isPresent());
               assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(
-                  codeInspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(B.class), isPresent());
               assertThat(codeInspector.clazz(C.class), isPresent());
             });
   }

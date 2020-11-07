@@ -17,9 +17,6 @@ import java.util.stream.Collectors;
  * against which more efficient policy executors can be compared.
  */
 public class SimplePolicyExecutor extends PolicyExecutor {
-  public SimplePolicyExecutor(Collection<Policy> policies) {
-    super(policies);
-  }
 
   // TODO(b/165506334): if performing mutable operation ensure that linked lists are used
   private LinkedList<List<DexProgramClass>> applySingleClassPolicy(
@@ -46,7 +43,8 @@ public class SimplePolicyExecutor extends PolicyExecutor {
   }
 
   @Override
-  public Collection<List<DexProgramClass>> run(Collection<List<DexProgramClass>> inputGroups) {
+  public Collection<List<DexProgramClass>> run(
+      Collection<List<DexProgramClass>> inputGroups, Collection<Policy> policies) {
     LinkedList<List<DexProgramClass>> linkedGroups;
 
     if (inputGroups instanceof LinkedList) {

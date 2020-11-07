@@ -36,6 +36,7 @@ public class RepackagingTreeFixer {
   private final Map<DexType, DexType> repackagedClasses;
 
   private final Map<DexType, DexProgramClass> newProgramClasses = new IdentityHashMap<>();
+  private final Map<DexType, DexProgramClass> synthesizedFromClasses = new IdentityHashMap<>();
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
   public RepackagingTreeFixer(
@@ -241,8 +242,12 @@ public class RepackagingTreeFixer {
     for (DexProgramClass clazz : synthesizedFrom) {
       // TODO(b/165783399): What do we want to put here if the class that this was synthesized from
       //  is no longer in the application?
+      Map<DexType, DexProgramClass> classes =
+          appView.appInfo().definitionForWithoutExistenceAssert(clazz.getType()) != null
+              ? newProgramClasses
+              : synthesizedFromClasses;
       DexProgramClass newClass =
-          newProgramClasses.computeIfAbsent(clazz.getType(), ignore -> fixupClass(clazz));
+          classes.computeIfAbsent(clazz.getType(), ignore -> fixupClass(clazz));
       newSynthesizedFrom.add(newClass);
       changed |= newClass != clazz;
     }

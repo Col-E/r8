@@ -9,7 +9,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 
 public class PrivateAndInterfaceMethodCollisionTest extends HorizontalClassMergingTestBase {
@@ -21,18 +21,13 @@ public class PrivateAndInterfaceMethodCollisionTest extends HorizontalClassMergi
 
   @Test
   public void test() throws Exception {
-    // TODO(b/167981556): Should always succeed.
-    boolean expectedToSucceed =
-        !enableHorizontalClassMerging
-            || parameters.isCfRuntime(CfVm.JDK11)
-            || parameters.isDexRuntime();
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
-        .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
+        .addHorizontallyMergedClassesInspector(
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
@@ -40,8 +35,7 @@ public class PrivateAndInterfaceMethodCollisionTest extends HorizontalClassMergi
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLinesIf(expectedToSucceed, "A.foo()", "B.bar()", "J.foo()")
-        .assertFailureWithErrorThatThrowsIf(!expectedToSucceed, IllegalAccessError.class);
+        .assertSuccessWithOutputLines("A.foo()", "B.bar()", "J.foo()");
   }
 
   static class Main {

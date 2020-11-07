@@ -29,6 +29,10 @@ public class DexMethodSignature {
     return name;
   }
 
+  public DexMethod withHolder(ProgramDefinition definition, DexItemFactory dexItemFactory) {
+    return withHolder(definition.getContextType(), dexItemFactory);
+  }
+
   public DexMethod withHolder(DexType holder, DexItemFactory dexItemFactory) {
     return dexItemFactory.createMethod(holder, proto, name);
   }
@@ -38,7 +42,7 @@ public class DexMethodSignature {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     DexMethodSignature that = (DexMethodSignature) o;
-    return proto == proto && name == name;
+    return proto == that.proto && name == that.name;
   }
 
   @Override

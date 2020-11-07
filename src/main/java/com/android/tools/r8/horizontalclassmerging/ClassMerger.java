@@ -252,7 +252,8 @@ public class ClassMerger {
       List<VirtualMethodMerger> virtualMethodMergers =
           new ArrayList<>(virtualMethodMergerBuilders.size());
       for (VirtualMethodMerger.Builder builder : virtualMethodMergerBuilders.values()) {
-        virtualMethodMergers.add(builder.build(appView, target, classIdField));
+        virtualMethodMergers.add(
+            builder.build(appView, target, classIdField, toMergeGroup.size() + 1));
       }
       // Try and merge the functions with the most arguments first, to avoid using synthetic
       // arguments if possible.

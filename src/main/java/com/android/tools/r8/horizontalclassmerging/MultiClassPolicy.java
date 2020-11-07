@@ -19,9 +19,11 @@ public abstract class MultiClassPolicy extends Policy {
   /**
    * Remove all groups containing no or only a single class, as there is no point in merging these.
    */
-  protected void removeTrivialGroups(Collection<List<DexProgramClass>> groups) {
+  protected Collection<List<DexProgramClass>> removeTrivialGroups(
+      Collection<List<DexProgramClass>> groups) {
     assert !(groups instanceof ArrayList);
     groups.removeIf(this::isTrivial);
+    return groups;
   }
 
   /**

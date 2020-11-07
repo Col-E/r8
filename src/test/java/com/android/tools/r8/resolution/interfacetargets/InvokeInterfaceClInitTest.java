@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.transformers.ClassTransformer;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import org.hamcrest.CoreMatchers;

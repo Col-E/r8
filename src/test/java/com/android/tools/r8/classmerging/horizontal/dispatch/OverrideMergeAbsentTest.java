@@ -7,16 +7,15 @@ package com.android.tools.r8.classmerging.horizontal.dispatch;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.HorizontalClassMergingTestBase;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 
-public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
-  public OverrideDefaultMethodTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
+public class OverrideMergeAbsentTest extends HorizontalClassMergingTestBase {
+  public OverrideMergeAbsentTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
   }
 
@@ -28,15 +27,15 @@ public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
         .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, HorizontallyMergedClassesInspector::assertNoClassesMerged)
+            enableHorizontalClassMerging, inspector -> inspector.assertNoClassesMerged())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("I", "B", "J")
+        .assertSuccessWithOutputLines("A", "B", "A", "J")
         .inspect(
             codeInspector -> {
-              assertThat(codeInspector.clazz(I.class), isPresent());
               assertThat(codeInspector.clazz(J.class), isPresent());
               assertThat(codeInspector.clazz(A.class), isPresent());
               assertThat(codeInspector.clazz(B.class), isPresent());
@@ -44,42 +43,41 @@ public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
             });
   }
 
-  @NoVerticalClassMerging
-  interface I {
-    @NeverInline
-    default void m() {
-      System.out.println("I");
+  @NeverClassInline
+  public static class A {
+    public A() {
+      System.out.println("A");
     }
   }
 
-  public static class A implements I {}
-
-  public static class B implements I {
+  @NeverClassInline
+  public static class B {
     @NeverInline
-    @Override
     public void m() {
       System.out.println("B");
     }
   }
 
   @NoVerticalClassMerging
-  interface J extends I {
+  interface J {
+    @NeverInline
     default void m() {
       System.out.println("J");
     }
   }
 
+  @NeverClassInline
   public static class C extends A implements J {}
 
   public static class Main {
     @NeverInline
-    public static void doI(I i) {
+    public static void doI(J i) {
       i.m();
     }
 
     public static void main(String[] args) {
-      doI(new A());
-      doI(new B());
+      new A();
+      new B().m();
       doI(new C());
     }
   }

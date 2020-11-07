@@ -59,18 +59,15 @@ public class VirtualMethodMerger {
 
     /** Get the super method handle if this method overrides a parent method. */
     private DexMethod superMethod(AppView<AppInfoWithLiveness> appView, DexProgramClass target) {
-      // TODO(b/167981556): Correctly detect super methods defined on interfaces.
       DexMethod template = methods.iterator().next().getReference();
       SingleResolutionResult resolutionResult =
           appView
-              .withLiveness()
               .appInfo()
               .resolveMethodOnClass(template, target.getSuperType())
               .asSingleResolution();
-      if (resolutionResult == null) {
-        return null;
-      }
-      if (resolutionResult.getResolvedMethod().isAbstract()) {
+
+      if (resolutionResult == null || resolutionResult.getResolvedMethod().isAbstract()) {
+        // If there is no super method or the method is abstract it should not be called.
         return null;
       }
       if (resolutionResult.getResolvedHolder().isInterface()) {
@@ -84,8 +81,13 @@ public class VirtualMethodMerger {
     }
 
     public VirtualMethodMerger build(
-        AppView<AppInfoWithLiveness> appView, DexProgramClass target, DexField classIdField) {
-      DexMethod superMethod = superMethod(appView, target);
+        AppView<AppInfoWithLiveness> appView,
+        DexProgramClass target,
+        DexField classIdField,
+        int mergeGroupSize) {
+      // If not all the classes are in the merge group, find the fallback super method to call.
+      DexMethod superMethod = methods.size() < mergeGroupSize ? superMethod(appView, target) : null;
+
       return new VirtualMethodMerger(appView, target, methods, classIdField, superMethod);
     }
   }
