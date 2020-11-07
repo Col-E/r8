@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils;
 
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class ObjectUtils {
@@ -13,5 +14,12 @@ public class ObjectUtils {
       return fn.test(object);
     }
     return orElse;
+  }
+
+  public static <S, T> T mapNotNull(S object, Function<? super S, ? extends T> fn) {
+    if (object != null) {
+      return fn.apply(object);
+    }
+    return null;
   }
 }

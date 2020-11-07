@@ -16,6 +16,8 @@ public interface ProgramDefinition {
 
   DexDefinition getDefinition();
 
+  DexReference getReference();
+
   Origin getOrigin();
 
   default boolean isProgramClass() {

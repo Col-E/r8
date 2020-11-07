@@ -599,6 +599,14 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return accessFlags.isSynthetic();
   }
 
+  public boolean belongsToDirectPool() {
+    return accessFlags.isStatic() || accessFlags.isPrivate() || accessFlags.isConstructor();
+  }
+
+  public boolean belongsToVirtualPool() {
+    return !belongsToDirectPool();
+  }
+
   @Override
   public KotlinMethodLevelInfo getKotlinMemberInfo() {
     return kotlinMemberInfo;

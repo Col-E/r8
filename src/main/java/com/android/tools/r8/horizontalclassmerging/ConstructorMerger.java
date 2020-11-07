@@ -115,18 +115,15 @@ public class ConstructorMerger {
     return constructors.size() == 1;
   }
 
-  private DexMethod moveConstructor(DexEncodedMethod constructor) {
+  private DexMethod moveConstructor(
+      ClassMethodsBuilder classMethodsBuilder, DexEncodedMethod constructor) {
     DexMethod method =
         dexItemFactory.createFreshMethodName(
             "constructor",
             constructor.holder(),
             constructor.proto(),
             target.type,
-            tryMethod -> target.lookupMethod(tryMethod) == null);
-
-    if (constructor.holder() == target.type) {
-      target.removeMethod(constructor.getReference());
-    }
+            classMethodsBuilder::isFresh);
 
     DexEncodedMethod encodedMethod = constructor.toTypeSubstitutedMethod(method);
     encodedMethod.getMutableOptimizationInfo().markForceInline();
@@ -134,7 +131,8 @@ public class ConstructorMerger {
     encodedMethod.accessFlags.unsetPublic();
     encodedMethod.accessFlags.unsetProtected();
     encodedMethod.accessFlags.setPrivate();
-    target.addDirectMethod(encodedMethod);
+    classMethodsBuilder.addDirectMethod(encodedMethod);
+
     return method;
   }
 
@@ -146,6 +144,7 @@ public class ConstructorMerger {
 
   /** Synthesize a new method which selects the constructor based on a parameter type. */
   void merge(
+      ClassMethodsBuilder classMethodsBuilder,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       Reference2IntMap<DexType> classIdentifiers,
@@ -159,7 +158,7 @@ public class ConstructorMerger {
         classFileVersion =
             CfVersion.maxAllowNull(classFileVersion, constructor.getClassFileVersion());
       }
-      DexMethod movedConstructor = moveConstructor(constructor);
+      DexMethod movedConstructor = moveConstructor(classMethodsBuilder, constructor);
       lensBuilder.mapMethod(movedConstructor, movedConstructor);
       lensBuilder.mapMethodInverse(constructor.method, movedConstructor);
       typeConstructorClassMap.put(
@@ -169,9 +168,9 @@ public class ConstructorMerger {
     DexMethod methodReferenceTemplate = generateReferenceMethodTemplate();
     DexMethod newConstructorReference =
         dexItemFactory.createInstanceInitializerWithFreshProto(
-            methodReferenceTemplate,
+            methodReferenceTemplate.withHolder(target.type, dexItemFactory),
             syntheticArgumentClass.getArgumentClass(),
-            tryMethod -> target.lookupMethod(tryMethod) == null);
+            classMethodsBuilder::isFresh);
     int extraNulls = newConstructorReference.getArity() - methodReferenceTemplate.getArity();
 
     DexMethod representativeConstructorReference = constructors.iterator().next().method;
@@ -221,7 +220,7 @@ public class ConstructorMerger {
     lensBuilder.recordExtraOriginalSignature(
         representativeConstructorReference, newConstructorReference);
 
-    target.addDirectMethod(newConstructor);
+    classMethodsBuilder.addDirectMethod(newConstructor);
 
     fieldAccessChangesBuilder.fieldWrittenByMethod(classIdField, newConstructorReference);
   }

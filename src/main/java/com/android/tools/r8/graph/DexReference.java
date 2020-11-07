@@ -29,6 +29,8 @@ public abstract class DexReference extends IndexedDexItem {
 
   public abstract void collectIndexedItems(IndexedItemCollection indexedItems);
 
+  public abstract DexType getContextType();
+
   public boolean isDexType() {
     return false;
   }

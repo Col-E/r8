@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
@@ -19,15 +20,12 @@ import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
-import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
-import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -49,7 +47,7 @@ class TreeFixer {
   private final DexItemFactory dexItemFactory;
   private final BiMap<DexMethod, DexMethod> movedMethods = HashBiMap.create();
   private final SyntheticArgumentClass syntheticArgumentClass;
-  private final BiMap<Wrapper<DexMethod>, Wrapper<DexMethod>> reservedInterfaceSignatures =
+  private final BiMap<DexMethodSignature, DexMethodSignature> reservedInterfaceSignatures =
       HashBiMap.create();
 
   public TreeFixer(
@@ -124,11 +122,10 @@ class TreeFixer {
     Iterables.filter(classes, DexProgramClass::isInterface).forEach(this::fixupInterfaceClass);
 
     classes.forEach(this::fixupProgramClassSuperType);
-    SubtypingForrestForClasses subtypingForrest = new SubtypingForrestForClasses(appView, classes);
+    SubtypingForrestForClasses subtypingForrest = new SubtypingForrestForClasses(appView);
     // TODO(b/170078037): parallelize this code segment.
     for (DexProgramClass root : subtypingForrest.getProgramRoots()) {
-      subtypingForrest.traverseNodeDepthFirst(
-          root, new IdentityHashMap<>(), this::fixupProgramClass);
+      subtypingForrest.traverseNodeDepthFirst(root, HashBiMap.create(), this::fixupProgramClass);
     }
 
     lensBuilder.remapMethods(movedMethods);
@@ -143,28 +140,24 @@ class TreeFixer {
     clazz.superType = fixupType(clazz.superType);
   }
 
-  private Map<Wrapper<DexMethod>, DexString> fixupProgramClass(
-      DexProgramClass clazz, Map<Wrapper<DexMethod>, DexString> remappedVirtualMethods) {
+  private BiMap<DexMethodSignature, DexMethodSignature> fixupProgramClass(
+      DexProgramClass clazz, BiMap<DexMethodSignature, DexMethodSignature> remappedVirtualMethods) {
     assert !clazz.isInterface();
 
     // TODO(b/169395592): ensure merged classes have been removed using:
     //   assert !mergedClasses.hasBeenMergedIntoDifferentType(clazz.type);
 
-    Map<Wrapper<DexMethod>, DexString> remappedClassVirtualMethods =
-        new HashMap<>(remappedVirtualMethods);
+    BiMap<DexMethodSignature, DexMethodSignature> remappedClassVirtualMethods =
+        HashBiMap.create(remappedVirtualMethods);
 
-    Set<DexMethod> newVirtualMethodReferences = Sets.newIdentityHashSet();
+    Set<DexMethodSignature> newMethodReferences = Sets.newHashSet();
     clazz
         .getMethodCollection()
         .replaceAllVirtualMethods(
-            method ->
-                fixupVirtualMethod(
-                    remappedClassVirtualMethods, newVirtualMethodReferences, method));
-
-    Set<DexMethod> newDirectMethodReferences = Sets.newIdentityHashSet();
+            method -> fixupVirtualMethod(remappedClassVirtualMethods, newMethodReferences, method));
     clazz
         .getMethodCollection()
-        .replaceAllDirectMethods(method -> fixupDirectMethod(newDirectMethodReferences, method));
+        .replaceAllDirectMethods(method -> fixupDirectMethod(newMethodReferences, method));
 
     fixupFields(clazz.staticFields(), clazz::setStaticField);
     fixupFields(clazz.instanceFields(), clazz::setInstanceField);
@@ -184,23 +177,19 @@ class TreeFixer {
       return method;
     }
 
-    MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
-    Wrapper<DexMethod> originalMethodSignature = equivalence.wrap(originalMethodReference);
-    Wrapper<DexMethod> newMethodSignature =
+    DexMethodSignature originalMethodSignature = originalMethodReference.getSignature();
+    DexMethodSignature newMethodSignature =
         reservedInterfaceSignatures.get(originalMethodSignature);
 
     if (newMethodSignature == null) {
-      newMethodSignature = equivalence.wrap(fixupMethodReference(originalMethodReference));
+      newMethodSignature = fixupMethodReference(originalMethodReference).getSignature();
 
       // If the signature is already reserved by another interface, find a fresh one.
       if (reservedInterfaceSignatures.containsValue(newMethodSignature)) {
         DexString name =
             dexItemFactory.createGloballyFreshMemberString(
                 originalMethodReference.getName().toSourceString());
-        newMethodSignature =
-            equivalence.wrap(
-                dexItemFactory.createMethod(
-                    newMethodSignature.get().holder, newMethodSignature.get().proto, name));
+        newMethodSignature = newMethodSignature.withName(name);
       }
 
       assert !reservedInterfaceSignatures.containsValue(newMethodSignature);
@@ -208,16 +197,14 @@ class TreeFixer {
     }
 
     DexMethod newMethodReference =
-        newMethodSignature
-            .get()
-            .withHolder(originalMethodReference.getHolderType(), dexItemFactory);
+        newMethodSignature.withHolder(originalMethodReference, dexItemFactory);
     movedMethods.put(originalMethodReference, newMethodReference);
 
     return method.toTypeSubstitutedMethod(newMethodReference);
   }
 
   private void fixupInterfaceClass(DexProgramClass iface) {
-    Set<DexMethod> newDirectMethods = new LinkedHashSet<>();
+    Set<DexMethodSignature> newDirectMethods = new LinkedHashSet<>();
 
     assert iface.superType == dexItemFactory.objectType;
     iface.superType = mergedClasses.getMergeTargetOrDefault(iface.superType);
@@ -251,13 +238,14 @@ class TreeFixer {
     return newMethod;
   }
 
-  private DexEncodedMethod fixupDirectMethod(Set<DexMethod> newMethods, DexEncodedMethod method) {
+  private DexEncodedMethod fixupDirectMethod(
+      Set<DexMethodSignature> newMethods, DexEncodedMethod method) {
     DexMethod originalMethodReference = method.getReference();
 
     // Fix all type references in the method prototype.
     DexMethod newMethodReference = fixupMethodReference(originalMethodReference);
 
-    if (newMethods.contains(newMethodReference)) {
+    if (newMethods.contains(newMethodReference.getSignature())) {
       // If the method collides with a direct method on the same class then rename it to a globally
       // fresh name and record the signature.
 
@@ -267,45 +255,44 @@ class TreeFixer {
             dexItemFactory.createInstanceInitializerWithFreshProto(
                 newMethodReference,
                 syntheticArgumentClass.getArgumentClass(),
-                tryMethod -> !newMethods.contains(tryMethod));
+                tryMethod -> !newMethods.contains(tryMethod.getSignature()));
         int extraNulls = newMethodReference.getArity() - originalMethodReference.getArity();
         lensBuilder.addExtraParameters(
             originalMethodReference,
             Collections.nCopies(extraNulls, new ExtraUnusedNullParameter()));
       } else {
-        DexString newMethodName =
-            dexItemFactory.createGloballyFreshMemberString(
-                originalMethodReference.getName().toSourceString(), null);
         newMethodReference =
-            dexItemFactory.createMethod(
-                newMethodReference.holder, newMethodReference.proto, newMethodName);
+            dexItemFactory.createFreshMethodName(
+                newMethodReference.getName().toSourceString(),
+                null,
+                newMethodReference.proto,
+                newMethodReference.holder,
+                tryMethod ->
+                    !reservedInterfaceSignatures.containsValue(tryMethod.getSignature())
+                        && !newMethods.contains(tryMethod.getSignature()));
       }
     }
 
-    boolean changed = newMethods.add(newMethodReference);
+    boolean changed = newMethods.add(newMethodReference.getSignature());
     assert changed;
 
     return fixupProgramMethod(newMethodReference, method);
   }
 
-  private DexString lookupReservedVirtualName(
+  private DexMethodSignature lookupReservedVirtualName(
       DexMethod originalMethodReference,
-      Map<Wrapper<DexMethod>, DexString> renamedClassVirtualMethods) {
-    Wrapper<DexMethod> originalSignature =
-        MethodSignatureEquivalence.get().wrap(originalMethodReference);
+      BiMap<DexMethodSignature, DexMethodSignature> renamedClassVirtualMethods) {
+    DexMethodSignature originalSignature = originalMethodReference.getSignature();
 
     // Determine if the original method has been rewritten by a parent class
-    DexString renamedVirtualName =
-        renamedClassVirtualMethods != null
-            ? renamedClassVirtualMethods.get(originalSignature)
-            : null;
+    DexMethodSignature renamedVirtualName = renamedClassVirtualMethods.get(originalSignature);
 
     if (renamedVirtualName == null) {
       // Determine if there is a signature mapping.
-      Wrapper<DexMethod> mappedInterfaceSignature =
+      DexMethodSignature mappedInterfaceSignature =
           reservedInterfaceSignatures.get(originalSignature);
       if (mappedInterfaceSignature != null) {
-        renamedVirtualName = mappedInterfaceSignature.get().name;
+        renamedVirtualName = mappedInterfaceSignature;
       }
     } else {
       assert !reservedInterfaceSignatures.containsKey(originalSignature);
@@ -315,51 +302,57 @@ class TreeFixer {
   }
 
   private DexEncodedMethod fixupVirtualMethod(
-      Map<Wrapper<DexMethod>, DexString> renamedClassVirtualMethods,
-      Set<DexMethod> newMethods,
+      BiMap<DexMethodSignature, DexMethodSignature> renamedClassVirtualMethods,
+      Set<DexMethodSignature> newMethods,
       DexEncodedMethod method) {
     DexMethod originalMethodReference = method.getReference();
-    Wrapper<DexMethod> originalSignature =
-        MethodSignatureEquivalence.get().wrap(originalMethodReference);
+    DexMethodSignature originalSignature = originalMethodReference.getSignature();
 
-    DexString renamedVirtualName =
+    DexMethodSignature renamedVirtualName =
         lookupReservedVirtualName(originalMethodReference, renamedClassVirtualMethods);
 
     // Fix all type references in the method prototype.
-    DexMethod newMethodReference = fixupMethodReference(originalMethodReference);
-    Wrapper<DexMethod> newSignature = MethodSignatureEquivalence.get().wrap(newMethodReference);
+    DexMethodSignature newSignature = fixupMethodSignature(originalSignature);
 
     if (renamedVirtualName != null) {
       // If the method was renamed in a parent, rename it in the child.
-      newMethodReference = newMethodReference.withName(renamedVirtualName, dexItemFactory);
+      newSignature = renamedVirtualName;
 
-      assert !newMethods.contains(newMethodReference);
+      assert !newMethods.contains(newSignature);
     } else if (reservedInterfaceSignatures.containsValue(newSignature)
-        || newMethods.contains(newMethodReference)) {
+        || newMethods.contains(newSignature)
+        || renamedClassVirtualMethods.containsValue(newSignature)) {
       // If the method potentially collides with an interface method or with another virtual method
       // rename it to a globally fresh name and record the name.
 
-      DexString newMethodName =
-          dexItemFactory.createGloballyFreshMemberString(
-              originalMethodReference.getName().toSourceString(), null);
-      newMethodReference = newMethodReference.withName(newMethodName, dexItemFactory);
+      newSignature =
+          dexItemFactory.createFreshMethodSignatureName(
+              originalMethodReference.getName().toSourceString(),
+              null,
+              newSignature.getProto(),
+              trySignature ->
+                  !reservedInterfaceSignatures.containsValue(trySignature)
+                      && !newMethods.contains(trySignature)
+                      && !renamedClassVirtualMethods.containsValue(trySignature));
 
       // Record signature renaming so that subclasses perform the identical rename.
-      renamedClassVirtualMethods.put(originalSignature, newMethodReference.getName());
+      renamedClassVirtualMethods.put(originalSignature, newSignature);
     } else {
       // There was no reserved name and the new signature is available.
 
       if (Iterables.any(
-          newMethodReference.proto.getParameterBaseTypes(dexItemFactory),
+          newSignature.getProto().getParameterBaseTypes(dexItemFactory),
           mergedClasses::isMergeTarget)) {
         // If any of the parameter types have been merged, record the signature mapping.
-        renamedClassVirtualMethods.put(originalSignature, newMethodReference.getName());
+        renamedClassVirtualMethods.put(originalSignature, newSignature);
       }
     }
 
-    boolean changed = newMethods.add(newMethodReference);
+    boolean changed = newMethods.add(newSignature);
     assert changed;
 
+    DexMethod newMethodReference =
+        newSignature.withHolder(fixupType(originalMethodReference.holder), dexItemFactory);
     return fixupProgramMethod(newMethodReference, method);
   }
 
@@ -404,6 +397,10 @@ class TreeFixer {
     return appView
         .dexItemFactory()
         .createMethod(fixupType(method.holder), fixupProto(method.proto), method.name);
+  }
+
+  private DexMethodSignature fixupMethodSignature(DexMethodSignature signature) {
+    return signature.withProto(fixupProto(signature.getProto()));
   }
 
   private DexProto fixupProto(DexProto proto) {

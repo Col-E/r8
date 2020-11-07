@@ -52,6 +52,11 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     this.descriptor = descriptor;
   }
 
+  @Override
+  public DexType getContextType() {
+    return this;
+  }
+
   public DexString getDescriptor() {
     return descriptor;
   }

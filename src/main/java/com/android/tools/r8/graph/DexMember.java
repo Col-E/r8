@@ -27,6 +27,11 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
   public abstract boolean match(D entry);
 
   @Override
+  public DexType getContextType() {
+    return holder;
+  }
+
+  @Override
   public boolean isDexMember() {
     return true;
   }

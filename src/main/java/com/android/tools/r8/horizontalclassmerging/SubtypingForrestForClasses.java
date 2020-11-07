@@ -35,10 +35,9 @@ public class SubtypingForrestForClasses {
   private final Collection<DexProgramClass> roots = new ArrayList<>();
   private final Map<DexProgramClass, List<DexProgramClass>> subtypeMap = new IdentityHashMap<>();
 
-  public SubtypingForrestForClasses(
-      AppView<AppInfoWithLiveness> appView, List<DexProgramClass> classesWithDeterministicOrder) {
+  public SubtypingForrestForClasses(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    calculateSubtyping(classesWithDeterministicOrder);
+    calculateSubtyping(appView.appInfo().classes());
   }
 
   private DexProgramClass superClass(DexProgramClass clazz) {

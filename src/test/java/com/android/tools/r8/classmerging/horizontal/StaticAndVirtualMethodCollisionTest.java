@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import static com.android.tools.r8.utils.codeinspector.AssertUtils.assertFailsCompilationIf;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -22,24 +19,18 @@ public class StaticAndVirtualMethodCollisionTest extends HorizontalClassMergingT
 
   @Test
   public void test() throws Exception {
-    // TODO(b/172415620): Handle static/virtual method collisions.
-    assertFailsCompilationIf(
-        enableHorizontalClassMerging,
-        () ->
-            testForR8(parameters.getBackend())
-                .addInnerClasses(getClass())
-                .addKeepMainRule(Main.class)
-                .addOptionsModification(
-                    options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
-                .addHorizontallyMergedClassesInspectorIf(
-                    enableHorizontalClassMerging,
-                    inspector -> inspector.assertMergedInto(B.class, A.class))
-                .enableInliningAnnotations()
-                .enableNeverClassInliningAnnotations()
-                .setMinApi(parameters.getApiLevel())
-                .run(parameters.getRuntime(), Main.class)
-                .assertSuccessWithOutputLines("A.foo()", "A.bar()", "B.foo()", "B.bar()"),
-        e -> assertThat(e.getCause().getMessage(), containsString("Duplicate method")));
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .addOptionsModification(
+            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+        .addHorizontallyMergedClassesInspectorIf(
+            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("A.foo()", "A.bar()", "B.foo()", "B.bar()");
   }
 
   static class Main {

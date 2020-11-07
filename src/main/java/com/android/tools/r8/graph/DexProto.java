@@ -45,6 +45,10 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
     return parameters.values[index];
   }
 
+  public int getArity() {
+    return parameters.size();
+  }
+
   @Override
   public int computeHashCode() {
     return shorty.hashCode()

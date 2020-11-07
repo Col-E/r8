@@ -22,6 +22,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
@@ -48,6 +49,7 @@ public class ClassMerger {
   private final HorizontallyMergedClasses.Builder mergedClassesBuilder;
   private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
 
+  private final ClassMethodsBuilder classMethodsBuilder = new ClassMethodsBuilder();
   private final Reference2IntMap<DexType> classIdentifiers = new Reference2IntOpenHashMap<>();
   private final ClassStaticFieldsMerger classStaticFieldsMerger;
   private final Collection<VirtualMethodMerger> virtualMethodMergers;
@@ -99,31 +101,33 @@ public class ClassMerger {
     }
   }
 
-  void merge(DexProgramClass toMerge) {
-    if (!toMerge.isFinal()) {
-      target.getAccessFlags().demoteFromFinal();
-    }
+  void mergeDirectMethods(SyntheticArgumentClass syntheticArgumentClass) {
+    mergeDirectMethods(target);
+    toMergeGroup.forEach(this::mergeDirectMethods);
 
+    mergeConstructors(syntheticArgumentClass);
+  }
+
+  void mergeDirectMethods(DexProgramClass toMerge) {
     toMerge.forEachProgramDirectMethod(
         method -> {
           DexEncodedMethod definition = method.getDefinition();
           assert !definition.isClassInitializer();
 
           if (!definition.isInstanceInitializer()) {
-            DexMethod newMethod = renameMethod(method);
-            // TODO(b/165000217): Add all methods to `target` in one go using addDirectMethods().
-            target.addDirectMethod(definition.toTypeSubstitutedMethod(newMethod));
-            lensBuilder.moveMethod(definition.getReference(), newMethod);
+            DexMethod newMethod = method.getReference().withHolder(target.type, dexItemFactory);
+            if (!classMethodsBuilder.isFresh(newMethod)) {
+              newMethod = renameDirectMethod(method);
+            }
+            classMethodsBuilder.addDirectMethod(definition.toTypeSubstitutedMethod(newMethod));
+            if (definition.getReference() != newMethod) {
+              lensBuilder.moveMethod(definition.getReference(), newMethod);
+            }
           }
         });
 
-    classStaticFieldsMerger.addFields(toMerge);
-
     // Clear the members of the class to be merged since they have now been moved to the target.
-    toMerge.setVirtualMethods(null);
-    toMerge.setDirectMethods(null);
-    toMerge.setInstanceFields(null);
-    toMerge.setStaticFields(null);
+    toMerge.getMethodCollection().clearDirectMethods();
   }
 
   /**
@@ -131,26 +135,33 @@ public class ClassMerger {
    *
    * @param method The class the method originally belonged to.
    */
-  DexMethod renameMethod(ProgramMethod method) {
+  DexMethod renameDirectMethod(ProgramMethod method) {
+    assert method.getDefinition().belongsToDirectPool();
     return dexItemFactory.createFreshMethodName(
         method.getDefinition().method.name.toSourceString(),
         method.getHolderType(),
         method.getDefinition().proto(),
         target.type,
-        tryMethod -> target.lookupMethod(tryMethod) == null);
+        classMethodsBuilder::isFresh);
   }
 
   void mergeConstructors(SyntheticArgumentClass syntheticArgumentClass) {
-    for (ConstructorMerger merger : constructorMergers) {
-      merger.merge(
-          lensBuilder, fieldAccessChangesBuilder, classIdentifiers, syntheticArgumentClass);
-    }
+    constructorMergers.forEach(
+        merger ->
+            merger.merge(
+                classMethodsBuilder,
+                lensBuilder,
+                fieldAccessChangesBuilder,
+                classIdentifiers,
+                syntheticArgumentClass));
   }
 
   void mergeVirtualMethods() {
-    for (VirtualMethodMerger merger : virtualMethodMergers) {
-      merger.merge(lensBuilder, fieldAccessChangesBuilder, classIdentifiers);
-    }
+    virtualMethodMergers.forEach(
+        merger ->
+            merger.merge(
+                classMethodsBuilder, lensBuilder, fieldAccessChangesBuilder, classIdentifiers));
+    toMergeGroup.forEach(clazz -> clazz.getMethodCollection().clearVirtualMethods());
   }
 
   void appendClassIdField() {
@@ -166,20 +177,37 @@ public class ClassMerger {
   }
 
   void mergeStaticFields() {
+    toMergeGroup.forEach(classStaticFieldsMerger::addFields);
     classStaticFieldsMerger.merge(target);
+    toMergeGroup.forEach(clazz -> clazz.setStaticFields(null));
+  }
+
+  void fixFinal() {
+    if (Iterables.any(toMergeGroup, Predicates.not(DexProgramClass::isFinal))) {
+      target.accessFlags.demoteFromFinal();
+    }
+  }
+
+  void mergeInstanceFields() {
+    // TODO: support instance field merging
+    assert Iterables.all(toMergeGroup, clazz -> !clazz.hasInstanceFields());
+
+    // The target should only have the class id field.
+    assert target.instanceFields().size() == 1;
   }
 
   public void mergeGroup(SyntheticArgumentClass syntheticArgumentClass) {
+    fixFinal();
     appendClassIdField();
 
-    mergedClassesBuilder.addMergeGroup(target, toMergeGroup);
-    for (DexProgramClass clazz : toMergeGroup) {
-      merge(clazz);
-    }
-
-    mergeConstructors(syntheticArgumentClass);
     mergeVirtualMethods();
+    mergeDirectMethods(syntheticArgumentClass);
+    classMethodsBuilder.setClassMethods(target);
+
     mergeStaticFields();
+    mergeInstanceFields();
+
+    mergedClassesBuilder.addMergeGroup(target, toMergeGroup);
   }
 
   public static class Builder {

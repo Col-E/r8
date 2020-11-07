@@ -119,11 +119,9 @@ public class PreventMethodImplementation extends MultiClassPolicy {
     }
   }
 
-  public PreventMethodImplementation(
-      AppView<AppInfoWithLiveness> appView, List<DexProgramClass> classesWithDeterministicOrder) {
+  public PreventMethodImplementation(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.subtypingForrestForClasses =
-        new SubtypingForrestForClasses(appView, classesWithDeterministicOrder);
+    this.subtypingForrestForClasses = new SubtypingForrestForClasses(appView);
   }
 
   enum MethodCategory {

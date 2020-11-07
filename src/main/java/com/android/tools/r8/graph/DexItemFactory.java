@@ -1780,7 +1780,7 @@ public class DexItemFactory {
    *
    * @param tryString callback to check if the method name is in use.
    */
-  public <T extends DexMember<?, ?>> T createFreshMember(
+  public <T> T createFreshMember(
       Function<DexString, Optional<T>> tryString, String baseName, DexType holder) {
     int index = 0;
     while (true) {
@@ -1841,19 +1841,40 @@ public class DexItemFactory {
       DexProto proto,
       DexType target,
       Predicate<DexMethod> isFresh) {
-    DexMethod method =
-        createFreshMember(
-            name -> {
-              DexMethod tryMethod = createMethod(target, proto, name);
-              if (isFresh.test(tryMethod)) {
-                return Optional.of(tryMethod);
-              } else {
-                return Optional.empty();
-              }
-            },
-            baseName,
-            holder);
-    return method;
+    return createFreshMember(
+        name -> {
+          DexMethod tryMethod = createMethod(target, proto, name);
+          if (isFresh.test(tryMethod)) {
+            return Optional.of(tryMethod);
+          } else {
+            return Optional.empty();
+          }
+        },
+        baseName,
+        holder);
+  }
+
+  /**
+   * Tries to find a method name for insertion into the class {@code target} of the form
+   * baseName$holder$n, where {@code baseName} and {@code holder} are supplied by the user, and
+   * {@code n} is picked to be the first number so that {@code isFresh.apply(method)} returns {@code
+   * true}.
+   *
+   * @param holder indicates where the method originates from.
+   */
+  public DexMethodSignature createFreshMethodSignatureName(
+      String baseName, DexType holder, DexProto proto, Predicate<DexMethodSignature> isFresh) {
+    return createFreshMember(
+        name -> {
+          DexMethodSignature trySignature = new DexMethodSignature(proto, name);
+          if (isFresh.test(trySignature)) {
+            return Optional.of(trySignature);
+          } else {
+            return Optional.empty();
+          }
+        },
+        baseName,
+        holder);
   }
 
   /**

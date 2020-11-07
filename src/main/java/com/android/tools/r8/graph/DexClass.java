@@ -180,6 +180,10 @@ public abstract class DexClass extends DexDefinition {
     return methodCollection.removeMethod(method);
   }
 
+  public void setDirectMethods(List<DexEncodedMethod> methods) {
+    setDirectMethods(methods.toArray(DexEncodedMethod.EMPTY_ARRAY));
+  }
+
   public void setDirectMethods(DexEncodedMethod[] methods) {
     methodCollection.setDirectMethods(methods);
   }
@@ -194,6 +198,10 @@ public abstract class DexClass extends DexDefinition {
 
   public void addVirtualMethods(Collection<DexEncodedMethod> methods) {
     methodCollection.addVirtualMethods(methods);
+  }
+
+  public void setVirtualMethods(List<DexEncodedMethod> methods) {
+    setVirtualMethods(methods.toArray(DexEncodedMethod.EMPTY_ARRAY));
   }
 
   public void setVirtualMethods(DexEncodedMethod[] methods) {

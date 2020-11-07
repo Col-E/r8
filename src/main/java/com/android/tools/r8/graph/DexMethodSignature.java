@@ -29,12 +29,20 @@ public class DexMethodSignature {
     return name;
   }
 
+  public DexMethodSignature withName(DexString name) {
+    return new DexMethodSignature(proto, name);
+  }
+
+  public DexMethodSignature withProto(DexProto proto) {
+    return new DexMethodSignature(proto, name);
+  }
+
   public DexMethod withHolder(ProgramDefinition definition, DexItemFactory dexItemFactory) {
     return withHolder(definition.getContextType(), dexItemFactory);
   }
 
-  public DexMethod withHolder(DexType holder, DexItemFactory dexItemFactory) {
-    return dexItemFactory.createMethod(holder, proto, name);
+  public DexMethod withHolder(DexReference reference, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createMethod(reference.getContextType(), proto, name);
   }
 
   @Override
@@ -48,5 +56,37 @@ public class DexMethodSignature {
   @Override
   public int hashCode() {
     return Objects.hash(proto, name);
+  }
+
+  public DexType getReturnType() {
+    return proto.returnType;
+  }
+
+  public int getArity() {
+    return proto.getArity();
+  }
+
+  @Override
+  public String toString() {
+    return "Method Signature " + name + " " + proto.toString();
+  }
+
+  private String toSourceString() {
+    return toSourceString(false);
+  }
+
+  private String toSourceString(boolean includeReturnType) {
+    StringBuilder builder = new StringBuilder();
+    if (includeReturnType) {
+      builder.append(getReturnType().toSourceString()).append(" ");
+    }
+    builder.append(name).append("(");
+    for (int i = 0; i < getArity(); i++) {
+      if (i != 0) {
+        builder.append(", ");
+      }
+      builder.append(proto.parameters.values[i].toSourceString());
+    }
+    return builder.append(")").toString();
   }
 }

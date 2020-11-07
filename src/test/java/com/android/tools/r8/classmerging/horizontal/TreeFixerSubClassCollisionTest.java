@@ -36,7 +36,8 @@ public class TreeFixerSubClassCollisionTest extends HorizontalClassMergingTestBa
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("print a: foo c a", "print b: foo c b", "print b: foo d b")
+        .assertSuccessWithOutputLines(
+            "print a: foo c a", "print b: foo c b", "print b: foo c b", "print b: foo d b")
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
@@ -45,15 +46,19 @@ public class TreeFixerSubClassCollisionTest extends HorizontalClassMergingTestBa
 
               ClassSubject cClassSubject = codeInspector.clazz(C.class);
               assertThat(cClassSubject, isPresent());
-              // C#foo(B) is renamed to C#foo$2(A) to not collide with D#foo$1(A).
+              // C#foo(B) is renamed to C#foo$1(A).
               if (enableHorizontalClassMerging) {
                 assertThat(cClassSubject.uniqueMethodWithFinalName("foo"), isPresent());
-                assertThat(cClassSubject.uniqueMethodWithFinalName("foo$2"), isPresent());
+                assertThat(cClassSubject.uniqueMethodWithFinalName("foo$1"), isPresent());
               }
 
               ClassSubject dClassSubject = codeInspector.clazz(D.class);
               assertThat(dClassSubject, isPresent());
-              assertThat(dClassSubject.uniqueMethodWithFinalName("foo$1"), isPresent());
+              // D#foo$1(B) is renamed to D#foo$2(A).
+              assertThat(
+                  dClassSubject.uniqueMethodWithFinalName(
+                      enableHorizontalClassMerging ? "foo$1$1" : "foo$1"),
+                  isPresent());
             });
   }
 
@@ -104,6 +109,7 @@ public class TreeFixerSubClassCollisionTest extends HorizontalClassMergingTestBa
       c.foo(a);
       c.foo(b);
       D d = new D();
+      d.foo(b);
       d.foo$1(b);
     }
   }

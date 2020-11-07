@@ -64,19 +64,14 @@ public class HorizontalClassMerger {
     Map<FieldMultiset, List<DexProgramClass>> classes = new LinkedHashMap<>();
 
     // Group classes by same field signature using the hash map.
-    List<DexProgramClass> classesWithDeterministicOrder =
-        appView.appInfo().classesWithDeterministicOrder();
-    for (DexProgramClass clazz : classesWithDeterministicOrder) {
+    for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
       classes.computeIfAbsent(new FieldMultiset(clazz), ignore -> new ArrayList<>()).add(clazz);
     }
 
     // Run the policies on all collected classes to produce a final grouping.
     Collection<List<DexProgramClass>> groups =
         new SimplePolicyExecutor()
-            .run(
-                classes.values(),
-                getPolicies(
-                    classesWithDeterministicOrder, mainDexTracingResult, runtimeTypeCheckInfo));
+            .run(classes.values(), getPolicies(mainDexTracingResult, runtimeTypeCheckInfo));
     // If there are no groups, then end horizontal class merging.
     if (groups.isEmpty()) {
       appView.setHorizontallyMergedClasses(HorizontallyMergedClasses.empty());
@@ -110,7 +105,6 @@ public class HorizontalClassMerger {
   }
 
   private List<Policy> getPolicies(
-      List<DexProgramClass> classesWithDeterministicOrder,
       MainDexTracingResult mainDexTracingResult,
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
     return ImmutableList.of(
@@ -133,7 +127,7 @@ public class HorizontalClassMerger {
         new NotVerticallyMergedIntoSubtype(appView),
         new NoRuntimeTypeChecks(runtimeTypeCheckInfo),
         new NotEntryPoint(appView.dexItemFactory()),
-        new PreventMethodImplementation(appView, classesWithDeterministicOrder),
+        new PreventMethodImplementation(appView),
         new DontInlinePolicy(appView, mainDexTracingResult),
         new PreventMergeIntoMainDex(appView, mainDexTracingResult),
         new AllInstantiatedOrUninstantiated(appView),

@@ -1110,8 +1110,8 @@ public class VerticalClassMerger {
       target.forEachField(feedback::markFieldCannotBeKept);
       target.forEachMethod(feedback::markMethodCannotBeKept);
       // Step 3: Clear the members of the source class since they have now been moved to the target.
-      source.setDirectMethods(null);
-      source.setVirtualMethods(null);
+      source.getMethodCollection().clearDirectMethods();
+      source.getMethodCollection().clearVirtualMethods();
       source.setInstanceFields(null);
       source.setStaticFields(null);
       // Step 4: Record merging.
