@@ -33,18 +33,26 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class LensCodeRewriterUtils {
 
+  private final AppView<?> appView;
   private final DexDefinitionSupplier definitions;
   private final GraphLens graphLens;
 
   private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
 
   public LensCodeRewriterUtils(AppView<?> appView) {
-    this(appView, appView.graphLens());
+    this.appView = appView;
+    this.definitions = appView;
+    this.graphLens = null;
   }
 
   public LensCodeRewriterUtils(DexDefinitionSupplier definitions, GraphLens graphLens) {
+    this.appView = null;
     this.definitions = definitions;
     this.graphLens = graphLens;
+  }
+
+  private GraphLens graphLens() {
+    return appView != null ? appView.graphLens() : graphLens;
   }
 
   public DexCallSite rewriteCallSite(DexCallSite callSite, ProgramMethod context) {
@@ -74,7 +82,7 @@ public class LensCodeRewriterUtils {
       DexMethod invokedMethod = methodHandle.asMethod();
       MethodHandleType oldType = methodHandle.type;
       MethodLookupResult lensLookup =
-          graphLens.lookupMethod(invokedMethod, context.getReference(), oldType.toInvokeType());
+          graphLens().lookupMethod(invokedMethod, context.getReference(), oldType.toInvokeType());
       DexMethod rewrittenTarget = lensLookup.getReference();
       DexMethod actualTarget;
       MethodHandleType newType;
@@ -115,7 +123,7 @@ public class LensCodeRewriterUtils {
       }
     } else {
       DexField field = methodHandle.asField();
-      DexField actualField = graphLens.lookupField(field);
+      DexField actualField = graphLens().lookupField(field);
       if (actualField != field) {
         return new DexMethodHandle(methodHandle.type, actualField, methodHandle.isInterface);
       }
@@ -158,7 +166,7 @@ public class LensCodeRewriterUtils {
         return rewriteDexMethodType(value.asDexValueMethodType());
       case TYPE:
         DexType oldType = value.asDexValueType().value;
-        DexType newType = graphLens.lookupType(oldType);
+        DexType newType = graphLens().lookupType(oldType);
         return newType != oldType ? new DexValueType(newType) : value;
       default:
         return value;
@@ -168,7 +176,7 @@ public class LensCodeRewriterUtils {
   public DexProto rewriteProto(DexProto proto) {
     return definitions
         .dexItemFactory()
-        .applyClassMappingToProto(proto, graphLens::lookupType, protoFixupCache);
+        .applyClassMappingToProto(proto, graphLens()::lookupType, protoFixupCache);
   }
 
   private DexValueMethodHandle rewriteDexValueMethodHandle(

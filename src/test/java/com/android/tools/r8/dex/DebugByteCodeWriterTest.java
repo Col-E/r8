@@ -4,6 +4,7 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
@@ -23,9 +24,11 @@ public class DebugByteCodeWriterTest {
 
   private ObjectToOffsetMapping emptyObjectTObjectMapping() {
     return new ObjectToOffsetMapping(
-        AppInfo.createInitialAppInfo(
-            DexApplication.builder(new InternalOptions(new DexItemFactory(), new Reporter()), null)
-                .build()),
+        AppView.createForD8(
+            AppInfo.createInitialAppInfo(
+                DexApplication.builder(
+                        new InternalOptions(new DexItemFactory(), new Reporter()), null)
+                    .build())),
         GraphLens.getIdentityLens(),
         NamingLens.getIdentityLens(),
         InitClassLens.getDefault(),

@@ -42,7 +42,7 @@ public class ObjectToOffsetMapping {
   private DexString firstJumboString;
 
   public ObjectToOffsetMapping(
-      AppInfo appInfo,
+      AppView<?> appView,
       GraphLens graphLens,
       NamingLens namingLens,
       InitClassLens initClassLens,
@@ -54,7 +54,7 @@ public class ObjectToOffsetMapping {
       Collection<DexString> strings,
       Collection<DexCallSite> callSites,
       Collection<DexMethodHandle> methodHandles) {
-    assert appInfo != null;
+    assert appView != null;
     assert graphLens != null;
     assert classes != null;
     assert protos != null;
@@ -68,8 +68,8 @@ public class ObjectToOffsetMapping {
     this.graphLens = graphLens;
     this.namingLens = namingLens;
     this.initClassLens = initClassLens;
-    this.lensCodeRewriter = new LensCodeRewriterUtils(appInfo, graphLens);
-    this.classes = sortClasses(appInfo, classes, namingLens);
+    this.lensCodeRewriter = new LensCodeRewriterUtils(appView);
+    this.classes = sortClasses(appView.appInfo(), classes, namingLens);
     this.protos = createSortedMap(protos, compare(namingLens), this::failOnOverflow);
     this.types = createSortedMap(types, compare(namingLens), this::failOnOverflow);
     this.methods = createSortedMap(methods, compare(namingLens), this::failOnOverflow);

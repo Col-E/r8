@@ -9,7 +9,6 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
@@ -210,10 +209,10 @@ public class VirtualFile {
   }
 
   public ObjectToOffsetMapping computeMapping(
-      AppInfo appInfo, GraphLens graphLens, NamingLens namingLens, InitClassLens initClassLens) {
+      AppView<?> appView, GraphLens graphLens, NamingLens namingLens, InitClassLens initClassLens) {
     assert transaction.isEmpty();
     return new ObjectToOffsetMapping(
-        appInfo,
+        appView,
         graphLens,
         namingLens,
         initClassLens,
@@ -742,7 +741,7 @@ public class VirtualFile {
       this.graphLens = graphLens;
       this.initClassLens = initClassLens;
       this.namingLens = namingLens;
-      this.rewriter = new LensCodeRewriterUtils(appView, graphLens);
+      this.rewriter = new LensCodeRewriterUtils(appView);
     }
 
     private <T extends DexItem> boolean maybeInsert(T item, Set<T> set, Set<T> baseSet) {

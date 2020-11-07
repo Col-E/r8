@@ -10,6 +10,7 @@ import static junit.framework.TestCase.assertTrue;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -86,10 +87,12 @@ public class EnumUnboxingTestBase extends TestBase {
   }
 
   static List<Object[]> enumUnboxingTestParameters() {
-    return buildParameters(
-        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
-        BooleanUtils.values(),
-        getAllEnumKeepRules());
+    return enumUnboxingTestParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build());
+  }
+
+  static List<Object[]> enumUnboxingTestParameters(TestParametersCollection testParameters) {
+    return buildParameters(testParameters, BooleanUtils.values(), getAllEnumKeepRules());
   }
 
   protected static EnumKeepRules[] getAllEnumKeepRules() {

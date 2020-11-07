@@ -301,8 +301,7 @@ public class ApplicationWriter {
                     }
                   }
                   ObjectToOffsetMapping objectMapping =
-                      virtualFile.computeMapping(
-                          appView.appInfo(), graphLens, namingLens, initClassLens);
+                      virtualFile.computeMapping(appView, graphLens, namingLens, initClassLens);
                   MethodToCodeObjectMapping codeMapping =
                       rewriteCodeWithJumboStrings(
                           objectMapping, virtualFile.classes(), appView.appInfo().app());
