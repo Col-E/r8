@@ -8,18 +8,26 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
+import com.android.tools.r8.ir.analysis.proto.EnumLiteProtoShrinker;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.Collections;
 import java.util.Set;
 
 public class NotMatchedByNoHorizontalClassMerging extends SingleClassPolicy {
+
+  private final Set<DexType> deadEnumLiteMaps;
   private final Set<DexType> neverMergeClassHorizontally;
 
   public NotMatchedByNoHorizontalClassMerging(AppView<AppInfoWithLiveness> appView) {
+    deadEnumLiteMaps =
+        appView.withProtoEnumShrinker(
+            EnumLiteProtoShrinker::getDeadEnumLiteMaps, Collections.emptySet());
     neverMergeClassHorizontally = appView.appInfo().getNoHorizontalClassMergingSet();
   }
 
   @Override
   public boolean canMerge(DexProgramClass program) {
-    return !neverMergeClassHorizontally.contains(program.getReference());
+    return !deadEnumLiteMaps.contains(program.getType())
+        && !neverMergeClassHorizontally.contains(program.getType());
   }
 }

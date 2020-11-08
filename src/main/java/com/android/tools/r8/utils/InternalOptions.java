@@ -1237,6 +1237,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
           || enableGeneratedMessageLiteBuilderShrinking
           || enableEnumLiteProtoShrinking;
     }
+
+    public boolean isProtoEnumShrinkingEnabled() {
+      return enableEnumLiteProtoShrinking;
+    }
   }
 
   public static class TestingOptions {

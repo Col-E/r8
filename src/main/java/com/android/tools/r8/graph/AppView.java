@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.classmerging.MergedClasses;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
+import com.android.tools.r8.ir.analysis.proto.EnumLiteProtoShrinker;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
@@ -311,6 +312,13 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   public <U> U withProtoShrinker(Function<ProtoShrinker, U> consumer, U defaultValue) {
     if (protoShrinker != null) {
       return consumer.apply(protoShrinker);
+    }
+    return defaultValue;
+  }
+
+  public <U> U withProtoEnumShrinker(Function<EnumLiteProtoShrinker, U> fn, U defaultValue) {
+    if (protoShrinker != null && options().protoShrinking().isProtoEnumShrinkingEnabled()) {
+      return fn.apply(protoShrinker.enumProtoShrinker);
     }
     return defaultValue;
   }

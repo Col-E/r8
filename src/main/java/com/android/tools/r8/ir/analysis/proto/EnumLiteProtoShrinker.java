@@ -45,6 +45,10 @@ public class EnumLiteProtoShrinker {
     this.references = references;
   }
 
+  public Set<DexType> getDeadEnumLiteMaps() {
+    return deadEnumLiteMaps;
+  }
+
   private DexField createInternalValueMapField(DexType holder) {
     return appView
         .dexItemFactory()
@@ -52,9 +56,7 @@ public class EnumLiteProtoShrinker {
   }
 
   public void clearDeadEnumLiteMaps() {
-    if (!appView.options().protoShrinking().enableEnumLiteProtoShrinking) {
-      return;
-    }
+    assert appView.options().protoShrinking().isProtoEnumShrinkingEnabled();
     // The optimization only enables further enums to be unboxed, no point to run it if enum
     // unboxing is disabled.
     if (!appView.options().enableEnumUnboxing) {
@@ -70,21 +72,26 @@ public class EnumLiteProtoShrinker {
 
   private void internalClearDeadEnumLiteMaps() {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (clazz.interfaces.contains(references.enumLiteMapType)) {
-        DexProgramClass enumLite = computeCorrespondingEnumLite(clazz);
-        if (enumLite != null) {
-          DexEncodedField field = enumLite.lookupField(createInternalValueMapField(enumLite.type));
-          if (field != null) {
-            if (appView.appInfo().isStaticFieldWrittenOnlyInEnclosingStaticInitializer(field)
-                && !appView.appInfo().isFieldRead(field)) {
-              deadEnumLiteMaps.add(clazz.type);
-              // Clears the EnumLiteMap methods to avoid them being IR processed.
-              clazz.setVirtualMethods(DexEncodedMethod.EMPTY_ARRAY);
-            }
-          }
-        }
+      if (isDeadEnumLiteMap(clazz)) {
+        deadEnumLiteMaps.add(clazz.getType());
+        // Clears the EnumLiteMap methods to avoid them being IR processed.
+        clazz.setVirtualMethods(DexEncodedMethod.EMPTY_ARRAY);
       }
     }
+  }
+
+  public boolean isDeadEnumLiteMap(DexProgramClass clazz) {
+    if (clazz.getInterfaces().contains(references.enumLiteMapType)) {
+      DexProgramClass enumLite = computeCorrespondingEnumLite(clazz);
+      if (enumLite != null) {
+        DexEncodedField field =
+            enumLite.lookupField(createInternalValueMapField(enumLite.getType()));
+        return field != null
+            && appView.appInfo().isStaticFieldWrittenOnlyInEnclosingStaticInitializer(field)
+            && !appView.appInfo().isFieldRead(field);
+      }
+    }
+    return false;
   }
 
   /**

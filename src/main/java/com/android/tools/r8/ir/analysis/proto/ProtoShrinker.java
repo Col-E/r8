@@ -42,7 +42,10 @@ public class ProtoShrinker {
         appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking
             ? new GeneratedMessageLiteBuilderShrinker(appView, references)
             : null;
-    this.enumProtoShrinker = new EnumLiteProtoShrinker(appView, references);
+    this.enumProtoShrinker =
+        appView.options().protoShrinking().isProtoEnumShrinkingEnabled()
+            ? new EnumLiteProtoShrinker(appView, references)
+            : null;
     this.references = references;
   }
 
