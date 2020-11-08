@@ -110,7 +110,7 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
     return metadataVersion;
   }
 
-  private static Flavour getFlavour(
+  public static Flavour getFlavour(
       KotlinClassMetadata.SyntheticClass metadata, DexClass clazz, Kotlin kotlin) {
     // Returns KotlinStyleLambda if the given clazz is a Kotlin-style lambda:
     //   a class that
