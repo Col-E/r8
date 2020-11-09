@@ -256,6 +256,16 @@ APPS = [
     'revision': '906209874d0a091c7fce5a57972472f272d6b068',
     'folder': 'simple-calendar',
   }),
+  # TODO(b/172815534): Monkey runner does not work
+  App({
+    'id': 'com.simplemobiletools.camera.pro',
+    'name': 'Simple-Camera',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'camera-release.apk',
+    'url': 'https://github.com/SimpleMobileTools/Simple-Camera',
+    'revision': 'ebf9820c51e960912b3238287e30a131244fdee6',
+    'folder': 'simple-camera',
+  }),
   App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
