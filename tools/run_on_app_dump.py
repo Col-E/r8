@@ -184,6 +184,15 @@ APPS = [
     'folder': 'minimal-todo',
   }),
   App({
+    'id': 'net.nurik.roman.muzei',
+    'name': 'muzei',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'muzei-release.apk',
+    'url': 'https://github.com/romannurik/muzei',
+    'revision': '9eac6e98aebeaf0ae40bdcd85f16dd2886551138',
+    'folder': 'muzei',
+  }),
+  App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
     'dump_app': 'dump_app.zip',
@@ -193,7 +202,6 @@ APPS = [
     'folder': 'wikipedia',
   }),
 ]
-
 
 def remove_print_lines(file):
   with open(file) as f:
