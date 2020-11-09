@@ -163,6 +163,16 @@ APPS = [
     'revision': '8ccffaadaf0d0b8fc4418ed2b4281a0935d3d971',
     'folder': 'kiss',
   }),
+  # TODO(b/172577344): Monkey runner not working.
+  App({
+    'id': 'io.github.hidroh.materialistic',
+    'name': 'materialistic',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release.apk',
+    'url': 'https://github.com/christofferqa/materialistic.git',
+    'revision': '2b2b2ee25ce9e672d5aab1dc90a354af1522b1d9',
+    'folder': 'materialistic',
+  }),
   App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
