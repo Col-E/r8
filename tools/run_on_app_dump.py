@@ -246,6 +246,16 @@ APPS = [
     'revision': '91ca19f294362ccee2c2b43c247eba228e2b30a1',
     'folder': 'signal-android',
   }),
+  # TODO(b/172815827): Monkey runner does not work
+  App({
+    'id': 'com.simplemobiletools.calendar.pro',
+    'name': 'Simple-Calendar',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'calendar-release.apk',
+    'url': 'https://github.com/SimpleMobileTools/Simple-Calendar',
+    'revision': '906209874d0a091c7fce5a57972472f272d6b068',
+    'folder': 'simple-calendar',
+  }),
   App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
