@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
@@ -39,6 +40,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
 
 public class DesugaredLibraryTestBase extends TestBase {
 
@@ -257,6 +261,46 @@ public class DesugaredLibraryTestBase extends TestBase {
     return FileUtils.readTextFile(generatedKeepRules, Charsets.UTF_8);
   }
 
+  protected static ClassFileInfo extractClassFileInfo(byte[] classFileBytes) {
+    class ClassFileInfoExtractor extends ClassVisitor {
+      private String classBinaryName;
+      private final List<String> methodNames = new ArrayList<>();
+
+      private ClassFileInfoExtractor() {
+        super(ASM_VERSION);
+      }
+
+      @Override
+      public void visit(
+          int version,
+          int access,
+          String name,
+          String signature,
+          String superName,
+          String[] interfaces) {
+        classBinaryName = name;
+        super.visit(version, access, name, signature, superName, interfaces);
+      }
+
+      @Override
+      public MethodVisitor visitMethod(
+          int access, String name, String desc, String signature, String[] exceptions) {
+        methodNames.add(name);
+        return super.visitMethod(access, name, desc, signature, exceptions);
+      }
+
+      ClassFileInfo getClassFileInfo() {
+        return new ClassFileInfo(classBinaryName, methodNames);
+      }
+    }
+
+    ClassReader reader = new ClassReader(classFileBytes);
+    ClassFileInfoExtractor extractor = new ClassFileInfoExtractor();
+    reader.accept(
+        extractor, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+    return extractor.getClassFileInfo();
+  }
+
   public interface KeepRuleConsumer extends StringConsumer {
 
     String get();
@@ -308,6 +352,24 @@ public class DesugaredLibraryTestBase extends TestBase {
       assert stringBuilder == null;
       assert result != null;
       return result;
+    }
+  }
+
+  protected static class ClassFileInfo {
+    private final String classBinaryName;
+    private final List<String> methodNames;
+
+    ClassFileInfo(String classBinaryNamename, List<String> methodNames) {
+      this.classBinaryName = classBinaryNamename;
+      this.methodNames = methodNames;
+    }
+
+    public String getClassBinaryName() {
+      return classBinaryName;
+    }
+
+    public List<String> getMethodNames() {
+      return methodNames;
     }
   }
 }

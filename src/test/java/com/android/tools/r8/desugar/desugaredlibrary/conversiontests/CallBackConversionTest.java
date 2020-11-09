@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
-import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
@@ -18,7 +17,6 @@ import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import org.junit.BeforeClass;
@@ -26,9 +24,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.MethodVisitor;
 
 @RunWith(Parameterized.class)
 public class CallBackConversionTest extends DesugaredLibraryTestBase {
@@ -108,64 +103,6 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
-  private static class ClassInfo {
-    private final String classBinaryName;
-    private final List<String> methodNames;
-
-    ClassInfo(String classBinaryNamename, List<String> methodNames) {
-      this.classBinaryName = classBinaryNamename;
-      this.methodNames = methodNames;
-    }
-
-    public String getClassBinaryName() {
-      return classBinaryName;
-    }
-
-    public List<String> getMethodNames() {
-      return methodNames;
-    }
-  }
-
-  private static ClassInfo extractClassInfo(byte[] ccc) {
-    class ClassNameExtractor extends ClassVisitor {
-      private String classBinaryName;
-      private final List<String> methodNames = new ArrayList<>();
-
-      private ClassNameExtractor() {
-        super(ASM_VERSION);
-      }
-
-      @Override
-      public void visit(
-          int version,
-          int access,
-          String name,
-          String signature,
-          String superName,
-          String[] interfaces) {
-        classBinaryName = name;
-        super.visit(version, access, name, signature, superName, interfaces);
-      }
-
-      @Override
-      public MethodVisitor visitMethod(
-          int access, String name, String desc, String signature, String[] exceptions) {
-        methodNames.add(name);
-        return null;
-      }
-
-      ClassInfo getClassInfo() {
-        return new ClassInfo(classBinaryName, methodNames);
-      }
-    }
-
-    ClassReader reader = new ClassReader(ccc);
-    ClassNameExtractor extractor = new ClassNameExtractor();
-    reader.accept(
-        extractor, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-    return extractor.getClassInfo();
-  }
-
   @Test
   public void testCallBackD8Cf() throws Exception {
     // Use D8 to desugar with Java classfile output.
@@ -179,13 +116,13 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
             .inspect(CallBackConversionTest::assertDuplicatedAPI)
             .writeToZip();
 
-    ClassInfo info =
-        extractClassInfo(
+    ClassFileInfo info =
+        extractClassFileInfo(
             ZipUtils.readSingleEntry(firstJar, ZipUtils.zipEntryNameForClass(Impl.class)));
     assertEquals(
         Impl.class.getTypeName(),
         DescriptorUtils.getJavaTypeFromBinaryName(info.getClassBinaryName()));
-    assertEquals(2, info.methodNames.stream().filter(name -> name.equals("foo")).count());
+    assertEquals(2, info.getMethodNames().stream().filter(name -> name.equals("foo")).count());
 
     // Use D8 to desugar with Java classfile output.
     Path secondJar =
@@ -199,7 +136,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
             .writeToZip();
 
     info =
-        extractClassInfo(
+        extractClassFileInfo(
             ZipUtils.readSingleEntry(secondJar, ZipUtils.zipEntryNameForClass(Impl.class)));
     assertEquals(
         Impl.class.getTypeName(),
