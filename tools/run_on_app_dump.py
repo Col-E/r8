@@ -131,7 +131,7 @@ APPS = [
     'dump_app': 'dump_app.zip',
     'apk_app': 'app-debug.apk',
     # TODO(b/172549283): Compiling tests fails
-    'id_test': 'com.example.applymapping.test',
+    'id_test': 'com.google.samples.apps.sunflower.test',
     'dump_test': 'dump_test.zip',
     'apk_test': 'app-debug-androidTest.apk',
     'url': 'https://github.com/android/sunflower',
@@ -149,6 +149,19 @@ APPS = [
     'url': 'https://github.com/christofferqa/iosched.git',
     'revision': '581cbbe2253711775dbccb753cdb53e7e506cb02',
     'folder': 'iosched',
+  }),
+  App({
+    'id': 'fr.neamar.kiss',
+    'name': 'KISS',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release.apk',
+    # TODO(b/172569220): Running tests fails due to missing keep rules
+    'id_test': 'fr.neamar.kiss.test',
+    'dump_test': 'dump_test.zip',
+    'apk_test': 'app-release-androidTest.apk',
+    'url': 'https://github.com/Neamar/KISS',
+    'revision': '8ccffaadaf0d0b8fc4418ed2b4281a0935d3d971',
+    'folder': 'kiss',
   }),
   App({
     'id': 'org.wikipedia',
