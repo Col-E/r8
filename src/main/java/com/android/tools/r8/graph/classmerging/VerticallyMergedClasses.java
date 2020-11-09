@@ -23,6 +23,10 @@ public class VerticallyMergedClasses implements MergedClasses {
     this.mergedClassesInverse = mergedClassesInverse;
   }
 
+  public static VerticallyMergedClasses empty() {
+    return new VerticallyMergedClasses(Collections.emptyMap(), Collections.emptyMap());
+  }
+
   public Map<DexType, DexType> getForwardMap() {
     return mergedClasses;
   }
