@@ -228,9 +228,14 @@ public class MemberRebindingAnalysis {
           for (Pair<DexMethod, DexEncodedMethod> pair : targets) {
             DexMethod method = pair.getFirst();
             DexEncodedMethod target = pair.getSecond();
-            DexEncodedMethod bridgeMethod = target.toForwardingMethod(bridgeHolder, appView);
-            bridgeHolder.addMethod(bridgeMethod);
-            assert lookupTarget.apply(method) == bridgeMethod;
+            DexMethod bridgeMethod =
+                method.withHolder(bridgeHolder.getType(), appView.dexItemFactory());
+            if (bridgeHolder.getMethodCollection().getMethod(bridgeMethod) != null) {
+              DexEncodedMethod bridgeMethodDefinition =
+                  target.toForwardingMethod(bridgeHolder, appView);
+              bridgeHolder.addMethod(bridgeMethodDefinition);
+            }
+            assert lookupTarget.apply(method).method == bridgeMethod;
           }
         });
   }
