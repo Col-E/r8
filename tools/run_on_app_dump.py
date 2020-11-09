@@ -295,6 +295,16 @@ APPS = [
     'revision': '2e67a1126b6df05e4119d1e3a432fde51d76cdc8',
     'folder': 'sqldelight',
   }),
+  # TODO(b/172824096): Monkey runner does not work.
+  App({
+    'id': 'eu.kanade.tachiyomi',
+    'name': 'Tachiyomi',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-dev-release.apk',
+    'url': 'https://github.com/inorichi/tachiyomi',
+    'revision': '8aa6486bf76ab9a61a5494bee284b1a5e9180bf3',
+    'folder': 'tachiyomi',
+  }),
   App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
