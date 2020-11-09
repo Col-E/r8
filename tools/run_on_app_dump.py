@@ -267,6 +267,15 @@ APPS = [
     'folder': 'simple-camera',
   }),
   App({
+    'id': 'com.simplemobiletools.filemanager.pro',
+    'name': 'Simple-File-Manager',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'file-manager-release.apk',
+    'url': 'https://github.com/SimpleMobileTools/Simple-File-Manager',
+    'revision': '2b7fa68ea251222cc40cf6d62ad1de260a6f54d9',
+    'folder': 'simple-file-manager',
+  }),
+  App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
     'dump_app': 'dump_app.zip',
