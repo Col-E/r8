@@ -305,6 +305,18 @@ APPS = [
     'revision': '8aa6486bf76ab9a61a5494bee284b1a5e9180bf3',
     'folder': 'tachiyomi',
   }),
+  # TODO(b/172862042): Monkey runner does not work.
+  App({
+    'id': 'app.tivi',
+    'name': 'Tivi',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release.apk',
+    'url': 'https://github.com/chrisbanes/tivi',
+    'revision': '8e2ddd8fe2d343264a66aa1ef8acbd4cc587e8ce',
+    'folder': 'tivi',
+    # TODO(b/172859303): Fix recompilation
+    'skip_recompilation': True
+  }),
   App({
     'id': 'com.keylesspalace.tusky',
     'name': 'Tusky',
