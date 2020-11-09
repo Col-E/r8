@@ -38,7 +38,16 @@ public class SimplePolicyExecutor extends PolicyExecutor {
       MultiClassPolicy policy, LinkedList<List<DexProgramClass>> groups) {
     // For each group apply the multi class policy and add all the new groups together.
     return groups.stream()
-        .flatMap(group -> policy.apply(group).stream())
+        .flatMap(
+            group -> {
+              int previousNumberOfClasses = group.size();
+              Collection<List<DexProgramClass>> newGroups = policy.apply(group);
+              policy.numberOfRemovedClasses += previousNumberOfClasses;
+              for (List<DexProgramClass> newGroup : newGroups) {
+                policy.numberOfRemovedClasses -= newGroup.size();
+              }
+              return newGroups.stream();
+            })
         .collect(Collectors.toCollection(LinkedList::new));
   }
 
