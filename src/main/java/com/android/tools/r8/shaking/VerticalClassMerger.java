@@ -351,7 +351,7 @@ public class VerticalClassMerger {
         || allocationInfo.isImmediateInterfaceOfInstantiatedLambda(sourceClass)
         || appInfo.isPinned(sourceClass.type)
         || pinnedTypes.contains(sourceClass.type)
-        || appInfo.getNoVerticalClassMergingSet().contains(sourceClass.type)) {
+        || appInfo.isNoVerticalClassMergingOfType(sourceClass.type)) {
       return false;
     }
 

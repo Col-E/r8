@@ -19,7 +19,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
@@ -551,8 +550,7 @@ public abstract class GraphLens {
   }
 
   public ImmutableSet<DexType> rewriteTypes(Set<DexType> types) {
-    ImmutableSortedSet.Builder<DexType> builder =
-        new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
+    ImmutableSet.Builder<DexType> builder = new ImmutableSet.Builder<>();
     for (DexType type : types) {
       builder.add(lookupType(type));
     }

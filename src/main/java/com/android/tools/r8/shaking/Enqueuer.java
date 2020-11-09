@@ -308,12 +308,6 @@ public class Enqueuer {
    */
   private final LiveFieldsSet liveFields;
 
-  /**
-   * Set of service types (from META-INF/services/) that may have been instantiated reflectively via
-   * ServiceLoader.load() or ServiceLoader.loadInstalled().
-   */
-  private final Set<DexType> instantiatedAppServices = Sets.newIdentityHashSet();
-
   /** A queue of items that need processing. Different items trigger different actions. */
   private final EnqueuerWorklist workList;
 
@@ -3242,7 +3236,6 @@ public class Enqueuer {
                 ? Sets.union(initialMissingTypes, missingTypes)
                 : missingTypes,
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
-            Collections.unmodifiableSet(instantiatedAppServices),
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),
             Collections.unmodifiableSet(failedResolutionTargets),
             Collections.unmodifiableSet(bootstrapMethods),
@@ -3268,7 +3261,6 @@ public class Enqueuer {
             rootSet.neverReprocess,
             rootSet.alwaysClassInline,
             rootSet.neverClassInline,
-            rootSet.noUnusedInterfaceRemoval,
             rootSet.noVerticalClassMerging,
             rootSet.noHorizontalClassMerging,
             rootSet.noStaticClassMerging,
@@ -4200,8 +4192,6 @@ public class Enqueuer {
   }
 
   private void handleServiceInstantiation(DexType serviceType, KeepReason reason) {
-    instantiatedAppServices.add(serviceType);
-
     List<DexType> serviceImplementationTypes =
         appView.appServices().serviceImplementationsFor(serviceType);
     for (DexType serviceImplementationType : serviceImplementationTypes) {

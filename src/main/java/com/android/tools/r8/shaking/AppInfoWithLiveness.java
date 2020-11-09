@@ -84,11 +84,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    */
   private final Set<DexType> liveTypes;
   /**
-   * Set of service types (from META-INF/services/) that may have been instantiated reflectively via
-   * ServiceLoader.load() or ServiceLoader.loadInstalled().
-   */
-  public final Set<DexType> instantiatedAppServices;
-  /**
    * Set of methods that are the immediate target of an invoke. They might not actually be live but
    * are required so that invokes can find the method. If such a method is not live (i.e. not
    * contained in {@link #liveMethods}, it may be marked as abstract and its implementation may be
@@ -155,9 +150,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   /** All types that should be inlined if possible due to a configuration directive. */
   public final PredicateSet<DexType> alwaysClassInline;
   /** All types that *must* never be inlined due to a configuration directive (testing only). */
-  public final Set<DexType> neverClassInline;
+  private final Set<DexType> neverClassInline;
 
-  private final Set<DexType> noUnusedInterfaceRemoval;
   private final Set<DexType> noVerticalClassMerging;
   private final Set<DexType> noHorizontalClassMerging;
   private final Set<DexType> noStaticClassMerging;
@@ -165,7 +159,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   /**
    * Set of lock candidates (i.e., types whose class reference may flow to a monitor instruction).
    */
-  public final Set<DexType> lockCandidates;
+  private final Set<DexType> lockCandidates;
   /**
    * A map from seen init-class references to the minimum required visibility of the corresponding
    * static field.
@@ -200,7 +194,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> deadProtoTypes,
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,
-      Set<DexType> instantiatedAppServices,
       Set<DexMethod> targetedMethods,
       Set<DexMethod> failedResolutionTargets,
       Set<DexMethod> bootstrapMethods,
@@ -225,7 +218,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> neverReprocess,
       PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverClassInline,
-      Set<DexType> noUnusedInterfaceRemoval,
       Set<DexType> noVerticalClassMerging,
       Set<DexType> noHorizontalClassMerging,
       Set<DexType> noStaticClassMerging,
@@ -240,7 +232,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.deadProtoTypes = deadProtoTypes;
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
-    this.instantiatedAppServices = instantiatedAppServices;
     this.targetedMethods = targetedMethods;
     this.failedResolutionTargets = failedResolutionTargets;
     this.bootstrapMethods = bootstrapMethods;
@@ -265,7 +256,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.neverReprocess = neverReprocess;
     this.alwaysClassInline = alwaysClassInline;
     this.neverClassInline = neverClassInline;
-    this.noUnusedInterfaceRemoval = noUnusedInterfaceRemoval;
     this.noVerticalClassMerging = noVerticalClassMerging;
     this.noHorizontalClassMerging = noHorizontalClassMerging;
     this.noStaticClassMerging = noStaticClassMerging;
@@ -288,7 +278,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.missingTypes,
         CollectionUtils.mergeSets(
             Sets.difference(previous.liveTypes, removedTypes), committedItems.getCommittedTypes()),
-        previous.instantiatedAppServices,
         previous.targetedMethods,
         previous.failedResolutionTargets,
         previous.bootstrapMethods,
@@ -313,7 +302,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.neverReprocess,
         previous.alwaysClassInline,
         previous.neverClassInline,
-        previous.noUnusedInterfaceRemoval,
         previous.noVerticalClassMerging,
         previous.noHorizontalClassMerging,
         previous.noStaticClassMerging,
@@ -340,7 +328,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         removedClasses == null
             ? previous.liveTypes
             : Sets.difference(previous.liveTypes, removedClasses),
-        previous.instantiatedAppServices,
         previous.targetedMethods,
         previous.failedResolutionTargets,
         previous.bootstrapMethods,
@@ -365,7 +352,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.neverReprocess,
         previous.alwaysClassInline,
         previous.neverClassInline,
-        previous.noUnusedInterfaceRemoval,
         previous.noVerticalClassMerging,
         previous.noHorizontalClassMerging,
         previous.noStaticClassMerging,
@@ -429,7 +415,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.deadProtoTypes = previous.deadProtoTypes;
     this.missingTypes = previous.missingTypes;
     this.liveTypes = previous.liveTypes;
-    this.instantiatedAppServices = previous.instantiatedAppServices;
     this.targetedMethods = previous.targetedMethods;
     this.failedResolutionTargets = previous.failedResolutionTargets;
     this.bootstrapMethods = previous.bootstrapMethods;
@@ -454,7 +439,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.neverReprocess = previous.neverReprocess;
     this.alwaysClassInline = previous.alwaysClassInline;
     this.neverClassInline = previous.neverClassInline;
-    this.noUnusedInterfaceRemoval = previous.noUnusedInterfaceRemoval;
     this.noVerticalClassMerging = previous.noVerticalClassMerging;
     this.noHorizontalClassMerging = previous.noHorizontalClassMerging;
     this.noStaticClassMerging = previous.noStaticClassMerging;
@@ -988,7 +972,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         deadProtoTypes,
         missingTypes,
         lens.rewriteTypes(liveTypes),
-        lens.rewriteTypes(instantiatedAppServices),
         lens.rewriteMethods(targetedMethods),
         lens.rewriteMethods(failedResolutionTargets),
         lens.rewriteMethods(bootstrapMethods),
@@ -1013,7 +996,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteMethods(neverReprocess),
         alwaysClassInline.rewriteItems(lens::lookupType),
         lens.rewriteTypes(neverClassInline),
-        lens.rewriteTypes(noUnusedInterfaceRemoval),
         lens.rewriteTypes(noVerticalClassMerging),
         lens.rewriteTypes(noHorizontalClassMerging),
         lens.rewriteTypes(noStaticClassMerging),
@@ -1384,17 +1366,12 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         .shouldBreak();
   }
 
-  /** All unused interface types that *must* never be pruned. */
-  public Set<DexType> getNoUnusedInterfaceRemovalSet() {
-    return noUnusedInterfaceRemoval;
-  }
-
   /**
-   * All types that *must* never be merged vertically due to a configuration directive (testing
-   * only).
+   * Predicate on types that *must* never be merged vertically due to a configuration directive
+   * (testing only).
    */
-  public Set<DexType> getNoVerticalClassMergingSet() {
-    return noVerticalClassMerging;
+  public boolean isNoVerticalClassMergingOfType(DexType type) {
+    return noVerticalClassMerging.contains(type);
   }
 
   /**
