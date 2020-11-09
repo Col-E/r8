@@ -1282,8 +1282,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     // and if different forwarding methods are created in different subclasses the first could be
     // final.
     accessFlags.demoteFromFinal();
-    DexMethod newMethod =
-        definitions.dexItemFactory().createMethod(holder.type, method.proto, method.name);
+    DexMethod newMethod = method.withHolder(holder.type, definitions.dexItemFactory());
     Invoke.Type type = accessFlags.isStatic() ? Invoke.Type.STATIC : Invoke.Type.SUPER;
     Builder builder = syntheticBuilder(this);
     builder.setMethod(newMethod);

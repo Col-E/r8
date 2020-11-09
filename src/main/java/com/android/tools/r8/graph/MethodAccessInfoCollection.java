@@ -11,7 +11,6 @@ import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -44,11 +43,6 @@ public class MethodAccessInfoCollection {
 
   public static IdentityBuilder identityBuilder() {
     return new IdentityBuilder();
-  }
-
-  // TODO(b/132593519): We should not need sorted maps with the new member rebinding analysis.
-  public static SortedBuilder sortedBuilder() {
-    return new SortedBuilder();
   }
 
   public Modifier modifier() {
@@ -103,7 +97,7 @@ public class MethodAccessInfoCollection {
       Map<DexMethod, ProgramMethodSet> invokes, DexDefinitionSupplier definitions, GraphLens lens) {
     return MapUtils.map(
         invokes,
-        capacity -> new TreeMap<>(DexMethod::slowCompareTo),
+        IdentityHashMap::new,
         lens::getRenamedMethodSignature,
         methods -> methods.rewrittenWithLens(definitions, lens),
         (methods, other) -> {
@@ -222,13 +216,6 @@ public class MethodAccessInfoCollection {
 
     private IdentityBuilder() {
       super(IdentityHashMap::new);
-    }
-  }
-
-  public static class SortedBuilder extends Builder<TreeMap<DexMethod, ProgramMethodSet>> {
-
-    private SortedBuilder() {
-      super(() -> new TreeMap<>(DexMethod::slowCompareTo));
     }
   }
 

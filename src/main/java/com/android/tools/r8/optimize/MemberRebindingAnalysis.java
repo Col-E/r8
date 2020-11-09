@@ -23,9 +23,15 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BiForEachable;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.TriConsumer;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -160,6 +166,14 @@ public class MemberRebindingAnalysis {
       BiForEachable<DexMethod, ProgramMethodSet> methodsWithContexts,
       Function<DexMethod, DexEncodedMethod> lookupTarget,
       Type invokeType) {
+
+    Map<DexProgramClass, List<Pair<DexMethod, DexEncodedMethod>>> bridges = new IdentityHashMap<>();
+    TriConsumer<DexProgramClass, DexMethod, DexEncodedMethod> addBridge =
+        (bridgeHolder, method, target) ->
+            bridges
+                .computeIfAbsent(bridgeHolder, k -> new ArrayList<>())
+                .add(new Pair<>(method, target));
+
     methodsWithContexts.forEach(
         (method, contexts) -> {
           // We can safely ignore array types, as the corresponding methods are defined in a
@@ -178,6 +192,7 @@ public class MemberRebindingAnalysis {
             return;
           }
           DexClass targetClass = appView.definitionFor(target.holder());
+          DexMethod targetMethod = target.method;
           if (originalClass.isProgramClass()) {
             // In Java bytecode, it is only possible to target interface methods that are in one of
             // the immediate super-interfaces via a super-invocation (see
@@ -186,9 +201,9 @@ public class MemberRebindingAnalysis {
             // bridge method when we are about to rebind to an interface method that is not the
             // original target.
             if (needsBridgeForInterfaceMethod(originalClass, targetClass, invokeType)) {
-              target =
+              targetMethod =
                   insertBridgeForInterfaceMethod(
-                      method, target, originalClass.asProgramClass(), targetClass, lookupTarget);
+                      method, target, originalClass.asProgramClass(), targetClass, addBridge);
             }
 
             // If the target class is not public but the targeted method is, we might run into
@@ -196,13 +211,27 @@ public class MemberRebindingAnalysis {
             final DexEncodedMethod finalTarget = target;
             if (contexts.stream()
                 .anyMatch(context -> mayNeedBridgeForVisibility(context, finalTarget))) {
-              target =
+              targetMethod =
                   insertBridgeForVisibilityIfNeeded(
-                      method, target, originalClass, targetClass, lookupTarget);
+                      method, target, originalClass, targetClass, addBridge);
             }
           }
           lensBuilder.map(
-              method, lens.lookupMethod(validTargetFor(target.method, method)), invokeType);
+              method, lens.lookupMethod(validTargetFor(targetMethod, method)), invokeType);
+        });
+
+    bridges.forEach(
+        (bridgeHolder, targets) -> {
+          // Sorting the list of bridges within a class maintains a deterministic order of entries
+          // in the method collection.
+          targets.sort((p1, p2) -> p1.getFirst().slowCompareTo(p2.getFirst()));
+          for (Pair<DexMethod, DexEncodedMethod> pair : targets) {
+            DexMethod method = pair.getFirst();
+            DexEncodedMethod target = pair.getSecond();
+            DexEncodedMethod bridgeMethod = target.toForwardingMethod(bridgeHolder, appView);
+            bridgeHolder.addMethod(bridgeMethod);
+            assert lookupTarget.apply(method) == bridgeMethod;
+          }
         });
   }
 
@@ -214,12 +243,12 @@ public class MemberRebindingAnalysis {
         && targetClass.accessFlags.isInterface();
   }
 
-  private DexEncodedMethod insertBridgeForInterfaceMethod(
+  private DexMethod insertBridgeForInterfaceMethod(
       DexMethod method,
       DexEncodedMethod target,
       DexProgramClass originalClass,
       DexClass targetClass,
-      Function<DexMethod, DexEncodedMethod> lookupTarget) {
+      TriConsumer<DexProgramClass, DexMethod, DexEncodedMethod> bridges) {
     // If `targetClass` is a class, then insert the bridge method on the upper-most super class that
     // implements the interface. Otherwise, if it is an interface, then insert the bridge method
     // directly on the interface (because that interface must be the immediate super type, assuming
@@ -232,10 +261,8 @@ public class MemberRebindingAnalysis {
         findHolderForInterfaceMethodBridge(originalClass, targetClass.type);
     assert bridgeHolder != null;
     assert bridgeHolder != targetClass;
-    DexEncodedMethod bridgeMethod = target.toForwardingMethod(bridgeHolder, appView);
-    bridgeHolder.addMethod(bridgeMethod);
-    assert lookupTarget.apply(method) == bridgeMethod;
-    return bridgeMethod;
+    bridges.accept(bridgeHolder, method, target);
+    return target.method.withHolder(bridgeHolder.getType(), appView.dexItemFactory());
   }
 
   private DexProgramClass findHolderForInterfaceMethodBridge(DexProgramClass clazz, DexType iface) {
@@ -267,12 +294,12 @@ public class MemberRebindingAnalysis {
         && methodVisibility != ConstraintWithTarget.NEVER;
   }
 
-  private DexEncodedMethod insertBridgeForVisibilityIfNeeded(
+  private DexMethod insertBridgeForVisibilityIfNeeded(
       DexMethod method,
       DexEncodedMethod target,
       DexClass originalClass,
       DexClass targetClass,
-      Function<DexMethod, DexEncodedMethod> lookupTarget) {
+      TriConsumer<DexProgramClass, DexMethod, DexEncodedMethod> bridges) {
     // If the original class is public and this method is public, it might have been called
     // from anywhere, so we need a bridge. Likewise, if the original is in a different
     // package, we might need a bridge, too.
@@ -283,12 +310,10 @@ public class MemberRebindingAnalysis {
       DexProgramClass bridgeHolder =
           findHolderForVisibilityBridge(originalClass, targetClass, packageDescriptor);
       assert bridgeHolder != null;
-      DexEncodedMethod bridgeMethod = target.toForwardingMethod(bridgeHolder, appView);
-      bridgeHolder.addMethod(bridgeMethod);
-      assert lookupTarget.apply(method) == bridgeMethod;
-      return bridgeMethod;
+      bridges.accept(bridgeHolder, method, target);
+      return target.method.withHolder(bridgeHolder.getType(), appView.dexItemFactory());
     }
-    return target;
+    return target.method;
   }
 
   private DexProgramClass findHolderForVisibilityBridge(
