@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -68,7 +69,11 @@ public class ZipUtils {
   }
 
   public static void iter(String zipFileStr, OnEntryHandler handler) throws IOException {
-    try (ZipFile zipFile = new ZipFile(zipFileStr, StandardCharsets.UTF_8)) {
+    iter(Paths.get(zipFileStr), handler);
+  }
+
+  public static void iter(Path zipFilePath, OnEntryHandler handler) throws IOException {
+    try (ZipFile zipFile = new ZipFile(zipFilePath.toFile(), StandardCharsets.UTF_8)) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();
@@ -76,6 +81,12 @@ public class ZipUtils {
           handler.onEntry(entry, entryStream);
         }
       }
+    }
+  }
+
+  public static byte[] readSingleEntry(Path zipFilePath, String name) throws IOException {
+    try (ZipFile zipFile = new ZipFile(zipFilePath.toFile(), StandardCharsets.UTF_8)) {
+      return ByteStreams.toByteArray(zipFile.getInputStream(zipFile.getEntry(name)));
     }
   }
 
@@ -225,5 +236,9 @@ public class ZipUtils {
       stream.close();
       return zipFile;
     }
+  }
+
+  public static String zipEntryNameForClass(Class<?> clazz) {
+    return DescriptorUtils.getClassBinaryName(clazz) + CLASS_EXTENSION;
   }
 }
