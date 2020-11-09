@@ -15,18 +15,14 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.lambda.CaptureSignature;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.Lists;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,21 +31,15 @@ import org.junit.runners.Parameterized;
 public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   private static final String KOTLIN_FUNCTION_IFACE = "Lkotlin/jvm/functions/Function";
   private static final String KOTLIN_FUNCTION_IFACE_STR = "kotlin.jvm.functions.Function";
-  private static final String KEEP_INNER_AND_ENCLOSING =
-      "-keepattributes InnerClasses,EnclosingMethod\n";
-  private static final String KEEP_SIGNATURE_INNER_ENCLOSING =
-      "-keepattributes Signature,InnerClasses,EnclosingMethod\n";
 
-  private Consumer<InternalOptions> getOptionsModifier() {
-    return opts -> {
-      opts.enableClassInlining = false;
-      // The test checks that the generated lambdas inherit from Function, which is not true if
-      // the unused interface removal is enabled.
-      opts.enableUnusedInterfaceRemoval = enableUnusedInterfaceRemoval;
-      // Ensure that enclosing method and inner class attributes are kept even on classes that are
-      // not explicitly mentioned by a keep rule.
-      opts.forceProguardCompatibility = true;
-    };
+  private void configure(InternalOptions options) {
+    options.enableClassInlining = false;
+    // The test checks that the generated lambdas inherit from Function, which is not true if
+    // the unused interface removal is enabled.
+    options.enableUnusedInterfaceRemoval = enableUnusedInterfaceRemoval;
+    // Ensure that enclosing method and inner class attributes are kept even on classes that are
+    // not explicitly mentioned by a keep rule.
+    options.forceProguardCompatibility = true;
   }
 
   private final boolean enableUnusedInterfaceRemoval;
@@ -172,10 +162,6 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     final CodeInspector codeInspector;
     final List<DexClass> lambdas = new ArrayList<>();
     final List<DexClass> groups = new ArrayList<>();
-
-    Verifier(AndroidApp app) throws IOException, ExecutionException {
-      this(new CodeInspector(app));
-    }
 
     Verifier(CodeInspector codeInspector) {
       this.codeInspector = codeInspector;
@@ -304,242 +290,264 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   public void testTrivialKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_trivial.MainKt";
     runTest(
-        "lambdas_kstyle_trivial",
-        mainClassName,
-        "-keepunusedarguments class * extends kotlin.jvm.internal.Lambda { invoke(int, short); }",
-        getOptionsModifier(),
-        app -> {
-          if (enableUnusedInterfaceRemoval) {
-            // Only test that the code generates the same output as the input code does on the JVM.
-            return;
-          }
+            "lambdas_kstyle_trivial",
+            mainClassName,
+            testBuilder ->
+                testBuilder
+                    .addKeepRules(
+                        "-keepunusedarguments class * extends kotlin.jvm.internal.Lambda {"
+                            + " invoke(int, short); }")
+                    .addOptionsModification(this::configure))
+        .inspect(
+            inspector -> {
+              if (enableUnusedInterfaceRemoval) {
+                // Only test that the code generates the same output as the input code does on the
+                // JVM.
+                return;
+              }
 
-          Verifier verifier = new Verifier(app);
-          String pkg = "lambdas_kstyle_trivial";
+              Verifier verifier = new Verifier(inspector);
+              String pkg = "lambdas_kstyle_trivial";
 
-          verifier.assertLambdaGroups(
-              allowAccessModification
-                  ? new Group[] {
-                    kstyle("", 0, 4),
-                    kstyle("", 1, 9),
-                    kstyle("", 2, 2), // -\
-                    kstyle("", 2, 5), // - 3 groups different by main method
-                    kstyle("", 2, 4), // -/
-                    kstyle("", 3, 2),
-                    kstyle("", 22, 2)
-                  }
-                  : new Group[] {
-                    kstyle(pkg, 0, 2),
-                    kstyle(pkg, 1, 5),
-                    kstyle(pkg, 2, 5), // - 2 groups different by main method
-                    kstyle(pkg, 2, 4), // -/
-                    kstyle(pkg, 3, 2),
-                    kstyle(pkg, 22, 2),
-                    kstyle(pkg + "/inner", 0, 2),
-                    kstyle(pkg + "/inner", 1, 4)
-                  });
+              verifier.assertLambdaGroups(
+                  allowAccessModification
+                      ? new Group[] {
+                        kstyle("", 0, 4),
+                        kstyle("", 1, 9),
+                        kstyle("", 2, 2), // -\
+                        kstyle("", 2, 5), // - 3 groups different by main method
+                        kstyle("", 2, 4), // -/
+                        kstyle("", 3, 2),
+                        kstyle("", 22, 2)
+                      }
+                      : new Group[] {
+                        kstyle(pkg, 0, 2),
+                        kstyle(pkg, 1, 5),
+                        kstyle(pkg, 2, 5), // - 2 groups different by main method
+                        kstyle(pkg, 2, 4), // -/
+                        kstyle(pkg, 3, 2),
+                        kstyle(pkg, 22, 2),
+                        kstyle(pkg + "/inner", 0, 2),
+                        kstyle(pkg + "/inner", 1, 4)
+                      });
 
-          verifier.assertLambdas(
-              allowAccessModification
-                  ? new Lambda[] {}
-                  : new Lambda[] {
-                    new Lambda(pkg, "MainKt$testStateless$8", 2),
-                    new Lambda(pkg + "/inner", "InnerKt$testInnerStateless$7", 2)
-                  });
-        });
+              verifier.assertLambdas(
+                  allowAccessModification
+                      ? new Lambda[] {}
+                      : new Lambda[] {
+                        new Lambda(pkg, "MainKt$testStateless$8", 2),
+                        new Lambda(pkg + "/inner", "InnerKt$testInnerStateless$7", 2)
+                      });
+            });
   }
 
   @Test
   public void testCapturesKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_captures.MainKt";
     runTest(
-        "lambdas_kstyle_captures",
-        mainClassName,
-        getOptionsModifier(),
-        app -> {
-          if (enableUnusedInterfaceRemoval) {
-            // Only test that the code generates the same output as the input code does on the JVM.
-            return;
-          }
+            "lambdas_kstyle_captures",
+            mainClassName,
+            testBuilder -> testBuilder.addOptionsModification(this::configure))
+        .inspect(
+            inspector -> {
+              if (enableUnusedInterfaceRemoval) {
+                // Only test that the code generates the same output as the input code does on the
+                // JVM.
+                return;
+              }
 
-          Verifier verifier = new Verifier(app);
-          String pkg = "lambdas_kstyle_captures";
-          String grpPkg = allowAccessModification ? "" : pkg;
+              Verifier verifier = new Verifier(inspector);
+              String pkg = "lambdas_kstyle_captures";
+              String grpPkg = allowAccessModification ? "" : pkg;
 
-          verifier.assertLambdaGroups(
-              kstyle(grpPkg, "LLL", 0),
-              kstyle(grpPkg, "ILL", 0),
-              kstyle(grpPkg, "III", 0),
-              kstyle(grpPkg, "BCDFIJLLLLSZ", 0),
-              kstyle(grpPkg, "BCDFIJLLSZ", 0));
+              verifier.assertLambdaGroups(
+                  kstyle(grpPkg, "LLL", 0),
+                  kstyle(grpPkg, "ILL", 0),
+                  kstyle(grpPkg, "III", 0),
+                  kstyle(grpPkg, "BCDFIJLLLLSZ", 0),
+                  kstyle(grpPkg, "BCDFIJLLSZ", 0));
 
-          verifier.assertLambdas(
-              new Lambda(pkg, "MainKt$test1$15", 0),
-              new Lambda(pkg, "MainKt$test2$10", 0),
-              new Lambda(pkg, "MainKt$test2$11", 0),
-              new Lambda(pkg, "MainKt$test2$9", 0));
-        });
+              verifier.assertLambdas(
+                  new Lambda(pkg, "MainKt$test1$15", 0),
+                  new Lambda(pkg, "MainKt$test2$10", 0),
+                  new Lambda(pkg, "MainKt$test2$11", 0),
+                  new Lambda(pkg, "MainKt$test2$9", 0));
+            });
   }
 
   @Test
   public void testGenericsNoSignatureKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_generics.MainKt";
     runTest(
-        "lambdas_kstyle_generics",
-        mainClassName,
-        getOptionsModifier(),
-        app -> {
-          if (enableUnusedInterfaceRemoval) {
-            // Only test that the code generates the same output as the input code does on the JVM.
-            return;
-          }
+            "lambdas_kstyle_generics",
+            mainClassName,
+            testBuilder -> testBuilder.addOptionsModification(this::configure))
+        .inspect(
+            inspector -> {
+              if (enableUnusedInterfaceRemoval) {
+                // Only test that the code generates the same output as the input code does on the
+                // JVM.
+                return;
+              }
 
-          Verifier verifier = new Verifier(app);
-          String pkg = "lambdas_kstyle_generics";
-          String grpPkg = allowAccessModification ? "" : pkg;
+              Verifier verifier = new Verifier(inspector);
+              String pkg = "lambdas_kstyle_generics";
+              String grpPkg = allowAccessModification ? "" : pkg;
 
-          verifier.assertLambdaGroups(
-              kstyle(grpPkg, 1, 3), // Group for Any
-              kstyle(grpPkg, "L", 1), // Group for Beta
-              kstyle(grpPkg, "LS", 1), // Group for Gamma
-              kstyle(grpPkg, 1, 2) // Group for int
-              );
+              verifier.assertLambdaGroups(
+                  kstyle(grpPkg, 1, 3), // Group for Any
+                  kstyle(grpPkg, "L", 1), // Group for Beta
+                  kstyle(grpPkg, "LS", 1), // Group for Gamma
+                  kstyle(grpPkg, 1, 2) // Group for int
+                  );
 
-          verifier.assertLambdas(new Lambda(pkg, "MainKt$main$4", 1));
-        });
+              verifier.assertLambdas(new Lambda(pkg, "MainKt$main$4", 1));
+            });
   }
 
   @Test
   public void testInnerClassesAndEnclosingMethodsKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_generics.MainKt";
     runTest(
-        "lambdas_kstyle_generics",
-        mainClassName,
-        KEEP_INNER_AND_ENCLOSING,
-        getOptionsModifier(),
-        app -> {
-          if (enableUnusedInterfaceRemoval) {
-            // Only test that the code generates the same output as the input code does on the JVM.
-            return;
-          }
+            "lambdas_kstyle_generics",
+            mainClassName,
+            testBuilder ->
+                testBuilder
+                    .addKeepAttributeInnerClassesAndEnclosingMethod()
+                    .addOptionsModification(this::configure))
+        .inspect(
+            inspector -> {
+              if (enableUnusedInterfaceRemoval) {
+                // Only test that the code generates the same output as the input code does on the
+                // JVM.
+                return;
+              }
 
-          Verifier verifier = new Verifier(app);
-          String pkg = "lambdas_kstyle_generics";
-          String grpPkg = allowAccessModification ? "" : pkg;
+              Verifier verifier = new Verifier(inspector);
+              String pkg = "lambdas_kstyle_generics";
+              String grpPkg = allowAccessModification ? "" : pkg;
 
-          verifier.assertLambdaGroups(
-              kstyle(grpPkg, 1, 3), // Group for Any
-              kstyle(grpPkg, "L", 1), // Group for Beta   // First
-              kstyle(grpPkg, "L", 1), // Group for Beta   // Second
-              kstyle(grpPkg, "LS", 1), // Group for Gamma // First
-              kstyle(grpPkg, "LS", 1), // Group for Gamma // Second
-              kstyle(grpPkg, 1, 2) // Group for int
-              );
+              verifier.assertLambdaGroups(
+                  kstyle(grpPkg, 1, 3), // Group for Any
+                  kstyle(grpPkg, "L", 1), // Group for Beta   // First
+                  kstyle(grpPkg, "L", 1), // Group for Beta   // Second
+                  kstyle(grpPkg, "LS", 1), // Group for Gamma // First
+                  kstyle(grpPkg, "LS", 1), // Group for Gamma // Second
+                  kstyle(grpPkg, 1, 2) // Group for int
+                  );
 
-          verifier.assertLambdas(new Lambda(pkg, "MainKt$main$4", 1));
-        });
+              verifier.assertLambdas(new Lambda(pkg, "MainKt$main$4", 1));
+            });
   }
 
   @Test
   public void testGenericsSignatureInnerEnclosingKs() throws Exception {
     final String mainClassName = "lambdas_kstyle_generics.MainKt";
     runTest(
-        "lambdas_kstyle_generics",
-        mainClassName,
-        KEEP_SIGNATURE_INNER_ENCLOSING,
-        getOptionsModifier(),
-        app -> {
-          if (enableUnusedInterfaceRemoval) {
-            // Only test that the code generates the same output as the input code does on the JVM.
-            return;
-          }
+            "lambdas_kstyle_generics",
+            mainClassName,
+            // KEEP_SIGNATURE_INNER_ENCLOSING,
+            testBuilder ->
+                testBuilder
+                    .addKeepAttributeInnerClassesAndEnclosingMethod()
+                    .addKeepAttributeSignature()
+                    .addOptionsModification(this::configure))
+        .inspect(
+            inspector -> {
+              if (enableUnusedInterfaceRemoval) {
+                // Only test that the code generates the same output as the input code does on the
+                // JVM.
+                return;
+              }
 
-          Verifier verifier = new Verifier(app);
-          String pkg = "lambdas_kstyle_generics";
-          String grpPkg = allowAccessModification ? "" : pkg;
+              Verifier verifier = new Verifier(inspector);
+              String pkg = "lambdas_kstyle_generics";
+              String grpPkg = allowAccessModification ? "" : pkg;
 
-          verifier.assertLambdaGroups(
-              kstyle(grpPkg, 1, 3), // Group for Any
-              kstyle(grpPkg, "L", 1), // Group for Beta in First
-              kstyle(grpPkg, "L", 1), // Group for Beta in Second
-              kstyle(grpPkg, "LS", 1), // Group for Gamma<String> in First
-              kstyle(grpPkg, "LS", 1), // Group for Gamma<Integer> in First
-              kstyle(grpPkg, "LS", 1), // Group for Gamma<String> in Second
-              kstyle(grpPkg, "LS", 1), // Group for Gamma<Integer> in Second
-              kstyle(grpPkg, 1, 2) // Group for int
-              );
+              verifier.assertLambdaGroups(
+                  kstyle(grpPkg, 1, 3), // Group for Any
+                  kstyle(grpPkg, "L", 1), // Group for Beta in First
+                  kstyle(grpPkg, "L", 1), // Group for Beta in Second
+                  kstyle(grpPkg, "LS", 1), // Group for Gamma<String> in First
+                  kstyle(grpPkg, "LS", 1), // Group for Gamma<Integer> in First
+                  kstyle(grpPkg, "LS", 1), // Group for Gamma<String> in Second
+                  kstyle(grpPkg, "LS", 1), // Group for Gamma<Integer> in Second
+                  kstyle(grpPkg, 1, 2) // Group for int
+                  );
 
-          verifier.assertLambdas(new Lambda(pkg, "MainKt$main$4", 1));
-        });
+              verifier.assertLambdas(new Lambda(pkg, "MainKt$main$4", 1));
+            });
   }
 
   @Test
   public void testTrivialJs() throws Exception {
     final String mainClassName = "lambdas_jstyle_trivial.MainKt";
     runTest(
-        "lambdas_jstyle_trivial",
-        mainClassName,
-        getOptionsModifier(),
-        app -> {
-          Verifier verifier = new Verifier(app);
-          String pkg = "lambdas_jstyle_trivial";
-          String grp = allowAccessModification ? "" : pkg;
+            "lambdas_jstyle_trivial",
+            mainClassName,
+            testBuilder -> testBuilder.addOptionsModification(this::configure))
+        .inspect(
+            inspector -> {
+              Verifier verifier = new Verifier(inspector);
+              String pkg = "lambdas_jstyle_trivial";
+              String grp = allowAccessModification ? "" : pkg;
 
-          String supplier = "lambdas_jstyle_trivial.Lambdas$Supplier";
-          String intSupplier = "lambdas_jstyle_trivial.Lambdas$IntSupplier";
-          String consumer = "lambdas_jstyle_trivial.Lambdas$Consumer";
-          String intConsumer = "lambdas_jstyle_trivial.Lambdas$IntConsumer";
-          String multiFunction = "lambdas_jstyle_trivial.Lambdas$MultiFunction";
+              String supplier = "lambdas_jstyle_trivial.Lambdas$Supplier";
+              String intSupplier = "lambdas_jstyle_trivial.Lambdas$IntSupplier";
+              String consumer = "lambdas_jstyle_trivial.Lambdas$Consumer";
+              String intConsumer = "lambdas_jstyle_trivial.Lambdas$IntConsumer";
+              String multiFunction = "lambdas_jstyle_trivial.Lambdas$MultiFunction";
 
-          verifier.assertLambdaGroups(
-              jstyle(grp, 0, intSupplier, 2),
-              jstyle(grp, "L", 0, supplier),
-              jstyle(grp, "LL", 0, supplier),
-              jstyle(grp, "LLL", 0, supplier),
-              jstyle(grp, 1, intConsumer, allowAccessModification ? 3 : 2),
-              jstyle(grp, "I", 1, consumer),
-              jstyle(grp, "II", 1, consumer),
-              jstyle(grp, "III", 1, consumer),
-              jstyle(grp, "IIII", 1, consumer),
-              jstyle(grp, 3, multiFunction, 2),
-              jstyle(grp, 3, multiFunction, 2),
-              jstyle(grp, 3, multiFunction, 4),
-              jstyle(grp, 3, multiFunction, 6));
+              verifier.assertLambdaGroups(
+                  jstyle(grp, 0, intSupplier, 2),
+                  jstyle(grp, "L", 0, supplier),
+                  jstyle(grp, "LL", 0, supplier),
+                  jstyle(grp, "LLL", 0, supplier),
+                  jstyle(grp, 1, intConsumer, allowAccessModification ? 3 : 2),
+                  jstyle(grp, "I", 1, consumer),
+                  jstyle(grp, "II", 1, consumer),
+                  jstyle(grp, "III", 1, consumer),
+                  jstyle(grp, "IIII", 1, consumer),
+                  jstyle(grp, 3, multiFunction, 2),
+                  jstyle(grp, 3, multiFunction, 2),
+                  jstyle(grp, 3, multiFunction, 4),
+                  jstyle(grp, 3, multiFunction, 6));
 
-          verifier.assertLambdas(
-              allowAccessModification
-                  ? new Lambda[] {
-                    new Lambda(pkg + "/inner", "InnerKt$testInner1$4", 1),
-                    new Lambda(pkg + "/inner", "InnerKt$testInner1$5", 1)
-                  }
-                  : new Lambda[] {
-                    new Lambda(pkg + "/inner", "InnerKt$testInner1$1", 1),
-                    new Lambda(pkg + "/inner", "InnerKt$testInner1$2", 1),
-                    new Lambda(pkg + "/inner", "InnerKt$testInner1$3", 1),
-                    new Lambda(pkg + "/inner", "InnerKt$testInner1$4", 1),
-                    new Lambda(pkg + "/inner", "InnerKt$testInner1$5", 1)
-                  });
-        });
+              verifier.assertLambdas(
+                  allowAccessModification
+                      ? new Lambda[] {
+                        new Lambda(pkg + "/inner", "InnerKt$testInner1$4", 1),
+                        new Lambda(pkg + "/inner", "InnerKt$testInner1$5", 1)
+                      }
+                      : new Lambda[] {
+                        new Lambda(pkg + "/inner", "InnerKt$testInner1$1", 1),
+                        new Lambda(pkg + "/inner", "InnerKt$testInner1$2", 1),
+                        new Lambda(pkg + "/inner", "InnerKt$testInner1$3", 1),
+                        new Lambda(pkg + "/inner", "InnerKt$testInner1$4", 1),
+                        new Lambda(pkg + "/inner", "InnerKt$testInner1$5", 1)
+                      });
+            });
   }
 
   @Test
   public void testSingleton() throws Exception {
     final String mainClassName = "lambdas_singleton.MainKt";
     runTest(
-        "lambdas_singleton",
-        mainClassName,
-        "-nohorizontalclassmerging class *",
-        getOptionsModifier(),
-        app -> {
-          Verifier verifier = new Verifier(app);
-          String pkg = "lambdas_singleton";
-          String grp = allowAccessModification ? "" : pkg;
+            "lambdas_singleton",
+            mainClassName,
+            testBuilder ->
+                testBuilder.addOptionsModification(this::configure).noHorizontalClassMerging())
+        .inspect(
+            inspector -> {
+              Verifier verifier = new Verifier(inspector);
+              String pkg = "lambdas_singleton";
+              String grp = allowAccessModification ? "" : pkg;
 
-          verifier.assertLambdaGroups(
-              kstyle(grp, 1, 1 /* 1 out of 5 lambdas in the group */),
-              jstyle(grp, 2, "java.util.Comparator", 0 /* 0 out of 2 lambdas in the group */));
+              verifier.assertLambdaGroups(
+                  kstyle(grp, 1, 1 /* 1 out of 5 lambdas in the group */),
+                  jstyle(grp, 2, "java.util.Comparator", 0 /* 0 out of 2 lambdas in the group */));
 
-          verifier.assertLambdas(/* None */ );
-        });
+              verifier.assertLambdas(/* None */ );
+            });
   }
 }

@@ -228,7 +228,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .compile()
             .graphInspector();
     assertRetainedClassesEqual(
-        referenceInspector, ifThenKeepClassesWithMembersInspector, false, false);
+        referenceInspector, ifThenKeepClassesWithMembersInspector, false, true);
 
     GraphInspector ifHasMemberThenKeepClassInspector =
         testForR8(Backend.CF)

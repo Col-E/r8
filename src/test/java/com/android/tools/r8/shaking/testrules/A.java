@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.shaking.testrules;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoStaticClassMerging;
 
+@NoHorizontalClassMerging
 @NoStaticClassMerging
 public class A {
 

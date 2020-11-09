@@ -6,6 +6,7 @@ package com.android.tools.r8.naming.identifiernamestring;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -21,7 +22,7 @@ public class ClassNameComparisonTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ClassNameComparisonTest(TestParameters parameters) {
@@ -33,7 +34,8 @@ public class ClassNameComparisonTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ClassNameComparisonTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .enableNoHorizontalClassMergingAnnotations()
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello!", "Hello " + B.class.getName() + "!");
@@ -64,7 +66,9 @@ public class ClassNameComparisonTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static class A {}
 
+  @NoHorizontalClassMerging
   static class B {}
 }

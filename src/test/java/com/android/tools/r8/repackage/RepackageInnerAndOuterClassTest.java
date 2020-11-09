@@ -7,6 +7,7 @@ package com.android.tools.r8.repackage;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoStaticClassMerging;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
@@ -46,6 +47,7 @@ public class RepackageInnerAndOuterClassTest extends RepackageTestBase {
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNoStaticClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -67,6 +69,7 @@ public class RepackageInnerAndOuterClassTest extends RepackageTestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   @NoStaticClassMerging
   public static class Outer {
 

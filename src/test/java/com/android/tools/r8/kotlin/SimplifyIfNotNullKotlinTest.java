@@ -9,7 +9,6 @@ import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -40,24 +39,21 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
             ImmutableList.of("java.util.Collection", STRING, STRING, "java.lang.Integer"));
 
     final String mainClassName = ex1.getClassName();
-    final String extraRules =
-        keepMainMethod(mainClassName) + neverInlineMethod(mainClassName, testMethodSignature);
-    runTest(
-        FOLDER,
-        mainClassName,
-        extraRules,
-        app -> {
-          CodeInspector codeInspector = new CodeInspector(app);
-          ClassSubject clazz = checkClassIsKept(codeInspector, ex1.getClassName());
+    final String extraRules = neverInlineMethod(mainClassName, testMethodSignature);
+    runTest(FOLDER, mainClassName, testBuilder -> testBuilder.addKeepRules(extraRules))
+        .inspect(
+            inspector -> {
+              ClassSubject clazz = checkClassIsKept(inspector, ex1.getClassName());
 
-          MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
-          long ifzCount =
-              testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNez()).count();
-          long paramNullCheckCount = countCall(testMethod, "Intrinsics", "checkParameterIsNotNull");
-          // One after Iterator#hasNext, and another in the filter predicate: sinceYear != null.
-          assertEquals(2, ifzCount);
-          assertEquals(0, paramNullCheckCount);
-        });
+              MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
+              long ifzCount =
+                  testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNez()).count();
+              long paramNullCheckCount =
+                  countCall(testMethod, "Intrinsics", "checkParameterIsNotNull");
+              // One after Iterator#hasNext, and another in the filter predicate: sinceYear != null.
+              assertEquals(2, ifzCount);
+              assertEquals(0, paramNullCheckCount);
+            });
   }
 
   @Test
@@ -67,22 +63,21 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
         new MethodSignature("aOrDefault", STRING, ImmutableList.of(STRING, STRING));
 
     final String mainClassName = ex2.getClassName();
-    final String extraRules =
-        keepMainMethod(mainClassName) + neverInlineMethod(mainClassName, testMethodSignature);
-    runTest(FOLDER, mainClassName, extraRules,
-        app -> {
-          CodeInspector codeInspector = new CodeInspector(app);
-          ClassSubject clazz = checkClassIsKept(codeInspector, ex2.getClassName());
+    final String extraRules = neverInlineMethod(mainClassName, testMethodSignature);
+    runTest(FOLDER, mainClassName, testBuilder -> testBuilder.addKeepRules(extraRules))
+        .inspect(
+            inspector -> {
+              ClassSubject clazz = checkClassIsKept(inspector, ex2.getClassName());
 
-          MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
-          long ifzCount =
-              testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNez()).count();
-          long paramNullCheckCount =
-              countCall(testMethod, "Intrinsics", "checkParameterIsNotNull");
-          // ?: in aOrDefault
-          assertEquals(1, ifzCount);
-          assertEquals(allowAccessModification ? 0 : 1, paramNullCheckCount);
-        });
+              MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
+              long ifzCount =
+                  testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNez()).count();
+              long paramNullCheckCount =
+                  countCall(testMethod, "Intrinsics", "checkParameterIsNotNull");
+              // ?: in aOrDefault
+              assertEquals(1, ifzCount);
+              assertEquals(allowAccessModification ? 0 : 1, paramNullCheckCount);
+            });
   }
 
   @Test
@@ -92,19 +87,18 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
         new MethodSignature("neverThrowNPE", "void", ImmutableList.of("non_null.Foo"));
 
     final String mainClassName = ex3.getClassName();
-    final String extraRules =
-        keepMainMethod(mainClassName) + neverInlineMethod(mainClassName, testMethodSignature);
-    runTest(FOLDER, mainClassName, extraRules,
-        app -> {
-          CodeInspector codeInspector = new CodeInspector(app);
-          ClassSubject clazz = checkClassIsKept(codeInspector, ex3.getClassName());
+    final String extraRules = neverInlineMethod(mainClassName, testMethodSignature);
+    runTest(FOLDER, mainClassName, testBuilder -> testBuilder.addKeepRules(extraRules))
+        .inspect(
+            inspector -> {
+              ClassSubject clazz = checkClassIsKept(inspector, ex3.getClassName());
 
-          MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
-          long ifzCount =
-              testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNez()).count();
-          // !! operator inside explicit null check should be gone.
-          // One explicit null-check as well as 4 bar? accesses.
-          assertEquals(5, ifzCount);
-        });
+              MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
+              long ifzCount =
+                  testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNez()).count();
+              // !! operator inside explicit null check should be gone.
+              // One explicit null-check as well as 4 bar? accesses.
+              assertEquals(5, ifzCount);
+            });
   }
 }

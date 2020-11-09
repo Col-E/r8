@@ -275,6 +275,10 @@ public abstract class TestShrinkerBuilder<
     return addKeepAttributes(ProguardKeepAttributes.LINE_NUMBER_TABLE);
   }
 
+  public T addKeepAttributeSignature() {
+    return addKeepAttributes(ProguardKeepAttributes.SIGNATURE);
+  }
+
   public T addKeepAttributeSourceFile() {
     return addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE);
   }

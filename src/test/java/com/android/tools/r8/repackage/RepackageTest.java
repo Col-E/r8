@@ -112,6 +112,7 @@ public class RepackageTest extends RepackageTestBase {
         .allowAccessModification(allowAccessModification)
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNoStaticClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

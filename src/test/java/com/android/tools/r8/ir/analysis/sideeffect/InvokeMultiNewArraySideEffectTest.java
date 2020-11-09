@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -25,7 +26,7 @@ public class InvokeMultiNewArraySideEffectTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public InvokeMultiNewArraySideEffectTest(TestParameters parameters) {
@@ -37,7 +38,8 @@ public class InvokeMultiNewArraySideEffectTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeMultiNewArraySideEffectTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .enableNoHorizontalClassMergingAnnotations()
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector -> {
@@ -66,7 +68,9 @@ public class InvokeMultiNewArraySideEffectTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static class A {}
 
+  @NoHorizontalClassMerging
   static class B {}
 }

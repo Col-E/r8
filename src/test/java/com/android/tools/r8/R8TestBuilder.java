@@ -428,6 +428,44 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     addInternalKeepRules(sb.toString());
   }
 
+  public T noClassInlining() {
+    return noClassInlining(true);
+  }
+
+  public T noClassInlining(boolean condition) {
+    if (condition) {
+      return addOptionsModification(options -> options.enableClassInlining = false);
+    }
+    return self();
+  }
+
+  public T noClassStaticizing() {
+    return noClassStaticizing(true);
+  }
+
+  public T noClassStaticizing(boolean condition) {
+    if (condition) {
+      return addOptionsModification(options -> options.enableClassStaticizer = false);
+    }
+    return self();
+  }
+
+  public T noHorizontalClassMerging() {
+    return noHorizontalClassMerging(true);
+  }
+
+  public T noHorizontalClassMerging(boolean condition) {
+    if (condition) {
+      return addKeepRules("-" + NoHorizontalClassMergingRule.RULE_NAME + " class *");
+    }
+    return self();
+  }
+
+  public T noHorizontalClassMerging(Class<?> clazz) {
+    return addKeepRules(
+        "-" + NoHorizontalClassMergingRule.RULE_NAME + " class " + clazz.getTypeName());
+  }
+
   public T enableNoUnusedInterfaceRemovalAnnotations() {
     if (!enableNoUnusedInterfaceRemovalAnnotations) {
       enableNoUnusedInterfaceRemovalAnnotations = true;

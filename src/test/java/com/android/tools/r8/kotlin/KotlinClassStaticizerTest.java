@@ -10,10 +10,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.google.common.base.Predicates;
 import java.util.Collection;
@@ -40,48 +40,37 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
     final String mainClassName = "class_staticizer.MainKt";
 
     // Without class staticizer.
-    runTest(
-        "class_staticizer",
-        mainClassName,
-        false,
-        app -> {
-          CodeInspector inspector = new CodeInspector(app);
-          assertThat(inspector.clazz("class_staticizer.Derived$Companion"), isPresent());
+    runTest("class_staticizer", mainClassName, true)
+        .inspect(
+            inspector -> {
+              assertThat(inspector.clazz("class_staticizer.Derived$Companion"), isPresent());
 
-          // The Util class is there, but its instance methods have been inlined.
-          ClassSubject utilClass = inspector.clazz("class_staticizer.Util");
-          assertThat(utilClass, isPresent());
-          assertTrue(
-              utilClass.allMethods().stream()
-                  .filter(Predicates.not(FoundMethodSubject::isStatic))
-                  .allMatch(FoundMethodSubject::isInstanceInitializer));
-        });
+              // The Util class is there, but its instance methods have been inlined.
+              ClassSubject utilClass = inspector.clazz("class_staticizer.Util");
+              assertThat(utilClass, isPresent());
+              assertTrue(
+                  utilClass.allMethods().stream()
+                      .filter(Predicates.not(FoundMethodSubject::isStatic))
+                      .allMatch(FoundMethodSubject::isInstanceInitializer));
+            });
 
     // With class staticizer.
-    runTest(
-        "class_staticizer",
-        mainClassName,
-        true,
-        app -> {
-          CodeInspector inspector = new CodeInspector(app);
-          assertThat(inspector.clazz("class_staticizer.Regular$Companion"), not(isPresent()));
+    runTest("class_staticizer", mainClassName, false)
+        .inspect(
+            inspector -> {
+              assertThat(inspector.clazz("class_staticizer.Regular$Companion"), not(isPresent()));
 
-          ClassSubject utilClass = inspector.clazz("class_staticizer.Util");
-          assertThat(utilClass, isPresent());
-          assertTrue(utilClass.allMethods().stream().allMatch(FoundMethodSubject::isStatic));
-        });
+              ClassSubject utilClass = inspector.clazz("class_staticizer.Util");
+              assertThat(utilClass, isPresent());
+              assertTrue(utilClass.allMethods().stream().allMatch(FoundMethodSubject::isStatic));
+            });
   }
 
-  protected void runTest(String folder, String mainClass,
-      boolean enabled, AndroidAppInspector inspector) throws Exception {
-    runTest(
+  protected R8TestRunResult runTest(String folder, String mainClass, boolean noClassStaticizing)
+      throws Exception {
+    return runTest(
         folder,
         mainClass,
-        null,
-        options -> {
-          options.enableClassInlining = false;
-          options.enableClassStaticizer = enabled;
-        },
-        inspector);
+        testBuilder -> testBuilder.noClassInlining().noClassStaticizing(noClassStaticizing));
   }
 }

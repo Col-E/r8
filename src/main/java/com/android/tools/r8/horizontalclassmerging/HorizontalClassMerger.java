@@ -8,12 +8,12 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.horizontalclassmerging.policies.AllInstantiatedOrUninstantiated;
+import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.ClassesHaveSameInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.DontInlinePolicy;
 import com.android.tools.r8.horizontalclassmerging.policies.DontMergeIntoLessVisible;
 import com.android.tools.r8.horizontalclassmerging.policies.DontMergeSynchronizedClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.IgnoreSynthetics;
-import com.android.tools.r8.horizontalclassmerging.policies.NoAbstractClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassesOrMembersWithAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
@@ -114,7 +114,7 @@ public class HorizontalClassMerger {
         new ClassesHaveSameInterfaces(),
         new NoAnnotations(),
         new NoEnums(appView),
-        new NoAbstractClasses(),
+        new CheckAbstractClasses(appView),
         new IgnoreSynthetics(appView),
         new NoClassesOrMembersWithAnnotations(),
         new NoInnerClasses(),

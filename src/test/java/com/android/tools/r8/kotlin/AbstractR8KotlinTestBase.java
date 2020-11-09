@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -14,8 +15,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.KotlinTestBase;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
+import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.Code;
@@ -23,22 +25,18 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import org.junit.Assume;
 
 public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
@@ -217,30 +215,6 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
     return code.asDexCode();
   }
 
-  private String buildProguardRules(String mainClass) {
-    ProguardRulesBuilder proguardRules = new ProguardRulesBuilder();
-    proguardRules.appendWithLineSeparator(keepMainProguardConfiguration(mainClass));
-    proguardRules.dontObfuscate();
-    if (allowAccessModification) {
-      proguardRules.allowAccessModification();
-    }
-    return proguardRules.toString();
-  }
-
-  protected String keepAllMembers(String className) {
-    return StringUtils.lines(
-        "-keep class " + className + " {",
-        "  *;",
-        "}");
-  }
-
-  protected String keepMainMethod(String className) {
-    return StringUtils.lines(
-        "-keepclasseswithmembers class " + className + " {",
-        "  public static void main(...);",
-        "}");
-  }
-
   protected String keepClassMethod(String className, MethodSignature methodSignature) {
     return StringUtils.lines(
         "-keep class " + className + " {",
@@ -255,53 +229,20 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
         "}");
   }
 
-  protected void runTest(String folder, String mainClass,
-      AndroidAppInspector inspector) throws Exception {
-    runTest(folder, mainClass, null, null, inspector);
+  protected R8TestRunResult runTest(String folder, String mainClass) throws Exception {
+    return runTest(folder, mainClass, null);
   }
 
-  protected void runTest(String folder, String mainClass,
-      Consumer<InternalOptions> optionsConsumer, AndroidAppInspector inspector) throws Exception {
-    runTest(folder, mainClass, null, optionsConsumer, inspector);
-  }
-
-  protected void runTest(String folder, String mainClass,
-      String extraProguardRules, AndroidAppInspector inspector) throws Exception {
-    runTest(folder, mainClass, extraProguardRules, null, inspector);
-  }
-
-  protected void runTest(String folder, String mainClass, String extraProguardRules,
-      Consumer<InternalOptions> optionsConsumer, AndroidAppInspector inspector) throws Exception {
+  protected R8TestRunResult runTest(
+      String folder, String mainClass, ThrowableConsumer<R8FullTestBuilder> configuration)
+      throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
-
-    String proguardRules = buildProguardRules(mainClass);
-    if (extraProguardRules != null) {
-      proguardRules += extraProguardRules;
-    }
 
     // Build classpath for compilation (and java execution)
     classpath.clear();
     classpath.add(getKotlinJarFile(folder));
     classpath.add(getJavaJarFile(folder));
     classpath.addAll(extraClasspath);
-
-    // Build with R8
-    AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addProgramFiles(classpath);
-    R8Command.Builder commandBuilder =
-        ToolHelper.prepareR8CommandBuilder(builder.build(), emptyConsumer(Backend.DEX))
-            .addLibraryFiles(runtimeJar(Backend.DEX))
-            .addProguardConfiguration(ImmutableList.of(proguardRules), Origin.unknown());
-    ToolHelper.allowTestProguardOptions(commandBuilder);
-    AndroidApp app = ToolHelper.runR8(commandBuilder.build(), optionsConsumer);
-
-    // Materialize file for execution.
-    Path generatedDexFile = temp.getRoot().toPath().resolve("classes.jar");
-    app.writeToZip(generatedDexFile, OutputMode.DexIndexed);
-
-    // Run with ART.
-    String artOutput =
-        ToolHelper.runArtNoVerificationErrors(generatedDexFile.toString(), mainClass);
 
     // Compare with Java.
     ToolHelper.ProcessResult javaResult = ToolHelper.runJava(classpath, mainClass);
@@ -310,11 +251,21 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
       System.err.println(javaResult.stderr);
       fail("JVM failed for: " + mainClass);
     }
-    assertEquals("JVM and ART output differ", javaResult.stdout, artOutput);
 
-    if (inspector != null) {
-      inspector.inspectApp(app);
-    }
+    // Build with R8
+    return testForR8(Backend.DEX)
+        .addProgramFiles(classpath)
+        .addKeepMainRule(mainClass)
+        .allowAccessModification(allowAccessModification)
+        .allowDiagnosticWarningMessages()
+        .enableProguardTestOptions()
+        .noMinification()
+        .apply(configuration)
+        .compile()
+        .assertAllWarningMessagesMatch(
+            containsString("Resource 'META-INF/MANIFEST.MF' already exists."))
+        .run(mainClass)
+        .assertSuccessWithOutput(javaResult.stdout);
   }
 
   protected void checkClassExistsInInput(String className) {

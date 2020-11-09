@@ -14,8 +14,9 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
-public class NoAbstractClassesTest extends HorizontalClassMergingTestBase {
-  public NoAbstractClassesTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
+public class NoAbstractClassesWithNonAbstractClassesTest extends HorizontalClassMergingTestBase {
+  public NoAbstractClassesWithNonAbstractClassesTest(
+      TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
   }
 

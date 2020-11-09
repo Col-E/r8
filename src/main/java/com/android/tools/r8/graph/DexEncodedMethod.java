@@ -1216,7 +1216,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public DexEncodedMethod toRenamedHolderMethod(DexType newHolderType, DexItemFactory factory) {
     DexEncodedMethod.Builder builder = DexEncodedMethod.builder(this);
-    builder.setMethod(factory.createMethod(newHolderType, method.proto, method.name));
+    builder.setMethod(method.withHolder(newHolderType, factory));
     return builder.build();
   }
 

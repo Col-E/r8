@@ -6,21 +6,13 @@ package com.android.tools.r8.kotlin.lambda;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collection;
-import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class KotlinLambdaMergingWithReprocessingTest extends AbstractR8KotlinTestBase {
-  private Consumer<InternalOptions> optionsModifier =
-    o -> {
-      o.enableInlining = true;
-      o.enableClassInlining = true;
-      o.enableLambdaMerging = true;
-    };
 
   @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
   public static Collection<Object[]> data() {
@@ -35,6 +27,15 @@ public class KotlinLambdaMergingWithReprocessingTest extends AbstractR8KotlinTes
   @Test
   public void testMergingKStyleLambdasAndReprocessing() throws Exception {
     final String mainClassName = "reprocess_merged_lambdas_kstyle.MainKt";
-    runTest("reprocess_merged_lambdas_kstyle", mainClassName, optionsModifier, null);
+    runTest(
+        "reprocess_merged_lambdas_kstyle",
+        mainClassName,
+        testBuilder ->
+            testBuilder.addOptionsModification(
+                options -> {
+                  options.enableInlining = true;
+                  options.enableClassInlining = true;
+                  options.enableLambdaMerging = true;
+                }));
   }
 }

@@ -32,4 +32,9 @@ public class VerticallyMergedClassesInspector {
     }
     return this;
   }
+
+  public VerticallyMergedClassesInspector assertNoClassesMerged() {
+    assertTrue(verticallyMergedClasses.isEmpty());
+    return this;
+  }
 }

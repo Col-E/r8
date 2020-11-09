@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import static com.google.common.base.Predicates.not;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -22,7 +24,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
@@ -182,9 +183,12 @@ public class ClassMerger {
     toMergeGroup.forEach(clazz -> clazz.setStaticFields(null));
   }
 
-  void fixFinal() {
-    if (Iterables.any(toMergeGroup, Predicates.not(DexProgramClass::isFinal))) {
-      target.accessFlags.demoteFromFinal();
+  void fixAccessFlags() {
+    if (Iterables.any(toMergeGroup, not(DexProgramClass::isAbstract))) {
+      target.getAccessFlags().demoteFromAbstract();
+    }
+    if (Iterables.any(toMergeGroup, not(DexProgramClass::isFinal))) {
+      target.getAccessFlags().demoteFromFinal();
     }
   }
 
@@ -197,7 +201,7 @@ public class ClassMerger {
   }
 
   public void mergeGroup(SyntheticArgumentClass syntheticArgumentClass) {
-    fixFinal();
+    fixAccessFlags();
     appendClassIdField();
 
     mergeVirtualMethods();

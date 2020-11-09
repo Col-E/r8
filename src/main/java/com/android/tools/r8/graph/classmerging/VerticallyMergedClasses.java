@@ -40,6 +40,10 @@ public class VerticallyMergedClasses implements MergedClasses {
     return mergedClasses.containsKey(type);
   }
 
+  public boolean isEmpty() {
+    return mergedClasses.isEmpty();
+  }
+
   public boolean isTarget(DexType type) {
     return !getSourcesFor(type).isEmpty();
   }

@@ -270,8 +270,12 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
         holder, dexItemFactory.prependTypeToProto(type, proto), name);
   }
 
-  public DexMethod withHolder(DexType holder, DexItemFactory dexItemFactory) {
-    return dexItemFactory.createMethod(holder, proto, name);
+  public DexMethod withHolder(DexDefinition definition, DexItemFactory dexItemFactory) {
+    return withHolder(definition.getReference(), dexItemFactory);
+  }
+
+  public DexMethod withHolder(DexReference reference, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createMethod(reference.getContextType(), proto, name);
   }
 
   public DexMethod withName(DexString name, DexItemFactory dexItemFactory) {

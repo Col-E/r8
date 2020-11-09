@@ -12,6 +12,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.StringUtils;
@@ -54,7 +55,7 @@ public class IdenticalBlockSuffixSharingWithArrayTypesTest extends TestBase {
             new ClassTestParameter(InstancePutTestClass.class),
             new ClassTestParameter(InvokeTestClass.class),
             new ClassTestParameter(StaticPutTestClass.class)),
-        getTestParameters().withAllRuntimes().build());
+        getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public IdenticalBlockSuffixSharingWithArrayTypesTest(
@@ -70,7 +71,7 @@ public class IdenticalBlockSuffixSharingWithArrayTypesTest extends TestBase {
     String expectedOutput = StringUtils.lines("42");
     testForD8()
         .addInnerClasses(IdenticalBlockSuffixSharingWithArrayTypesTest.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyInstructionCount)
         .run(parameters.getRuntime(), clazz)
@@ -85,7 +86,8 @@ public class IdenticalBlockSuffixSharingWithArrayTypesTest extends TestBase {
         .addKeepMainRule(clazz)
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .enableNoHorizontalClassMergingAnnotations()
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyInstructionCount)
         .run(parameters.getRuntime(), clazz)
@@ -233,7 +235,9 @@ public class IdenticalBlockSuffixSharingWithArrayTypesTest extends TestBase {
 
   interface K extends I {}
 
+  @NoHorizontalClassMerging
   class A implements I {}
 
+  @NoHorizontalClassMerging
   class B implements I {}
 }

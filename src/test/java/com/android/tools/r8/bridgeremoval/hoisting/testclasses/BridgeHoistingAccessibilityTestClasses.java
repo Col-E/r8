@@ -5,12 +5,14 @@
 package com.android.tools.r8.bridgeremoval.hoisting.testclasses;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.bridgeremoval.hoisting.BridgeHoistingAccessibilityTest;
 import com.android.tools.r8.bridgeremoval.hoisting.BridgeHoistingAccessibilityTest.CWithRangedInvoke;
 
 public class BridgeHoistingAccessibilityTestClasses {
 
+  @NoHorizontalClassMerging
   @NoVerticalClassMerging
   public static class A {
 

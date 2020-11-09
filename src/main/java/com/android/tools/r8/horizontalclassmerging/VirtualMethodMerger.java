@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -20,17 +21,18 @@ import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
+import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
 
 public class VirtualMethodMerger {
   private final DexProgramClass target;
   private final DexItemFactory dexItemFactory;
-  private final Collection<ProgramMethod> methods;
+  private final List<ProgramMethod> methods;
   private final DexField classIdField;
   private final AppView<AppInfoWithLiveness> appView;
   private final DexMethod superMethod;
@@ -38,7 +40,7 @@ public class VirtualMethodMerger {
   public VirtualMethodMerger(
       AppView<AppInfoWithLiveness> appView,
       DexProgramClass target,
-      Collection<ProgramMethod> methods,
+      List<ProgramMethod> methods,
       DexField classIdField,
       DexMethod superMethod) {
     this.dexItemFactory = appView.dexItemFactory();
@@ -50,7 +52,7 @@ public class VirtualMethodMerger {
   }
 
   public static class Builder {
-    private final Collection<ProgramMethod> methods = new ArrayList<>();
+    private final List<ProgramMethod> methods = new ArrayList<>();
 
     public Builder add(ProgramMethod constructor) {
       methods.add(constructor);
@@ -122,49 +124,106 @@ public class VirtualMethodMerger {
 
   private MethodAccessFlags getAccessFlags() {
     // TODO(b/164998929): ensure this behaviour is correct, should probably calculate upper bound
-    MethodAccessFlags flags = methods.iterator().next().getDefinition().getAccessFlags().copy();
+    MethodAccessFlags flags = methods.iterator().next().getAccessFlags().copy();
+    if (flags.isAbstract()
+        && Iterables.any(methods, method -> !method.getAccessFlags().isAbstract())) {
+      flags.unsetAbstract();
+    }
     if (flags.isFinal() && Iterables.any(methods, method -> !method.getAccessFlags().isFinal())) {
       flags.unsetFinal();
     }
     return flags;
   }
 
+  private DexMethod getNewMethodReference() {
+    return ListUtils.first(methods).getReference().withHolder(target, dexItemFactory);
+  }
+
+  /**
+   * If there is a super method and all methods are abstract, then we can simply remove all abstract
+   * methods.
+   */
+  private boolean isNop() {
+    return superMethod != null
+        && Iterables.all(methods, method -> method.getDefinition().isAbstract());
+  }
+
+  /**
+   * If the method is present on all classes in the merge group, and there is at most one
+   * non-abstract method, then we can simply move that method (or the first abstract method) to the
+   * target class.
+   */
+  private boolean isTrivial() {
+    if (superMethod != null) {
+      return false;
+    }
+    if (methods.size() == 1) {
+      return true;
+    }
+    int numberOfNonAbstractMethods =
+        Iterables.size(Iterables.filter(methods, method -> !method.getDefinition().isAbstract()));
+    return numberOfNonAbstractMethods <= 1;
+  }
+
   /**
    * If there is only a single method that does not override anything then it is safe to just move
    * it to the target type if it is not already in it.
    */
-  public void mergeTrivial(
+  private void mergeTrivial(
       ClassMethodsBuilder classMethodsBuilder, HorizontalClassMergerGraphLens.Builder lensBuilder) {
-    DexEncodedMethod method = methods.iterator().next().getDefinition();
+    DexMethod newMethodReference = getNewMethodReference();
 
-    if (method.getHolderType() != target.type) {
-      // If the method is not in the target type, move it and record it in the lens.
-      DexMethod originalReference = method.getReference();
-      method = method.toRenamedHolderMethod(target.type, dexItemFactory);
-      lensBuilder.moveMethod(originalReference, method.getReference());
+    // Find the first non-abstract method. If all are abstract, then select the first method.
+    ProgramMethod representative =
+        Iterables.find(methods, method -> !method.getDefinition().isAbstract(), null);
+    if (representative == null) {
+      representative = ListUtils.first(methods);
     }
 
-    classMethodsBuilder.addVirtualMethod(method);
+    for (ProgramMethod method : methods) {
+      if (method.getReference() == representative.getReference()) {
+        lensBuilder.moveMethod(method.getReference(), newMethodReference);
+      } else {
+        lensBuilder.mapMethod(method.getReference(), newMethodReference);
+      }
+    }
+
+    if (representative.getHolderType() == target.getType()) {
+      classMethodsBuilder.addVirtualMethod(representative.getDefinition());
+    } else {
+      // If the method is not in the target type, move it.
+      classMethodsBuilder.addVirtualMethod(
+          representative.getDefinition().toTypeSubstitutedMethod(newMethodReference));
+    }
   }
 
   public void merge(
       ClassMethodsBuilder classMethodsBuilder,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
-      Reference2IntMap classIdentifiers) {
-
+      Reference2IntMap<DexType> classIdentifiers) {
     assert !methods.isEmpty();
 
+    // Handle nop merges.
+    if (isNop()) {
+      return;
+    }
+
     // Handle trivial merges.
-    if (superMethod == null && methods.size() == 1) {
+    if (isTrivial()) {
       mergeTrivial(classMethodsBuilder, lensBuilder);
       return;
     }
 
+
     Int2ReferenceSortedMap<DexMethod> classIdToMethodMap = new Int2ReferenceAVLTreeMap<>();
 
     CfVersion classFileVersion = null;
+    ProgramMethod representative = null;
     for (ProgramMethod method : methods) {
+      if (method.getDefinition().isAbstract()) {
+        continue;
+      }
       if (method.getDefinition().hasClassFileVersion()) {
         CfVersion methodVersion = method.getDefinition().getClassFileVersion();
         classFileVersion = CfVersion.maxAllowNull(classFileVersion, methodVersion);
@@ -173,12 +232,16 @@ public class VirtualMethodMerger {
       lensBuilder.mapMethod(newMethod, newMethod);
       lensBuilder.mapMethodInverse(method.getReference(), newMethod);
       classIdToMethodMap.put(classIdentifiers.getInt(method.getHolderType()), newMethod);
+      if (representative == null) {
+        representative = method;
+      }
     }
 
+    assert representative != null;
+
     // Use the first of the original methods as the original method for the merged constructor.
-    DexMethod templateReference = methods.iterator().next().getReference();
     DexMethod originalMethodReference =
-        appView.graphLens().getOriginalMethodSignature(templateReference);
+        appView.graphLens().getOriginalMethodSignature(representative.getReference());
     DexMethod bridgeMethodReference =
         dexItemFactory.createFreshMethodName(
             originalMethodReference.getName().toSourceString() + "$bridge",
@@ -187,8 +250,7 @@ public class VirtualMethodMerger {
             originalMethodReference.getHolderType(),
             classMethodsBuilder::isFresh);
 
-    DexMethod newMethodReference =
-        dexItemFactory.createMethod(target.type, templateReference.proto, templateReference.name);
+    DexMethod newMethodReference = getNewMethodReference();
     AbstractSynthesizedCode synthesizedCode =
         new VirtualMethodEntryPointSynthesizedCode(
             classIdToMethodMap,
@@ -207,9 +269,13 @@ public class VirtualMethodMerger {
             true,
             classFileVersion);
 
-    // Map each old method to the newly synthesized method in the graph lens.
+    // Map each old non-abstract method to the newly synthesized method in the graph lens.
     for (ProgramMethod oldMethod : methods) {
-      lensBuilder.moveMethod(oldMethod.getReference(), newMethodReference);
+      if (oldMethod.getDefinition().isAbstract()) {
+        lensBuilder.mapMethod(oldMethod.getReference(), newMethodReference);
+      } else {
+        lensBuilder.moveMethod(oldMethod.getReference(), newMethodReference);
+      }
     }
     lensBuilder.recordExtraOriginalSignature(bridgeMethodReference, newMethodReference);
 

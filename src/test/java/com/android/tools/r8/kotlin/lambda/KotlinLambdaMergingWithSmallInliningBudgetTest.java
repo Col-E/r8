@@ -6,22 +6,13 @@ package com.android.tools.r8.kotlin.lambda;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collection;
-import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class KotlinLambdaMergingWithSmallInliningBudgetTest extends AbstractR8KotlinTestBase {
-  private Consumer<InternalOptions> optionsModifier =
-      o -> {
-        o.enableInlining = true;
-        o.enableClassInlining = true;
-        o.enableLambdaMerging = true;
-        o.inliningInstructionAllowance = 3;
-      };
 
   @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
   public static Collection<Object[]> data() {
@@ -36,6 +27,11 @@ public class KotlinLambdaMergingWithSmallInliningBudgetTest extends AbstractR8Ko
   @Test
   public void testJStyleRunnable() throws Exception {
     final String mainClassName = "lambdas_jstyle_runnable.MainKt";
-    runTest("lambdas_jstyle_runnable", mainClassName, optionsModifier, null);
+    runTest(
+        "lambdas_jstyle_runnable",
+        mainClassName,
+        testBuilder ->
+            testBuilder.addOptionsModification(
+                options -> options.inliningInstructionAllowance = 3));
   }
 }

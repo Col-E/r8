@@ -72,6 +72,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
                 .transform())
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
