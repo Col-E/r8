@@ -306,6 +306,17 @@ APPS = [
     'folder': 'tachiyomi',
   }),
   App({
+    'id': 'com.keylesspalace.tusky',
+    'name': 'Tusky',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-blue-release.apk',
+    'url': 'https://github.com/tuskyapp/Tusky',
+    'revision': '814a9b8f9bacf8d26f712b06a0313a3534a2be95',
+    'folder': 'tusky',
+    # TODO(b/172856713): Fix compilation
+    'skip': True,
+  }),
+  App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
     'dump_app': 'dump_app.zip',
