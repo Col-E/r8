@@ -287,6 +287,15 @@ APPS = [
     'skip_recompilation': True,
   }),
   App({
+    'id': 'com.example.sqldelight.hockey',
+    'name': 'SQLDelight',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'android-release.apk',
+    'url': 'https://github.com/christofferqa/sqldelight',
+    'revision': '2e67a1126b6df05e4119d1e3a432fde51d76cdc8',
+    'folder': 'sqldelight',
+  }),
+  App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
     'dump_app': 'dump_app.zip',
