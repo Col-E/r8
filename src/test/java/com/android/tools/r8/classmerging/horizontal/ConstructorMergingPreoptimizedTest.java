@@ -34,7 +34,8 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
-        .addHorizontallyMergedClassesInspector(
+        .addHorizontallyMergedClassesInspectorIf(
+            enableHorizontalClassMerging,
             inspector ->
                 inspector.assertMerged(A.class, B.class).assertMergedIntoDifferentType(B.class))
         .enableInliningAnnotations()

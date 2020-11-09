@@ -152,8 +152,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   /** All types that *must* never be inlined due to a configuration directive (testing only). */
   private final Set<DexType> neverClassInline;
 
-  private final Set<DexType> noVerticalClassMerging;
+  private final Set<DexType> noClassMerging;
   private final Set<DexType> noHorizontalClassMerging;
+  private final Set<DexType> noVerticalClassMerging;
   private final Set<DexType> noStaticClassMerging;
 
   /**
@@ -218,6 +219,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> neverReprocess,
       PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverClassInline,
+      Set<DexType> noClassMerging,
       Set<DexType> noVerticalClassMerging,
       Set<DexType> noHorizontalClassMerging,
       Set<DexType> noStaticClassMerging,
@@ -256,6 +258,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.neverReprocess = neverReprocess;
     this.alwaysClassInline = alwaysClassInline;
     this.neverClassInline = neverClassInline;
+    this.noClassMerging = noClassMerging;
     this.noVerticalClassMerging = noVerticalClassMerging;
     this.noHorizontalClassMerging = noHorizontalClassMerging;
     this.noStaticClassMerging = noStaticClassMerging;
@@ -302,6 +305,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.neverReprocess,
         previous.alwaysClassInline,
         previous.neverClassInline,
+        previous.noClassMerging,
         previous.noVerticalClassMerging,
         previous.noHorizontalClassMerging,
         previous.noStaticClassMerging,
@@ -352,6 +356,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.neverReprocess,
         previous.alwaysClassInline,
         previous.neverClassInline,
+        previous.noClassMerging,
         previous.noVerticalClassMerging,
         previous.noHorizontalClassMerging,
         previous.noStaticClassMerging,
@@ -439,6 +444,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.neverReprocess = previous.neverReprocess;
     this.alwaysClassInline = previous.alwaysClassInline;
     this.neverClassInline = previous.neverClassInline;
+    this.noClassMerging = previous.noClassMerging;
     this.noVerticalClassMerging = previous.noVerticalClassMerging;
     this.noHorizontalClassMerging = previous.noHorizontalClassMerging;
     this.noStaticClassMerging = previous.noStaticClassMerging;
@@ -996,6 +1002,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteMethods(neverReprocess),
         alwaysClassInline.rewriteItems(lens::lookupType),
         lens.rewriteTypes(neverClassInline),
+        lens.rewriteTypes(noClassMerging),
         lens.rewriteTypes(noVerticalClassMerging),
         lens.rewriteTypes(noHorizontalClassMerging),
         lens.rewriteTypes(noStaticClassMerging),
@@ -1366,20 +1373,14 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         .shouldBreak();
   }
 
-  /**
-   * Predicate on types that *must* never be merged vertically due to a configuration directive
-   * (testing only).
-   */
-  public boolean isNoVerticalClassMergingOfType(DexType type) {
-    return noVerticalClassMerging.contains(type);
+  /** Predicate on types that *must* never be merged horizontally. */
+  public boolean isNoHorizontalClassMergingOfType(DexType type) {
+    return noClassMerging.contains(type) || noHorizontalClassMerging.contains(type);
   }
 
-  /**
-   * All types that *must* never be merged horizontally due to a configuration directive (testing
-   * only).
-   */
-  public Set<DexType> getNoHorizontalClassMergingSet() {
-    return noHorizontalClassMerging;
+  /** Predicate on types that *must* never be merged vertically. */
+  public boolean isNoVerticalClassMergingOfType(DexType type) {
+    return noClassMerging.contains(type) || noVerticalClassMerging.contains(type);
   }
 
   /**

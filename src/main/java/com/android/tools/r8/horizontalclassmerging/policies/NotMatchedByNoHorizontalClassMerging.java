@@ -15,19 +15,19 @@ import java.util.Set;
 
 public class NotMatchedByNoHorizontalClassMerging extends SingleClassPolicy {
 
+  private final AppView<AppInfoWithLiveness> appView;
   private final Set<DexType> deadEnumLiteMaps;
-  private final Set<DexType> neverMergeClassHorizontally;
 
   public NotMatchedByNoHorizontalClassMerging(AppView<AppInfoWithLiveness> appView) {
-    deadEnumLiteMaps =
+    this.appView = appView;
+    this.deadEnumLiteMaps =
         appView.withProtoEnumShrinker(
             EnumLiteProtoShrinker::getDeadEnumLiteMaps, Collections.emptySet());
-    neverMergeClassHorizontally = appView.appInfo().getNoHorizontalClassMergingSet();
   }
 
   @Override
   public boolean canMerge(DexProgramClass program) {
     return !deadEnumLiteMaps.contains(program.getType())
-        && !neverMergeClassHorizontally.contains(program.getType());
+        && !appView.appInfo().isNoHorizontalClassMergingOfType(program.getType());
   }
 }

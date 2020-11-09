@@ -1713,7 +1713,7 @@ public class VerticalClassMerger {
     return AbortReason.UNSAFE_INLINING;
   }
 
-  private class SingleTypeMapperGraphLens extends NonIdentityGraphLens {
+  public class SingleTypeMapperGraphLens extends NonIdentityGraphLens {
 
     private final DexType source;
     private final DexProgramClass target;

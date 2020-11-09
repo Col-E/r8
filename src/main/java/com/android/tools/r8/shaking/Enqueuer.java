@@ -271,6 +271,8 @@ public class Enqueuer {
   /** Set of types that was pruned during the first round of tree shaking. */
   private Set<DexType> initialPrunedTypes;
 
+  private final Set<DexType> noClassMerging = Sets.newIdentityHashSet();
+
   /** Mapping from each unused interface to the set of live types that implements the interface. */
   private final Map<DexProgramClass, Set<DexProgramClass>> unusedInterfaceTypes =
       new IdentityHashMap<>();
@@ -1354,6 +1356,7 @@ public class Enqueuer {
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference);
     if (resolutionResult.isFailedOrUnknownResolution()) {
+      noClassMerging.add(fieldReference.getHolderType());
       return;
     }
 
@@ -1404,6 +1407,7 @@ public class Enqueuer {
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference);
     if (resolutionResult.isFailedOrUnknownResolution()) {
+      noClassMerging.add(fieldReference.getHolderType());
       return;
     }
 
@@ -1454,6 +1458,7 @@ public class Enqueuer {
     if (resolutionResult.isFailedOrUnknownResolution()) {
       // Must mark the field as targeted even if it does not exist.
       markFieldAsTargeted(fieldReference, currentMethod);
+      noClassMerging.add(fieldReference.getHolderType());
       return;
     }
 
@@ -1512,6 +1517,7 @@ public class Enqueuer {
     if (resolutionResult.isFailedOrUnknownResolution()) {
       // Must mark the field as targeted even if it does not exist.
       markFieldAsTargeted(fieldReference, currentMethod);
+      noClassMerging.add(fieldReference.getHolderType());
       return;
     }
 
@@ -3261,6 +3267,7 @@ public class Enqueuer {
             rootSet.neverReprocess,
             rootSet.alwaysClassInline,
             rootSet.neverClassInline,
+            noClassMerging,
             rootSet.noVerticalClassMerging,
             rootSet.noHorizontalClassMerging,
             rootSet.noStaticClassMerging,

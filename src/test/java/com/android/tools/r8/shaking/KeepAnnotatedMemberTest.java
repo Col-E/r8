@@ -228,7 +228,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .compile()
             .graphInspector();
     assertRetainedClassesEqual(
-        referenceInspector, ifThenKeepClassesWithMembersInspector, false, true);
+        referenceInspector, ifThenKeepClassesWithMembersInspector, false, false);
 
     GraphInspector ifHasMemberThenKeepClassInspector =
         testForR8(Backend.CF)
@@ -248,7 +248,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .compile()
             .graphInspector();
     // TODO(b/159418523): Should the reference be equal to the result with the conditional rule?
-    assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector, true, false);
+    assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector, true, true);
   }
 
   private void assertRetainedClassesEqual(

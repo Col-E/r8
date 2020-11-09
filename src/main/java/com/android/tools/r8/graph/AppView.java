@@ -437,6 +437,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public MergedClassesCollection allMergedClasses() {
     MergedClassesCollection collection = new MergedClassesCollection();
+    if (horizontallyMergedClasses != null) {
+      collection.add(horizontallyMergedClasses);
+    }
     if (horizontallyMergedLambdaClasses != null) {
       collection.add(horizontallyMergedLambdaClasses);
     }

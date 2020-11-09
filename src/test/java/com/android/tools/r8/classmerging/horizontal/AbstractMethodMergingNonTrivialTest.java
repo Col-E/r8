@@ -24,8 +24,8 @@ public class AbstractMethodMergingNonTrivialTest extends HorizontalClassMergingT
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
-        .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertMergedInto(B.class, A.class))
+        .addHorizontallyMergedClassesInspectorIf(
+            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()

@@ -30,6 +30,7 @@ public class ChromeProtoRewritingTest extends ChromeCompilationBase {
 
   public ChromeProtoRewritingTest(TestParameters parameters) {
     super(200430, false);
+    parameters.assertNoneRuntime();
   }
 
   @Test
