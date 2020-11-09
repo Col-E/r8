@@ -276,6 +276,17 @@ APPS = [
     'folder': 'simple-file-manager',
   }),
   App({
+    'id': 'com.simplemobiletools.gallery.pro',
+    'name': 'Simple-Gallery',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'gallery-326-foss-release.apk',
+    'url': 'https://github.com/SimpleMobileTools/Simple-Gallery',
+    'revision': '564e56b20d33b28d0018c8087ec705beeb60785e',
+    'folder': 'simple-gallery',
+    # TODO(b/172818477): Cannot recompile.
+    'skip_recompilation': True,
+  }),
+  App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
     'dump_app': 'dump_app.zip',
