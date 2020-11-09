@@ -192,6 +192,18 @@ APPS = [
     'revision': '9eac6e98aebeaf0ae40bdcd85f16dd2886551138',
     'folder': 'muzei',
   }),
+  # TODO(b/172806281): Monkey runner does not work.
+  App({
+    'id': 'org.schabi.newpipe',
+    'name': 'NewPipe',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release-unsigned.apk',
+    'url': 'https://github.com/TeamNewPipe/NewPipe',
+    'revision': 'f4435f90313281beece70c544032f784418d85fa',
+    'folder': 'newpipe',
+    # TODO(b/172805505): Recompilation fails
+    'skip_recompilation': True,
+  }),
   App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
@@ -202,6 +214,7 @@ APPS = [
     'folder': 'wikipedia',
   }),
 ]
+
 
 def remove_print_lines(file):
   with open(file) as f:
