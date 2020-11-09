@@ -40,6 +40,11 @@ def parse_arguments():
       '--stacktrace',
       help='Path to stacktrace file.',
       default=None)
+  parser.add_argument(
+      '--quiet',
+      default=None,
+      action='store_true',
+      help='Disables diagnostics printing to stdout.')
   return parser.parse_args()
 
 
@@ -67,9 +72,10 @@ def main():
       hash_or_version,
       args.stacktrace,
       args.commit_hash is not None,
-      args.no_r8lib)
+      args.no_r8lib,
+      quiet=args.quiet)
 
-def run(map_path, hash_or_version, stacktrace, is_hash, no_r8lib):
+def run(map_path, hash_or_version, stacktrace, is_hash, no_r8lib, quiet=False):
   if hash_or_version:
     download_path = archive.GetUploadDestination(
         hash_or_version,
@@ -93,7 +99,7 @@ def run(map_path, hash_or_version, stacktrace, is_hash, no_r8lib):
   if stacktrace:
     retrace_args.append(stacktrace)
 
-  utils.PrintCmd(retrace_args)
+  utils.PrintCmd(retrace_args, quiet=quiet)
   return subprocess.call(retrace_args)
 
 

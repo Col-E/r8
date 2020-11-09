@@ -1875,10 +1875,11 @@ task configureTestForR8Lib(type: Copy) {
 }
 
 def printStackTrace(TestResult result) {
+    filterStackTraces(result)
     if (project.hasProperty('r8lib') || project.hasProperty('r8lib_no_deps')) {
         def out = new StringBuffer()
         def err = new StringBuffer()
-        def command = "python tools/retrace.py"
+        def command = "python tools/retrace.py --quiet"
         def header = "RETRACED STACKTRACE";
         if (System.getenv('BUILDBOT_BUILDERNAME') != null
                 && !System.getenv('BUILDBOT_BUILDERNAME').endsWith("_release")) {
@@ -1893,16 +1894,46 @@ def printStackTrace(TestResult result) {
         result.exception.printStackTrace(processIn)
         processIn.flush()
         processIn.close()
-        if (process.waitFor() != 0) {
+        def errorDuringRetracing = process.waitFor() != 0
+        if (errorDuringRetracing) {
             out.append("ERROR DURING RETRACING\n")
             out.append(err.toString())
         }
-        out.append("\n\n--------------------------------------\n")
-        out.append("OBFUSCATED STACKTRACE\n")
-        out.append("--------------------------------------\n")
-        result.exceptions.add(0, new Exception(out.toString()))
+        if (project.hasProperty('print_obfuscated_stacktraces') || errorDuringRetracing) {
+            out.append("\n\n--------------------------------------\n")
+            out.append("OBFUSCATED STACKTRACE\n")
+            out.append("--------------------------------------\n")
+        } else {
+          result.exceptions.clear()
+        }
+        def exception = new Exception(out.toString())
+        exception.setStackTrace([] as StackTraceElement[])
+        result.exceptions.add(0, exception)
     } else {
         result.exception.printStackTrace()
+    }
+}
+
+def filterStackTraces(TestResult result) {
+    for (Throwable throwable : result.getExceptions()) {
+        filterStackTrace(throwable)
+    }
+}
+
+def filterStackTrace(Throwable exception) {
+    if (!project.hasProperty('print_full_stacktraces')) {
+        def elements = []
+        def skipped = []
+        for (StackTraceElement element : exception.getStackTrace()) {
+            if (element.toString().contains("com.android.tools.r8")) {
+                elements.addAll(skipped)
+                elements.add(element)
+                skipped.clear()
+            } else {
+                skipped.add(element)
+            }
+        }
+        exception.setStackTrace(elements as StackTraceElement[])
     }
 }
 

@@ -149,6 +149,13 @@ def ParseOptions():
           ' and empty (for no runtimes).')
   result.add_option('--print-hanging-stacks', '--print_hanging_stacks',
       default=-1, type="int", help='Print hanging stacks after timeout in seconds')
+  result.add_option('--print-full-stacktraces', '--print_full_stacktraces',
+      default=False, action='store_true',
+      help='Print the full stacktraces without any filtering applied')
+  result.add_option(
+      '--print-obfuscated-stacktraces', '--print_obfuscated_stacktraces',
+      default=False, action='store_true',
+      help='Print the obfuscated stacktraces')
   return result.parse_args()
 
 def archive_failures():
@@ -202,6 +209,10 @@ def Main():
     gradle_args.append('-Pdisable_assertions')
   if options.with_code_coverage:
     gradle_args.append('-Pwith_code_coverage')
+  if options.print_full_stacktraces:
+    gradle_args.append('-Pprint_full_stacktraces')
+  if options.print_obfuscated_stacktraces:
+    gradle_args.append('-Pprint_obfuscated_stacktraces')
   if os.name == 'nt':
     # temporary hack
     gradle_args.append('-Pno_internal')
