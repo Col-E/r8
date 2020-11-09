@@ -234,6 +234,19 @@ APPS = [
     'folder': 'santa-tracker',
   }),
   App({
+    'id': 'org.thoughtcrime.securesms',
+    'name': 'Signal',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'Signal-Android-play-prod-universal-release-4.76.2.apk',
+    # TODO(b/172812839): Instrumentation test fails.
+    'id_test': 'org.thoughtcrime.securesms.test',
+    'dump_test': 'dump_test.zip',
+    'apk_test': 'Signal-Android-play-prod-release-androidTest.apk',
+    'url': 'https://github.com/signalapp/Signal-Android',
+    'revision': '91ca19f294362ccee2c2b43c247eba228e2b30a1',
+    'folder': 'signal-android',
+  }),
+  App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
     'dump_app': 'dump_app.zip',
