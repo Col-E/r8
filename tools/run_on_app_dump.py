@@ -40,6 +40,7 @@ class App(object):
       'name': None,
       'dump_app': None,
       'apk_app': None,
+      'dump_test': None,
       'apk_test': None,
       'skip': False,
       'url': None,  # url is not used but nice to have for updating apps
@@ -172,6 +173,15 @@ APPS = [
     'url': 'https://github.com/christofferqa/materialistic.git',
     'revision': '2b2b2ee25ce9e672d5aab1dc90a354af1522b1d9',
     'folder': 'materialistic',
+  }),
+  App({
+    'id': 'com.avjindersinghsekhon.minimaltodo',
+    'name': 'MinimalTodo',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release.apk',
+    'url': 'https://github.com/christofferqa/Minimal-Todo',
+    'revision': '9d8c73746762cd376b718858ec1e8783ca07ba7c',
+    'folder': 'minimal-todo',
   }),
   App({
     'id': 'org.wikipedia',
@@ -335,7 +345,8 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
         app.id, options.emulator_id, app_apk_destination, options.monkey_events,
         options.quiet, is_logging_enabled_for(app, options)) else 'failed'
 
-    if result.get('build_status') == 'success' and options.run_tests:
+    if (result.get('build_status') == 'success'
+        and options.run_tests and app.dump_test):
       if not os.path.isfile(app_apk_destination):
         apk_masseur.masseur(
           original_app_apk, dex=app_jar, resources='META-INF/services/*',
