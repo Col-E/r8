@@ -204,6 +204,16 @@ APPS = [
     # TODO(b/172805505): Recompilation fails
     'skip_recompilation': True,
   }),
+  # TODO(b/172806808): Monkey runner does not work.
+  App({
+    'id': 'io.rover.app.debug',
+    'name': 'Rover',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'example-app-release-unsigned.apk',
+    'url': 'https://github.com/RoverPlatform/rover-android',
+    'revision': '94342117097770ea3ca2c6df6ab496a1a55c3ce7',
+    'folder': 'rover-android',
+  }),
   App({
     'id': 'org.wikipedia',
     'name': 'Wikipedia',
