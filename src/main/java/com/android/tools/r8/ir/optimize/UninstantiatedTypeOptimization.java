@@ -305,7 +305,7 @@ public class UninstantiatedTypeOptimization {
   private RewrittenPrototypeDescription getPrototypeChanges(
       DexEncodedMethod encodedMethod, Strategy strategy) {
     if (ArgumentRemovalUtils.isPinned(encodedMethod, appView)
-        || appView.appInfo().keepConstantArguments.contains(encodedMethod.method)) {
+        || appView.appInfo().isKeepConstantArgumentsMethod(encodedMethod.method)) {
       return RewrittenPrototypeDescription.none();
     }
     return RewrittenPrototypeDescription.createForUninstantiatedTypes(

@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -28,6 +29,7 @@ import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -122,20 +124,17 @@ public class PostMethodProcessor extends MethodProcessor {
     PostMethodProcessor build(
         AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
         throws ExecutionException {
-      if (!appView.appInfo().reprocess.isEmpty()) {
+      Set<DexMethod> reprocessMethods = appView.appInfo().getReprocessMethods();
+      if (!reprocessMethods.isEmpty()) {
         ProgramMethodSet set = ProgramMethodSet.create();
-        appView
-            .appInfo()
-            .reprocess
-            .forEach(
-                reference -> {
-                  DexProgramClass clazz =
-                      asProgramClassOrNull(appView.definitionForHolder(reference));
-                  DexEncodedMethod definition = reference.lookupOnClass(clazz);
-                  if (definition != null) {
-                    set.createAndAdd(clazz, definition);
-                  }
-                });
+        reprocessMethods.forEach(
+            reference -> {
+              DexProgramClass clazz = asProgramClassOrNull(appView.definitionForHolder(reference));
+              DexEncodedMethod definition = reference.lookupOnClass(clazz);
+              if (definition != null) {
+                set.createAndAdd(clazz, definition);
+              }
+            });
         put(set);
       }
       if (methodsToReprocess.isEmpty()) {

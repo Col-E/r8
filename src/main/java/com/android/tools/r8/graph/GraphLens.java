@@ -544,15 +544,6 @@ public abstract class GraphLens {
     return builder.build();
   }
 
-  public ImmutableSortedSet<DexMethod> rewriteMethodsSorted(Set<DexMethod> methods) {
-    ImmutableSortedSet.Builder<DexMethod> builder =
-        new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
-    for (DexMethod method : methods) {
-      builder.add(getRenamedMethodSignature(method));
-    }
-    return builder.build();
-  }
-
   public <T> ImmutableMap<DexField, T> rewriteFieldKeys(Map<DexField, T> map) {
     ImmutableMap.Builder<DexField, T> builder = ImmutableMap.builder();
     map.forEach((field, value) -> builder.put(getRenamedFieldSignature(field), value));

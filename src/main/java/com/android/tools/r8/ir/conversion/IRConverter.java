@@ -1206,7 +1206,7 @@ public class IRConverter {
     assert !method.isProcessed() || !isDebugMode;
     assert !method.isProcessed()
         || !appView.enableWholeProgramOptimizations()
-        || !appView.appInfo().withLiveness().neverReprocess.contains(method.method);
+        || !appView.appInfo().withLiveness().isNeverReprocessMethod(method.method);
 
     if (lambdaMerger != null) {
       timing.begin("Merge lambdas");

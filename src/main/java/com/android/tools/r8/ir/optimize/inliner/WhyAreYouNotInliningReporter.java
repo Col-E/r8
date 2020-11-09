@@ -19,7 +19,7 @@ public abstract class WhyAreYouNotInliningReporter {
 
   public static WhyAreYouNotInliningReporter createFor(
       ProgramMethod callee, AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
-    if (appView.appInfo().whyAreYouNotInlining.contains(callee.getReference())) {
+    if (appView.appInfo().isWhyAreYouNotInliningMethod(callee.getReference())) {
       return new WhyAreYouNotInliningReporterImpl(
           callee, context, appView.options().testing.whyAreYouNotInliningConsumer);
     }
@@ -28,7 +28,7 @@ public abstract class WhyAreYouNotInliningReporter {
 
   public static void handleInvokeWithUnknownTarget(
       InvokeMethod invoke, AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
-    if (appView.appInfo().whyAreYouNotInlining.isEmpty()) {
+    if (appView.appInfo().hasNoWhyAreYouNotInliningMethods()) {
       return;
     }
 

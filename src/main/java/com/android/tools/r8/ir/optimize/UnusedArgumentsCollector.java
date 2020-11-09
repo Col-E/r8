@@ -284,7 +284,7 @@ public class UnusedArgumentsCollector {
   private ArgumentInfoCollection collectUnusedArguments(
       DexEncodedMethod method, MemberPool<DexMethod> methodPool) {
     if (ArgumentRemovalUtils.isPinned(method, appView)
-        || appView.appInfo().keepUnusedArguments.contains(method.method)) {
+        || appView.appInfo().isKeepUnusedArgumentsMethod(method.method)) {
       return null;
     }
     // Only process classfile code objects.
