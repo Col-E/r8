@@ -230,7 +230,7 @@ public class MemberRebindingAnalysis {
             DexEncodedMethod target = pair.getSecond();
             DexMethod bridgeMethod =
                 method.withHolder(bridgeHolder.getType(), appView.dexItemFactory());
-            if (bridgeHolder.getMethodCollection().getMethod(bridgeMethod) != null) {
+            if (bridgeHolder.getMethodCollection().getMethod(bridgeMethod) == null) {
               DexEncodedMethod bridgeMethodDefinition =
                   target.toForwardingMethod(bridgeHolder, appView);
               bridgeHolder.addMethod(bridgeMethodDefinition);
