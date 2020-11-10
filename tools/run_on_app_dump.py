@@ -245,6 +245,8 @@ APPS = [
     'url': 'https://github.com/signalapp/Signal-Android',
     'revision': '91ca19f294362ccee2c2b43c247eba228e2b30a1',
     'folder': 'signal-android',
+    # TODO(b/172905243): Fix recompilation
+    'skip_recompilation': True,
   }),
   # TODO(b/172815827): Monkey runner does not work
   App({
@@ -304,6 +306,8 @@ APPS = [
     'url': 'https://github.com/inorichi/tachiyomi',
     'revision': '8aa6486bf76ab9a61a5494bee284b1a5e9180bf3',
     'folder': 'tachiyomi',
+    # TODO(b/172905243): Fix recompilation
+    'skip_recompilation': True,
   }),
   # TODO(b/172862042): Monkey runner does not work.
   App({
