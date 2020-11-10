@@ -126,7 +126,7 @@ def main(argv):
       has_seen_open_branch = True
       has_seen_local_branch = has_seen_local_branch or (status == 'None')
 
-      if options.upload:
+      if options.upload and status != 'closed':
         if has_seen_local_branch:
           print(
               'Cannot upload branch %s since it comes after a local branch'
