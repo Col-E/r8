@@ -275,14 +275,16 @@ public abstract class BaseCommand {
      * @see #addMainDexListFiles(Path...)
      */
     public B addMainDexListFiles(Collection<Path> files) {
-      guard(() -> {
-        try {
-          app.addMainDexListFiles(files);
-        } catch (NoSuchFileException e) {
-          reporter.error(new StringDiagnostic(
-              "Main-dex-ist file does not exist", new PathOrigin(Paths.get(e.getFile()))));
-        }
-      });
+      guard(
+          () -> {
+            try {
+              app.addMainDexListFiles(files);
+            } catch (NoSuchFileException e) {
+              reporter.error(
+                  new StringDiagnostic(
+                      "Main-dex-list file does not exist", new PathOrigin(Paths.get(e.getFile()))));
+            }
+          });
       return self();
     }
 

@@ -67,7 +67,7 @@ public class AndroidAppDumpsTest extends TestBase {
             .build();
 
     Path dumpFile = temp.newFolder().toPath().resolve("dump.zip");
-    appIn.dump(dumpFile, options);
+    appIn.dump(dumpFile, options.dumpOptions, options.reporter, options.dexItemFactory());
 
     AndroidApp appOut = AndroidApp.builder(options.reporter).addDump(dumpFile).build();
     assertEquals(1, appOut.getClassProgramResourcesForTesting().size());

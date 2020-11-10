@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.InternalOptions.DETERMINISTIC_DEBUGGING
 
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
@@ -42,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -98,6 +100,7 @@ public final class R8Command extends BaseCompilerCommand {
     private boolean disableMinification = false;
     private boolean disableVerticalClassMerging = false;
     private boolean forceProguardCompatibility = false;
+    private Optional<Boolean> includeDataResources = Optional.empty();
     private StringConsumer proguardMapConsumer = null;
     private StringConsumer proguardUsageConsumer = null;
     private StringConsumer proguardSeedsConsumer = null;
@@ -368,6 +371,7 @@ public final class R8Command extends BaseCompilerCommand {
      */
     @Override
     public Builder setOutput(Path outputPath, OutputMode outputMode, boolean includeDataResources) {
+      this.includeDataResources = Optional.of(includeDataResources);
       return super.setOutput(outputPath, outputMode, includeDataResources);
     }
 
@@ -578,6 +582,7 @@ public final class R8Command extends BaseCompilerCommand {
               configuration.isObfuscating(),
               disableVerticalClassMerging,
               forceProguardCompatibility,
+              includeDataResources,
               proguardMapConsumer,
               proguardUsageConsumer,
               proguardSeedsConsumer,
@@ -667,6 +672,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final boolean enableMinification;
   private final boolean disableVerticalClassMerging;
   private final boolean forceProguardCompatibility;
+  private final Optional<Boolean> includeDataResources;
   private final StringConsumer proguardMapConsumer;
   private final StringConsumer proguardUsageConsumer;
   private final StringConsumer proguardSeedsConsumer;
@@ -741,6 +747,7 @@ public final class R8Command extends BaseCompilerCommand {
       boolean enableMinification,
       boolean disableVerticalClassMerging,
       boolean forceProguardCompatibility,
+      Optional<Boolean> includeDataResources,
       StringConsumer proguardMapConsumer,
       StringConsumer proguardUsageConsumer,
       StringConsumer proguardSeedsConsumer,
@@ -781,6 +788,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.enableMinification = enableMinification;
     this.disableVerticalClassMerging = disableVerticalClassMerging;
     this.forceProguardCompatibility = forceProguardCompatibility;
+    this.includeDataResources = includeDataResources;
     this.proguardMapConsumer = proguardMapConsumer;
     this.proguardUsageConsumer = proguardUsageConsumer;
     this.proguardSeedsConsumer = proguardSeedsConsumer;
@@ -803,6 +811,7 @@ public final class R8Command extends BaseCompilerCommand {
     enableMinification = false;
     disableVerticalClassMerging = false;
     forceProguardCompatibility = false;
+    includeDataResources = null;
     proguardMapConsumer = null;
     proguardUsageConsumer = null;
     proguardSeedsConsumer = null;
@@ -974,6 +983,7 @@ public final class R8Command extends BaseCompilerCommand {
       internal.dumpInputToDirectory = null;
       internal.dumpInputToFile = null;
     }
+    internal.dumpOptions = dumpOptions();
 
     return internal;
   }
@@ -1001,5 +1011,19 @@ public final class R8Command extends BaseCompilerCommand {
       super.accept(string, handler);
       System.out.print(string);
     }
+  }
+
+  private DumpOptions dumpOptions() {
+    DumpOptions.Builder builder = DumpOptions.builder(Tool.R8);
+    dumpBaseCommandOptions(builder);
+    return builder
+        .setIncludeDataResources(includeDataResources)
+        .setTreeShaking(getEnableTreeShaking())
+        .setMinification(getEnableMinification())
+        .setForceProguardCompatibility(forceProguardCompatibility)
+        .setFeatureSplitConfiguration(featureSplitConfiguration)
+        .setProguardConfiguration(proguardConfiguration)
+        .setDesugaredLibraryConfiguration(libraryConfiguration)
+        .build();
   }
 }

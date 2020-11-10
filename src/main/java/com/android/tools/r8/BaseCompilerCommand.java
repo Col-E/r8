@@ -109,6 +109,15 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return minApiLevel;
   }
 
+  void dumpBaseCommandOptions(DumpOptions.Builder builder) {
+    builder
+        .setCompilationMode(getMode())
+        .setMinApi(getMinApiLevel())
+        .setOptimizeMultidexForLinearAlloc(isOptimizeMultidexForLinearAlloc())
+        .setThreadCount(getThreadCount())
+        .setDesugarState(getDesugarState());
+  }
+
   /**
    * Get the program consumer that will receive the compilation output.
    *

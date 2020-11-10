@@ -11,6 +11,7 @@ import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.DumpOptions;
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
@@ -334,6 +335,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   // Boolean value indicating that byte code pass through may be enabled.
   public boolean enableCfByteCodePassThrough = false;
+
+  // Contain the contents of the build properties file from the compiler command.
+  public DumpOptions dumpOptions;
 
   // Hidden marker for classes.dex
   private boolean hasMarker = false;

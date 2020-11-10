@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.InternalOptions.DETERMINISTIC_DEBUGGING
 
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
@@ -196,6 +197,7 @@ public final class L8Command extends BaseCompilerCommand {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
       internal.threadCount = getThreadCount();
     }
+    internal.dumpOptions = dumpOptions();
 
     return internal;
   }
@@ -382,5 +384,11 @@ public final class L8Command extends BaseCompilerCommand {
 
     @Override
     public void finished(DiagnosticsHandler handler) {}
+  }
+
+  private DumpOptions dumpOptions() {
+    DumpOptions.Builder builder = DumpOptions.builder(Tool.L8);
+    dumpBaseCommandOptions(builder);
+    return builder.setDesugaredLibraryConfiguration(libraryConfiguration).build();
   }
 }

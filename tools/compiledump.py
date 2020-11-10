@@ -132,6 +132,14 @@ class Dump(object):
   def desugared_library_json(self):
     return self.if_exists('desugared-library.json')
 
+  def proguard_input_map(self):
+    if self.if_exists('proguard_input.config'):
+      print "Unimplemented: proguard_input configuration."
+
+  def main_dex_resource(self):
+    if self.if_exists('main-dex-list.txt'):
+      print "Unimplemented: main-dex-list."
+
   def build_properties_file(self):
     return self.if_exists('build.properties')
 

@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -39,8 +40,14 @@ public class ClassToFeatureSplitMap {
 
   public static ClassToFeatureSplitMap createInitialClassToFeatureSplitMap(
       InternalOptions options) {
-    DexItemFactory dexItemFactory = options.dexItemFactory();
-    FeatureSplitConfiguration featureSplitConfiguration = options.featureSplitConfiguration;
+    return createInitialClassToFeatureSplitMap(
+        options.dexItemFactory(), options.featureSplitConfiguration, options.reporter);
+  }
+
+  public static ClassToFeatureSplitMap createInitialClassToFeatureSplitMap(
+      DexItemFactory dexItemFactory,
+      FeatureSplitConfiguration featureSplitConfiguration,
+      Reporter reporter) {
 
     ClassToFeatureSplitMap result = new ClassToFeatureSplitMap();
     if (featureSplitConfiguration == null) {
@@ -58,7 +65,7 @@ public class ClassToFeatureSplitMap {
             }
           }
         } catch (ResourceException e) {
-          throw options.reporter.fatalError(e.getMessage());
+          throw reporter.fatalError(e.getMessage());
         }
       }
     }

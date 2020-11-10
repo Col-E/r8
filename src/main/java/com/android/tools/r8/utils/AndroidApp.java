@@ -20,6 +20,7 @@ import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DirectoryClassFileProvider;
+import com.android.tools.r8.DumpOptions;
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ProgramResource;
@@ -81,13 +82,16 @@ import org.objectweb.asm.ClassVisitor;
  */
 public class AndroidApp {
 
+  // TODO(b/172887664): Move to DumpOptions and capitalize.
   private static final String dumpVersionFileName = "r8-version";
   private static final String dumpBuildPropertiesFileName = "build.properties";
   private static final String dumpDesugaredLibraryFileName = "desugared-library.json";
+  private static final String dumpMainDexListResourceFileName = "main-dex-list.txt";
   private static final String dumpProgramFileName = "program.jar";
   private static final String dumpClasspathFileName = "classpath.jar";
   private static final String dumpLibraryFileName = "library.jar";
   private static final String dumpConfigFileName = "proguard.config";
+  private static final String dumpInputConfigFileName = "proguard_input.config";
 
   private static Map<FeatureSplit, String> dumpFeatureSplitFileNames(
       FeatureSplitConfiguration featureSplitConfiguration) {
@@ -454,7 +458,7 @@ public class AndroidApp {
     return programResourcesMainDescriptor.get(resource);
   }
 
-  public void dump(Path output, InternalOptions options) {
+  public void dump(Path output, DumpOptions options, Reporter reporter, DexItemFactory factory) {
     int nextDexIndex = 0;
     OpenOption[] openOptions =
         new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
@@ -462,48 +466,58 @@ public class AndroidApp {
       writeToZipStream(
           out, dumpVersionFileName, Version.getVersionString().getBytes(), ZipEntry.DEFLATED);
       writeToZipStream(
-          out,
-          dumpBuildPropertiesFileName,
-          getBuildPropertiesContents(options).getBytes(),
-          ZipEntry.DEFLATED);
-      if (options.desugaredLibraryConfiguration.getJsonSource() != null) {
+          out, dumpBuildPropertiesFileName, options.dumpOptions().getBytes(), ZipEntry.DEFLATED);
+      if (options.getDesugaredLibraryJsonSource() != null) {
         writeToZipStream(
             out,
             dumpDesugaredLibraryFileName,
-            options.desugaredLibraryConfiguration.getJsonSource().getBytes(),
+            options.getDesugaredLibraryJsonSource().getBytes(),
             ZipEntry.DEFLATED);
-        if (options.dumpInputToFile != null) {
-          options.reporter.warning(
+        if (options.dumpInputToFile()) {
+          reporter.warning(
               "Dumping a compilation with desugared library on a file may prevent reproduction,"
                   + " use dumpInputToDirectory property instead.");
         }
       }
-      if (options.getProguardConfiguration() != null) {
-        String proguardConfig = options.getProguardConfiguration().getParsedConfiguration();
+      if (options.getParsedProguardConfiguration() != null) {
+        String proguardConfig = options.getParsedProguardConfiguration();
         writeToZipStream(out, dumpConfigFileName, proguardConfig.getBytes(), ZipEntry.DEFLATED);
+      }
+      if (proguardMapInputData != null) {
+        reporter.warning(
+            "Dumping proguard map input data may have side effects due to I/O on Paths.");
+        writeToZipStream(
+            out,
+            dumpInputConfigFileName,
+            proguardMapInputData.getString().getBytes(),
+            ZipEntry.DEFLATED);
+      }
+      if (hasMainDexList()) {
+        List<String> mainDexList = new ArrayList<>();
+        if (hasMainDexListResources()) {
+          reporter.warning(
+              "Dumping main dex list resources may have side effects due to I/O on Paths.");
+          for (StringResource mainDexListResource : getMainDexListResources()) {
+            mainDexList.add(mainDexListResource.getString());
+          }
+        }
+        mainDexList.addAll(getMainDexClasses());
+        String join = StringUtils.join(mainDexList, "\n");
+        writeToZipStream(out, dumpMainDexListResourceFileName, join.getBytes(), ZipEntry.DEFLATED);
       }
       nextDexIndex =
           dumpProgramResources(
               dumpProgramFileName,
-              dumpFeatureSplitFileNames(options.featureSplitConfiguration),
+              options.getFeatureSplitConfiguration(),
               nextDexIndex,
               out,
-              options);
+              reporter,
+              factory);
       nextDexIndex = dumpClasspathResources(nextDexIndex, out);
       nextDexIndex = dumpLibraryResources(nextDexIndex, out);
     } catch (IOException | ResourceException e) {
-      throw options.reporter.fatalError(new ExceptionDiagnostic(e));
+      throw reporter.fatalError(new ExceptionDiagnostic(e));
     }
-  }
-
-  private String getBuildPropertiesContents(InternalOptions options) {
-    return String.join(
-        "\n",
-        ImmutableList.of(
-            "mode=" + (options.debug ? "debug" : "release"),
-            "min-api=" + options.minApiLevel,
-            "tree-shaking=" + options.isTreeShakingEnabled(),
-            "minification=" + options.isMinificationEnabled()));
   }
 
   private int dumpLibraryResources(int nextDexIndex, ZipOutputStream out)
@@ -547,19 +561,22 @@ public class AndroidApp {
 
   private int dumpProgramResources(
       String archiveName,
-      Map<FeatureSplit, String> featureSplitArchiveNames,
+      FeatureSplitConfiguration featureSplitConfiguration,
       int nextDexIndex,
       ZipOutputStream out,
-      InternalOptions options)
+      Reporter reporter,
+      DexItemFactory dexItemFactory)
       throws IOException, ResourceException {
+
+    Map<FeatureSplit, String> featureSplitArchiveNames =
+        dumpFeatureSplitFileNames(featureSplitConfiguration);
     Map<FeatureSplit, ByteArrayOutputStream> featureSplitArchiveByteStreams =
         new IdentityHashMap<>();
     Map<FeatureSplit, ZipOutputStream> featureSplitArchiveOutputStreams = new IdentityHashMap<>();
     try {
-      DexItemFactory dexItemFactory = options.dexItemFactory();
-      FeatureSplitConfiguration featureSplitConfiguration = options.featureSplitConfiguration;
       ClassToFeatureSplitMap classToFeatureSplitMap =
-          ClassToFeatureSplitMap.createInitialClassToFeatureSplitMap(options);
+          ClassToFeatureSplitMap.createInitialClassToFeatureSplitMap(
+              dexItemFactory, featureSplitConfiguration, reporter);
       if (featureSplitConfiguration != null) {
         for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
           ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream();

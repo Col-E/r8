@@ -184,7 +184,7 @@ public class ApplicationReader {
     }
     if (dumpOutput != null) {
       timing.begin("ApplicationReader.dump");
-      dumpInputToFile(inputApp, dumpOutput, options);
+      inputApp.dump(dumpOutput, options.dumpOptions, options.reporter, options.dexItemFactory());
       if (cleanDump) {
         Files.delete(dumpOutput);
       }
@@ -228,10 +228,6 @@ public class ApplicationReader {
                     + "` as referenced in main-dex-list."));
       }
     }
-  }
-
-  private static void dumpInputToFile(AndroidApp app, Path output, InternalOptions options) {
-    app.dump(output, options);
   }
 
   private static boolean verifyMainDexOptionsCompatible(
