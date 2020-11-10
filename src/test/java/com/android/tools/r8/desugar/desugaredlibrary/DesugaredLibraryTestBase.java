@@ -67,7 +67,7 @@ public class DesugaredLibraryTestBase extends TestBase {
   }
 
   protected boolean requiresEmulatedInterfaceCoreLibDesugaring(TestParameters parameters) {
-    return parameters.getApiLevel().getLevel() < apiLevelWithDefaultInterfaceMethodsSupport();
+    return parameters.getApiLevel().isLessThan(apiLevelWithDefaultInterfaceMethodsSupport());
   }
 
   protected boolean requiresAnyCoreLibDesugaring(TestParameters parameters) {
