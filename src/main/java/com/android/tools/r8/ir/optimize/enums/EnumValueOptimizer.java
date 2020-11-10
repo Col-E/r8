@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
@@ -186,22 +185,6 @@ public class EnumValueOptimizer {
                 nameValue.getDexString(),
                 ThrowingInfo.defaultForConstString(appView.options())));
         newValue.addAffectedValuesTo(affectedValues);
-      } else if (current.isArrayLength()) {
-        // Rewrites MyEnum.values().length to a constant int.
-        Instruction arrayDefinition = current.asArrayLength().array().getAliasedValue().definition;
-        if (arrayDefinition != null && arrayDefinition.isInvokeStatic()) {
-          DexMethod invokedMethod = arrayDefinition.asInvokeStatic().getInvokedMethod();
-          DexProgramClass enumClass = appView.definitionForProgramType(invokedMethod.holder);
-          if (enumClass != null
-              && enumClass.isEnum()
-              && factory.enumMembers.isValuesMethod(invokedMethod, enumClass)) {
-            EnumValueInfoMap enumValueInfoMap =
-                appView.appInfo().withLiveness().getEnumValueInfoMap(invokedMethod.holder);
-            if (enumValueInfoMap != null) {
-              iterator.replaceCurrentInstructionWithConstInt(code, enumValueInfoMap.size());
-            }
-          }
-        }
       }
     }
     if (!affectedValues.isEmpty()) {
