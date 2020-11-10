@@ -4,9 +4,14 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.fail;
+import static org.hamcrest.CoreMatchers.containsString;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -93,9 +98,34 @@ public class IteratorTest extends DesugaredLibraryTestBase {
         canUseDefaultAndStaticInterfaceMethods ? 1 : 2,
         info.getMethodNames().stream().filter(name -> name.equals("forEachRemaining")).count());
 
+    AndroidApiLevel apiLevelNotRequiringDesugaring = AndroidApiLevel.N;
+    if (parameters.getApiLevel().isLessThan(apiLevelNotRequiringDesugaring)) {
+      try {
+        // Use D8 to desugar with Java classfile output.
+        testForD8(Backend.CF)
+            .setMinApi(parameters.getApiLevel())
+            .addProgramFiles(firstJar)
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), new AbsentKeepRuleConsumer())
+            .compileWithExpectedDiagnostics(
+                diagnostics ->
+                    diagnostics.assertErrorsMatch(
+                        diagnosticMessage(
+                            containsString(
+                                "Code has already been library desugared. "
+                                    + "Interface Lj$/util/Iterator; is already implemented"))));
+        fail("Expected failure");
+      } catch (CompilationFailedException e) {
+        // Expected.
+      }
+    }
+
     // Use D8 to desugar with Java classfile output.
     Path secondJar =
         testForD8(Backend.CF)
+            .addOptionsModification(
+                options ->
+                    options.desugarSpecificOptions().allowDesugaredInput =
+                        parameters.getApiLevel().isLessThan(apiLevelNotRequiringDesugaring))
             .setMinApi(parameters.getApiLevel())
             .addProgramFiles(firstJar)
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), new AbsentKeepRuleConsumer())
@@ -108,9 +138,8 @@ public class IteratorTest extends DesugaredLibraryTestBase {
     assertEquals(
         MyIterator.class.getTypeName(),
         DescriptorUtils.getJavaTypeFromBinaryName(info.getClassBinaryName()));
-    // TODO(b/171867367): This should only be 1.
     assertEquals(
-        canUseDefaultAndStaticInterfaceMethods ? 0 : 2,
+        canUseDefaultAndStaticInterfaceMethods ? 0 : 1,
         info.getInterfaces().stream().filter(name -> name.equals("j$/util/Iterator")).count());
     // TODO(b/171867367): This should only be 2.
     assertEquals(

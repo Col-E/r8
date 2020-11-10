@@ -1176,6 +1176,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // b/172508621
     public boolean sortMethodsOnCfOutput =
         System.getProperty("com.android.tools.r8.sortMethodsOnCfWriting") != null;
+    public boolean allowDesugaredInput =
+        System.getProperty("com.android.tools.r8.allowDesugaredInput") != null;
   }
 
   public static class CallSiteOptimizationOptions {

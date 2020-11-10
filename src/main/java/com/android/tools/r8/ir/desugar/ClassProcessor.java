@@ -429,6 +429,26 @@ final class ClassProcessor {
       extraInterfaceSignatures.add(
           new GenericSignature.ClassTypeSignature(rewriter.getEmulatedInterface(extraInterface)));
     }
+    // The emulated interface might already be implemented if the input class has gone through
+    // library desugaring already.
+    clazz
+        .getInterfaces()
+        .forEach(
+            iface -> {
+              for (int i = 0; i < extraInterfaceSignatures.size(); i++) {
+                if (extraInterfaceSignatures.get(i).type() == iface) {
+                  if (!appView.options().desugarSpecificOptions().allowDesugaredInput) {
+                    throw new CompilationError(
+                        "Code has already been library desugared. Interface "
+                            + iface.getDescriptor()
+                            + " is already implemented by "
+                            + clazz.getType().getDescriptor());
+                  }
+                  extraInterfaceSignatures.remove(i);
+                  break;
+                }
+              }
+            });
     clazz.asProgramClass().addExtraInterfaces(extraInterfaceSignatures);
   }
 
