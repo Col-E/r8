@@ -9,6 +9,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.transformers.MethodTransformer;
 import java.io.IOException;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,6 +30,8 @@ public class EnumInvalidValuesLengthTest extends TestBase {
 
   @Test
   public void testValuesLength() throws Exception {
+    Assume.assumeTrue(
+        "TODO(b/172903562): Breaks on dex due to enum unboxing", parameters.isCfRuntime());
     testForR8(parameters.getBackend())
         .addKeepMainRule(EnumInvalidValuesLengthTest.Main.class)
         .addProgramClasses(EnumInvalidValuesLengthTest.Main.class)
