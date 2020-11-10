@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
@@ -192,8 +193,14 @@ public class VirtualMethodMerger {
       classMethodsBuilder.addVirtualMethod(representative.getDefinition());
     } else {
       // If the method is not in the target type, move it.
+      OptionalBool isLibraryMethodOverride =
+          representative.getDefinition().isLibraryMethodOverride();
       classMethodsBuilder.addVirtualMethod(
-          representative.getDefinition().toTypeSubstitutedMethod(newMethodReference));
+          representative
+              .getDefinition()
+              .toTypeSubstitutedMethod(
+                  newMethodReference,
+                  builder -> builder.setIsLibraryMethodOverrideIfKnown(isLibraryMethodOverride)));
     }
   }
 
@@ -268,6 +275,9 @@ public class VirtualMethodMerger {
             synthesizedCode,
             true,
             classFileVersion);
+    if (!representative.getDefinition().isLibraryMethodOverride().isUnknown()) {
+      newMethod.setLibraryMethodOverride(representative.getDefinition().isLibraryMethodOverride());
+    }
 
     // Map each old non-abstract method to the newly synthesized method in the graph lens.
     for (ProgramMethod oldMethod : methods) {

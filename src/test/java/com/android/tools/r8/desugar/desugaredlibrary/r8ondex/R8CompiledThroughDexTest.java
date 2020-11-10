@@ -29,6 +29,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
 
+  private static final boolean testExternal = true;
+
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
@@ -69,34 +71,41 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
     File ouputFolder = temp.newFolder("output");
 
     // Compile R8 to dex on the JVM.
-    Path ouputThroughCf = ouputFolder.toPath().resolve("outThroughCf.zip").toAbsolutePath();
-    ProcessResult javaProcessResult =
-        ToolHelper.runJava(
-            TestRuntime.getCheckedInJdk9(),
-            Collections.singletonList(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR),
-            "-Xmx512m",
-            R8.class.getTypeName(),
-            "--release",
-            "--min-api",
-            Integer.toString(parameters.getApiLevel().getLevel()),
-            "--output",
-            ouputThroughCf.toString(),
-            "--lib",
-            ToolHelper.JAVA_8_RUNTIME,
-            "--pg-conf",
-            R8_KEEP,
-            ToolHelper.R8_WITH_RELOCATED_DEPS_JAR.toAbsolutePath().toString());
-    if (javaProcessResult.exitCode != 0) {
-      System.out.println(javaProcessResult);
+    Path outputThroughCf = ouputFolder.toPath().resolve("outThroughCf.zip").toAbsolutePath();
+    if (testExternal) {
+      ProcessResult javaProcessResult =
+          ToolHelper.runJava(
+              TestRuntime.getCheckedInJdk9(),
+              Collections.singletonList(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR),
+              "-Xmx512m",
+              R8.class.getTypeName(),
+              "--release",
+              "--min-api",
+              Integer.toString(parameters.getApiLevel().getLevel()),
+              "--output",
+              outputThroughCf.toString(),
+              "--lib",
+              ToolHelper.JAVA_8_RUNTIME,
+              "--pg-conf",
+              R8_KEEP,
+              ToolHelper.R8_WITH_RELOCATED_DEPS_JAR.toAbsolutePath().toString());
+      assertEquals(javaProcessResult.toString(), 0, javaProcessResult.exitCode);
+    } else {
+      testForR8(parameters.getBackend())
+          .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+          .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+          .addKeepRuleFiles(Paths.get(R8_KEEP))
+          .setMinApi(parameters.getApiLevel())
+          .compile()
+          .writeToZip(outputThroughCf);
     }
-    assertEquals(0, javaProcessResult.exitCode);
 
     // Compile R8 to Dex on Dex, using the previous dex artifact.
     // We need the extra parameter --64 to use 64 bits frameworks.
     Path ouputThroughDex = ouputFolder.toPath().resolve("outThroughDex.zip").toAbsolutePath();
     ProcessResult artProcessResult =
         ToolHelper.runArtRaw(
-            Collections.singletonList(ouputThroughCf.toAbsolutePath().toString()),
+            Collections.singletonList(outputThroughCf.toAbsolutePath().toString()),
             R8.class.getTypeName(),
             (ToolHelper.ArtCommandBuilder builder) ->
                 builder.appendArtOption("--64").appendArtOption("-Xmx512m"),
@@ -118,6 +127,6 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
     assertEquals(0, artProcessResult.exitCode);
 
     // Ensure both generated artifacts are equal.
-    assertTrue(BootstrapCurrentEqualityTest.filesAreEqual(ouputThroughCf, ouputThroughDex));
+    assertTrue(BootstrapCurrentEqualityTest.filesAreEqual(outputThroughCf, ouputThroughDex));
   }
 }

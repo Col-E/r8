@@ -1547,6 +1547,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
 
+    public Builder setIsLibraryMethodOverrideIfKnown(OptionalBool isLibraryMethodOverride) {
+      return setIsLibraryMethodOverrideIf(
+          !isLibraryMethodOverride.isUnknown(), isLibraryMethodOverride);
+    }
+
     public Builder setParameterAnnotations(ParameterAnnotationsList parameterAnnotations) {
       this.parameterAnnotations = parameterAnnotations;
       return this;
