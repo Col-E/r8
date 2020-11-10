@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -38,6 +39,7 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
+import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.google.common.collect.Sets;
@@ -100,7 +102,8 @@ public class EnumValueOptimizer {
           continue;
         }
 
-        AbstractValue abstractValue = definition.getOptimizationInfo().getAbstractValue();
+        FieldOptimizationInfo optimizationInfo = definition.getOptimizationInfo();
+        AbstractValue abstractValue = optimizationInfo.getAbstractValue();
         if (!abstractValue.isSingleFieldValue()) {
           continue;
         }
@@ -158,15 +161,18 @@ public class EnumValueOptimizer {
           continue;
         }
 
-        EnumValueInfo valueInfo = appView.appInfo().withLiveness().getEnumValueInfo(field);
-        if (valueInfo == null) {
+        // Since the value is a single field value, the type should be exact.
+        assert abstractValue.isSingleFieldValue();
+        ClassTypeElement enumFieldType = optimizationInfo.getExactClassType(appView);
+        if (enumFieldType == null) {
+          assert false : "Expected to have an exact dynamic type for enum instance";
           continue;
         }
 
         DexEncodedMethod singleTarget =
             appView
                 .appInfo()
-                .resolveMethodOnClass(factory.objectMembers.toString, valueInfo.type)
+                .resolveMethodOnClass(factory.objectMembers.toString, enumFieldType.getClassType())
                 .getSingleTarget();
         if (singleTarget != null && singleTarget.method != factory.enumMembers.toString) {
           continue;
