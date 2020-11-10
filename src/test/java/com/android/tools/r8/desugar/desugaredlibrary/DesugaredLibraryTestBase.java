@@ -67,7 +67,7 @@ public class DesugaredLibraryTestBase extends TestBase {
   }
 
   protected boolean requiresEmulatedInterfaceCoreLibDesugaring(TestParameters parameters) {
-    return parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel();
+    return parameters.getApiLevel().getLevel() < apiLevelWithDefaultInterfaceMethodsSupport();
   }
 
   protected boolean requiresAnyCoreLibDesugaring(TestParameters parameters) {
@@ -264,6 +264,7 @@ public class DesugaredLibraryTestBase extends TestBase {
   protected static ClassFileInfo extractClassFileInfo(byte[] classFileBytes) {
     class ClassFileInfoExtractor extends ClassVisitor {
       private String classBinaryName;
+      private List<String> interfaces = new ArrayList<>();
       private final List<String> methodNames = new ArrayList<>();
 
       private ClassFileInfoExtractor() {
@@ -279,6 +280,7 @@ public class DesugaredLibraryTestBase extends TestBase {
           String superName,
           String[] interfaces) {
         classBinaryName = name;
+        this.interfaces.addAll(Arrays.asList(interfaces));
         super.visit(version, access, name, signature, superName, interfaces);
       }
 
@@ -290,7 +292,7 @@ public class DesugaredLibraryTestBase extends TestBase {
       }
 
       ClassFileInfo getClassFileInfo() {
-        return new ClassFileInfo(classBinaryName, methodNames);
+        return new ClassFileInfo(classBinaryName, interfaces, methodNames);
       }
     }
 
@@ -357,15 +359,21 @@ public class DesugaredLibraryTestBase extends TestBase {
 
   protected static class ClassFileInfo {
     private final String classBinaryName;
+    private List<String> interfaces;
     private final List<String> methodNames;
 
-    ClassFileInfo(String classBinaryNamename, List<String> methodNames) {
+    ClassFileInfo(String classBinaryNamename, List<String> interfaces, List<String> methodNames) {
       this.classBinaryName = classBinaryNamename;
+      this.interfaces = interfaces;
       this.methodNames = methodNames;
     }
 
     public String getClassBinaryName() {
       return classBinaryName;
+    }
+
+    public List<String> getInterfaces() {
+      return interfaces;
     }
 
     public List<String> getMethodNames() {
