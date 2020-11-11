@@ -370,7 +370,7 @@ def is_minified_r8(shrinker):
 
 
 def is_full_r8(shrinker):
-  return '-full' not in shrinker
+  return '-full' in shrinker
 
 
 def compute_size_of_dex_files_in_package(path):
