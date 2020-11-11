@@ -56,7 +56,7 @@ public class RepackagingTreeFixer {
     }
     appBuilder.replaceProgramClasses(new ArrayList<>(newProgramClasses.values()));
     RepackagingLens lens = lensBuilder.build(appView);
-    new AnnotationFixer(lens).run(appView.appInfo().classes());
+    new AnnotationFixer(lens).run(newProgramClasses.values());
     return lens;
   }
 

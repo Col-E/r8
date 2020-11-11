@@ -18,6 +18,8 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class RepackageAnnotationTest extends RepackageTestBase {
 
+  private final String EXPECTED = "Hello World";
+
   public RepackageAnnotationTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
     super(flattenPackageHierarchyOrRepackageClasses, parameters);
@@ -28,7 +30,7 @@ public class RepackageAnnotationTest extends RepackageTestBase {
     testForRuntime(parameters)
         .addProgramClasses(Main.class, Annotation.class, A.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello World");
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
@@ -46,8 +48,7 @@ public class RepackageAnnotationTest extends RepackageTestBase {
             "}")
         .apply(this::configureRepackaging)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/173004917): Should be Hello World.
-        .assertSuccessWithOutputLines("null");
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class Main {
