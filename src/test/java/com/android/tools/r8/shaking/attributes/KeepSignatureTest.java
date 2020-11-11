@@ -56,7 +56,8 @@ public class KeepSignatureTest extends TestBase {
 
   @Test
   public void testKeptClassFieldAndMethodFull() throws Exception {
-    runTest(testForR8(parameters.getBackend()), false);
+    // TODO(b/172999267): The below should be true
+    runTest(testForR8(parameters.getBackend()), true);
   }
 
   @Test
