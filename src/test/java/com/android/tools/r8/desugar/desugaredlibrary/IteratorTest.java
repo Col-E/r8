@@ -184,6 +184,7 @@ public class IteratorTest extends DesugaredLibraryTestBase {
     int index;
     E[] items;
 
+    @SafeVarargs
     public MyIterator(E... items) {
       this.items = items;
     }
