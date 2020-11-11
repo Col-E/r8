@@ -609,7 +609,7 @@ public class DexParser {
       // compareTo instead of slowCompareTo. That would require us to assign indices during
       // reading. Those indices should be cleared after reading to make sure that we resort
       // everything correctly at the end.
-      while (index < annotations.length && annotations[index].item.slowCompareTo(item) < 0) {
+      while (index < annotations.length && annotations[index].item.compareTo(item) < 0) {
         index++;
       }
       if (index >= annotations.length || !annotations[index].item.equals(item)) {

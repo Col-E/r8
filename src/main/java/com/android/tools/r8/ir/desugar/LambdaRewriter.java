@@ -111,7 +111,7 @@ public class LambdaRewriter {
       throws ExecutionException {
     SortedProgramMethodSet nonDexAccessibilityBridges = SortedProgramMethodSet.create();
     List<LambdaClass> sortedLambdaClasses = new ArrayList<>(lambdaClasses);
-    sortedLambdaClasses.sort((x, y) -> x.type.slowCompareTo(y.type));
+    sortedLambdaClasses.sort((x, y) -> x.type.compareTo(y.type));
     for (LambdaClass lambdaClass : sortedLambdaClasses) {
       // This call may cause originalMethodSignatures to be updated.
       ProgramMethod accessibilityBridge = lambdaClass.target.ensureAccessibilityIfNeeded(true);

@@ -7,7 +7,6 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,8 +34,7 @@ public class NoOverlappingConstructors extends MultiClassPolicy {
 
   private Set<DexProgramClass> sortedClassSet(Collection<DexProgramClass> classes) {
     Set<DexProgramClass> set =
-        new TreeSet<DexProgramClass>(
-            Comparator.comparing(DexProgramClass::getType, DexType::slowCompareTo));
+        new TreeSet<DexProgramClass>(Comparator.comparing(DexProgramClass::getType));
     set.addAll(classes);
     return set;
   }

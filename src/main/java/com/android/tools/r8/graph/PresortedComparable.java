@@ -7,9 +7,5 @@ import com.android.tools.r8.naming.NamingLens;
 
 public interface PresortedComparable<T> extends Comparable<T> {
 
-  default int slowCompareTo(T other) {
-    return compareTo(other);
-  }
-
   int slowCompareTo(T other, NamingLens namingLens);
 }

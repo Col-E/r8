@@ -62,7 +62,7 @@ public class CfInvoke extends CfInstruction {
   public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
     CfInvoke otherInvoke = other.asInvoke();
     int itfDiff = Boolean.compare(itf, otherInvoke.itf);
-    return itfDiff != 0 ? itfDiff : method.slowCompareTo(otherInvoke.method);
+    return itfDiff != 0 ? itfDiff : method.compareTo(otherInvoke.method);
   }
 
   public DexMethod getMethod() {

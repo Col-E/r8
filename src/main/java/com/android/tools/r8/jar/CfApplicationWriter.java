@@ -228,8 +228,7 @@ public class CfApplicationWriter {
     }
     if (options.desugarSpecificOptions().sortMethodsOnCfOutput) {
       SortedSet<ProgramMethod> programMethodSortedSet =
-          Sets.newTreeSet(
-              (a, b) -> a.getDefinition().method.slowCompareTo(b.getDefinition().method));
+          Sets.newTreeSet((a, b) -> a.getDefinition().method.compareTo(b.getDefinition().method));
       clazz.forEachProgramMethod(programMethodSortedSet::add);
       programMethodSortedSet.forEach(
           method -> writeMethod(method, version, rewriter, writer, defaults));

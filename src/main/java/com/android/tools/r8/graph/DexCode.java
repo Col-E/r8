@@ -430,7 +430,7 @@ public class DexCode extends Code implements Comparable<DexCode> {
 
   private void updateHighestSortingString(DexString candidate) {
     assert candidate != null;
-    if (highestSortingString == null || highestSortingString.slowCompareTo(candidate) < 0) {
+    if (highestSortingString == null || highestSortingString.compareTo(candidate) < 0) {
       highestSortingString = candidate;
     }
   }
@@ -621,7 +621,7 @@ public class DexCode extends Code implements Comparable<DexCode> {
           return 0;
         }
         return Comparator.comparingInt((TypeAddrPair p) -> p.addr)
-            .thenComparing(p -> p.type, DexType::slowCompareTo)
+            .thenComparing(p -> p.type)
             .compare(this, other);
       }
     }

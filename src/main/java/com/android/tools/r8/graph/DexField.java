@@ -149,7 +149,7 @@ public class DexField extends DexMember<DexEncodedField, DexField>
     if (result != 0) {
       return result;
     }
-    result = namingLens.lookupName(this).slowCompareTo(namingLens.lookupName(other));
+    result = namingLens.lookupName(this).compareTo(namingLens.lookupName(other));
     if (result != 0) {
       return result;
     }

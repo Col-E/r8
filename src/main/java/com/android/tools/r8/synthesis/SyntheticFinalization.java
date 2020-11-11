@@ -184,7 +184,7 @@ public class SyntheticFinalization {
       // Use a tree set to make sure that we have an ordering on the types.
       // These types are put in an array in annotations in the output and we
       // need a consistent ordering on them.
-      TreeSet<DexType> synthesized = new TreeSet<>(DexType::slowCompareTo);
+      TreeSet<DexType> synthesized = new TreeSet<>(DexType::compareTo);
       entry.getValue().stream()
           .map(dexProgramClass -> dexProgramClass.type)
           .forEach(synthesized::add);

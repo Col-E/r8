@@ -56,8 +56,8 @@ public class CfFieldInstruction extends CfInstruction {
 
   @Override
   public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return Comparator.comparing(CfFieldInstruction::getField, DexField::slowCompareTo)
-        .thenComparing(field -> field.declaringField, DexField::slowCompareTo)
+    return Comparator.comparing(CfFieldInstruction::getField)
+        .thenComparing(field -> field.declaringField)
         .compare(this, (CfFieldInstruction) other);
   }
 

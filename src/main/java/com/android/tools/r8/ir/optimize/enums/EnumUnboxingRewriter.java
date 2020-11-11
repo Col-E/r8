@@ -584,7 +584,7 @@ public class EnumUnboxingRewriter {
     }
     // We make the order deterministic.
     for (List<T> value : encodedMembersMap.values()) {
-      value.sort((m1, m2) -> m1.getReference().slowCompareTo(m2.getReference()));
+      value.sort((m1, m2) -> m1.getReference().compareTo(m2.getReference()));
     }
     return encodedMembersMap;
   }

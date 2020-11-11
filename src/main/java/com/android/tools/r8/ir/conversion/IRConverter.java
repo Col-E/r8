@@ -1769,7 +1769,7 @@ public class IRConverter {
     DexString highestSortingReferencedString = method.getCode().asDexCode().highestSortingString;
     if (highestSortingReferencedString != null) {
       if (highestSortingString == null
-          || highestSortingReferencedString.slowCompareTo(highestSortingString) > 0) {
+          || highestSortingReferencedString.compareTo(highestSortingString) > 0) {
         highestSortingString = highestSortingReferencedString;
       }
     }

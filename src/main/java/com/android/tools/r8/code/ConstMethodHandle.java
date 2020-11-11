@@ -52,7 +52,7 @@ public class ConstMethodHandle extends Format21c<DexMethodHandle> {
 
   @Override
   int internalCompareBBBB(Format21c<?> other) {
-    return BBBB.slowCompareTo((DexMethodHandle) other.BBBB);
+    return BBBB.compareTo((DexMethodHandle) other.BBBB);
   }
 
   @Override

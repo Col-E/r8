@@ -308,7 +308,7 @@ public class LineNumberOptimizer {
 
       // Then process the methods, ordered by renamed name.
       List<DexString> renamedMethodNames = new ArrayList<>(methodsByRenamedName.keySet());
-      renamedMethodNames.sort(DexString::slowCompareTo);
+      renamedMethodNames.sort(DexString::compareTo);
       for (DexString methodName : renamedMethodNames) {
         List<DexEncodedMethod> methods = methodsByRenamedName.get(methodName);
         if (methods.size() > 1) {

@@ -33,9 +33,9 @@ public class DebugLocalInfo implements Comparable<DebugLocalInfo> {
 
   @Override
   public int compareTo(DebugLocalInfo other) {
-    return Comparator.comparing((DebugLocalInfo info) -> info.name, DexString::slowCompareTo)
-        .thenComparing(info -> info.type, DexType::slowCompareTo)
-        .thenComparing(info -> info.signature, Comparator.nullsFirst(DexString::slowCompareTo))
+    return Comparator.comparing((DebugLocalInfo info) -> info.name)
+        .thenComparing(info -> info.type)
+        .thenComparing(info -> info.signature, Comparator.nullsFirst(DexString::compareTo))
         .compare(this, other);
   }
 

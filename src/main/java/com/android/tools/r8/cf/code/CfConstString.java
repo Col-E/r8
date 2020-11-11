@@ -36,7 +36,7 @@ public class CfConstString extends CfInstruction {
 
   @Override
   public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return string.slowCompareTo(other.asConstString().string);
+    return string.compareTo(other.asConstString().string);
   }
 
   public DexString getString() {

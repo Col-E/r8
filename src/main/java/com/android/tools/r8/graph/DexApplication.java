@@ -109,7 +109,7 @@ public abstract class DexApplication {
     // that.
     if (options.testing.deterministicSortingBasedOnDexType) {
       // To keep the order deterministic, we sort the classes by their type, which is a unique key.
-      classes.sort((a, b) -> a.type.slowCompareTo(b.type));
+      classes.sort((a, b) -> a.type.compareTo(b.type));
     }
     return classes;
   }

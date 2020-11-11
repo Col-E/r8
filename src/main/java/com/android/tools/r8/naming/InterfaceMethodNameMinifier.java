@@ -264,7 +264,7 @@ class InterfaceMethodNameMinifier {
       // reservation, we have to prioritize that over the others, otherwise we just propose the
       // first ordered reserved name since we do not allow overwriting the name.
       List<DexEncodedMethod> sortedMethods = Lists.newArrayList(methodStates.keySet());
-      sortedMethods.sort((x, y) -> x.getReference().slowCompareTo(y.getReference()));
+      sortedMethods.sort((x, y) -> x.getReference().compareTo(y.getReference()));
       DexString reservedName = null;
       for (DexEncodedMethod method : sortedMethods) {
         for (InterfaceReservationState state : methodStates.get(method)) {

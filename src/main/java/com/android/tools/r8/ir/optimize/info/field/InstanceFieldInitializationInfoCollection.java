@@ -43,8 +43,7 @@ public abstract class InstanceFieldInitializationInfoCollection {
 
   public static class Builder {
 
-    TreeMap<DexField, InstanceFieldInitializationInfo> infos =
-        new TreeMap<>(DexField::slowCompareTo);
+    TreeMap<DexField, InstanceFieldInitializationInfo> infos = new TreeMap<>(DexField::compareTo);
 
     public void recordInitializationInfo(
         DexEncodedField field, InstanceFieldInitializationInfo info) {

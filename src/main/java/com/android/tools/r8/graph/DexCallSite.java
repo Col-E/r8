@@ -158,7 +158,7 @@ public final class DexCallSite extends IndexedDexItem implements Comparable<DexC
   @Override
   public int compareTo(DexCallSite other) {
     assert method != null && other.method != null;
-    int methodCompare = method.slowCompareTo(other.method);
+    int methodCompare = method.compareTo(other.method);
     if (methodCompare != 0) {
       return methodCompare;
     }

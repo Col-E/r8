@@ -49,7 +49,7 @@ public class CfInitClass extends CfInstruction {
 
   @Override
   public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return clazz.slowCompareTo(((CfInitClass) other).clazz);
+    return clazz.compareTo(((CfInitClass) other).clazz);
   }
 
   @Override

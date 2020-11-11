@@ -203,9 +203,7 @@ public class CallGraph {
 
     @Override
     public int compareTo(Node other) {
-      return getProgramMethod()
-          .getReference()
-          .slowCompareTo(other.getProgramMethod().getReference());
+      return getProgramMethod().getReference().compareTo(other.getProgramMethod().getReference());
     }
 
     @Override

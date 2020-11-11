@@ -337,7 +337,7 @@ public class Outliner {
         return super.compareTo(other);
       }
       NewInstanceOutlineInstruction o = (NewInstanceOutlineInstruction) other;
-      return clazz.slowCompareTo(o.clazz);
+      return clazz.compareTo(o.clazz);
     }
 
     @Override
@@ -435,7 +435,7 @@ public class Outliner {
         return super.compareTo(other);
       }
       InvokeOutlineInstruction o = (InvokeOutlineInstruction) other;
-      int result = method.slowCompareTo(o.method);
+      int result = method.compareTo(o.method);
       if (result != 0) {
         return result;
       }
@@ -448,7 +448,7 @@ public class Outliner {
         return result;
       }
       if (proto != null) {
-        result = proto.slowCompareTo(o.proto);
+        result = proto.compareTo(o.proto);
         if (result != 0) {
           return result;
         }
@@ -630,7 +630,7 @@ public class Outliner {
       }
       // First compare the proto.
       int result;
-      result = buildProto().slowCompareTo(other.buildProto());
+      result = buildProto().compareTo(other.buildProto());
       if (result != 0) {
         assert !equals(other);
         return result;

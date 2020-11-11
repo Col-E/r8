@@ -43,7 +43,7 @@ public abstract class InvokeMethod extends Format35c<DexMethod> {
 
   @Override
   int internalCompareBBBB(Format35c<?> other) {
-    return BBBB.slowCompareTo((DexMethod) other.BBBB);
+    return BBBB.compareTo((DexMethod) other.BBBB);
   }
 
   @Override

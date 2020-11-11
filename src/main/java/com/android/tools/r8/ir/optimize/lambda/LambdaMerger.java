@@ -257,7 +257,7 @@ public final class LambdaMerger {
                 appView.testing().kotlinLambdaMergerFactoryForClass.apply(cls) != null
                     && KotlinLambdaGroupIdFactory.hasValidAnnotations(kotlin, cls)
                     && !appView.appInfo().getClassToFeatureSplitMap().isInFeature(cls))
-        .sorted((a, b) -> a.type.slowCompareTo(b.type)) // Ensure stable ordering.
+        .sorted((a, b) -> a.type.compareTo(b.type)) // Ensure stable ordering.
         .forEachOrdered(
             lambda -> {
               try {

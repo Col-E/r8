@@ -54,7 +54,7 @@ public class DexDebugInfo extends CachedHashValueDexItem implements Comparable<D
     return Comparator.comparingInt((DexDebugInfo i) -> i.startLine)
         .thenComparing(
             i -> i.parameters,
-            ComparatorUtils.arrayComparator(Comparator.nullsFirst(DexString::slowCompareTo)))
+            ComparatorUtils.arrayComparator(Comparator.nullsFirst(DexString::compareTo)))
         .thenComparing(i -> i.events, ComparatorUtils.arrayComparator())
         .compare(this, other);
   }

@@ -423,7 +423,7 @@ final class ClassProcessor {
     }
     // We need to introduce them in deterministic order for deterministic compilation.
     ArrayList<DexType> sortedEmulatedInterfaces = new ArrayList<>(emulatedInterfaces);
-    Collections.sort(sortedEmulatedInterfaces, DexType::slowCompareTo);
+    Collections.sort(sortedEmulatedInterfaces);
     List<GenericSignature.ClassTypeSignature> extraInterfaceSignatures = new ArrayList<>();
     for (DexType extraInterface : sortedEmulatedInterfaces) {
       extraInterfaceSignatures.add(

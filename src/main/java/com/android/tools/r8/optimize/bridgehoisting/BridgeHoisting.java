@@ -113,7 +113,7 @@ public class BridgeHoisting {
 
   private void processClass(DexProgramClass clazz, SubtypingInfo subtypingInfo) {
     Set<DexType> subtypes = subtypingInfo.allImmediateSubtypes(clazz.type);
-    Set<DexProgramClass> subclasses = new TreeSet<>((x, y) -> x.type.slowCompareTo(y.type));
+    Set<DexProgramClass> subclasses = new TreeSet<>((x, y) -> x.type.compareTo(y.type));
     for (DexType subtype : subtypes) {
       DexProgramClass subclass = asProgramClassOrNull(appView.definitionFor(subtype));
       if (subclass == null) {

@@ -180,7 +180,7 @@ public class DesugaredLibraryRetargeter {
                   .computeIfAbsent(
                       newClass,
                       ignore ->
-                          new TreeSet<>((x, y) -> x.getReference().slowCompareTo(y.getReference())))
+                          new TreeSet<>((x, y) -> x.getReference().compareTo(y.getReference())))
                   .add(
                       new DexEncodedMethod(
                           retargetMethod,

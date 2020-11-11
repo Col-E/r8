@@ -43,7 +43,7 @@ public class CfInstanceOf extends CfInstruction {
 
   @Override
   public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return type.slowCompareTo(other.asInstanceOf().type);
+    return type.compareTo(other.asInstanceOf().type);
   }
 
   @Override

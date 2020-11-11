@@ -41,13 +41,13 @@ public class SortedProgramMethodSet extends ProgramMethodSet {
 
   public static SortedProgramMethodSet create(ForEachable<ProgramMethod> methods) {
     SortedProgramMethodSet result =
-        new SortedProgramMethodSet(() -> new TreeMap<>(DexMethod::slowCompareTo));
+        new SortedProgramMethodSet(() -> new TreeMap<>(DexMethod::compareTo));
     methods.forEach(result::add);
     return result;
   }
 
   public static SortedProgramMethodSet createConcurrent() {
-    return new SortedProgramMethodSet(() -> new ConcurrentSkipListMap<>(DexMethod::slowCompareTo));
+    return new SortedProgramMethodSet(() -> new ConcurrentSkipListMap<>(DexMethod::compareTo));
   }
 
   public static SortedProgramMethodSet empty() {
@@ -64,7 +64,7 @@ public class SortedProgramMethodSet extends ProgramMethodSet {
   @Override
   public Set<DexEncodedMethod> toDefinitionSet() {
     Comparator<DexEncodedMethod> comparator =
-        (x, y) -> x.getReference().slowCompareTo(y.getReference());
+        (x, y) -> x.getReference().compareTo(y.getReference());
     Set<DexEncodedMethod> definitions = new TreeSet<>(comparator);
     forEach(method -> definitions.add(method.getDefinition()));
     return definitions;

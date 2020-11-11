@@ -90,8 +90,8 @@ public abstract class Format45cc extends Base4Format {
     if (diff != 0) {
       return diff;
     }
-    int bDiff = BBBB.slowCompareTo(o.BBBB);
-    return bDiff != 0 ? bDiff : HHHH.slowCompareTo(o.HHHH);
+    int bDiff = BBBB.compareTo(o.BBBB);
+    return bDiff != 0 ? bDiff : HHHH.compareTo(o.HHHH);
   }
 
   @Override

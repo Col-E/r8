@@ -50,6 +50,6 @@ abstract class SgetOrSput extends Format21c<DexField> {
 
   @Override
   int internalCompareBBBB(Format21c<?> other) {
-    return BBBB.slowCompareTo((DexField) other.BBBB);
+    return BBBB.compareTo((DexField) other.BBBB);
   }
 }

@@ -80,12 +80,12 @@ public abstract class DexReference extends IndexedDexItem {
       return typeDiff;
     }
     if (isDexType()) {
-      return asDexType().slowCompareTo(o.asDexType());
+      return asDexType().compareTo(o.asDexType());
     }
     if (isDexField()) {
-      return asDexField().slowCompareTo(o.asDexField());
+      return asDexField().compareTo(o.asDexField());
     }
     assert isDexMethod();
-    return asDexMethod().slowCompareTo(o.asDexMethod());
+    return asDexMethod().compareTo(o.asDexMethod());
   }
 }

@@ -134,7 +134,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
     Set<DexType> interfaces = getInterfaces();
     if (interfaces != null) {
       List<DexType> sortedInterfaces = new ArrayList<>(interfaces);
-      sortedInterfaces.sort(DexType::slowCompareTo);
+      sortedInterfaces.sort(DexType::compareTo);
       builder.append(
           sortedInterfaces.stream().map(DexType::toString).collect(Collectors.joining(", ")));
     }

@@ -143,7 +143,7 @@ public class UnboxedEnumMemberRelocator {
       for (DexProgramClass context : contexts) {
         if (deterministicContext == null) {
           deterministicContext = context.type;
-        } else if (context.type.slowCompareTo(deterministicContext) < 0) {
+        } else if (context.type.compareTo(deterministicContext) < 0) {
           deterministicContext = context.type;
         }
       }

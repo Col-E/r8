@@ -52,7 +52,7 @@ public class CfTryCatch {
   public int compareTo(CfTryCatch other, CfCompareHelper helper) {
     return Comparator.comparing((CfTryCatch c) -> c.start, helper::compareLabels)
         .thenComparing(c -> c.end, helper::compareLabels)
-        .thenComparing(c -> c.guards, ComparatorUtils.listComparator(DexType::slowCompareTo))
+        .thenComparing(c -> c.guards, ComparatorUtils.listComparator())
         .thenComparing(c -> c.targets, ComparatorUtils.listComparator(helper::compareLabels))
         .compare(this, other);
   }

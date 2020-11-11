@@ -1705,7 +1705,7 @@ public class RootSetBuilder {
     assert method.getHolderType() == options.dexItemFactory().objectType;
     OriginWithPosition key = new OriginWithPosition(context.getOrigin(), context.getPosition());
     assumeNoSideEffectsWarnings
-        .computeIfAbsent(key, ignore -> new TreeSet<>(DexMethod::slowCompareTo))
+        .computeIfAbsent(key, ignore -> new TreeSet<>(DexMethod::compareTo))
         .add(method.getReference());
   }
 

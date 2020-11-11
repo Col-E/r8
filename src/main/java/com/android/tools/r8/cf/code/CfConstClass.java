@@ -40,7 +40,7 @@ public class CfConstClass extends CfInstruction {
 
   @Override
   public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return type.slowCompareTo(((CfConstClass) other).type);
+    return type.compareTo(((CfConstClass) other).type);
   }
 
   public DexType getType() {

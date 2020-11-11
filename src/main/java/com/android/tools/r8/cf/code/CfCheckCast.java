@@ -44,7 +44,7 @@ public class CfCheckCast extends CfInstruction {
 
   @Override
   public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return type.slowCompareTo(((CfCheckCast) other).type);
+    return type.compareTo(((CfCheckCast) other).type);
   }
 
   @Override

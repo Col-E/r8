@@ -44,7 +44,7 @@ public class FilledNewArray extends Format35c<DexType> {
 
   @Override
   int internalCompareBBBB(Format35c<?> other) {
-    return BBBB.slowCompareTo((DexType) other.BBBB);
+    return BBBB.compareTo((DexType) other.BBBB);
   }
 
   @Override

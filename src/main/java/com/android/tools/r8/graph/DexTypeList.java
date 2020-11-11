@@ -125,7 +125,7 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
       } else if (i == other.values.length) {
         return 1;
       } else {
-        int result = values[i].slowCompareTo(other.values[i]);
+        int result = values[i].compareTo(other.values[i]);
         if (result != 0) {
           return result;
         }
@@ -161,7 +161,7 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
     }
 
     DexType[] newValues = values.clone();
-    Arrays.sort(newValues, DexType::slowCompareTo);
+    Arrays.sort(newValues);
     return new DexTypeList(newValues);
   }
 }

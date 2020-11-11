@@ -300,9 +300,9 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
     @Override
     int internalCompareTo(DexDebugEvent other) {
       return Comparator.comparingInt((StartLocal e) -> e.registerNum)
-          .thenComparing(e -> e.name, DexString::slowCompareTo)
-          .thenComparing(e -> e.type, DexType::slowCompareTo)
-          .thenComparing(e -> e.signature, Comparator.nullsFirst(DexString::slowCompareTo))
+          .thenComparing(e -> e.name)
+          .thenComparing(e -> e.type)
+          .thenComparing(e -> e.signature, Comparator.nullsFirst(DexString::compareTo))
           .compare(this, (StartLocal) other);
     }
   }
@@ -431,7 +431,7 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
 
     @Override
     int internalCompareTo(DexDebugEvent other) {
-      return fileName.slowCompareTo(((SetFile) other).fileName);
+      return fileName.compareTo(((SetFile) other).fileName);
     }
   }
 
@@ -473,7 +473,7 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
 
     @Override
     int internalCompareTo(DexDebugEvent other) {
-      return Comparator.comparing((SetInlineFrame e) -> e.callee, DexMethod::slowCompareTo)
+      return Comparator.comparing((SetInlineFrame e) -> e.callee, DexMethod::compareTo)
           .thenComparing(e -> e.caller, Comparator.nullsFirst(Position::compareTo))
           .compare(this, (SetInlineFrame) other);
     }

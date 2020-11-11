@@ -30,7 +30,7 @@ public class ConstClass extends Format21c<DexType> {
 
   @Override
   int internalCompareBBBB(Format21c<?> other) {
-    return BBBB.slowCompareTo((DexType) other.BBBB);
+    return BBBB.compareTo((DexType) other.BBBB);
   }
 
   @Override

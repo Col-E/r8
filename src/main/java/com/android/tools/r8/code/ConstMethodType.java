@@ -51,7 +51,7 @@ public class ConstMethodType extends Format21c<DexProto> {
 
   @Override
   int internalCompareBBBB(Format21c<?> other) {
-    return BBBB.slowCompareTo((DexProto) other.BBBB);
+    return BBBB.compareTo((DexProto) other.BBBB);
   }
 
   @Override

@@ -54,7 +54,7 @@ abstract class Format31c extends Base3Format {
   final int internalCompareTo(Instruction other) {
     Format31c o = (Format31c) other;
     int diff = Short.compare(AA, o.AA);
-    return diff != 0 ? diff : BBBBBBBB.slowCompareTo(o.BBBBBBBB);
+    return diff != 0 ? diff : BBBBBBBB.compareTo(o.BBBBBBBB);
   }
 
   @Override

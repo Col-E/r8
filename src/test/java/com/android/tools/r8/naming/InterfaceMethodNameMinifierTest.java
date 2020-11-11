@@ -27,7 +27,7 @@ public class InterfaceMethodNameMinifierTest extends TestBase {
             "-obfuscationdictionary " + dictionary.toString())
         // Minify the interface methods in alphabetic order.
         .addOptionsModification(
-            options -> options.testing.minifier.interfaceMethodOrdering = DexMethod::slowCompareTo)
+            options -> options.testing.minifier.interfaceMethodOrdering = DexMethod::compareTo)
         .compile();
   }
 

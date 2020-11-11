@@ -73,8 +73,8 @@ public abstract class Format4rcc extends Base4Format {
   final int internalCompareTo(Instruction other) {
     return Comparator.comparingInt((Format4rcc i) -> i.AA)
         .thenComparingInt(i -> i.CCCC)
-        .thenComparing(i -> i.BBBB, DexMethod::slowCompareTo)
-        .thenComparing(i -> i.HHHH, DexProto::slowCompareTo)
+        .thenComparing(i -> i.BBBB)
+        .thenComparing(i -> i.HHHH)
         .compare(this, (Format4rcc) other);
   }
 

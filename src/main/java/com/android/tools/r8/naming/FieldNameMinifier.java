@@ -301,7 +301,7 @@ class FieldNameMinifier {
     }
 
     private Set<DexClass> buildSortedPartition(DexClass src) {
-      Set<DexClass> partition = new TreeSet<>((x, y) -> x.type.slowCompareTo(y.type));
+      Set<DexClass> partition = new TreeSet<>((x, y) -> x.type.compareTo(y.type));
 
       Deque<DexType> worklist = new ArrayDeque<>();
       worklist.add(src.type);

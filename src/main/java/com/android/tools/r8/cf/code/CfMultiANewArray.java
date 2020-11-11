@@ -52,7 +52,7 @@ public class CfMultiANewArray extends CfInstruction {
   @Override
   public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
     return Comparator.comparingInt(CfMultiANewArray::getDimensions)
-        .thenComparing(CfMultiANewArray::getType, DexType::slowCompareTo)
+        .thenComparing(CfMultiANewArray::getType)
         .compare(this, ((CfMultiANewArray) other));
   }
 

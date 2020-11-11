@@ -588,7 +588,7 @@ public final class InterfaceMethodRewriter {
     Map<DexType, List<DexType>> emulatedInterfacesHierarchy = new IdentityHashMap<>();
     Set<DexType> processed = Sets.newIdentityHashSet();
     ArrayList<DexType> emulatedInterfacesSorted = new ArrayList<>(emulatedInterfaces.keySet());
-    emulatedInterfacesSorted.sort(DexType::slowCompareTo);
+    emulatedInterfacesSorted.sort(DexType::compareTo);
     for (DexType interfaceType : emulatedInterfacesSorted) {
       processEmulatedInterfaceHierarchy(interfaceType, processed, emulatedInterfacesHierarchy);
     }

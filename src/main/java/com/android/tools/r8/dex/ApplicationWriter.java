@@ -613,8 +613,8 @@ public class ApplicationWriter {
         return MethodToCodeObjectMapping.fromMethodBacking();
       }
       // If the globally highest sorting string is not a jumbo string this is also a no-op.
-      if (application.highestSortingString != null &&
-          application.highestSortingString.slowCompareTo(mapping.getFirstJumboString()) < 0) {
+      if (application.highestSortingString != null
+          && application.highestSortingString.compareTo(mapping.getFirstJumboString()) < 0) {
         return MethodToCodeObjectMapping.fromMethodBacking();
       }
     }
@@ -671,7 +671,7 @@ public class ApplicationWriter {
     StringBuilder builder = new StringBuilder();
     List<DexType> list = new ArrayList<>(mainDexClasses.size());
     mainDexClasses.forEach(list::add);
-    list.sort(DexType::slowCompareTo);
+    list.sort(DexType::compareTo);
     list.forEach(
         type -> builder.append(mapMainDexListName(type, namingLens)).append('\n'));
     return builder.toString();

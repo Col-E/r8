@@ -134,9 +134,9 @@ public class Position implements Comparable<Position> {
       return 0;
     }
     return Comparator.comparingInt((Position p) -> p.line)
-        .thenComparing(p -> p.file, Comparator.nullsFirst(DexString::slowCompareTo))
+        .thenComparing(p -> p.file, Comparator.nullsFirst(DexString::compareTo))
         .thenComparing(p -> p.synthetic)
-        .thenComparing(p -> p.method, DexMethod::slowCompareTo)
+        .thenComparing(p -> p.method)
         .thenComparing(p -> p.callerPosition, Comparator.nullsFirst(Position::compareTo))
         .compare(this, o);
   }

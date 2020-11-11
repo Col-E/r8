@@ -224,7 +224,7 @@ public class MemberRebindingAnalysis {
         (bridgeHolder, targets) -> {
           // Sorting the list of bridges within a class maintains a deterministic order of entries
           // in the method collection.
-          targets.sort((p1, p2) -> p1.getFirst().slowCompareTo(p2.getFirst()));
+          targets.sort((p1, p2) -> p1.getFirst().compareTo(p2.getFirst()));
           for (Pair<DexMethod, DexEncodedMethod> pair : targets) {
             DexMethod method = pair.getFirst();
             DexEncodedMethod target = pair.getSecond();

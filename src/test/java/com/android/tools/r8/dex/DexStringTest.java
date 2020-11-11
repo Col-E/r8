@@ -78,8 +78,7 @@ public class DexStringTest {
   private void check(int expected, DexString s1, DexString s2) {
     assertEquals(s1.dump() + " " + s2.dump(),
         expected, Integer.signum(s1.toString().compareTo(s2.toString())));
-    assertEquals(s1.dump() + " " + s2.dump(),
-        expected, Integer.signum(s1.slowCompareTo(s2)));
+    assertEquals(s1.dump() + " " + s2.dump(), expected, Integer.signum(s1.compareTo(s2)));
   }
 
   private void checkEncodedLength(DexString s, int encodedLength) {

@@ -44,7 +44,7 @@ public class CfConstMethodType extends CfInstruction {
 
   @Override
   public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return type.slowCompareTo(((CfConstMethodType) other).type);
+    return type.compareTo(((CfConstMethodType) other).type);
   }
 
   @Override

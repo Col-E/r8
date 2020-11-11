@@ -280,7 +280,7 @@ public class SubtypingInfo {
 
     private void ensureDirectSubTypeSet() {
       if (directSubtypes == NO_DIRECT_SUBTYPE) {
-        directSubtypes = new ConcurrentSkipListSet<>(DexType::slowCompareTo);
+        directSubtypes = new ConcurrentSkipListSet<>(DexType::compareTo);
       }
     }
 

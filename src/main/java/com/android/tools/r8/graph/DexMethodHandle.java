@@ -317,10 +317,10 @@ public class DexMethodHandle extends IndexedDexItem implements
     int result = type.getValue() - other.type.getValue();
     if (result == 0) {
       if (isFieldHandle()) {
-        result = asField().slowCompareTo(other.asField());
+        result = asField().compareTo(other.asField());
       } else {
         assert isMethodHandle();
-        result = asMethod().slowCompareTo(other.asMethod());
+        result = asMethod().compareTo(other.asMethod());
       }
     }
     return result;

@@ -24,8 +24,8 @@ class UnusedItemsPrinter {
     }
 
     void sort() {
-      fields.sort((a, b) -> a.getReference().slowCompareTo(b.getReference()));
-      methods.sort((a, b) -> a.getReference().slowCompareTo(b.getReference()));
+      fields.sort((a, b) -> a.getReference().compareTo(b.getReference()));
+      methods.sort((a, b) -> a.getReference().compareTo(b.getReference()));
     }
   }
 
@@ -73,7 +73,7 @@ class UnusedItemsPrinter {
   }
 
   public void finished() {
-    classes.sort((a, b) -> a.getFirst().slowCompareTo(b.getFirst()));
+    classes.sort((a, b) -> a.getFirst().compareTo(b.getFirst()));
     for (Pair<DexType, Members> entry : classes) {
       DexType type = entry.getFirst();
       Members members = entry.getSecond();

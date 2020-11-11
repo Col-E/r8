@@ -34,7 +34,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
   }
 
   public static MethodMapBacking createSorted() {
-    Comparator<Wrapper<DexMethod>> comparator = (x, y) -> x.get().slowCompareTo(y.get());
+    Comparator<Wrapper<DexMethod>> comparator = (x, y) -> x.get().compareTo(y.get());
     return new MethodMapBacking(new Object2ReferenceRBTreeMap<>(comparator));
   }
 

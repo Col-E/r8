@@ -73,7 +73,7 @@ public class ProguardMapMinifier {
   private final SeedMapper seedMapper;
   private final BiMap<DexType, DexString> mappedNames = HashBiMap.create();
   // To keep the order deterministic, we sort the classes by their type, which is a unique key.
-  private final Set<DexClass> mappedClasses = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
+  private final Set<DexClass> mappedClasses = new TreeSet<>((a, b) -> a.type.compareTo(b.type));
   private final Map<DexReference, MemberNaming> memberNames = Maps.newIdentityHashMap();
   private final Map<DexType, DexString> syntheticCompanionClasses = Maps.newIdentityHashMap();
   private final Map<DexMethod, DexString> defaultInterfaceMethodImplementationNames =
@@ -95,7 +95,7 @@ public class ProguardMapMinifier {
     Set<DexReference> notMappedReferences = new HashSet<>();
 
     timing.begin("MappingInterfaces");
-    Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
+    Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.compareTo(b.type));
     Consumer<DexClass> consumer =
         dexClass -> {
           if (dexClass.isInterface()) {

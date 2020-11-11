@@ -44,7 +44,7 @@ public class CfNew extends CfInstruction {
 
   @Override
   public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return type.slowCompareTo(((CfNew) other).type);
+    return type.compareTo(((CfNew) other).type);
   }
 
   @Override

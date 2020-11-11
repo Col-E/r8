@@ -65,9 +65,9 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
     return Comparator
         // The first item to compare is the synthesizing context type. This is the type used to
         // choose the context prefix for items.
-        .comparing(SynthesizingContext::getSynthesizingContextType, DexType::slowCompareTo)
+        .comparing(SynthesizingContext::getSynthesizingContextType)
         // To ensure that equals coincides with compareTo == 0, we then compare 'type'.
-        .thenComparing(c -> c.inputContextType, DexType::slowCompareTo)
+        .thenComparing(c -> c.inputContextType)
         .compare(this, other);
   }
 

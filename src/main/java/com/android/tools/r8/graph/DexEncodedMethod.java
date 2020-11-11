@@ -1432,7 +1432,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public static int slowCompare(DexEncodedMethod m1, DexEncodedMethod m2) {
-    return m1.method.slowCompareTo(m2.method);
+    return m1.method.compareTo(m2.method);
   }
 
   public MethodOptimizationInfo getOptimizationInfo() {

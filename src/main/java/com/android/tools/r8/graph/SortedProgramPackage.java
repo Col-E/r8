@@ -9,6 +9,6 @@ import java.util.TreeSet;
 public class SortedProgramPackage extends ProgramPackage {
 
   public SortedProgramPackage(String packageDescriptor) {
-    super(packageDescriptor, () -> new TreeSet<>((a, b) -> a.getType().slowCompareTo(b.getType())));
+    super(packageDescriptor, () -> new TreeSet<>((a, b) -> a.getType().compareTo(b.getType())));
   }
 }

@@ -129,7 +129,7 @@ public class DexInitClass extends Base2Format {
   @Override
   final int internalCompareTo(Instruction other) {
     return Comparator.comparingInt((DexInitClass i) -> i.dest)
-        .thenComparing(i -> i.clazz, DexType::slowCompareTo)
+        .thenComparing(i -> i.clazz)
         .compare(this, (DexInitClass) other);
   }
 

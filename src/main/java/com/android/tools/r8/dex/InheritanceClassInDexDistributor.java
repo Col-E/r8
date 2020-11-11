@@ -45,7 +45,7 @@ import java.util.concurrent.Future;
 public class InheritanceClassInDexDistributor {
 
   private static final Comparator<DexProgramClass> DEX_PROGRAM_CLASS_COMPARATOR =
-      (a, b) -> a.type.descriptor.slowCompareTo(b.type.descriptor);
+      (a, b) -> a.type.descriptor.compareTo(b.type.descriptor);
 
   private static final int DEX_FULL_ENOUGH_THRESHOLD = VirtualFile.MAX_ENTRIES - 100;
   private final ExecutorService executorService;
