@@ -8,7 +8,7 @@ import com.android.tools.r8.references.PackageReference;
 
 class TraceReferencesFormattingConsumer implements TraceReferencesConsumer {
 
-  public enum OutputFormat {
+  enum OutputFormat {
     /** Format used with the -printusage flag */
     PRINTUSAGE,
     /** Keep rules keeping each of the traced references */

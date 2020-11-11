@@ -20,13 +20,15 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.google.common.collect.ImmutableList;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -62,10 +64,21 @@ public class TraceReferencesCommandTest extends TestBase {
   @Test(expected = CompilationFailedException.class)
   public void emptyRunCommandLine() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "No library specified",
+        "Missing command",
         handler -> {
           TraceReferences.run(
-              TraceReferencesCommand.parse(new String[] {""}, Origin.unknown(), handler).build());
+              TraceReferencesCommand.parse(new String[] {}, Origin.unknown(), handler).build());
+        });
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void unsupportedCommandCommandLine() throws Throwable {
+    DiagnosticsChecker.checkErrorsContains(
+        "Missing command, specify one of 'check', '--print-usage' or '--keep-rules'",
+        handler -> {
+          TraceReferences.run(
+              TraceReferencesCommand.parse(new String[] {"--xxx"}, Origin.unknown(), handler)
+                  .build());
         });
   }
 
@@ -89,7 +102,7 @@ public class TraceReferencesCommandTest extends TestBase {
           TraceReferences.run(
               TraceReferencesCommand.parse(
                       new String[] {
-                        "--lib", ToolHelper.getAndroidJar(AndroidApiLevel.P).toString()
+                        "--check", "--lib", ToolHelper.getAndroidJar(AndroidApiLevel.P).toString()
                       },
                       Origin.unknown(),
                       handler)
@@ -98,24 +111,39 @@ public class TraceReferencesCommandTest extends TestBase {
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void invalidFormatCommandLine() throws Throwable {
+  public void multipleCommandsSpecified() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "Unsupported format 'xxx'",
+        "Multiple commands specified",
         handler -> {
           TraceReferences.run(
               TraceReferencesCommand.parse(
-                      new String[] {"--format", "xxx"}, Origin.unknown(), handler)
+                      new String[] {"--check", "--keep-rules"}, Origin.unknown(), handler)
                   .build());
         });
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void missingFormatCommandLine() throws Throwable {
+  public void allowobfuscationWithoutKeepRule() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "Missing parameter for --format",
+        "Using '--allowobfuscation' requires command '--keep-rules'",
         handler -> {
           TraceReferences.run(
-              TraceReferencesCommand.parse(new String[] {"--format"}, Origin.unknown(), handler)
+              TraceReferencesCommand.parse(
+                      new String[] {"--check", "--allowobfuscation"}, Origin.unknown(), handler)
+                  .build());
+        });
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void allowobfuscationMultiple() throws Throwable {
+    DiagnosticsChecker.checkErrorsContains(
+        "No library specified",
+        handler -> {
+          TraceReferences.run(
+              TraceReferencesCommand.parse(
+                      new String[] {"--keep-rules", "--allowobfuscation", "--allowobfuscation"},
+                      Origin.unknown(),
+                      handler)
                   .build());
         });
   }
@@ -123,11 +151,23 @@ public class TraceReferencesCommandTest extends TestBase {
   @Test(expected = CompilationFailedException.class)
   public void multipleFormatsCommandLine() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "--format specified multiple times",
+        "Using '--output' requires command '--print-usage' or '--keep-rules'",
         handler -> {
           TraceReferences.run(
               TraceReferencesCommand.parse(
-                      new String[] {"--format", "printuses", "--format", "keep"},
+                      new String[] {"--check", "--output", "xxx"}, Origin.unknown(), handler)
+                  .build());
+        });
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void outputMultiple() throws Throwable {
+    DiagnosticsChecker.checkErrorsContains(
+        "Option '--output' passed multiple times",
+        handler -> {
+          TraceReferences.run(
+              TraceReferencesCommand.parse(
+                      new String[] {"--keep-rules", "--output", "xxx", "--output", "xxx"},
                       Origin.unknown(),
                       handler)
                   .build());
@@ -136,13 +176,13 @@ public class TraceReferencesCommandTest extends TestBase {
 
   private String formatName(OutputFormat format) {
     if (format == OutputFormat.PRINTUSAGE) {
-      return "printuses";
+      return "--print-usage";
     }
     if (format == OutputFormat.KEEP_RULES) {
-      return "keep";
+      return "--keep-rules";
     }
     assertSame(format, OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION);
-    return "keepallowobfuscation";
+    return "--keep-rules";
   }
 
   public void runAndCheckOutput(
@@ -179,17 +219,23 @@ public class TraceReferencesCommandTest extends TestBase {
       throw e;
     }
 
-    TraceReferences.run(
-        TraceReferencesCommand.parse(
-                new String[] {
-                  "--lib", ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
-                  "--target", targetJar.toString(),
-                  "--source", sourceJar.toString(),
-                  "--output", output.toString(),
-                  "--format", formatName(format)
-                },
-                Origin.unknown())
-            .build());
+    List<String> args = new ArrayList<>();
+    args.add(formatName(format));
+    if (format == OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION) {
+      args.add("--allowobfuscation");
+    }
+    args.addAll(
+        ImmutableList.of(
+            "--lib",
+            ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+            "--target",
+            targetJar.toString(),
+            "--source",
+            sourceJar.toString(),
+            "--output",
+            output.toString()));
+
+    TraceReferences.run(TraceReferencesCommand.parse(args, Origin.unknown()).build());
     assertEquals(expected, FileUtils.readTextFile(output, Charsets.UTF_8));
   }
 
@@ -202,6 +248,16 @@ public class TraceReferencesCommandTest extends TestBase {
     runAndCheckOutput(targetClasses, sourceClasses, format, expected, null);
   }
 
+  private Path zipWithTestClasses(Path zipFile, List<Class<?>> targetClasses) throws IOException {
+    return ZipBuilder.builder(zipFile)
+        .addFilesRelative(
+            ToolHelper.getClassPathForTests(),
+            targetClasses.stream()
+                .map(ToolHelper::getClassFileForTestClass)
+                .collect(Collectors.toList()))
+        .build();
+  }
+
   public void runAndCheckOutput(
       List<Class<?>> targetClasses,
       List<Class<?>> sourceClasses,
@@ -210,22 +266,8 @@ public class TraceReferencesCommandTest extends TestBase {
       Consumer<DiagnosticsChecker> diagnosticsCheckerConsumer)
       throws Throwable {
     Path dir = temp.newFolder().toPath();
-    Path targetJar =
-        ZipBuilder.builder(dir.resolve("target.jar"))
-            .addFilesRelative(
-                ToolHelper.getClassPathForTests(),
-                targetClasses.stream()
-                    .map(ToolHelper::getClassFileForTestClass)
-                    .collect(Collectors.toList()))
-            .build();
-    Path sourceJar =
-        ZipBuilder.builder(dir.resolve("source.jar"))
-            .addFilesRelative(
-                ToolHelper.getClassPathForTests(),
-                sourceClasses.stream()
-                    .map(ToolHelper::getClassFileForTestClass)
-                    .collect(Collectors.toList()))
-            .build();
+    Path targetJar = zipWithTestClasses(dir.resolve("target.jar"), targetClasses);
+    Path sourceJar = zipWithTestClasses(dir.resolve("source.jar"), sourceClasses);
     runAndCheckOutput(targetJar, sourceJar, format, expected, diagnosticsCheckerConsumer);
   }
 
@@ -274,6 +316,85 @@ public class TraceReferencesCommandTest extends TestBase {
                 "  int field;",
                 "}",
                 "-keeppackagenames com.android.tools.r8.tracereferences")));
+  }
+
+  @Test
+  public void test_noOutput() throws Throwable {
+    Path dir = temp.newFolder().toPath();
+    Path targetJar = zipWithTestClasses(dir.resolve("target.jar"), ImmutableList.of(Target.class));
+    Path sourceJar = zipWithTestClasses(dir.resolve("source.jar"), ImmutableList.of(Source.class));
+    PrintStream originalOut = System.out;
+    try {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      System.setOut(new PrintStream(baos));
+      TraceReferences.run(
+          TraceReferencesCommand.builder()
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .addTargetFiles(targetJar)
+              .addSourceFiles(sourceJar)
+              .setConsumer(TraceReferencesConsumer.emptyConsumer())
+              .build());
+      assertEquals(0, baos.size());
+    } finally {
+      System.setOut(originalOut);
+    }
+
+    try {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      System.setOut(new PrintStream(baos));
+      TraceReferences.run(
+          TraceReferencesCommand.parse(
+                  new String[] {
+                    "--lib",
+                    ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+                    "--check",
+                    "--target",
+                    targetJar.toString(),
+                    "--source",
+                    sourceJar.toString(),
+                  },
+                  Origin.unknown())
+              .build());
+      assertEquals(0, baos.size());
+    } finally {
+      System.setOut(originalOut);
+    }
+  }
+
+  @Test
+  public void test_stdoutOutput() throws Throwable {
+    String expected =
+        StringUtils.lines(
+            ImmutableList.of(
+                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target",
+                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: void"
+                    + " method(int)",
+                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: int"
+                    + " field"));
+    Path dir = temp.newFolder().toPath();
+    Path targetJar = zipWithTestClasses(dir.resolve("target.jar"), ImmutableList.of(Target.class));
+    Path sourceJar = zipWithTestClasses(dir.resolve("source.jar"), ImmutableList.of(Source.class));
+    PrintStream originalOut = System.out;
+    try {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      System.setOut(new PrintStream(baos));
+      TraceReferences.run(
+          TraceReferencesCommand.parse(
+                  new String[] {
+                    "--lib",
+                    ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+                    "--target",
+                    targetJar.toString(),
+                    "--source",
+                    sourceJar.toString(),
+                    "--print-usage",
+                  },
+                  Origin.unknown())
+              .build());
+      assertEquals(expected, baos.toString(Charsets.UTF_8.name()));
+    } finally {
+      System.setOut(originalOut);
+    }
   }
 
   private void checkTargetMissing(DiagnosticsChecker diagnosticsChecker) {
@@ -344,32 +465,19 @@ public class TraceReferencesCommandTest extends TestBase {
   public void testMissingReference_errorToWarning() throws Throwable {
     Path dir = temp.newFolder().toPath();
     Path targetJar =
-        ZipBuilder.builder(dir.resolve("target.jar"))
-            .addFilesRelative(
-                ToolHelper.getClassPathForTests(),
-                ToolHelper.getClassFileForTestClass(OtherTarget.class))
-            .build();
-    Path sourceJar =
-        ZipBuilder.builder(dir.resolve("source.jar"))
-            .addFilesRelative(
-                ToolHelper.getClassPathForTests(),
-                ToolHelper.getClassFileForTestClass(Source.class))
-            .build();
-    Path output = dir.resolve("output.txt");
+        zipWithTestClasses(dir.resolve("target.jar"), ImmutableList.of(OtherTarget.class));
+    Path sourceJar = zipWithTestClasses(dir.resolve("source.jar"), ImmutableList.of(Source.class));
     DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
     TraceReferences.run(
         TraceReferencesCommand.parse(
                 new String[] {
+                  "--check",
                   "--lib",
                   ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
                   "--target",
                   targetJar.toString(),
                   "--source",
                   sourceJar.toString(),
-                  "--output",
-                  output.toString(),
-                  "--format",
-                  formatName(OutputFormat.PRINTUSAGE),
                   "--map-diagnostics:MissingDefinitionsDiagnostic",
                   "error",
                   "warning"
@@ -407,12 +515,7 @@ public class TraceReferencesCommandTest extends TestBase {
             .addBytes(
                 DescriptorUtils.getPathFromJavaType(Target.class), getClassWithTargetRemoved())
             .build();
-    Path sourceJar =
-        ZipBuilder.builder(dir.resolve("source.jar"))
-            .addFilesRelative(
-                ToolHelper.getClassPathForTests(),
-                ToolHelper.getClassFileForTestClass(Source.class))
-            .build();
+    Path sourceJar = zipWithTestClasses(dir.resolve("source.jar"), ImmutableList.of(Source.class));
     try {
       runAndCheckOutput(
           targetJar,
@@ -436,16 +539,7 @@ public class TraceReferencesCommandTest extends TestBase {
             .addBytes(
                 DescriptorUtils.getPathFromJavaType(Target.class), getClassWithTargetRemoved())
             .build();
-    Path sourceJar =
-        ZipBuilder.builder(dir.resolve("source.jar"))
-            .addFilesRelative(
-                ToolHelper.getClassPathForTests(),
-                ToolHelper.getClassFileForTestClass(Source.class))
-            .build();
-    ZipUtils.zip(
-        sourceJar,
-        ToolHelper.getClassPathForTests(),
-        ToolHelper.getClassFileForTestClass(Source.class));
+    Path sourceJar = zipWithTestClasses(dir.resolve("source.jar"), ImmutableList.of(Source.class));
     try {
       runAndCheckOutput(
           targetJar,
@@ -473,12 +567,7 @@ public class TraceReferencesCommandTest extends TestBase {
             .addBytes(
                 DescriptorUtils.getPathFromJavaType(Target.class), getClassWithTargetRemoved())
             .build();
-    Path sourceJar =
-        ZipBuilder.builder(dir.resolve("source.jar"))
-            .addFilesRelative(
-                ToolHelper.getClassPathForTests(),
-                ToolHelper.getClassFileForTestClass(Source.class))
-            .build();
+    Path sourceJar = zipWithTestClasses(dir.resolve("source.jar"), ImmutableList.of(Source.class));
     try {
       runAndCheckOutput(
           targetJar,

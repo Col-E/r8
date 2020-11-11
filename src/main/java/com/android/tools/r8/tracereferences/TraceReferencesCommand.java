@@ -96,6 +96,10 @@ public class TraceReferencesCommand {
     return TraceReferencesCommandParser.parse(args, origin, diagnosticsHandler);
   }
 
+  public static Builder parse(Collection<String> args, Origin origin) {
+    return TraceReferencesCommandParser.parse(args.toArray(new String[args.size()]), origin);
+  }
+
   public boolean isPrintHelp() {
     return printHelp;
   }

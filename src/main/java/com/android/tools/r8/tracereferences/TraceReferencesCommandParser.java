@@ -6,6 +6,7 @@ package com.android.tools.r8.tracereferences;
 import com.android.tools.r8.BaseCompilerCommandParser;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.JdkClassFileProvider;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.tracereferences.TraceReferencesFormattingConsumer.OutputFormat;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -24,29 +25,40 @@ import java.util.Set;
 class TraceReferencesCommandParser {
 
   private static final Set<String> OPTIONS_WITH_PARAMETER =
-      ImmutableSet.of("--lib", "--target", "--source", "--format", "--output");
+      ImmutableSet.of("--lib", "--target", "--source", "--output");
 
   static final String USAGE_MESSAGE =
       String.join(
           "\n",
           Iterables.concat(
               Arrays.asList(
-                  "Usage: tracereferences [options] [@<argfile>]",
-                  " Each <argfile> is a file containing additional arguments (one per line)",
+                  "Usage: tracereferences <command> [<options>] [@<argfile>]",
+                  " Where <command> is one of:",
+                  "  --check                 # Run emitting only diagnostics messages.",
+                  "  --print-usage           # Traced references will be output in the print-usage",
+                  "                          # format.",
+                  "  --keep-rules [<keep-rules-options>]",
+                  "                          # Traced references will be output in the keep-rules",
+                  "                          # format.",
+                  " and each <argfile> is a file containing additional options (one per line)",
                   " and options are:",
                   "  --lib <file|jdk-home>   # Add <file|jdk-home> runtime library.",
                   "  --source <file>         # Add <file> as a source for tracing references.",
                   "  [--target <file>]       # Add <file> as a target for tracing references. When",
                   "                          # target is not specified all references from source",
-                  "                          # outside of library are treated as a missing"
-                      + " references.",
-                  "  [--format printuses|keep|keepallowobfuscation]",
-                  "                          # Format of the output. Default is 'printuses'.",
-                  "  --output <file>         # Output result in <outfile>."),
+                  "                          # outside of library are treated as a missing",
+                  "                          # references.",
+                  "  --output <file>         # Output result in <outfile>. If not passed the",
+                  "                          # result will go to standard out.",
+                  "                          # result will go to standard out."),
               BaseCompilerCommandParser.MAP_DIAGNOSTICS_USAGE_MESSAGE,
               Arrays.asList(
                   "  --version               # Print the version of tracereferences.",
-                  "  --help                  # Print this message.")));
+                  "  --help                  # Print this message.",
+                  " and <keep-rule-options> are:",
+                  "  --allowobfuscation      # Output keep rules with the allowobfuscation",
+                  "                          # modifier (defaults to rules without the"
+                      + " modifier)")));
   /**
    * Parse the tracereferences command-line.
    *
@@ -76,11 +88,43 @@ class TraceReferencesCommandParser {
         .parse(args, origin, TraceReferencesCommand.builder(handler));
   }
 
+  private enum Command {
+    CHECK,
+    PRINTUSAGE,
+    KEEP_RULES;
+
+    private OutputFormat toOutputFormat(boolean allowobfuscation) {
+      switch (this) {
+        case PRINTUSAGE:
+          return OutputFormat.PRINTUSAGE;
+        case KEEP_RULES:
+          return allowobfuscation
+              ? OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION
+              : OutputFormat.KEEP_RULES;
+        default:
+          throw new Unreachable();
+      }
+    }
+  }
+
+  private void checkCommandNotSet(
+      Command command, TraceReferencesCommand.Builder builder, Origin origin) {
+    if (command != null) {
+      builder.error(new StringDiagnostic("Multiple commands specified", origin));
+    }
+  }
+
   private TraceReferencesCommand.Builder parse(
       String[] args, Origin origin, TraceReferencesCommand.Builder builder) {
     String[] expandedArgs = FlagFile.expandFlagFiles(args, builder::error);
     Path output = null;
-    OutputFormat format = null;
+    Command command = null;
+    boolean allowObfuscation = false;
+    if (expandedArgs.length == 0) {
+      builder.error(new StringDiagnostic("Missing command"));
+      return builder;
+    }
+    // Parse options.
     for (int i = 0; i < expandedArgs.length; i++) {
       String arg = expandedArgs[i].trim();
       String nextArg = null;
@@ -97,32 +141,33 @@ class TraceReferencesCommandParser {
         continue;
       } else if (arg.equals("--help")) {
         builder.setPrintHelp(true);
+        return builder;
       } else if (arg.equals("--version")) {
         builder.setPrintVersion(true);
+        return builder;
+      } else if (arg.equals("--check")) {
+        checkCommandNotSet(command, builder, origin);
+        command = Command.CHECK;
+      } else if (arg.equals("--print-usage")) {
+        checkCommandNotSet(command, builder, origin);
+        command = Command.PRINTUSAGE;
+      } else if (arg.equals("--keep-rules")) {
+        checkCommandNotSet(command, builder, origin);
+        command = Command.KEEP_RULES;
+      } else if (arg.equals("--allowobfuscation")) {
+        allowObfuscation = true;
       } else if (arg.equals("--lib")) {
         addLibraryArgument(builder, origin, nextArg);
       } else if (arg.equals("--target")) {
         builder.addTargetFiles(Paths.get(nextArg));
       } else if (arg.equals("--source")) {
         builder.addSourceFiles(Paths.get(nextArg));
-      } else if (arg.equals("--format")) {
-        if (format != null) {
-          builder.error(new StringDiagnostic("--format specified multiple times"));
-        }
-        if (nextArg.equals("printuses")) {
-          format = TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE;
-        }
-        if (nextArg.equals("keep")) {
-          format = TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES;
-        }
-        if (nextArg.equals("keepallowobfuscation")) {
-          format = TraceReferencesFormattingConsumer.OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION;
-        }
-        if (format == null) {
-          builder.error(new StringDiagnostic("Unsupported format '" + nextArg + "'"));
-        }
       } else if (arg.equals("--output")) {
-        output = Paths.get(nextArg);
+        if (output != null) {
+          builder.error(new StringDiagnostic("Option '--output' passed multiple times.", origin));
+        } else {
+          output = Paths.get(nextArg);
+        }
       } else if (arg.startsWith("@")) {
         builder.error(new StringDiagnostic("Recursive @argfiles are not supported: ", origin));
       } else {
@@ -133,28 +178,50 @@ class TraceReferencesCommandParser {
           i += argsConsumed;
           continue;
         }
-        builder.error(new StringDiagnostic("Unsupported argument '" + arg + "'"));
+        builder.error(new StringDiagnostic("Unsupported option '" + arg + "'", origin));
       }
     }
-    if (format == null) {
-      format = TraceReferencesFormattingConsumer.OutputFormat.PRINTUSAGE;
+
+    if (command == null) {
+      builder.error(
+          new StringDiagnostic(
+              "Missing command, specify one of 'check', '--print-usage' or '--keep-rules'",
+              origin));
+      return builder;
     }
+
+    if (command == Command.CHECK && output != null) {
+      builder.error(
+          new StringDiagnostic(
+              "Using '--output' requires command '--print-usage' or '--keep-rules'", origin));
+      return builder;
+    }
+
+    if (command != Command.KEEP_RULES && allowObfuscation) {
+      builder.error(
+          new StringDiagnostic(
+              "Using '--allowobfuscation' requires command '--keep-rules'", origin));
+      return builder;
+    }
+
     final Path finalOutput = output;
     builder.setConsumer(
-        new TraceReferencesFormattingConsumer(format) {
-          @Override
-          public void finished() {
-            PrintStream out = System.out;
-            if (finalOutput != null) {
-              try {
-                out = new PrintStream(Files.newOutputStream(finalOutput));
-              } catch (IOException e) {
-                builder.error(new ExceptionDiagnostic(e));
+        command == Command.CHECK
+            ? TraceReferencesConsumer.emptyConsumer()
+            : new TraceReferencesFormattingConsumer(command.toOutputFormat(allowObfuscation)) {
+              @Override
+              public void finished() {
+                PrintStream out = System.out;
+                if (finalOutput != null) {
+                  try {
+                    out = new PrintStream(Files.newOutputStream(finalOutput));
+                  } catch (IOException e) {
+                    builder.error(new ExceptionDiagnostic(e));
+                  }
+                }
+                out.print(get());
               }
-            }
-            out.print(get());
-          }
-        });
+            });
     return builder;
   }
 
