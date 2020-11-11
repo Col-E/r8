@@ -92,10 +92,6 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
     this.originalMethodSignaturesForBridges = originalMethodSignaturesForBridges;
   }
 
-  public VerticallyMergedClasses getMergedClasses() {
-    return mergedClasses;
-  }
-
   @Override
   protected Iterable<DexType> internalGetOriginalTypes(DexType previous) {
     Collection<DexType> originalTypes = mergedClasses.getSourcesFor(previous);
@@ -185,7 +181,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
       this.dexItemFactory = dexItemFactory;
     }
 
-    static Builder createBuilderForFixup(Builder builder, Map<DexType, DexType> mergedClasses) {
+    static Builder createBuilderForFixup(Builder builder, VerticallyMergedClasses mergedClasses) {
       Builder newBuilder = new Builder(builder.dexItemFactory);
       for (Map.Entry<DexField, DexField> entry : builder.fieldMap.entrySet()) {
         newBuilder.map(
@@ -235,7 +231,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
 
     public VerticalClassMergerGraphLens build(
         AppView<?> appView, VerticallyMergedClasses mergedClasses) {
-      if (mergedClasses.getForwardMap().isEmpty()) {
+      if (mergedClasses.isEmpty()) {
         return null;
       }
       BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
@@ -254,11 +250,11 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
     }
 
     private DexField getFieldSignatureAfterClassMerging(
-        DexField field, Map<DexType, DexType> mergedClasses) {
+        DexField field, VerticallyMergedClasses mergedClasses) {
       assert !field.holder.isArrayType();
 
       DexType holder = field.holder;
-      DexType newHolder = mergedClasses.getOrDefault(holder, holder);
+      DexType newHolder = mergedClasses.getTargetForOrDefault(holder, holder);
 
       DexType type = field.type;
       DexType newType = getTypeAfterClassMerging(type, mergedClasses);
@@ -270,11 +266,11 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
     }
 
     private DexMethod getMethodSignatureAfterClassMerging(
-        DexMethod signature, Map<DexType, DexType> mergedClasses) {
+        DexMethod signature, VerticallyMergedClasses mergedClasses) {
       assert !signature.holder.isArrayType();
 
       DexType holder = signature.holder;
-      DexType newHolder = mergedClasses.getOrDefault(holder, holder);
+      DexType newHolder = mergedClasses.getTargetForOrDefault(holder, holder);
 
       DexProto proto = signature.proto;
       DexProto newProto =
@@ -287,16 +283,16 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
       return dexItemFactory.createMethod(newHolder, newProto, signature.name);
     }
 
-    private DexType getTypeAfterClassMerging(DexType type, Map<DexType, DexType> mergedClasses) {
+    private DexType getTypeAfterClassMerging(DexType type, VerticallyMergedClasses mergedClasses) {
       if (type.isArrayType()) {
         DexType baseType = type.toBaseType(dexItemFactory);
-        DexType newBaseType = mergedClasses.getOrDefault(baseType, baseType);
+        DexType newBaseType = mergedClasses.getTargetForOrDefault(baseType, baseType);
         if (newBaseType != baseType) {
           return type.replaceBaseType(newBaseType, dexItemFactory);
         }
         return type;
       }
-      return mergedClasses.getOrDefault(type, type);
+      return mergedClasses.getTargetForOrDefault(type, type);
     }
 
     public boolean hasMappingForSignatureInContext(DexProgramClass context, DexMethod signature) {

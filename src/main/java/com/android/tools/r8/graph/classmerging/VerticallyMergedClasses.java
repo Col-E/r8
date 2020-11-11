@@ -7,37 +7,37 @@ package com.android.tools.r8.graph.classmerging;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 
 public class VerticallyMergedClasses implements MergedClasses {
 
-  private final Map<DexType, DexType> mergedClasses;
-  private final Map<DexType, Set<DexType>> mergedClassesInverse;
+  private final BidirectionalManyToOneMap<DexType, DexType> mergedClasses;
 
-  public VerticallyMergedClasses(
-      Map<DexType, DexType> mergedClasses, Map<DexType, Set<DexType>> mergedClassesInverse) {
+  public VerticallyMergedClasses(BidirectionalManyToOneMap<DexType, DexType> mergedClasses) {
     this.mergedClasses = mergedClasses;
-    this.mergedClassesInverse = mergedClassesInverse;
   }
 
   public static VerticallyMergedClasses empty() {
-    return new VerticallyMergedClasses(Collections.emptyMap(), Collections.emptyMap());
+    return new VerticallyMergedClasses(BidirectionalManyToOneMap.empty());
   }
 
   public Map<DexType, DexType> getForwardMap() {
-    return mergedClasses;
+    return mergedClasses.getForwardMap();
   }
 
   public Collection<DexType> getSourcesFor(DexType type) {
-    return mergedClassesInverse.getOrDefault(type, Collections.emptySet());
+    return mergedClasses.getKeys(type);
   }
 
   public DexType getTargetFor(DexType type) {
     assert mergedClasses.containsKey(type);
     return mergedClasses.get(type);
+  }
+
+  public DexType getTargetForOrDefault(DexType type, DexType defaultValue) {
+    return mergedClasses.getOrDefault(type, defaultValue);
   }
 
   public boolean hasBeenMergedIntoSubtype(DexType type) {
@@ -54,11 +54,9 @@ public class VerticallyMergedClasses implements MergedClasses {
 
   @Override
   public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
-    for (Collection<DexType> sourcesForTarget : mergedClassesInverse.values()) {
-      for (DexType source : sourcesForTarget) {
-        assert appView.appInfo().wasPruned(source)
-            : "Expected vertically merged class `" + source.toSourceString() + "` to be absent";
-      }
+    for (DexType source : mergedClasses.keySet()) {
+      assert appView.appInfo().wasPruned(source)
+          : "Expected vertically merged class `" + source.toSourceString() + "` to be absent";
     }
     return true;
   }

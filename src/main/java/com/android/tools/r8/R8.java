@@ -537,7 +537,6 @@ public class R8 {
                   mainDexTracingResult);
           VerticalClassMergerGraphLens lens = verticalClassMerger.run();
           if (lens != null) {
-            appView.setVerticallyMergedClasses(lens.getMergedClasses());
             appView.rewriteWithLens(lens);
             runtimeTypeCheckInfo = runtimeTypeCheckInfo.rewriteWithLens(lens);
           }
@@ -545,6 +544,7 @@ public class R8 {
         } else {
           appView.setVerticallyMergedClasses(VerticallyMergedClasses.empty());
         }
+        assert appView.verticallyMergedClasses() != null;
 
         if (options.enableArgumentRemoval) {
           SubtypingInfo subtypingInfo = appViewWithLiveness.appInfo().computeSubtypingInfo();
