@@ -369,6 +369,10 @@ def is_full_r8(shrinker):
   return '-full' in shrinker
 
 
+def version_is_built_jar(version):
+  return version != 'master' and version != 'source'
+
+
 def compute_size_of_dex_files_in_package(path):
   dex_size = 0
   z = zipfile.ZipFile(path, 'r')
@@ -384,6 +388,13 @@ def dump_for_app(app_dir, app):
 
 def dump_test_for_app(app_dir, app):
   return os.path.join(app_dir, app.dump_test)
+
+
+def get_r8_jar(options, temp_dir, shrinker):
+  if (options.version == 'source'):
+    return None
+  return os.path.join(
+      temp_dir, 'r8lib.jar' if is_minified_r8(shrinker) else 'r8.jar')
 
 
 def get_results_for_app(app, options, temp_dir):
@@ -527,14 +538,12 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
 def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
                             compilation_step_index, compilation_steps,
                             prev_recomp_jar):
-  r8jar = os.path.join(
-    temp_dir, 'r8lib.jar' if is_minified_r8(shrinker) else 'r8.jar')
 
   args = AttrDict({
     'dump': dump_for_app(app_dir, app),
-    'r8_jar': r8jar,
+    'r8_jar': get_r8_jar(options, temp_dir, shrinker),
     'ea': False if options.disable_assertions else True,
-    'version': 'master',
+    'version': options.version,
     'compiler': 'r8full' if is_full_r8(shrinker) else 'r8',
     'debug_agent': options.debug_agent,
     'program_jar': prev_recomp_jar,
@@ -574,8 +583,6 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
 
 def build_test_with_shrinker(app, options, temp_dir, app_dir, shrinker,
                              compilation_step_index, mapping):
-  r8jar = os.path.join(
-    temp_dir, 'r8lib.jar' if is_minified_r8(shrinker) else 'r8.jar')
 
   def rewrite_file(file):
     remove_print_lines(file)
@@ -589,9 +596,9 @@ def build_test_with_shrinker(app, options, temp_dir, app_dir, shrinker,
 
   args = AttrDict({
     'dump': dump_test_for_app(app_dir, app),
-    'r8_jar': r8jar,
+    'r8_jar': get_r8_jar(options, temp_dir, shrinker),
     'ea': False if options.disable_assertions else True,
-    'version': 'master',
+    'version': options.version,
     'compiler': 'r8full' if is_full_r8(shrinker) else 'r8',
     'debug_agent': options.debug_agent,
     'nolib': not is_minified_r8(shrinker),
@@ -805,7 +812,7 @@ def parse_options(argv):
   else:
     options.shrinker = [shrinker for shrinker in SHRINKERS]
 
-  if options.hash or options.version:
+  if options.hash or version_is_built_jar(options.version):
     # No need to build R8 if a specific version should be used.
     options.no_build = True
     if 'r8-nolib' in options.shrinker:
@@ -845,16 +852,16 @@ def main(argv):
       as_utils.MoveFile(
         os.path.join(temp_dir, target), os.path.join(temp_dir, 'r8lib.jar'),
         quiet=options.quiet)
-    elif options.version:
-      # Download r8-<version>.jar from
-      # https://storage.googleapis.com/r8-releases/raw/.
-      target = 'r8-{}.jar'.format(options.version)
-      update_prebuilds_in_android.download_version(
-        temp_dir, 'com/android/tools/r8/' + options.version, target)
-      as_utils.MoveFile(
-        os.path.join(temp_dir, target), os.path.join(temp_dir, 'r8lib.jar'),
-        quiet=options.quiet)
-    else:
+    elif version_is_built_jar(options.version):
+        # Download r8-<version>.jar from
+        # https://storage.googleapis.com/r8-releases/raw/.
+        target = 'r8-{}.jar'.format(options.version)
+        update_prebuilds_in_android.download_version(
+          temp_dir, 'com/android/tools/r8/' + options.version, target)
+        as_utils.MoveFile(
+          os.path.join(temp_dir, target), os.path.join(temp_dir, 'r8lib.jar'),
+          quiet=options.quiet)
+    elif options.version == 'master':
       if not (options.no_build or options.golem):
         gradle.RunGradle(['r8', '-Pno_internal'])
         build_r8lib = False

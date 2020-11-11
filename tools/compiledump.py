@@ -38,6 +38,7 @@ def make_parser():
     help='Compiler version to use (default read from dump version file).'
       'Valid arguments are:'
       '  "master" to run from your own tree,'
+      '  "source" to run from build classes directly,'
       '  "X.Y.Z" to run a specific version, or'
       '  <hash> to run that hash from master.',
     default=None)
@@ -209,6 +210,8 @@ def determine_class_file(args, build_properties):
 def download_distribution(args, version, temp):
   if version == 'master':
     return utils.R8_JAR if args.nolib else utils.R8LIB_JAR
+  if version == 'source':
+    return '%s:%s' % (utils.BUILD_JAVA_MAIN_DIR, utils.ALL_DEPS_JAR)
   name = 'r8.jar' if args.nolib else 'r8lib.jar'
   source = archive.GetUploadDestination(version, name, is_hash(version))
   dest = os.path.join(temp, 'r8.jar')
@@ -299,7 +302,7 @@ def run1(out, args, otherargs):
       return 0
     except subprocess.CalledProcessError, e:
       print e.output
-      if not args.nolib:
+      if not args.nolib and version != 'source':
         stacktrace = os.path.join(temp, 'stacktrace')
         open(stacktrace, 'w+').write(e.output)
         local_map = utils.R8LIB_MAP if version == 'master' else None

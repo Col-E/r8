@@ -29,6 +29,7 @@ DEX_SEGMENTS_RESULT_PATTERN = re.compile('- ([^:]+): ([0-9]+)')
 BUILD = os.path.join(REPO_ROOT, 'build')
 BUILD_DEPS_DIR = os.path.join(BUILD, 'deps')
 BUILD_MAIN_DIR = os.path.join(BUILD, 'classes', 'main')
+BUILD_JAVA_MAIN_DIR = os.path.join(BUILD, 'classes', 'java', 'main')
 BUILD_TEST_DIR = os.path.join(BUILD, 'classes', 'test')
 LIBS = os.path.join(BUILD, 'libs')
 GENERATED_LICENSE_DIR = os.path.join(BUILD, 'generatedLicense')
@@ -43,6 +44,7 @@ R8LIB_NO_DEPS = 'r8LibNoDeps'
 R8_SRC = 'sourceJar'
 LIBRARY_DESUGAR_CONVERSIONS = 'buildLibraryDesugarConversions'
 
+ALL_DEPS_JAR = os.path.join(LIBS, 'deps_all.jar')
 D8_JAR = os.path.join(LIBS, 'd8.jar')
 R8_JAR = os.path.join(LIBS, 'r8.jar')
 R8LIB_JAR = os.path.join(LIBS, 'r8lib.jar')
