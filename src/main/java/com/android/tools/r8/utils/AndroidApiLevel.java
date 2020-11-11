@@ -4,14 +4,12 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.structural.Ordered;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 
-/**
- * Android API level description
- */
-public enum AndroidApiLevel {
+/** Android API level description */
+public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   B(1),
   B_1_1(2),
   C(3),
@@ -70,9 +68,7 @@ public enum AndroidApiLevel {
   }
 
   public static List<AndroidApiLevel> getAndroidApiLevelsSorted() {
-    List<AndroidApiLevel> androidApiLevels = Arrays.asList(AndroidApiLevel.values());
-    androidApiLevels.sort(Comparator.comparingInt(AndroidApiLevel::getLevel));
-    return androidApiLevels;
+    return Arrays.asList(AndroidApiLevel.values());
   }
 
   public static AndroidApiLevel getMinAndroidApiLevel(DexVersion dexVersion) {
@@ -156,21 +152,5 @@ public enum AndroidApiLevel {
       default:
         return LATEST;
     }
-  }
-
-  public boolean isLessThan(AndroidApiLevel other) {
-    return this.level < other.getLevel();
-  }
-
-  public boolean isLessThanOrEqualTo(AndroidApiLevel other) {
-    return this.level <= other.getLevel();
-  }
-
-  public boolean isGreaterThan(AndroidApiLevel other) {
-    return other.isLessThan(this);
-  }
-
-  public boolean isGreaterThanOrEqualTo(AndroidApiLevel other) {
-    return other.isLessThanOrEqualTo(this);
   }
 }

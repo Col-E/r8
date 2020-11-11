@@ -1433,7 +1433,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public boolean canUseConstClassInstructions(CfVersion cfVersion) {
     assert isGeneratingClassFiles();
-    return cfVersion.isGreaterThanOrEqual(requiredCfVersionForConstClassInstructions());
+    return cfVersion.isGreaterThanOrEqualTo(requiredCfVersionForConstClassInstructions());
   }
 
   public CfVersion requiredCfVersionForConstClassInstructions() {

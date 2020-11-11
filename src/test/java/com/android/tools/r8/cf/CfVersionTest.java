@@ -53,12 +53,12 @@ public class CfVersionTest extends TestBase {
     assertEquals(-1, less.compareTo(more));
     assertEquals(1, more.compareTo(less));
     assertTrue(less.isLessThan(more));
-    assertTrue(less.isLessThanOrEqual(more));
+    assertTrue(less.isLessThanOrEqualTo(more));
     assertFalse(less.isGreaterThan(more));
-    assertFalse(less.isGreaterThanOrEqual(more));
+    assertFalse(less.isGreaterThanOrEqualTo(more));
     assertFalse(more.isLessThan(less));
-    assertFalse(more.isLessThanOrEqual(less));
+    assertFalse(more.isLessThanOrEqualTo(less));
     assertTrue(more.isGreaterThan(less));
-    assertTrue(more.isGreaterThanOrEqual(less));
+    assertTrue(more.isGreaterThanOrEqualTo(less));
   }
 }

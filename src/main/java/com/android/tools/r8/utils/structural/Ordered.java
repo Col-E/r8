@@ -49,7 +49,7 @@ public interface Ordered<T> extends Equatable<T>, Comparable<T> {
     return compareTo(other) < 0;
   }
 
-  default boolean isLessThanOrEqual(T other) {
+  default boolean isLessThanOrEqualTo(T other) {
     return compareTo(other) <= 0;
   }
 
@@ -57,7 +57,7 @@ public interface Ordered<T> extends Equatable<T>, Comparable<T> {
     return compareTo(other) > 0;
   }
 
-  default boolean isGreaterThanOrEqual(T other) {
+  default boolean isGreaterThanOrEqualTo(T other) {
     return compareTo(other) >= 0;
   }
 }

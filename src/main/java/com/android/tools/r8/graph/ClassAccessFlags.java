@@ -109,7 +109,7 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
   public boolean areValid(CfVersion version, boolean isPackageInfo) {
     if (isInterface()) {
       // We ignore the super flags prior to JDK 9, as so did the VM.
-      if (version.isGreaterThanOrEqual(CfVersion.V9) && isSuper()) {
+      if (version.isGreaterThanOrEqualTo(CfVersion.V9) && isSuper()) {
         return false;
       }
       // When not coming from DEX input we require interfaces to be abstract - except for

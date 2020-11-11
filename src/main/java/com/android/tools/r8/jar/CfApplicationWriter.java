@@ -174,7 +174,7 @@ public class CfApplicationWriter {
     String sourceDebug = getSourceDebugExtension(clazz.annotations());
     writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, sourceDebug);
     CfVersion version = getClassFileVersion(clazz);
-    if (version.isGreaterThanOrEqual(CfVersion.V1_8)) {
+    if (version.isGreaterThanOrEqualTo(CfVersion.V1_8)) {
       // JDK8 and after ignore ACC_SUPER so unset it.
       clazz.accessFlags.unsetSuper();
     } else {
