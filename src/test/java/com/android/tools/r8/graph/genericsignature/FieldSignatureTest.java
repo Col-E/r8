@@ -6,8 +6,11 @@ package com.android.tools.r8.graph.genericsignature;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.google.common.base.Predicates.alwaysFalse;
+import static com.google.common.base.Predicates.alwaysTrue;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
@@ -18,9 +21,11 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignaturePrinter;
+import com.android.tools.r8.graph.GenericSignatureTypeRewriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.Reporter;
+import java.util.function.Function;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -105,5 +110,19 @@ public class FieldSignatureTest extends TestBase {
             new Reporter(testDiagnosticMessages));
     assertEquals(FieldTypeSignature.noSignature(), parsed);
     return testDiagnosticMessages;
+  }
+
+  @Test
+  public void testPruningNullTest() {
+    DexItemFactory factory = new DexItemFactory();
+    FieldTypeSignature parsed =
+        GenericSignature.parseFieldTypeSignature(
+            "A", "Lfoo/bar/Baz;", Origin.unknown(), factory, new Reporter());
+    assertTrue(parsed.hasSignature());
+    GenericSignatureTypeRewriter rewriter =
+        new GenericSignatureTypeRewriter(factory, alwaysTrue(), Function.identity(), null);
+    FieldTypeSignature rewrittenType = rewriter.rewrite(parsed);
+    assertNotNull(rewrittenType);
+    assertTrue(rewrittenType.hasNoSignature());
   }
 }

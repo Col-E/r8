@@ -10,6 +10,7 @@ import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_PARAMS;
 import static com.android.tools.r8.graph.GenericSignature.EMPTY_TYPE_SIGNATURES;
 import static com.android.tools.r8.graph.GenericSignature.FieldTypeSignature.noSignature;
 import static com.android.tools.r8.graph.GenericSignature.StarFieldTypeSignature.STAR_FIELD_TYPE_SIGNATURE;
+import static com.google.common.base.Predicates.alwaysFalse;
 
 import com.android.tools.r8.graph.GenericSignature.ArrayTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
@@ -19,22 +20,40 @@ import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class GenericSignatureTypeRewriter {
 
-  private final AppView<?> appView;
+  private final DexItemFactory factory;
+  private final Predicate<DexType> wasPruned;
+  private final Function<DexType, DexType> lookupType;
   private final DexProgramClass context;
 
   private final FieldTypeSignature objectTypeSignature;
 
   public GenericSignatureTypeRewriter(AppView<?> appView, DexProgramClass context) {
-    this.appView = appView;
+    this(
+        appView.dexItemFactory(),
+        appView.appInfo().hasLiveness()
+            ? appView.appInfo().withLiveness()::wasPruned
+            : alwaysFalse(),
+        appView.graphLens()::lookupType,
+        context);
+  }
+
+  public GenericSignatureTypeRewriter(
+      DexItemFactory factory,
+      Predicate<DexType> wasPruned,
+      Function<DexType, DexType> lookupType,
+      DexProgramClass context) {
+    this.factory = factory;
+    this.wasPruned = wasPruned;
+    this.lookupType = lookupType;
     this.context = context;
-    objectTypeSignature =
-        new ClassTypeSignature(appView.dexItemFactory().objectType, EMPTY_TYPE_ARGUMENTS);
+    objectTypeSignature = new ClassTypeSignature(factory.objectType, EMPTY_TYPE_ARGUMENTS);
   }
 
   public ClassSignature rewrite(ClassSignature classSignature) {
@@ -48,7 +67,8 @@ public class GenericSignatureTypeRewriter {
     if (fieldTypeSignature.hasNoSignature()) {
       return fieldTypeSignature;
     }
-    return new TypeSignatureRewriter().run(fieldTypeSignature);
+    FieldTypeSignature rewrittenSignature = new TypeSignatureRewriter().run(fieldTypeSignature);
+    return rewrittenSignature == null ? FieldTypeSignature.noSignature() : rewrittenSignature;
   }
 
   public MethodTypeSignature rewrite(MethodTypeSignature methodTypeSignature) {
@@ -80,8 +100,7 @@ public class GenericSignatureTypeRewriter {
     public void visitSuperClass(ClassTypeSignature classTypeSignature) {
       rewrittenSuperClass = new ClassTypeSignatureRewriter(true).run(classTypeSignature);
       if (rewrittenSuperClass == null) {
-        rewrittenSuperClass =
-            new ClassTypeSignature(appView.dexItemFactory().objectType, EMPTY_TYPE_ARGUMENTS);
+        rewrittenSuperClass = new ClassTypeSignature(factory.objectType, EMPTY_TYPE_ARGUMENTS);
       }
     }
 
@@ -99,7 +118,7 @@ public class GenericSignatureTypeRewriter {
       if (rewrittenTypeParameters.isEmpty()
           && rewrittenSuperInterfaces.isEmpty()
           && rewrittenSuperClass.isNoSignature()
-          && rewrittenSuperClass.type == appView.dexItemFactory().objectType) {
+          && rewrittenSuperClass.type == factory.objectType) {
         return ClassSignature.noSignature();
       }
       return new ClassSignature(
@@ -245,7 +264,6 @@ public class GenericSignatureTypeRewriter {
 
   private class ClassTypeSignatureRewriter implements GenericSignatureVisitor {
 
-    private final AppInfoWithLiveness appInfoWithLiveness;
     private final boolean isSuperClassOrInterface;
 
     // These fields are updated when iterating the modeled structure.
@@ -259,8 +277,6 @@ public class GenericSignatureTypeRewriter {
     private ClassTypeSignature parentClassSignature;
 
     private ClassTypeSignatureRewriter(boolean isSuperClassOrInterface) {
-      appInfoWithLiveness =
-          appView.appInfo().hasLiveness() ? appView.appInfo().withLiveness() : null;
       this.isSuperClassOrInterface = isSuperClassOrInterface;
     }
 
@@ -313,8 +329,8 @@ public class GenericSignatureTypeRewriter {
     }
 
     private DexType getTarget(DexType type) {
-      DexType rewrittenType = appView.graphLens().lookupType(type);
-      if (appInfoWithLiveness != null && appInfoWithLiveness.wasPruned(rewrittenType)) {
+      DexType rewrittenType = lookupType.apply(type);
+      if (wasPruned.test(rewrittenType)) {
         return null;
       }
       if (isSuperClassOrInterface && context.type == rewrittenType) {
