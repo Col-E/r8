@@ -4,7 +4,9 @@
 package com.android.tools.r8.tracereferences;
 
 import static com.android.tools.r8.utils.FileUtils.isArchive;
+import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ClassFileResourceProvider;
@@ -25,6 +27,7 @@ import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -33,6 +36,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
 
 @Keep
 public class TraceReferencesCommand {
@@ -155,6 +161,79 @@ public class TraceReferencesCommand {
       return this;
     }
 
+    private static String extractClassDescriptor(byte[] data) {
+      class ClassNameExtractor extends ClassVisitor {
+        private String className;
+
+        private ClassNameExtractor() {
+          super(ASM_VERSION);
+        }
+
+        @Override
+        public void visit(
+            int version,
+            int access,
+            String name,
+            String signature,
+            String superName,
+            String[] interfaces) {
+          className = name;
+        }
+
+        String getClassInternalType() {
+          return className;
+        }
+      }
+
+      ClassReader reader = new ClassReader(data);
+      ClassNameExtractor extractor = new ClassNameExtractor();
+      reader.accept(
+          extractor, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+      return "L" + extractor.getClassInternalType() + ";";
+    }
+
+    private static class SingleClassClassFileResourceProvider implements ClassFileResourceProvider {
+      private final String descriptor;
+      private final ProgramResource programResource;
+
+      SingleClassClassFileResourceProvider(Origin origin, byte[] data) {
+        this.descriptor = extractClassDescriptor(data);
+        this.programResource =
+            ProgramResource.fromBytes(origin, Kind.CF, data, ImmutableSet.of(descriptor));
+      }
+
+      @Override
+      public Set<String> getClassDescriptors() {
+        return ImmutableSet.of(descriptor);
+      }
+
+      @Override
+      public ProgramResource getProgramResource(String descriptor) {
+        return descriptor.equals(this.descriptor) ? programResource : null;
+      }
+    }
+
+    private ClassFileResourceProvider singleClassFileClassFileResourceProvider(Path file)
+        throws IOException {
+      return new SingleClassClassFileResourceProvider(
+          new PathOrigin(file), Files.readAllBytes(file));
+    }
+
+    private ProgramResourceProvider singleClassFileProgramResourceProvider(Path file)
+        throws IOException {
+      byte[] bytes = Files.readAllBytes(file);
+      String descriptor = extractClassDescriptor(bytes);
+      return new ProgramResourceProvider() {
+
+        @Override
+        public Collection<ProgramResource> getProgramResources() {
+          return ImmutableList.of(
+              ProgramResource.fromBytes(
+                  new PathOrigin(file), Kind.CF, bytes, ImmutableSet.of(descriptor)));
+        }
+      };
+    }
+
     private void addLibraryOrTargetFile(
         Path file, ImmutableList.Builder<ClassFileResourceProvider> builder) {
       if (!Files.exists(file)) {
@@ -169,6 +248,12 @@ public class TraceReferencesCommand {
         } catch (IOException e) {
           error(new ExceptionDiagnostic(e, new PathOrigin(file)));
         }
+      } else if (isClassFile(file)) {
+        try {
+          builder.add(singleClassFileClassFileResourceProvider(file));
+        } catch (IOException e) {
+          error(new ExceptionDiagnostic(e));
+        }
       } else {
         error(new StringDiagnostic("Unsupported source file type", new PathOrigin(file)));
       }
@@ -182,6 +267,12 @@ public class TraceReferencesCommand {
       }
       if (isArchive(file)) {
         traceSourceBuilder.add(ArchiveResourceProvider.fromArchive(file, false));
+      } else if (isClassFile(file)) {
+        try {
+          traceSourceBuilder.add(singleClassFileProgramResourceProvider(file));
+        } catch (IOException e) {
+          error(new ExceptionDiagnostic(e));
+        }
       } else if (isDexFile(file)) {
         traceSourceBuilder.add(
             new ProgramResourceProvider() {

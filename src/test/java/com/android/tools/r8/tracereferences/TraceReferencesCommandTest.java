@@ -397,6 +397,40 @@ public class TraceReferencesCommandTest extends TestBase {
     }
   }
 
+  public void classFileInput() throws Throwable {
+    String expected =
+        StringUtils.lines(
+            ImmutableList.of(
+                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target",
+                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: void"
+                    + " method(int)",
+                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: int"
+                    + " field"));
+    TraceReferencesFormattingConsumer consumer =
+        new TraceReferencesFormattingConsumer(OutputFormat.PRINTUSAGE);
+    TraceReferences.run(
+        TraceReferencesCommand.builder()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addTargetFiles(ToolHelper.getClassFileForTestClass(Target.class))
+            .addSourceFiles(ToolHelper.getClassFileForTestClass(Source.class))
+            .setConsumer(consumer)
+            .build());
+    assertEquals(expected, consumer.get());
+
+    Path output = temp.newFile().toPath();
+    TraceReferences.run(
+        TraceReferencesCommand.parse(
+                new String[] {
+                  "--lib", ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+                  "--target", ToolHelper.getClassFileForTestClass(Target.class).toString(),
+                  "--source", ToolHelper.getClassFileForTestClass(Source.class).toString(),
+                  "--output", output.toString(),
+                },
+                Origin.unknown())
+            .build());
+    assertEquals(expected, FileUtils.readTextFile(output, Charsets.UTF_8));
+  }
+
   private void checkTargetMissing(DiagnosticsChecker diagnosticsChecker) {
     Field field;
     Method method;
