@@ -245,8 +245,6 @@ APPS = [
     'url': 'https://github.com/signalapp/Signal-Android',
     'revision': '91ca19f294362ccee2c2b43c247eba228e2b30a1',
     'folder': 'signal-android',
-    # TODO(b/172905243): Fix recompilation
-    'skip_recompilation': True,
   }),
   # TODO(b/172815827): Monkey runner does not work
   App({
@@ -306,8 +304,6 @@ APPS = [
     'url': 'https://github.com/inorichi/tachiyomi',
     'revision': '8aa6486bf76ab9a61a5494bee284b1a5e9180bf3',
     'folder': 'tachiyomi',
-    # TODO(b/172905243): Fix recompilation
-    'skip_recompilation': True,
   }),
   # TODO(b/172862042): Monkey runner does not work.
   App({
@@ -437,7 +433,7 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     app.name,
     shrinker))
   print('To compile locally: '
-        'tools/run_on_as_app.py --shrinker {} --r8-compilation-steps {} '
+        'tools/run_on_app_dump.py --shrinker {} --r8-compilation-steps {} '
         '--app {}'.format(
     shrinker,
     options.r8_compilation_steps,
@@ -882,7 +878,12 @@ def main(argv):
         continue
       result_per_shrinker_per_app.append(
         (app, get_results_for_app(app, options, temp_dir)))
-    return log_results_for_apps(result_per_shrinker_per_app, options)
+    errors = log_results_for_apps(result_per_shrinker_per_app, options)
+    if errors > 0:
+      dest = 'gs://r8-test-results/r8-libs/' + str(int(time.time()))
+      utils.upload_file_to_cloud_storage(os.path.join(temp_dir, 'r8lib.jar'), dest)
+      print('R8lib saved to %s' % dest)
+    return errors
 
 
 def success(message):
