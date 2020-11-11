@@ -7,12 +7,12 @@ import adb
 import apk_masseur
 import compiledump
 import gradle
-import jdk
 import optparse
 import os
 import shutil
 import sys
 import time
+import update_prebuilds_in_android
 import utils
 import zipfile
 
@@ -796,6 +796,7 @@ def parse_options(argv):
                     help='The shrinkers to use (by default, all are run)',
                     action='append')
   result.add_option('--version',
+                    default='master',
                     help='The version of R8 to use (e.g., 1.4.51)')
   (options, args) = result.parse_args(argv)
   if options.app:
