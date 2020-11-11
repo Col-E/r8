@@ -5,12 +5,15 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.Iterables;
-import com.google.common.hash.Hasher;
 import java.util.Collections;
 import java.util.function.Consumer;
 
-public class DexProto extends IndexedDexItem implements PresortedComparable<DexProto> {
+public class DexProto extends IndexedDexItem
+    implements PresortedComparable<DexProto>, StructuralItem<DexProto> {
 
   public static final DexProto SENTINEL = new DexProto(null, null, null);
 
@@ -22,6 +25,41 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
     this.shorty = shorty;
     this.returnType = returnType;
     this.parameters = parameters;
+  }
+
+  private static void accept(StructuralSpecification<DexProto, ?> spec) {
+    // TODO(b/172206529): Consider removing shorty.
+    spec.withItem(p1 -> p1.shorty).withItem(DexProto::getReturnType).withItem(p -> p.parameters);
+  }
+
+  @Override
+  public StructuralAccept<DexProto> getStructuralAccept() {
+    return DexProto::accept;
+  }
+
+  @Override
+  public DexProto self() {
+    return this;
+  }
+
+  @Override
+  public boolean computeEquals(Object other) {
+    if (other instanceof DexProto) {
+      DexProto o = (DexProto) other;
+      return shorty.equals(o.shorty)
+          && returnType.equals(o.returnType)
+          && parameters.equals(o.parameters);
+    }
+    return false;
+  }
+
+  @Override
+  public int computeHashCode() {
+    return shorty.hashCode() + returnType.hashCode() * 7 + parameters.hashCode() * 31;
+  }
+
+  public DexType getReturnType() {
+    return returnType;
   }
 
   public Iterable<DexType> getParameterBaseTypes(DexItemFactory dexItemFactory) {
@@ -50,24 +88,6 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
   }
 
   @Override
-  public int computeHashCode() {
-    return shorty.hashCode()
-        + returnType.hashCode() * 7
-        + parameters.hashCode() * 31;
-  }
-
-  @Override
-  public boolean computeEquals(Object other) {
-    if (other instanceof DexProto) {
-      DexProto o = (DexProto) other;
-      return shorty.equals(o.shorty)
-          && returnType.equals(o.returnType)
-          && parameters.equals(o.parameters);
-    }
-    return false;
-  }
-
-  @Override
   public String toString() {
     return "Proto " + shorty + " " + returnType + " " + parameters;
   }
@@ -83,15 +103,6 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
   @Override
   public int getOffset(ObjectToOffsetMapping mapping) {
     return mapping.getOffsetFor(this);
-  }
-
-  @Override
-  public int slowCompareTo(DexProto other) {
-    int result = returnType.slowCompareTo(other.returnType);
-    if (result == 0) {
-      result = parameters.slowCompareTo(other.parameters);
-    }
-    return result;
   }
 
   @Override
@@ -121,12 +132,5 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
     builder.append(")");
     builder.append(lens.lookupDescriptor(returnType));
     return builder.toString();
-  }
-
-  public void hashSyntheticContent(Hasher hasher) {
-    hasher.putInt(returnType.hashCode());
-    for (DexType param : parameters.values) {
-      hasher.putInt(param.hashCode());
-    }
   }
 }

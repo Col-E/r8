@@ -312,7 +312,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
     for (CfInstruction instruction : instructions) {
       if (instruction instanceof CfFrame
           && (classFileVersion.isLessThan(CfVersion.V1_6)
-              || (classFileVersion.isEqual(CfVersion.V1_6)
+              || (classFileVersion.isEqualTo(CfVersion.V1_6)
                   && !options.shouldKeepStackMapTable()))) {
         continue;
       }

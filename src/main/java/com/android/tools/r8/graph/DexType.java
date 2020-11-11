@@ -25,6 +25,10 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
@@ -34,7 +38,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class DexType extends DexReference implements PresortedComparable<DexType> {
+public class DexType extends DexReference
+    implements PresortedComparable<DexType>, StructuralItem<DexType> {
   public static final DexType[] EMPTY_ARRAY = {};
 
   // Bundletool is merging classes that may originate from a build with an old version of R8.
@@ -48,6 +53,29 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   DexType(DexString descriptor) {
     assert !descriptor.toString().contains(".") : "Malformed descriptor: " + descriptor.toString();
     this.descriptor = descriptor;
+  }
+
+  @Override
+  public DexType self() {
+    return this;
+  }
+
+  @Override
+  public StructuralAccept<DexType> getStructuralAccept() {
+    // Structural accept is never accessed as all accept methods are defined directly.
+    throw new Unreachable();
+  }
+
+  // DexType overrides accept to ensure the visitors always gets a visitDexType callback.
+  @Override
+  public void acceptCompareTo(DexType other, CompareToVisitor visitor) {
+    visitor.visitDexType(this, other);
+  }
+
+  // DexType overrides accept to ensure the visitors always gets a visitDexType callback.
+  @Override
+  public void acceptHashing(HashingVisitor visitor) {
+    visitor.visitDexType(this);
   }
 
   @Override
@@ -199,11 +227,6 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   @Override
   public DexType asDexType() {
     return this;
-  }
-
-  @Override
-  public int slowCompareTo(DexType other) {
-    return descriptor.slowCompareTo(other.descriptor);
   }
 
   @Override

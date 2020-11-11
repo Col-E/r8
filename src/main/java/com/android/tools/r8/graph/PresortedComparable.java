@@ -5,12 +5,11 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.naming.NamingLens;
 
-public interface PresortedComparable<T> {
+public interface PresortedComparable<T> extends Comparable<T> {
 
-  int slowCompareTo(T other);
-  int slowCompareTo(T other, NamingLens namingLens);
-
-  static <T extends PresortedComparable<T>> int slowCompare(T a, T b) {
-    return a.slowCompareTo(b);
+  default int slowCompareTo(T other) {
+    return compareTo(other);
   }
+
+  int slowCompareTo(T other, NamingLens namingLens);
 }

@@ -8,13 +8,17 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
 import com.google.common.collect.Iterators;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-public class DexTypeList extends DexItem implements Iterable<DexType> {
+public class DexTypeList extends DexItem implements Iterable<DexType>, StructuralItem<DexTypeList> {
 
   private static final DexTypeList theEmptyTypeList = new DexTypeList();
 
@@ -31,6 +35,27 @@ public class DexTypeList extends DexItem implements Iterable<DexType> {
   public DexTypeList(DexType[] values) {
     assert values != null && values.length > 0;
     this.values = values;
+  }
+
+  @Override
+  public StructuralAccept<DexTypeList> getStructuralAccept() {
+    // Structural accept is never accessed as all accept methods are defined directly.
+    throw new Unreachable();
+  }
+
+  @Override
+  public DexTypeList self() {
+    return this;
+  }
+
+  @Override
+  public void acceptCompareTo(DexTypeList other, CompareToVisitor visitor) {
+    visitor.visitDexTypeList(this, other);
+  }
+
+  @Override
+  public void acceptHashing(HashingVisitor visitor) {
+    visitor.visitDexTypeList(this);
   }
 
   public boolean contains(DexType type) {

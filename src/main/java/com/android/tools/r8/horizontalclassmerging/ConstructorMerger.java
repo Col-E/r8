@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.structural.Ordered;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -156,7 +157,7 @@ public class ConstructorMerger {
     for (DexEncodedMethod constructor : constructors) {
       if (constructor.hasClassFileVersion()) {
         classFileVersion =
-            CfVersion.maxAllowNull(classFileVersion, constructor.getClassFileVersion());
+            Ordered.maxIgnoreNull(classFileVersion, constructor.getClassFileVersion());
       }
       DexMethod movedConstructor = moveConstructor(classMethodsBuilder, constructor);
       lensBuilder.mapMethod(movedConstructor, movedConstructor);

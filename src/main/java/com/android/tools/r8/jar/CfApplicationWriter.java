@@ -46,6 +46,7 @@ import com.android.tools.r8.utils.AsmUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.PredicateUtils;
+import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
@@ -273,10 +274,10 @@ public class CfApplicationWriter {
             ? clazz.getInitialClassFileVersion()
             : MIN_VERSION_FOR_COMPILER_GENERATED_CODE;
     for (DexEncodedMethod method : clazz.directMethods()) {
-      version = version.max(getClassFileVersion(method));
+      version = Ordered.max(version, getClassFileVersion(method));
     }
     for (DexEncodedMethod method : clazz.virtualMethods()) {
-      version = version.max(getClassFileVersion(method));
+      version = Ordered.max(version, getClassFileVersion(method));
     }
     return version;
   }

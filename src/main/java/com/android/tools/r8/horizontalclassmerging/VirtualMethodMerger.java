@@ -23,6 +23,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
@@ -233,7 +234,7 @@ public class VirtualMethodMerger {
       }
       if (method.getDefinition().hasClassFileVersion()) {
         CfVersion methodVersion = method.getDefinition().getClassFileVersion();
-        classFileVersion = CfVersion.maxAllowNull(classFileVersion, methodVersion);
+        classFileVersion = Ordered.maxIgnoreNull(classFileVersion, methodVersion);
       }
       DexMethod newMethod = moveMethod(classMethodsBuilder, method);
       lensBuilder.mapMethod(newMethod, newMethod);

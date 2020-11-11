@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.structural.RepresentativeMap;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -93,7 +94,7 @@ public class SyntheticFinalization {
     MainDexClasses mainDexClasses = appView.appInfo().getMainDexClasses();
     GraphLens graphLens = appView.graphLens();
 
-    List<SyntheticMethodDefinition> methodDefinitions =
+    Map<DexType, SyntheticMethodDefinition> methodDefinitions =
         lookupSyntheticMethodDefinitions(application);
 
     Collection<List<SyntheticMethodDefinition>> potentialEquivalences =
@@ -358,7 +359,7 @@ public class SyntheticFinalization {
             EquivalenceGroup<T> group = groups.get(i);
             // Two equivalence groups in same context type must be distinct otherwise the assignment
             // of the synthetic name will be non-deterministic between the two.
-            assert i == 0 || checkGroupsAreDistict(groups.get(i - 1), group);
+            assert i == 0 || checkGroupsAreDistinct(groups.get(i - 1), group);
             DexType representativeType = createExternalType(context, i, factory);
             equivalences.put(representativeType, group);
           }
@@ -388,7 +389,7 @@ public class SyntheticFinalization {
     return groups;
   }
 
-  private static <T extends SyntheticDefinition & Comparable<T>> boolean checkGroupsAreDistict(
+  private static <T extends SyntheticDefinition & Comparable<T>> boolean checkGroupsAreDistinct(
       EquivalenceGroup<T> g1, EquivalenceGroup<T> g2) {
     assert g1.compareTo(g2) != 0;
     return true;
@@ -417,18 +418,24 @@ public class SyntheticFinalization {
   }
 
   private static <T extends SyntheticDefinition> Collection<List<T>> computePotentialEquivalences(
-      List<T> definitions, boolean intermediate) {
+      Map<DexType, T> definitions, boolean intermediate) {
+    if (definitions.isEmpty()) {
+      return Collections.emptyList();
+    }
+    Set<DexType> allTypes = definitions.keySet();
+    DexType representative = allTypes.iterator().next();
+    RepresentativeMap map = t -> allTypes.contains(t) ? representative : t;
     Map<HashCode, List<T>> equivalences = new HashMap<>(definitions.size());
-    for (T definition : definitions) {
-      HashCode hash = definition.computeHash(intermediate);
+    for (T definition : definitions.values()) {
+      HashCode hash = definition.computeHash(map, intermediate);
       equivalences.computeIfAbsent(hash, k -> new ArrayList<>()).add(definition);
     }
     return equivalences.values();
   }
 
-  private List<SyntheticMethodDefinition> lookupSyntheticMethodDefinitions(
+  private Map<DexType, SyntheticMethodDefinition> lookupSyntheticMethodDefinitions(
       DexApplication finalApp) {
-    List<SyntheticMethodDefinition> methods = new ArrayList<>(syntheticItems.size());
+    Map<DexType, SyntheticMethodDefinition> methods = new IdentityHashMap<>(syntheticItems.size());
     for (SyntheticReference reference : syntheticItems.values()) {
       SyntheticDefinition definition = reference.lookupDefinition(finalApp::definitionFor);
       if (definition == null || !(definition instanceof SyntheticMethodDefinition)) {
@@ -438,7 +445,7 @@ public class SyntheticFinalization {
       }
       SyntheticMethodDefinition method = (SyntheticMethodDefinition) definition;
       if (SyntheticMethodBuilder.isValidSyntheticMethod(method.getMethod().getDefinition())) {
-        methods.add(method);
+        methods.put(method.getHolder().getType(), method);
       } else {
         // Failing this check indicates that an optimization has modified the synthetic in a
         // disruptive way.

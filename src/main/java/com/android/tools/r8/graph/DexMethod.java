@@ -9,13 +9,17 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
+public class DexMethod extends DexMember<DexEncodedMethod, DexMethod>
+    implements StructuralItem<DexMethod> {
 
   public final DexProto proto;
 
@@ -27,6 +31,20 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
           "Method name '" + name + "' in class '" + holder.toSourceString() +
               "' cannot be represented in dex format.");
     }
+  }
+
+  private static void accept(StructuralSpecification<DexMethod, ?> spec) {
+    spec.withItem(DexMethod::getHolderType).withItem(DexMethod::getName).withItem(m -> m.proto);
+  }
+
+  @Override
+  public StructuralAccept<DexMethod> getStructuralAccept() {
+    return DexMethod::accept;
+  }
+
+  @Override
+  public DexMethod self() {
+    return this;
   }
 
   public DexType getHolderType() {
@@ -178,19 +196,6 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
    */
   public boolean hasSameProtoAndName(DexMethod other) {
     return name == other.name && proto == other.proto;
-  }
-
-  @Override
-  public int slowCompareTo(DexMethod other) {
-    int result = holder.slowCompareTo(other.holder);
-    if (result != 0) {
-      return result;
-    }
-    result = name.slowCompareTo(other.name);
-    if (result != 0) {
-      return result;
-    }
-    return proto.slowCompareTo(other.proto);
   }
 
   @Override

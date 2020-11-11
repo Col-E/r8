@@ -6,6 +6,7 @@ package com.android.tools.r8.synthesis;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.utils.structural.RepresentativeMap;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
@@ -41,14 +42,14 @@ class SyntheticMethodDefinition extends SyntheticDefinition
   }
 
   @Override
-  HashCode computeHash(boolean intermediate) {
+  HashCode computeHash(RepresentativeMap map, boolean intermediate) {
     Hasher hasher = Hashing.sha256().newHasher();
     if (intermediate) {
       // If in intermediate mode, include the context type as sharing is restricted to within a
       // single context.
       hasher.putInt(getContext().getSynthesizingContextType().hashCode());
     }
-    method.getDefinition().hashSyntheticContent(hasher);
+    method.getDefinition().hashSyntheticContent(hasher, map);
     return hasher.hash();
   }
 

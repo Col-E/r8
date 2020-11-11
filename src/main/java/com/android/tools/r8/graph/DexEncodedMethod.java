@@ -75,6 +75,11 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.structural.CompareToVisitorWithTypeEquivalence;
+import com.android.tools.r8.utils.structural.HashingVisitorWithTypeEquivalence;
+import com.android.tools.r8.utils.structural.Ordered;
+import com.android.tools.r8.utils.structural.RepresentativeMap;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.ImmutableList;
 import com.google.common.hash.Hasher;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
@@ -82,7 +87,6 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -318,14 +322,50 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return deprecated;
   }
 
-  public void hashSyntheticContent(Hasher hasher) {
-    // Method holder does not contribute to the synthetic hash (it is freely chosen).
-    // Method name does not contribute to the synthetic hash (it is freely chosen).
-    method.proto.hashSyntheticContent(hasher);
-    hasher.putInt(accessFlags.getAsCfAccessFlags());
-    assert annotations().isEmpty();
-    assert parameterAnnotationsList.isEmpty();
-    assert code != null;
+  // Visitor specifying the structure of the method with respect to its "synthetic" content.
+  // TODO(b/171867022): Generalize this so that it determines any method in full.
+  private static void syntheticSpecify(StructuralSpecification<DexEncodedMethod, ?> spec) {
+    spec.withAssert(m1 -> m1.annotations().isEmpty())
+        .withAssert(m1 -> m1.parameterAnnotationsList.isEmpty())
+        .withAssert(m1 -> m1.code != null)
+        .withItem(DexEncodedMethod::getHolderType)
+        .withItem(DexEncodedMethod::getName)
+        .withInt(m -> m.getAccessFlags().getAsCfAccessFlags())
+        .withItem(DexEncodedMethod::proto)
+        .withCustomItem(
+            DexEncodedMethod::getCode,
+            (c1, c2, v) -> v.visit(c1, c2, DexEncodedMethod::compareCodeObject),
+            (c, h) -> h.visit(c, DexEncodedMethod::hashCodeObject));
+  }
+
+  public void hashSyntheticContent(Hasher hasher, RepresentativeMap map) {
+    HashingVisitorWithTypeEquivalence.run(this, hasher, map, DexEncodedMethod::syntheticSpecify);
+  }
+
+  public boolean isSyntheticContentEqual(DexEncodedMethod other) {
+    return syntheticCompareTo(other) == 0;
+  }
+
+  public int syntheticCompareTo(DexEncodedMethod other) {
+    // Consider the holder types to be equivalent, using the holder of this method as the
+    // representative.
+    RepresentativeMap map = t -> t == other.getHolderType() ? getHolderType() : t;
+    return CompareToVisitorWithTypeEquivalence.run(
+        this, other, map, DexEncodedMethod::syntheticSpecify);
+  }
+
+  private static int compareCodeObject(Code code1, Code code2) {
+    if (code1.isCfCode() && code2.isCfCode()) {
+      return code1.asCfCode().compareTo(code2.asCfCode());
+    }
+    if (code1.isDexCode() && code2.isDexCode()) {
+      return code1.asDexCode().compareTo(code2.asDexCode());
+    }
+    throw new Unreachable(
+        "Unexpected attempt to compare incompatible synthetic objects: " + code1 + " and " + code2);
+  }
+
+  private static void hashCodeObject(Code code, Hasher hasher) {
     // TODO(b/158159959): Implement a more precise hashing on code objects.
     if (code.isCfCode()) {
       CfCode cfCode = code.asCfCode();
@@ -337,30 +377,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       assert code.isDexCode();
       hasher.putInt(code.hashCode());
     }
-  }
-
-  public boolean isSyntheticContentEqual(DexEncodedMethod other) {
-    return syntheticCompareTo(other) == 0;
-  }
-
-  public int syntheticCompareTo(DexEncodedMethod other) {
-    assert annotations().isEmpty();
-    assert parameterAnnotationsList.isEmpty();
-    Comparator<DexEncodedMethod> comparator =
-        Comparator.comparing(DexEncodedMethod::proto, DexProto::slowCompareTo)
-            .thenComparingInt(m -> m.accessFlags.getAsCfAccessFlags());
-    if (code.isCfCode() && other.getCode().isCfCode()) {
-      comparator = comparator.thenComparing(m -> m.getCode().asCfCode());
-    } else if (code.isDexCode() && other.getCode().isDexCode()) {
-      comparator = comparator.thenComparing(m -> m.getCode().asDexCode());
-    } else {
-      throw new Unreachable(
-          "Unexpected attempt to compare incompatible synthetic objects: "
-              + code
-              + " and "
-              + other.getCode());
-    }
-    return comparator.compare(this, other);
   }
 
   public DexType getHolderType() {
@@ -832,7 +848,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public void upgradeClassFileVersion(CfVersion version) {
     checkIfObsolete();
     assert version != null;
-    classFileVersion = CfVersion.maxAllowNull(classFileVersion, version);
+    classFileVersion = Ordered.maxIgnoreNull(classFileVersion, version);
   }
 
   public String qualifiedName() {

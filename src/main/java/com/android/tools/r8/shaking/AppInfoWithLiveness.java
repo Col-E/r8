@@ -57,6 +57,7 @@ import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
@@ -499,7 +500,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       // Skip synthetic classes which may not have a specified version.
       if (clazz.hasClassFileVersion()) {
         largestInputCfVersion =
-            CfVersion.maxAllowNull(largestInputCfVersion, clazz.getInitialClassFileVersion());
+            Ordered.maxIgnoreNull(largestInputCfVersion, clazz.getInitialClassFileVersion());
       }
     }
     assert largestInputCfVersion != null;

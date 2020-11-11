@@ -4,6 +4,7 @@
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.utils.structural.RepresentativeMap;
 import com.google.common.hash.HashCode;
 
 /**
@@ -26,7 +27,7 @@ abstract class SyntheticDefinition {
 
   abstract DexProgramClass getHolder();
 
-  abstract HashCode computeHash(boolean intermediate);
+  abstract HashCode computeHash(RepresentativeMap map, boolean intermediate);
 
   abstract boolean isEquivalentTo(SyntheticDefinition other, boolean intermediate);
 }

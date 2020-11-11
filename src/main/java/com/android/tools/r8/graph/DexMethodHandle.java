@@ -313,7 +313,7 @@ public class DexMethodHandle extends IndexedDexItem implements
   }
 
   @Override
-  public int slowCompareTo(DexMethodHandle other) {
+  public int compareTo(DexMethodHandle other) {
     int result = type.getValue() - other.type.getValue();
     if (result == 0) {
       if (isFieldHandle()) {

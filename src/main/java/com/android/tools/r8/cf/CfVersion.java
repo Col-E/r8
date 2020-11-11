@@ -3,10 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
-import java.util.Comparator;
+import com.android.tools.r8.utils.structural.DefaultCompareToVisitor;
+import com.android.tools.r8.utils.structural.Equatable;
+import com.android.tools.r8.utils.structural.HashCodeVisitor;
+import com.android.tools.r8.utils.structural.Ordered;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import org.objectweb.asm.Opcodes;
 
-public final class CfVersion implements Comparable<CfVersion> {
+public final class CfVersion implements Ordered<CfVersion> {
 
   public static final CfVersion V1_1 = new CfVersion(Opcodes.V1_1);
   public static final CfVersion V1_2 = new CfVersion(Opcodes.V1_2);
@@ -43,62 +47,23 @@ public final class CfVersion implements Comparable<CfVersion> {
     return version;
   }
 
-  public static CfVersion maxAllowNull(CfVersion v1, CfVersion v2) {
-    assert v1 != null || v2 != null;
-    if (v1 == null) {
-      return v2;
-    }
-    if (v2 == null) {
-      return v1;
-    }
-    return v1.max(v2);
-  }
-
-  public CfVersion max(CfVersion other) {
-    return isLessThan(other) ? other : this;
-  }
-
-  public boolean isEqual(CfVersion other) {
-    return version == other.version;
-  }
-
-  public boolean isLessThan(CfVersion other) {
-    return compareTo(other) < 0;
-  }
-
-  public boolean isLessThanOrEqual(CfVersion other) {
-    return compareTo(other) <= 0;
-  }
-
-  public boolean isGreaterThan(CfVersion other) {
-    return compareTo(other) > 0;
-  }
-
-  public boolean isGreaterThanOrEqual(CfVersion other) {
-    return compareTo(other) >= 0;
-  }
-
-  @Override
-  public int compareTo(CfVersion o) {
-    return Comparator.comparingInt(CfVersion::major)
-        .thenComparingInt(CfVersion::minor)
-        .compare(this, o);
+  private static void accept(StructuralSpecification<CfVersion, ?> spec) {
+    spec.withInt(CfVersion::major).withInt(CfVersion::minor);
   }
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof CfVersion)) {
-      return false;
-    }
-    return isEqual((CfVersion) o);
+    return Equatable.equalsImpl(this, o);
   }
 
   @Override
   public int hashCode() {
-    return version;
+    return HashCodeVisitor.run(this, CfVersion::accept);
+  }
+
+  @Override
+  public int compareTo(CfVersion other) {
+    return DefaultCompareToVisitor.run(this, other, CfVersion::accept);
   }
 
   @Override

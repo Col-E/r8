@@ -5,16 +5,22 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingCharIterator;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
 import java.io.UTFDataFormatException;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
-public class DexString extends IndexedDexItem implements PresortedComparable<DexString> {
+public class DexString extends IndexedDexItem
+    implements PresortedComparable<DexString>, StructuralItem<DexString> {
 
   public static final DexString[] EMPTY_ARRAY = {};
   private static final int ARRAY_CHARACTER = '[';
@@ -30,6 +36,27 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
   DexString(String string) {
     this.size = string.length();
     this.content = encodeToMutf8(string);
+  }
+
+  @Override
+  public DexString self() {
+    return this;
+  }
+
+  @Override
+  public StructuralAccept<DexString> getStructuralAccept() {
+    // Structural accept is never accessed as all accept methods are defined directly.
+    throw new Unreachable();
+  }
+
+  @Override
+  public void acceptCompareTo(DexString other, CompareToVisitor visitor) {
+    visitor.visitDexString(this, other, DexString::internalCompareTo);
+  }
+
+  @Override
+  public void acceptHashing(HashingVisitor visitor) {
+    visitor.visitDexString(this);
   }
 
   public ThrowingCharIterator<UTFDataFormatException> iterator() {
@@ -101,14 +128,6 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     } catch (UTFDataFormatException e) {
       throw new RuntimeException("Bad format", e);
     }
-  }
-
-  public int numberOfLeadingSquareBrackets() {
-    int result = 0;
-    while (content.length > result && content[result] == ((byte) '[')) {
-      result++;
-    }
-    return result;
   }
 
   private String decode() throws UTFDataFormatException {
@@ -248,8 +267,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     return mapping.getOffsetFor(this);
   }
 
-  @Override
-  public int slowCompareTo(DexString other) {
+  private int internalCompareTo(DexString other) {
     // Compare the bytes, as comparing UTF-8 encoded strings as strings of unsigned bytes gives
     // the same result as comparing the corresponding Unicode strings lexicographically by
     // codepoint. The only complication is the MUTF-8 encoding have the two byte encoding c0 80 of
@@ -284,7 +302,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
   @Override
   public int slowCompareTo(DexString other, NamingLens lens) {
     // The naming lens cannot affect strings.
-    return slowCompareTo(other);
+    return compareTo(other);
   }
 
   private static boolean isValidClassDescriptor(String string) {
