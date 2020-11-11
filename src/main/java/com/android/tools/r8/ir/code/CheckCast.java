@@ -38,6 +38,10 @@ public class CheckCast extends Instruction {
     this.type = type;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public int opcode() {
     return Opcodes.CHECK_CAST;
@@ -229,5 +233,31 @@ public class CheckCast extends Instruction {
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
+  }
+
+  public static class Builder extends BuilderBase<Builder, CheckCast> {
+
+    private DexType castType;
+    private Value object;
+
+    public Builder setCastType(DexType castType) {
+      this.castType = castType;
+      return this;
+    }
+
+    public Builder setObject(Value object) {
+      this.object = object;
+      return this;
+    }
+
+    @Override
+    public CheckCast build() {
+      return amend(new CheckCast(outValue, object, castType));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

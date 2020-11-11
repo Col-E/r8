@@ -379,21 +379,36 @@ public class LensCodeRewriter {
             {
               InstanceGet instanceGet = current.asInstanceGet();
               DexField field = instanceGet.getField();
-              DexField actualField = rewriteFieldReference(field, method, graphLens);
+              FieldLookupResult lookup = graphLens.lookupFieldResult(field);
+              DexField rewrittenField = rewriteFieldReference(lookup, method);
               DexMethod replacementMethod =
-                  graphLens.lookupGetFieldForMethod(actualField, method.getReference());
+                  graphLens.lookupGetFieldForMethod(rewrittenField, method.getReference());
+              Value newOutValue = null;
               if (replacementMethod != null) {
-                Value newOutValue = makeOutValue(current, code);
+                newOutValue = makeOutValue(instanceGet, code);
                 iterator.replaceCurrentInstruction(
-                    new InvokeStatic(replacementMethod, newOutValue, current.inValues()));
-                if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
-                  affectedPhis.addAll(current.outValue().uniquePhiUsers());
-                }
-              } else if (actualField != field) {
-                Value newOutValue = makeOutValue(instanceGet, code);
+                    new InvokeStatic(replacementMethod, newOutValue, instanceGet.inValues()));
+              } else if (rewrittenField != field) {
+                newOutValue = makeOutValue(instanceGet, code);
                 iterator.replaceCurrentInstruction(
-                    new InstanceGet(newOutValue, instanceGet.object(), actualField));
-                if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
+                    new InstanceGet(newOutValue, instanceGet.object(), rewrittenField));
+              }
+              if (newOutValue != null) {
+                if (lookup.hasCastType() && newOutValue.hasNonDebugUsers()) {
+                  TypeElement castType =
+                      TypeElement.fromDexType(
+                          lookup.getCastType(), newOutValue.getType().nullability(), appView);
+                  CheckCast checkCast =
+                      CheckCast.builder()
+                          .setCastType(lookup.getCastType())
+                          .setFreshOutValue(code, castType)
+                          .setObject(newOutValue)
+                          .setPosition(instanceGet)
+                          .build();
+                  iterator.add(checkCast);
+                  newOutValue.replaceUsers(checkCast.outValue());
+                  affectedPhis.addAll(checkCast.outValue().uniquePhiUsers());
+                } else if (newOutValue.getType() != instanceGet.getOutType()) {
                   affectedPhis.addAll(newOutValue.uniquePhiUsers());
                 }
               }
@@ -404,19 +419,20 @@ public class LensCodeRewriter {
             {
               InstancePut instancePut = current.asInstancePut();
               DexField field = instancePut.getField();
-              DexField actualField = rewriteFieldReference(field, method, graphLens);
+              FieldLookupResult lookup = graphLens.lookupFieldResult(field);
+              DexField rewrittenField = rewriteFieldReference(lookup, method);
               DexMethod replacementMethod =
-                  graphLens.lookupPutFieldForMethod(actualField, method.getReference());
+                  graphLens.lookupPutFieldForMethod(rewrittenField, method.getReference());
               if (replacementMethod != null) {
                 iterator.replaceCurrentInstruction(
-                    new InvokeStatic(replacementMethod, null, current.inValues()));
-              } else if (actualField != field) {
+                    new InvokeStatic(replacementMethod, null, instancePut.inValues()));
+              } else if (rewrittenField != field) {
                 Value rewrittenValue =
                     rewriteValueIfDefault(
-                        code, iterator, field.type, actualField.type, instancePut.value());
+                        code, iterator, field.type, rewrittenField.type, instancePut.value());
                 InstancePut newInstancePut =
                     InstancePut.createPotentiallyInvalid(
-                        actualField, instancePut.object(), rewrittenValue);
+                        rewrittenField, instancePut.object(), rewrittenValue);
                 iterator.replaceCurrentInstruction(newInstancePut);
               }
             }
@@ -426,20 +442,35 @@ public class LensCodeRewriter {
             {
               StaticGet staticGet = current.asStaticGet();
               DexField field = staticGet.getField();
-              DexField actualField = rewriteFieldReference(field, method, graphLens);
+              FieldLookupResult lookup = graphLens.lookupFieldResult(field);
+              DexField rewrittenField = rewriteFieldReference(lookup, method);
               DexMethod replacementMethod =
-                  graphLens.lookupGetFieldForMethod(actualField, method.getReference());
+                  graphLens.lookupGetFieldForMethod(rewrittenField, method.getReference());
+              Value newOutValue = null;
               if (replacementMethod != null) {
-                Value newOutValue = makeOutValue(current, code);
+                newOutValue = makeOutValue(staticGet, code);
                 iterator.replaceCurrentInstruction(
-                    new InvokeStatic(replacementMethod, newOutValue, current.inValues()));
-                if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
-                  affectedPhis.addAll(newOutValue.uniquePhiUsers());
-                }
-              } else if (actualField != field) {
-                Value newOutValue = makeOutValue(staticGet, code);
-                iterator.replaceCurrentInstruction(new StaticGet(newOutValue, actualField));
-                if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
+                    new InvokeStatic(replacementMethod, newOutValue, staticGet.inValues()));
+              } else if (rewrittenField != field) {
+                newOutValue = makeOutValue(staticGet, code);
+                iterator.replaceCurrentInstruction(new StaticGet(newOutValue, rewrittenField));
+              }
+              if (newOutValue != null) {
+                if (lookup.hasCastType() && newOutValue.hasNonDebugUsers()) {
+                  TypeElement castType =
+                      TypeElement.fromDexType(
+                          lookup.getCastType(), newOutValue.getType().nullability(), appView);
+                  CheckCast checkCast =
+                      CheckCast.builder()
+                          .setCastType(lookup.getCastType())
+                          .setFreshOutValue(code, castType)
+                          .setObject(newOutValue)
+                          .setPosition(staticGet)
+                          .build();
+                  iterator.add(checkCast);
+                  newOutValue.replaceUsers(checkCast.outValue());
+                  affectedPhis.addAll(checkCast.outValue().uniquePhiUsers());
+                } else if (newOutValue.getType() != staticGet.getOutType()) {
                   affectedPhis.addAll(newOutValue.uniquePhiUsers());
                 }
               }
@@ -450,18 +481,19 @@ public class LensCodeRewriter {
             {
               StaticPut staticPut = current.asStaticPut();
               DexField field = staticPut.getField();
-              DexField actualField = rewriteFieldReference(field, method, graphLens);
+              FieldLookupResult lookup = graphLens.lookupFieldResult(field);
+              DexField actualField = rewriteFieldReference(lookup, method);
               DexMethod replacementMethod =
                   graphLens.lookupPutFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
                 iterator.replaceCurrentInstruction(
-                    new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
+                    new InvokeStatic(
+                        replacementMethod, staticPut.outValue(), staticPut.inValues()));
               } else if (actualField != field) {
                 Value rewrittenValue =
                     rewriteValueIfDefault(
                         code, iterator, field.type, actualField.type, staticPut.value());
-                StaticPut newStaticPut = new StaticPut(rewrittenValue, actualField);
-                iterator.replaceCurrentInstruction(newStaticPut);
+                iterator.replaceCurrentInstruction(new StaticPut(rewrittenValue, actualField));
               }
             }
             break;
@@ -586,16 +618,15 @@ public class LensCodeRewriter {
     assert code.hasNoVerticallyMergedClasses(appView);
   }
 
-  private DexField rewriteFieldReference(
-      DexField reference, ProgramMethod context, GraphLens graphLens) {
-    FieldLookupResult lookup = graphLens.lookupFieldResult(reference);
+  private DexField rewriteFieldReference(FieldLookupResult lookup, ProgramMethod context) {
     if (lookup.hasReboundReference()) {
       DexClass holder = appView.definitionFor(lookup.getReboundReference().getHolderType());
       DexEncodedField definition = lookup.getReboundReference().lookupOnClass(holder);
       if (definition != null) {
         DexClassAndField field = DexClassAndField.create(holder, definition);
         if (AccessControl.isMemberAccessible(field, holder, context, appView).isTrue()) {
-          return MemberRebindingAnalysis.validMemberRebindingTargetFor(appView, field, reference);
+          return MemberRebindingAnalysis.validMemberRebindingTargetFor(
+              appView, field, lookup.getReference());
         }
       }
     }

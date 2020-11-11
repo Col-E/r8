@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -103,20 +104,41 @@ public abstract class GraphLens {
    */
   public static class FieldLookupResult extends MemberLookupResult<DexField> {
 
-    private FieldLookupResult(DexField reference, DexField reboundReference) {
+    private final DexType castType;
+
+    private FieldLookupResult(DexField reference, DexField reboundReference, DexType castType) {
       super(reference, reboundReference);
+      this.castType = castType;
     }
 
     public static Builder builder(GraphLens lens) {
       return new Builder(lens);
     }
 
+    public boolean hasCastType() {
+      return castType != null;
+    }
+
+    public DexType getCastType() {
+      return castType;
+    }
+
+    public DexType getRewrittenCastType(Function<DexType, DexType> fn) {
+      return hasCastType() ? fn.apply(castType) : null;
+    }
+
     public static class Builder extends MemberLookupResult.Builder<DexField, Builder> {
 
+      private DexType castType;
       private GraphLens lens;
 
       private Builder(GraphLens lens) {
         this.lens = lens;
+      }
+
+      public Builder setCastType(DexType castType) {
+        this.castType = castType;
+        return this;
       }
 
       @Override
@@ -126,7 +148,7 @@ public abstract class GraphLens {
 
       public FieldLookupResult build() {
         // TODO(b/168282032): All non-identity graph lenses should set the rebound reference.
-        return new FieldLookupResult(reference, reboundReference);
+        return new FieldLookupResult(reference, reboundReference, castType);
       }
     }
   }
@@ -1045,12 +1067,16 @@ public abstract class GraphLens {
         return FieldLookupResult.builder(this)
             .setReboundReference(rewrittenReboundReference)
             .setReference(rewrittenNonReboundReference)
+            .setCastType(previous.getRewrittenCastType(this::internalDescribeLookupClassType))
             .build();
       } else {
         // TODO(b/168282032): We should always have the rebound reference, so this should become
         //  unreachable.
         DexField rewrittenReference = previous.getRewrittenReference(fieldMap);
-        return FieldLookupResult.builder(this).setReference(rewrittenReference).build();
+        return FieldLookupResult.builder(this)
+            .setReference(rewrittenReference)
+            .setCastType(previous.getRewrittenCastType(this::internalDescribeLookupClassType))
+            .build();
       }
     }
 
