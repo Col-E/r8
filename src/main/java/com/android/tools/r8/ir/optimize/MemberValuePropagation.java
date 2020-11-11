@@ -456,14 +456,7 @@ public class MemberValuePropagation {
         appView, context, Instruction.SideEffectAssumption.CLASS_ALREADY_INITIALIZED)) {
       return;
     }
-    boolean classInitializationMayHaveSideEffects =
-        holder.classInitializationMayHaveSideEffects(
-            appView,
-            // Types that are a super type of `context` are guaranteed to be initialized
-            // already.
-            type -> appView.appInfo().isSubtype(context.getHolderType(), type),
-            Sets.newIdentityHashSet());
-    if (!classInitializationMayHaveSideEffects) {
+    if (!holder.classInitializationMayHaveSideEffectsInContext(appView, context)) {
       iterator.removeOrReplaceByDebugLocalRead();
       return;
     }

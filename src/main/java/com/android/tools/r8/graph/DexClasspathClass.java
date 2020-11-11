@@ -11,6 +11,8 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class DexClasspathClass extends DexClass implements Supplier<DexClasspathClass> {
@@ -89,5 +91,17 @@ public class DexClasspathClass extends DexClass implements Supplier<DexClasspath
   @Override
   public DexClasspathClass get() {
     return this;
+  }
+
+  @Override
+  boolean internalClassOrInterfaceMayHaveInitializationSideEffects(
+      AppView<?> appView,
+      DexClass initialAccessHolder,
+      Predicate<DexType> ignore,
+      Set<DexType> seen) {
+    if (!seen.add(getType()) || ignore.test(getType())) {
+      return false;
+    }
+    return !isInterface() || appView.options().classpathInterfacesMayHaveStaticInitialization;
   }
 }

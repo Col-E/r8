@@ -20,7 +20,6 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.List;
 
@@ -109,11 +108,7 @@ public abstract class FieldInstruction extends Instruction {
         }
       }
       // May trigger <clinit> that may have side effects.
-      if (field.holder.classInitializationMayHaveSideEffects(
-          appView,
-          // Types that are a super type of `context` are guaranteed to be initialized already.
-          type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
-          Sets.newIdentityHashSet())) {
+      if (field.holder.classInitializationMayHaveSideEffectsInContext(appView, context)) {
         return true;
       }
     }

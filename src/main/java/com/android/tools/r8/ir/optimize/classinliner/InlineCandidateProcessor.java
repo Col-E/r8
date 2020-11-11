@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -165,11 +166,10 @@ final class InlineCandidateProcessor {
       if (eligibleClass == null) {
         return EligibilityStatus.NOT_ELIGIBLE;
       }
-      if (eligibleClass.classInitializationMayHaveSideEffects(
-          appView,
-          // Types that are a super type of the current context are guaranteed to be initialized.
-          type -> appView.isSubtype(method.getHolderType(), type).isTrue(),
-          Sets.newIdentityHashSet())) {
+      if (method.getHolder() == eligibleClass) {
+        return EligibilityStatus.NOT_ELIGIBLE;
+      }
+      if (eligibleClass.classInitializationMayHaveSideEffectsInContext(appView, method)) {
         return EligibilityStatus.NOT_ELIGIBLE;
       }
       return EligibilityStatus.ELIGIBLE;
@@ -178,10 +178,18 @@ final class InlineCandidateProcessor {
     assert root.isStaticGet();
 
     StaticGet staticGet = root.asStaticGet();
+    SuccessfulFieldResolutionResult fieldResolutionResult =
+        appView.appInfo().resolveField(staticGet.getField()).asSuccessfulResolution();
+    if (fieldResolutionResult == null) {
+      return EligibilityStatus.NOT_ELIGIBLE;
+    }
+    if (method.getHolder() == fieldResolutionResult.getResolvedHolder()) {
+      return EligibilityStatus.NOT_ELIGIBLE;
+    }
     if (staticGet.instructionMayHaveSideEffects(appView, method)) {
       return EligibilityStatus.NOT_ELIGIBLE;
     }
-    DexEncodedField field = appView.appInfo().resolveField(staticGet.getField()).getResolvedField();
+    DexEncodedField field = fieldResolutionResult.getResolvedField();
     FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
     ClassTypeElement dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
     if (dynamicLowerBoundType == null

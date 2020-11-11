@@ -12,6 +12,8 @@ import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClass> {
@@ -121,5 +123,19 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
   @Override
   public DexLibraryClass get() {
     return this;
+  }
+
+  @Override
+  boolean internalClassOrInterfaceMayHaveInitializationSideEffects(
+      AppView<?> appView,
+      DexClass initialAccessHolder,
+      Predicate<DexType> ignore,
+      Set<DexType> seen) {
+    if (!seen.add(getType()) || ignore.test(getType())) {
+      return false;
+    }
+    return isInterface()
+        ? appView.options().libraryInterfacesMayHaveStaticInitialization
+        : !appView.dexItemFactory().libraryClassesWithoutStaticInitialization.contains(type);
   }
 }

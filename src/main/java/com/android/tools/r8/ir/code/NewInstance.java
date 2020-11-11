@@ -26,7 +26,6 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.Sets;
 
 public class NewInstance extends Instruction {
 
@@ -176,11 +175,7 @@ public class NewInstance extends Instruction {
     }
 
     // Verify that the new-instance instruction won't lead to class initialization.
-    if (definition.classInitializationMayHaveSideEffects(
-        appView,
-        // Types that are a super type of `context` are guaranteed to be initialized already.
-        type -> appViewWithLiveness.appInfo().isSubtype(context.getHolderType(), type),
-        Sets.newIdentityHashSet())) {
+    if (definition.classInitializationMayHaveSideEffectsInContext(appViewWithLiveness, context)) {
       return true;
     }
 
@@ -213,11 +208,7 @@ public class NewInstance extends Instruction {
     if (appView.enableWholeProgramOptimizations()) {
       // In R8, check if the class initialization of the holder or any of its ancestor types may
       // have side effects.
-      return clazz.classInitializationMayHaveSideEffects(
-          appView,
-          // Types that are a super type of `context` are guaranteed to be initialized already.
-          type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
-          Sets.newIdentityHashSet());
+      return clazz.classInitializationMayHaveSideEffectsInContext(appView, context);
     } else {
       // In D8, this instruction may trigger class initialization if the holder of the field is
       // different from the current context.

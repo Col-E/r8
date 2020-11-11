@@ -437,7 +437,7 @@ public class VerticalClassMerger {
     // their clinit called - except when the interface has a default method.
     if ((sourceClass.hasClassInitializer() && targetClass.hasClassInitializer())
         || targetClass.classInitializationMayHaveSideEffects(
-            appView, type -> type == sourceClass.type, Sets.newIdentityHashSet())
+            appView, type -> type == sourceClass.type)
         || (sourceClass.isInterface()
             && sourceClass.classInitializationMayHaveSideEffects(appView))) {
       // TODO(herhut): Handle class initializers.

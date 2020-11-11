@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.Sets;
 
 public class InitClass extends Instruction {
 
@@ -111,11 +110,7 @@ public class InitClass extends Instruction {
         .isPossiblyFalse()) {
       return true;
     }
-    if (clazz.classInitializationMayHaveSideEffects(
-        appView,
-        // Types that are a super type of `context` are guaranteed to be initialized already.
-        type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
-        Sets.newIdentityHashSet())) {
+    if (clazz.classInitializationMayHaveSideEffectsInContext(appView, context)) {
       return true;
     }
     return false;
@@ -132,11 +127,7 @@ public class InitClass extends Instruction {
     if (appView.enableWholeProgramOptimizations()) {
       // In R8, check if the class initialization of `clazz` or any of its ancestor types may have
       // side effects.
-      return clazz.classInitializationMayHaveSideEffects(
-          appView,
-          // Types that are a super type of `context` are guaranteed to be initialized already.
-          type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
-          Sets.newIdentityHashSet());
+      return clazz.classInitializationMayHaveSideEffectsInContext(appView, context);
     } else {
       // In D8, this instruction may trigger class initialization if `clazz` is different from the
       // current context.

@@ -28,7 +28,6 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.List;
 
@@ -209,11 +208,11 @@ public class InvokeStatic extends InvokeMethod {
       return true;
     }
 
-    DexEncodedMethod singleTarget = resolutionResult.getSingleTarget();
+    DexClassAndMethod singleTarget = resolutionResult.getResolutionPair();
     assert singleTarget != null;
 
     // Verify that the target method is static and accessible.
-    if (!singleTarget.isStatic()
+    if (!singleTarget.getDefinition().isStatic()
         || resolutionResult.isAccessibleFrom(context, appInfoWithLiveness).isPossiblyFalse()) {
       return true;
     }
@@ -223,7 +222,7 @@ public class InvokeStatic extends InvokeMethod {
       return false;
     }
 
-    if (singleTarget.getOptimizationInfo().mayHaveSideEffects()) {
+    if (singleTarget.getDefinition().getOptimizationInfo().mayHaveSideEffects()) {
       return true;
     }
 
@@ -232,13 +231,8 @@ public class InvokeStatic extends InvokeMethod {
     }
 
     return singleTarget
-        .holder()
-        .classInitializationMayHaveSideEffects(
-            appView,
-            // Types that are a super type of `context` are guaranteed to be initialized
-            // already.
-            type -> appInfoWithLiveness.isSubtype(context.getHolderType(), type),
-            Sets.newIdentityHashSet());
+        .getHolder()
+        .classInitializationMayHaveSideEffectsInContext(appView, context);
   }
 
   public static class Builder extends BuilderBase<Builder, InvokeStatic> {

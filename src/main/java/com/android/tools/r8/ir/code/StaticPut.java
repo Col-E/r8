@@ -29,7 +29,6 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
-import com.google.common.collect.Sets;
 
 public class StaticPut extends FieldInstruction implements StaticFieldInstruction {
 
@@ -232,11 +231,7 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
     if (appView.enableWholeProgramOptimizations()) {
       // In R8, check if the class initialization of the holder or any of its ancestor types may
       // have side effects.
-      return holder.classInitializationMayHaveSideEffects(
-          appView,
-          // Types that are a super type of `context` are guaranteed to be initialized already.
-          type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
-          Sets.newIdentityHashSet());
+      return holder.classInitializationMayHaveSideEffectsInContext(appView, context);
     } else {
       // In D8, this instruction may trigger class initialization if the holder of the field is
       // different from the current context.

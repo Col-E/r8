@@ -328,12 +328,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
           }
           if (state.hasTrackedValueEscaped()) {
             DexType holder = staticPut.getField().holder;
-            if (holder.classInitializationMayHaveSideEffects(
-                appView,
-                // Types that are a super type of the current context are guaranteed to be
-                // initialized already.
-                type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
-                Sets.newIdentityHashSet())) {
+            if (holder.classInitializationMayHaveSideEffectsInContext(appView, context)) {
               return true;
             }
           }

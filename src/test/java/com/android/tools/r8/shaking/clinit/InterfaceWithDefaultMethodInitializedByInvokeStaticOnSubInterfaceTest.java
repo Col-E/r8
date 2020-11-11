@@ -16,7 +16,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class InterfaceInitializedByStaticGetOnSubInterfaceTest
+public class InterfaceWithDefaultMethodInitializedByInvokeStaticOnSubInterfaceTest
     extends ClassMayHaveInitializationSideEffectsTestBase {
 
   private final TestParameters parameters;
@@ -26,7 +26,8 @@ public class InterfaceInitializedByStaticGetOnSubInterfaceTest
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public InterfaceInitializedByStaticGetOnSubInterfaceTest(TestParameters parameters) {
+  public InterfaceWithDefaultMethodInitializedByInvokeStaticOnSubInterfaceTest(
+      TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -38,7 +39,7 @@ public class InterfaceInitializedByStaticGetOnSubInterfaceTest
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("J");
+        .assertSuccessWithEmptyOutput();
   }
 
   @Test
@@ -50,7 +51,7 @@ public class InterfaceInitializedByStaticGetOnSubInterfaceTest
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("J");
+        .assertSuccessWithEmptyOutput();
   }
 
   @Test
@@ -59,7 +60,7 @@ public class InterfaceInitializedByStaticGetOnSubInterfaceTest
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("J");
+        .assertSuccessWithEmptyOutput();
   }
 
   @Test
@@ -70,24 +71,26 @@ public class InterfaceInitializedByStaticGetOnSubInterfaceTest
                 .addLibraryFile(ToolHelper.getMostRecentAndroidJar())
                 .build(),
             TestClass.class);
-    assertMayHaveClassInitializationSideEffects(appView, J.class);
+    assertNoClassInitializationSideEffects(appView, J.class);
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
-      Greeter greeter = J.jGreeter;
+      J.greet();
     }
   }
 
   interface I {
 
     Greeter iGreeter = new Greeter("I");
+
+    default void m() {}
   }
 
   interface J extends I {
 
-    Greeter jGreeter = new Greeter("J");
+    static void greet() {}
   }
 
   static class Greeter {

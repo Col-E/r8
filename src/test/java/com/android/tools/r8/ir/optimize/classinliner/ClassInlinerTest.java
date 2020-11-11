@@ -129,8 +129,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
         Collections.emptySet(), collectTypes(clazz.uniqueMethodWithName("testCallOnIface1")));
 
     assertEquals(
-        Collections.singleton("com.android.tools.r8.ir.optimize.classinliner.trivial.Iface2Impl"),
-        collectTypes(clazz.uniqueMethodWithName("testCallOnIface2")));
+        Collections.emptySet(), collectTypes(clazz.uniqueMethodWithName("testCallOnIface2")));
 
     assertEquals(
         Sets.newHashSet(

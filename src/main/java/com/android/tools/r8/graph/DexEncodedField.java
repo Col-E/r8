@@ -20,7 +20,6 @@ import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.kotlin.KotlinFieldLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.Sets;
 
 public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField> {
   public static final DexEncodedField[] EMPTY_ARRAY = {};
@@ -265,32 +264,6 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     }
 
     return null;
-  }
-
-  public boolean mayTriggerClassInitializationSideEffects(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
-    // Only static field matters when it comes to class initialization side effects.
-    if (!isStatic()) {
-      return false;
-    }
-    DexClass clazz = appView.definitionFor(field.holder);
-    if (clazz == null) {
-      return true;
-    }
-    if (clazz.classInitializationMayHaveSideEffects(
-        appView,
-        // Types that are a super type of the current context are guaranteed to be initialized
-        // already.
-        type -> appView.appInfo().isSubtype(context.getHolderType(), type),
-        Sets.newIdentityHashSet())) {
-      // Ignore class initialization side-effects for dead proto extension fields to ensure that
-      // we force replace these field reads by null.
-      boolean ignore =
-          appView.withGeneratedExtensionRegistryShrinker(
-              shrinker -> shrinker.isDeadProtoExtensionField(field), false);
-      return !ignore;
-    }
-    return false;
   }
 
   public DexEncodedField toTypeSubstitutedField(DexField field) {

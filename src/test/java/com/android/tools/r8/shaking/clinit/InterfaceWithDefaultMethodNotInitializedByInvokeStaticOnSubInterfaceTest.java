@@ -9,6 +9,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import org.junit.Test;
@@ -67,9 +68,12 @@ public class InterfaceWithDefaultMethodNotInitializedByInvokeStaticOnSubInterfac
   @Test
   public void testClassInitializationMayHaveSideEffects() throws Exception {
     AppView<AppInfoWithLiveness> appView =
-        computeAppViewWithLiveness(buildInnerClasses(getClass()).build(), TestClass.class);
-    // TODO(b/172049649): The initialization of J does not trigger the <clinit> of I.
-    assertMayHaveClassInitializationSideEffects(appView, J.class);
+        computeAppViewWithLiveness(
+            buildInnerClasses(getClass())
+                .addLibraryFile(ToolHelper.getMostRecentAndroidJar())
+                .build(),
+            TestClass.class);
+    assertNoClassInitializationSideEffects(appView, J.class);
   }
 
   static class TestClass {

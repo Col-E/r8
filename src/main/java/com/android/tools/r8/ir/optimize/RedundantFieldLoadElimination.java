@@ -282,12 +282,7 @@ public class RedundantFieldLoadElimination {
             killAllNonFinalActiveFields();
           } else if (instruction.isNewInstance()) {
             NewInstance newInstance = instruction.asNewInstance();
-            if (newInstance.clazz.classInitializationMayHaveSideEffects(
-                appView,
-                // Types that are a super type of `context` are guaranteed to be initialized
-                // already.
-                type -> appView.isSubtype(method.getHolderType(), type).isTrue(),
-                Sets.newIdentityHashSet())) {
+            if (newInstance.clazz.classInitializationMayHaveSideEffectsInContext(appView, method)) {
               killAllNonFinalActiveFields();
             }
           } else {

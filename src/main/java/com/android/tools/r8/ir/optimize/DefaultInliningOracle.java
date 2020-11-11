@@ -380,7 +380,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     //
     // For simplicity, we are conservative and consider all interfaces, not only the ones with
     // default methods.
-    if (!target.getHolder().classInitializationMayHaveSideEffects(appView)) {
+    if (!target.getHolder().classInitializationMayHaveSideEffectsInContext(appView, context)) {
       return true;
     }
 

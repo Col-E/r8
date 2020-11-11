@@ -227,6 +227,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableNeverMergePrefixes = true;
   public Set<String> neverMergePrefixes = ImmutableSet.of("j$.");
 
+  public boolean classpathInterfacesMayHaveStaticInitialization = false;
   public boolean libraryInterfacesMayHaveStaticInitialization = false;
 
   // Optimization-related flags. These should conform to -dontoptimize and disableAllOptimizations.

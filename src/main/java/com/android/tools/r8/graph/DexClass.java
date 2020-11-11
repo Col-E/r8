@@ -3,13 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.google.common.base.Predicates.alwaysFalse;
+
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -673,56 +674,27 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public boolean classInitializationMayHaveSideEffects(AppView<?> appView) {
-    return classInitializationMayHaveSideEffects(
-        appView, Predicates.alwaysFalse(), Sets.newIdentityHashSet());
-  }
-
-  public boolean classInitializationMayHaveSideEffectsInContext(
-      AppView<AppInfoWithLiveness> appView, ProgramDefinition context) {
-    return classInitializationMayHaveSideEffects(
-        appView,
-        // Types that are a super type of the current context are guaranteed to be initialized
-        // already.
-        type -> appView.appInfo().isSubtype(context.getContextType(), type),
-        Sets.newIdentityHashSet());
+    return classInitializationMayHaveSideEffects(appView, alwaysFalse());
   }
 
   public boolean classInitializationMayHaveSideEffects(
-      AppView<?> appView, Predicate<DexType> ignore, Set<DexType> seen) {
-    if (!seen.add(type)) {
-      return false;
-    }
-    if (ignore.test(type)) {
-      return false;
-    }
-    if (isLibraryClass()) {
-      if (isInterface()) {
-        return appView.options().libraryInterfacesMayHaveStaticInitialization;
-      }
-      if (appView.dexItemFactory().libraryClassesWithoutStaticInitialization.contains(type)) {
-        return false;
-      }
-    }
-    if (hasClassInitializerThatCannotBePostponed()) {
-      return true;
-    }
-    if (defaultValuesForStaticFieldsMayTriggerAllocation()) {
-      return true;
-    }
-    return initializationOfParentTypesMayHaveSideEffects(appView, ignore, seen);
+      AppView<?> appView, Predicate<DexType> ignore) {
+    return internalClassOrInterfaceMayHaveInitializationSideEffects(
+        appView, this, ignore, Sets.newIdentityHashSet());
   }
 
-  private boolean hasClassInitializerThatCannotBePostponed() {
-    if (isLibraryClass()) {
-      // We don't know for library classes in general but assume that java.lang.Object is safe.
-      return superType != null;
-    }
-    DexEncodedMethod clinit = getClassInitializer();
-    if (clinit == null || clinit.getCode() == null) {
-      return false;
-    }
-    return !clinit.getOptimizationInfo().classInitializerMayBePostponed();
+  public final boolean classInitializationMayHaveSideEffectsInContext(
+      AppView<?> appView, ProgramDefinition context) {
+    // Types that are a super type of the current context are guaranteed to be initialized already.
+    return classInitializationMayHaveSideEffects(
+        appView, type -> appView.isSubtype(context.getContextType(), type).isTrue());
   }
+
+  abstract boolean internalClassOrInterfaceMayHaveInitializationSideEffects(
+      AppView<?> appView,
+      DexClass initialAccessHolder,
+      Predicate<DexType> ignore,
+      Set<DexType> seen);
 
   public void forEachImmediateSupertype(Consumer<DexType> fn) {
     if (superType != null) {
@@ -742,32 +714,14 @@ public abstract class DexClass extends DexDefinition {
     return () -> iterator;
   }
 
-  public boolean initializationOfParentTypesMayHaveSideEffects(AppView<?> appView) {
-    return initializationOfParentTypesMayHaveSideEffects(
-        appView, Predicates.alwaysFalse(), Sets.newIdentityHashSet());
-  }
-
-  public boolean initializationOfParentTypesMayHaveSideEffects(
-      AppView<?> appView, Predicate<DexType> ignore, Set<DexType> seen) {
-    for (DexType iface : interfaces.values) {
-      if (iface.classInitializationMayHaveSideEffects(appView, ignore, seen)) {
-        return true;
-      }
-    }
-    if (superType != null
-        && superType.classInitializationMayHaveSideEffects(appView, ignore, seen)) {
-      return true;
-    }
-    return false;
-  }
-
   public boolean definesFinalizer(DexItemFactory factory) {
     return lookupVirtualMethod(factory.objectMembers.finalize) != null;
   }
 
   public boolean defaultValuesForStaticFieldsMayTriggerAllocation() {
     return staticFields().stream()
-        .anyMatch(field -> field.getStaticValue().mayHaveSideEffects());
+        .anyMatch(
+            field -> field.hasExplicitStaticValue() && field.getStaticValue().mayHaveSideEffects());
   }
 
   public List<InnerClassAttribute> getInnerClasses() {

@@ -303,7 +303,7 @@ public final class ClassInliner {
     }
 
     // Check for static initializers in this class or any of interfaces it implements.
-    if (clazz.initializationOfParentTypesMayHaveSideEffects(appView)) {
+    if (clazz.classInitializationMayHaveSideEffects(appView)) {
       return EligibilityStatus.NOT_ELIGIBLE;
     }
     return EligibilityStatus.ELIGIBLE;
