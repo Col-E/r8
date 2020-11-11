@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.utils.ObjectUtils;
 import com.android.tools.r8.utils.SetUtils;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -75,10 +76,16 @@ public class FieldAccessInfoCollectionImpl
   public FieldAccessInfoCollectionImpl rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLens lens) {
     FieldAccessInfoCollectionImpl collection = new FieldAccessInfoCollectionImpl();
-    infos.forEach(
-        (field, info) ->
-            collection.infos.put(
-                lens.lookupField(field), info.rewrittenWithLens(definitions, lens)));
+    Consumer<FieldAccessInfoImpl> rewriteAndMergeFieldInfo =
+        info -> {
+          FieldAccessInfoImpl rewrittenInfo = info.rewrittenWithLens(definitions, lens);
+          DexField newField = rewrittenInfo.getField();
+          collection.infos.compute(
+              newField,
+              (ignore, oldInfo) ->
+                  ObjectUtils.mapNotNullOrDefault(oldInfo, rewrittenInfo, rewrittenInfo::join));
+        };
+    infos.values().forEach(rewriteAndMergeFieldInfo);
     return collection;
   }
 

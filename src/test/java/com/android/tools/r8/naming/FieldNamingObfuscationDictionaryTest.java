@@ -9,6 +9,7 @@ import static junit.framework.TestCase.assertEquals;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -51,6 +52,7 @@ public class FieldNamingObfuscationDictionaryTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   public static class C extends A {
 
     public int f0;
@@ -98,6 +100,7 @@ public class FieldNamingObfuscationDictionaryTest extends TestBase {
         .addKeepRules("-overloadaggressively", "-obfuscationdictionary " + dictionary.toString())
         .addKeepMainRule(Runner.class)
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Runner.class, "HELLO", "WORLD")

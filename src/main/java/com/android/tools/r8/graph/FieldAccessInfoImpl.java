@@ -281,4 +281,12 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     rewritten.writesWithContexts = writesWithContexts.rewrittenWithLens(definitions, lens);
     return rewritten;
   }
+
+  public FieldAccessInfoImpl join(FieldAccessInfoImpl impl) {
+    FieldAccessInfoImpl merged = new FieldAccessInfoImpl(field);
+    merged.flags = flags | impl.flags;
+    merged.readsWithContexts = readsWithContexts.join(impl.readsWithContexts);
+    merged.writesWithContexts = writesWithContexts.join(impl.writesWithContexts);
+    return merged;
+  }
 }

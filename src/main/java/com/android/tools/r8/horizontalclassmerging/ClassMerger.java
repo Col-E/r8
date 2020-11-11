@@ -53,6 +53,7 @@ public class ClassMerger {
   private final ClassMethodsBuilder classMethodsBuilder = new ClassMethodsBuilder();
   private final Reference2IntMap<DexType> classIdentifiers = new Reference2IntOpenHashMap<>();
   private final ClassStaticFieldsMerger classStaticFieldsMerger;
+  private final ClassInstanceFieldsMerger classInstanceFieldsMerger;
   private final Collection<VirtualMethodMerger> virtualMethodMergers;
   private final Collection<ConstructorMerger> constructorMergers;
   private final DexField classIdField;
@@ -78,6 +79,7 @@ public class ClassMerger {
 
     this.dexItemFactory = appView.dexItemFactory();
     this.classStaticFieldsMerger = new ClassStaticFieldsMerger(appView, lensBuilder, target);
+    this.classInstanceFieldsMerger = new ClassInstanceFieldsMerger(lensBuilder, target);
 
     buildClassIdentifierMap();
   }
@@ -193,11 +195,12 @@ public class ClassMerger {
   }
 
   void mergeInstanceFields() {
-    // TODO: support instance field merging
-    assert Iterables.all(toMergeGroup, clazz -> !clazz.hasInstanceFields());
-
-    // The target should only have the class id field.
-    assert target.instanceFields().size() == 1;
+    toMergeGroup.forEach(
+        clazz -> {
+          classInstanceFieldsMerger.addFields(clazz);
+          clazz.setInstanceFields(null);
+        });
+    classInstanceFieldsMerger.merge();
   }
 
   public void mergeGroup(SyntheticArgumentClass syntheticArgumentClass) {

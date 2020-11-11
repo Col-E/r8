@@ -10,6 +10,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 
 public class HorizontallyMergedClassesInspector {
@@ -21,6 +22,10 @@ public class HorizontallyMergedClassesInspector {
       DexItemFactory dexItemFactory, HorizontallyMergedClasses horizontallyMergedClasses) {
     this.dexItemFactory = dexItemFactory;
     this.horizontallyMergedClasses = horizontallyMergedClasses;
+  }
+
+  public DexType getTarget(DexType clazz) {
+    return horizontallyMergedClasses.getMergeTargetOrDefault(clazz);
   }
 
   public HorizontallyMergedClassesInspector assertMergedInto(Class<?> from, Class<?> target) {

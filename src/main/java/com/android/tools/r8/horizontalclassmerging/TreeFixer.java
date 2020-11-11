@@ -46,6 +46,7 @@ class TreeFixer {
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory dexItemFactory;
   private final BiMap<DexMethod, DexMethod> movedMethods = HashBiMap.create();
+  private final BiMap<DexField, DexField> movedFields = HashBiMap.create();
   private final SyntheticArgumentClass syntheticArgumentClass;
   private final BiMap<DexMethodSignature, DexMethodSignature> reservedInterfaceSignatures =
       HashBiMap.create();
@@ -129,6 +130,7 @@ class TreeFixer {
     }
 
     lensBuilder.remapMethods(movedMethods);
+    lensBuilder.remapFields(movedFields);
 
     HorizontalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
     fieldAccessChangesBuilder.build(this::fixupMethodReference).modify(appView);
@@ -381,7 +383,7 @@ class TreeFixer {
       }
 
       if (newField != encodedField.field) {
-        lensBuilder.mapField(field, newField);
+        movedFields.put(field, newField);
         setter.setField(i, encodedField.toTypeSubstitutedField(newField));
       }
     }

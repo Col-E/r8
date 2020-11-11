@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -86,6 +87,8 @@ public abstract class AbstractAccessContexts {
     return UnknownAccessContexts.getInstance();
   }
 
+  public abstract AbstractAccessContexts join(AbstractAccessContexts contexts);
+
   public static class EmptyAccessContexts extends AbstractAccessContexts {
 
     public static EmptyAccessContexts INSTANCE = new EmptyAccessContexts();
@@ -139,6 +142,11 @@ public abstract class AbstractAccessContexts {
     @Override
     AbstractAccessContexts rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
       return this;
+    }
+
+    @Override
+    public AbstractAccessContexts join(AbstractAccessContexts contexts) {
+      return contexts;
     }
   }
 
@@ -305,6 +313,28 @@ public abstract class AbstractAccessContexts {
           });
       return new ConcreteAccessContexts(newAccessesWithContexts);
     }
+
+    @Override
+    public AbstractAccessContexts join(AbstractAccessContexts contexts) {
+      if (contexts.isEmpty()) {
+        return this;
+      }
+      if (contexts.isTop()) {
+        return contexts;
+      }
+      Map<DexField, ProgramMethodSet> newAccessesWithContexts = new IdentityHashMap<>();
+      accessesWithContexts.forEach(
+          (field, methodSet) ->
+              newAccessesWithContexts.put(field, ProgramMethodSet.create(methodSet)));
+
+      BiConsumer<DexField, ProgramMethodSet> addAllMethods =
+          (field, methodSet) ->
+              newAccessesWithContexts
+                  .computeIfAbsent(field, ignore -> ProgramMethodSet.create())
+                  .addAll(methodSet);
+      contexts.asConcrete().accessesWithContexts.forEach(addAllMethods);
+      return new ConcreteAccessContexts(newAccessesWithContexts);
+    }
   }
 
   public static class UnknownAccessContexts extends AbstractAccessContexts {
@@ -360,6 +390,11 @@ public abstract class AbstractAccessContexts {
 
     @Override
     AbstractAccessContexts rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
+      return this;
+    }
+
+    @Override
+    public AbstractAccessContexts join(AbstractAccessContexts contexts) {
       return this;
     }
   }

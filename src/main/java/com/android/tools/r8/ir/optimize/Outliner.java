@@ -1262,8 +1262,9 @@ public class Outliner {
     private boolean removeMethodFromOutlineList(Outline outline) {
       synchronized (outlineSites) {
         assert ListUtils.removeFirstMatch(
-            outlineSites.get(outline),
-            element -> element.getDefinition() == method.getDefinition());
+                outlineSites.get(outline),
+                element -> element.getDefinition() == method.getDefinition())
+            .isPresent();
       }
       return true;
     }

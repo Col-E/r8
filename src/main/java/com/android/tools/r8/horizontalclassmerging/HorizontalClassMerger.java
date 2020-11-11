@@ -18,9 +18,9 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassesOrMembersWithAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInnerClasses;
-import com.android.tools.r8.horizontalclassmerging.policies.NoInstanceFields;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKeepRules;
+import com.android.tools.r8.horizontalclassmerging.policies.NoKotlinLambdas;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKotlinMetadata;
 import com.android.tools.r8.horizontalclassmerging.policies.NoNativeMethods;
 import com.android.tools.r8.horizontalclassmerging.policies.NoRuntimeTypeChecks;
@@ -34,6 +34,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.PreventMergeIntoMain
 import com.android.tools.r8.horizontalclassmerging.policies.PreventMethodImplementation;
 import com.android.tools.r8.horizontalclassmerging.policies.RespectPackageBoundaries;
 import com.android.tools.r8.horizontalclassmerging.policies.SameFeatureSplit;
+import com.android.tools.r8.horizontalclassmerging.policies.SameFields;
 import com.android.tools.r8.horizontalclassmerging.policies.SameNestHost;
 import com.android.tools.r8.horizontalclassmerging.policies.SameParentClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -44,9 +45,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class HorizontalClassMerger {
   private final AppView<AppInfoWithLiveness> appView;
@@ -61,17 +61,15 @@ public class HorizontalClassMerger {
       DirectMappedDexApplication.Builder appBuilder,
       MainDexTracingResult mainDexTracingResult,
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
-    Map<FieldMultiset, List<DexProgramClass>> classes = new LinkedHashMap<>();
+    List<DexProgramClass> initialGroup = appView.appInfo().classesWithDeterministicOrder();
 
-    // Group classes by same field signature using the hash map.
-    for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
-      classes.computeIfAbsent(new FieldMultiset(clazz), ignore -> new ArrayList<>()).add(clazz);
-    }
-
-    // Run the policies on all collected classes to produce a final grouping.
+    // Run the policies on all program classes to produce a final grouping.
     Collection<List<DexProgramClass>> groups =
         new SimplePolicyExecutor()
-            .run(classes.values(), getPolicies(mainDexTracingResult, runtimeTypeCheckInfo));
+            .run(
+                Collections.singletonList(initialGroup),
+                getPolicies(mainDexTracingResult, runtimeTypeCheckInfo));
+
     // If there are no groups, then end horizontal class merging.
     if (groups.isEmpty()) {
       appView.setHorizontallyMergedClasses(HorizontallyMergedClasses.empty());
@@ -109,7 +107,7 @@ public class HorizontalClassMerger {
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
     return ImmutableList.of(
         new NotMatchedByNoHorizontalClassMerging(appView),
-        new NoInstanceFields(),
+        new SameFields(),
         new NoInterfaces(),
         new ClassesHaveSameInterfaces(),
         new NoAnnotations(),
@@ -122,6 +120,7 @@ public class HorizontalClassMerger {
         new NoNativeMethods(),
         new NoKeepRules(appView),
         new NoKotlinMetadata(),
+        new NoKotlinLambdas(appView),
         new NoServiceLoaders(appView),
         new NotVerticallyMergedIntoSubtype(appView),
         new NoRuntimeTypeChecks(runtimeTypeCheckInfo),

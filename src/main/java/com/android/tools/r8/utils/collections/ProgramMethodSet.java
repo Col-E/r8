@@ -53,6 +53,12 @@ public class ProgramMethodSet implements Iterable<ProgramMethod> {
     return result;
   }
 
+  public static ProgramMethodSet create(ProgramMethodSet methodSet) {
+    ProgramMethodSet newMethodSet = create();
+    newMethodSet.addAll(methodSet);
+    return newMethodSet;
+  }
+
   public static ProgramMethodSet createConcurrent() {
     return new ProgramMethodSet(ConcurrentHashMap::new);
   }

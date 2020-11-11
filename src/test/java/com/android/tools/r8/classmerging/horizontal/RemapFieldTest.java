@@ -8,12 +8,13 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.*;
+import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
-public class IdenticalFieldMembersTest extends HorizontalClassMergingTestBase {
-  public IdenticalFieldMembersTest(
-      TestParameters parameters, boolean enableHorizontalClassMerging) {
+public class RemapFieldTest extends HorizontalClassMergingTestBase {
+  public RemapFieldTest(TestParameters parameters, boolean enableHorizontalClassMerging) {
     super(parameters, enableHorizontalClassMerging);
   }
 
@@ -27,50 +28,74 @@ public class IdenticalFieldMembersTest extends HorizontalClassMergingTestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
+        .addHorizontallyMergedClassesInspectorIf(
+            enableHorizontalClassMerging,
+            inspector ->
+                inspector.assertMergedInto(B.class, A.class).assertMergedInto(D.class, C.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("foo A", "bar 2")
+        .assertSuccessWithOutputLines("A", "B", "foo: foo c", "B", "foo: bar d")
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
               assertThat(
                   codeInspector.clazz(B.class), notIf(isPresent(), enableHorizontalClassMerging));
+              assertThat(codeInspector.clazz(C.class), isPresent());
+              assertThat(
+                  codeInspector.clazz(D.class), notIf(isPresent(), enableHorizontalClassMerging));
             });
   }
 
   @NeverClassInline
   public static class A {
-    private String field;
-
-    public A(String v) {
-      this.field = v;
-    }
-
-    @NeverInline
-    public void foo() {
-      System.out.println("foo " + field);
+    public A() {
+      System.out.println("A");
     }
   }
 
   @NeverClassInline
   public static class B {
-    private String field;
+    public B() {
+      System.out.println("B");
+    }
 
-    public B(int v) {
-      this.field = Integer.toString(v);
+    public void foo(String s) {
+      System.out.println("foo: " + s);
+    }
+  }
+
+  @NeverClassInline
+  public static class C {
+    B b;
+
+    public C(B b) {
+      this.b = b;
+    }
+
+    @NeverInline
+    public void foo() {
+      b.foo("foo c");
+    }
+  }
+
+  @NeverClassInline
+  public static class D {
+    B b;
+
+    public D(B b) {
+      this.b = b;
     }
 
     @NeverInline
     public void bar() {
-      System.out.println("bar " + field);
+      b.foo("bar d");
     }
   }
 
   public static class Main {
     public static void main(String[] args) {
-      A a = new A("A");
-      a.foo();
-      B b = new B(2);
-      b.bar();
+      new A();
+      new C(new B()).foo();
+      new D(new B()).bar();
     }
   }
 }

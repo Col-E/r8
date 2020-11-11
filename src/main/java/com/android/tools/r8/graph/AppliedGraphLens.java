@@ -102,7 +102,7 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
 
   @Override
   public Iterable<DexType> getOriginalTypes(DexType type) {
-    Set<DexType> originalTypes = renamedTypeNames.getKeys(type);
+    Set<DexType> originalTypes = renamedTypeNames.getKeysOrNull(type);
     if (originalTypes == null) {
       return ImmutableList.of(type);
     }

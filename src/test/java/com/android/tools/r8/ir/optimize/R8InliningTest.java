@@ -13,10 +13,14 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ZipUtils;
@@ -58,6 +62,7 @@ public class R8InliningTest extends TestBase {
   private final boolean allowAccessModification;
   private final TestParameters parameters;
   private Path outputDir = null;
+  private String nullabilityClass = "inlining.Nullability";
 
   public R8InliningTest(boolean allowAccessModification, TestParameters parameters) {
     this.allowAccessModification = allowAccessModification;
@@ -94,6 +99,14 @@ public class R8InliningTest extends TestBase {
     return null;
   }
 
+  private void fixInliningNullabilityClass(
+      DexItemFactory dexItemFactory, HorizontallyMergedClasses horizontallyMergedClasses) {
+    DexType originalType =
+        dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor("inlining.Nullability"));
+    nullabilityClass =
+        horizontallyMergedClasses.getMergeTargetOrDefault(originalType).toSourceString();
+  }
+
   private void generateR8Version(Path out, Path mapFile, boolean inlining) throws Exception {
     assert parameters.isDexRuntime() || parameters.isCfRuntime();
     R8Command.Builder commandBuilder =
@@ -126,6 +139,7 @@ public class R8InliningTest extends TestBase {
           // Tests depend on nullability of receiver and argument in general. Learning very accurate
           // nullability from actual usage in tests bothers what we want to test.
           o.callSiteOptimizationOptions().disableTypePropagationForTesting();
+          o.testing.horizontallyMergedClassesConsumer = this::fixInliningNullabilityClass;
         });
   }
 
@@ -201,7 +215,7 @@ public class R8InliningTest extends TestBase {
     // a private class in another package.
     checkAbsent(clazz, "int", "callInterfaceMethod", ImmutableList.of("inlining.IFace"));
 
-    clazz = inspector.clazz("inlining.Nullability");
+    clazz = inspector.clazz(nullabilityClass);
     checkAbsentBooleanMethod(clazz, "inlinableWithPublicField");
     checkAbsentBooleanMethod(clazz, "inlinableWithControlFlow");
   }
@@ -309,7 +323,7 @@ public class R8InliningTest extends TestBase {
     final int INLINABLE = allowAccessModification ? 0 : 1;
     final int NEVER_INLINABLE = 1;
 
-    ClassSubject clazz = inspector.clazz("inlining.Nullability");
+    ClassSubject clazz = inspector.clazz(nullabilityClass);
     MethodSubject m;
 
     m = clazz.method("int", "inlinable", ImmutableList.of("inlining.A"));
@@ -339,7 +353,7 @@ public class R8InliningTest extends TestBase {
   public void invokeOnNonNullReceiver() throws Exception {
     CodeInspector inspector =
         new CodeInspector(getGeneratedFiles(), getGeneratedProguardMap(), null);
-    ClassSubject clazz = inspector.clazz("inlining.Nullability");
+    ClassSubject clazz = inspector.clazz(nullabilityClass);
     MethodSubject m = clazz.method("int", "conditionalOperator", ImmutableList.of("inlining.A"));
     assertTrue(m.isPresent());
 

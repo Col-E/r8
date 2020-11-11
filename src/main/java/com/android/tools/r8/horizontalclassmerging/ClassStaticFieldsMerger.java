@@ -48,7 +48,7 @@ public class ClassStaticFieldsMerger {
     field = field.toTypeSubstitutedField(newFieldReference);
     targetFields.put(newFieldReference, field);
 
-    lensBuilder.mapField(oldFieldReference, newFieldReference);
+    lensBuilder.moveField(oldFieldReference, newFieldReference);
   }
 
   public void addFields(DexProgramClass toMerge) {

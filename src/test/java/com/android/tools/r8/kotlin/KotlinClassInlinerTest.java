@@ -331,6 +331,8 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                       // call graph edges and verify that we can class inline everything under this
                       // condition.
                       options.testing.addCallEdgesForLibraryInvokes = true;
+
+                      options.enableHorizontalClassMergingOfKotlinLambdas = false;
                     })
                 .apply(configuration));
   }

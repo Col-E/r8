@@ -24,9 +24,7 @@ public class RemapMethodTest extends HorizontalClassMergingTestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> {
-              options.enableHorizontalClassMerging = enableHorizontalClassMerging;
-            })
+            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

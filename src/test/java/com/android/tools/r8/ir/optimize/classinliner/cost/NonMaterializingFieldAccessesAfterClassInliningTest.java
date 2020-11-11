@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -40,6 +41,7 @@ public class NonMaterializingFieldAccessesAfterClassInliningTest extends TestBas
         // Should be able to class inline Builder even when the threshold is low.
         .addOptionsModification(options -> options.classInliningInstructionAllowance = 3)
         .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -121,6 +123,7 @@ public class NonMaterializingFieldAccessesAfterClassInliningTest extends TestBas
     }
   }
 
+  @NoHorizontalClassMerging
   static class Builder {
 
     char c1;

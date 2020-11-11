@@ -11,6 +11,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -54,6 +55,7 @@ public class EffectivelyFinalInstanceFieldsTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(
@@ -155,6 +157,7 @@ public class EffectivelyFinalInstanceFieldsTest extends TestBase {
 
   @NeverClassInline
   @NoVerticalClassMerging
+  @NoHorizontalClassMerging
   static class InstanceFieldWithInitialization_Z {
     boolean alwaysFalse;
     InstanceFieldWithInitialization_Z() {
@@ -163,6 +166,7 @@ public class EffectivelyFinalInstanceFieldsTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class InstanceFieldWithNonTrivialInitialization_Z
       extends InstanceFieldWithInitialization_Z {
     boolean alwaysTrue;
@@ -182,6 +186,7 @@ public class EffectivelyFinalInstanceFieldsTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class InstanceFieldWithInitialization_I {
     int alwaysZero;
     InstanceFieldWithInitialization_I() {
@@ -190,6 +195,7 @@ public class EffectivelyFinalInstanceFieldsTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class InstanceFieldWithRange_I {
     int alwaysLessThanEight;
     InstanceFieldWithRange_I() {
@@ -215,6 +221,7 @@ public class EffectivelyFinalInstanceFieldsTest extends TestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   static class InstanceFieldWithInitialization_L {
     Object alwaysNull;
     InstanceFieldWithInitialization_L() {

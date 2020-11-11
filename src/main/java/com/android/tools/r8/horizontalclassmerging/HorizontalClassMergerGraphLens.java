@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.utils.IterableUtils;
 import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -25,8 +24,9 @@ import java.util.function.Function;
 public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   private final AppView<?> appView;
   private final Map<DexMethod, List<ExtraParameter>> methodExtraParameters;
-  private final Map<DexMethod, DexMethod> originalConstructorSignatures;
+  private final Map<DexMethod, DexMethod> extraOriginalMethodSignatures;
   private final HorizontallyMergedClasses mergedClasses;
+  private final Map<DexField, DexField> extraOriginalFieldSignatures;
 
   private HorizontalClassMergerGraphLens(
       AppView<?> appView,
@@ -36,7 +36,8 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       Map<DexMethod, DexMethod> methodMap,
       BiMap<DexField, DexField> originalFieldSignatures,
       BiMap<DexMethod, DexMethod> originalMethodSignatures,
-      Map<DexMethod, DexMethod> originalConstructorSignatures,
+      Map<DexMethod, DexMethod> extraOriginalMethodSignatures,
+      Map<DexField, DexField> extraOriginalFieldSignatures,
       GraphLens previousLens) {
     super(
         mergedClasses.getForwardMap(),
@@ -48,7 +49,8 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
         appView.dexItemFactory());
     this.appView = appView;
     this.methodExtraParameters = methodExtraParameters;
-    this.originalConstructorSignatures = originalConstructorSignatures;
+    this.extraOriginalFieldSignatures = extraOriginalFieldSignatures;
+    this.extraOriginalMethodSignatures = extraOriginalMethodSignatures;
     this.mergedClasses = mergedClasses;
   }
 
@@ -59,11 +61,20 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
 
   @Override
   public DexMethod getOriginalMethodSignature(DexMethod method) {
-    DexMethod originalConstructor = originalConstructorSignatures.get(method);
+    DexMethod originalConstructor = extraOriginalMethodSignatures.get(method);
     if (originalConstructor == null) {
       return super.getOriginalMethodSignature(method);
     }
     return getPrevious().getOriginalMethodSignature(originalConstructor);
+  }
+
+  @Override
+  public DexField getOriginalFieldSignature(DexField field) {
+    DexField originalField = extraOriginalFieldSignatures.get(field);
+    if (originalField == null) {
+      return super.getOriginalFieldSignature(field);
+    }
+    return getPrevious().getOriginalFieldSignature(originalField);
   }
 
   /**
@@ -86,10 +97,8 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   }
 
   public static class Builder {
-    private final BiMap<DexField, DexField> fieldMap = HashBiMap.create();
-
+    private ManyToOneMap<DexField, DexField> fieldMap = new ManyToOneMap<>();
     private ManyToOneMap<DexMethod, DexMethod> methodMap = new ManyToOneMap<>();
-
     private final Map<DexMethod, List<ExtraParameter>> methodExtraParameters =
         new IdentityHashMap<>();
 
@@ -104,17 +113,24 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
                 assert false;
                 return group.iterator().next();
               });
-      BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
+      ManyToOneInverseMap<DexField, DexField> inverseFieldMap =
+          fieldMap.inverse(
+              group -> {
+                // Every group should have a representative. Fail in debug mode.
+                assert false;
+                return group.iterator().next();
+              });
 
       return new HorizontalClassMergerGraphLens(
           appView,
           mergedClasses,
           methodExtraParameters,
-          fieldMap,
+          fieldMap.getForwardMap(),
           methodMap.getForwardMap(),
-          originalFieldSignatures,
+          inverseFieldMap.getBiMap(),
           inverseMethodMap.getBiMap(),
           inverseMethodMap.getExtraMap(),
+          inverseFieldMap.getExtraMap(),
           appView.graphLens());
     }
 
@@ -122,12 +138,18 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       methodMap = methodMap.remap(remapMethods, Function.identity(), Function.identity());
     }
 
-    public Builder mapField(DexField from, DexField to) {
-      DexField previousFrom = fieldMap.inverse().remove(from);
-      if (previousFrom != null) {
-        from = previousFrom;
-      }
+    public void remapFields(BiMap<DexField, DexField> remapFields) {
+      fieldMap = fieldMap.remap(remapFields, Function.identity(), Function.identity());
+    }
+
+    public Builder moveField(DexField from, DexField to) {
       fieldMap.put(from, to);
+      fieldMap.putInverse(from, to);
+      return this;
+    }
+
+    public Builder setRepresentativeField(DexField from, DexField to) {
+      fieldMap.setRepresentative(from, to);
       return this;
     }
 

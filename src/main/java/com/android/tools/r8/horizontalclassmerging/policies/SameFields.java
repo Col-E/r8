@@ -5,11 +5,13 @@
 package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
+import com.android.tools.r8.horizontalclassmerging.FieldMultiset;
+import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
 
-public class NoInstanceFields extends SingleClassPolicy {
+public class SameFields extends MultiClassSameReferencePolicy<FieldMultiset> {
+
   @Override
-  public boolean canMerge(DexProgramClass program) {
-    return !program.hasInstanceFields();
+  public FieldMultiset getMergeKey(DexProgramClass clazz) {
+    return new FieldMultiset(clazz);
   }
 }

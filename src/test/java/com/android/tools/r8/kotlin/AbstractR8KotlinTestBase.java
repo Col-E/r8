@@ -257,13 +257,14 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
         .addProgramFiles(classpath)
         .addKeepMainRule(mainClass)
         .allowAccessModification(allowAccessModification)
-        .allowDiagnosticWarningMessages()
+        .allowDiagnosticMessages()
         .enableProguardTestOptions()
         .noMinification()
         .apply(configuration)
         .compile()
         .assertAllWarningMessagesMatch(
             containsString("Resource 'META-INF/MANIFEST.MF' already exists."))
+        .assertAllInfoMessagesMatch(containsString("Unrecognized Kotlin lambda "))
         .run(mainClass)
         .assertSuccessWithOutput(javaResult.stdout);
   }

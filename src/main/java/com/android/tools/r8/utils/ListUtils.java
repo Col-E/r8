@@ -7,6 +7,7 @@ package com.android.tools.r8.utils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -47,13 +48,12 @@ public class ListUtils {
     return result;
   }
 
-  public static <T> boolean removeFirstMatch(List<T> list, Predicate<T> element) {
+  public static <T> Optional<T> removeFirstMatch(List<T> list, Predicate<T> element) {
     int index = firstIndexMatching(list, element);
     if (index >= 0) {
-      list.remove(index);
-      return true;
+      return Optional.of(list.remove(index));
     }
-    return false;
+    return Optional.empty();
   }
 
   public static <T extends Comparable<T>> boolean verifyListIsOrdered(List<T> list) {

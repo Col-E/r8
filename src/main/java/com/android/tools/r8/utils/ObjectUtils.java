@@ -22,4 +22,14 @@ public class ObjectUtils {
     }
     return null;
   }
+
+  /**
+   * If the object is null return the default value, otherwise compute the function with the value.
+   */
+  public static <S, T> T mapNotNullOrDefault(S object, T def, Function<? super S, ? extends T> fn) {
+    if (object != null) {
+      return fn.apply(object);
+    }
+    return def;
+  }
 }
