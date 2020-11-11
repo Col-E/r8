@@ -245,8 +245,7 @@ public class DesugaredLibraryTestBase extends TestBase {
       Path desugaredProgramClassFile, Path desugaredLibraryClassFile) throws Exception {
     Path generatedKeepRules = temp.newFile().toPath();
     TraceReferences.run(
-        "--format",
-        "keep",
+        "--keep-rules",
         "--lib",
         ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
         "--target",
