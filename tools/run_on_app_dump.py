@@ -136,8 +136,6 @@ APPS = [
     'url': 'https://github.com/android/sunflower',
     'revision': '0c4c88fdad2a74791199dffd1a6559559b1dbd4a',
     'folder': 'sunflower',
-    # TODO(b/172548728): Fix recompilation
-    'skip_recompilation': True
   }),
   # TODO(b/172565385): Monkey runner fails on recompilation
   App({
@@ -281,8 +279,6 @@ APPS = [
     'url': 'https://github.com/SimpleMobileTools/Simple-Gallery',
     'revision': '564e56b20d33b28d0018c8087ec705beeb60785e',
     'folder': 'simple-gallery',
-    # TODO(b/172818477): Cannot recompile.
-    'skip_recompilation': True,
   }),
   App({
     'id': 'com.example.sqldelight.hockey',
