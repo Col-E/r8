@@ -4,8 +4,12 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitorWithNamingLens;
+import com.android.tools.r8.utils.structural.StructuralItem;
 
-public interface PresortedComparable<T> extends Comparable<T> {
+public interface PresortedComparable<T extends PresortedComparable<T>> extends StructuralItem<T> {
 
-  int slowCompareTo(T other, NamingLens namingLens);
+  default int slowCompareTo(T other, NamingLens lens) {
+    return CompareToVisitorWithNamingLens.run(self(), other, lens, StructuralItem::acceptCompareTo);
+  }
 }

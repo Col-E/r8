@@ -6,7 +6,6 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
@@ -116,38 +115,6 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
       }
     }
     return builder.toString();
-  }
-
-  public int slowCompareTo(DexTypeList other) {
-    for (int i = 0; i <= Math.min(values.length, other.values.length); i++) {
-      if (i == values.length) {
-        return i == other.values.length ? 0 : -1;
-      } else if (i == other.values.length) {
-        return 1;
-      } else {
-        int result = values[i].compareTo(other.values[i]);
-        if (result != 0) {
-          return result;
-        }
-      }
-    }
-    throw new Unreachable();
-  }
-
-  public int slowCompareTo(DexTypeList other, NamingLens namingLens) {
-    for (int i = 0; i <= Math.min(values.length, other.values.length); i++) {
-      if (i == values.length) {
-        return i == other.values.length ? 0 : -1;
-      } else if (i == other.values.length) {
-        return 1;
-      } else {
-        int result = values[i].slowCompareTo(other.values[i], namingLens);
-        if (result != 0) {
-          return result;
-        }
-      }
-    }
-    throw new Unreachable();
   }
 
   @Override

@@ -6,7 +6,6 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -14,13 +13,11 @@ import com.android.tools.r8.utils.ThrowingCharIterator;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralAccept;
-import com.android.tools.r8.utils.structural.StructuralItem;
 import java.io.UTFDataFormatException;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
-public class DexString extends IndexedDexItem
-    implements PresortedComparable<DexString>, StructuralItem<DexString> {
+public class DexString extends IndexedDexItem implements PresortedComparable<DexString> {
 
   public static final DexString[] EMPTY_ARRAY = {};
   private static final int ARRAY_CHARACTER = '[';
@@ -297,12 +294,6 @@ public class DexString extends IndexedDexItem
       }
       index++;
     }
-  }
-
-  @Override
-  public int slowCompareTo(DexString other, NamingLens lens) {
-    // The naming lens cannot affect strings.
-    return compareTo(other);
   }
 
   private static boolean isValidClassDescriptor(String string) {

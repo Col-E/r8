@@ -100,9 +100,17 @@ public class HashingVisitorWithTypeEquivalence extends HashingVisitor {
     }
 
     @Override
-    public <S> ItemSpecification<T> withCustomItem(
-        Function<T, S> getter, CompareToAccept<S> compare, HashingAccept<S> hasher) {
-      hasher.accept(getter.apply(item), parent);
+    protected <S> ItemSpecification<T> withConditionalCustomItem(
+        Predicate<T> predicate,
+        Function<T, S> getter,
+        CompareToAccept<S> compare,
+        HashingAccept<S> hasher) {
+      boolean test = predicate.test(item);
+      // Always hash the predicate result to distinguish, eg, {null, null} and {null}.
+      parent.visitBool(test);
+      if (test) {
+        hasher.accept(getter.apply(item), parent);
+      }
       return this;
     }
   }

@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.structural;
 
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -21,6 +23,14 @@ public abstract class CompareToVisitor {
   public abstract void visitDexType(DexType type1, DexType type2);
 
   public abstract void visitDexTypeList(DexTypeList types1, DexTypeList types2);
+
+  public void visitDexField(DexField field1, DexField field2) {
+    visit(field1, field2, field1.getStructuralAccept());
+  }
+
+  public void visitDexMethod(DexMethod method1, DexMethod method2) {
+    visit(method1, method2, method1.getStructuralAccept());
+  }
 
   public abstract <S> void visit(S item1, S item2, StructuralAccept<S> accept);
 

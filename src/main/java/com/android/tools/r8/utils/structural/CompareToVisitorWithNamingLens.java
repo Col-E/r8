@@ -3,9 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.structural;
 
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.structural.StructuralItem.CompareToAccept;
 import com.android.tools.r8.utils.structural.StructuralItem.HashingAccept;
 import java.util.Comparator;
@@ -13,24 +16,24 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
-public class CompareToVisitorWithTypeEquivalence extends CompareToVisitor {
+public class CompareToVisitorWithNamingLens extends CompareToVisitor {
 
-  public static <T> int run(T item1, T item2, RepresentativeMap map, StructuralAccept<T> visit) {
-    return run(item1, item2, map, (i1, i2, visitor) -> visitor.visit(i1, i2, visit));
+  public static <T> int run(T item1, T item2, NamingLens namingLens, StructuralAccept<T> visit) {
+    return run(item1, item2, namingLens, (i1, i2, visitor) -> visitor.visit(i1, i2, visit));
   }
 
   public static <T> int run(
-      T item1, T item2, RepresentativeMap map, CompareToAccept<T> compareToAccept) {
-    CompareToVisitorWithTypeEquivalence state = new CompareToVisitorWithTypeEquivalence(map);
+      T item1, T item2, NamingLens namingLens, CompareToAccept<T> compareToAccept) {
+    CompareToVisitorWithNamingLens state = new CompareToVisitorWithNamingLens(namingLens);
     compareToAccept.accept(item1, item2, state);
     return state.order;
   }
 
-  private final RepresentativeMap representatives;
+  private final NamingLens namingLens;
   private int order = 0;
 
-  public CompareToVisitorWithTypeEquivalence(RepresentativeMap representatives) {
-    this.representatives = representatives;
+  public CompareToVisitorWithNamingLens(NamingLens namingLens) {
+    this.namingLens = namingLens;
   }
 
   @Override
@@ -48,6 +51,20 @@ public class CompareToVisitorWithTypeEquivalence extends CompareToVisitor {
   }
 
   @Override
+  public <S> void visit(S item1, S item2, Comparator<S> comparator) {
+    if (order == 0) {
+      order = comparator.compare(item1, item2);
+    }
+  }
+
+  @Override
+  public <S> void visit(S item1, S item2, StructuralAccept<S> accept) {
+    if (order == 0) {
+      accept.accept(new ItemSpecification<>(item1, item2, this));
+    }
+  }
+
+  @Override
   public void visitDexString(
       DexString string1, DexString string2, Comparator<DexString> comparator) {
     if (order == 0) {
@@ -58,9 +75,33 @@ public class CompareToVisitorWithTypeEquivalence extends CompareToVisitor {
   @Override
   public void visitDexType(DexType type1, DexType type2) {
     if (order == 0) {
-      DexType repr1 = representatives.getRepresentative(type1);
-      DexType repr2 = representatives.getRepresentative(type2);
-      repr1.getDescriptor().acceptCompareTo(repr2.getDescriptor(), this);
+      namingLens.lookupDescriptor(type1).acceptCompareTo(namingLens.lookupDescriptor(type2), this);
+    }
+  }
+
+  @Override
+  public void visitDexField(DexField field1, DexField field2) {
+    if (order == 0) {
+      field1.holder.acceptCompareTo(field2.holder, this);
+      if (order == 0) {
+        namingLens.lookupName(field1).acceptCompareTo(namingLens.lookupName(field2), this);
+        if (order == 0) {
+          field1.type.acceptCompareTo(field2.type, this);
+        }
+      }
+    }
+  }
+
+  @Override
+  public void visitDexMethod(DexMethod method1, DexMethod method2) {
+    if (order == 0) {
+      method1.holder.acceptCompareTo(method2.holder, this);
+      if (order == 0) {
+        namingLens.lookupName(method1).acceptCompareTo(namingLens.lookupName(method2), this);
+        if (order == 0) {
+          method1.proto.acceptCompareTo(method2.proto, this);
+        }
+      }
     }
   }
 
@@ -78,28 +119,14 @@ public class CompareToVisitorWithTypeEquivalence extends CompareToVisitor {
     }
   }
 
-  @Override
-  public <S> void visit(S item1, S item2, Comparator<S> comparator) {
-    if (order == 0) {
-      order = comparator.compare(item1, item2);
-    }
-  }
-
-  @Override
-  public <S> void visit(S item1, S item2, StructuralAccept<S> accept) {
-    if (order == 0) {
-      accept.accept(new ItemSpecification<>(item1, item2, this));
-    }
-  }
-
   private static class ItemSpecification<T>
       extends StructuralSpecification<T, ItemSpecification<T>> {
 
-    private final CompareToVisitorWithTypeEquivalence parent;
+    private final CompareToVisitorWithNamingLens parent;
     private final T item1;
     private final T item2;
 
-    private ItemSpecification(T item1, T item2, CompareToVisitorWithTypeEquivalence parent) {
+    private ItemSpecification(T item1, T item2, CompareToVisitorWithNamingLens parent) {
       this.item1 = item1;
       this.item2 = item2;
       this.parent = parent;
@@ -125,7 +152,7 @@ public class CompareToVisitorWithTypeEquivalence extends CompareToVisitor {
     }
 
     @Override
-    protected <S> ItemSpecification<T> withConditionalCustomItem(
+    public <S> ItemSpecification<T> withConditionalCustomItem(
         Predicate<T> predicate,
         Function<T, S> getter,
         CompareToAccept<S> compare,

@@ -8,12 +8,14 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Objects;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 
-public class DexMethodHandle extends IndexedDexItem implements
-    PresortedComparable<DexMethodHandle> {
+public class DexMethodHandle extends IndexedDexItem
+    implements PresortedComparable<DexMethodHandle> {
 
   public enum MethodHandleType {
     STATIC_PUT((short) 0x00),
@@ -313,31 +315,21 @@ public class DexMethodHandle extends IndexedDexItem implements
   }
 
   @Override
-  public int compareTo(DexMethodHandle other) {
-    int result = type.getValue() - other.type.getValue();
-    if (result == 0) {
-      if (isFieldHandle()) {
-        result = asField().compareTo(other.asField());
-      } else {
-        assert isMethodHandle();
-        result = asMethod().compareTo(other.asMethod());
-      }
-    }
-    return result;
+  public DexMethodHandle self() {
+    return this;
   }
 
   @Override
-  public int slowCompareTo(DexMethodHandle other, NamingLens namingLens) {
-    int result = type.getValue() - other.type.getValue();
-    if (result == 0) {
-      if (isFieldHandle()) {
-        result = asField().slowCompareTo(other.asField(), namingLens);
-      } else {
-        assert isMethodHandle();
-        result = asMethod().slowCompareTo(other.asMethod(), namingLens);
-      }
-    }
-    return result;
+  public StructuralAccept<DexMethodHandle> getStructuralAccept() {
+    return DexMethodHandle::specify;
+  }
+
+  private static void specify(StructuralSpecification<DexMethodHandle, ?> spec) {
+    spec.withInt(m -> m.type.getValue())
+        .withConditionalItem(DexMethodHandle::isFieldHandle, DexMethodHandle::asField)
+        .withConditionalItem(DexMethodHandle::isMethodHandle, DexMethodHandle::asMethod)
+        .withBool(m -> m.isInterface)
+        .withItem(m -> m.rewrittenTarget);
   }
 
   public Handle toAsmHandle(NamingLens lens) {

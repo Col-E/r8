@@ -6,14 +6,12 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.structural.StructuralAccept;
-import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.function.Consumer;
 
-public class DexProto extends IndexedDexItem
-    implements PresortedComparable<DexProto>, StructuralItem<DexProto> {
+public class DexProto extends IndexedDexItem implements PresortedComparable<DexProto> {
 
   public static final DexProto SENTINEL = new DexProto(null, null, null);
 
@@ -28,8 +26,10 @@ public class DexProto extends IndexedDexItem
   }
 
   private static void accept(StructuralSpecification<DexProto, ?> spec) {
-    // TODO(b/172206529): Consider removing shorty.
-    spec.withItem(p1 -> p1.shorty).withItem(DexProto::getReturnType).withItem(p -> p.parameters);
+    spec.withItem(DexProto::getReturnType)
+        .withItem(p -> p.parameters)
+        // TODO(b/172206529): Consider removing shorty.
+        .withItem(p1 -> p1.shorty);
   }
 
   @Override
@@ -103,15 +103,6 @@ public class DexProto extends IndexedDexItem
   @Override
   public int getOffset(ObjectToOffsetMapping mapping) {
     return mapping.getOffsetFor(this);
-  }
-
-  @Override
-  public int slowCompareTo(DexProto other, NamingLens namingLens) {
-    int result = returnType.slowCompareTo(other.returnType, namingLens);
-    if (result == 0) {
-      result = parameters.slowCompareTo(other.parameters, namingLens);
-    }
-    return result;
   }
 
   @Override

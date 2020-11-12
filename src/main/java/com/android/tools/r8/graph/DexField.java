@@ -5,19 +5,17 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.StructuralAccept;
-import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Collections;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class DexField extends DexMember<DexEncodedField, DexField>
-    implements StructuralItem<DexField> {
+public class DexField extends DexMember<DexEncodedField, DexField> {
 
   public final DexType type;
 
@@ -144,16 +142,8 @@ public class DexField extends DexMember<DexEncodedField, DexField>
   }
 
   @Override
-  public int slowCompareTo(DexField other, NamingLens namingLens) {
-    int result = holder.slowCompareTo(other.holder, namingLens);
-    if (result != 0) {
-      return result;
-    }
-    result = namingLens.lookupName(this).compareTo(namingLens.lookupName(other));
-    if (result != 0) {
-      return result;
-    }
-    return type.slowCompareTo(other.type, namingLens);
+  public void acceptCompareTo(DexField other, CompareToVisitor visitor) {
+    visitor.visitDexField(this, other);
   }
 
   @Override

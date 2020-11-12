@@ -5,12 +5,11 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.StructuralAccept;
-import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,8 +17,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class DexMethod extends DexMember<DexEncodedMethod, DexMethod>
-    implements StructuralItem<DexMethod> {
+public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   public final DexProto proto;
 
@@ -45,6 +43,11 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod>
   @Override
   public DexMethod self() {
     return this;
+  }
+
+  @Override
+  public void acceptCompareTo(DexMethod other, CompareToVisitor visitor) {
+    visitor.visitDexMethod(this, other);
   }
 
   public DexType getHolderType() {
@@ -196,19 +199,6 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod>
    */
   public boolean hasSameProtoAndName(DexMethod other) {
     return name == other.name && proto == other.proto;
-  }
-
-  @Override
-  public int slowCompareTo(DexMethod other, NamingLens namingLens) {
-    int result = holder.slowCompareTo(other.holder, namingLens);
-    if (result != 0) {
-      return result;
-    }
-    result = namingLens.lookupName(this).compareTo(namingLens.lookupName(other));
-    if (result != 0) {
-      return result;
-    }
-    return proto.slowCompareTo(other.proto, namingLens);
   }
 
   @Override

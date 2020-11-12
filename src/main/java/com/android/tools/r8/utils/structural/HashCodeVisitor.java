@@ -56,11 +56,17 @@ public class HashCodeVisitor<T> extends StructuralSpecification<T, HashCodeVisit
   }
 
   @Override
-  public <S> HashCodeVisitor<T> withCustomItem(
-      Function<T, S> getter, CompareToAccept<S> compare, HashingAccept<S> hasher) {
-    S member = getter.apply(item);
-    // Use the value 1 for the null-member case such that a different hash is obtained for
-    // {null, null} and {null}.
-    return amend(member == null ? 1 : member.hashCode());
+  protected <S> HashCodeVisitor<T> withConditionalCustomItem(
+      Predicate<T> predicate,
+      Function<T, S> getter,
+      CompareToAccept<S> compare,
+      HashingAccept<S> hasher) {
+    if (predicate.test(item)) {
+      return amend(getter.apply(item).hashCode());
+    } else {
+      // Use the value 1 for the failing-predicate case such that a different hash is obtained for
+      // eg, {null, null} and {null}.
+      return amend(1);
+    }
   }
 }

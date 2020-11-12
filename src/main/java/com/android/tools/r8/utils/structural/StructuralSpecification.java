@@ -20,8 +20,16 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
    * <p>It is preferable to use withStructuralItem.
    */
   @Deprecated
-  public abstract <S> V withCustomItem(
-      Function<T, S> getter, CompareToAccept<S> compare, HashingAccept<S> hasher);
+  public final <S> V withCustomItem(
+      Function<T, S> getter, CompareToAccept<S> compare, HashingAccept<S> hasher) {
+    return withConditionalCustomItem(t -> true, getter, compare, hasher);
+  }
+
+  protected abstract <S> V withConditionalCustomItem(
+      Predicate<T> predicate,
+      Function<T, S> getter,
+      CompareToAccept<S> compare,
+      HashingAccept<S> hasher);
 
   /**
    * Specification for a "specified" item.
@@ -29,8 +37,17 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
    * <p>Using this the visiting methods are could based on the implementation of the Specified
    * interface.
    */
-  public <S extends StructuralItem<S>> V withItem(Function<T, S> getter) {
-    return withCustomItem(getter, S::acceptCompareTo, S::acceptHashing);
+  public final <S extends StructuralItem<S>> V withItem(Function<T, S> getter) {
+    return withConditionalItem(t -> true, getter);
+  }
+
+  final <S extends StructuralItem<S>> V withNullableItem(Function<T, S> getter) {
+    return withConditionalItem(s -> getter.apply(s) != null, getter);
+  }
+
+  public final <S extends StructuralItem<S>> V withConditionalItem(
+      Predicate<T> predicate, Function<T, S> getter) {
+    return withConditionalCustomItem(predicate, getter, S::acceptCompareTo, S::acceptHashing);
   }
 
   /**

@@ -20,7 +20,6 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -28,7 +27,6 @@ import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralAccept;
-import com.android.tools.r8.utils.structural.StructuralItem;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,8 +36,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class DexType extends DexReference
-    implements PresortedComparable<DexType>, StructuralItem<DexType> {
+public class DexType extends DexReference implements PresortedComparable<DexType> {
   public static final DexType[] EMPTY_ARRAY = {};
 
   // Bundletool is merging classes that may originate from a build with an old version of R8.
@@ -227,13 +224,6 @@ public class DexType extends DexReference
   @Override
   public DexType asDexType() {
     return this;
-  }
-
-  @Override
-  public int slowCompareTo(DexType other, NamingLens namingLens) {
-    DexString thisDescriptor = namingLens.lookupDescriptor(this);
-    DexString otherDescriptor = namingLens.lookupDescriptor(other);
-    return thisDescriptor.slowCompareTo(otherDescriptor, namingLens);
   }
 
   public boolean isPrimitiveType() {
