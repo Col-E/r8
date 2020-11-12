@@ -325,8 +325,8 @@ APPS = [
     'url': 'https://github.com/tuskyapp/Tusky',
     'revision': '814a9b8f9bacf8d26f712b06a0313a3534a2be95',
     'folder': 'tusky',
-    # TODO(b/172856713): Fix compilation
-    'skip': True,
+    # TODO(b/172859303): This fails with same error as tivi
+    'skip_recompilation': True
   }),
   App({
     'id': 'org.wikipedia',
