@@ -459,6 +459,9 @@ public class AndroidApp {
   }
 
   public void dump(Path output, DumpOptions options, Reporter reporter, DexItemFactory factory) {
+    if (options == null) {
+      return;
+    }
     int nextDexIndex = 0;
     OpenOption[] openOptions =
         new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
