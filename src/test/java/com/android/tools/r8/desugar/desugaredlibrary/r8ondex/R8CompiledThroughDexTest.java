@@ -20,6 +20,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -57,6 +58,7 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
   private static final String R8_KEEP = Paths.get("src/main/keep.txt").toAbsolutePath().toString();
 
   @Test
+  @Ignore("b/173011806")
   public void testR8CompiledWithR8Dex() throws Exception {
     // Compile once R8_WITH_RELOCATED_DEPS_JAR using normal R8_WITH_RELOCATED_DEPS_JAR to dex,
     // and once R8_WITH_RELOCATED_DEPS_JAR with the previously compiled version to dex.
