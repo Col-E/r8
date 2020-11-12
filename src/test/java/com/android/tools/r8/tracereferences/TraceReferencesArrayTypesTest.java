@@ -8,6 +8,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DiagnosticsChecker;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -41,13 +42,13 @@ public class TraceReferencesArrayTypesTest extends TestBase {
     boolean acceptMethodCalled;
 
     @Override
-    public void acceptType(TracedClass tracedClass) {
+    public void acceptType(TracedClass tracedClass, DiagnosticsHandler handler) {
       assertFalse(tracedClass.isMissingDefinition());
       tracedTypes.add(tracedClass.getReference());
     }
 
     @Override
-    public void acceptField(TracedField tracedField) {
+    public void acceptField(TracedField tracedField, DiagnosticsHandler handler) {
       acceptFieldCalled = true;
       assertFalse(tracedField.isMissingDefinition());
       assertEquals(
@@ -57,7 +58,7 @@ public class TraceReferencesArrayTypesTest extends TestBase {
     }
 
     @Override
-    public void acceptMethod(TracedMethod tracedMethod) {
+    public void acceptMethod(TracedMethod tracedMethod, DiagnosticsHandler handler) {
       acceptMethodCalled = true;
       assertFalse(tracedMethod.isMissingDefinition());
       assertEquals(

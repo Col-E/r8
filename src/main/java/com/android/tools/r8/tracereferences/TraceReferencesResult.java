@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -48,7 +49,7 @@ class TraceReferencesResult {
     private final Set<PackageReference> keepPackageNames = new HashSet<>();
 
     @Override
-    public void acceptType(TracedClass tracedClass) {
+    public void acceptType(TracedClass tracedClass, DiagnosticsHandler handler) {
       types.add(tracedClass);
       if (tracedClass.isMissingDefinition()) {
         this.missingDefinition.add(tracedClass.getReference());
@@ -56,7 +57,7 @@ class TraceReferencesResult {
     }
 
     @Override
-    public void acceptField(TracedField tracedField) {
+    public void acceptField(TracedField tracedField, DiagnosticsHandler handler) {
       FieldReference field = tracedField.getReference();
       fields.computeIfAbsent(field.getHolderClass(), k -> new HashSet<>()).add(tracedField);
       if (tracedField.isMissingDefinition()) {
@@ -65,7 +66,7 @@ class TraceReferencesResult {
     }
 
     @Override
-    public void acceptMethod(TracedMethod tracedMethod) {
+    public void acceptMethod(TracedMethod tracedMethod, DiagnosticsHandler handler) {
       MethodReference method = tracedMethod.getReference();
       methods.computeIfAbsent(method.getHolderClass(), k -> new HashSet<>()).add(tracedMethod);
       if (tracedMethod.isMissingDefinition()) {
@@ -74,12 +75,12 @@ class TraceReferencesResult {
     }
 
     @Override
-    public void acceptPackage(PackageReference pkg) {
+    public void acceptPackage(PackageReference pkg, DiagnosticsHandler handler) {
       keepPackageNames.add(pkg);
     }
 
     @Override
-    public void finished() {}
+    public void finished(DiagnosticsHandler handler) {}
 
     TraceReferencesResult build() {
       missingDefinition.forEach(

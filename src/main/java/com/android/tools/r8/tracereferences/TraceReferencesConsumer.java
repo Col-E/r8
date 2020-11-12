@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.KeepForSubclassing;
 import com.android.tools.r8.references.ClassReference;
@@ -71,22 +72,64 @@ public interface TraceReferencesConsumer {
   @Keep
   interface TracedMethod extends TracedReference<MethodReference, MethodAccessFlags> {}
 
-  /** Class has been traced. */
-  void acceptType(TracedClass tracedClass);
+  /**
+   * Callback when class has been traced.
+   *
+   * <p>The consumer is expected not to throw, but instead report any errors via the diagnostics
+   * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
+   * then trace references guaranties to exit with an error.
+   *
+   * @param tracedClass Traced class
+   * @param handler Diagnostics handler for reporting.
+   */
+  void acceptType(TracedClass tracedClass, DiagnosticsHandler handler);
 
-  /** Field has been traced. */
-  void acceptField(TracedField tracedField);
+  /**
+   * Callback when class has been traced.
+   *
+   * <p>The consumer is expected not to throw, but instead report any errors via the diagnostics
+   * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
+   * then trace references guaranties to exit with an error.
+   *
+   * @param tracedField Traced field
+   * @param handler Diagnostics handler for reporting.
+   */
+  void acceptField(TracedField tracedField, DiagnosticsHandler handler);
 
-  /** Method has been traced. */
-  void acceptMethod(TracedMethod tracedMethod);
+  /**
+   * Callback when class has been traced.
+   *
+   * <p>The consumer is expected not to throw, but instead report any errors via the diagnostics
+   * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
+   * then trace references guaranties to exit with an error.
+   *
+   * @param tracedMethod Traced method
+   * @param handler Diagnostics handler for reporting.
+   */
+  void acceptMethod(TracedMethod tracedMethod, DiagnosticsHandler handler);
 
-  /** Package which is required for package private access has been traced. */
-  default void acceptPackage(PackageReference pkg) {}
+  /**
+   * Callback when package which is required for package private access has been traced.
+   *
+   * <p>The consumer is expected not to throw, but instead report any errors via the diagnostics
+   * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
+   * then trace references guaranties to exit with an error.
+   *
+   * @param pkg Traced package
+   * @param handler Diagnostics handler for reporting.
+   */
+  default void acceptPackage(PackageReference pkg, DiagnosticsHandler handler) {}
 
   /**
    * Tracing has finished. There will be no more calls to any of the <code>acceptXXX</code> methods.
+   *
+   * <p>The consumer is expected not to throw, but instead report any errors via the diagnostics
+   * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
+   * then trace references guaranties to exit with an error.
+   *
+   * @param handler Diagnostics handler for reporting.
    */
-  default void finished() {}
+  default void finished(DiagnosticsHandler handler) {}
 
   static TraceReferencesConsumer emptyConsumer() {
     return ForwardingConsumer.EMPTY_CONSUMER;
@@ -105,37 +148,37 @@ public interface TraceReferencesConsumer {
     }
 
     @Override
-    public void acceptType(TracedClass tracedClass) {
+    public void acceptType(TracedClass tracedClass, DiagnosticsHandler handler) {
       if (consumer != null) {
-        consumer.acceptType(tracedClass);
+        consumer.acceptType(tracedClass, handler);
       }
     }
 
     @Override
-    public void acceptField(TracedField tracedField) {
+    public void acceptField(TracedField tracedField, DiagnosticsHandler handler) {
       if (consumer != null) {
-        consumer.acceptField(tracedField);
+        consumer.acceptField(tracedField, handler);
       }
     }
 
     @Override
-    public void acceptMethod(TracedMethod tracedMethod) {
+    public void acceptMethod(TracedMethod tracedMethod, DiagnosticsHandler handler) {
       if (consumer != null) {
-        consumer.acceptMethod(tracedMethod);
+        consumer.acceptMethod(tracedMethod, handler);
       }
     }
 
     @Override
-    public void acceptPackage(PackageReference pkg) {
+    public void acceptPackage(PackageReference pkg, DiagnosticsHandler handler) {
       if (consumer != null) {
-        consumer.acceptPackage(pkg);
+        consumer.acceptPackage(pkg, handler);
       }
     }
 
     @Override
-    public void finished() {
+    public void finished(DiagnosticsHandler handler) {
       if (consumer != null) {
-        consumer.finished();
+        consumer.finished(handler);
       }
     }
   }

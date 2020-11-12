@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DiagnosticsChecker;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -39,14 +40,14 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
     boolean acceptMethodCalled;
 
     @Override
-    public void acceptType(TracedClass tracedClass) {
+    public void acceptType(TracedClass tracedClass, DiagnosticsHandler handler) {
       acceptTypeCalled = true;
       assertEquals(Reference.classFromClass(Target.class), tracedClass.getReference());
       assertTrue(tracedClass.isMissingDefinition());
     }
 
     @Override
-    public void acceptField(TracedField tracedField) {
+    public void acceptField(TracedField tracedField, DiagnosticsHandler handler) {
       acceptFieldCalled = true;
       assertEquals(
           Reference.classFromClass(Target.class), tracedField.getReference().getHolderClass());
@@ -55,7 +56,7 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
     }
 
     @Override
-    public void acceptMethod(TracedMethod tracedMethod) {
+    public void acceptMethod(TracedMethod tracedMethod, DiagnosticsHandler handler) {
       acceptMethodCalled = true;
       assertEquals(
           Reference.classFromClass(Target.class), tracedMethod.getReference().getHolderClass());

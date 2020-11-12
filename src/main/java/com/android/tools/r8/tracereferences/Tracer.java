@@ -249,7 +249,7 @@ class Tracer {
       clazz.forEachProgramMethod(useCollector::registerMethod);
       clazz.forEachField(useCollector::registerField);
     }
-    consumer.finished();
+    consumer.finished(diagnostics);
     useCollector.reportMissingDefinitions();
   }
 
@@ -287,10 +287,11 @@ class Tracer {
       TracedClassImpl tracedClass = new TracedClassImpl(type, clazz);
       checkMissingDefinition(tracedClass);
       if (isTargetType(type) || tracedClass.isMissingDefinition()) {
-        consumer.acceptType(tracedClass);
+        consumer.acceptType(tracedClass, diagnostics);
         if (!tracedClass.isMissingDefinition()
             && clazz.accessFlags.isVisibilityDependingOnPackage()) {
-          consumer.acceptPackage(Reference.packageFromString(clazz.type.getPackageName()));
+          consumer.acceptPackage(
+              Reference.packageFromString(clazz.type.getPackageName()), diagnostics);
         }
       }
     }
@@ -305,10 +306,11 @@ class Tracer {
       TracedFieldImpl tracedField = new TracedFieldImpl(field, baseField);
       checkMissingDefinition(tracedField);
       if (isTargetType(field.holder) || tracedField.isMissingDefinition()) {
-        consumer.acceptField(tracedField);
+        consumer.acceptField(tracedField, diagnostics);
         if (!tracedField.isMissingDefinition()
             && baseField.accessFlags.isVisibilityDependingOnPackage()) {
-          consumer.acceptPackage(Reference.packageFromString(baseField.holder().getPackageName()));
+          consumer.acceptPackage(
+              Reference.packageFromString(baseField.holder().getPackageName()), diagnostics);
         }
       }
     }
@@ -323,11 +325,12 @@ class Tracer {
       DexEncodedMethod definition = method.lookupOnClass(holder);
       TracedMethodImpl tracedMethod = new TracedMethodImpl(method, definition);
       if (isTargetType(method.holder) || tracedMethod.isMissingDefinition()) {
-        consumer.acceptMethod(tracedMethod);
+        consumer.acceptMethod(tracedMethod, diagnostics);
         checkMissingDefinition(tracedMethod);
         if (!tracedMethod.isMissingDefinition()
             && definition.accessFlags.isVisibilityDependingOnPackage()) {
-          consumer.acceptPackage(Reference.packageFromString(definition.holder().getPackageName()));
+          consumer.acceptPackage(
+              Reference.packageFromString(definition.holder().getPackageName()), diagnostics);
         }
       }
     }

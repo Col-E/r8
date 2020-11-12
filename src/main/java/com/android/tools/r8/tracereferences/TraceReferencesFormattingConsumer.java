@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.references.PackageReference;
 
@@ -28,31 +29,31 @@ class TraceReferencesFormattingConsumer implements TraceReferencesConsumer {
   }
 
   @Override
-  public void acceptType(TracedClass type) {
+  public void acceptType(TracedClass type, DiagnosticsHandler handler) {
     assert !finishedCalled;
-    builder.acceptType(type);
+    builder.acceptType(type, handler);
   }
 
   @Override
-  public void acceptField(TracedField field) {
+  public void acceptField(TracedField field, DiagnosticsHandler handler) {
     assert !finishedCalled;
-    builder.acceptField(field);
+    builder.acceptField(field, handler);
   }
 
   @Override
-  public void acceptMethod(TracedMethod method) {
+  public void acceptMethod(TracedMethod method, DiagnosticsHandler handler) {
     assert !finishedCalled;
-    builder.acceptMethod(method);
+    builder.acceptMethod(method, handler);
   }
 
   @Override
-  public void acceptPackage(PackageReference pkg) {
+  public void acceptPackage(PackageReference pkg, DiagnosticsHandler handler) {
     assert !finishedCalled;
-    builder.acceptPackage(pkg);
+    builder.acceptPackage(pkg, handler);
   }
 
   @Override
-  public void finished() {
+  public void finished(DiagnosticsHandler handler) {
     assert !finishedCalled;
     finishedCalled = true;
   }

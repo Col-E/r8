@@ -7,12 +7,14 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DiagnosticsChecker;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.google.common.collect.ImmutableList;
@@ -190,6 +192,80 @@ public class TraceReferencesDiagnosticTest extends TestBase {
       fail("Unexpected success");
     } catch (CompilationFailedException e) {
       // Expected.
+    }
+  }
+
+  static class FailingConsumer implements TraceReferencesConsumer {
+    private final String where;
+
+    FailingConsumer(String where) {
+      this.where = where;
+    }
+
+    @Override
+    public void acceptType(TracedClass tracedClass, DiagnosticsHandler handler) {
+      if (where.equals("acceptType")) {
+        handler.error(new StringDiagnostic("Error in " + where));
+      }
+    }
+
+    @Override
+    public void acceptField(TracedField tracedField, DiagnosticsHandler handler) {
+      if (where.equals("acceptField")) {
+        handler.error(new StringDiagnostic("Error in " + where));
+      }
+    }
+
+    @Override
+    public void acceptMethod(TracedMethod tracedMethod, DiagnosticsHandler handler) {
+      if (where.equals("acceptMethod")) {
+        handler.error(new StringDiagnostic("Error in " + where));
+      }
+    }
+
+    @Override
+    public void finished(DiagnosticsHandler handler) {
+      if (where.equals("finished")) {
+        handler.error(new StringDiagnostic("Error in " + where));
+      }
+    }
+  }
+
+  @Test
+  public void traceReferencesConsumerError() throws Throwable {
+    Path dir = temp.newFolder().toPath();
+    Path targetJar =
+        ZipBuilder.builder(dir.resolve("target.jar"))
+            .addFilesRelative(
+                ToolHelper.getClassPathForTests(),
+                ToolHelper.getClassFileForTestClass(Target.class),
+                ToolHelper.getClassFileForTestClass(Target1.class),
+                ToolHelper.getClassFileForTestClass(Target2.class),
+                ToolHelper.getClassFileForTestClass(Target3.class))
+            .build();
+    Path sourceJar =
+        ZipBuilder.builder(dir.resolve("source.jar"))
+            .addFilesRelative(
+                ToolHelper.getClassPathForTests(),
+                ToolHelper.getClassFileForTestClass(Source.class))
+            .build();
+
+    for (String where : new String[] {"acceptType", "acceptField", "acceptMethod", "finished"}) {
+      try {
+        DiagnosticsChecker.checkErrorsContains(
+            "Error in " + where,
+            handler ->
+                TraceReferences.run(
+                    TraceReferencesCommand.builder(handler)
+                        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+                        .addSourceFiles(sourceJar)
+                        .addTargetFiles(targetJar)
+                        .setConsumer(new FailingConsumer(where))
+                        .build()));
+        fail("Unexpected success");
+      } catch (CompilationFailedException e) {
+        // Expected.
+      }
     }
   }
 

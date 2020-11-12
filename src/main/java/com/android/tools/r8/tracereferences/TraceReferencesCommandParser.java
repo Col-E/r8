@@ -210,13 +210,13 @@ class TraceReferencesCommandParser {
             ? TraceReferencesConsumer.emptyConsumer()
             : new TraceReferencesFormattingConsumer(command.toOutputFormat(allowObfuscation)) {
               @Override
-              public void finished() {
+              public void finished(DiagnosticsHandler handler) {
                 PrintStream out = System.out;
                 if (finalOutput != null) {
                   try {
                     out = new PrintStream(Files.newOutputStream(finalOutput));
                   } catch (IOException e) {
-                    builder.error(new ExceptionDiagnostic(e));
+                    handler.error(new ExceptionDiagnostic(e));
                   }
                 }
                 out.print(get());
