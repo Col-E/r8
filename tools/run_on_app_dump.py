@@ -549,32 +549,33 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     'config_file_consumer': remove_print_lines,
   })
 
-  compile_result = compiledump.run1(temp_dir, args, [])
-
-  out_jar = os.path.join(temp_dir, "out.jar")
-  out_mapping = os.path.join(temp_dir, "out.jar.map")
   app_jar = os.path.join(
     temp_dir, '{}_{}_{}_dex_out.jar'.format(
       app.name, shrinker, compilation_step_index))
   app_mapping = os.path.join(
     temp_dir, '{}_{}_{}_dex_out.jar.map'.format(
       app.name, shrinker, compilation_step_index))
-
-  if compile_result != 0 or not os.path.isfile(out_jar):
-    assert False, "Compilation of app_jar failed"
-  shutil.move(out_jar, app_jar)
-  shutil.move(out_mapping, app_mapping)
-
   recomp_jar = None
-  if compilation_step_index < compilation_steps - 1:
-    args['classfile'] = True
-    args['min_api'] = "10000"
-    compile_result = compiledump.run1(temp_dir, args, [])
-    if compile_result == 0:
-      recomp_jar = os.path.join(
-        temp_dir, '{}_{}_{}_cf_out.jar'.format(
-          app.name, shrinker, compilation_step_index))
-      shutil.move(out_jar, recomp_jar)
+
+  with utils.TempDir() as compile_temp_dir:
+    compile_result = compiledump.run1(compile_temp_dir, args, [])
+    out_jar = os.path.join(compile_temp_dir, "out.jar")
+    out_mapping = os.path.join(compile_temp_dir, "out.jar.map")
+
+    if compile_result != 0 or not os.path.isfile(out_jar):
+      assert False, 'Compilation of {} failed'.format(dump_for_app(app_dir, app))
+    shutil.move(out_jar, app_jar)
+    shutil.move(out_mapping, app_mapping)
+
+    if compilation_step_index < compilation_steps - 1:
+      args['classfile'] = True
+      args['min_api'] = "10000"
+      compile_result = compiledump.run1(compile_temp_dir, args, [])
+      if compile_result == 0:
+        recomp_jar = os.path.join(
+          temp_dir, '{}_{}_{}_cf_out.jar'.format(
+            app.name, shrinker, compilation_step_index))
+        shutil.move(out_jar, recomp_jar)
 
   return (app_jar, app_mapping, recomp_jar)
 
@@ -605,17 +606,16 @@ def build_test_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     'config_file_consumer': rewrite_file
   })
 
-  compile_result = compiledump.run1(temp_dir, args, [])
-
-  out_jar = os.path.join(temp_dir, "out.jar")
   test_jar = os.path.join(
     temp_dir, '{}_{}_{}_test_out.jar'.format(
       app.name, shrinker, compilation_step_index))
 
-  if compile_result != 0 or not os.path.isfile(out_jar):
-    return None
-
-  shutil.move(out_jar, test_jar)
+  with utils.TempDir() as compile_temp_dir:
+    compile_result = compiledump.run1(compile_temp_dir, args, [])
+    out_jar = os.path.join(compile_temp_dir, "out.jar")
+    if compile_result != 0 or not os.path.isfile(out_jar):
+      return None
+    shutil.move(out_jar, test_jar)
 
   return test_jar
 
