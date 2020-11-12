@@ -33,7 +33,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.DexValue.DexValueNull;
+import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
@@ -179,13 +179,13 @@ public final class InterfaceProcessor {
         dexItemFactory.createField(iface.getType(), dexItemFactory.intType, "$desugar$clinit");
     DexField clinitFieldReference =
         dexItemFactory.createFreshFieldName(
-            clinitFieldTemplateReference, candidate -> iface.lookupField(candidate) != null);
+            clinitFieldTemplateReference, candidate -> iface.lookupField(candidate) == null);
     return new DexEncodedField(
         clinitFieldReference,
         FieldAccessFlags.builder().setPackagePrivate().setStatic().setSynthetic().build(),
         FieldTypeSignature.noSignature(),
         DexAnnotationSet.empty(),
-        DexValueNull.NULL);
+        DexValueInt.DEFAULT);
   }
 
   private DexEncodedMethod createCompanionClassInitializer(

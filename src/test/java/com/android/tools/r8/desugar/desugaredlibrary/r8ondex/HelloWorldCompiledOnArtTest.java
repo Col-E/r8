@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -80,7 +79,6 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
       commandLinePathFor(ToolHelper.EXAMPLES_BUILD_DIR + "hello" + JAR_EXTENSION);
 
   @Test
-  @Ignore("b/173011806: failing with OOM")
   public void testHelloCompiledWithR8Dex() throws Exception {
     Path helloOutput = temp.newFolder("helloOutput").toPath().resolve("out.zip").toAbsolutePath();
     compileR8ToDexWithD8()
@@ -100,7 +98,6 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  @Ignore("b/173011806: failing with OOM")
   public void testHelloCompiledWithD8Dex() throws Exception {
     Path helloOutput = temp.newFolder("helloOutput").toPath().resolve("out.zip").toAbsolutePath();
     D8TestRunResult run =
