@@ -745,7 +745,7 @@ public class RootSetBuilder {
               DexProgramClass holder = asProgramClassOrNull(appInfo.definitionForHolder(method));
               DexEncodedMethod definition = method.lookupOnClass(holder);
               if (definition == null) {
-                assert false;
+                assert method.match(appInfo.dexItemFactory().deserializeLambdaMethod);
                 return;
               }
               out.print(method.holder.toSourceString() + ": ");

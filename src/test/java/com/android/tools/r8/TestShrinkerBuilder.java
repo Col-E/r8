@@ -251,6 +251,10 @@ public abstract class TestShrinkerBuilder<
     return self();
   }
 
+  public T addPrintSeeds() {
+    return addKeepRules("-printseeds");
+  }
+
   public T allowAccessModification() {
     return allowAccessModification(true);
   }
