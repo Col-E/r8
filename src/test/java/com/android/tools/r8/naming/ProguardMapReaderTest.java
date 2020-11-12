@@ -26,7 +26,7 @@ public class ProguardMapReaderTest extends TestBase {
   private static final String ROOT = ToolHelper.EXAMPLES_BUILD_DIR;
   private static final String EXAMPLE_MAP = "throwing/throwing.map";
   private static final String EXAMPLE_MAP_WITH_PACKAGE_INFO =
-      "dagger.android.package-info -> dagger.android.package-info\n";
+      "dagger.android.package-info -> dagger.android.package-info:\n";
 
   @Test
   public void parseThrowingMap() throws IOException {
@@ -141,7 +141,7 @@ public class ProguardMapReaderTest extends TestBase {
   @Test
   public void parseMapWithPackageInfo() throws IOException {
     ClassNameMapper mapper = ClassNameMapper.mapperFromString(EXAMPLE_MAP_WITH_PACKAGE_INFO);
-    Assert.assertTrue(mapper.getObfuscatedToOriginalMapping().original.isEmpty());
+    assertEquals(1, mapper.getObfuscatedToOriginalMapping().original.size());
   }
 
   @Test

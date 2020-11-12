@@ -221,10 +221,6 @@ public class ProguardMapReader implements AutoCloseable {
       skipWhitespace();
       // Workaround for proguard map files that contain entries for package-info.java files.
       assert IdentifierUtils.isDexIdentifierPart('-');
-      if (before.endsWith("package-info")) {
-        skipLine();
-        continue;
-      }
       if (before.endsWith("-") && acceptString(">")) {
         // With - as a legal identifier part the grammar is ambiguous, and we treat a->b as a -> b,
         // and not as a- > b (which would be a parse error).

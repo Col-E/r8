@@ -90,8 +90,6 @@ APPS = [
     'url': 'https://github.com/christofferqa/AntennaPod.git',
     'revision': '77e94f4783a16abe9cc5b78dc2d2b2b1867d8c06',
     'folder': 'antennapod',
-    # TODO(b/172450929): Fix recompilation
-    'skip_recompilation': True
   }),
   App({
     'id': 'com.example.applymapping',
