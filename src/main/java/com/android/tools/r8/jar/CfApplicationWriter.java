@@ -183,7 +183,10 @@ public class CfApplicationWriter {
         clazz.accessFlags.setSuper();
       }
     }
-    int access = clazz.accessFlags.getAsCfAccessFlags();
+    int access =
+        options.testing.allowInvalidCfAccessFlags
+            ? clazz.accessFlags.materialize()
+            : clazz.accessFlags.getAsCfAccessFlags();
     if (clazz.isDeprecated()) {
       access = AsmUtils.withDeprecated(access);
     }

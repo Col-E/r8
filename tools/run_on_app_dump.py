@@ -47,6 +47,7 @@ class App(object):
       'revision': None,
       'folder': None,
       'skip_recompilation': False,
+      'compiler_properties': [],
     }
     # This below does not work in python3
     defaults.update(fields.items())
@@ -111,8 +112,9 @@ APPS = [
     'url': 'https://github.com/mkj-gram/chanu.git',
     'revision': '6e53458f167b6d78398da60c20fd0da01a232617',
     'folder': 'chanu',
-    # TODO(b/172535996): Fix recompilation
-    'skip_recompilation': True
+    # The app depends on a class file that has access flags interface but
+    # not abstract
+    'compiler_properties': ['-Dcom.android.tools.r8.allowInvalidCfAccessFlags=true']
   }),
   # TODO(b/172539375): Monkey runner fails on recompilation.
   App({
@@ -543,6 +545,7 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     'program_jar': prev_recomp_jar,
     'nolib': not is_minified_r8(shrinker),
     'config_file_consumer': remove_print_lines,
+    'properties': app.compiler_properties,
   })
 
   app_jar = os.path.join(

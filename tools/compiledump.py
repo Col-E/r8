@@ -272,6 +272,8 @@ def run1(out, args, otherargs):
       cmd.append('-ea')
     if args.printtimes:
       cmd.append('-Dcom.android.tools.r8.printtimes=1')
+    if hasattr(args, 'properties'):
+      cmd.extend(args.properties);
     cmd.extend(['-cp', '%s:%s' % (wrapper_dir, jar)])
     if compiler == 'd8':
       cmd.append('com.android.tools.r8.D8')
