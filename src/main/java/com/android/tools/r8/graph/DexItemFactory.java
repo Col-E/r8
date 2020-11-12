@@ -1784,7 +1784,7 @@ public class DexItemFactory {
       Function<DexString, Optional<T>> tryString, String baseName, DexType holder) {
     int index = 0;
     while (true) {
-      assert index < 100;
+      assert index < 1000;
       DexString name = createString(createMemberString(baseName, holder, index++));
       Optional<T> result = tryString.apply(name);
       if (result.isPresent()) {
