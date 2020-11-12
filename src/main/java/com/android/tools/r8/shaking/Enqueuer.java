@@ -3924,6 +3924,11 @@ public class Enqueuer {
       } else if (identifierTypeLookupResult.isTypeInitializedFromUse()) {
         markDirectAndIndirectClassInitializersAsLive(clazz);
       }
+      // To ensure we are not moving the class because we cannot prune it when there is a reflective
+      // use of it.
+      if (!keepInfo.getClassInfo(clazz).isPinned()) {
+        keepInfo.pinClass(clazz);
+      }
     } else if (referencedItem.isDexField()) {
       DexField field = referencedItem.asDexField();
       DexProgramClass clazz = getProgramClassOrNull(field.holder);

@@ -4,11 +4,6 @@
 
 package com.android.tools.r8.classmerging.vertical;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThrows;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -48,25 +43,14 @@ public class VerticalClassMergerReflectiveNameTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assertThrows(
-        CompilationFailedException.class,
-        () -> {
-          testForR8(parameters.getBackend())
-              .addProgramClasses(Main.class, A.class, B.class)
-              .addKeepMainRule(Main.class)
-              .setMinApi(parameters.getApiLevel())
-              .enableInliningAnnotations()
-              .enableNeverClassInliningAnnotations()
-              .compileWithExpectedDiagnostics(
-                  diagnostics -> {
-                    diagnostics.assertErrorsMatch(
-                        diagnosticMessage(
-                            containsString(
-                                "Expected vertically merged class `"
-                                    + A.class.getTypeName()
-                                    + "` to be absent")));
-                  });
-        });
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Main.class, A.class, B.class)
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("A::foo", "B::foo");
   }
 
   public static class A {
