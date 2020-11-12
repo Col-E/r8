@@ -261,7 +261,8 @@ public class AnnotationRemover {
     return liveGetter ? original : null;
   }
 
-  private boolean enclosingMethodPinned(DexClass clazz) {
+  private static boolean enclosingMethodPinned(
+      AppView<AppInfoWithLiveness> appView, DexClass clazz) {
     return clazz.getEnclosingMethodAttribute() != null
         && clazz.getEnclosingMethodAttribute().getEnclosingClass() != null
         && appView.appInfo().isPinned(clazz.getEnclosingMethodAttribute().getEnclosingClass());
@@ -285,7 +286,7 @@ public class AnnotationRemover {
     // is kept.
     boolean keptAnyway =
         appView.appInfo().isPinned(clazz.type)
-            || enclosingMethodPinned(clazz)
+            || enclosingMethodPinned(appView, clazz)
             || appView.options().forceProguardCompatibility;
     boolean keepForThisInnerClass = false;
     boolean keepForThisEnclosingClass = false;
@@ -391,7 +392,7 @@ public class AnnotationRemover {
         for (DexProgramClass clazz : appView.appInfo().classes()) {
           // If [clazz] is mentioned by a keep rule, it could be used for reflection, and we
           // therefore need to keep the enclosing method and inner classes attributes, if requested.
-          if (appView.appInfo().isPinned(clazz.type)) {
+          if (appView.appInfo().isPinned(clazz) || enclosingMethodPinned(appView, clazz)) {
             for (InnerClassAttribute innerClassAttribute : clazz.getInnerClasses()) {
               DexType inner = innerClassAttribute.getInner();
               if (appView.appInfo().isNonProgramTypeOrLiveProgramType(inner)) {
