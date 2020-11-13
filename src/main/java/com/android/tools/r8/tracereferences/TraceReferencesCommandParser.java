@@ -6,9 +6,10 @@ package com.android.tools.r8.tracereferences;
 import com.android.tools.r8.BaseCompilerCommandParser;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.JdkClassFileProvider;
+import com.android.tools.r8.StringConsumer.FileConsumer;
+import com.android.tools.r8.StringConsumer.WriterConsumer;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.tracereferences.TraceReferencesFormattingConsumer.OutputFormat;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -16,6 +17,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -92,19 +94,6 @@ class TraceReferencesCommandParser {
     CHECK,
     PRINTUSAGE,
     KEEP_RULES;
-
-    private OutputFormat toOutputFormat(boolean allowobfuscation) {
-      switch (this) {
-        case PRINTUSAGE:
-          return OutputFormat.PRINTUSAGE;
-        case KEEP_RULES:
-          return allowobfuscation
-              ? OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION
-              : OutputFormat.KEEP_RULES;
-        default:
-          throw new Unreachable();
-      }
-    }
   }
 
   private void checkCommandNotSet(
@@ -204,11 +193,24 @@ class TraceReferencesCommandParser {
       return builder;
     }
 
-    final Path finalOutput = output;
-    builder.setConsumer(
-        command == Command.CHECK
-            ? TraceReferencesConsumer.emptyConsumer()
-            : new TraceReferencesFormattingConsumer(command.toOutputFormat(allowObfuscation)) {
+    switch (command) {
+      case CHECK:
+        builder.setConsumer(TraceReferencesConsumer.emptyConsumer());
+        break;
+      case KEEP_RULES:
+        builder.setConsumer(
+            TraceReferencesKeepRules.builder()
+                .setAllowObfuscation(allowObfuscation)
+                .setOutputConsumer(
+                    output != null
+                        ? new FileConsumer(output)
+                        : new WriterConsumer(null, new PrintWriter(System.out)))
+                .build());
+        break;
+      case PRINTUSAGE:
+        final Path finalOutput = output;
+        builder.setConsumer(
+            new TraceReferencesPrintUsage() {
               @Override
               public void finished(DiagnosticsHandler handler) {
                 PrintStream out = System.out;
@@ -222,6 +224,10 @@ class TraceReferencesCommandParser {
                 out.print(get());
               }
             });
+        break;
+      default:
+        throw new Unreachable();
+    }
     return builder;
   }
 

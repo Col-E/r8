@@ -9,13 +9,14 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DiagnosticsChecker;
+import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.tracereferences.TraceReferencesFormattingConsumer.OutputFormat;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -185,6 +186,37 @@ public class TraceReferencesCommandTest extends TestBase {
     return "--keep-rules";
   }
 
+  enum OutputFormat {
+    /** Format used with the -printusage flag */
+    PRINTUSAGE,
+    /** Keep rules keeping each of the traced references */
+    KEEP_RULES,
+    /**
+     * Keep rules with <code>allowobfuscation</code> modifier keeping each of the traced references
+     */
+    KEEP_RULES_WITH_ALLOWOBFUSCATION
+  }
+
+  private static class StringValueStringConsumer implements StringConsumer {
+    private StringBuilder builder = new StringBuilder();
+    private boolean finished = false;
+
+    @Override
+    public void accept(String string, DiagnosticsHandler handler) {
+      builder.append(string);
+    }
+
+    @Override
+    public void finished(DiagnosticsHandler handler) {
+      finished = true;
+    }
+
+    String get() {
+      assert finished;
+      return builder.toString();
+    }
+  }
+
   public void runAndCheckOutput(
       Path targetJar,
       Path sourceJar,
@@ -195,7 +227,14 @@ public class TraceReferencesCommandTest extends TestBase {
     Path dir = temp.newFolder().toPath();
     Path output = dir.resolve("output.txt");
     DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
-    TraceReferencesFormattingConsumer consumer = new TraceReferencesFormattingConsumer(format);
+    StringValueStringConsumer stringConsumer = new StringValueStringConsumer();
+    TraceReferencesConsumer consumer =
+        format == OutputFormat.PRINTUSAGE
+            ? new TraceReferencesPrintUsage()
+            : TraceReferencesKeepRules.builder()
+                .setAllowObfuscation(format == OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION)
+                .setOutputConsumer(stringConsumer)
+                .build();
     try {
       TraceReferences.run(
           TraceReferencesCommand.builder(diagnosticsChecker)
@@ -204,7 +243,11 @@ public class TraceReferencesCommandTest extends TestBase {
               .addSourceFiles(sourceJar)
               .setConsumer(consumer)
               .build());
-      assertEquals(expected, consumer.get());
+      if (consumer instanceof TraceReferencesPrintUsage) {
+        assertEquals(expected, ((TraceReferencesPrintUsage) consumer).get());
+      } else {
+        assertEquals(expected, stringConsumer.get());
+      }
       if (diagnosticsCheckerConsumer != null) {
         diagnosticsCheckerConsumer.accept(diagnosticsChecker);
       } else {
@@ -406,8 +449,7 @@ public class TraceReferencesCommandTest extends TestBase {
                     + " method(int)",
                 "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: int"
                     + " field"));
-    TraceReferencesFormattingConsumer consumer =
-        new TraceReferencesFormattingConsumer(OutputFormat.PRINTUSAGE);
+    TraceReferencesPrintUsage consumer = new TraceReferencesPrintUsage();
     TraceReferences.run(
         TraceReferencesCommand.builder()
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
