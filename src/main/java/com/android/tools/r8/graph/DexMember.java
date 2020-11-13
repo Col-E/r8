@@ -6,7 +6,7 @@ package com.android.tools.r8.graph;
 import com.google.common.collect.Iterables;
 
 public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
-    extends DexReference implements PresortedComparable<R> {
+    extends DexReference implements NamingLensComparable<R> {
 
   public final DexType holder;
   public final DexString name;

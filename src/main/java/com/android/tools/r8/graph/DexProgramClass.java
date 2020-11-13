@@ -551,7 +551,7 @@ public class DexProgramClass extends DexClass
       return null;
     }
     DexEncodedField[] fields = staticFields;
-    Arrays.sort(fields, (a, b) -> a.field.slowCompareTo(b.field, namingLens));
+    Arrays.sort(fields, (a, b) -> a.field.compareToWithNamingLens(b.field, namingLens));
     int length = 0;
     List<DexValue> values = new ArrayList<>(fields.length);
     for (int i = 0; i < fields.length; i++) {

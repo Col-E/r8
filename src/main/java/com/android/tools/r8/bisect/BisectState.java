@@ -323,7 +323,7 @@ public class BisectState {
 
   private static List<DexProgramClass> getSortedClasses(DexApplication app) {
     List<DexProgramClass> classes = new ArrayList<>(app.classes());
-    classes.sort((a, b) -> a.type.slowCompareTo(b.type, NamingLens.getIdentityLens()));
+    classes.sort((a, b) -> a.type.compareToWithNamingLens(b.type, NamingLens.getIdentityLens()));
     return classes;
   }
 

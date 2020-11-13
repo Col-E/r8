@@ -15,7 +15,7 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 
 public class DexMethodHandle extends IndexedDexItem
-    implements PresortedComparable<DexMethodHandle> {
+    implements NamingLensComparable<DexMethodHandle> {
 
   public enum MethodHandleType {
     STATIC_PUT((short) 0x00),

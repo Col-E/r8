@@ -11,7 +11,7 @@ import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.function.Consumer;
 
-public class DexProto extends IndexedDexItem implements PresortedComparable<DexProto> {
+public class DexProto extends IndexedDexItem implements NamingLensComparable<DexProto> {
 
   public static final DexProto SENTINEL = new DexProto(null, null, null);
 

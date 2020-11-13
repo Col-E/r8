@@ -7,9 +7,9 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.structural.CompareToVisitorWithNamingLens;
 import com.android.tools.r8.utils.structural.StructuralItem;
 
-public interface PresortedComparable<T extends PresortedComparable<T>> extends StructuralItem<T> {
+public interface NamingLensComparable<T extends NamingLensComparable<T>> extends StructuralItem<T> {
 
-  default int slowCompareTo(T other, NamingLens lens) {
+  default int compareToWithNamingLens(T other, NamingLens lens) {
     return CompareToVisitorWithNamingLens.run(self(), other, lens, StructuralItem::acceptCompareTo);
   }
 }

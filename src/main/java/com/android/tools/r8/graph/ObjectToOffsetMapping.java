@@ -79,8 +79,8 @@ public class ObjectToOffsetMapping {
     this.methodHandles = createSortedMap(methodHandles, compare(namingLens), this::failOnOverflow);
   }
 
-  private static <T extends PresortedComparable<T>> Comparator<T> compare(NamingLens namingLens) {
-    return (a, b) -> a.slowCompareTo(b, namingLens);
+  private static <T extends NamingLensComparable<T>> Comparator<T> compare(NamingLens namingLens) {
+    return (a, b) -> a.compareToWithNamingLens(b, namingLens);
   }
 
   private void setFirstJumboString(DexString string) {
@@ -168,7 +168,7 @@ public class ObjectToOffsetMapping {
                 (x, y) -> {
                   int dx = classDepths.getDepth(x);
                   int dy = classDepths.getDepth(y);
-                  return dx != dy ? dx - dy : x.type.slowCompareTo(y.type, namingLens);
+                  return dx != dy ? dx - dy : x.type.compareToWithNamingLens(y.type, namingLens);
                 })
             .collect(Collectors.toList());
     return sortedClasses.toArray(DexProgramClass.EMPTY_ARRAY);

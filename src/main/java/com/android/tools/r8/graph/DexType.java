@@ -36,7 +36,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class DexType extends DexReference implements PresortedComparable<DexType> {
+public class DexType extends DexReference implements NamingLensComparable<DexType> {
   public static final DexType[] EMPTY_ARRAY = {};
 
   // Bundletool is merging classes that may originate from a build with an old version of R8.

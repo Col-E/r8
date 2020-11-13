@@ -101,7 +101,8 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
       return;
     }
     Arrays.sort(
-        annotations, (a, b) -> a.annotation.type.slowCompareTo(b.annotation.type, namingLens));
+        annotations,
+        (a, b) -> a.annotation.type.compareToWithNamingLens(b.annotation.type, namingLens));
     for (DexAnnotation annotation : annotations) {
       annotation.annotation.sort();
     }

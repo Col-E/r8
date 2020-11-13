@@ -133,7 +133,7 @@ public class FileWriter {
       Log.verbose(FileWriter.class, "Writing encoded annotation @ %08x", dest.position());
     }
     List<DexAnnotationElement> elements = new ArrayList<>(Arrays.asList(annotation.elements));
-    elements.sort((a, b) -> a.name.slowCompareTo(b.name, mapping.getNamingLens()));
+    elements.sort((a, b) -> a.name.compareToWithNamingLens(b.name, mapping.getNamingLens()));
     dest.putUleb128(mapping.getOffsetFor(annotation.type));
     dest.putUleb128(elements.size());
     for (DexAnnotationElement element : elements) {
@@ -579,7 +579,8 @@ public class FileWriter {
       Log.verbose(getClass(), "Writing AnnotationSet @ 0x%08x.", dest.position());
     }
     List<DexAnnotation> annotations = new ArrayList<>(Arrays.asList(set.annotations));
-    annotations.sort((a, b) -> a.annotation.type.slowCompareTo(b.annotation.type, namingLens));
+    annotations.sort(
+        (a, b) -> a.annotation.type.compareToWithNamingLens(b.annotation.type, namingLens));
     dest.putInt(annotations.size());
     for (DexAnnotation annotation : annotations) {
       dest.putInt(mixedSectionOffsets.getOffsetFor(annotation));
@@ -629,7 +630,7 @@ public class FileWriter {
 
   private void writeEncodedFields(List<DexEncodedField> unsortedFields) {
     List<DexEncodedField> fields = new ArrayList<>(unsortedFields);
-    fields.sort((a, b) -> a.field.slowCompareTo(b.field, namingLens));
+    fields.sort((a, b) -> a.field.compareToWithNamingLens(b.field, namingLens));
     int currentOffset = 0;
     for (DexEncodedField field : fields) {
       assert field.validateDexValue(application.dexItemFactory);
@@ -645,7 +646,7 @@ public class FileWriter {
   private void writeEncodedMethods(
       Iterable<DexEncodedMethod> unsortedMethods, boolean isSharedSynthetic) {
     List<DexEncodedMethod> methods = IterableUtils.toNewArrayList(unsortedMethods);
-    methods.sort((a, b) -> a.method.slowCompareTo(b.method, namingLens));
+    methods.sort((a, b) -> a.method.compareToWithNamingLens(b.method, namingLens));
     int currentOffset = 0;
     for (DexEncodedMethod method : methods) {
       int nextOffset = mapping.getOffsetFor(method.method);

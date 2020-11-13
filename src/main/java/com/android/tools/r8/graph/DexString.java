@@ -17,7 +17,7 @@ import java.io.UTFDataFormatException;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
-public class DexString extends IndexedDexItem implements PresortedComparable<DexString> {
+public class DexString extends IndexedDexItem implements NamingLensComparable<DexString> {
 
   public static final DexString[] EMPTY_ARRAY = {};
   private static final int ARRAY_CHARACTER = '[';

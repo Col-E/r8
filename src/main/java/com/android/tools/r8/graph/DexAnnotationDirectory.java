@@ -46,17 +46,17 @@ public class DexAnnotationDirectory extends DexItem {
   }
 
   public List<DexEncodedMethod> sortMethodAnnotations(NamingLens namingLens) {
-    methodAnnotations.sort((a, b) -> a.method.slowCompareTo(b.method, namingLens));
+    methodAnnotations.sort((a, b) -> a.method.compareToWithNamingLens(b.method, namingLens));
     return methodAnnotations;
   }
 
   public List<DexEncodedMethod> sortParameterAnnotations(NamingLens namingLens) {
-    parameterAnnotations.sort((a, b) -> a.method.slowCompareTo(b.method, namingLens));
+    parameterAnnotations.sort((a, b) -> a.method.compareToWithNamingLens(b.method, namingLens));
     return parameterAnnotations;
   }
 
   public List<DexEncodedField> sortFieldAnnotations(NamingLens namingLens) {
-    fieldAnnotations.sort((a, b) -> a.field.slowCompareTo(b.field, namingLens));
+    fieldAnnotations.sort((a, b) -> a.field.compareToWithNamingLens(b.field, namingLens));
     return fieldAnnotations;
   }
 
