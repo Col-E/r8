@@ -707,7 +707,10 @@ public class Inliner implements PostOptimization {
         assert !monitorEnterBlock.hasCatchHandlers();
 
         InstructionListIterator monitorEnterBlockIterator = monitorEnterBlock.listIterator(code);
-        monitorEnterBlockIterator.setInsertionPosition(Position.syntheticNone());
+        // MonitorEnter will only throw an NPE if the lock is null and that can only happen if the
+        // receiver was null. To preserve NPE's at call-sites for synchronized methods we therefore
+        // put in the invoke-position.
+        monitorEnterBlockIterator.setInsertionPosition(invoke.getPosition());
 
         // If this is a static method, then the class object will act as the lock, so we load it
         // using a const-class instruction.
