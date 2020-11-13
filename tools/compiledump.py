@@ -88,6 +88,12 @@ def make_parser():
     help='Set desugared-library (default set from dump)',
     default=None)
   parser.add_argument(
+    '--disable-desugared-lib',
+    help='Disable desugared-libary if it will be set from dump',
+    default=False,
+    action='store_true'
+  )
+  parser.add_argument(
     '--loop',
     help='Run the compilation in a loop',
     default=False,
@@ -291,7 +297,7 @@ def run1(out, args, otherargs):
       cmd.extend(['--lib', dump.library_jar()])
     if dump.classpath_jar():
       cmd.extend(['--classpath', dump.classpath_jar()])
-    if dump.desugared_library_json():
+    if dump.desugared_library_json() and not args.disable_desugared_lib:
       cmd.extend(['--desugared-lib', dump.desugared_library_json()])
     if compiler != 'd8' and dump.config_file():
       if hasattr(args, 'config_file_consumer') and args.config_file_consumer:

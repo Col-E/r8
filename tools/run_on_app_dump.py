@@ -210,8 +210,6 @@ APPS = [
     'url': 'https://github.com/TeamNewPipe/NewPipe',
     'revision': 'f4435f90313281beece70c544032f784418d85fa',
     'folder': 'newpipe',
-    # TODO(b/172805505): Recompilation fails
-    'skip_recompilation': True,
   }),
   # TODO(b/172806808): Monkey runner does not work.
   App({
@@ -660,6 +658,7 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     'nolib': not is_minified_r8(shrinker),
     'config_file_consumer': remove_print_lines,
     'properties': app.compiler_properties,
+    'disable_desugared_lib': False,
   })
 
   app_jar = os.path.join(
@@ -683,6 +682,7 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     if compilation_step_index < compilation_steps - 1:
       args['classfile'] = True
       args['min_api'] = "10000"
+      args['disable_desugared_lib'] = True
       compile_result = compiledump.run1(compile_temp_dir, args, [])
       if compile_result == 0:
         recomp_jar = os.path.join(
