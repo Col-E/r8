@@ -236,12 +236,14 @@ def prepare_wrapper(dist, temp):
   wrapper_file = os.path.join(
       utils.REPO_ROOT,
       'src/main/java/com/android/tools/r8/utils/CompileDumpCompatR8.java')
-  subprocess.check_output([
+  cmd = [
     jdk.GetJavacExecutable(),
     wrapper_file,
     '-d', temp,
     '-cp', dist,
-    ])
+  ]
+  utils.PrintCmd(cmd)
+  subprocess.check_output(cmd)
   return temp
 
 def is_hash(version):
@@ -265,6 +267,8 @@ def run1(out, args, otherargs):
     min_api = determine_min_api(args, build_properties)
     classfile = determine_class_file(args, build_properties)
     jar = args.r8_jar if args.r8_jar else download_distribution(args, version, temp)
+    if ':' not in jar and not os.path.exists(jar):
+      error("Distribution does not exist: " + jar)
     wrapper_dir = prepare_wrapper(jar, temp)
     cmd = [jdk.GetJavaExecutable()]
     if args.debug_agent:
