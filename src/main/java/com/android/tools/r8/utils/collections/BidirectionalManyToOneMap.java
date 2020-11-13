@@ -88,6 +88,18 @@ public class BidirectionalManyToOneMap<K, V> {
     }
   }
 
+  public Set<K> removeValue(V value) {
+    Set<K> keys = inverse.remove(value);
+    if (keys == null) {
+      return Collections.emptySet();
+    }
+    for (K key : keys) {
+      V removedValue = backing.remove(key);
+      assert removedValue == value;
+    }
+    return keys;
+  }
+
   public void put(K key, V value) {
     remove(key);
     backing.put(key, value);

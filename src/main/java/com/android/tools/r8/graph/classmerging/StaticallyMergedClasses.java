@@ -51,7 +51,7 @@ public class StaticallyMergedClasses implements MergedClasses {
     private Builder() {}
 
     public void recordMerge(DexProgramClass source, DexProgramClass target) {
-      for (DexType previousSource : mergedClasses.getKeys(source.getType())) {
+      for (DexType previousSource : mergedClasses.removeValue(source.getType())) {
         mergedClasses.put(previousSource, target.getType());
       }
       mergedClasses.put(source.getType(), target.getType());
