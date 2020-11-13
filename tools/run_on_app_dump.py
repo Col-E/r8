@@ -38,6 +38,7 @@ class App(object):
     defaults = {
       'id': None,
       'name': None,
+      'collections': [],
       'dump_app': None,
       'apk_app': None,
       'dump_test': None,
@@ -48,6 +49,16 @@ class App(object):
       'folder': None,
       'skip_recompilation': False,
       'compiler_properties': [],
+    }
+    # This below does not work in python3
+    defaults.update(fields.items())
+    self.__dict__ = defaults
+
+
+class AppCollection(object):
+  def __init__(self, fields):
+    defaults = {
+      'name': None
     }
     # This below does not work in python3
     defaults.update(fields.items())
@@ -333,6 +344,107 @@ APPS = [
     'revision': '0fa7cad843c66313be8e25790ef084cf1a1fa67e',
     'folder': 'wikipedia',
   }),
+  # TODO(b/173167253): Check if monkey testing works.
+  App({
+    'id': 'androidx.compose.samples.crane',
+    'name': 'compose-crane',
+    'collections': ['compose-samples'],
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release-unsigned.apk',
+    'url': 'https://github.com/android/compose-samples',
+    'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
+    'folder': 'android/compose-samples/crane',
+  }),
+  # TODO(b/173167253): Check if monkey testing works.
+  App({
+    'id': 'com.example.jetcaster',
+    'name': 'compose-jetcaster',
+    'collections': ['compose-samples'],
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release-unsigned.apk',
+    'url': 'https://github.com/android/compose-samples',
+    'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
+    'folder': 'android/compose-samples/jetcaster',
+    # TODO(b/173176042): Fix recompilation
+    'skip_recompilation': True,
+  }),
+  # TODO(b/173167253): Check if monkey testing works.
+  App({
+    'id': 'com.example.compose.jetchat',
+    'name': 'compose-jetchat',
+    'collections': ['compose-samples'],
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release-unsigned.apk',
+    'url': 'https://github.com/android/compose-samples',
+    'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
+    'folder': 'android/compose-samples/jetchat',
+    # TODO(b/173176042): Fix recompilation
+    'skip_recompilation': True,
+  }),
+  # TODO(b/173167253): Check if monkey testing works.
+  App({
+    'id': 'com.example.jetnews',
+    'name': 'compose-jetnews',
+    'collections': ['compose-samples'],
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release-unsigned.apk',
+    'url': 'https://github.com/android/compose-samples',
+    'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
+    'folder': 'android/compose-samples/jetnews',
+    # TODO(b/173176042): Fix recompilation
+    'skip_recompilation': True,
+  }),
+  # TODO(b/173167253): Check if monkey testing works.
+  App({
+    'id': 'com.example.jetsnack',
+    'name': 'compose-jetsnack',
+    'collections': ['compose-samples'],
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release-unsigned.apk',
+    'url': 'https://github.com/android/compose-samples',
+    'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
+    'folder': 'android/compose-samples/jetsnack',
+  }),
+  # TODO(b/173167253): Check if monkey testing works.
+  App({
+    'id': 'com.example.compose.jetsurvey',
+    'name': 'compose-jetsurvey',
+    'collections': ['compose-samples'],
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release-unsigned.apk',
+    'url': 'https://github.com/android/compose-samples',
+    'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
+    'folder': 'android/compose-samples/jetsurvey',
+  }),
+  # TODO(b/173167253): Check if monkey testing works.
+  App({
+    'id': 'com.example.owl',
+    'name': 'compose-owl',
+    'collections': ['compose-samples'],
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release-unsigned.apk',
+    'url': 'https://github.com/android/compose-samples',
+    'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
+    'folder': 'android/compose-samples/owl',
+  }),
+  # TODO(b/173167253): Check if monkey testing works.
+  App({
+    'id': 'com.example.compose.rally',
+    'name': 'compose-rally',
+    'collections': ['compose-samples'],
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release-unsigned.apk',
+    'url': 'https://github.com/android/compose-samples',
+    'revision': '779cf9e187b8ee2c6b620b2abb4524719b3f10f8',
+    'folder': 'android/compose-samples/rally',
+  }),
+]
+
+
+APP_COLLECTIONS = [
+  AppCollection({
+    'name': 'compose-samples',
+  })
 ]
 
 
@@ -721,6 +833,10 @@ def parse_options(argv):
                     help='What app to run on',
                     choices=[app.name for app in APPS],
                     action='append')
+  result.add_option('--app-collection', '--app_collection',
+                    help='What app collection to run',
+                    choices=[collection.name for collection in APP_COLLECTIONS],
+                    action='append')
   result.add_option('--bot',
                     help='Running on bot, use third_party dependency.',
                     default=False,
@@ -796,11 +912,23 @@ def parse_options(argv):
                     default='master',
                     help='The version of R8 to use (e.g., 1.4.51)')
   (options, args) = result.parse_args(argv)
-  if options.app:
-    options.apps = [app for app in APPS if app.name in options.app]
+
+  if options.app or options.app_collection:
+    if not options.app:
+      options.app = []
+    if not options.app_collection:
+      options.app_collection = []
+    options.apps = [
+        app
+        for app in APPS
+        if app.name in options.app
+           or any(collection in options.app_collection
+                  for collection in app.collections)]
     del options.app
+    del options.app_collection
   else:
     options.apps = APPS
+
   if options.app_logging_filter:
     for app_name in options.app_logging_filter:
       assert any(app.name == app_name for app in options.apps)
