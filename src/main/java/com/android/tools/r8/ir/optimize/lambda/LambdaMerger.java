@@ -62,6 +62,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -257,7 +258,7 @@ public final class LambdaMerger {
                 appView.testing().kotlinLambdaMergerFactoryForClass.apply(cls) != null
                     && KotlinLambdaGroupIdFactory.hasValidAnnotations(kotlin, cls)
                     && !appView.appInfo().getClassToFeatureSplitMap().isInFeature(cls))
-        .sorted((a, b) -> a.type.compareTo(b.type)) // Ensure stable ordering.
+        .sorted(Comparator.comparing(DexClass::getType)) // Ensure stable ordering.
         .forEachOrdered(
             lambda -> {
               try {
@@ -268,14 +269,7 @@ public final class LambdaMerger {
                 group.add(lambda);
                 lambdas.put(lambda.type, group);
               } catch (LambdaStructureError error) {
-                if (error.reportable) {
-                  reporter.info(
-                      new StringDiagnostic(
-                          "Unrecognized Kotlin lambda ["
-                              + lambda.type.toSourceString()
-                              + "]: "
-                              + error.getMessage()));
-                }
+                // Intentionally empty.
               }
             });
 

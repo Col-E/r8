@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import static com.android.tools.r8.TestBase.toDexType;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexItemFactory;
@@ -34,6 +35,11 @@ public class HorizontallyMergedLambdaClassesInspector {
     for (Class<?> clazz : classes) {
       assertMerged(clazz);
     }
+    return this;
+  }
+
+  public HorizontallyMergedLambdaClassesInspector assertClassNotMerged(Class<?> clazz) {
+    assertFalse(horizontallyMergedLambdaClasses.hasBeenMerged(toDexType(clazz, dexItemFactory)));
     return this;
   }
 

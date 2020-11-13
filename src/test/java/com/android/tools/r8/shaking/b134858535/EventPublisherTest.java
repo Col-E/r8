@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.shaking.b134858535;
 
-import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -28,13 +27,9 @@ public class EventPublisherTest extends TestBase {
         .addProgramClassFileData(EventPublisher$bDump.dump())
         .addKeepClassRules(Interface.class)
         .addKeepMainRule(Main.class)
-        .allowDiagnosticInfoMessages()
         .setMinApi(AndroidApiLevel.L)
-        .compile()
-        // TODO(b/157537996): Handle JStyle lambdas with private methods.
-        .assertAllInfoMessagesMatch(
-            containsString(
-                "Unrecognized Kotlin lambda"
-                    + " [com.android.tools.r8.shaking.b134858535.EventPublisher$b]"));
+        .addHorizontallyMergedLambdaClassesInspector(
+            inspector -> inspector.assertClassNotMerged(EventPublisher$b.class))
+        .compile();
   }
 }
