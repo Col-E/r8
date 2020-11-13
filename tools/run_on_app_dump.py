@@ -560,7 +560,9 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
   print('HINT: use --shrinker r8-nolib --no-build if you have a local R8.jar')
   recomp_jar = None
   status = 'success'
-  compilation_steps = 1 if app.skip_recompilation else options.r8_compilation_steps;
+  if options.r8_compilation_steps < 1:
+    return
+  compilation_steps = 1 if app.skip_recompilation else options.r8_compilation_steps
   for compilation_step in range(0, compilation_steps):
     if status != 'success':
       break
