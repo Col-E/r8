@@ -176,10 +176,16 @@ public class GeneratedExtensionRegistryShrinker {
                 clazz.forEachProgramMethodMatching(
                     definition ->
                         references.isFindLiteExtensionByNumberMethod(definition.getReference()),
-                    consumer::accept),
+                    consumer),
             lambda -> {
               assert false;
             });
+  }
+
+  public void handleFailedOrUnknownFieldResolution(DexField fieldReference, ProgramMethod context) {
+    if (references.isFindLiteExtensionByNumberMethod(context)) {
+      removedExtensionFields.add(fieldReference);
+    }
   }
 
   public boolean isDeadProtoExtensionField(DexField fieldReference) {

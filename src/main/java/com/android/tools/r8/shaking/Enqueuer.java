@@ -1459,6 +1459,10 @@ public class Enqueuer {
       // Must mark the field as targeted even if it does not exist.
       markFieldAsTargeted(fieldReference, currentMethod);
       noClassMerging.add(fieldReference.getHolderType());
+
+      // Record field reference for generated extension registry shrinking.
+      appView.withGeneratedExtensionRegistryShrinker(
+          shrinker -> shrinker.handleFailedOrUnknownFieldResolution(fieldReference, currentMethod));
       return;
     }
 
@@ -1477,17 +1481,15 @@ public class Enqueuer {
       Log.verbose(getClass(), "Register Sget `%s`.", fieldReference);
     }
 
-    if (appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking) {
-      // If it is a dead proto extension field, don't trace onwards.
-      boolean skipTracing =
-          appView.withGeneratedExtensionRegistryShrinker(
-              shrinker ->
-                  shrinker.isDeadProtoExtensionField(field, fieldAccessInfoCollection, keepInfo),
-              false);
-      if (skipTracing) {
-        addDeadProtoTypeCandidate(field.getHolder());
-        return;
-      }
+    // If it is a dead proto extension field, don't trace onwards.
+    boolean skipTracing =
+        appView.withGeneratedExtensionRegistryShrinker(
+            shrinker ->
+                shrinker.isDeadProtoExtensionField(field, fieldAccessInfoCollection, keepInfo),
+            false);
+    if (skipTracing) {
+      addDeadProtoTypeCandidate(field.getHolder());
+      return;
     }
 
     if (field.getReference() != fieldReference) {
