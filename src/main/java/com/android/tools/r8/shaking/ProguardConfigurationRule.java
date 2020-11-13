@@ -105,6 +105,10 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
       AppView<? extends AppInfoWithClassHierarchy> appView,
       SubtypingInfo subtypingInfo,
       Iterable<DexProgramClass> defaultValue) {
+    List<DexType> specificTypes = getClassNames().asSpecificDexTypes();
+    if (specificTypes != null) {
+      return DexProgramClass.asProgramClasses(specificTypes, appView);
+    }
     if (hasInheritanceClassName() && getInheritanceClassName().hasSpecificType()) {
       DexType type = getInheritanceClassName().getSpecificType();
       if (appView.verticallyMergedClasses() != null
