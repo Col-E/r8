@@ -41,6 +41,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
+import com.android.tools.r8.graph.classmerging.StaticallyMergedClasses;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
@@ -1281,6 +1282,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public BiConsumer<DexItemFactory, HorizontallyMergedLambdaClasses>
         horizontallyMergedLambdaClassesConsumer = ConsumerUtils.emptyBiConsumer();
+
+    public BiConsumer<DexItemFactory, StaticallyMergedClasses> staticallyMergedClassesConsumer =
+        ConsumerUtils.emptyBiConsumer();
 
     public BiConsumer<DexItemFactory, EnumValueInfoMapCollection> unboxedEnumsConsumer =
         ConsumerUtils.emptyBiConsumer();

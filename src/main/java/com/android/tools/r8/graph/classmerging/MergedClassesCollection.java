@@ -9,6 +9,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 public class MergedClassesCollection implements MergedClasses {
 
@@ -19,11 +21,10 @@ public class MergedClassesCollection implements MergedClasses {
   }
 
   @Override
-  public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
+  public void forEachMergeGroup(BiConsumer<Set<DexType>, DexType> consumer) {
     for (MergedClasses mergedClasses : collection) {
-      assert mergedClasses.verifyAllSourcesPruned(appView);
+      mergedClasses.forEachMergeGroup(consumer);
     }
-    return true;
   }
 
   @Override
@@ -34,5 +35,13 @@ public class MergedClassesCollection implements MergedClasses {
       }
     }
     return false;
+  }
+
+  @Override
+  public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
+    for (MergedClasses mergedClasses : collection) {
+      assert mergedClasses.verifyAllSourcesPruned(appView);
+    }
+    return true;
   }
 }

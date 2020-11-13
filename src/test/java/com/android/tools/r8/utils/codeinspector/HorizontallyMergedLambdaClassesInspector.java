@@ -8,7 +8,10 @@ import static com.android.tools.r8.TestBase.toDexType;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 public class HorizontallyMergedLambdaClassesInspector {
 
@@ -32,5 +35,9 @@ public class HorizontallyMergedLambdaClassesInspector {
       assertMerged(clazz);
     }
     return this;
+  }
+
+  public void forEachMergeGroup(BiConsumer<Set<DexType>, DexType> consumer) {
+    horizontallyMergedLambdaClasses.forEachMergeGroup(consumer);
   }
 }

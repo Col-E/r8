@@ -40,6 +40,7 @@ import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis;
+import com.android.tools.r8.graph.classmerging.StaticallyMergedClasses;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerGraphLens;
@@ -525,7 +526,11 @@ public class R8 {
           NestedGraphLens lens = staticClassMerger.run();
           appView.rewriteWithLens(lens);
           timing.end();
+        } else {
+          appView.setStaticallyMergedClasses(StaticallyMergedClasses.empty());
         }
+        assert appView.staticallyMergedClasses() != null;
+
         if (options.enableVerticalClassMerging) {
           timing.begin("VerticalClassMerger");
           VerticalClassMerger verticalClassMerger =

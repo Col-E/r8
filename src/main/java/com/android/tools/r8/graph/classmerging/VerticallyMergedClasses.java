@@ -10,6 +10,8 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 public class VerticallyMergedClasses implements MergedClasses {
 
@@ -21,6 +23,11 @@ public class VerticallyMergedClasses implements MergedClasses {
 
   public static VerticallyMergedClasses empty() {
     return new VerticallyMergedClasses(BidirectionalManyToOneMap.empty());
+  }
+
+  @Override
+  public void forEachMergeGroup(BiConsumer<Set<DexType>, DexType> consumer) {
+    mergedClasses.forEach(consumer);
   }
 
   public Map<DexType, DexType> getForwardMap() {
@@ -53,16 +60,16 @@ public class VerticallyMergedClasses implements MergedClasses {
   }
 
   @Override
+  public boolean hasBeenMerged(DexType type) {
+    return hasBeenMergedIntoSubtype(type);
+  }
+
+  @Override
   public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
     for (DexType source : mergedClasses.keySet()) {
       assert appView.appInfo().wasPruned(source)
           : "Expected vertically merged class `" + source.toSourceString() + "` to be absent";
     }
     return true;
-  }
-
-  @Override
-  public boolean hasBeenMerged(DexType type) {
-    return hasBeenMergedIntoSubtype(type);
   }
 }

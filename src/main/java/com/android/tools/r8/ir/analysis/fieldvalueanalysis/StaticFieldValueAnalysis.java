@@ -153,16 +153,16 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     return computeSingleEnumFieldValueForInstance(value);
   }
 
-  private SingleFieldValue computeSingleEnumFieldValueForValuesArray(Value valuesArrayValue) {
-    if (!valuesArrayValue.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmpty)) {
+  private SingleFieldValue computeSingleEnumFieldValueForValuesArray(Value value) {
+    if (!value.isDefinedByInstructionSatisfying(Instruction::isNewArrayEmpty)) {
       return null;
     }
 
-    NewArrayEmpty newArrayEmpty = valuesArrayValue.definition.asNewArrayEmpty();
-    if (newArrayEmpty.type.toBaseType(appView.dexItemFactory()) != context.getHolderType()) {
+    NewArrayEmpty newArrayEmpty = value.definition.asNewArrayEmpty();
+    if (newArrayEmpty.type.toBaseType(appView.dexItemFactory()) != context.getHolder().type) {
       return null;
     }
-    if (valuesArrayValue.hasDebugUsers() || valuesArrayValue.hasPhiUsers()) {
+    if (value.hasDebugUsers() || value.hasPhiUsers()) {
       return null;
     }
     if (!newArrayEmpty.size().isConstNumber()) {
@@ -175,23 +175,13 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       return null;
     }
 
-    DexEncodedField ordinalField =
-        appView
-            .appInfo()
-            .resolveField(appView.dexItemFactory().enumMembers.ordinalField, context)
-            .getResolvedField();
-    if (ordinalField == null) {
-      assert false : "Expected Enum.ordinal to be present.";
-      return null;
-    }
-
     ObjectState[] valuesState = new ObjectState[valuesSize];
     DexEncodedField valuesField = null;
-    for (Instruction user : valuesArrayValue.uniqueUsers()) {
+    for (Instruction user : value.uniqueUsers()) {
       switch (user.opcode()) {
         case ARRAY_PUT:
           ArrayPut arrayPut = user.asArrayPut();
-          if (arrayPut.array() != valuesArrayValue) {
+          if (arrayPut.array() != value) {
             return null;
           }
           if (!arrayPut.index().isConstNumber()) {
@@ -204,10 +194,6 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
           ObjectState objectState = computeEnumInstanceObjectState(arrayPut.value());
           if (objectState == null || objectState.isEmpty()) {
             // We need the state of all fields for the analysis to be valuable.
-            return null;
-          }
-          AbstractValue ordinalState = objectState.getAbstractFieldValue(ordinalField);
-          if (!ordinalState.isSingleNumberValue()) {
             return null;
           }
           assert verifyValuesArrayIndexMatchesOrdinal(index, objectState);

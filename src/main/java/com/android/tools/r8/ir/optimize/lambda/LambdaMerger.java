@@ -395,8 +395,7 @@ public final class LambdaMerger {
     rewriteLambdaReferences(converter, executorService, appliedGraphLens);
     this.mode = null;
 
-    appView.setHorizontallyMergedLambdaClasses(
-        new HorizontallyMergedLambdaClasses(lambdas.keySet()));
+    appView.setHorizontallyMergedLambdaClasses(new HorizontallyMergedLambdaClasses(lambdas));
   }
 
   private void analyzeLambdaClassesStructure(ExecutorService service) throws ExecutionException {

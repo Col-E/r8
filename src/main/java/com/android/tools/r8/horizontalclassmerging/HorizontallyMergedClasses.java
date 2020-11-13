@@ -13,6 +13,7 @@ import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 public class HorizontallyMergedClasses implements MergedClasses {
 
@@ -24,6 +25,11 @@ public class HorizontallyMergedClasses implements MergedClasses {
 
   public static HorizontallyMergedClasses empty() {
     return new HorizontallyMergedClasses(new BidirectionalManyToOneMap<>());
+  }
+
+  @Override
+  public void forEachMergeGroup(BiConsumer<Set<DexType>, DexType> consumer) {
+    mergedClasses.forEach(consumer);
   }
 
   public DexType getMergeTargetOrDefault(DexType type) {

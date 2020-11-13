@@ -12,6 +12,8 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 public class HorizontallyMergedClassesInspector {
 
@@ -22,6 +24,10 @@ public class HorizontallyMergedClassesInspector {
       DexItemFactory dexItemFactory, HorizontallyMergedClasses horizontallyMergedClasses) {
     this.dexItemFactory = dexItemFactory;
     this.horizontallyMergedClasses = horizontallyMergedClasses;
+  }
+
+  public void forEachMergeGroup(BiConsumer<Set<DexType>, DexType> consumer) {
+    horizontallyMergedClasses.forEachMergeGroup(consumer);
   }
 
   public DexType getTarget(DexType clazz) {

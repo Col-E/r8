@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
+import com.android.tools.r8.graph.classmerging.StaticallyMergedClasses;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.VerticalClassMerger.IllegalAccessDetector;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
@@ -188,6 +189,8 @@ public class StaticClassMerger {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final MainDexTracingResult mainDexClasses;
+  private final StaticallyMergedClasses.Builder mergedClassesBuilder =
+      StaticallyMergedClasses.builder();
 
   /** The equivalence that should be used for the member buckets in {@link Representative}. */
   private final Equivalence<DexField> fieldEquivalence;
@@ -224,6 +227,7 @@ public class StaticClassMerger {
           numberOfMergedClasses,
           fieldMapping.size() + methodMapping.size());
     }
+    appView.setStaticallyMergedClasses(mergedClassesBuilder.build());
     return buildGraphLens();
   }
 
@@ -456,6 +460,7 @@ public class StaticClassMerger {
     assert getClassToFeatureSplitMap().isInSameFeatureOrBothInBase(sourceClass, targetClass);
 
     numberOfMergedClasses++;
+    mergedClassesBuilder.recordMerge(sourceClass, targetClass);
 
     // Move members from source to target.
     targetClass.addDirectMethods(

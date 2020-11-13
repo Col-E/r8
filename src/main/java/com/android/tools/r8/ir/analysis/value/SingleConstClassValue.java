@@ -106,6 +106,7 @@ public class SingleConstClassValue extends SingleConstValue {
 
   @Override
   public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
-    return appView.abstractValueFactory().createSingleConstClassValue(lens.lookupType(type));
+    assert lens.lookupType(type) == type;
+    return this;
   }
 }
