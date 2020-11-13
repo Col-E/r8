@@ -4,7 +4,6 @@
 package com.android.tools.r8.kotlin.lambda;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
@@ -55,11 +54,8 @@ public class KotlinLambdaMergerValidationTest extends AbstractR8KotlinTestBase {
         .addLibraryFiles(ToolHelper.getKotlinStdlibJar())
         .addProgramFiles(ktClasses)
         .addKeepMainRule("**.B143165163Kt")
-        .allowDiagnosticInfoMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        // TODO(b/143165163): better not output info like this.
-        .assertAllInfoMessagesMatch(containsString("unexpected static method"))
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar())
         .run(parameters.getRuntime(), pkg + ".B143165163Kt")
         .assertSuccessWithOutputLines("outer foo bar", "outer foo default");
@@ -81,11 +77,9 @@ public class KotlinLambdaMergerValidationTest extends AbstractR8KotlinTestBase {
         .addProgramFiles(ToolHelper.getKotlinStdlibJar())
         .addProgramFiles(ktClasses)
         .addKeepMainRule("**.B143165163Kt")
-        .allowDiagnosticMessages()
+        .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        // TODO(b/143165163): better not output info like this.
-        .assertAllInfoMessagesMatch(containsString("does not implement any interfaces"))
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .run(parameters.getRuntime(), pkg + ".B143165163Kt")
         .assertSuccessWithOutputLines("outer foo bar", "outer foo default");
