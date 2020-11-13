@@ -40,6 +40,10 @@ public abstract class DexDefinition extends DexItem {
     this.annotations = annotations;
   }
 
+  public void removeAnnotations(Predicate<DexAnnotation> predicate) {
+    setAnnotations(annotations().removeIf(predicate));
+  }
+
   public boolean isDexClass() {
     return false;
   }

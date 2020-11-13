@@ -58,6 +58,10 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
                     appView.options().reporter,
                     onlyProcessLambdas,
                     method -> keepByteCodeFunctions.add(method.method)));
+            if (onlyProcessLambdas) {
+              clazz.removeAnnotations(
+                  annotation -> annotation.getAnnotationType() == kotlinMetadataType);
+            }
             if (clazz.getEnclosingMethodAttribute() != null
                 && clazz.getEnclosingMethodAttribute().getEnclosingMethod() != null) {
               localOrAnonymousClasses.add(clazz);
