@@ -27,7 +27,6 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoNativeMethods;
 import com.android.tools.r8.horizontalclassmerging.policies.NoRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoServiceLoaders;
 import com.android.tools.r8.horizontalclassmerging.policies.NoStaticClassInitializer;
-import com.android.tools.r8.horizontalclassmerging.policies.NotEntryPoint;
 import com.android.tools.r8.horizontalclassmerging.policies.NotMatchedByNoHorizontalClassMerging;
 import com.android.tools.r8.horizontalclassmerging.policies.NotVerticallyMergedIntoSubtype;
 import com.android.tools.r8.horizontalclassmerging.policies.PreventChangingVisibility;
