@@ -125,7 +125,6 @@ public class HorizontalClassMerger {
         new NoServiceLoaders(appView),
         new NotVerticallyMergedIntoSubtype(appView),
         new NoRuntimeTypeChecks(runtimeTypeCheckInfo),
-        new NotEntryPoint(appView.dexItemFactory()),
         new PreventMethodImplementation(appView),
         new DontInlinePolicy(appView, mainDexTracingResult),
         new PreventMergeIntoMainDex(appView, mainDexTracingResult),
