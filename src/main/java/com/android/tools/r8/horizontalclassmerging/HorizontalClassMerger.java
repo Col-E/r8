@@ -14,6 +14,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.DontInlinePolicy;
 import com.android.tools.r8.horizontalclassmerging.policies.DontMergeIntoLessVisible;
 import com.android.tools.r8.horizontalclassmerging.policies.DontMergeSynchronizedClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.IgnoreSynthetics;
+import com.android.tools.r8.horizontalclassmerging.policies.LimitGroups;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassesOrMembersWithAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
@@ -135,6 +136,7 @@ public class HorizontalClassMerger {
         new SameFeatureSplit(appView),
         new RespectPackageBoundaries(appView),
         new DontMergeSynchronizedClasses(appView),
+        new LimitGroups(appView),
         // TODO(b/166577694): no policies should be run after this policy, as it would
         // potentially break tests
         new DontMergeIntoLessVisible()
