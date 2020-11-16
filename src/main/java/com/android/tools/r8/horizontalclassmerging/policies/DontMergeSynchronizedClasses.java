@@ -26,7 +26,7 @@ public class DontMergeSynchronizedClasses extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
+  public Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group) {
     // Gather all synchronized classes.
     Collection<List<DexProgramClass>> synchronizedGroups = new LinkedList<>();
     group.removeIf(

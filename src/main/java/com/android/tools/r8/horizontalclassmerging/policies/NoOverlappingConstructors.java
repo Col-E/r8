@@ -40,7 +40,7 @@ public class NoOverlappingConstructors extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
+  public Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group) {
     Map<DexProto, Set<DexProgramClass>> overlappingConstructors = new IdentityHashMap<>();
 
     for (DexProgramClass clazz : group) {

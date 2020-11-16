@@ -8,9 +8,9 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 public class LimitGroups extends MultiClassPolicy {
@@ -23,12 +23,12 @@ public class LimitGroups extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
+  public Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group) {
     if (group.size() <= maxGroupSize) {
       return Collections.singletonList(group);
     }
 
-    List<List<DexProgramClass>> newGroups = new ArrayList<>();
+    LinkedList<LinkedList<DexProgramClass>> newGroups = new LinkedList<>();
     List<DexProgramClass> newGroup = createNewGroup(newGroups);
     for (DexProgramClass clazz : group) {
       if (newGroup.size() == maxGroupSize) {
@@ -36,11 +36,20 @@ public class LimitGroups extends MultiClassPolicy {
       }
       newGroup.add(clazz);
     }
+    if (newGroup.size() == 1) {
+      if (maxGroupSize == 2) {
+        List<DexProgramClass> removedGroup = newGroups.removeLast();
+        assert removedGroup == newGroup;
+      } else {
+        newGroup.add(newGroups.getFirst().removeLast());
+      }
+    }
     return newGroups;
   }
 
-  private List<DexProgramClass> createNewGroup(List<List<DexProgramClass>> newGroups) {
-    List<DexProgramClass> newGroup = new ArrayList<>();
+  private LinkedList<DexProgramClass> createNewGroup(
+      LinkedList<LinkedList<DexProgramClass>> newGroups) {
+    LinkedList<DexProgramClass> newGroup = new LinkedList<>();
     newGroups.add(newGroup);
     return newGroup;
   }

@@ -34,5 +34,5 @@ public abstract class MultiClassPolicy extends Policy {
    *     merged. If the policy detects no issues then `group` will be returned unchanged. If classes
    *     cannot be merged with any other classes they are returned as singleton lists.
    */
-  public abstract Collection<List<DexProgramClass>> apply(List<DexProgramClass> group);
+  public abstract Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group);
 }

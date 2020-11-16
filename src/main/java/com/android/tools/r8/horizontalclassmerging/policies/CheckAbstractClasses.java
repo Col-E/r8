@@ -6,15 +6,17 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
+import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
+import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses.AbstractClassification;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.Lists;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
 
-public class CheckAbstractClasses extends MultiClassPolicy {
+public class CheckAbstractClasses extends MultiClassSameReferencePolicy<AbstractClassification> {
+
+  enum AbstractClassification {
+    ABSTRACT,
+    NOT_ABSTRACT
+  }
 
   private final InternalOptions options;
 
@@ -23,28 +25,16 @@ public class CheckAbstractClasses extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
-    if (options.canUseAbstractMethodOnNonAbstractClass()) {
-      // We can just make the target class non-abstract if one of the classes in the group
-      // is non-abstract.
-      return Lists.<List<DexProgramClass>>newArrayList(group);
-    }
-    List<DexProgramClass> abstractClasses = new LinkedList<>();
-    List<DexProgramClass> nonAbstractClasses = new LinkedList<>();
-    for (DexProgramClass clazz : group) {
-      if (clazz.isAbstract()) {
-        abstractClasses.add(clazz);
-      } else {
-        nonAbstractClasses.add(clazz);
-      }
-    }
-    List<List<DexProgramClass>> newGroups = new LinkedList<>();
-    if (abstractClasses.size() > 1) {
-      newGroups.add(abstractClasses);
-    }
-    if (nonAbstractClasses.size() > 1) {
-      newGroups.add(nonAbstractClasses);
-    }
-    return newGroups;
+  public boolean shouldSkipPolicy() {
+    // We can just make the target class non-abstract if one of the classes in the group
+    // is non-abstract.
+    return options.canUseAbstractMethodOnNonAbstractClass();
+  }
+
+  @Override
+  public AbstractClassification getMergeKey(DexProgramClass clazz) {
+    return clazz.isAbstract()
+        ? AbstractClassification.ABSTRACT
+        : AbstractClassification.NOT_ABSTRACT;
   }
 }

@@ -144,7 +144,7 @@ public class PreventMethodImplementation extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
+  public Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group) {
     DexMethodSignatureSet signatures = DexMethodSignatureSet.createLinked();
     for (DexProgramClass clazz : group) {
       signatures.addAllMethods(clazz.methods());

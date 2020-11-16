@@ -73,7 +73,7 @@ public class RespectPackageBoundaries extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
+  public Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group) {
     Map<String, List<DexProgramClass>> restrictedClasses = new LinkedHashMap<>();
     LinkedList<DexProgramClass> unrestrictedClasses = new LinkedList<>();
 

@@ -53,7 +53,7 @@ public class PreventChangingVisibility extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<List<DexProgramClass>> apply(List<DexProgramClass> group) {
+  public Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group) {
     List<TargetGroup> groups = new ArrayList<>();
 
     for (DexProgramClass clazz : group) {
