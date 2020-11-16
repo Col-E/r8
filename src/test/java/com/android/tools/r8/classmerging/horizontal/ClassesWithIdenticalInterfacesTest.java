@@ -30,14 +30,17 @@ public class ClassesWithIdenticalInterfacesTest extends HorizontalClassMergingTe
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspectorIf(
-            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(Z.class, Y.class))
+            enableHorizontalClassMerging,
+            inspector ->
+                inspector.assertMergedInto(Y.class, X.class).assertMergedInto(Z.class, X.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("bar", "foo y", "foo z")
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(I.class), isPresent());
               assertThat(codeInspector.clazz(X.class), isPresent());
-              assertThat(codeInspector.clazz(Y.class), isPresent());
+              assertThat(
+                  codeInspector.clazz(Y.class), notIf(isPresent(), enableHorizontalClassMerging));
               assertThat(
                   codeInspector.clazz(Z.class), notIf(isPresent(), enableHorizontalClassMerging));
             });

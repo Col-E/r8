@@ -484,6 +484,10 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  public T addNoHorizontalClassMergingRule(String clazz) {
+    return addKeepRules("-nohorizontalclassmerging class " + clazz);
+  }
+
   public T enableNoHorizontalClassMergingAnnotations() {
     if (!enableNoHorizontalClassMergingAnnotations) {
       enableNoHorizontalClassMergingAnnotations = true;

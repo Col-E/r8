@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner;
 
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -88,9 +89,15 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .enableSideEffectAnnotations()
             .addKeepMainRule(main)
             .addKeepAttributes("LineNumberTable")
+            .addHorizontallyMergedClassesInspector(
+                inspector ->
+                    inspector
+                        .assertMergedInto(Iface1Impl.class, CycleReferenceBA.class)
+                        .assertMergedInto(Iface2Impl.class, CycleReferenceBA.class))
             .allowAccessModification()
             .noMinification()
-            .run(main)
+            .setMinApi(parameters.getApiLevel())
+            .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);
 
     CodeInspector inspector = result.inspector();
@@ -143,7 +150,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             "com.android.tools.r8.ir.optimize.classinliner.trivial.CycleReferenceAB"),
         collectTypes(inspector.clazz(CycleReferenceAB.class).uniqueMethodWithName("foo")));
 
-    assertFalse(inspector.clazz(CycleReferenceBA.class).isPresent());
+    assertThat(inspector.clazz(CycleReferenceBA.class), isAbsent());
   }
 
   @Test

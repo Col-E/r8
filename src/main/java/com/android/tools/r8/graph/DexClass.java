@@ -130,6 +130,10 @@ public abstract class DexClass extends DexDefinition {
     return interfaces;
   }
 
+  public void setInterfaces(DexTypeList interfaces) {
+    this.interfaces = interfaces;
+  }
+
   public DexString getSourceFile() {
     return sourceFile;
   }

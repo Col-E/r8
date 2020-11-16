@@ -165,6 +165,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
+            .enableNoHorizontalClassMergingAnnotations()
             .noMinification()
             .addKeepRules(
                 "-checkdiscard class " + Base.class.getCanonicalName() + "{",

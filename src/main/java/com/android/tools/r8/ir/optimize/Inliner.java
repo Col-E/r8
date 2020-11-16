@@ -7,7 +7,6 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.androidapi.AvailableApiExceptions;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -125,11 +124,6 @@ public class Inliner implements PostOptimization {
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod singleTargetReference = singleTarget.getReference();
-    if (singleTarget.getDefinition().getOptimizationInfo().forceInline()
-        && appInfo.isNeverInlineMethod(singleTargetReference)) {
-      throw new Unreachable();
-    }
-
     if (appInfo.isPinned(singleTargetReference)) {
       whyAreYouNotInliningReporter.reportPinned();
       return true;
@@ -151,7 +145,7 @@ public class Inliner implements PostOptimization {
     if (appInfo.noSideEffects.containsKey(invoke.getInvokedMethod())
         || appInfo.noSideEffects.containsKey(resolutionResult.getResolvedMethod().getReference())
         || appInfo.noSideEffects.containsKey(singleTargetReference)) {
-      return true;
+      return !singleTarget.getDefinition().getOptimizationInfo().forceInline();
     }
 
     return false;

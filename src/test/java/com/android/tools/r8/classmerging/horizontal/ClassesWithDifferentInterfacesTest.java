@@ -5,13 +5,13 @@
 package com.android.tools.r8.classmerging.horizontal;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 
 public class ClassesWithDifferentInterfacesTest extends HorizontalClassMergingTestBase {
@@ -31,8 +31,8 @@ public class ClassesWithDifferentInterfacesTest extends HorizontalClassMergingTe
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+        .addHorizontallyMergedClassesInspectorIf(
+            enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(Z.class, Y.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("bar", "foo y", "bar")
         .inspect(
@@ -40,7 +40,8 @@ public class ClassesWithDifferentInterfacesTest extends HorizontalClassMergingTe
               assertThat(codeInspector.clazz(I.class), isPresent());
               assertThat(codeInspector.clazz(X.class), isPresent());
               assertThat(codeInspector.clazz(Y.class), isPresent());
-              assertThat(codeInspector.clazz(Z.class), isPresent());
+              assertThat(
+                  codeInspector.clazz(Z.class), notIf(isPresent(), enableHorizontalClassMerging));
             });
   }
 

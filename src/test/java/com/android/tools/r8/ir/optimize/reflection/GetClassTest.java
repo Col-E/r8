@@ -37,6 +37,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
   @NoHorizontalClassMerging
   static class EffectivelyFinal {}
 
+  @NoHorizontalClassMerging
   static class Reflection implements Callable<Class<?>> {
 
     @ForceInline

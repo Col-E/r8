@@ -189,8 +189,12 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
       return parent != null;
     }
 
+    public DexMethod getParent() {
+      return parent;
+    }
+
     public Builder setParent(DexMethod parent) {
-      assert !hasParent();
+      assert !hasParent() || getParent() == parent;
       this.parent = parent;
       return this;
     }

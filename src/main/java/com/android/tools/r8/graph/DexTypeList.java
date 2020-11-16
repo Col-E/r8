@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.utils.PredicateUtils.not;
+
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
@@ -13,8 +15,10 @@ import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.google.common.collect.Iterators;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class DexTypeList extends DexItem implements Iterable<DexType>, StructuralItem<DexTypeList> {
@@ -36,10 +40,34 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
     this.values = values;
   }
 
+  public DexTypeList(Collection<DexType> values) {
+    this(values.toArray(DexType.EMPTY_ARRAY));
+  }
+
+  public static DexTypeList create(DexType[] values) {
+    return values.length == 0 ? DexTypeList.empty() : new DexTypeList(values);
+  }
+
+  public static DexTypeList create(Collection<DexType> values) {
+    return values.isEmpty() ? DexTypeList.empty() : new DexTypeList(values);
+  }
+
   @Override
   public StructuralAccept<DexTypeList> getStructuralAccept() {
     // Structural accept is never accessed as all accept methods are defined directly.
     throw new Unreachable();
+  }
+
+  public DexTypeList keepIf(Predicate<DexType> predicate) {
+    DexType[] filtered = ArrayUtils.filter(DexType[].class, values, predicate);
+    if (filtered != values) {
+      return DexTypeList.create(filtered);
+    }
+    return this;
+  }
+
+  public DexTypeList removeIf(Predicate<DexType> predicate) {
+    return keepIf(not(predicate));
   }
 
   @Override

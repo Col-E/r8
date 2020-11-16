@@ -265,6 +265,14 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     if (inliner.neverInline(invoke, resolutionResult, singleTarget, whyAreYouNotInliningReporter)) {
+      if (singleTarget.getDefinition().getOptimizationInfo().forceInline()) {
+        throw new Unreachable(
+            "Unexpected attempt to force inline method `"
+                + singleTarget.toSourceString()
+                + "` in `"
+                + context.toSourceString()
+                + "`.");
+      }
       return null;
     }
 

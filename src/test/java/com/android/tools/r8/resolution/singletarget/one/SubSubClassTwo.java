@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution.singletarget.one;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
+
+@NoHorizontalClassMerging
 public class SubSubClassTwo extends AbstractSubClass {
 
   @Override

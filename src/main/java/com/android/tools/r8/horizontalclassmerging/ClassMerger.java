@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -25,6 +26,7 @@ import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
@@ -34,6 +36,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The class merger is responsible for moving methods from {@link ClassMerger#toMergeGroup} into the
@@ -194,6 +197,16 @@ public class ClassMerger {
     }
   }
 
+  private void mergeInterfaces() {
+    Set<DexType> interfaces = Sets.newLinkedHashSet(target.getInterfaces());
+    for (DexProgramClass clazz : toMergeGroup) {
+      Iterables.addAll(interfaces, clazz.getInterfaces());
+    }
+    if (interfaces.size() > target.getInterfaces().size()) {
+      target.setInterfaces(new DexTypeList(interfaces));
+    }
+  }
+
   void mergeInstanceFields() {
     toMergeGroup.forEach(
         clazz -> {
@@ -206,6 +219,8 @@ public class ClassMerger {
   public void mergeGroup(SyntheticArgumentClass syntheticArgumentClass) {
     fixAccessFlags();
     appendClassIdField();
+
+    mergeInterfaces();
 
     mergeVirtualMethods();
     mergeDirectMethods(syntheticArgumentClass);

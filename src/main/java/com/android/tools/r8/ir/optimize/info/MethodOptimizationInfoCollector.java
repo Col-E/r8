@@ -573,7 +573,7 @@ public class MethodOptimizationInfoCollector {
                 return null;
               }
               if (singleTarget.isInstanceInitializer() && invoke.getReceiver() == receiver) {
-                if (builder.hasParent()) {
+                if (builder.hasParent() && builder.getParent() != singleTarget.getReference()) {
                   return null;
                 }
                 // java.lang.Enum.<init>() and java.lang.Object.<init>() are considered trivial.

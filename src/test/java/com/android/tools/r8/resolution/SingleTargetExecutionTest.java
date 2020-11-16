@@ -99,6 +99,7 @@ public class SingleTargetExecutionTest extends AsmTestBase {
         .addProgramClasses(CLASSES)
         .addProgramClassFileData(ASM_CLASSES)
         .addKeepMainRule(Main.class)
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED);

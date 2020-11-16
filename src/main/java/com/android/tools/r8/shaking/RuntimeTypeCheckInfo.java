@@ -49,17 +49,24 @@ public class RuntimeTypeCheckInfo {
 
     @Override
     public void traceCheckCast(DexType type, ProgramMethod context) {
-      checkCastTypes.add(type.toBaseType(factory));
+      add(type, checkCastTypes);
     }
 
     @Override
     public void traceInstanceOf(DexType type, ProgramMethod context) {
-      instanceOfTypes.add(type.toBaseType(factory));
+      add(type, instanceOfTypes);
     }
 
     @Override
     public void traceExceptionGuard(DexType guard, ProgramMethod context) {
-      exceptionGuardTypes.add(guard);
+      add(guard, exceptionGuardTypes);
+    }
+
+    private void add(DexType type, Set<DexType> set) {
+      DexType baseType = type.toBaseType(factory);
+      if (baseType.isClassType()) {
+        set.add(baseType);
+      }
     }
 
     public void attach(Enqueuer enqueuer) {

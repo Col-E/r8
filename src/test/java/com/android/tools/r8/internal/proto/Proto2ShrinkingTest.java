@@ -82,9 +82,13 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
             .addKeepMainRule("proto2.TestClass")
             .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
             .addKeepRules(allGeneratedMessageLiteSubtypesAreInstantiatedRule())
+            // TODO(b/173340579): This rule should not be needed to allow shrinking of
+            //  PartiallyUsed$Enum.
+            .addNoHorizontalClassMergingRule(PARTIALLY_USED + "$Enum$1")
             .allowAccessModification(allowAccessModification)
             .allowDiagnosticMessages()
             .allowUnusedProguardConfigurationRules()
+            .enableProguardTestOptions()
             .enableProtoShrinking()
             .minification(enableMinification)
             .setMinApi(parameters.getApiLevel())

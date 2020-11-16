@@ -8,16 +8,15 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 
-public class NoRuntimeTypeChecks extends SingleClassPolicy {
+public class NoDirectRuntimeTypeChecks extends SingleClassPolicy {
   private final RuntimeTypeCheckInfo runtimeTypeCheckInfo;
 
-  public NoRuntimeTypeChecks(RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
+  public NoDirectRuntimeTypeChecks(RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
     this.runtimeTypeCheckInfo = runtimeTypeCheckInfo;
   }
 
   @Override
   public boolean canMerge(DexProgramClass clazz) {
-    // We currently assume we only merge classes that implement the same set of interfaces.
     return !runtimeTypeCheckInfo.isRuntimeCheckType(clazz);
   }
 }

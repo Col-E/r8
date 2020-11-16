@@ -5,8 +5,10 @@ package com.android.tools.r8.accessrelaxation.privateinstance;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 
 @NeverClassInline
+@NoHorizontalClassMerging
 public class Sub1 extends Base implements Itf1 {
 
   @Override

@@ -305,13 +305,6 @@ public class VerticalClassMergerTest extends TestBase {
   }
 
   @Test
-  public void testConflictWasDetected() throws Throwable {
-    runR8(EXAMPLE_KEEP, this::configure);
-    assertThat(inspector.clazz("classmerging.ConflictingInterface"), isPresent());
-    assertThat(inspector.clazz("classmerging.ConflictingInterfaceImpl"), isPresent());
-  }
-
-  @Test
   public void testFieldCollision() throws Throwable {
     String main = "classmerging.FieldCollisionTest";
     Path[] programFiles =
@@ -331,34 +324,6 @@ public class VerticalClassMergerTest extends TestBase {
         main,
         programFiles,
         preservedClassNames::contains);
-  }
-
-  @Test
-  public void testLambdaRewriting() throws Throwable {
-    String main = "classmerging.LambdaRewritingTest";
-    Path[] programFiles =
-        new Path[] {
-          JAVA8_CF_DIR.resolve("LambdaRewritingTest.class"),
-          JAVA8_CF_DIR.resolve("LambdaRewritingTest$Function.class"),
-          JAVA8_CF_DIR.resolve("LambdaRewritingTest$FunctionImpl.class"),
-          JAVA8_CF_DIR.resolve("LambdaRewritingTest$Interface.class"),
-          JAVA8_CF_DIR.resolve("LambdaRewritingTest$InterfaceImpl.class")
-        };
-    Set<String> preservedClassNames =
-        ImmutableSet.of(
-            "classmerging.LambdaRewritingTest",
-            "classmerging.LambdaRewritingTest$Function",
-            "classmerging.LambdaRewritingTest$FunctionImpl",
-            "classmerging.LambdaRewritingTest$InterfaceImpl");
-    runTestOnInput(
-        testForR8(parameters.getBackend())
-            .addKeepRules(getProguardConfig(JAVA8_EXAMPLE_KEEP))
-            .addOptionsModification(this::configure)
-            .addOptionsModification(options -> options.enableClassInlining = false)
-            .allowUnusedProguardConfigurationRules(),
-        main,
-        readProgramFiles(programFiles),
-        name -> preservedClassNames.contains(name) || name.contains("$Lambda$"));
   }
 
   @Test

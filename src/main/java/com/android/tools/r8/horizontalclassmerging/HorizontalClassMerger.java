@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.horizontalclassmerging.policies.AllInstantiatedOrUninstantiated;
 import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses;
-import com.android.tools.r8.horizontalclassmerging.policies.ClassesHaveSameInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.DontInlinePolicy;
 import com.android.tools.r8.horizontalclassmerging.policies.DontMergeIntoLessVisible;
 import com.android.tools.r8.horizontalclassmerging.policies.DontMergeSynchronizedClasses;
@@ -17,14 +16,15 @@ import com.android.tools.r8.horizontalclassmerging.policies.IgnoreSynthetics;
 import com.android.tools.r8.horizontalclassmerging.policies.LimitGroups;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassesOrMembersWithAnnotations;
+import com.android.tools.r8.horizontalclassmerging.policies.NoDirectRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
+import com.android.tools.r8.horizontalclassmerging.policies.NoIndirectRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInnerClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKeepRules;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKotlinLambdas;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKotlinMetadata;
 import com.android.tools.r8.horizontalclassmerging.policies.NoNativeMethods;
-import com.android.tools.r8.horizontalclassmerging.policies.NoRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoServiceLoaders;
 import com.android.tools.r8.horizontalclassmerging.policies.NoStaticClassInitializer;
 import com.android.tools.r8.horizontalclassmerging.policies.NotMatchedByNoHorizontalClassMerging;
@@ -109,7 +109,6 @@ public class HorizontalClassMerger {
         new NotMatchedByNoHorizontalClassMerging(appView),
         new SameFields(),
         new NoInterfaces(),
-        new ClassesHaveSameInterfaces(),
         new NoAnnotations(),
         new NoEnums(appView),
         new CheckAbstractClasses(appView),
@@ -123,7 +122,8 @@ public class HorizontalClassMerger {
         new NoKotlinLambdas(appView),
         new NoServiceLoaders(appView),
         new NotVerticallyMergedIntoSubtype(appView),
-        new NoRuntimeTypeChecks(runtimeTypeCheckInfo),
+        new NoDirectRuntimeTypeChecks(runtimeTypeCheckInfo),
+        new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
         new PreventMethodImplementation(appView),
         new DontInlinePolicy(appView, mainDexTracingResult),
         new PreventMergeIntoMainDex(appView, mainDexTracingResult),
