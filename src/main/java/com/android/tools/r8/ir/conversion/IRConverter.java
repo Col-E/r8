@@ -107,10 +107,12 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -480,7 +482,33 @@ public class IRConverter {
         executor, OptimizationFeedbackIgnore.getInstance());
     DexApplication application = appView.appInfo().app();
     timing.begin("IR conversion");
-    ThreadUtils.processItems(application.classes(), this::convertMethods, executor);
+
+    if (appView.options().desugarSpecificOptions().allowAllDesugaredInput) {
+      // Classes which has already been through library desugaring will not go through IR
+      // processing again.
+      LibraryDesugaredChecker libraryDesugaredChecker = new LibraryDesugaredChecker(appView);
+      Set<DexProgramClass> alreadyLibraryDesugared = Sets.newConcurrentHashSet();
+      ThreadUtils.processItems(
+          application.classes(),
+          clazz -> {
+            if (libraryDesugaredChecker.isClassLibraryDesugared(clazz)) {
+              if (appView.options().desugarSpecificOptions().allowAllDesugaredInput) {
+                alreadyLibraryDesugared.add(clazz);
+              } else {
+                throw new CompilationError(
+                    "Code for "
+                        + clazz.getType().getDescriptor()
+                        + "has already been library desugared.");
+              }
+            } else {
+              convertMethods(clazz);
+            }
+          },
+          executor);
+      appView.setAlreadyLibraryDesugared(alreadyLibraryDesugared);
+    } else {
+      ThreadUtils.processItems(application.classes(), this::convertMethods, executor);
+    }
 
     // Build a new application with jumbo string info,
     Builder<?> builder = application.builder();

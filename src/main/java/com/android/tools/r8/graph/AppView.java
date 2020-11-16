@@ -94,6 +94,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   private Map<DexClass, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
 
+  // When input has been (partially) desugared these are the classes which has been library
+  // desugared. This information is populated in the IR converter.
+  private Set<DexProgramClass> alreadyLibraryDesugared = null;
+
   private AppView(
       T appInfo,
       WholeProgramOptimizations wholeProgramOptimizations,
@@ -662,5 +666,18 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
             appView.setInitClassLens(appView.initClassLens().rewrittenWithLens(lens));
           }
         });
+  }
+
+  public void setAlreadyLibraryDesugared(Set<DexProgramClass> alreadyLibraryDesugared) {
+    assert this.alreadyLibraryDesugared == null;
+    this.alreadyLibraryDesugared = alreadyLibraryDesugared;
+  }
+
+  public boolean isAlreadyLibraryDesugared(DexProgramClass clazz) {
+    if (!options().desugarSpecificOptions().allowAllDesugaredInput) {
+      return false;
+    }
+    assert alreadyLibraryDesugared != null;
+    return alreadyLibraryDesugared.contains(clazz);
   }
 }

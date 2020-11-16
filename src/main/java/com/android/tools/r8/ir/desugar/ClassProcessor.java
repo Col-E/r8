@@ -437,7 +437,7 @@ final class ClassProcessor {
             iface -> {
               for (int i = 0; i < extraInterfaceSignatures.size(); i++) {
                 if (extraInterfaceSignatures.get(i).type() == iface) {
-                  if (!appView.options().desugarSpecificOptions().allowDesugaredInput) {
+                  if (!appView.options().desugarSpecificOptions().allowAllDesugaredInput) {
                     throw new CompilationError(
                         "Code has already been library desugared. Interface "
                             + iface.getDescriptor()
@@ -476,6 +476,9 @@ final class ClassProcessor {
       ClassInfo superInfo,
       MethodSignatures signatures,
       Builder<DexEncodedMethod> additionalForwards) {
+    if (clazz.isProgramClass() && appView.isAlreadyLibraryDesugared(clazz.asProgramClass())) {
+      return;
+    }
     for (Wrapper<DexMethod> wrapper : signatures.signatures) {
       resolveForwardForSignature(
           clazz,

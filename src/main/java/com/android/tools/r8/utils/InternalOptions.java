@@ -1184,8 +1184,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // b/172508621
     public boolean sortMethodsOnCfOutput =
         System.getProperty("com.android.tools.r8.sortMethodsOnCfWriting") != null;
-    public boolean allowDesugaredInput =
-        System.getProperty("com.android.tools.r8.allowDesugaredInput") != null;
+    // Desugaring is not fully idempotent. With this option turned on all desugared input is
+    // allowed, and if it is detected that the desugared input cannot be reprocessed, that input
+    // will be passed-through without the problematic rewritings applied.
+    public boolean allowAllDesugaredInput =
+        System.getProperty("com.android.tools.r8.allowAllDesugaredInput") != null;
   }
 
   public static class CallSiteOptimizationOptions {

@@ -127,6 +127,8 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
     // Use D8 to desugar with Java classfile output.
     Path secondJar =
         testForD8(Backend.CF)
+            .addOptionsModification(
+                options -> options.desugarSpecificOptions().allowAllDesugaredInput = true)
             .setMinApi(parameters.getApiLevel())
             .addProgramFiles(firstJar)
             .addLibraryClasses(CustomLibClass.class)
@@ -141,8 +143,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
     assertEquals(
         Impl.class.getTypeName(),
         DescriptorUtils.getJavaTypeFromBinaryName(info.getClassBinaryName()));
-    // TODO(b/171867367): This should only be 2.
-    assertEquals(3, info.getMethodNames().stream().filter(name -> name.equals("foo")).count());
+    assertEquals(2, info.getMethodNames().stream().filter(name -> name.equals("foo")).count());
 
     // Convert to DEX without desugaring and run.
     testForD8()

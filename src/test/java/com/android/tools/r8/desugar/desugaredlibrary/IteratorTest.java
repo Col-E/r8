@@ -112,7 +112,9 @@ public class IteratorTest extends DesugaredLibraryTestBase {
                         diagnosticMessage(
                             containsString(
                                 "Code has already been library desugared. "
-                                    + "Interface Lj$/util/Iterator; is already implemented"))));
+                                    + "Interface Lj$/util/Iterator; is already implemented by "
+                                    + "Lcom/android/tools/r8/desugar/desugaredlibrary/"
+                                    + "IteratorTest$MyIterator;"))));
         fail("Expected failure");
       } catch (CompilationFailedException e) {
         // Expected.
@@ -124,7 +126,7 @@ public class IteratorTest extends DesugaredLibraryTestBase {
         testForD8(Backend.CF)
             .addOptionsModification(
                 options ->
-                    options.desugarSpecificOptions().allowDesugaredInput =
+                    options.desugarSpecificOptions().allowAllDesugaredInput =
                         parameters.getApiLevel().isLessThan(apiLevelNotRequiringDesugaring))
             .setMinApi(parameters.getApiLevel())
             .addProgramFiles(firstJar)
@@ -141,9 +143,8 @@ public class IteratorTest extends DesugaredLibraryTestBase {
     assertEquals(
         canUseDefaultAndStaticInterfaceMethods ? 0 : 1,
         info.getInterfaces().stream().filter(name -> name.equals("j$/util/Iterator")).count());
-    // TODO(b/171867367): This should only be 2.
     assertEquals(
-        canUseDefaultAndStaticInterfaceMethods ? 1 : 3,
+        canUseDefaultAndStaticInterfaceMethods ? 1 : 2,
         info.getMethodNames().stream().filter(name -> name.equals("forEachRemaining")).count());
 
     if (parameters.getRuntime().isDex()) {

@@ -1022,6 +1022,9 @@ public final class InterfaceMethodRewriter {
   // results, since each class implementing an emulated interface should also implement the
   // rewritten one.
   private void transformEmulatedInterfaces(DexProgramClass clazz) {
+    if (appView.isAlreadyLibraryDesugared(clazz)) {
+      return;
+    }
     List<GenericSignature.ClassTypeSignature> newInterfaces = new ArrayList<>();
     GenericSignature.ClassSignature classSignature = clazz.getClassSignature();
     for (int i = 0; i < clazz.interfaces.size(); i++) {
@@ -1074,6 +1077,9 @@ public final class InterfaceMethodRewriter {
     // First we compute all desugaring *without* introducing forwarding methods.
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, false)) {
+        if (appView.isAlreadyLibraryDesugared(clazz)) {
+          continue;
+        }
         processor.processClass(clazz);
       }
     }

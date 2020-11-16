@@ -446,6 +446,9 @@ public class DesugaredLibraryRetargeter {
       }
       SortedProgramMethodSet addedMethods = SortedProgramMethodSet.create();
       for (DexProgramClass clazz : appView.appInfo().classes()) {
+        if (appView.isAlreadyLibraryDesugared(clazz)) {
+          continue;
+        }
         if (clazz.superType == null) {
           assert clazz.type == appView.dexItemFactory().objectType : clazz.type.toSourceString();
           continue;

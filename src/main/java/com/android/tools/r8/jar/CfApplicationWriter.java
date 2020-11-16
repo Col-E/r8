@@ -361,6 +361,13 @@ public class CfApplicationWriter {
       LensCodeRewriterUtils rewriter,
       ClassWriter writer,
       ImmutableMap<DexString, DexValue> defaults) {
+    NamingLens namingLens = this.namingLens;
+
+    // For "pass through" classes which has already been library desugared use the identity lens.
+    if (appView.isAlreadyLibraryDesugared(method.getHolder())) {
+      namingLens = NamingLens.getIdentityLens();
+    }
+
     DexEncodedMethod definition = method.getDefinition();
     int access = definition.getAccessFlags().getAsCfAccessFlags();
     if (definition.isDeprecated()) {
@@ -383,7 +390,7 @@ public class CfApplicationWriter {
     writeAnnotations(visitor::visitAnnotation, definition.annotations().annotations);
     writeParameterAnnotations(visitor, definition.parameterAnnotationsList);
     if (!definition.shouldNotHaveCode()) {
-      writeCode(method, classFileVersion, rewriter, visitor);
+      writeCode(method, classFileVersion, namingLens, rewriter, visitor);
     }
     visitor.visitEnd();
   }
@@ -520,6 +527,7 @@ public class CfApplicationWriter {
   private void writeCode(
       ProgramMethod method,
       CfVersion classFileVersion,
+      NamingLens namingLens,
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
     CfCode code = method.getDefinition().getCode().asCfCode();
