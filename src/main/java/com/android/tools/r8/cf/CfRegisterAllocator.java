@@ -302,7 +302,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
   private void updateHints(LiveIntervals intervals) {
     for (Phi phi : intervals.getValue().uniquePhiUsers()) {
-      if (!phi.isValueOnStack()) {
+      if (!phi.isValueOnStack() && phi.getLiveIntervals().getHint() == null) {
         phi.getLiveIntervals().setHint(intervals, unhandled);
         for (Value value : phi.getOperands()) {
           value.getLiveIntervals().setHint(intervals, unhandled);
