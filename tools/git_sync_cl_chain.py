@@ -199,15 +199,18 @@ def parse(line):
   name = line[:name_end_index]
   line = line[name_end_index:].lstrip()
 
-  if ('[') not in line or ':' not in line:
-    return Repo(name, is_current, None)
+  if '[' in line:
+    line = line[line.index('[')+1:]
 
-  upstream_start_index = line.index('[')
-  line = line[upstream_start_index+1:]
-  upstream_end_index = line.index(':')
-  upstream = line[:upstream_end_index]
+    if ':' in line:
+      upstream = line[:line.index(':')]
+      return Repo(name, is_current, upstream)
 
-  return Repo(name, is_current, upstream)
+    if ']' in line:
+      upstream = line[:line.index(']')]
+      return Repo(name, is_current, upstream)
+
+  return Repo(name, is_current, None)
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
