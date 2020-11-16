@@ -17,7 +17,7 @@ public class LimitGroups extends MultiClassPolicy {
 
   private final int maxGroupSize;
 
-  private LimitGroups(AppView<AppInfoWithLiveness> appView) {
+  public LimitGroups(AppView<AppInfoWithLiveness> appView) {
     maxGroupSize = appView.options().horizontalClassMergingMaxGroupSize;
     assert maxGroupSize >= 2;
   }
