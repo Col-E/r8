@@ -15,6 +15,11 @@ public abstract class OptionalBool extends BooleanLatticeElement {
         }
 
         @Override
+        public int ordinal() {
+          return 1;
+        }
+
+        @Override
         public String toString() {
           return "true";
         }
@@ -29,6 +34,11 @@ public abstract class OptionalBool extends BooleanLatticeElement {
         }
 
         @Override
+        public int ordinal() {
+          return 0;
+        }
+
+        @Override
         public String toString() {
           return "false";
         }
@@ -40,6 +50,11 @@ public abstract class OptionalBool extends BooleanLatticeElement {
         @Override
         public boolean isUnknown() {
           return true;
+        }
+
+        @Override
+        public int ordinal() {
+          return 2;
         }
 
         @Override
@@ -72,6 +87,8 @@ public abstract class OptionalBool extends BooleanLatticeElement {
   public int hashCode() {
     return System.identityHashCode(this);
   }
+
+  public abstract int ordinal();
 
   // Force all subtypes to implement toString().
   @Override

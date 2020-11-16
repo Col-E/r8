@@ -29,7 +29,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoServiceLoaders;
 import com.android.tools.r8.horizontalclassmerging.policies.NoStaticClassInitializer;
 import com.android.tools.r8.horizontalclassmerging.policies.NotMatchedByNoHorizontalClassMerging;
 import com.android.tools.r8.horizontalclassmerging.policies.NotVerticallyMergedIntoSubtype;
-import com.android.tools.r8.horizontalclassmerging.policies.PreventChangingVisibility;
+import com.android.tools.r8.horizontalclassmerging.policies.PreserveMethodCharacteristics;
 import com.android.tools.r8.horizontalclassmerging.policies.PreventMergeIntoMainDex;
 import com.android.tools.r8.horizontalclassmerging.policies.PreventMethodImplementation;
 import com.android.tools.r8.horizontalclassmerging.policies.RespectPackageBoundaries;
@@ -130,7 +130,7 @@ public class HorizontalClassMerger {
         new AllInstantiatedOrUninstantiated(appView),
         new SameParentClass(),
         new SameNestHost(),
-        new PreventChangingVisibility(),
+        new PreserveMethodCharacteristics(),
         new SameFeatureSplit(appView),
         new RespectPackageBoundaries(appView),
         new DontMergeSynchronizedClasses(appView),

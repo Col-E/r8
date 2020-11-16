@@ -5,12 +5,9 @@
 package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
-import com.android.tools.r8.utils.MethodSignatureEquivalence;
-import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,33 +16,63 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-public class PreventChangingVisibility extends MultiClassPolicy {
-  public PreventChangingVisibility() {}
+/**
+ * Policy that enforces that methods are only merged if they have the same visibility and library
+ * method override information.
+ */
+public class PreserveMethodCharacteristics extends MultiClassPolicy {
+
+  static class MethodCharacteristics {
+
+    private final int visibilityOrdinal;
+
+    private MethodCharacteristics(DexEncodedMethod method) {
+      this.visibilityOrdinal = method.getAccessFlags().getVisibilityOrdinal();
+    }
+
+    @Override
+    public int hashCode() {
+      return visibilityOrdinal;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      MethodCharacteristics characteristics = (MethodCharacteristics) obj;
+      return visibilityOrdinal == characteristics.visibilityOrdinal;
+    }
+  }
+
+  public PreserveMethodCharacteristics() {}
 
   public static class TargetGroup {
+
     private final List<DexProgramClass> group = new LinkedList<>();
-    private final Map<Wrapper<DexMethod>, MethodAccessFlags> methodMap = new HashMap<>();
+    private final Map<DexMethodSignature, MethodCharacteristics> methodMap = new HashMap<>();
 
     public List<DexProgramClass> getGroup() {
       return group;
     }
 
     public boolean tryAdd(DexProgramClass clazz) {
-      Map<Wrapper<DexMethod>, MethodAccessFlags> newMethods = new HashMap<>();
+      Map<DexMethodSignature, MethodCharacteristics> newMethods = new HashMap<>();
       for (DexEncodedMethod method : clazz.methods()) {
-        Wrapper<DexMethod> methodSignature =
-            MethodSignatureEquivalence.get().wrap(method.getReference());
-        MethodAccessFlags flags = methodMap.get(methodSignature);
-
-        if (flags == null) {
-          newMethods.put(methodSignature, method.getAccessFlags());
-        } else {
-          if (!flags.isSameVisibility(method.getAccessFlags())) {
-            return false;
-          }
+        DexMethodSignature signature = method.getSignature();
+        MethodCharacteristics existingCharacteristics = methodMap.get(signature);
+        MethodCharacteristics methodCharacteristics = new MethodCharacteristics(method);
+        if (existingCharacteristics == null) {
+          newMethods.put(signature, methodCharacteristics);
+          continue;
+        }
+        if (!methodCharacteristics.equals(existingCharacteristics)) {
+          return false;
         }
       }
-
       methodMap.putAll(newMethods);
       group.add(clazz);
       return true;
@@ -72,7 +99,6 @@ public class PreventChangingVisibility extends MultiClassPolicy {
         newGroups.add(newGroup.getGroup());
       }
     }
-
     return newGroups;
   }
 }

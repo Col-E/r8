@@ -41,7 +41,7 @@ public class SimplePolicyExecutor extends PolicyExecutor {
         .flatMap(
             group -> {
               int previousNumberOfClasses = group.size();
-              Collection<List<DexProgramClass>> newGroups = policy.apply(group);
+              Collection<? extends List<DexProgramClass>> newGroups = policy.apply(group);
               policy.numberOfRemovedClasses += previousNumberOfClasses;
               for (List<DexProgramClass> newGroup : newGroups) {
                 policy.numberOfRemovedClasses -= newGroup.size();
