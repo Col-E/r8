@@ -276,4 +276,8 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   public DexMethod withName(DexString name, DexItemFactory dexItemFactory) {
     return dexItemFactory.createMethod(holder, proto, name);
   }
+
+  public DexMethod withProto(DexProto proto, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createMethod(holder, proto, name);
+  }
 }

@@ -256,7 +256,7 @@ class TreeFixer {
         newMethodReference =
             dexItemFactory.createInstanceInitializerWithFreshProto(
                 newMethodReference,
-                syntheticArgumentClass.getArgumentClass(),
+                syntheticArgumentClass.getArgumentClasses(),
                 tryMethod -> !newMethods.contains(tryMethod.getSignature()));
         int extraNulls = newMethodReference.getArity() - originalMethodReference.getArity();
         lensBuilder.addExtraParameters(

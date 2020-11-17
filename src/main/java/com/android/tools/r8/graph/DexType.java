@@ -444,6 +444,14 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     return dexItemFactory.createType(newDescriptorString);
   }
 
+  public DexType addSuffixId(int index, DexItemFactory dexItemFactory) {
+    if (index == 0) {
+      return this;
+    }
+    assert index > 0;
+    return addSuffix("$" + index, dexItemFactory);
+  }
+
   public DexType toArrayType(int dimensions, DexItemFactory dexItemFactory) {
     return dexItemFactory.createType(descriptor.toArrayDescriptor(dimensions, dexItemFactory));
   }

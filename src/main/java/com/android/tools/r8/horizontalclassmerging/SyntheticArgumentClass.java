@@ -17,7 +17,9 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Lets assume we are merging a class A that looks like:
@@ -39,29 +41,32 @@ import java.util.Collections;
 public class SyntheticArgumentClass {
   public static final String SYNTHETIC_CLASS_SUFFIX = "$r8$HorizontalClassMergingArgument";
 
-  private final DexType syntheticClassType;
+  private final List<DexType> syntheticClassTypes;
 
-  private SyntheticArgumentClass(DexType syntheticClassType) {
-    this.syntheticClassType = syntheticClassType;
+  private SyntheticArgumentClass(List<DexType> syntheticClassTypes) {
+    this.syntheticClassTypes = syntheticClassTypes;
   }
 
-  public DexType getArgumentClass() {
-    return syntheticClassType;
+  public List<DexType> getArgumentClasses() {
+    return syntheticClassTypes;
   }
 
   public static class Builder {
 
-    public SyntheticArgumentClass build(
+    private DexType synthesizeClass(
         AppView<AppInfoWithLiveness> appView,
         DirectMappedDexApplication.Builder appBuilder,
-        Iterable<DexProgramClass> mergeClasses) {
+        DexProgramClass context,
+        boolean requiresMainDex,
+        int index) {
 
-      // Find a fresh name in an existing package.
-      DexProgramClass context = mergeClasses.iterator().next();
       DexType syntheticClassType =
-          context.type.addSuffix(SYNTHETIC_CLASS_SUFFIX, appView.dexItemFactory());
-
-      boolean requiresMainDex = appView.appInfo().getMainDexClasses().containsAnyOf(mergeClasses);
+          appView
+              .dexItemFactory()
+              .createFreshTypeName(
+                  context.type.addSuffix(SYNTHETIC_CLASS_SUFFIX, appView.dexItemFactory()),
+                  type -> appView.appInfo().definitionForWithoutExistenceAssert(type) == null,
+                  index);
 
       DexProgramClass clazz =
           new DexProgramClass(
@@ -88,7 +93,26 @@ public class SyntheticArgumentClass {
       appBuilder.addSynthesizedClass(clazz);
       appView.appInfo().addSynthesizedClass(clazz, requiresMainDex);
 
-      return new SyntheticArgumentClass(clazz.type);
+      return clazz.type;
+    }
+
+    public SyntheticArgumentClass build(
+        AppView<AppInfoWithLiveness> appView,
+        DirectMappedDexApplication.Builder appBuilder,
+        Iterable<DexProgramClass> mergeClasses) {
+
+      // Find a fresh name in an existing package.
+      DexProgramClass context = mergeClasses.iterator().next();
+
+      boolean requiresMainDex = appView.appInfo().getMainDexClasses().containsAnyOf(mergeClasses);
+
+      List<DexType> syntheticArgumentTypes = new ArrayList<>();
+      for (int i = 0; i < appView.options().horizontalClassMergingSyntheticArgumentCount; i++) {
+        syntheticArgumentTypes.add(
+            synthesizeClass(appView, appBuilder, context, requiresMainDex, i));
+      }
+
+      return new SyntheticArgumentClass(syntheticArgumentTypes);
     }
   }
 }

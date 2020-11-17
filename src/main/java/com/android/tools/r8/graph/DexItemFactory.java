@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
 import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
@@ -37,6 +38,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -46,9 +48,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -1828,6 +1833,19 @@ public class DexItemFactory {
     return createGloballyFreshMemberString(baseName, null);
   }
 
+  public DexType createFreshTypeName(DexType type, Predicate<DexType> isFresh) {
+    return createFreshTypeName(type, isFresh, 0);
+  }
+
+  public DexType createFreshTypeName(DexType type, Predicate<DexType> isFresh, int index) {
+    while (true) {
+      DexType newType = type.addSuffixId(index++, this);
+      if (isFresh.test(newType)) {
+        return newType;
+      }
+    }
+  }
+
   /**
    * Tries to find a method name for insertion into the class {@code target} of the form
    * baseName$holder$n, where {@code baseName} and {@code holder} are supplied by the user, and
@@ -1909,22 +1927,45 @@ public class DexItemFactory {
   }
 
   public DexMethod createInstanceInitializerWithFreshProto(
+      DexMethod method, List<DexType> extraTypes, Predicate<DexMethod> isFresh) {
+    assert method.isInstanceInitializer(this);
+    return createInstanceInitializerWithFreshProto(
+        method.proto,
+        extraTypes,
+        proto -> Optional.of(method.withProto(proto, this)).filter(isFresh));
+  }
+
+  public DexMethod createInstanceInitializerWithFreshProto(
       DexMethod method, DexType extraType, Predicate<DexMethod> isFresh) {
     assert method.isInstanceInitializer(this);
     return createInstanceInitializerWithFreshProto(
         method.proto,
-        extraType,
-        proto -> Optional.of(createMethod(method.holder, proto, method.name)).filter(isFresh));
+        ImmutableList.of(extraType),
+        proto -> Optional.of(method.withProto(proto, this)).filter(isFresh));
   }
 
   private DexMethod createInstanceInitializerWithFreshProto(
-      DexProto proto, DexType extraType, Function<DexProto, Optional<DexMethod>> isFresh) {
+      DexProto proto, List<DexType> extraTypes, Function<DexProto, Optional<DexMethod>> isFresh) {
+    assert !extraTypes.isEmpty();
+
+    Queue<Iterable<DexProto>> tryProtos = new LinkedList<>();
+    Iterator<DexProto> current = IterableUtils.singleton(proto).iterator();
+
+    int count = 0;
     while (true) {
-      Optional<DexMethod> object = isFresh.apply(proto);
+      assert count++ < 100;
+      if (!current.hasNext()) {
+        assert !tryProtos.isEmpty();
+        current = tryProtos.remove().iterator();
+        assert current.hasNext();
+      }
+      DexProto tryProto = current.next();
+      Optional<DexMethod> object = isFresh.apply(tryProto);
       if (object.isPresent()) {
         return object.get();
       }
-      proto = appendTypeToProto(proto, extraType);
+      tryProtos.add(
+          Iterables.transform(extraTypes, extraType -> appendTypeToProto(tryProto, extraType)));
     }
   }
 

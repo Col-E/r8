@@ -239,6 +239,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableStaticClassMerging = true;
   public boolean enableHorizontalClassMerging = true;
   public int horizontalClassMergingMaxGroupSize = 30;
+  public int horizontalClassMergingSyntheticArgumentCount = 3;
   public boolean enableHorizontalClassMergingOfKotlinLambdas = true;
   public boolean enableVerticalClassMerging = true;
   public boolean enableArgumentRemoval = true;

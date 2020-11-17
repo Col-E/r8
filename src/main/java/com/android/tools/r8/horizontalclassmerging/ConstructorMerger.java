@@ -161,7 +161,7 @@ public class ConstructorMerger {
     DexMethod newConstructorReference =
         dexItemFactory.createInstanceInitializerWithFreshProto(
             methodReferenceTemplate.withHolder(group.getTarget().getType(), dexItemFactory),
-            syntheticArgumentClass.getArgumentClass(),
+            syntheticArgumentClass.getArgumentClasses(),
             classMethodsBuilder::isFresh);
     int extraNulls = newConstructorReference.getArity() - methodReferenceTemplate.getArity();
 
