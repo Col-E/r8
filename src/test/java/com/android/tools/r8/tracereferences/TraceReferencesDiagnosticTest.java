@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -12,13 +14,16 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -60,25 +65,55 @@ public class TraceReferencesDiagnosticTest extends TestBase {
             .build();
 
     String prefix = "  Lcom/android/tools/r8/tracereferences/TraceReferencesDiagnosticTest$";
+    List<String> snippets =
+        ImmutableList.of(
+            "Tracereferences found 3 classe(s), 2 field(s) and 4 method(s) without definition",
+            StringUtils.lines(
+                "Classe(s) without definition:",
+                prefix + "Target1;",
+                prefix + "Target2;",
+                prefix + "Target3;"),
+            StringUtils.lines(
+                "Field(s) without definition:",
+                prefix + "Target;missingField1:I",
+                prefix + "Target;missingField2:I"),
+            StringUtils.lines(
+                "Method(s) without definition:",
+                prefix + "Target1;<init>()V",
+                prefix + "Target2;<init>()V",
+                prefix + "Target3;<init>()V",
+                prefix + "Target;missingMethod()V"));
     try {
-      DiagnosticsChecker.checkErrorsContains(
-          ImmutableList.of(
-              "Tracereferences found 3 classe(s), 2 field(s) and 4 method(s) without definition",
-              StringUtils.lines(
-                  "Classe(s) without definition:",
-                  prefix + "Target1;",
-                  prefix + "Target2;",
-                  prefix + "Target3;"),
-              StringUtils.lines(
-                  "Field(s) without definition:",
-                  prefix + "Target;missingField1:I",
-                  prefix + "Target;missingField2:I"),
-              StringUtils.lines(
-                  "Method(s) without definition:",
-                  prefix + "Target1;<init>()V",
-                  prefix + "Target2;<init>()V",
-                  prefix + "Target3;<init>()V",
-                  prefix + "Target;missingMethod()V")),
+      DiagnosticsChecker.checkErrorDiagnostics(
+          checker -> {
+            DiagnosticsChecker.checkContains(snippets, checker.errors);
+            try {
+              assertEquals(1, checker.errors.size());
+              assertTrue(checker.errors.get(0) instanceof MissingDefinitionsDiagnostic);
+              MissingDefinitionsDiagnostic diagnostic =
+                  (MissingDefinitionsDiagnostic) checker.errors.get(0);
+              assertEquals(
+                  diagnostic.getMissingClasses(),
+                  ImmutableSet.of(
+                      Reference.classFromClass(Target1.class),
+                      Reference.classFromClass(Target2.class),
+                      Reference.classFromClass(Target3.class)));
+              assertEquals(
+                  diagnostic.getMissingFields(),
+                  ImmutableSet.of(
+                      Reference.fieldFromField(Target.class.getField("missingField1")),
+                      Reference.fieldFromField(Target.class.getField("missingField2"))));
+              assertEquals(
+                  diagnostic.getMissingMethods(),
+                  ImmutableSet.of(
+                      Reference.methodFromMethod(Target1.class.getDeclaredConstructor()),
+                      Reference.methodFromMethod(Target2.class.getDeclaredConstructor()),
+                      Reference.methodFromMethod(Target3.class.getDeclaredConstructor()),
+                      Reference.methodFromMethod(Target.class.getMethod("missingMethod"))));
+            } catch (ReflectiveOperationException e) {
+              fail("Unexpected exception");
+            }
+          },
           handler ->
               TraceReferences.run(
                   TraceReferencesCommand.builder(handler)
@@ -125,16 +160,37 @@ public class TraceReferencesDiagnosticTest extends TestBase {
             .build();
 
     String prefix = "  Lcom/android/tools/r8/tracereferences/TraceReferencesDiagnosticTest$";
+    List<String> snippets =
+        ImmutableList.of(
+            "Tracereferences found 2 field(s) and 1 method(s) without definition",
+            StringUtils.lines(
+                "Field(s) without definition:",
+                prefix + "Target;missingField1:I",
+                prefix + "Target;missingField2:I"),
+            StringUtils.lines("Method(s) without definition:", prefix + "Target;missingMethod()V"));
     try {
-      DiagnosticsChecker.checkErrorsContains(
-          ImmutableList.of(
-              "Tracereferences found 2 field(s) and 1 method(s) without definition",
-              StringUtils.lines(
-                  "Field(s) without definition:",
-                  prefix + "Target;missingField1:I",
-                  prefix + "Target;missingField2:I"),
-              StringUtils.lines(
-                  "Method(s) without definition:", prefix + "Target;missingMethod()V")),
+      DiagnosticsChecker.checkErrorDiagnostics(
+          checker -> {
+            DiagnosticsChecker.checkContains(snippets, checker.errors);
+            try {
+              assertEquals(1, checker.errors.size());
+              assertTrue(checker.errors.get(0) instanceof MissingDefinitionsDiagnostic);
+              MissingDefinitionsDiagnostic diagnostic =
+                  (MissingDefinitionsDiagnostic) checker.errors.get(0);
+              assertEquals(diagnostic.getMissingClasses(), ImmutableSet.of());
+              assertEquals(
+                  diagnostic.getMissingFields(),
+                  ImmutableSet.of(
+                      Reference.fieldFromField(Target.class.getField("missingField1")),
+                      Reference.fieldFromField(Target.class.getField("missingField2"))));
+              assertEquals(
+                  diagnostic.getMissingMethods(),
+                  ImmutableSet.of(
+                      Reference.methodFromMethod(Target.class.getMethod("missingMethod"))));
+            } catch (ReflectiveOperationException e) {
+              fail("Unexpected exception");
+            }
+          },
           handler ->
               TraceReferences.run(
                   TraceReferencesCommand.builder(handler)
@@ -175,12 +231,29 @@ public class TraceReferencesDiagnosticTest extends TestBase {
             .build();
 
     String prefix = "  Lcom/android/tools/r8/tracereferences/TraceReferencesDiagnosticTest$";
+    List<String> snippets =
+        ImmutableList.of(
+            "Tracereferences found 1 method(s) without definition",
+            StringUtils.lines("Method(s) without definition:", prefix + "Target;missingMethod()V"));
     try {
-      DiagnosticsChecker.checkErrorsContains(
-          ImmutableList.of(
-              "Tracereferences found 1 method(s) without definition",
-              StringUtils.lines(
-                  "Method(s) without definition:", prefix + "Target;missingMethod()V")),
+      DiagnosticsChecker.checkErrorDiagnostics(
+          checker -> {
+            DiagnosticsChecker.checkContains(snippets, checker.errors);
+            try {
+              assertEquals(1, checker.errors.size());
+              assertTrue(checker.errors.get(0) instanceof MissingDefinitionsDiagnostic);
+              MissingDefinitionsDiagnostic diagnostic =
+                  (MissingDefinitionsDiagnostic) checker.errors.get(0);
+              assertEquals(diagnostic.getMissingClasses(), ImmutableSet.of());
+              assertEquals(diagnostic.getMissingFields(), ImmutableSet.of());
+              assertEquals(
+                  diagnostic.getMissingMethods(),
+                  ImmutableSet.of(
+                      Reference.methodFromMethod(Target.class.getMethod("missingMethod"))));
+            } catch (ReflectiveOperationException e) {
+              fail("Unexpected exception");
+            }
+          },
           handler ->
               TraceReferences.run(
                   TraceReferencesCommand.builder(handler)

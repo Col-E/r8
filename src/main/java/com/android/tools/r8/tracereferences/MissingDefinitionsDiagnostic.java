@@ -7,10 +7,9 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
-import com.android.tools.r8.tracereferences.Tracer.TracedClassImpl;
-import com.android.tools.r8.tracereferences.Tracer.TracedFieldImpl;
-import com.android.tools.r8.tracereferences.Tracer.TracedMethodImpl;
-import com.android.tools.r8.tracereferences.Tracer.TracedReferenceBase;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.FieldReference;
+import com.android.tools.r8.references.MethodReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -18,14 +17,14 @@ import java.util.Set;
 @Keep
 public class MissingDefinitionsDiagnostic implements Diagnostic {
 
-  private final Set<TracedClassImpl> missingClasses;
-  private final Set<TracedFieldImpl> missingFields;
-  private final Set<TracedMethodImpl> missingMethods;
+  private final Set<ClassReference> missingClasses;
+  private final Set<FieldReference> missingFields;
+  private final Set<MethodReference> missingMethods;
 
   MissingDefinitionsDiagnostic(
-      Set<TracedClassImpl> missingClasses,
-      Set<TracedFieldImpl> missingFields,
-      Set<TracedMethodImpl> missingMethods) {
+      Set<ClassReference> missingClasses,
+      Set<FieldReference> missingFields,
+      Set<MethodReference> missingMethods) {
     this.missingClasses = missingClasses;
     this.missingFields = missingFields;
     this.missingMethods = missingMethods;
@@ -41,13 +40,23 @@ public class MissingDefinitionsDiagnostic implements Diagnostic {
     return Position.UNKNOWN;
   }
 
-  private <T extends TracedReferenceBase<?, ?>> void appendSorted(
-      StringBuilder builder, Set<T> missing) {
+  private <T> void appendSorted(StringBuilder builder, Set<T> missing) {
     missing.stream()
-        .map(element -> element.getReference())
         .map(Object::toString)
         .sorted()
         .forEach(item -> builder.append("  ").append(item).append(System.lineSeparator()));
+  }
+
+  public Set<ClassReference> getMissingClasses() {
+    return missingClasses;
+  }
+
+  public Set<FieldReference> getMissingFields() {
+    return missingFields;
+  }
+
+  public Set<MethodReference> getMissingMethods() {
+    return missingMethods;
   }
 
   @Override

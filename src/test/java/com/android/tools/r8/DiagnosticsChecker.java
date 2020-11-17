@@ -48,7 +48,7 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
     void run(DiagnosticsHandler handler) throws CompilationFailedException;
   }
 
-  private static void checkContains(String snippet, List<Diagnostic> diagnostics) {
+  public static void checkContains(String snippet, List<Diagnostic> diagnostics) {
     List<String> messages = ListUtils.map(diagnostics, Diagnostic::getDiagnosticMessage);
     System.out.println("Expecting match for '" + snippet + "'");
     System.out.println("StdErr:\n" + messages);
@@ -58,6 +58,10 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
             + "' in error messages:\n"
             + String.join("\n", messages),
         diagnostics.stream().anyMatch(d -> d.getDiagnosticMessage().contains(snippet)));
+  }
+
+  public static void checkContains(Collection<String> snippets, List<Diagnostic> diagnostics) {
+    snippets.forEach(snippet -> checkContains(snippet, diagnostics));
   }
 
   public void checkErrorsContains(String snippet) {
@@ -84,7 +88,20 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
       runner.run(handler);
       fail("Failure expected");
     } catch (CompilationFailedException e) {
-      snippets.forEach(snippet -> checkContains(snippet, handler.errors));
+      checkContains(snippets, handler.errors);
+      throw e;
+    }
+  }
+
+  public static void checkErrorDiagnostics(
+      Consumer<DiagnosticsChecker> checker, FailingRunner runner)
+      throws CompilationFailedException {
+    DiagnosticsChecker handler = new DiagnosticsChecker();
+    try {
+      runner.run(handler);
+      fail("Failure expected");
+    } catch (CompilationFailedException e) {
+      checker.accept(handler);
       throw e;
     }
   }
