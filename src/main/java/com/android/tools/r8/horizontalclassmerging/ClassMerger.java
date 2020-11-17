@@ -219,6 +219,7 @@ public class ClassMerger {
     private final MergeGroup group;
     private final Map<DexProto, ConstructorMerger.Builder> constructorMergerBuilders =
         new LinkedHashMap<>();
+    private final List<ConstructorMerger.Builder> unmergedConstructorBuilders = new ArrayList<>();
     private final Map<Wrapper<DexMethod>, VirtualMethodMerger.Builder> virtualMethodMergerBuilders =
         new LinkedHashMap<>();
 
@@ -254,10 +255,15 @@ public class ClassMerger {
 
     private void addConstructor(ProgramMethod method) {
       assert method.getDefinition().isInstanceInitializer();
-      constructorMergerBuilders
-          .computeIfAbsent(
-              method.getDefinition().getProto(), ignore -> new ConstructorMerger.Builder(appView))
-          .add(method.getDefinition());
+      if (appView.options().enableHorizontalClassMergingConstructorMerging) {
+        constructorMergerBuilders
+            .computeIfAbsent(
+                method.getDefinition().getProto(), ignore -> new ConstructorMerger.Builder(appView))
+            .add(method.getDefinition());
+      } else {
+        unmergedConstructorBuilders.add(
+            new ConstructorMerger.Builder(appView).add(method.getDefinition()));
+      }
     }
 
     private void addVirtualMethod(ProgramMethod method) {
@@ -267,6 +273,12 @@ public class ClassMerger {
               MethodSignatureEquivalence.get().wrap(method.getReference()),
               ignore -> new VirtualMethodMerger.Builder())
           .add(method);
+    }
+
+    private Collection<ConstructorMerger.Builder> getConstructorMergerBuilders() {
+      return appView.options().enableHorizontalClassMergingConstructorMerging
+          ? constructorMergerBuilders.values()
+          : unmergedConstructorBuilders;
     }
 
     public ClassMerger build(
@@ -285,7 +297,7 @@ public class ClassMerger {
 
       List<ConstructorMerger> constructorMergers =
           new ArrayList<>(constructorMergerBuilders.size());
-      for (ConstructorMerger.Builder builder : constructorMergerBuilders.values()) {
+      for (ConstructorMerger.Builder builder : getConstructorMergerBuilders()) {
         constructorMergers.addAll(builder.build(appView, group));
       }
 
