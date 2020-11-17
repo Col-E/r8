@@ -10,6 +10,7 @@ import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DexVersion;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteOrder;
@@ -47,8 +48,22 @@ public class DexReader extends BinaryReader {
     }
     int index = 0;
     for (byte prefixByte : DEX_FILE_MAGIC_PREFIX) {
-      if (buffer.get(index++) != prefixByte) {
-        throw new CompilationError("Dex file has invalid header", origin);
+      byte actualByte = buffer.get(index++);
+      if (actualByte != prefixByte) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(
+            "Dex file has invalid header, expected "
+                + prefixByte
+                + " got "
+                + actualByte
+                + ". Next bytes are ");
+        for (int i = 0; i < 10; i++) {
+          if (buffer.hasRemaining()) {
+            stringBuilder.append(StringUtils.hexString(buffer.get(), 2));
+            stringBuilder.append(",");
+          }
+        }
+        throw new CompilationError(stringBuilder.toString(), origin);
       }
     }
 
