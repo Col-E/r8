@@ -75,7 +75,7 @@ public class TraceReferencesCommandTest extends TestBase {
   @Test(expected = CompilationFailedException.class)
   public void unsupportedCommandCommandLine() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "Missing command, specify one of 'check', '--print-usage' or '--keep-rules'",
+        "Missing command, specify one of 'check' or '--keep-rules'",
         handler -> {
           TraceReferences.run(
               TraceReferencesCommand.parse(new String[] {"--xxx"}, Origin.unknown(), handler)
@@ -152,7 +152,7 @@ public class TraceReferencesCommandTest extends TestBase {
   @Test(expected = CompilationFailedException.class)
   public void multipleFormatsCommandLine() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "Using '--output' requires command '--print-usage' or '--keep-rules'",
+        "Using '--output' requires command '--keep-rules'",
         handler -> {
           TraceReferences.run(
               TraceReferencesCommand.parse(
@@ -176,9 +176,6 @@ public class TraceReferencesCommandTest extends TestBase {
   }
 
   private String formatName(OutputFormat format) {
-    if (format == OutputFormat.PRINTUSAGE) {
-      return "--print-usage";
-    }
     if (format == OutputFormat.KEEP_RULES) {
       return "--keep-rules";
     }
@@ -187,13 +184,7 @@ public class TraceReferencesCommandTest extends TestBase {
   }
 
   enum OutputFormat {
-    /** Format used with the -printusage flag */
-    PRINTUSAGE,
-    /** Keep rules keeping each of the traced references */
     KEEP_RULES,
-    /**
-     * Keep rules with <code>allowobfuscation</code> modifier keeping each of the traced references
-     */
     KEEP_RULES_WITH_ALLOWOBFUSCATION
   }
 
@@ -229,12 +220,10 @@ public class TraceReferencesCommandTest extends TestBase {
     DiagnosticsChecker diagnosticsChecker = new DiagnosticsChecker();
     StringValueStringConsumer stringConsumer = new StringValueStringConsumer();
     TraceReferencesConsumer consumer =
-        format == OutputFormat.PRINTUSAGE
-            ? new TraceReferencesPrintUsage()
-            : TraceReferencesKeepRules.builder()
-                .setAllowObfuscation(format == OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION)
-                .setOutputConsumer(stringConsumer)
-                .build();
+        TraceReferencesKeepRules.builder()
+            .setAllowObfuscation(format == OutputFormat.KEEP_RULES_WITH_ALLOWOBFUSCATION)
+            .setOutputConsumer(stringConsumer)
+            .build();
     try {
       TraceReferences.run(
           TraceReferencesCommand.builder(diagnosticsChecker)
@@ -243,11 +232,7 @@ public class TraceReferencesCommandTest extends TestBase {
               .addSourceFiles(sourceJar)
               .setConsumer(consumer)
               .build());
-      if (consumer instanceof TraceReferencesPrintUsage) {
-        assertEquals(expected, ((TraceReferencesPrintUsage) consumer).get());
-      } else {
-        assertEquals(expected, stringConsumer.get());
-      }
+      assertEquals(expected, stringConsumer.get());
       if (diagnosticsCheckerConsumer != null) {
         diagnosticsCheckerConsumer.accept(diagnosticsChecker);
       } else {
@@ -312,21 +297,6 @@ public class TraceReferencesCommandTest extends TestBase {
     Path targetJar = zipWithTestClasses(dir.resolve("target.jar"), targetClasses);
     Path sourceJar = zipWithTestClasses(dir.resolve("source.jar"), sourceClasses);
     runAndCheckOutput(targetJar, sourceJar, format, expected, diagnosticsCheckerConsumer);
-  }
-
-  @Test
-  public void test_printUses() throws Throwable {
-    runAndCheckOutput(
-        ImmutableList.of(Target.class),
-        ImmutableList.of(Source.class),
-        OutputFormat.PRINTUSAGE,
-        StringUtils.lines(
-            ImmutableList.of(
-                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target",
-                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: void"
-                    + " method(int)",
-                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: int"
-                    + " field")));
   }
 
   @Test
@@ -409,11 +379,12 @@ public class TraceReferencesCommandTest extends TestBase {
     String expected =
         StringUtils.lines(
             ImmutableList.of(
-                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target",
-                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: void"
-                    + " method(int)",
-                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: int"
-                    + " field"));
+                "-keep class"
+                    + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target {",
+                "  public static void method(int);",
+                "  int field;",
+                "}",
+                "-keeppackagenames com.android.tools.r8.tracereferences"));
     Path dir = temp.newFolder().toPath();
     Path targetJar = zipWithTestClasses(dir.resolve("target.jar"), ImmutableList.of(Target.class));
     Path sourceJar = zipWithTestClasses(dir.resolve("source.jar"), ImmutableList.of(Source.class));
@@ -430,7 +401,7 @@ public class TraceReferencesCommandTest extends TestBase {
                     targetJar.toString(),
                     "--source",
                     sourceJar.toString(),
-                    "--print-usage",
+                    "--keep-rules",
                   },
                   Origin.unknown())
               .build());
@@ -440,16 +411,20 @@ public class TraceReferencesCommandTest extends TestBase {
     }
   }
 
+  @Test
   public void classFileInput() throws Throwable {
     String expected =
         StringUtils.lines(
             ImmutableList.of(
-                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target",
-                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: void"
-                    + " method(int)",
-                "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target: int"
-                    + " field"));
-    TraceReferencesPrintUsage consumer = new TraceReferencesPrintUsage();
+                "-keep class"
+                    + " com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target {",
+                "  public static void method(int);",
+                "  int field;",
+                "}",
+                "-keeppackagenames com.android.tools.r8.tracereferences"));
+    Path output = temp.newFile().toPath();
+    TraceReferencesKeepRules consumer =
+        TraceReferencesKeepRules.builder().setOutputPath(output).build();
     TraceReferences.run(
         TraceReferencesCommand.builder()
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
@@ -457,16 +432,21 @@ public class TraceReferencesCommandTest extends TestBase {
             .addSourceFiles(ToolHelper.getClassFileForTestClass(Source.class))
             .setConsumer(consumer)
             .build());
-    assertEquals(expected, consumer.get());
+    assertEquals(expected, FileUtils.readTextFile(output, Charsets.UTF_8));
 
-    Path output = temp.newFile().toPath();
+    output = temp.newFile().toPath();
     TraceReferences.run(
         TraceReferencesCommand.parse(
                 new String[] {
-                  "--lib", ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
-                  "--target", ToolHelper.getClassFileForTestClass(Target.class).toString(),
-                  "--source", ToolHelper.getClassFileForTestClass(Source.class).toString(),
-                  "--output", output.toString(),
+                  "--lib",
+                  ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+                  "--target",
+                  ToolHelper.getClassFileForTestClass(Target.class).toString(),
+                  "--source",
+                  ToolHelper.getClassFileForTestClass(Source.class).toString(),
+                  "--output",
+                  output.toString(),
+                  "--keep-rules"
                 },
                 Origin.unknown())
             .build());
@@ -491,24 +471,7 @@ public class TraceReferencesCommandTest extends TestBase {
   }
 
   @Test
-  public void testNoReferences_printUses() throws Throwable {
-    try {
-      runAndCheckOutput(
-          ImmutableList.of(OtherTarget.class),
-          ImmutableList.of(Source.class),
-          OutputFormat.PRINTUSAGE,
-          StringUtils.lines(),
-          this::checkTargetMissing);
-      fail("Expected compilation to fail");
-    } catch (CompilationFailedException e) {
-      // Expected.
-    }
-  }
-
-  @Test
   public void testMissingReference_keepRules() throws Throwable {
-    Field field = Target.class.getField("field");
-    Method method = Target.class.getMethod("method", int.class);
     try {
       runAndCheckOutput(
           ImmutableList.of(OtherTarget.class),
@@ -581,30 +544,6 @@ public class TraceReferencesCommandTest extends TestBase {
     assertEquals(0, diagnosticsChecker.infos.size());
     diagnosticsChecker.checkErrorsContains(Reference.fieldFromField(field).toString());
     diagnosticsChecker.checkErrorsContains(Reference.methodFromMethod(method).toString());
-  }
-
-  @Test
-  public void testMissingDefinition_printUses() throws Throwable {
-    Path dir = temp.newFolder().toPath();
-    Path targetJar =
-        ZipBuilder.builder(dir.resolve("target.jar"))
-            .addBytes(
-                DescriptorUtils.getPathFromJavaType(Target.class), getClassWithTargetRemoved())
-            .build();
-    Path sourceJar = zipWithTestClasses(dir.resolve("source.jar"), ImmutableList.of(Source.class));
-    try {
-      runAndCheckOutput(
-          targetJar,
-          sourceJar,
-          OutputFormat.PRINTUSAGE,
-          StringUtils.lines(
-              ImmutableList.of(
-                  "com.android.tools.r8.tracereferences.TraceReferencesCommandTest$Target")),
-          this::checkTargetPartlyMissing);
-      fail("Expected compilation to fail");
-    } catch (CompilationFailedException e) {
-      // Expected.
-    }
   }
 
   @Test

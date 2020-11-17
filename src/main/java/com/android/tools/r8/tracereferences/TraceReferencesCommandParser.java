@@ -16,7 +16,6 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,8 +36,6 @@ class TraceReferencesCommandParser {
                   "Usage: tracereferences <command> [<options>] [@<argfile>]",
                   " Where <command> is one of:",
                   "  --check                 # Run emitting only diagnostics messages.",
-                  "  --print-usage           # Traced references will be output in the print-usage",
-                  "                          # format.",
                   "  --keep-rules [<keep-rules-options>]",
                   "                          # Traced references will be output in the keep-rules",
                   "                          # format.",
@@ -92,7 +89,6 @@ class TraceReferencesCommandParser {
 
   private enum Command {
     CHECK,
-    PRINTUSAGE,
     KEEP_RULES;
   }
 
@@ -137,9 +133,6 @@ class TraceReferencesCommandParser {
       } else if (arg.equals("--check")) {
         checkCommandNotSet(command, builder, origin);
         command = Command.CHECK;
-      } else if (arg.equals("--print-usage")) {
-        checkCommandNotSet(command, builder, origin);
-        command = Command.PRINTUSAGE;
       } else if (arg.equals("--keep-rules")) {
         checkCommandNotSet(command, builder, origin);
         command = Command.KEEP_RULES;
@@ -174,15 +167,13 @@ class TraceReferencesCommandParser {
     if (command == null) {
       builder.error(
           new StringDiagnostic(
-              "Missing command, specify one of 'check', '--print-usage' or '--keep-rules'",
-              origin));
+              "Missing command, specify one of 'check' or '--keep-rules'", origin));
       return builder;
     }
 
     if (command == Command.CHECK && output != null) {
       builder.error(
-          new StringDiagnostic(
-              "Using '--output' requires command '--print-usage' or '--keep-rules'", origin));
+          new StringDiagnostic("Using '--output' requires command '--keep-rules'", origin));
       return builder;
     }
 
@@ -206,24 +197,6 @@ class TraceReferencesCommandParser {
                         ? new FileConsumer(output)
                         : new WriterConsumer(null, new PrintWriter(System.out)))
                 .build());
-        break;
-      case PRINTUSAGE:
-        final Path finalOutput = output;
-        builder.setConsumer(
-            new TraceReferencesPrintUsage() {
-              @Override
-              public void finished(DiagnosticsHandler handler) {
-                PrintStream out = System.out;
-                if (finalOutput != null) {
-                  try {
-                    out = new PrintStream(Files.newOutputStream(finalOutput));
-                  } catch (IOException e) {
-                    handler.error(new ExceptionDiagnostic(e));
-                  }
-                }
-                out.print(get());
-              }
-            });
         break;
       default:
         throw new Unreachable();
