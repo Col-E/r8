@@ -292,6 +292,24 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer setSuper(String superDescriptor) {
+    assert DescriptorUtils.isClassDescriptor(superDescriptor);
+    String newSuperName = getBinaryNameFromDescriptor(superDescriptor);
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public void visit(
+              int version,
+              int access,
+              String name,
+              String signature,
+              String superName,
+              String[] interfaces) {
+            super.visit(version, access, name, signature, newSuperName, interfaces);
+          }
+        });
+  }
+
   public ClassFileTransformer setAccessFlags(Consumer<ClassAccessFlags> fn) {
     return addClassTransformer(
         new ClassTransformer() {

@@ -53,6 +53,12 @@ public class ExternalR8TestBuilder
   // External JDK to use to run R8
   private final TestRuntime runtime;
 
+  // Enable/disable compiling with assertions
+  private boolean enableAssertions = true;
+
+  // Allow test proguard options
+  private boolean allowTestProguardOptions = false;
+
   private boolean addR8ExternalDeps = false;
 
   private List<String> jvmFlags = new ArrayList<>();
@@ -79,6 +85,16 @@ public class ExternalR8TestBuilder
     return self();
   }
 
+  public ExternalR8TestBuilder enableAssertions(boolean enable) {
+    enableAssertions = enable;
+    return self();
+  }
+
+  public ExternalR8TestBuilder allowTestProguardOptions(boolean allow) {
+    allowTestProguardOptions = allow;
+    return self();
+  }
+
   @Override
   ExternalR8TestCompileResult internalCompile(
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
@@ -101,9 +117,16 @@ public class ExternalR8TestBuilder
 
       command.addAll(jvmFlags);
 
+      if (enableAssertions) {
+        command.add("-ea");
+      }
+
+      if (allowTestProguardOptions) {
+        command.add("-Dcom.android.tools.r8.allowTestProguardOptions=true");
+      }
+
       Collections.addAll(
           command,
-          "-ea",
           "-cp",
           classPath,
           R8.class.getTypeName(),
