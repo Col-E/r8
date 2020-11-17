@@ -9,7 +9,6 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -37,17 +36,12 @@ public class ConstructorMerger {
   private final MergeGroup group;
   private final Collection<DexEncodedMethod> constructors;
   private final DexItemFactory dexItemFactory;
-  private final DexField classIdField;
 
   ConstructorMerger(
-      AppView<?> appView,
-      MergeGroup group,
-      Collection<DexEncodedMethod> constructors,
-      DexField classIdField) {
+      AppView<?> appView, MergeGroup group, Collection<DexEncodedMethod> constructors) {
     this.appView = appView;
     this.group = group;
     this.constructors = constructors;
-    this.classIdField = classIdField;
 
     // Constructors should not be empty and all constructors should have the same prototype.
     assert !constructors.isEmpty();
@@ -102,12 +96,10 @@ public class ConstructorMerger {
       return this;
     }
 
-    public List<ConstructorMerger> build(
-        AppView<?> appView, MergeGroup group, DexField classIdField) {
+    public List<ConstructorMerger> build(AppView<?> appView, MergeGroup group) {
       assert constructorGroups.stream().noneMatch(List::isEmpty);
       return ListUtils.map(
-          constructorGroups,
-          constructors -> new ConstructorMerger(appView, group, constructors, classIdField));
+          constructorGroups, constructors -> new ConstructorMerger(appView, group, constructors));
     }
   }
 
@@ -178,7 +170,7 @@ public class ConstructorMerger {
         new ConstructorEntryPointSynthesizedCode(
             typeConstructorClassMap,
             newConstructorReference,
-            classIdField,
+            group.getClassIdField(),
             appView.graphLens().getOriginalMethodSignature(representativeConstructorReference));
     DexEncodedMethod newConstructor =
         new DexEncodedMethod(
@@ -222,6 +214,7 @@ public class ConstructorMerger {
 
     classMethodsBuilder.addDirectMethod(newConstructor);
 
-    fieldAccessChangesBuilder.fieldWrittenByMethod(classIdField, newConstructorReference);
+    fieldAccessChangesBuilder.fieldWrittenByMethod(
+        group.getClassIdField(), newConstructorReference);
   }
 }

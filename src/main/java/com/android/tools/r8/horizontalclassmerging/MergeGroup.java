@@ -6,6 +6,7 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.Iterables;
@@ -19,8 +20,10 @@ public class MergeGroup implements Iterable<DexProgramClass> {
 
   public static class Metadata {}
 
-  private DexProgramClass target = null;
   private final LinkedList<DexProgramClass> classes;
+
+  private DexField classIdField;
+  private DexProgramClass target = null;
   private Metadata metadata = null;
 
   public MergeGroup() {
@@ -61,6 +64,19 @@ public class MergeGroup implements Iterable<DexProgramClass> {
 
   public LinkedList<DexProgramClass> getClasses() {
     return classes;
+  }
+
+  public boolean hasClassIdField() {
+    return classIdField != null;
+  }
+
+  public DexField getClassIdField() {
+    assert hasClassIdField();
+    return classIdField;
+  }
+
+  public void setClassIdField(DexField classIdField) {
+    this.classIdField = classIdField;
   }
 
   public Iterable<DexProgramClass> getSources() {

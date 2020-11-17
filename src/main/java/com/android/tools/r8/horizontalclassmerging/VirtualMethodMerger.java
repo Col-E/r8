@@ -8,7 +8,6 @@ import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -35,7 +34,6 @@ public class VirtualMethodMerger {
   private final DexItemFactory dexItemFactory;
   private final MergeGroup group;
   private final List<ProgramMethod> methods;
-  private final DexField classIdField;
   private final AppView<AppInfoWithLiveness> appView;
   private final DexMethod superMethod;
 
@@ -43,11 +41,9 @@ public class VirtualMethodMerger {
       AppView<AppInfoWithLiveness> appView,
       MergeGroup group,
       List<ProgramMethod> methods,
-      DexField classIdField,
       DexMethod superMethod) {
     this.dexItemFactory = appView.dexItemFactory();
     this.group = group;
-    this.classIdField = classIdField;
     this.methods = methods;
     this.appView = appView;
     this.superMethod = superMethod;
@@ -84,12 +80,11 @@ public class VirtualMethodMerger {
       return resolutionResult.getResolvedMethod().getReference();
     }
 
-    public VirtualMethodMerger build(
-        AppView<AppInfoWithLiveness> appView, MergeGroup group, DexField classIdField) {
+    public VirtualMethodMerger build(AppView<AppInfoWithLiveness> appView, MergeGroup group) {
       // If not all the classes are in the merge group, find the fallback super method to call.
       DexMethod superMethod =
           methods.size() < group.size() ? superMethod(appView, group.getTarget()) : null;
-      return new VirtualMethodMerger(appView, group, methods, classIdField, superMethod);
+      return new VirtualMethodMerger(appView, group, methods, superMethod);
     }
   }
 
@@ -259,7 +254,7 @@ public class VirtualMethodMerger {
     AbstractSynthesizedCode synthesizedCode =
         new VirtualMethodEntryPointSynthesizedCode(
             classIdToMethodMap,
-            classIdField,
+            group.getClassIdField(),
             superMethod,
             newMethodReference,
             bridgeMethodReference);
@@ -289,6 +284,6 @@ public class VirtualMethodMerger {
 
     classMethodsBuilder.addVirtualMethod(newMethod);
 
-    fieldAccessChangesBuilder.fieldReadByMethod(classIdField, newMethod.method);
+    fieldAccessChangesBuilder.fieldReadByMethod(group.getClassIdField(), newMethod.method);
   }
 }

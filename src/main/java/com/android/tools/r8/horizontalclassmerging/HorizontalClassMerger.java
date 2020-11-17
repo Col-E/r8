@@ -157,7 +157,6 @@ public class HorizontalClassMerger {
     // TODO(b/166577694): Replace Collection<DexProgramClass> with MergeGroup
     for (MergeGroup group : groups) {
       assert !group.isEmpty();
-      group.setTarget(group.iterator().next());
       ClassMerger merger =
           new ClassMerger.Builder(appView, group)
               .build(mergedClassesBuilder, lensBuilder, fieldAccessChangesBuilder);
