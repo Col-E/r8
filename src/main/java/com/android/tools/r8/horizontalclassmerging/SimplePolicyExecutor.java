@@ -4,12 +4,10 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
-import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.utils.IterableUtils;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * This is a simple policy executor that ensures regular sequential execution of policies. It should
@@ -19,11 +17,11 @@ import java.util.stream.Collectors;
 public class SimplePolicyExecutor extends PolicyExecutor {
 
   // TODO(b/165506334): if performing mutable operation ensure that linked lists are used
-  private LinkedList<List<DexProgramClass>> applySingleClassPolicy(
-      SingleClassPolicy policy, LinkedList<List<DexProgramClass>> groups) {
-    Iterator<List<DexProgramClass>> i = groups.iterator();
+  private LinkedList<MergeGroup> applySingleClassPolicy(
+      SingleClassPolicy policy, LinkedList<MergeGroup> groups) {
+    Iterator<MergeGroup> i = groups.iterator();
     while (i.hasNext()) {
-      Collection<DexProgramClass> group = i.next();
+      MergeGroup group = i.next();
       int previousNumberOfClasses = group.size();
       group.removeIf(clazz -> !policy.canMerge(clazz));
       policy.numberOfRemovedClasses += previousNumberOfClasses - group.size();
@@ -34,30 +32,29 @@ public class SimplePolicyExecutor extends PolicyExecutor {
     return groups;
   }
 
-  private LinkedList<List<DexProgramClass>> applyMultiClassPolicy(
-      MultiClassPolicy policy, LinkedList<List<DexProgramClass>> groups) {
+  private LinkedList<MergeGroup> applyMultiClassPolicy(
+      MultiClassPolicy policy, LinkedList<MergeGroup> groups) {
     // For each group apply the multi class policy and add all the new groups together.
-    return groups.stream()
-        .flatMap(
-            group -> {
-              int previousNumberOfClasses = group.size();
-              Collection<? extends List<DexProgramClass>> newGroups = policy.apply(group);
-              policy.numberOfRemovedClasses += previousNumberOfClasses;
-              for (List<DexProgramClass> newGroup : newGroups) {
-                policy.numberOfRemovedClasses -= newGroup.size();
-              }
-              return newGroups.stream();
-            })
-        .collect(Collectors.toCollection(LinkedList::new));
+    LinkedList<MergeGroup> newGroups = new LinkedList<>();
+    groups.forEach(
+        group -> {
+          int previousNumberOfClasses = group.size();
+          Collection<MergeGroup> policyGroups = policy.apply(group);
+          policyGroups.forEach(newGroup -> newGroup.applyMetadataFrom(group));
+          policy.numberOfRemovedClasses +=
+              previousNumberOfClasses - IterableUtils.sumInt(policyGroups, MergeGroup::size);
+          newGroups.addAll(policyGroups);
+        });
+    return newGroups;
   }
 
   @Override
-  public Collection<List<DexProgramClass>> run(
-      Collection<List<DexProgramClass>> inputGroups, Collection<Policy> policies) {
-    LinkedList<List<DexProgramClass>> linkedGroups;
+  public Collection<MergeGroup> run(
+      Collection<MergeGroup> inputGroups, Collection<Policy> policies) {
+    LinkedList<MergeGroup> linkedGroups;
 
     if (inputGroups instanceof LinkedList) {
-      linkedGroups = (LinkedList<List<DexProgramClass>>) inputGroups;
+      linkedGroups = (LinkedList<MergeGroup>) inputGroups;
     } else {
       linkedGroups = new LinkedList<>(inputGroups);
     }

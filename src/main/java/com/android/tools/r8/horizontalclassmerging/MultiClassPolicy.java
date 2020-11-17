@@ -4,25 +4,17 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
-import com.android.tools.r8.graph.DexProgramClass;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 public abstract class MultiClassPolicy extends Policy {
-
-  // TODO(b/165577835): Move to a virtual method on MergeGroup.
-  protected boolean isTrivial(Collection<DexProgramClass> group) {
-    return group.size() < 2;
-  }
 
   /**
    * Remove all groups containing no or only a single class, as there is no point in merging these.
    */
-  protected Collection<List<DexProgramClass>> removeTrivialGroups(
-      Collection<List<DexProgramClass>> groups) {
+  protected Collection<MergeGroup> removeTrivialGroups(Collection<MergeGroup> groups) {
     assert !(groups instanceof ArrayList);
-    groups.removeIf(this::isTrivial);
+    groups.removeIf(MergeGroup::isTrivial);
     return groups;
   }
 
@@ -34,5 +26,5 @@ public abstract class MultiClassPolicy extends Policy {
    *     merged. If the policy detects no issues then `group` will be returned unchanged. If classes
    *     cannot be merged with any other classes they are returned as singleton lists.
    */
-  public abstract Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group);
+  public abstract Collection<MergeGroup> apply(MergeGroup group);
 }

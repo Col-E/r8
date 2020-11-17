@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.horizontalclassmerging.SubtypingForrestForClasses;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -19,8 +20,6 @@ import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -144,13 +143,13 @@ public class PreventMethodImplementation extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group) {
+  public Collection<MergeGroup> apply(MergeGroup group) {
     DexMethodSignatureSet signatures = DexMethodSignatureSet.createLinked();
     for (DexProgramClass clazz : group) {
       signatures.addAllMethods(clazz.methods());
     }
 
-    Map<DispatchSignature, List<DexProgramClass>> newGroups = new LinkedHashMap<>();
+    Map<DispatchSignature, MergeGroup> newGroups = new LinkedHashMap<>();
     for (DexProgramClass clazz : group) {
       DexMethodSignatureSet clazzReserved = computeReservedSignaturesForClass(clazz);
       DispatchSignature dispatchSignature = new DispatchSignature();
@@ -166,7 +165,7 @@ public class PreventMethodImplementation extends MultiClassPolicy {
         }
         dispatchSignature.addSignature(signature, category);
       }
-      newGroups.computeIfAbsent(dispatchSignature, ignore -> new LinkedList<>()).add(clazz);
+      newGroups.computeIfAbsent(dispatchSignature, ignore -> new MergeGroup()).add(clazz);
     }
     return removeTrivialGroups(newGroups.values());
   }

@@ -15,21 +15,20 @@ import java.util.Map;
 
 public class ClassStaticFieldsMerger {
   private final Builder lensBuilder;
-  private final DexProgramClass target;
+  private final MergeGroup group;
   private final Map<DexField, DexEncodedField> targetFields = new LinkedHashMap<>();
   private final DexItemFactory dexItemFactory;
-  private final AppView<?> appView;
 
   public ClassStaticFieldsMerger(
-      AppView<?> appView,
-      HorizontalClassMergerGraphLens.Builder lensBuilder,
-      DexProgramClass target) {
-    this.appView = appView;
+      AppView<?> appView, HorizontalClassMergerGraphLens.Builder lensBuilder, MergeGroup group) {
     this.lensBuilder = lensBuilder;
 
-    this.target = target;
+    this.group = group;
     // Add mappings for all target fields.
-    target.staticFields().forEach(field -> targetFields.put(field.getReference(), field));
+    group
+        .getTarget()
+        .staticFields()
+        .forEach(field -> targetFields.put(field.getReference(), field));
 
     this.dexItemFactory = appView.dexItemFactory();
   }
@@ -40,7 +39,8 @@ public class ClassStaticFieldsMerger {
 
   private void addField(DexEncodedField field) {
     DexField oldFieldReference = field.getReference();
-    DexField templateReference = field.getReference().withHolder(target.type, dexItemFactory);
+    DexField templateReference =
+        field.getReference().withHolder(group.getTarget().getType(), dexItemFactory);
     DexField newFieldReference =
         dexItemFactory.createFreshFieldNameWithHolderSuffix(
             templateReference, field.holder(), this::isFresh);

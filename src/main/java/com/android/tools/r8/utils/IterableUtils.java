@@ -9,6 +9,7 @@ import com.google.common.collect.Iterators;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -63,6 +64,23 @@ public class IterableUtils {
 
   public static <T> Iterable<T> prependSingleton(T t, Iterable<T> iterable) {
     return Iterables.concat(singleton(t), iterable);
+  }
+
+  public static <T> T flatten(T init, BiFunction<T, T, T> combine, Iterable<? extends T> iterable) {
+    T v = init;
+    for (T t : iterable) {
+      v = combine.apply(v, t);
+    }
+    return v;
+  }
+
+  public static int sumInt(Iterable<Integer> iterable) {
+    return flatten(0, Integer::sum, iterable);
+  }
+
+  public static <F> int sumInt(Iterable<F> iterable, Function<? super F, Integer> fn) {
+    Iterable<Integer> integers = Iterables.transform(iterable, i -> fn.apply(i));
+    return sumInt(integers);
   }
 
   public static <T, U> Iterable<U> flatMap(

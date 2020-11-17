@@ -25,9 +25,10 @@ public class ClassInstanceFieldsMerger {
   private final Builder lensBuilder;
 
   public ClassInstanceFieldsMerger(
-      HorizontalClassMergerGraphLens.Builder lensBuilder, DexProgramClass target) {
+      HorizontalClassMergerGraphLens.Builder lensBuilder, MergeGroup group) {
     this.lensBuilder = lensBuilder;
-    target
+    group
+        .getTarget()
         .instanceFields()
         .forEach(field -> fieldMappings.computeIfAbsent(field, ignore -> new ArrayList<>()));
   }

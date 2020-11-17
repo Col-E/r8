@@ -61,10 +61,10 @@ public class HorizontalClassMerger {
       DirectMappedDexApplication.Builder appBuilder,
       MainDexTracingResult mainDexTracingResult,
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
-    List<DexProgramClass> initialGroup = appView.appInfo().classesWithDeterministicOrder();
+    MergeGroup initialGroup = new MergeGroup(appView.appInfo().classesWithDeterministicOrder());
 
     // Run the policies on all program classes to produce a final grouping.
-    Collection<List<DexProgramClass>> groups =
+    Collection<MergeGroup> groups =
         new SimplePolicyExecutor()
             .run(
                 Collections.singletonList(initialGroup),
@@ -88,7 +88,8 @@ public class HorizontalClassMerger {
         initializeClassMergers(
             mergedClassesBuilder, lensBuilder, fieldAccessChangesBuilder, groups);
     Iterable<DexProgramClass> allMergeClasses =
-        Iterables.concat(Iterables.transform(classMergers, ClassMerger::getClasses));
+        Iterables.concat(
+            Iterables.transform(classMergers, classMerger -> classMerger.getGroup().getClasses()));
 
     // Merge the classes.
     SyntheticArgumentClass syntheticArgumentClass =
@@ -150,20 +151,16 @@ public class HorizontalClassMerger {
       HorizontallyMergedClasses.Builder mergedClassesBuilder,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
-      Collection<List<DexProgramClass>> groups) {
+      Collection<MergeGroup> groups) {
     List<ClassMerger> classMergers = new ArrayList<>();
 
     // TODO(b/166577694): Replace Collection<DexProgramClass> with MergeGroup
-    for (List<DexProgramClass> group : groups) {
+    for (MergeGroup group : groups) {
       assert !group.isEmpty();
-
-      DexProgramClass target = group.stream().findFirst().get();
-      group.remove(target);
-
+      group.setTarget(group.iterator().next());
       ClassMerger merger =
-          new ClassMerger.Builder(appView, target)
-              .addClassesToMerge(group)
-              .build(appView, mergedClassesBuilder, lensBuilder, fieldAccessChangesBuilder);
+          new ClassMerger.Builder(appView, group)
+              .build(mergedClassesBuilder, lensBuilder, fieldAccessChangesBuilder);
       classMergers.add(merger);
     }
 

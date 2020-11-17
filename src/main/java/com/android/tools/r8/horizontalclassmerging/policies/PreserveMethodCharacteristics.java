@@ -7,6 +7,7 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -52,10 +53,10 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
 
   public static class TargetGroup {
 
-    private final List<DexProgramClass> group = new LinkedList<>();
+    private final MergeGroup group = new MergeGroup();
     private final Map<DexMethodSignature, MethodCharacteristics> methodMap = new HashMap<>();
 
-    public List<DexProgramClass> getGroup() {
+    public MergeGroup getGroup() {
       return group;
     }
 
@@ -80,7 +81,7 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group) {
+  public Collection<MergeGroup> apply(MergeGroup group) {
     List<TargetGroup> groups = new ArrayList<>();
 
     for (DexProgramClass clazz : group) {
@@ -93,9 +94,9 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
       }
     }
 
-    Collection<List<DexProgramClass>> newGroups = new ArrayList<>();
+    LinkedList<MergeGroup> newGroups = new LinkedList<>();
     for (TargetGroup newGroup : groups) {
-      if (!isTrivial(newGroup.getGroup())) {
+      if (!newGroup.getGroup().isTrivial()) {
         newGroups.add(newGroup.getGroup());
       }
     }

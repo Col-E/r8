@@ -6,13 +6,13 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 
 public class DontMergeSynchronizedClasses extends MultiClassPolicy {
   private final AppView<AppInfoWithLiveness> appView;
@@ -26,14 +26,14 @@ public class DontMergeSynchronizedClasses extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group) {
+  public Collection<MergeGroup> apply(MergeGroup group) {
     // Gather all synchronized classes.
-    Collection<List<DexProgramClass>> synchronizedGroups = new LinkedList<>();
+    Collection<MergeGroup> synchronizedGroups = new LinkedList<>();
     group.removeIf(
         clazz -> {
           boolean synchronizationClass = isSynchronizationClass(clazz);
           if (synchronizationClass) {
-            List<DexProgramClass> synchronizedGroup = new LinkedList<>();
+            MergeGroup synchronizedGroup = new MergeGroup();
             synchronizedGroup.add(clazz);
             synchronizedGroups.add(synchronizedGroup);
           }
@@ -44,7 +44,7 @@ public class DontMergeSynchronizedClasses extends MultiClassPolicy {
       return Collections.singletonList(group);
     }
 
-    Iterator<List<DexProgramClass>> synchronizedGroupIterator = synchronizedGroups.iterator();
+    Iterator<MergeGroup> synchronizedGroupIterator = synchronizedGroups.iterator();
     for (DexProgramClass clazz : group) {
       if (!synchronizedGroupIterator.hasNext()) {
         synchronizedGroupIterator = synchronizedGroups.iterator();

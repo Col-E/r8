@@ -6,12 +6,12 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
-import java.util.List;
 
 public class LimitGroups extends MultiClassPolicy {
 
@@ -23,13 +23,13 @@ public class LimitGroups extends MultiClassPolicy {
   }
 
   @Override
-  public Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group) {
+  public Collection<MergeGroup> apply(MergeGroup group) {
     if (group.size() <= maxGroupSize) {
       return Collections.singletonList(group);
     }
 
-    LinkedList<LinkedList<DexProgramClass>> newGroups = new LinkedList<>();
-    List<DexProgramClass> newGroup = createNewGroup(newGroups);
+    LinkedList<MergeGroup> newGroups = new LinkedList<>();
+    MergeGroup newGroup = createNewGroup(newGroups);
     for (DexProgramClass clazz : group) {
       if (newGroup.size() == maxGroupSize) {
         newGroup = createNewGroup(newGroups);
@@ -38,7 +38,7 @@ public class LimitGroups extends MultiClassPolicy {
     }
     if (newGroup.size() == 1) {
       if (maxGroupSize == 2) {
-        List<DexProgramClass> removedGroup = newGroups.removeLast();
+        MergeGroup removedGroup = newGroups.removeLast();
         assert removedGroup == newGroup;
       } else {
         newGroup.add(newGroups.getFirst().removeLast());
@@ -47,9 +47,8 @@ public class LimitGroups extends MultiClassPolicy {
     return newGroups;
   }
 
-  private LinkedList<DexProgramClass> createNewGroup(
-      LinkedList<LinkedList<DexProgramClass>> newGroups) {
-    LinkedList<DexProgramClass> newGroup = new LinkedList<>();
+  private MergeGroup createNewGroup(LinkedList<MergeGroup> newGroups) {
+    MergeGroup newGroup = new MergeGroup();
     newGroups.add(newGroup);
     return newGroup;
   }

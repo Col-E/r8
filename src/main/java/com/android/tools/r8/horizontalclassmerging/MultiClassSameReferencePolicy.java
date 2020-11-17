@@ -7,16 +7,15 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.graph.DexProgramClass;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 public abstract class MultiClassSameReferencePolicy<T> extends MultiClassPolicy {
+
   @Override
-  public final Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group) {
-    Map<T, List<DexProgramClass>> groups = new LinkedHashMap<>();
+  public final Collection<MergeGroup> apply(MergeGroup group) {
+    Map<T, MergeGroup> groups = new LinkedHashMap<>();
     for (DexProgramClass clazz : group) {
-      groups.computeIfAbsent(getMergeKey(clazz), ignore -> new LinkedList<>()).add(clazz);
+      groups.computeIfAbsent(getMergeKey(clazz), ignore -> new MergeGroup()).add(clazz);
     }
     removeTrivialGroups(groups.values());
     return groups.values();

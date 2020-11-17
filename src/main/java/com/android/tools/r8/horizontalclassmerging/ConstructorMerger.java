@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -35,24 +34,24 @@ import java.util.List;
 
 public class ConstructorMerger {
   private final AppView<?> appView;
-  private final DexProgramClass target;
+  private final MergeGroup group;
   private final Collection<DexEncodedMethod> constructors;
   private final DexItemFactory dexItemFactory;
   private final DexField classIdField;
 
   ConstructorMerger(
       AppView<?> appView,
-      DexProgramClass target,
+      MergeGroup group,
       Collection<DexEncodedMethod> constructors,
       DexField classIdField) {
     this.appView = appView;
-    this.target = target;
+    this.group = group;
     this.constructors = constructors;
     this.classIdField = classIdField;
 
     // Constructors should not be empty and all constructors should have the same prototype.
     assert !constructors.isEmpty();
-    assert constructors.stream().map(constructor -> constructor.proto()).distinct().count() == 1;
+    assert constructors.stream().map(DexEncodedMethod::proto).distinct().count() == 1;
 
     this.dexItemFactory = appView.dexItemFactory();
   }
@@ -104,11 +103,11 @@ public class ConstructorMerger {
     }
 
     public List<ConstructorMerger> build(
-        AppView<?> appView, DexProgramClass target, DexField classIdField) {
+        AppView<?> appView, MergeGroup group, DexField classIdField) {
       assert constructorGroups.stream().noneMatch(List::isEmpty);
       return ListUtils.map(
           constructorGroups,
-          constructors -> new ConstructorMerger(appView, target, constructors, classIdField));
+          constructors -> new ConstructorMerger(appView, group, constructors, classIdField));
     }
   }
 
@@ -123,15 +122,15 @@ public class ConstructorMerger {
             "constructor",
             constructor.holder(),
             constructor.proto(),
-            target.type,
+            group.getTarget().getType(),
             classMethodsBuilder::isFresh);
 
     DexEncodedMethod encodedMethod = constructor.toTypeSubstitutedMethod(method);
     encodedMethod.getMutableOptimizationInfo().markForceInline();
-    encodedMethod.accessFlags.unsetConstructor();
-    encodedMethod.accessFlags.unsetPublic();
-    encodedMethod.accessFlags.unsetProtected();
-    encodedMethod.accessFlags.setPrivate();
+    encodedMethod.getAccessFlags().unsetConstructor();
+    encodedMethod.getAccessFlags().unsetPublic();
+    encodedMethod.getAccessFlags().unsetProtected();
+    encodedMethod.getAccessFlags().setPrivate();
     classMethodsBuilder.addDirectMethod(encodedMethod);
 
     return method;
@@ -169,7 +168,7 @@ public class ConstructorMerger {
     DexMethod methodReferenceTemplate = generateReferenceMethodTemplate();
     DexMethod newConstructorReference =
         dexItemFactory.createInstanceInitializerWithFreshProto(
-            methodReferenceTemplate.withHolder(target.type, dexItemFactory),
+            methodReferenceTemplate.withHolder(group.getTarget().getType(), dexItemFactory),
             syntheticArgumentClass.getArgumentClass(),
             classMethodsBuilder::isFresh);
     int extraNulls = newConstructorReference.getArity() - methodReferenceTemplate.getArity();

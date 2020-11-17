@@ -5,12 +5,10 @@
 package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.classmerging.MergedClasses;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -84,10 +82,8 @@ public class HorizontallyMergedClasses implements MergedClasses {
       return new HorizontallyMergedClasses(mergedClasses);
     }
 
-    public void addMergeGroup(DexProgramClass target, Collection<DexProgramClass> toMergeGroup) {
-      for (DexProgramClass clazz : toMergeGroup) {
-        mergedClasses.put(clazz.type, target.type);
-      }
+    public void addMergeGroup(MergeGroup group) {
+      group.forEachSource(clazz -> mergedClasses.put(clazz.getType(), group.getTarget().getType()));
     }
   }
 }

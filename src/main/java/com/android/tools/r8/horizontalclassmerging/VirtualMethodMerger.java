@@ -32,8 +32,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VirtualMethodMerger {
-  private final DexProgramClass target;
   private final DexItemFactory dexItemFactory;
+  private final MergeGroup group;
   private final List<ProgramMethod> methods;
   private final DexField classIdField;
   private final AppView<AppInfoWithLiveness> appView;
@@ -41,12 +41,12 @@ public class VirtualMethodMerger {
 
   public VirtualMethodMerger(
       AppView<AppInfoWithLiveness> appView,
-      DexProgramClass target,
+      MergeGroup group,
       List<ProgramMethod> methods,
       DexField classIdField,
       DexMethod superMethod) {
     this.dexItemFactory = appView.dexItemFactory();
-    this.target = target;
+    this.group = group;
     this.classIdField = classIdField;
     this.methods = methods;
     this.appView = appView;
@@ -85,14 +85,11 @@ public class VirtualMethodMerger {
     }
 
     public VirtualMethodMerger build(
-        AppView<AppInfoWithLiveness> appView,
-        DexProgramClass target,
-        DexField classIdField,
-        int mergeGroupSize) {
+        AppView<AppInfoWithLiveness> appView, MergeGroup group, DexField classIdField) {
       // If not all the classes are in the merge group, find the fallback super method to call.
-      DexMethod superMethod = methods.size() < mergeGroupSize ? superMethod(appView, target) : null;
-
-      return new VirtualMethodMerger(appView, target, methods, classIdField, superMethod);
+      DexMethod superMethod =
+          methods.size() < group.size() ? superMethod(appView, group.getTarget()) : null;
+      return new VirtualMethodMerger(appView, group, methods, classIdField, superMethod);
     }
   }
 
@@ -111,11 +108,11 @@ public class VirtualMethodMerger {
             oldMethodReference.name.toSourceString(),
             oldMethod.getHolderType(),
             oldMethodReference.proto,
-            target.type,
+            group.getTarget().getType(),
             classMethodsBuilder::isFresh);
 
     DexEncodedMethod encodedMethod = oldMethod.getDefinition().toTypeSubstitutedMethod(method);
-    MethodAccessFlags flags = encodedMethod.accessFlags;
+    MethodAccessFlags flags = encodedMethod.getAccessFlags();
     flags.unsetProtected();
     flags.unsetPublic();
     flags.setPrivate();
@@ -138,7 +135,7 @@ public class VirtualMethodMerger {
   }
 
   private DexMethod getNewMethodReference() {
-    return ListUtils.first(methods).getReference().withHolder(target, dexItemFactory);
+    return ListUtils.first(methods).getReference().withHolder(group.getTarget(), dexItemFactory);
   }
 
   /**
@@ -190,7 +187,7 @@ public class VirtualMethodMerger {
       }
     }
 
-    if (representative.getHolderType() == target.getType()) {
+    if (representative.getHolder() == group.getTarget()) {
       classMethodsBuilder.addVirtualMethod(representative.getDefinition());
     } else {
       // If the method is not in the target type, move it.

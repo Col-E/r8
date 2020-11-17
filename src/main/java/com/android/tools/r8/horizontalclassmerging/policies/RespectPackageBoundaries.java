@@ -7,16 +7,14 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.VerticalClassMerger.IllegalAccessDetector;
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 public class RespectPackageBoundaries extends MultiClassPolicy {
@@ -58,30 +56,28 @@ public class RespectPackageBoundaries extends MultiClassPolicy {
 
   /** Sort unrestricted classes into restricted classes if they are in the same package. */
   void tryFindRestrictedPackage(
-      LinkedList<DexProgramClass> unrestrictedClasses,
-      Map<String, List<DexProgramClass>> restrictedClasses) {
-    Iterator<DexProgramClass> i = unrestrictedClasses.iterator();
-    while (i.hasNext()) {
-      DexProgramClass clazz = i.next();
-      Collection<DexProgramClass> restrictedPackage =
-          restrictedClasses.get(clazz.type.getPackageDescriptor());
-      if (restrictedPackage != null) {
-        restrictedPackage.add(clazz);
-        i.remove();
-      }
-    }
+      MergeGroup unrestrictedClasses, Map<String, MergeGroup> restrictedClasses) {
+    unrestrictedClasses.removeIf(
+        clazz -> {
+          MergeGroup restrictedPackage = restrictedClasses.get(clazz.type.getPackageDescriptor());
+          if (restrictedPackage != null) {
+            restrictedPackage.add(clazz);
+            return true;
+          }
+          return false;
+        });
   }
 
   @Override
-  public Collection<? extends List<DexProgramClass>> apply(List<DexProgramClass> group) {
-    Map<String, List<DexProgramClass>> restrictedClasses = new LinkedHashMap<>();
-    LinkedList<DexProgramClass> unrestrictedClasses = new LinkedList<>();
+  public Collection<MergeGroup> apply(MergeGroup group) {
+    Map<String, MergeGroup> restrictedClasses = new LinkedHashMap<>();
+    MergeGroup unrestrictedClasses = new MergeGroup();
 
     // Sort all restricted classes into packages.
     for (DexProgramClass clazz : group) {
       if (shouldRestrictMergingAcrossPackageBoundary(clazz)) {
         restrictedClasses
-            .computeIfAbsent(clazz.type.getPackageDescriptor(), ignore -> new ArrayList<>())
+            .computeIfAbsent(clazz.getType().getPackageDescriptor(), ignore -> new MergeGroup())
             .add(clazz);
       } else {
         unrestrictedClasses.add(clazz);
@@ -93,7 +89,7 @@ public class RespectPackageBoundaries extends MultiClassPolicy {
 
     // TODO(b/166577694): Add the unrestricted classes to restricted groups, but ensure they aren't
     // the merge target.
-    Collection<List<DexProgramClass>> groups = new ArrayList<>(restrictedClasses.size() + 1);
+    Collection<MergeGroup> groups = new ArrayList<>(restrictedClasses.size() + 1);
     if (unrestrictedClasses.size() > 1) {
       groups.add(unrestrictedClasses);
     }
