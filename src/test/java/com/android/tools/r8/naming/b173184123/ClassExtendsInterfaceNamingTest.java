@@ -5,8 +5,6 @@
 package com.android.tools.r8.naming.b173184123;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -52,28 +50,28 @@ public class ClassExtendsInterfaceNamingTest extends TestBase {
                 .setSuper(DescriptorUtils.javaTypeToDescriptor(Interface.class.getTypeName()))
                 .transform())
         .build();
-    // TODO(b/173184123): Should not result in an error.
-    AssertionError assertionError =
-        assertThrows(
-            AssertionError.class,
-            () -> {
-              testForExternalR8(
-                      parameters.getBackend(),
-                      parameters.isCfRuntime()
-                          ? parameters.getRuntime()
-                          : TestRuntime.getCheckedInJdk11())
-                  .addProgramFiles(classFiles)
-                  .enableAssertions(false)
-                  .setMinApi(parameters.getApiLevel())
-                  .addKeepMainRule(Main.class)
-                  .addKeepClassAndMembersRules(Interface.class)
-                  .addKeepRules("-neverclassinline @com.android.tools.r8.NeverClassInline class *")
-                  .addKeepRules("-neverinline class * { @**.NeverInline *; }")
-                  .allowTestProguardOptions(true)
-                  .compile();
-            });
-    assertThat(
-        assertionError.getMessage(), containsString("Error: java.lang.NullPointerException"));
+    testForExternalR8(
+            parameters.getBackend(),
+            parameters.isCfRuntime() ? parameters.getRuntime() : TestRuntime.getCheckedInJdk11())
+        .addProgramFiles(classFiles)
+        .enableAssertions(false)
+        .useR8WithRelocatedDeps()
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .addKeepClassAndMembersRules(Interface.class)
+        .addKeepRules("-neverclassinline @com.android.tools.r8.NeverClassInline class *")
+        .addKeepRules("-neverinline class * { @**.NeverInline *; }")
+        .allowTestProguardOptions(true)
+        .compile()
+        .assertStderrThatMatches(
+            containsString(
+                "Class "
+                    + ConcreteClass.class.getTypeName()
+                    + " extends "
+                    + Interface.class.getTypeName()
+                    + " which is an interface"))
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }
 
   public interface Interface {
