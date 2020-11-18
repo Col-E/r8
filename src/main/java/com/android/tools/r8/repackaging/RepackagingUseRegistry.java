@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -19,7 +20,6 @@ import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MemberResolutionResult;
 import com.android.tools.r8.graph.ProgramDefinition;
-import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.SuccessfulMemberResolutionResult;
@@ -48,7 +48,11 @@ public class RepackagingUseRegistry extends UseRegistry {
     this.node = constraintGraph.getNode(context.getDefinition());
   }
 
-  private boolean isOnlyAccessibleFromSamePackage(DexProgramClass referencedClass) {
+  private Predicate<DexClass> isSamePackagePredicate(DexClass one) {
+    return other -> one.type.getPackageDescriptor().equals(other.type.getPackageDescriptor());
+  }
+
+  private boolean isOnlyAccessibleFromSamePackage(DexClass referencedClass) {
     ClassAccessFlags accessFlags = referencedClass.getAccessFlags();
     if (accessFlags.isPackagePrivate()) {
       return true;
@@ -60,13 +64,13 @@ public class RepackagingUseRegistry extends UseRegistry {
     return false;
   }
 
-  private boolean isOnlyAccessibleFromSamePackage(ProgramMember<?, ?> member) {
-    AccessFlags<?> accessFlags = member.getDefinition().getAccessFlags();
+  private boolean isOnlyAccessibleFromSamePackage(DexEncodedMember<?, ?> member) {
+    AccessFlags<?> accessFlags = member.asDexEncodedMember().getAccessFlags();
     if (accessFlags.isPackagePrivate()) {
       return true;
     }
     if (accessFlags.isProtected()
-        && !appInfo.isSubtype(context.getContextType(), member.getHolderType())) {
+        && !appInfo.isSubtype(context.getContextType(), member.holder())) {
       return true;
     }
     return false;
@@ -96,14 +100,13 @@ public class RepackagingUseRegistry extends UseRegistry {
     }
 
     // Check access to the initial resolution holder.
-    registerTypeAccess(successfulResolutionResult.getInitialResolutionHolder());
+    registerClassTypeAccess(successfulResolutionResult.getInitialResolutionHolder());
 
     // Similarly, check access to the resolved member.
-    ProgramMember<?, ?> resolvedMember =
-        successfulResolutionResult.getResolvedMember().asProgramMember(appInfo);
+    DexEncodedMember<?, ?> resolvedMember = successfulResolutionResult.getResolvedMember();
     if (resolvedMember != null) {
       RepackagingConstraintGraph.Node resolvedMemberNode =
-          constraintGraph.getNode(resolvedMember.getDefinition());
+          constraintGraph.getNode(resolvedMember.asDexEncodedMember());
       if (resolvedMemberNode != null && isOnlyAccessibleFromSamePackage(resolvedMember)) {
         node.addNeighbor(resolvedMemberNode);
       }
@@ -111,7 +114,7 @@ public class RepackagingUseRegistry extends UseRegistry {
   }
 
   private void registerTypeAccess(DexType type) {
-    registerTypeAccess(type, this::registerTypeAccess);
+    registerTypeAccess(type, this::registerClassTypeAccess);
   }
 
   private void registerTypeAccess(DexType type, Consumer<DexClass> consumer) {
@@ -129,20 +132,17 @@ public class RepackagingUseRegistry extends UseRegistry {
     }
   }
 
-  private void registerTypeAccess(DexClass clazz) {
-    registerTypeAccess(clazz, this::isOnlyAccessibleFromSamePackage);
+  private void registerClassTypeAccess(DexClass clazz) {
+    registerClassTypeAccess(clazz, this::isOnlyAccessibleFromSamePackage);
   }
 
-  private void registerTypeAccess(DexClass clazz, Predicate<DexProgramClass> predicate) {
+  private void registerClassTypeAccess(DexClass clazz, Predicate<DexClass> predicate) {
     // We only want to connect the current method node to the class node if the access requires the
-    // two nodes to be in the same package. Therefore, we ignore accesses to non-program classes
-    // and program classes outside the current package.
-    DexProgramClass programClass = clazz.asProgramClass();
-    if (programClass != null) {
-      RepackagingConstraintGraph.Node classNode = constraintGraph.getNode(programClass);
-      if (classNode != null && predicate.test(programClass)) {
-        node.addNeighbor(classNode);
-      }
+    // two nodes to be in the same package. Therefore, we ignore accesses to program classes outside
+    // the current package.
+    RepackagingConstraintGraph.Node classNode = constraintGraph.getNode(clazz);
+    if (classNode != null && predicate.test(clazz)) {
+      node.addNeighbor(classNode);
     }
   }
 
@@ -218,21 +218,25 @@ public class RepackagingUseRegistry extends UseRegistry {
     if (enclosingMethodAttribute.getEnclosingClass() != null) {
       registerTypeAccess(
           enclosingMethodAttribute.getEnclosingClass(),
-          clazz -> registerTypeAccess(clazz, alwaysTrue()));
+          clazz -> registerClassTypeAccess(clazz, alwaysTrue()));
     }
     if (enclosingMethodAttribute.getEnclosingMethod() != null) {
       ProgramMethod method = registerMethodReference(enclosingMethodAttribute.getEnclosingMethod());
       if (method != null) {
-        registerTypeAccess(method.getHolder(), alwaysTrue());
+        registerClassTypeAccess(method.getHolder(), alwaysTrue());
       }
     }
   }
 
-  public void registerInnerClassAttribute(InnerClassAttribute innerClassAttribute) {
+  public void registerInnerClassAttribute(
+      DexProgramClass outer, InnerClassAttribute innerClassAttribute) {
     // For references in inner class attributes we add an edge from the context to the referenced
     // class even if the referenced class would be accessible from another package, to make sure
     // that we don't split such classes into different packages.
+    Predicate<DexClass> samePackagePredicate = isSamePackagePredicate(outer);
     innerClassAttribute.forEachType(
-        type -> registerTypeAccess(type, clazz -> registerTypeAccess(clazz, alwaysTrue())));
+        type ->
+            registerTypeAccess(
+                type, clazz -> registerClassTypeAccess(clazz, samePackagePredicate)));
   }
 }

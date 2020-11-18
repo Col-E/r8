@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.repackage;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,7 +52,13 @@ public class RepackageWithPackagePrivateLibraryTypeTest extends RepackageTestBas
         .setMinApi(parameters.getApiLevel())
         .addRunClasspathFiles(buildOnDexRuntime(parameters, Library.class, LibraryI.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatThrows(IllegalAccessError.class);
+        .assertSuccessWithOutputLines(EXPECTED)
+        .inspect(this::inspect);
+  }
+
+  private void inspect(CodeInspector inspector) {
+    assertThat(Program.class, isNotRepackaged(inspector));
+    assertThat(ProgramSub.class, isNotRepackaged(inspector));
   }
 
   static class Library {}

@@ -4,10 +4,11 @@
 
 package com.android.tools.r8.repackage;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,23 +35,23 @@ public class RepackageWithPackagePrivateLibraryMethodTest extends RepackageTestB
 
   @Test
   public void testR8() throws Exception {
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addLibraryClasses(Library.class)
-            .addDefaultRuntimeLibrary(parameters)
-            .addProgramClasses(Program.class, Main.class)
-            .apply(this::configureRepackaging)
-            .addKeepMainRule(Main.class)
-            .enableInliningAnnotations()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .addRunClasspathFiles(buildOnDexRuntime(parameters, Library.class))
-            .run(parameters.getRuntime(), Main.class);
-    if (parameters.isDexRuntime() && parameters.getDexRuntimeVersion() == Version.V8_1_0) {
-      runResult.assertSuccessWithOutputLines(EXPECTED);
-    } else {
-      runResult.assertFailureWithErrorThatThrows(IllegalAccessError.class);
-    }
+    testForR8(parameters.getBackend())
+        .addLibraryClasses(Library.class)
+        .addDefaultRuntimeLibrary(parameters)
+        .addProgramClasses(Program.class, Main.class)
+        .apply(this::configureRepackaging)
+        .addKeepMainRule(Main.class)
+        .enableInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .addRunClasspathFiles(buildOnDexRuntime(parameters, Library.class))
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED)
+        .inspect(this::inspect);
+  }
+
+  private void inspect(CodeInspector inspector) {
+    assertThat(Program.class, isNotRepackaged(inspector));
   }
 
   public static class Library {

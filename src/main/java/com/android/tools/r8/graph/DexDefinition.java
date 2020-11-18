@@ -104,4 +104,8 @@ public abstract class DexDefinition extends DexItem {
   public abstract boolean isStatic();
 
   public abstract boolean isStaticMember();
+
+  public boolean isNotProgramDefinition() {
+    return isDexClass() ? !isProgramClass() : !asDexEncodedMember().isProgramClass();
+  }
 }
