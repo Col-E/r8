@@ -26,6 +26,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.SymbolGenerationUtils;
 import com.android.tools.r8.utils.SymbolGenerationUtils.MixedCasing;
 import com.android.tools.r8.utils.Timing;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -47,7 +48,7 @@ public class Minifier {
     assert appView.options().isMinifying();
     SubtypingInfo subtypingInfo = appView.appInfo().computeSubtypingInfo();
     timing.begin("ComputeInterfaces");
-    Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.compareTo(b.type));
+    Set<DexClass> interfaces = new TreeSet<>(Comparator.comparing(a -> a.type));
     interfaces.addAll(appView.appInfo().computeReachableInterfaces());
     timing.end();
     timing.begin("MinifyClasses");
