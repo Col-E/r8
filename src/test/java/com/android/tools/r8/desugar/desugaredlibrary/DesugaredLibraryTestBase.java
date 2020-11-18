@@ -302,6 +302,16 @@ public class DesugaredLibraryTestBase extends TestBase {
     return extractor.getClassFileInfo();
   }
 
+  public DesugaredLibraryConfiguration configurationAlternative3(
+      InternalOptions options, boolean libraryCompilation, TestParameters parameters) {
+    return new DesugaredLibraryConfigurationParser(
+            options.dexItemFactory(),
+            options.reporter,
+            libraryCompilation,
+            parameters.getApiLevel().getLevel())
+        .parse(StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING_ALTERNATIVE_3));
+  }
+
   public interface KeepRuleConsumer extends StringConsumer {
 
     String get();
