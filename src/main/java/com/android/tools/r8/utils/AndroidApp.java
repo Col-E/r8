@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isAarFile;
 import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
@@ -504,7 +505,9 @@ public class AndroidApp {
             mainDexList.add(mainDexListResource.getString());
           }
         }
-        mainDexList.addAll(getMainDexClasses());
+        for (String mainDexClass : getMainDexClasses()) {
+          mainDexList.add(mainDexClass.replace(".", "/") + CLASS_EXTENSION);
+        }
         String join = StringUtils.join(mainDexList, "\n");
         writeToZipStream(out, dumpMainDexListResourceFileName, join.getBytes(), ZipEntry.DEFLATED);
       }
