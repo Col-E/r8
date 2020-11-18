@@ -3,14 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
-import com.android.tools.r8.utils.structural.DefaultCompareToVisitor;
 import com.android.tools.r8.utils.structural.Equatable;
 import com.android.tools.r8.utils.structural.HashCodeVisitor;
-import com.android.tools.r8.utils.structural.Ordered;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import org.objectweb.asm.Opcodes;
 
-public final class CfVersion implements Ordered<CfVersion> {
+public final class CfVersion implements StructuralItem<CfVersion> {
 
   public static final CfVersion V1_1 = new CfVersion(Opcodes.V1_1);
   public static final CfVersion V1_2 = new CfVersion(Opcodes.V1_2);
@@ -47,8 +47,18 @@ public final class CfVersion implements Ordered<CfVersion> {
     return version;
   }
 
-  private static void accept(StructuralSpecification<CfVersion, ?> spec) {
+  private static void specify(StructuralSpecification<CfVersion, ?> spec) {
     spec.withInt(CfVersion::major).withInt(CfVersion::minor);
+  }
+
+  @Override
+  public CfVersion self() {
+    return this;
+  }
+
+  @Override
+  public StructuralAccept<CfVersion> getStructuralAccept() {
+    return CfVersion::specify;
   }
 
   @Override
@@ -58,12 +68,7 @@ public final class CfVersion implements Ordered<CfVersion> {
 
   @Override
   public int hashCode() {
-    return HashCodeVisitor.run(this, CfVersion::accept);
-  }
-
-  @Override
-  public int compareTo(CfVersion other) {
-    return DefaultCompareToVisitor.run(this, other, CfVersion::accept);
+    return HashCodeVisitor.run(this, CfVersion::specify);
   }
 
   @Override

@@ -16,6 +16,9 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -23,7 +26,7 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.function.Function;
 
-public class DexAnnotation extends DexItem {
+public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotation> {
   public static final DexAnnotation[] EMPTY_ARRAY = {};
   public static final int VISIBILITY_BUILD = 0x00;
   public static final int VISIBILITY_RUNTIME = 0x01;
@@ -31,9 +34,23 @@ public class DexAnnotation extends DexItem {
   public final int visibility;
   public final DexEncodedAnnotation annotation;
 
+  private static void specify(StructuralSpecification<DexAnnotation, ?> spec) {
+    spec.withInt(a -> a.visibility).withItem(a -> a.annotation);
+  }
+
   public DexAnnotation(int visibility, DexEncodedAnnotation annotation) {
     this.visibility = visibility;
     this.annotation = annotation;
+  }
+
+  @Override
+  public DexAnnotation self() {
+    return this;
+  }
+
+  @Override
+  public StructuralAccept<DexAnnotation> getStructuralAccept() {
+    return DexAnnotation::specify;
   }
 
   public DexType getAnnotationType() {

@@ -6,6 +6,9 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -35,13 +38,18 @@ import java.util.function.Predicate;
  * ParameterAnnotationsList#isMissing(int)} accessor is used to determine whether a given parameter
  * is missing in the ParameterAnnotations attribute.
  */
-public class ParameterAnnotationsList extends DexItem {
+public class ParameterAnnotationsList extends DexItem
+    implements StructuralItem<ParameterAnnotationsList> {
 
   private static final ParameterAnnotationsList EMPTY_PARAMETER_ANNOTATIONS_LIST =
       new ParameterAnnotationsList();
 
   private final DexAnnotationSet[] values;
   private final int missingParameterAnnotations;
+
+  private static void specify(StructuralSpecification<ParameterAnnotationsList, ?> spec) {
+    spec.withItemArray(a -> a.values).withInt(a -> a.missingParameterAnnotations);
+  }
 
   public static ParameterAnnotationsList empty() {
     return EMPTY_PARAMETER_ANNOTATIONS_LIST;
@@ -62,6 +70,16 @@ public class ParameterAnnotationsList extends DexItem {
     this.missingParameterAnnotations = missingParameterAnnotations;
   }
 
+  @Override
+  public ParameterAnnotationsList self() {
+    return this;
+  }
+
+  @Override
+  public StructuralAccept<ParameterAnnotationsList> getStructuralAccept() {
+    return ParameterAnnotationsList::specify;
+  }
+
   public int getAnnotableParameterCount() {
     return size();
   }
@@ -77,6 +95,7 @@ public class ParameterAnnotationsList extends DexItem {
       return true;
     }
     if (other instanceof ParameterAnnotationsList) {
+      // TODO(b/172999904): Why does equals not include missingParameterAnnotations?
       return Arrays.equals(values, ((ParameterAnnotationsList) other).values);
     }
     return false;

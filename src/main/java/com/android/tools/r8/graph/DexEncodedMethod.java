@@ -325,13 +325,15 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   // Visitor specifying the structure of the method with respect to its "synthetic" content.
   // TODO(b/171867022): Generalize this so that it determines any method in full.
   private static void syntheticSpecify(StructuralSpecification<DexEncodedMethod, ?> spec) {
-    spec.withAssert(m1 -> m1.annotations().isEmpty())
-        .withAssert(m1 -> m1.parameterAnnotationsList.isEmpty())
+    spec.withItem(m -> m.method)
+        .withItem(m -> m.accessFlags)
+        .withItem(m -> m.annotations())
+        .withItem(m -> m.parameterAnnotationsList)
+        .withNullableItem(m -> m.classFileVersion)
+        .withBool(m -> m.d8R8Synthesized)
+        // TODO(b/171867022): Make signatures structural and include it in the definition.
+        .withAssert(m -> m.genericSignature.hasNoSignature())
         .withAssert(m1 -> m1.code != null)
-        .withItem(DexEncodedMethod::getHolderType)
-        .withItem(DexEncodedMethod::getName)
-        .withInt(m -> m.getAccessFlags().getAsCfAccessFlags())
-        .withItem(DexEncodedMethod::proto)
         .withCustomItem(
             DexEncodedMethod::getCode,
             (c1, c2, v) -> v.visit(c1, c2, DexEncodedMethod::compareCodeObject),

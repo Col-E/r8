@@ -9,6 +9,9 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.List;
@@ -18,7 +21,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-public class DexAnnotationSet extends CachedHashValueDexItem {
+public class DexAnnotationSet extends CachedHashValueDexItem
+    implements StructuralItem<DexAnnotationSet> {
 
   public static final DexAnnotationSet[] EMPTY_ARRAY = {};
 
@@ -29,8 +33,22 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
   public final DexAnnotation[] annotations;
   private int sorted = UNSORTED;
 
+  private static void specify(StructuralSpecification<DexAnnotationSet, ?> spec) {
+    spec.withItemArray(a -> a.annotations);
+  }
+
   public DexAnnotationSet(DexAnnotation[] annotations) {
     this.annotations = annotations;
+  }
+
+  @Override
+  public DexAnnotationSet self() {
+    return this;
+  }
+
+  @Override
+  public StructuralAccept<DexAnnotationSet> getStructuralAccept() {
+    return DexAnnotationSet::specify;
   }
 
   public static DexType findDuplicateEntryType(DexAnnotation[] annotations) {
