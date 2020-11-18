@@ -20,8 +20,12 @@ import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.kotlin.KotlinFieldLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 
-public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField> {
+public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
+    implements StructuralItem<DexEncodedField> {
   public static final DexEncodedField[] EMPTY_ARRAY = {};
 
   public final DexField field;
@@ -33,6 +37,16 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
 
   private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
   private KotlinFieldLevelInfo kotlinMemberInfo = NO_KOTLIN_INFO;
+
+  private static void specify(StructuralSpecification<DexEncodedField, ?> spec) {
+    spec.withItem(f -> f.field)
+        .withItem(f -> f.accessFlags)
+        .withNullableItem(f -> f.staticValue)
+        .withBool(f -> f.deprecated)
+        // TODO(b/171867022): The generic signature should be part of the definition.
+        .withAssert(f -> f.genericSignature.hasNoSignature());
+    // TODO(b/171867022): Should the optimization info and member info be part of the definition?
+  }
 
   public DexEncodedField(
       DexField field,
@@ -58,6 +72,16 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       DexAnnotationSet annotations,
       DexValue staticValue) {
     this(field, accessFlags, genericSignature, annotations, staticValue, false);
+  }
+
+  @Override
+  public StructuralAccept<DexEncodedField> getStructuralAccept() {
+    return DexEncodedField::specify;
+  }
+
+  @Override
+  public DexEncodedField self() {
+    return this;
   }
 
   public DexType type() {

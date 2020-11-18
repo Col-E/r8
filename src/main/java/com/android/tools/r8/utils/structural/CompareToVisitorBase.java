@@ -3,11 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.structural;
 
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.utils.structural.StructuralItem.CompareToAccept;
 import com.android.tools.r8.utils.structural.StructuralItem.HashingAccept;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
@@ -44,6 +45,38 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
   }
 
   @Override
+  public void visitLong(long value1, long value2) {
+    if (stillEqual()) {
+      setOrder(Long.compare(value1, value2));
+    }
+  }
+
+  @Override
+  public void visitFloat(float value1, float value2) {
+    if (stillEqual()) {
+      setOrder(Float.compare(value1, value2));
+    }
+  }
+
+  @Override
+  public void visitDouble(double value1, double value2) {
+    if (stillEqual()) {
+      setOrder(Double.compare(value1, value2));
+    }
+  }
+
+  @Override
+  protected <S> void visitItemIterator(
+      Iterator<S> it1, Iterator<S> it2, CompareToAccept<S> compareToAccept) {
+    while (stillEqual() && it1.hasNext() && it2.hasNext()) {
+      compareToAccept.accept(it1.next(), it2.next(), this);
+    }
+    if (stillEqual()) {
+      visitBool(it1.hasNext(), it2.hasNext());
+    }
+  }
+
+  @Override
   public final void visitDexString(
       DexString string1, DexString string2, Comparator<DexString> comparator) {
     if (stillEqual()) {
@@ -52,15 +85,18 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
   }
 
   @Override
-  public final void visitDexTypeList(DexTypeList types1, DexTypeList types2) {
-    // Comparison is lexicographic with comparisons between items prior to the length of the lists.
+  public void visitDexReference(DexReference reference1, DexReference reference2) {
     if (stillEqual()) {
-      int length = Math.min(types1.size(), types2.size());
-      for (int i = 0; i < length && stillEqual(); i++) {
-        visitDexType(types1.values[i], types2.values[i]);
-      }
+      visitInt(reference1.referenceTypeOrder(), reference2.referenceTypeOrder());
       if (stillEqual()) {
-        visitInt(types1.size(), types2.size());
+        assert reference1.getClass() == reference2.getClass();
+        if (reference1.isDexType()) {
+          visitDexType(reference1.asDexType(), reference2.asDexType());
+        } else if (reference1.isDexField()) {
+          visitDexField(reference1.asDexField(), reference2.asDexField());
+        } else {
+          visitDexMethod(reference1.asDexMethod(), reference2.asDexMethod());
+        }
       }
     }
   }
@@ -125,6 +161,15 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
         } else {
           parent.visitBool(test1, test2);
         }
+      }
+      return this;
+    }
+
+    @Override
+    protected <S> ItemSpecification<T> withItemIterator(
+        Function<T, Iterator<S>> getter, CompareToAccept<S> compare, HashingAccept<S> hasher) {
+      if (parent.stillEqual()) {
+        parent.visitItemIterator(getter.apply(item1), getter.apply(item2), compare);
       }
       return this;
     }

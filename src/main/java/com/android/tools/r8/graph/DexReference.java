@@ -63,7 +63,7 @@ public abstract class DexReference extends IndexedDexItem {
     return null;
   }
 
-  private int referenceTypeOrder() {
+  public int referenceTypeOrder() {
     if (isDexType()) {
       return 1;
     }

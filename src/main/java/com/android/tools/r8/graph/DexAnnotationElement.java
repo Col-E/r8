@@ -5,16 +5,33 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 
-public class DexAnnotationElement extends DexItem {
+public class DexAnnotationElement extends DexItem implements StructuralItem<DexAnnotationElement> {
   public static final DexAnnotationElement[] EMPTY_ARRAY = {};
 
   public final DexString name;
   public final DexValue value;
 
+  private static void specify(StructuralSpecification<DexAnnotationElement, ?> spec) {
+    spec.withItem(e -> e.name).withItem(e -> e.value);
+  }
+
   public DexAnnotationElement(DexString name, DexValue value) {
     this.name = name;
     this.value = value;
+  }
+
+  @Override
+  public DexAnnotationElement self() {
+    return this;
+  }
+
+  @Override
+  public StructuralAccept<DexAnnotationElement> getStructuralAccept() {
+    return DexAnnotationElement::specify;
   }
 
   public DexValue getValue() {

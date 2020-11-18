@@ -23,12 +23,16 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.EncodedValueUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Type;
 
-public abstract class DexValue extends DexItem {
+public abstract class DexValue extends DexItem implements StructuralItem<DexValue> {
 
   public enum DexValueKind {
     BYTE(0x00),
@@ -103,6 +107,41 @@ public abstract class DexValue extends DexItem {
       return b;
     }
   }
+
+  @Override
+  public DexValue self() {
+    return this;
+  }
+
+  @Override
+  public final StructuralAccept<DexValue> getStructuralAccept() {
+    // DexValue is not generic at its base type (and can't as we use it as a polymorphic value),
+    // so each concrete value must implement polymorphic accept functions. This base class
+    // implements (most of) the polymorphic checks and concrete types implement the internal
+    // variants for that type.
+    throw new Unreachable();
+  }
+
+  @Override
+  public final void acceptCompareTo(DexValue other, CompareToVisitor visitor) {
+    // Order first on 'kind', only equal kinds then forward to the 'kind' specific internal compare.
+    if (getValueKind() != other.getValueKind()) {
+      visitor.visitInt(getValueKind().toByte(), other.getValueKind().toByte());
+    } else {
+      internalAcceptCompareTo(other, visitor);
+    }
+  }
+
+  @Override
+  public final void acceptHashing(HashingVisitor visitor) {
+    // Always hash the 'kind' which ensures that raw values of different type are distinct.
+    visitor.visitInt(getValueKind().toByte());
+    internalAcceptHashing(visitor);
+  }
+
+  abstract void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor);
+
+  abstract void internalAcceptHashing(HashingVisitor visitor);
 
   public static final DexValue[] EMPTY_ARRAY = {};
 
@@ -438,6 +477,16 @@ public abstract class DexValue extends DexItem {
       return value == DEFAULT.value ? DEFAULT : new DexValueByte(value);
     }
 
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      visitor.visitInt(value, other.asDexValueByte().value);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitInt(value);
+    }
+
     public byte getValue() {
       return value;
     }
@@ -521,6 +570,16 @@ public abstract class DexValue extends DexItem {
       return value == DEFAULT.value ? DEFAULT : new DexValueShort(value);
     }
 
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitInt(value);
+    }
+
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      visitor.visitInt(value, other.asDexValueShort().getValue());
+    }
+
     public short getValue() {
       return value;
     }
@@ -601,6 +660,16 @@ public abstract class DexValue extends DexItem {
 
     public static DexValueChar create(char value) {
       return value == DEFAULT.value ? DEFAULT : new DexValueChar(value);
+    }
+
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      visitor.visitInt(value, other.asDexValueChar().value);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitInt(value);
     }
 
     public char getValue() {
@@ -689,6 +758,16 @@ public abstract class DexValue extends DexItem {
       return value == DEFAULT.value ? DEFAULT : new DexValueInt(value);
     }
 
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitInt(value);
+    }
+
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      visitor.visitInt(value, other.asDexValueInt().value);
+    }
+
     public int getValue() {
       return value;
     }
@@ -771,6 +850,16 @@ public abstract class DexValue extends DexItem {
       return value == DEFAULT.value ? DEFAULT : new DexValueLong(value);
     }
 
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      visitor.visitLong(value, other.asDexValueLong().value);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitLong(value);
+    }
+
     public long getValue() {
       return value;
     }
@@ -851,6 +940,16 @@ public abstract class DexValue extends DexItem {
 
     public static DexValueFloat create(float value) {
       return Float.compare(value, DEFAULT.value) == 0 ? DEFAULT : new DexValueFloat(value);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitFloat(value);
+    }
+
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      visitor.visitFloat(value, other.asDexValueFloat().value);
     }
 
     public float getValue() {
@@ -939,6 +1038,16 @@ public abstract class DexValue extends DexItem {
 
     public static DexValueDouble create(double value) {
       return Double.compare(value, DEFAULT.value) == 0 ? DEFAULT : new DexValueDouble(value);
+    }
+
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      visitor.visitDouble(value, other.asDexValueDouble().value);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitDouble(value);
     }
 
     public double getValue() {
@@ -1087,6 +1196,18 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      value.acceptHashing(visitor);
+    }
+
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      if (DexItemBasedValueString.compareAndCheckValueStrings(this, other, visitor)) {
+        value.acceptCompareTo(other.asDexValueString().value, visitor);
+      }
+    }
+
+    @Override
     public void collectIndexedItems(IndexedItemCollection indexedItems) {
       value.collectIndexedItems(indexedItems);
     }
@@ -1143,11 +1264,37 @@ public abstract class DexValue extends DexItem {
 
   public static class DexItemBasedValueString extends NestedDexValue<DexReference> {
 
+    // Helper to ensure a consistent order on DexValueString and DexItemBasedValueString which are
+    // both defined to have kind 'string'.
+    static boolean compareAndCheckValueStrings(DexValue v1, DexValue v2, CompareToVisitor visitor) {
+      assert v1.getValueKind() == DexValueKind.STRING;
+      assert v2.getValueKind() == DexValueKind.STRING;
+      int order1 = v1.isDexItemBasedValueString() ? 1 : 0;
+      int order2 = v2.isDexItemBasedValueString() ? 1 : 0;
+      boolean equal = order1 == order2;
+      if (!equal) {
+        visitor.visitInt(order1, order2);
+      }
+      return equal;
+    }
+
     private final NameComputationInfo<?> nameComputationInfo;
 
     public DexItemBasedValueString(DexReference value, NameComputationInfo<?> nameComputationInfo) {
       super(value);
       this.nameComputationInfo = nameComputationInfo;
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitDexReference(value);
+    }
+
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      if (compareAndCheckValueStrings(this, other, visitor)) {
+        visitor.visitDexReference(value, other.asDexItemBasedValueString().value);
+      }
     }
 
     @Override
@@ -1221,6 +1368,16 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      value.acceptCompareTo(other.asDexValueType().value, visitor);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      value.acceptHashing(visitor);
+    }
+
+    @Override
     public DexValueKind getValueKind() {
       return DexValueKind.TYPE;
     }
@@ -1250,6 +1407,16 @@ public abstract class DexValue extends DexItem {
 
     public DexValueField(DexField value) {
       super(value);
+    }
+
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      value.acceptCompareTo(other.asDexValueField().value, visitor);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      value.acceptHashing(visitor);
     }
 
     @Override
@@ -1285,6 +1452,16 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      value.acceptCompareTo(other.asDexValueMethod().value, visitor);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      value.acceptHashing(visitor);
+    }
+
+    @Override
     public DexValueKind getValueKind() {
       return DexValueKind.METHOD;
     }
@@ -1314,6 +1491,16 @@ public abstract class DexValue extends DexItem {
 
     public DexValueEnum(DexField value) {
       super(value);
+    }
+
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      value.acceptCompareTo(other.asDexValueEnum().value, visitor);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      value.acceptHashing(visitor);
     }
 
     @Override
@@ -1349,6 +1536,16 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      value.acceptCompareTo(other.asDexValueMethodType().value, visitor);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      value.acceptHashing(visitor);
+    }
+
+    @Override
     public boolean isDexValueMethodType() {
       return true;
     }
@@ -1380,6 +1577,16 @@ public abstract class DexValue extends DexItem {
 
     public DexValueArray(DexValue[] values) {
       this.values = values;
+    }
+
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      visitor.visitItemArray(values, other.asDexValueArray().values);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitItemArray(values);
     }
 
     public void forEachElement(Consumer<DexValue> consumer) {
@@ -1481,6 +1688,16 @@ public abstract class DexValue extends DexItem {
       this.value = value;
     }
 
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      value.acceptCompareTo(other.asDexValueAnnotation().value, visitor);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      value.acceptHashing(visitor);
+    }
+
     public DexEncodedAnnotation getValue() {
       return value;
     }
@@ -1565,6 +1782,17 @@ public abstract class DexValue extends DexItem {
 
     // See DexValueNull.NULL
     private DexValueNull() {
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      assert this == NULL;
+    }
+
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      assert this == NULL;
+      assert other == NULL;
     }
 
     public Object getValue() {
@@ -1653,6 +1881,16 @@ public abstract class DexValue extends DexItem {
       return value ? TRUE : FALSE;
     }
 
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      visitor.visitBool(value, other.asDexValueBoolean().value);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitBool(value);
+    }
+
     public boolean getValue() {
       return value;
     }
@@ -1726,6 +1964,16 @@ public abstract class DexValue extends DexItem {
 
     public DexValueMethodHandle(DexMethodHandle value) {
       super(value);
+    }
+
+    @Override
+    void internalAcceptCompareTo(DexValue other, CompareToVisitor visitor) {
+      value.acceptCompareTo(other.asDexValueMethodHandle().value, visitor);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      value.acceptHashing(visitor);
     }
 
     @Override

@@ -6,11 +6,14 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class DexEncodedAnnotation extends DexItem {
+public class DexEncodedAnnotation extends DexItem implements StructuralItem<DexEncodedAnnotation> {
 
   private static final int UNSORTED = 0;
 
@@ -19,9 +22,23 @@ public class DexEncodedAnnotation extends DexItem {
 
   private int sorted = UNSORTED;
 
+  private static void specify(StructuralSpecification<DexEncodedAnnotation, ?> spec) {
+    spec.withItem(a -> a.type).withItemArray(a -> a.elements);
+  }
+
   public DexEncodedAnnotation(DexType type, DexAnnotationElement[] elements) {
     this.type = type;
     this.elements = elements;
+  }
+
+  @Override
+  public DexEncodedAnnotation self() {
+    return this;
+  }
+
+  @Override
+  public StructuralAccept<DexEncodedAnnotation> getStructuralAccept() {
+    return DexEncodedAnnotation::specify;
   }
 
   public void collectIndexedItems(IndexedItemCollection indexedItems) {

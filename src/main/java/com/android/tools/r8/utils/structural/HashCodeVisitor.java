@@ -5,6 +5,7 @@ package com.android.tools.r8.utils.structural;
 
 import com.android.tools.r8.utils.structural.StructuralItem.CompareToAccept;
 import com.android.tools.r8.utils.structural.StructuralItem.HashingAccept;
+import java.util.Iterator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
@@ -64,9 +65,19 @@ public class HashCodeVisitor<T> extends StructuralSpecification<T, HashCodeVisit
     if (predicate.test(item)) {
       return amend(getter.apply(item).hashCode());
     } else {
-      // Use the value 1 for the failing-predicate case such that a different hash is obtained for
+      // Use the value 1 for the failing-predicate case such that a different hash is obtained for,
       // eg, {null, null} and {null}.
       return amend(1);
     }
+  }
+
+  @Override
+  protected <S> HashCodeVisitor<T> withItemIterator(
+      Function<T, Iterator<S>> getter, CompareToAccept<S> compare, HashingAccept<S> hasher) {
+    Iterator<S> it = getter.apply(item);
+    while (it.hasNext()) {
+      amend(it.next().hashCode());
+    }
+    return this;
   }
 }
