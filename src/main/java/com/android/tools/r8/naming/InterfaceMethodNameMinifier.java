@@ -104,7 +104,7 @@ class InterfaceMethodNameMinifier {
     // Used for iterating the sub trees that has this node as root.
     final Set<DexType> children = new HashSet<>();
     // Collection of the frontier reservation types and the interface type itself.
-    private final Set<DexType> reservationTypes = new HashSet<>();
+    final Set<DexType> reservationTypes = new HashSet<>();
 
     InterfaceReservationState(DexClass iface) {
       this.iface = iface;
@@ -139,10 +139,6 @@ class InterfaceMethodNameMinifier {
       return isReserved == null ? null : method.getName();
     }
 
-    void addReservationType(DexType type) {
-      this.reservationTypes.add(type);
-    }
-
     void reserveName(DexString reservedName, DexEncodedMethod method) {
       forAll(
           s -> {
@@ -166,7 +162,7 @@ class InterfaceMethodNameMinifier {
                 }
                 return null;
               });
-      return result == null || result;
+      return result == null ? true : result;
     }
 
     void addRenaming(DexString newName, DexEncodedMethod method) {
@@ -308,7 +304,7 @@ class InterfaceMethodNameMinifier {
                 }
                 return null;
               });
-      return result == null || result;
+      return result == null ? true : result;
     }
 
     void addRenaming(DexString newName, MethodNameMinifier.State minifierState) {
@@ -402,7 +398,7 @@ class InterfaceMethodNameMinifier {
       assert iface.isInterface();
       minifierState.allocateReservationStateAndReserve(iface.type, iface.type);
       InterfaceReservationState iFaceState = new InterfaceReservationState(iface);
-      iFaceState.addReservationType(iface.type);
+      iFaceState.reservationTypes.add(iface.type);
       interfaceStateMap.put(iface.type, iFaceState);
     }
   }
@@ -648,12 +644,8 @@ class InterfaceMethodNameMinifier {
                   InterfaceReservationState iState = interfaceStateMap.get(directlyImplemented);
                   if (iState != null) {
                     DexType frontierType = minifierState.getFrontier(clazz.type);
-                    iState.addReservationType(frontierType);
-                    // The reservation state should already be added, but if a class is extending
-                    // an interface, we will not visit the class during the sub-type traversel
-                    if (minifierState.getReservationState(clazz.type) == null) {
-                      minifierState.allocateReservationStateAndReserve(clazz.type, frontierType);
-                    }
+                    assert minifierState.getReservationState(frontierType) != null;
+                    iState.reservationTypes.add(frontierType);
                   }
                 }
               }

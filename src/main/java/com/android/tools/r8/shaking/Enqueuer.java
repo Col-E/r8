@@ -649,33 +649,6 @@ public class Enqueuer {
     }
   }
 
-  private void warnIfClassExtendsInterfaceOrImplementsClass(DexProgramClass clazz) {
-    if (clazz.superType != null) {
-      DexClass superClass = definitionFor(clazz.superType);
-      if (superClass != null && superClass.isInterface()) {
-        options.reporter.warning(
-            new StringDiagnostic(
-                "Class "
-                    + clazz.toSourceString()
-                    + " extends "
-                    + superClass.toSourceString()
-                    + " which is an interface"));
-      }
-    }
-    for (DexType iface : clazz.interfaces.values) {
-      DexClass ifaceClass = definitionFor(iface);
-      if (ifaceClass != null && !ifaceClass.isInterface()) {
-        options.reporter.warning(
-            new StringDiagnostic(
-                "Class "
-                    + clazz.toSourceString()
-                    + " implements "
-                    + ifaceClass.toSourceString()
-                    + " which is not an interface"));
-      }
-    }
-  }
-
   private void enqueueRootItems(Map<DexReference, Set<ProguardKeepRuleBase>> items) {
     items.entrySet().forEach(this::enqueueRootItem);
   }
@@ -1707,9 +1680,6 @@ public class Enqueuer {
       seen.setParent(seenForSuper);
       markTypeAsLive(holder.superType, reason);
     }
-
-    // Warn if the class extends an interface or implements a class
-    warnIfLibraryExtendsInterfaceOrImplementsClass(holder);
 
     // If this is an interface that has just become live, then report previously seen but unreported
     // implemented-by edges.

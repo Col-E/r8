@@ -257,8 +257,8 @@ public class BootstrapCurrentEqualityTest extends TestBase {
             .setMode(mode)
             .compile();
     // Check that the process outputs (exit code, stdout, stderr) are the same.
-    assertEquals(result.getStdout(), runR8R8.getStdout());
-    assertEquals(result.getStderr(), runR8R8.getStderr());
+    assertEquals(result.stdout(), runR8R8.stdout());
+    assertEquals(result.stderr(), runR8R8.stderr());
     // Check that the output jars are the same.
     assertProgramsEqual(result.outputJar(), runR8R8.outputJar());
   }

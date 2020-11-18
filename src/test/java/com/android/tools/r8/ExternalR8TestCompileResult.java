@@ -5,6 +5,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
@@ -40,6 +41,14 @@ public class ExternalR8TestCompileResult
     return proguardMap;
   }
 
+  public String stdout() {
+    return processResult.stdout;
+  }
+
+  public String stderr() {
+    return processResult.stdout;
+  }
+
   @Override
   public ExternalR8TestCompileResult self() {
     return this;
@@ -52,12 +61,12 @@ public class ExternalR8TestCompileResult
 
   @Override
   public String getStdout() {
-    return processResult.stdout;
+    throw new Unimplemented("Unexpected attempt to access stdout from external R8");
   }
 
   @Override
   public String getStderr() {
-    return processResult.stderr;
+    throw new Unimplemented("Unexpected attempt to access stderr from external R8");
   }
 
   @Override
