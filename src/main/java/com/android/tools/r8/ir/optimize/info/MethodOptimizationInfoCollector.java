@@ -23,6 +23,7 @@ import static com.android.tools.r8.ir.code.Opcodes.INIT_CLASS;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_GET;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_OF;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
+import static com.android.tools.r8.ir.code.Opcodes.INT_SWITCH;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_NEW_ARRAY;
@@ -38,6 +39,7 @@ import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 import static com.android.tools.r8.ir.code.Opcodes.SHL;
 import static com.android.tools.r8.ir.code.Opcodes.SHR;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
+import static com.android.tools.r8.ir.code.Opcodes.STRING_SWITCH;
 import static com.android.tools.r8.ir.code.Opcodes.SUB;
 import static com.android.tools.r8.ir.code.Opcodes.THROW;
 import static com.android.tools.r8.ir.code.Opcodes.USHR;
@@ -484,6 +486,8 @@ public class MethodOptimizationInfoCollector {
             break;
 
           case IF:
+          case INT_SWITCH:
+          case STRING_SWITCH:
             builder.setInstanceFieldInitializationMayDependOnEnvironment();
             break;
 
