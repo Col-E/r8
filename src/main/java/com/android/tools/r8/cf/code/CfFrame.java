@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayDeque;
@@ -152,10 +153,11 @@ public class CfFrame extends CfInstruction {
   }
 
   @Override
-  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+  public void internalAcceptCompareTo(
+      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     // The frame should be determined by the code so it should for equal iff the code is equal.
     // Thus we just require the frame to be in place.
-    return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
+    CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 
   private static class InitializedType extends FrameType {

@@ -5,10 +5,13 @@ package com.android.tools.r8.utils.structural;
 
 import com.android.tools.r8.utils.structural.StructuralItem.CompareToAccept;
 import com.android.tools.r8.utils.structural.StructuralItem.HashingAccept;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
 import java.util.function.ToIntFunction;
+import java.util.function.ToLongFunction;
 
 /**
  * Simple hash code implementation.
@@ -22,7 +25,7 @@ public class HashCodeVisitor<T> extends StructuralSpecification<T, HashCodeVisit
 
   public static <T> int run(T item, StructuralAccept<T> visit) {
     HashCodeVisitor<T> visitor = new HashCodeVisitor<>(item);
-    visit.accept(visitor);
+    visit.apply(visitor);
     return visitor.hashCode;
   }
 
@@ -54,6 +57,21 @@ public class HashCodeVisitor<T> extends StructuralSpecification<T, HashCodeVisit
   @Override
   public HashCodeVisitor<T> withInt(ToIntFunction<T> getter) {
     return amend(Integer.hashCode(getter.applyAsInt(item)));
+  }
+
+  @Override
+  public HashCodeVisitor<T> withLong(ToLongFunction<T> getter) {
+    return amend(Long.hashCode(getter.applyAsLong(item)));
+  }
+
+  @Override
+  public HashCodeVisitor<T> withDouble(ToDoubleFunction<T> getter) {
+    return amend(Double.hashCode(getter.applyAsDouble(item)));
+  }
+
+  @Override
+  public HashCodeVisitor<T> withIntArray(Function<T, int[]> getter) {
+    return amend(Arrays.hashCode(getter.apply(item)));
   }
 
   @Override

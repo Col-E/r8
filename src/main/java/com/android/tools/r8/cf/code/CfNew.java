@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -43,8 +44,9 @@ public class CfNew extends CfInstruction {
   }
 
   @Override
-  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return type.compareTo(((CfNew) other).type);
+  public void internalAcceptCompareTo(
+      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
+    type.acceptCompareTo(((CfNew) other).type, visitor);
   }
 
   @Override

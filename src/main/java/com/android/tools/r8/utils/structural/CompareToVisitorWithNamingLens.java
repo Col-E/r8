@@ -18,7 +18,7 @@ public class CompareToVisitorWithNamingLens extends CompareToVisitorBase {
   public static <T> int run(
       T item1, T item2, NamingLens namingLens, CompareToAccept<T> compareToAccept) {
     CompareToVisitorWithNamingLens state = new CompareToVisitorWithNamingLens(namingLens);
-    compareToAccept.accept(item1, item2, state);
+    compareToAccept.acceptCompareTo(item1, item2, state);
     return state.getOrder();
   }
 

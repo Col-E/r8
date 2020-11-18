@@ -10,9 +10,8 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.conversion.CfBuilder;
-import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public class CfTryCatch {
@@ -49,12 +48,15 @@ public class CfTryCatch {
     return new CfTryCatch(start, end, guards, targets);
   }
 
-  public int compareTo(CfTryCatch other, CfCompareHelper helper) {
-    return Comparator.comparing((CfTryCatch c) -> c.start, helper::compareLabels)
-        .thenComparing(c -> c.end, helper::compareLabels)
-        .thenComparing(c -> c.guards, ComparatorUtils.listComparator())
-        .thenComparing(c -> c.targets, ComparatorUtils.listComparator(helper::compareLabels))
-        .compare(this, other);
+  public void acceptCompareTo(CfTryCatch other, CompareToVisitor visitor, CfCompareHelper helper) {
+    visitor.visit(
+        this,
+        other,
+        spec ->
+            spec.withCustomItem(c -> c.start, helper.labelAcceptor())
+                .withCustomItem(c -> c.end, helper.labelAcceptor())
+                .withItemCollection(c -> c.guards)
+                .withCustomItemCollection(c -> c.targets, helper.labelAcceptor()));
   }
 
   public void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {

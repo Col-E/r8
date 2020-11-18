@@ -175,6 +175,12 @@ public abstract class TestRuntime {
     }
 
     @Override
+    public AndroidApiLevel maxSupportedApiLevel() {
+      // The "none" runtime trivally supports all api levels as nothing is run.
+      return AndroidApiLevel.LATEST;
+    }
+
+    @Override
     public String toString() {
       return NAME;
     }
@@ -221,6 +227,11 @@ public abstract class TestRuntime {
 
     public DexVm getVm() {
       return vm;
+    }
+
+    @Override
+    public AndroidApiLevel maxSupportedApiLevel() {
+      return getMinApiLevel();
     }
 
     @Override
@@ -286,6 +297,12 @@ public abstract class TestRuntime {
     }
 
     @Override
+    public AndroidApiLevel maxSupportedApiLevel() {
+      // TODO: define the mapping from android API levels back to JDKs.
+      return AndroidApiLevel.LATEST;
+    }
+
+    @Override
     public String toString() {
       return vm.toString();
     }
@@ -338,6 +355,8 @@ public abstract class TestRuntime {
     }
     throw new Unreachable("Unexpected runtime without backend: " + this);
   }
+
+  public abstract AndroidApiLevel maxSupportedApiLevel();
 
   @Override
   public abstract boolean equals(Object other);

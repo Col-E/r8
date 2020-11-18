@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -35,8 +36,9 @@ public class CfGoto extends CfInstruction {
   }
 
   @Override
-  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return helper.compareLabels(target, ((CfGoto) other).target);
+  public void internalAcceptCompareTo(
+      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
+    helper.compareLabels(target, ((CfGoto) other).target, visitor);
   }
 
   @Override

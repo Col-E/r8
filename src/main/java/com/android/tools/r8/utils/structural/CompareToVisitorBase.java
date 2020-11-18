@@ -11,7 +11,9 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
 import java.util.function.ToIntFunction;
+import java.util.function.ToLongFunction;
 
 /** Base class to share most visiting methods */
 public abstract class CompareToVisitorBase extends CompareToVisitor {
@@ -66,10 +68,10 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
   }
 
   @Override
-  protected <S> void visitItemIterator(
+  public <S> void visitItemIterator(
       Iterator<S> it1, Iterator<S> it2, CompareToAccept<S> compareToAccept) {
     while (stillEqual() && it1.hasNext() && it2.hasNext()) {
-      compareToAccept.accept(it1.next(), it2.next(), this);
+      compareToAccept.acceptCompareTo(it1.next(), it2.next(), this);
     }
     if (stillEqual()) {
       visitBool(it1.hasNext(), it2.hasNext());
@@ -111,7 +113,7 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
   @Override
   public final <S> void visit(S item1, S item2, StructuralAccept<S> accept) {
     if (stillEqual()) {
-      accept.accept(new ItemSpecification<>(item1, item2, this));
+      accept.apply(new ItemSpecification<>(item1, item2, this));
     }
   }
 
@@ -137,13 +139,49 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
 
     @Override
     public ItemSpecification<T> withBool(Predicate<T> getter) {
-      parent.visitBool(getter.test(item1), getter.test(item2));
+      if (parent.stillEqual()) {
+        parent.visitBool(getter.test(item1), getter.test(item2));
+      }
       return this;
     }
 
     @Override
     public ItemSpecification<T> withInt(ToIntFunction<T> getter) {
-      parent.visitInt(getter.applyAsInt(item1), getter.applyAsInt(item2));
+      if (parent.stillEqual()) {
+        parent.visitInt(getter.applyAsInt(item1), getter.applyAsInt(item2));
+      }
+      return this;
+    }
+
+    @Override
+    public ItemSpecification<T> withLong(ToLongFunction<T> getter) {
+      if (parent.stillEqual()) {
+        parent.visitLong(getter.applyAsLong(item1), getter.applyAsLong(item2));
+      }
+      return this;
+    }
+
+    @Override
+    public ItemSpecification<T> withDouble(ToDoubleFunction<T> getter) {
+      if (parent.stillEqual()) {
+        parent.visitDouble(getter.applyAsDouble(item1), getter.applyAsDouble(item2));
+      }
+      return this;
+    }
+
+    @Override
+    public ItemSpecification<T> withIntArray(Function<T, int[]> getter) {
+      if (parent.stillEqual()) {
+        int[] is1 = getter.apply(item1);
+        int[] is2 = getter.apply(item2);
+        int minLength = Math.min(is1.length, is2.length);
+        for (int i = 0; i < minLength && parent.stillEqual(); i++) {
+          parent.visitInt(is1[i], is2[i]);
+        }
+        if (parent.stillEqual()) {
+          parent.visitInt(is1.length, is2.length);
+        }
+      }
       return this;
     }
 
@@ -157,7 +195,7 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
         boolean test1 = predicate.test(item1);
         boolean test2 = predicate.test(item2);
         if (test1 && test2) {
-          compare.accept(getter.apply(item1), getter.apply(item2), parent);
+          compare.acceptCompareTo(getter.apply(item1), getter.apply(item2), parent);
         } else {
           parent.visitBool(test1, test2);
         }

@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfPosition extends CfInstruction {
@@ -37,10 +38,14 @@ public class CfPosition extends CfInstruction {
   }
 
   @Override
-  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    CfPosition otherPosition = (CfPosition) other;
-    int lineDiff = position.line - otherPosition.position.line;
-    return lineDiff != 0 ? lineDiff : helper.compareLabels(label, otherPosition.label);
+  public void internalAcceptCompareTo(
+      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
+    visitor.visit(
+        this,
+        (CfPosition) other,
+        spec ->
+            spec.withInt(p -> p.position.line)
+                .withCustomItem(p -> p.label, helper.labelAcceptor()));
   }
 
   @Override

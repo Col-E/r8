@@ -165,9 +165,13 @@ public class TestParametersBuilder {
     return withApiFilter(api -> true);
   }
 
-  public TestParametersBuilder withAllApiLevelsAlsoForCf() {
+  public TestParametersBuilder enableApiLevelsForCf() {
     enableApiLevelsForCf = true;
-    return withAllApiLevels();
+    return this;
+  }
+
+  public TestParametersBuilder withAllApiLevelsAlsoForCf() {
+    return withAllApiLevels().enableApiLevelsForCf();
   }
 
   public TestParametersBuilder withApiLevel(AndroidApiLevel api) {
@@ -204,13 +208,8 @@ public class TestParametersBuilder {
     if (!enableApiLevels) {
       return Stream.of(new TestParameters(runtime));
     }
-    if (!runtime.isDex()) {
-      if (!enableApiLevelsForCf) {
-        return Stream.of(new TestParameters(runtime));
-      }
-      return Stream.of(
-          new TestParameters(runtime, AndroidApiLevel.B),
-          new TestParameters(runtime, AndroidApiLevel.LATEST));
+    if (runtime.isCf() && !enableApiLevelsForCf) {
+      return Stream.of(new TestParameters(runtime));
     }
     List<AndroidApiLevel> sortedApiLevels =
         AndroidApiLevel.getAndroidApiLevelsSorted().stream()
@@ -219,7 +218,7 @@ public class TestParametersBuilder {
     if (sortedApiLevels.isEmpty()) {
       return Stream.of();
     }
-    AndroidApiLevel vmLevel = runtime.asDex().getMinApiLevel();
+    AndroidApiLevel vmLevel = runtime.maxSupportedApiLevel();
     AndroidApiLevel lowestApplicable = sortedApiLevels.get(0);
     if (vmLevel.getLevel() < lowestApplicable.getLevel()) {
       return Stream.of();

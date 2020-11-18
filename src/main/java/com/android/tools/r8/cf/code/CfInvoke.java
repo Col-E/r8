@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.Arrays;
 import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
@@ -59,10 +60,13 @@ public class CfInvoke extends CfInstruction {
   }
 
   @Override
-  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+  public void internalAcceptCompareTo(
+      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     CfInvoke otherInvoke = other.asInvoke();
-    int itfDiff = Boolean.compare(itf, otherInvoke.itf);
-    return itfDiff != 0 ? itfDiff : method.compareTo(otherInvoke.method);
+    visitor.visit(
+        this,
+        otherInvoke,
+        spec -> spec.withBool(CfInvoke::isInterface).withItem(CfInvoke::getMethod));
   }
 
   public DexMethod getMethod() {

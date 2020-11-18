@@ -9,13 +9,25 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
 
-public enum ValueType {
+public enum ValueType implements StructuralItem<ValueType> {
   OBJECT,
   INT,
   FLOAT,
   LONG,
   DOUBLE;
+
+  @Override
+  public ValueType self() {
+    return this;
+  }
+
+  @Override
+  public StructuralAccept<ValueType> getStructuralAccept() {
+    return spec -> spec.withInt(Enum::ordinal);
+  }
 
   public boolean isObject() {
     return this == OBJECT;

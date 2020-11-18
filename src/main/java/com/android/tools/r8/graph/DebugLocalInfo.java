@@ -5,13 +5,15 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
-import java.util.Comparator;
 
-public class DebugLocalInfo implements Comparable<DebugLocalInfo> {
+public class DebugLocalInfo implements StructuralItem<DebugLocalInfo> {
 
   public enum PrintLevel {
     NONE,
@@ -25,6 +27,12 @@ public class DebugLocalInfo implements Comparable<DebugLocalInfo> {
   public final DexType type;
   public final DexString signature;
 
+  private static void specify(StructuralSpecification<DebugLocalInfo, ?> spec) {
+    spec.withItem(info -> info.name)
+        .withItem(info -> info.type)
+        .withNullableItem(info -> info.signature);
+  }
+
   public DebugLocalInfo(DexString name, DexType type, DexString signature) {
     this.name = name;
     this.type = type;
@@ -32,11 +40,13 @@ public class DebugLocalInfo implements Comparable<DebugLocalInfo> {
   }
 
   @Override
-  public int compareTo(DebugLocalInfo other) {
-    return Comparator.comparing((DebugLocalInfo info) -> info.name)
-        .thenComparing(info -> info.type)
-        .thenComparing(info -> info.signature, Comparator.nullsFirst(DexString::compareTo))
-        .compare(this, other);
+  public DebugLocalInfo self() {
+    return this;
+  }
+
+  @Override
+  public StructuralAccept<DebugLocalInfo> getStructuralAccept() {
+    return DebugLocalInfo::specify;
   }
 
   public static boolean localsInfoMapsEqual(

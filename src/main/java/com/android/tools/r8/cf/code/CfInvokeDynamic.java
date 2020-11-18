@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -48,8 +49,9 @@ public class CfInvokeDynamic extends CfInstruction {
   }
 
   @Override
-  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return callSite.compareTo(((CfInvokeDynamic) other).callSite);
+  public void internalAcceptCompareTo(
+      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
+    callSite.acceptCompareTo(((CfInvokeDynamic) other).callSite, visitor);
   }
 
   @Override

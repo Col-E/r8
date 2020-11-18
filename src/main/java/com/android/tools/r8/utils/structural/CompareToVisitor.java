@@ -28,7 +28,7 @@ public abstract class CompareToVisitor {
   public abstract void visitDouble(double value1, double value2);
 
   /** Base for visiting an enumeration of items. */
-  protected abstract <S> void visitItemIterator(
+  public abstract <S> void visitItemIterator(
       Iterator<S> it1, Iterator<S> it2, CompareToAccept<S> compareToAccept);
 
   public final <S extends StructuralItem<S>> void visitItemArray(S[] items1, S[] items2) {

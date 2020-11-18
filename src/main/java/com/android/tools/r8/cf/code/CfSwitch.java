@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
-import static com.android.tools.r8.utils.ComparatorUtils.listComparator;
-
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCompareHelper;
@@ -21,10 +19,9 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import java.util.Comparator;
 import java.util.List;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -54,12 +51,17 @@ public class CfSwitch extends CfInstruction {
   }
 
   @Override
-  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
+  public void internalAcceptCompareTo(
+      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     assert kind == ((CfSwitch) other).kind;
-    return Comparator.comparing(CfSwitch::getDefaultTarget, helper::compareLabels)
-        .thenComparing(insn -> insn.keys, ComparatorUtils::compareIntArray)
-        .thenComparing(CfSwitch::getSwitchTargets, listComparator(helper::compareLabels))
-        .compare(this, (CfSwitch) other);
+
+    visitor.visit(
+        this,
+        (CfSwitch) other,
+        spec ->
+            spec.withCustomItem(CfSwitch::getDefaultTarget, helper.labelAcceptor())
+                .withIntArray(i -> i.keys)
+                .withCustomItemCollection(CfSwitch::getSwitchTargets, helper.labelAcceptor()));
   }
 
   public Kind getKind() {

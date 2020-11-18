@@ -10,7 +10,9 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
 import java.util.function.ToIntFunction;
+import java.util.function.ToLongFunction;
 
 public abstract class StructuralSpecification<T, V extends StructuralSpecification<T, V>> {
 
@@ -28,6 +30,10 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
     return withConditionalCustomItem(t -> true, getter, compare, hasher);
   }
 
+  public final <S> V withCustomItem(Function<T, S> getter, StructuralAcceptor<S> acceptor) {
+    return withCustomItem(getter, acceptor, acceptor);
+  }
+
   /** Base implementation for visiting an item. */
   protected abstract <S> V withConditionalCustomItem(
       Predicate<T> predicate,
@@ -38,6 +44,11 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
   /** Base implementation for visiting an enumeration of items. */
   protected abstract <S> V withItemIterator(
       Function<T, Iterator<S>> getter, CompareToAccept<S> compare, HashingAccept<S> hasher);
+
+  public final <S> V withCustomItemCollection(
+      Function<T, Collection<S>> getter, StructuralAcceptor<S> acceptor) {
+    return withItemIterator(getter.andThen(Collection::iterator), acceptor, acceptor);
+  }
 
   /**
    * Specification for a "specified" item.
@@ -81,4 +92,10 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
   public abstract V withBool(Predicate<T> getter);
 
   public abstract V withInt(ToIntFunction<T> getter);
+
+  public abstract V withLong(ToLongFunction<T> getter);
+
+  public abstract V withDouble(ToDoubleFunction<T> getter);
+
+  public abstract V withIntArray(Function<T, int[]> getter);
 }

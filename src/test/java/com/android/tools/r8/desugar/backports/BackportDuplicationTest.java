@@ -8,6 +8,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
@@ -49,7 +50,11 @@ public class BackportDuplicationTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withApiLevel(AndroidApiLevel.J).build();
+    return getTestParameters()
+        .withAllRuntimes()
+        .withApiLevel(AndroidApiLevel.J)
+        .enableApiLevelsForCf()
+        .build();
   }
 
   public BackportDuplicationTest(TestParameters parameters) {
@@ -58,6 +63,8 @@ public class BackportDuplicationTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    // R8 does not support desugaring with class file output so this test is only valid for DEX.
+    assumeTrue(parameters.isDexRuntime());
     runR8(false);
     runR8(true);
   }
@@ -87,6 +94,9 @@ public class BackportDuplicationTest extends TestBase {
 
   @Test
   public void testD8Merging() throws Exception {
+    assumeTrue(
+        "b/147485959: Merging does not happen for CF due to lack of synthetic annotations",
+        parameters.isDexRuntime());
     boolean intermediate = true;
     runD8Merging(intermediate);
   }
@@ -100,7 +110,7 @@ public class BackportDuplicationTest extends TestBase {
   private void runD8Merging(boolean intermediate) throws Exception {
     // Compile part 1 of the input (maybe intermediate)
     Path out1 =
-        testForD8()
+        testForD8(parameters.getBackend())
             .addProgramClasses(User1.class)
             .addClasspathClasses(CLASSES)
             .setMinApi(parameters.getApiLevel())
@@ -110,7 +120,7 @@ public class BackportDuplicationTest extends TestBase {
 
     // Compile part 2 of the input (maybe intermediate)
     Path out2 =
-        testForD8()
+        testForD8(parameters.getBackend())
             .addProgramClasses(User2.class)
             .addClasspathClasses(CLASSES)
             .setMinApi(parameters.getApiLevel())
@@ -126,7 +136,7 @@ public class BackportDuplicationTest extends TestBase {
     // Merge parts as an intermediate artifact.
     // This will not merge synthetics regardless of the setting of intermediate.
     Path out3 = temp.newFolder().toPath().resolve("out3.zip");
-    testForD8()
+    testForD8(parameters.getBackend())
         .addProgramClasses(MiniAssert.class, TestClass.class)
         .addProgramFiles(out1, out2)
         .setMinApi(parameters.getApiLevel())
@@ -139,7 +149,7 @@ public class BackportDuplicationTest extends TestBase {
         .inspect(inspector -> assertEquals(syntheticsInParts, getSyntheticMethods(inspector)));
 
     // Finally do a non-intermediate merge.
-    testForD8()
+    testForD8(parameters.getBackend())
         .addProgramFiles(out3)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
@@ -160,11 +170,13 @@ public class BackportDuplicationTest extends TestBase {
 
   @Test
   public void testD8FilePerClassFile() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
     runD8FilePerMode(OutputMode.DexFilePerClassFile);
   }
 
   @Test
   public void testD8FilePerClass() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
     runD8FilePerMode(OutputMode.DexFilePerClass);
   }
 

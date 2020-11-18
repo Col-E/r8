@@ -6,10 +6,13 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfTryCatch;
-import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralAcceptor;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import java.util.Comparator;
-import java.util.List;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import org.objectweb.asm.Opcodes;
 
 public class CfCompareHelper {
@@ -42,35 +45,101 @@ public class CfCompareHelper {
   }
 
   // Helper to signal that the concrete instruction is uniquely determined by its ID/opcode.
-  public static int compareIdUniquelyDeterminesEquality(
+  public static void compareIdUniquelyDeterminesEquality(
       CfInstruction instruction1, CfInstruction instruction2) {
     assert instruction1.getClass() == instruction2.getClass();
     assert instruction1.getCompareToId() == instruction2.getCompareToId();
     assert instruction1.toString().equals(instruction2.toString());
-    return 0;
   }
 
-  private final Reference2IntMap<CfLabel> labels1;
-  private final Reference2IntMap<CfLabel> labels2;
-
-  public CfCompareHelper(Reference2IntMap<CfLabel> labels1, Reference2IntMap<CfLabel> labels2) {
-    this.labels1 = labels1;
-    this.labels2 = labels2;
+  private static Reference2IntMap<CfLabel> getLabelOrdering(CfCode code) {
+    Reference2IntMap<CfLabel> ordering = new Reference2IntOpenHashMap<>();
+    for (CfInstruction instruction : code.getInstructions()) {
+      if (instruction.isLabel()) {
+        ordering.put(instruction.asLabel(), ordering.size());
+      }
+    }
+    return ordering;
   }
 
-  public int compareLabels(CfLabel label1, CfLabel label2) {
-    return labels1.getInt(label1) - labels2.getInt(label2);
+  private final CfCode code1;
+  private final CfCode code2;
+  private StructuralAcceptor<CfLabel> lazyLabelAcceptor = null;
+
+  public CfCompareHelper(CfCode code1, CfCode code2) {
+    this.code1 = code1;
+    this.code2 = code2;
   }
 
-  public Comparator<List<CfInstruction>> instructionComparator() {
-    return ComparatorUtils.listComparator((x, y) -> x.compareTo(y, this));
+  public void compareLabels(CfLabel label1, CfLabel label2, CompareToVisitor visitor) {
+    labelAcceptor().acceptCompareTo(label1, label2, visitor);
   }
 
-  public Comparator<List<CfTryCatch>> tryCatchRangesComparator() {
-    return ComparatorUtils.listComparator((x, y) -> x.compareTo(y, this));
+  public StructuralAcceptor<CfLabel> labelAcceptor() {
+    if (lazyLabelAcceptor == null) {
+      lazyLabelAcceptor =
+          new StructuralAcceptor<CfLabel>() {
+            private final Reference2IntMap<CfLabel> labels1 = getLabelOrdering(code1);
+            private final Reference2IntMap<CfLabel> labels2 = getLabelOrdering(code2);
+
+            @Override
+            public void acceptCompareTo(CfLabel item1, CfLabel item2, CompareToVisitor visitor) {
+              visitor.visitInt(labels1.getInt(item1), labels2.getInt(item2));
+            }
+
+            @Override
+            public void acceptHashing(CfLabel item, HashingVisitor visitor) {
+              throw new Unimplemented();
+            }
+          };
+    }
+    return lazyLabelAcceptor;
   }
 
-  public Comparator<List<CfCode.LocalVariableInfo>> localVariablesComparator() {
-    return ComparatorUtils.listComparator((x, y) -> x.compareTo(y, this));
+  public StructuralAcceptor<CfInstruction> instructionAcceptor() {
+    CfCompareHelper helper = this;
+    return new StructuralAcceptor<CfInstruction>() {
+      @Override
+      public void acceptCompareTo(
+          CfInstruction item1, CfInstruction item2, CompareToVisitor visitor) {
+        item1.acceptCompareTo(item2, visitor, helper);
+      }
+
+      @Override
+      public void acceptHashing(CfInstruction item, HashingVisitor visitor) {
+        throw new Unimplemented();
+      }
+    };
+  }
+
+  public StructuralAcceptor<CfTryCatch> tryCatchRangeAcceptor() {
+    CfCompareHelper helper = this;
+    return new StructuralAcceptor<CfTryCatch>() {
+      @Override
+      public void acceptCompareTo(CfTryCatch item1, CfTryCatch item2, CompareToVisitor visitor) {
+        item1.acceptCompareTo(item2, visitor, helper);
+      }
+
+      @Override
+      public void acceptHashing(CfTryCatch item, HashingVisitor visitor) {
+        throw new Unimplemented();
+      }
+    };
+  }
+
+  public StructuralAcceptor<LocalVariableInfo> localVariableAcceptor() {
+    CfCompareHelper helper = this;
+    return new StructuralAcceptor<LocalVariableInfo>() {
+      @Override
+      public void acceptCompareTo(
+          LocalVariableInfo item1, LocalVariableInfo item2, CompareToVisitor visitor) {
+        item1.acceptCompareTo(item2, visitor, helper);
+      }
+
+      @Override
+      public void acceptHashing(LocalVariableInfo item, HashingVisitor visitor) {
+        throw new Unimplemented();
+      }
+    };
   }
 }

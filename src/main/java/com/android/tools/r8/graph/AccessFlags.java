@@ -67,6 +67,7 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
 
   public abstract T copy();
 
+  @Override
   public abstract T self();
 
   public int materialize() {

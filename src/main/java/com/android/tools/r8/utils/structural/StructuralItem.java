@@ -17,7 +17,7 @@ public interface StructuralItem<T extends StructuralItem<T>> extends Ordered<T> 
 
   @FunctionalInterface
   interface CompareToAccept<T> {
-    void accept(T item1, T item2, CompareToVisitor visitor);
+    void acceptCompareTo(T item1, T item2, CompareToVisitor visitor);
   }
 
   /**
@@ -51,7 +51,7 @@ public interface StructuralItem<T extends StructuralItem<T>> extends Ordered<T> 
 
   @FunctionalInterface
   interface HashingAccept<T> {
-    void accept(T item, HashingVisitor visitor);
+    void acceptHashing(T item, HashingVisitor visitor);
   }
 
   /**

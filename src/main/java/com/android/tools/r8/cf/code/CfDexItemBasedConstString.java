@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 
@@ -42,8 +43,9 @@ public class CfDexItemBasedConstString extends CfInstruction {
   }
 
   @Override
-  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return item.referenceCompareTo(((CfDexItemBasedConstString) other).item);
+  public void internalAcceptCompareTo(
+      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
+    visitor.visitDexReference(item, ((CfDexItemBasedConstString) other).item);
   }
 
   public DexReference getItem() {

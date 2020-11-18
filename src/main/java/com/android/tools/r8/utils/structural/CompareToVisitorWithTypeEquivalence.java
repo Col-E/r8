@@ -15,7 +15,7 @@ public class CompareToVisitorWithTypeEquivalence extends CompareToVisitorBase {
   public static <T> int run(
       T item1, T item2, RepresentativeMap map, CompareToAccept<T> compareToAccept) {
     CompareToVisitorWithTypeEquivalence state = new CompareToVisitorWithTypeEquivalence(map);
-    compareToAccept.accept(item1, item2, state);
+    compareToAccept.acceptCompareTo(item1, item2, state);
     return state.getOrder();
   }
 

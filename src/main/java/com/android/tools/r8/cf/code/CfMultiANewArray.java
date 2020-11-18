@@ -21,7 +21,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.Comparator;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -50,10 +50,12 @@ public class CfMultiANewArray extends CfInstruction {
   }
 
   @Override
-  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return Comparator.comparingInt(CfMultiANewArray::getDimensions)
-        .thenComparing(CfMultiANewArray::getType)
-        .compare(this, ((CfMultiANewArray) other));
+  public void internalAcceptCompareTo(
+      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
+    visitor.visit(
+        this,
+        (CfMultiANewArray) other,
+        spec -> spec.withInt(CfMultiANewArray::getDimensions).withItem(CfMultiANewArray::getType));
   }
 
   @Override

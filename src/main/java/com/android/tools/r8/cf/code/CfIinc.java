@@ -19,7 +19,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
-import java.util.Comparator;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -39,10 +39,12 @@ public class CfIinc extends CfInstruction {
   }
 
   @Override
-  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return Comparator.comparingInt(CfIinc::getLocalIndex)
-        .thenComparing(CfIinc::getIncrement)
-        .compare(this, (CfIinc) other);
+  public void internalAcceptCompareTo(
+      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
+    visitor.visit(
+        this,
+        (CfIinc) other,
+        spec -> spec.withInt(CfIinc::getLocalIndex).withInt(CfIinc::getIncrement));
   }
 
   @Override

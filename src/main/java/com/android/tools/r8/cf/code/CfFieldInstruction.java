@@ -23,7 +23,8 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
-import java.util.Comparator;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -33,6 +34,10 @@ public class CfFieldInstruction extends CfInstruction {
   private final int opcode;
   private final DexField field;
   private final DexField declaringField;
+
+  private static void specify(StructuralSpecification<CfFieldInstruction, ?> spec) {
+    spec.withInt(f -> f.opcode).withItem(f -> f.field).withItem(f -> f.declaringField);
+  }
 
   public CfFieldInstruction(int opcode, DexField field, DexField declaringField) {
     this.opcode = opcode;
@@ -55,10 +60,9 @@ public class CfFieldInstruction extends CfInstruction {
   }
 
   @Override
-  public int internalCompareTo(CfInstruction other, CfCompareHelper helper) {
-    return Comparator.comparing(CfFieldInstruction::getField)
-        .thenComparing(field -> field.declaringField)
-        .compare(this, (CfFieldInstruction) other);
+  public void internalAcceptCompareTo(
+      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
+    visitor.visit(this, other.asFieldInstruction(), CfFieldInstruction::specify);
   }
 
   @Override

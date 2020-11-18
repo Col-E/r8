@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 
@@ -60,11 +61,17 @@ public abstract class CfInstruction implements CfOrDexInstruction {
    * <p>If an instruction is uniquely determined by the "compare id" then the override should simply
    * call '{@code CfCompareHelper::compareIdUniquelyDeterminesEquality}'.
    */
-  public abstract int internalCompareTo(CfInstruction other, CfCompareHelper helper);
+  public abstract void internalAcceptCompareTo(
+      CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper);
 
-  public final int compareTo(CfInstruction o, CfCompareHelper helper) {
+  public final void acceptCompareTo(
+      CfInstruction o, CompareToVisitor visitor, CfCompareHelper helper) {
     int diff = getCompareToId() - o.getCompareToId();
-    return diff != 0 ? diff : internalCompareTo(o, helper);
+    if (diff == 0) {
+      internalAcceptCompareTo(o, visitor, helper);
+    } else {
+      visitor.visitInt(getCompareToId(), o.getCompareToId());
+    }
   }
 
   @Override

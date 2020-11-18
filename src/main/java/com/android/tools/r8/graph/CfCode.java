@@ -41,19 +41,20 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralItem;
 import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -63,7 +64,7 @@ import java.util.function.BiPredicate;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-public class CfCode extends Code implements Comparable<CfCode> {
+public class CfCode extends Code implements StructuralItem<CfCode> {
 
   public enum StackMapStatus {
     NOT_VERIFIED,
@@ -111,12 +112,16 @@ public class CfCode extends Code implements Comparable<CfCode> {
       return end;
     }
 
-    public int compareTo(LocalVariableInfo other, CfCompareHelper helper) {
-      return Comparator.comparingInt(LocalVariableInfo::getIndex)
-          .thenComparing(LocalVariableInfo::getStart, helper::compareLabels)
-          .thenComparing(LocalVariableInfo::getEnd, helper::compareLabels)
-          .thenComparing(LocalVariableInfo::getLocal)
-          .compare(this, other);
+    public void acceptCompareTo(
+        LocalVariableInfo other, CompareToVisitor visitor, CfCompareHelper helper) {
+      visitor.visit(
+          this,
+          other,
+          spec ->
+              spec.withInt(LocalVariableInfo::getIndex)
+                  .withCustomItem(LocalVariableInfo::getStart, helper.labelAcceptor())
+                  .withCustomItem(LocalVariableInfo::getEnd, helper.labelAcceptor())
+                  .withItem(LocalVariableInfo::getLocal));
     }
 
     @Override
@@ -151,6 +156,16 @@ public class CfCode extends Code implements Comparable<CfCode> {
     this.instructions = instructions;
     this.tryCatchRanges = tryCatchRanges;
     this.localVariables = localVariables;
+  }
+
+  @Override
+  public CfCode self() {
+    return this;
+  }
+
+  @Override
+  public StructuralAccept<CfCode> getStructuralAccept() {
+    throw new Unreachable();
   }
 
   public DexType getOriginalHolder() {
@@ -229,38 +244,25 @@ public class CfCode extends Code implements Comparable<CfCode> {
   }
 
   @Override
-  public int compareTo(CfCode o) {
-    // Fast path by checking sizes.
-    int sizeDiff =
-        Comparator.comparingInt((CfCode c) -> c.instructions.size())
-            .thenComparingInt(c -> c.tryCatchRanges.size())
-            .thenComparingInt(c -> localVariables.size())
-            .compare(this, o);
-    if (sizeDiff != 0) {
-      return sizeDiff;
-    }
-    // In the slow case, compute label maps and compare collections in full.
-    Reference2IntMap<CfLabel> labels1 = getLabelOrdering(instructions);
-    Reference2IntMap<CfLabel> labels2 = getLabelOrdering(o.instructions);
-    int labelDiff = labels1.size() - labels2.size();
-    if (labelDiff != 0) {
-      return labelDiff;
-    }
-    CfCompareHelper helper = new CfCompareHelper(labels1, labels2);
-    return Comparator.comparing((CfCode c) -> c.instructions, helper.instructionComparator())
-        .thenComparing(c -> c.tryCatchRanges, helper.tryCatchRangesComparator())
-        .thenComparing(c -> c.localVariables, helper.localVariablesComparator())
-        .compare(this, o);
+  public void acceptHashing(HashingVisitor visitor) {
+    // Rather than hash the entire content, hash the sizes and each instruction "type" which
+    // should provide a fast yet reasonably distinct key.
+    visitor.visitInt(instructions.size());
+    visitor.visitInt(tryCatchRanges.size());
+    visitor.visitInt(localVariables.size());
+    instructions.forEach(i -> visitor.visitInt(i.getCompareToId()));
   }
 
-  private static Reference2IntMap<CfLabel> getLabelOrdering(List<CfInstruction> instructions) {
-    Reference2IntMap<CfLabel> ordering = new Reference2IntOpenHashMap<>();
-    for (CfInstruction instruction : instructions) {
-      if (instruction.isLabel()) {
-        ordering.put(instruction.asLabel(), ordering.size());
-      }
-    }
-    return ordering;
+  @Override
+  public void acceptCompareTo(CfCode other, CompareToVisitor visitor) {
+    CfCompareHelper helper = new CfCompareHelper(this, other);
+    visitor.visit(
+        this,
+        other,
+        spec ->
+            spec.withCustomItemCollection(c -> c.instructions, helper.instructionAcceptor())
+                .withCustomItemCollection(c -> c.tryCatchRanges, helper.tryCatchRangeAcceptor())
+                .withCustomItemCollection(c -> c.localVariables, helper.localVariableAcceptor()));
   }
 
   private boolean shouldAddParameterNames(DexEncodedMethod method, AppView<?> appView) {
