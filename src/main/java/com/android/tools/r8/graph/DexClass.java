@@ -382,7 +382,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   private boolean verifyCorrectnessOfFieldHolder(DexEncodedField field) {
-    assert field.holder() == type
+    assert field.getHolderType() == type
         : "Expected field `"
             + field.field.toSourceString()
             + "` to have holder `"
@@ -499,7 +499,8 @@ public abstract class DexClass extends DexDefinition {
   }
 
   private boolean isSignaturePolymorphicMethod(DexEncodedMethod method, DexItemFactory factory) {
-    assert method.holder() == factory.methodHandleType || method.holder() == factory.varHandleType;
+    assert method.getHolderType() == factory.methodHandleType
+        || method.getHolderType() == factory.varHandleType;
     return method.accessFlags.isVarargs()
         && method.accessFlags.isNative()
         && method.method.proto.parameters.size() == 1

@@ -604,7 +604,7 @@ public class EnumUnboxer {
         constraint = Constraint.NEVER;
         return;
       }
-      DexType resolvedHolder = target.holder();
+      DexType resolvedHolder = target.getHolderType();
       if (initialResolutionHolder == null) {
         constraint = Constraint.NEVER;
         return;
@@ -739,7 +739,8 @@ public class EnumUnboxer {
       DexClass dexClass = singleTarget.getHolder();
       if (dexClass.isProgramClass()) {
         if (dexClass.isEnum() && singleTarget.getDefinition().isInstanceInitializer()) {
-          if (code.method().holder() == dexClass.type && code.method().isClassInitializer()) {
+          if (code.method().getHolderType() == dexClass.type
+              && code.method().isClassInitializer()) {
             // The enum instance initializer is allowed to be called only from the enum clinit.
             return Reason.ELIGIBLE;
           } else {
@@ -807,7 +808,8 @@ public class EnumUnboxer {
         return Reason.ELIGIBLE;
       } else if (singleTargetReference == factory.enumMembers.constructor) {
         // Enum constructor call is allowed only if called from an enum initializer.
-        if (code.method().isInstanceInitializer() && code.method().holder() == enumClass.type) {
+        if (code.method().isInstanceInitializer()
+            && code.method().getHolderType() == enumClass.type) {
           return Reason.ELIGIBLE;
         }
       }
@@ -823,7 +825,8 @@ public class EnumUnboxer {
       if (field == null) {
         return Reason.INVALID_FIELD_PUT;
       }
-      DexProgramClass dexClass = appView.programDefinitionFor(field.holder(), code.context());
+      DexProgramClass dexClass =
+          appView.programDefinitionFor(field.getHolderType(), code.context());
       if (dexClass == null) {
         return Reason.INVALID_FIELD_PUT;
       }

@@ -42,14 +42,6 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
     return DexField::accept;
   }
 
-  public DexType getHolderType() {
-    return holder;
-  }
-
-  public DexString getName() {
-    return name;
-  }
-
   public DexType getType() {
     return type;
   }

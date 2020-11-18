@@ -109,7 +109,7 @@ public class AssertionsRewriter {
   }
 
   private AssertionTransformation getTransformationForMethod(DexEncodedMethod method) {
-    return getTransformationForType(method.holder());
+    return getTransformationForType(method.getHolderType());
   }
 
   private AssertionTransformation getTransformationForType(DexType type) {
@@ -320,7 +320,7 @@ public class AssertionsRewriter {
     if (method.isClassInitializer()) {
       clinit = method;
     } else {
-      DexClass clazz = appView.definitionFor(method.holder());
+      DexClass clazz = appView.definitionFor(method.getHolderType());
       if (clazz == null) {
         return;
       }
@@ -337,7 +337,7 @@ public class AssertionsRewriter {
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
         if (invoke.getInvokedMethod() == dexItemFactory.classMethods.desiredAssertionStatus) {
-          if (method.holder() == dexItemFactory.kotlin.assertions.type) {
+          if (method.getHolderType() == dexItemFactory.kotlin.assertions.type) {
             rewriteKotlinAssertionEnable(code, transformation, iterator, invoke);
           } else {
             iterator.replaceCurrentInstruction(code.createIntConstant(0, current.getLocalInfo()));

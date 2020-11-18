@@ -403,7 +403,7 @@ public class RootSetBuilder {
       DexEncodedMethod target =
           appView.appInfo().unsafeResolveMethodDueToDexFormat(referenceInSubType).getSingleTarget();
       // But, the resolution should not be landed on the current type we are visiting.
-      if (target == null || target.holder() == type) {
+      if (target == null || target.getHolderType() == type) {
         continue;
       }
       ProguardMemberRule ruleInSubType = assumeRulePool.get(target.method);
@@ -626,7 +626,7 @@ public class RootSetBuilder {
 
   private boolean canInsertForwardingMethod(DexClass holder, DexEncodedMethod target) {
     return appView.options().isGeneratingDex()
-        || ArrayUtils.contains(holder.interfaces.values, target.holder());
+        || ArrayUtils.contains(holder.interfaces.values, target.getHolderType());
   }
 
   private void markMatchingOverriddenMethods(
@@ -1109,7 +1109,7 @@ public class RootSetBuilder {
         if (options.isInterfaceMethodDesugaringEnabled()
             && encodedMethod.hasCode()
             && (encodedMethod.isPrivateMethod() || encodedMethod.isStaticMember())) {
-          DexClass holder = appView.definitionFor(encodedMethod.holder());
+          DexClass holder = appView.definitionFor(encodedMethod.getHolderType());
           if (holder != null && holder.isInterface()) {
             if (rule.isSpecific()) {
               options.reporter.warning(
@@ -1176,7 +1176,7 @@ public class RootSetBuilder {
     } else if (context instanceof ProguardAssumeNoSideEffectRule) {
       if (item.isDexEncodedMember()) {
         DexEncodedMember<?, ?> member = item.asDexEncodedMember();
-        if (member.holder() == appView.dexItemFactory().objectType) {
+        if (member.getHolderType() == appView.dexItemFactory().objectType) {
           assert member.isDexEncodedMethod();
           reportAssumeNoSideEffectsWarningForJavaLangClassMethod(
               member.asDexEncodedMethod(), (ProguardAssumeNoSideEffectRule) context);
@@ -1957,7 +1957,8 @@ public class RootSetBuilder {
             DexClass holder = appInfo.definitionForHolder(reference);
             DexEncodedField field = reference.lookupOnClass(holder);
             if (field != null
-                && (field.isStatic() || isKeptDirectlyOrIndirectly(field.holder(), appInfo))) {
+                && (field.isStatic()
+                    || isKeptDirectlyOrIndirectly(field.getHolderType(), appInfo))) {
               assert appInfo.isFieldRead(field)
                   : "Expected kept field `" + field.toSourceString() + "` to be read";
               assert appInfo.isFieldWritten(field)
@@ -1974,7 +1975,8 @@ public class RootSetBuilder {
                 : "Expected kept method `" + reference.toSourceString() + "` to be targeted";
             DexEncodedMethod method =
                 appInfo.definitionForHolder(reference).lookupMethod(reference);
-            if (!method.isAbstract() && isKeptDirectlyOrIndirectly(method.holder(), appInfo)) {
+            if (!method.isAbstract()
+                && isKeptDirectlyOrIndirectly(method.getHolderType(), appInfo)) {
               assert appInfo.isLiveMethod(reference)
                   : "Expected non-abstract kept method `"
                       + reference.toSourceString()

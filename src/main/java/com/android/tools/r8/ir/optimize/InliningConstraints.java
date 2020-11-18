@@ -211,7 +211,7 @@ public class InliningConstraints {
             resolutionResult, context, ResolutionResult::lookupInvokeStaticTarget);
     if (!allowStaticInterfaceMethodCalls && target != null) {
       // See b/120121170.
-      DexClass methodClass = appView.definitionFor(graphLens.lookupType(target.holder()));
+      DexClass methodClass = appView.definitionFor(graphLens.lookupType(target.getHolderType()));
       if (methodClass != null && methodClass.isInterface() && target.hasCode()) {
         return ConstraintWithTarget.NEVER;
       }
@@ -243,7 +243,7 @@ public class InliningConstraints {
     DexEncodedMethod alternativeDexEncodedMethod =
         lookup.apply(resolutionResult, superContext, appView.appInfo());
     if (alternativeDexEncodedMethod != null
-        && alternativeDexEncodedMethod.holder() == superContext.type) {
+        && alternativeDexEncodedMethod.getHolderType() == superContext.type) {
       return alternativeDexEncodedMethod;
     }
     return null;
@@ -370,7 +370,7 @@ public class InliningConstraints {
       // This will fail at runtime.
       return ConstraintWithTarget.NEVER;
     }
-    DexType resolvedHolder = graphLens.lookupType(resolvedMember.holder());
+    DexType resolvedHolder = graphLens.lookupType(resolvedMember.getHolderType());
     assert initialResolutionHolder != null;
     ConstraintWithTarget memberConstraintWithTarget =
         ConstraintWithTarget.deriveConstraint(

@@ -336,7 +336,8 @@ public final class InterfaceMethodRewriter {
             // WARNING: This may result in incorrect code on older platforms!
             // Retarget call to an appropriate method of companion class.
             DexMethod amendedMethod =
-                amendDefaultMethod(appInfo.definitionFor(encodedMethod.holder()), invokedMethod);
+                amendDefaultMethod(
+                    appInfo.definitionFor(encodedMethod.getHolderType()), invokedMethod);
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(defaultAsMethodOfCompanionClass(amendedMethod),
                     invokeSuper.outValue(), invokeSuper.arguments()));
@@ -348,7 +349,7 @@ public final class InterfaceMethodRewriter {
                 DexEncodedMethod target =
                     appView.appInfoForDesugaring().lookupSuperTarget(invokedMethod, code.context());
                 if (target != null && target.isDefaultMethod()) {
-                  DexClass holder = appView.definitionFor(target.holder());
+                  DexClass holder = appView.definitionFor(target.getHolderType());
                   if (holder.isLibraryClass() && holder.isInterface()) {
                     instructions.replaceCurrentInstruction(
                         new InvokeStatic(
@@ -368,7 +369,7 @@ public final class InterfaceMethodRewriter {
                       .appInfoForDesugaring()
                       .lookupSuperTarget(invokeSuper.getInvokedMethod(), code.context());
               if (dexEncodedMethod != null) {
-                DexClass dexClass = appView.definitionFor(dexEncodedMethod.holder());
+                DexClass dexClass = appView.definitionFor(dexEncodedMethod.getHolderType());
                 if (dexClass != null && dexClass.isLibraryClass()) {
                   // Rewriting is required because the super invoke resolves into a missing
                   // method (method is on desugared library). Find out if it needs to be
@@ -508,8 +509,8 @@ public final class InterfaceMethodRewriter {
       // interfaces.
       return null;
     }
-    if (!singleTarget.isAbstract() && isEmulatedInterface(singleTarget.holder())) {
-      return singleTarget.holder();
+    if (!singleTarget.isAbstract() && isEmulatedInterface(singleTarget.getHolderType())) {
+      return singleTarget.getHolderType();
     }
     return null;
   }
@@ -711,8 +712,8 @@ public final class InterfaceMethodRewriter {
         }
         emulationMethods.add(
             DexEncodedMethod.toEmulateDispatchLibraryMethod(
-                method.holder(),
-                emulateInterfaceLibraryMethod(method.method, method.holder(), factory),
+                method.getHolderType(),
+                emulateInterfaceLibraryMethod(method.method, method.getHolderType(), factory),
                 companionMethod,
                 libraryMethod,
                 extraDispatchCases,

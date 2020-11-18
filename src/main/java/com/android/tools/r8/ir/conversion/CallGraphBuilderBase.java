@@ -262,7 +262,8 @@ abstract class CallGraphBuilderBase {
         return;
       }
 
-      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(encodedField.holder()));
+      DexProgramClass clazz =
+          asProgramClassOrNull(appView.definitionFor(encodedField.getHolderType()));
       if (clazz == null) {
         return;
       }

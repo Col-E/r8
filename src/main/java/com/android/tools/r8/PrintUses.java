@@ -201,7 +201,7 @@ public class PrintUses {
     private void addField(DexField field) {
       addType(field.type);
       DexEncodedField baseField = appInfo.resolveField(field).getResolvedField();
-      if (baseField != null && baseField.holder() != field.holder) {
+      if (baseField != null && baseField.getHolderType() != field.holder) {
         field = baseField.field;
       }
       addType(field.holder);
@@ -215,7 +215,7 @@ public class PrintUses {
           noObfuscationTypes.add(field.holder);
         }
         if (baseField.accessFlags.isVisibilityDependingOnPackage()) {
-          keepPackageNames.add(baseField.holder().getPackageName());
+          keepPackageNames.add(baseField.getHolderType().getPackageName());
         }
         typeFields.add(field);
       }
@@ -236,7 +236,7 @@ public class PrintUses {
           noObfuscationTypes.add(method.holder);
         }
         if (definition.accessFlags.isVisibilityDependingOnPackage()) {
-          keepPackageNames.add(definition.holder().getPackageName());
+          keepPackageNames.add(definition.getHolderType().getPackageName());
         }
         typeMethods.add(method);
       }
@@ -496,7 +496,7 @@ public class PrintUses {
       if (encodedMethod.accessFlags.isStatic()) {
         append("<clinit>");
       } else {
-        String holderName = encodedMethod.holder().toSourceString();
+        String holderName = encodedMethod.getHolderType().toSourceString();
         String constructorName = holderName.substring(holderName.lastIndexOf('.') + 1);
         append(constructorName);
       }

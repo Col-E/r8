@@ -60,7 +60,7 @@ public abstract class FieldResolutionResult
 
     SuccessfulFieldResolutionResult(
         DexClass initialResolutionHolder, DexClass resolvedHolder, DexEncodedField resolvedField) {
-      assert resolvedHolder.type == resolvedField.holder();
+      assert resolvedHolder.type == resolvedField.getHolderType();
       this.initialResolutionHolder = initialResolutionHolder;
       this.resolvedHolder = resolvedHolder;
       this.resolvedField = resolvedField;

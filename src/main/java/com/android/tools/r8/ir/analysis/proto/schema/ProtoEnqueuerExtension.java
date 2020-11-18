@@ -267,7 +267,8 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
             continue;
           }
 
-          DexProgramClass holder = asProgramClassOrNull(appView.definitionFor(field.holder()));
+          DexProgramClass holder =
+              asProgramClassOrNull(appView.definitionFor(field.getHolderType()));
           if (holder == null) {
             assert false;
             continue;

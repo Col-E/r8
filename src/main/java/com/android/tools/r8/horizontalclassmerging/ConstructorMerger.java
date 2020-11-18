@@ -112,7 +112,7 @@ public class ConstructorMerger {
     DexMethod method =
         dexItemFactory.createFreshMethodName(
             "constructor",
-            constructor.holder(),
+            constructor.getHolderType(),
             constructor.proto(),
             group.getTarget().getType(),
             classMethodsBuilder::isFresh);

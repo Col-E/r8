@@ -150,7 +150,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   public ProgramField asProgramField(DexDefinitionSupplier definitions) {
-    assert holder().isClassType();
+    assert getHolderType().isClassType();
     DexProgramClass clazz = asProgramClassOrNull(definitions.definitionForHolder(field));
     if (clazz != null) {
       return new ProgramField(clazz, this);

@@ -31,6 +31,14 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
     return holder;
   }
 
+  public DexType getHolderType() {
+    return holder;
+  }
+
+  public DexString getName() {
+    return name;
+  }
+
   @Override
   public boolean isDexMember() {
     return true;

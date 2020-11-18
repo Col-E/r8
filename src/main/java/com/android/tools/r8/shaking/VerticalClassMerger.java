@@ -762,7 +762,7 @@ public class VerticalClassMerger {
         // Conservatively find all possible targets for this method.
         LookupResultSuccess lookupResult =
             appInfo
-                .resolveMethodOnInterface(method.holder(), method.method)
+                .resolveMethodOnInterface(method.getHolderType(), method.method)
                 .lookupVirtualDispatchTargets(target, appInfo)
                 .asLookupResultSuccess();
         assert lookupResult != null;
@@ -1360,7 +1360,7 @@ public class VerticalClassMerger {
     private DexEncodedMethod renameConstructor(
         DexEncodedMethod method, Predicate<DexMethod> availableMethodSignatures) {
       assert method.isInstanceInitializer();
-      DexType oldHolder = method.holder();
+      DexType oldHolder = method.getHolderType();
 
       DexMethod newSignature;
       int count = 1;
@@ -1396,7 +1396,7 @@ public class VerticalClassMerger {
       // renamed already.
       assert !method.accessFlags.isConstructor() || strategy == Rename.NEVER;
       DexString oldName = method.method.name;
-      DexType oldHolder = method.holder();
+      DexType oldHolder = method.getHolderType();
 
       DexMethod newSignature;
       switch (strategy) {
@@ -1431,7 +1431,7 @@ public class VerticalClassMerger {
     private DexEncodedField renameFieldIfNeeded(
         DexEncodedField field, Predicate<DexField> availableFieldSignatures) {
       DexString oldName = field.field.name;
-      DexType oldHolder = field.holder();
+      DexType oldHolder = field.getHolderType();
 
       DexField newSignature =
           application.dexItemFactory.createField(target.type, field.field.type, oldName);

@@ -51,7 +51,7 @@ public class DefaultLeftAbstractRightTest extends TestBase {
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
-    assertEquals(L.class.getTypeName(), resolutionTarget.holder().toSourceString());
+    assertEquals(L.class.getTypeName(), resolutionTarget.getHolderType().toSourceString());
   }
 
   @Test

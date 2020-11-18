@@ -579,7 +579,8 @@ public class EnumUnboxingRewriter {
     // We compute encodedMembers by types.
     for (T encodedMember : encodedMembers) {
       List<T> members =
-          encodedMembersMap.computeIfAbsent(encodedMember.holder(), ignored -> new ArrayList<>());
+          encodedMembersMap.computeIfAbsent(
+              encodedMember.getHolderType(), ignored -> new ArrayList<>());
       members.add(encodedMember);
     }
     // We make the order deterministic.

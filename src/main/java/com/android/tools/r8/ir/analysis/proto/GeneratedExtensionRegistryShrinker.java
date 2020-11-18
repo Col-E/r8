@@ -123,7 +123,7 @@ public class GeneratedExtensionRegistryShrinker {
    */
   public void rewriteCode(DexEncodedMethod method, IRCode code) {
     if (method.isClassInitializer()
-        && classesWithRemovedExtensionFields.contains(method.holder())
+        && classesWithRemovedExtensionFields.contains(method.getHolderType())
         && code.metadata().mayHaveStaticPut()) {
       rewriteClassInitializer(code);
     }

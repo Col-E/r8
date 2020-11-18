@@ -337,7 +337,7 @@ public class ClassInitializationAnalysis {
       if (!resolutionResult.isSingleResolution()) {
         return false;
       }
-      DexType holder = resolutionResult.getSingleTarget().holder();
+      DexType holder = resolutionResult.getSingleTarget().getHolderType();
       return appView.isSubtype(holder, type).isTrue();
     }
 
@@ -398,7 +398,7 @@ public class ClassInitializationAnalysis {
       if (!resolutionResult.isSingleResolution()) {
         return false;
       }
-      DexType holder = resolutionResult.getSingleTarget().holder();
+      DexType holder = resolutionResult.getSingleTarget().getHolderType();
       return appView.isSubtype(holder, type).isTrue();
     }
 
@@ -435,7 +435,7 @@ public class ClassInitializationAnalysis {
       if (!resolutionResult.isSingleResolution()) {
         return false;
       }
-      DexType holder = resolutionResult.getSingleTarget().holder();
+      DexType holder = resolutionResult.getSingleTarget().getHolderType();
       return appView.isSubtype(holder, type).isTrue();
     }
 
@@ -511,11 +511,11 @@ public class ClassInitializationAnalysis {
         enqueue(clazz.type, visited, worklist);
       } else if (definition.isDexEncodedField()) {
         DexEncodedField field = definition.asDexEncodedField();
-        enqueue(field.holder(), visited, worklist);
+        enqueue(field.getHolderType(), visited, worklist);
       } else if (definition.isDexEncodedMethod()) {
         assert instruction.isInvokeMethod();
         DexEncodedMethod method = definition.asDexEncodedMethod();
-        enqueue(method.holder(), visited, worklist);
+        enqueue(method.getHolderType(), visited, worklist);
         enqueueInitializedClassesOnNormalExit(method, instruction.inValues(), visited, worklist);
       } else {
         assert false;

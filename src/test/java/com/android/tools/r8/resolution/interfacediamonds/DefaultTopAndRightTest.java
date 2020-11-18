@@ -45,7 +45,7 @@ public class DefaultTopAndRightTest extends TestBase {
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
-    assertEquals(R.class.getTypeName(), resolutionTarget.holder().toSourceString());
+    assertEquals(R.class.getTypeName(), resolutionTarget.getHolderType().toSourceString());
   }
 
   @Test

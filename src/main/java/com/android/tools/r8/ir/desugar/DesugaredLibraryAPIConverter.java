@@ -107,7 +107,7 @@ public class DesugaredLibraryAPIConverter {
 
   public void desugar(IRCode code) {
 
-    if (wrapperSynthesizor.hasSynthesized(code.method().holder())) {
+    if (wrapperSynthesizor.hasSynthesized(code.method().getHolderType())) {
       return;
     }
 

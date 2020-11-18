@@ -120,7 +120,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
 
   @Override
   boolean isSubjectToOptimization(DexEncodedField field) {
-    return !field.isStatic() && field.holder() == context.getHolderType();
+    return !field.isStatic() && field.getHolderType() == context.getHolderType();
   }
 
   @Override

@@ -136,12 +136,12 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
       assert initialResolutionHolder != null;
       assert resolvedHolder != null;
       assert resolvedMethod != null;
-      assert resolvedHolder.type == resolvedMethod.holder();
+      assert resolvedHolder.type == resolvedMethod.getHolderType();
       this.resolvedHolder = resolvedHolder;
       this.resolvedMethod = resolvedMethod;
       this.initialResolutionHolder = initialResolutionHolder;
       assert !resolvedMethod.isPrivateMethod()
-          || initialResolutionHolder.type == resolvedMethod.holder();
+          || initialResolutionHolder.type == resolvedMethod.getHolderType();
     }
 
     @Override
@@ -370,7 +370,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
       // It appears as if this check is also in place for non-initializer methods too.
       // See NestInvokeSpecialMethodAccessWithIntermediateTest.
       if ((target.isInstanceInitializer() || target.isPrivateMethod())
-          && target.holder() != symbolicReference.type) {
+          && target.getHolderType() != symbolicReference.type) {
         return null;
       }
       // Runtime exceptions:
@@ -610,7 +610,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
         }
         if (candidate == null || candidate == DexEncodedMethod.SENTINEL) {
           // We cannot find a target above the resolved method.
-          if (current.type == overrideTarget.holder()) {
+          if (current.type == overrideTarget.getHolderType()) {
             return null;
           }
           current = current.superType == null ? null : appInfo.definitionFor(current.superType);
@@ -689,7 +689,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
       }
       // For package private methods, a valid override has to be inside the package.
       assert resolvedMethod.accessFlags.isPackagePrivate();
-      return resolvedMethod.holder().isSamePackage(candidate.holder());
+      return resolvedMethod.getHolderType().isSamePackage(candidate.getHolderType());
     }
   }
 

@@ -56,7 +56,7 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
     Set<String> holders = new HashSet<>();
     resolutionResult
         .asFailedResolution()
-        .forEachFailureDependency(m -> holders.add(m.holder().toSourceString()));
+        .forEachFailureDependency(m -> holders.add(m.getHolderType().toSourceString()));
     assertEquals(ImmutableSet.of(I.class.getTypeName(), J.class.getTypeName()), holders);
   }
 

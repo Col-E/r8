@@ -12,11 +12,15 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
     super(annotations);
   }
 
-  public DexType holder() {
-    return getReference().holder;
+  public abstract KotlinMemberLevelInfo getKotlinMemberInfo();
+
+  public DexType getHolderType() {
+    return getReference().getHolderType();
   }
 
-  public abstract KotlinMemberLevelInfo getKotlinMemberInfo();
+  public DexString getName() {
+    return getReference().getName();
+  }
 
   @Override
   public abstract R getReference();

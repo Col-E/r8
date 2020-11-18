@@ -43,7 +43,7 @@ public class ClassStaticFieldsMerger {
         field.getReference().withHolder(group.getTarget().getType(), dexItemFactory);
     DexField newFieldReference =
         dexItemFactory.createFreshFieldNameWithHolderSuffix(
-            templateReference, field.holder(), this::isFresh);
+            templateReference, field.getHolderType(), this::isFresh);
 
     field = field.toTypeSubstitutedField(newFieldReference);
     targetFields.put(newFieldReference, field);

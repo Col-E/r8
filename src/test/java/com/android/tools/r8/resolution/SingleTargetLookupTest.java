@@ -188,7 +188,8 @@ public class SingleTargetLookupTest extends AsmTestBase {
       Assert.assertNull(singleVirtualTarget);
     } else {
       Assert.assertNotNull(singleVirtualTarget);
-      Assert.assertEquals(toType(singleTargetHolderOrNull, appInfo), singleVirtualTarget.holder());
+      Assert.assertEquals(
+          toType(singleTargetHolderOrNull, appInfo), singleVirtualTarget.getHolderType());
     }
   }
 

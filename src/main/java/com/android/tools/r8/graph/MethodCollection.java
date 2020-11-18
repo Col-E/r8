@@ -342,7 +342,7 @@ public class MethodCollection {
   }
 
   private boolean verifyCorrectnessOfMethodHolder(DexEncodedMethod method) {
-    assert method.holder() == holder.type
+    assert method.getHolderType() == holder.type
         : "Expected method `"
             + method.method.toSourceString()
             + "` to have holder `"

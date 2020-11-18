@@ -96,7 +96,7 @@ public final class LambdaDescriptor {
     DexEncodedMethod targetMethod = context == null ? null : lookupTargetMethod(appInfo, context);
     if (targetMethod != null) {
       targetAccessFlags = targetMethod.accessFlags.copy();
-      targetHolder = targetMethod.holder();
+      targetHolder = targetMethod.getHolderType();
     } else {
       targetAccessFlags = null;
       targetHolder = null;

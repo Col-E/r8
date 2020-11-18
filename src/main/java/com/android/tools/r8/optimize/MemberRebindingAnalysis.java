@@ -191,7 +191,7 @@ public class MemberRebindingAnalysis {
           if (target == null || target.method == method) {
             return;
           }
-          DexClass targetClass = appView.definitionFor(target.holder());
+          DexClass targetClass = appView.definitionFor(target.getHolderType());
           DexMethod targetMethod = target.method;
           if (originalClass.isProgramClass()) {
             // In Java bytecode, it is only possible to target interface methods that are in one of
@@ -284,7 +284,7 @@ public class MemberRebindingAnalysis {
   }
 
   private boolean mayNeedBridgeForVisibility(ProgramMethod context, DexEncodedMethod method) {
-    DexType holderType = method.holder();
+    DexType holderType = method.getHolderType();
     DexClass holder = appView.definitionFor(holderType);
     if (holder == null) {
       return false;

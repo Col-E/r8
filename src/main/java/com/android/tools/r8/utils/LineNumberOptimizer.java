@@ -187,7 +187,7 @@ public class LineNumberOptimizer {
       if (parsedData != null || parsedKotlinSourceDebugExtensions.containsKey(holder)) {
         return parsedData;
       }
-      DexClass clazz = appView.definitionFor(currentMethod.holder());
+      DexClass clazz = appView.definitionFor(currentMethod.getHolderType());
       DexValueString dexValueString = appView.getSourceDebugExtensionForType(clazz);
       if (dexValueString != null) {
         parsedData = KotlinSourceDebugExtensionParser.parse(dexValueString.value.toString());
@@ -475,7 +475,7 @@ public class LineNumberOptimizer {
         continue;
       }
       // We use the same name for interface names even if it has different types.
-      DexProgramClass clazz = appView.definitionForProgramType(method.holder());
+      DexProgramClass clazz = appView.definitionForProgramType(method.getHolderType());
       DexClassAndMethod lookupResult =
           appView.appInfo().lookupMaximallySpecificMethod(clazz, method.method);
       if (lookupResult == null) {
@@ -808,7 +808,7 @@ public class LineNumberOptimizer {
     }
     method.setCode(
         new CfCode(
-            method.holder(),
+            method.getHolderType(),
             oldCode.getMaxStack(),
             oldCode.getMaxLocals(),
             newInstructions,

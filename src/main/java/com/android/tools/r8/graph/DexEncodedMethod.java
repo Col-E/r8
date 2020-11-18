@@ -379,14 +379,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     }
   }
 
-  public DexType getHolderType() {
-    return getReference().holder;
-  }
-
-  public DexString getName() {
-    return getReference().name;
-  }
-
   public DexProto getProto() {
     return getReference().proto;
   }

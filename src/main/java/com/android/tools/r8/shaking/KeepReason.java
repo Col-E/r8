@@ -160,7 +160,7 @@ public abstract class KeepReason {
 
     private InvokedFrom(DexProgramClass holder, DexEncodedMethod method) {
       super(method);
-      assert holder.type == method.holder();
+      assert holder.type == method.getHolderType();
     }
 
     @Override

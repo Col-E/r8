@@ -531,7 +531,7 @@ public class IRBuilder {
     int argumentIndex = 0;
 
     if (!method.isStatic()) {
-      writeCallback.accept(register, method.holder());
+      writeCallback.accept(register, method.getHolderType());
       addThisArgument(register);
       argumentIndex++;
       register++;
@@ -1530,7 +1530,7 @@ public class IRBuilder {
       if (invocationMethod.holder == method.getHolderType()) {
         DexEncodedMethod directTarget = method.getHolder().lookupDirectMethod(invocationMethod);
         if (directTarget != null && !directTarget.isStatic()) {
-          assert invocationMethod.holder == directTarget.holder();
+          assert invocationMethod.holder == directTarget.getHolderType();
           type = Type.DIRECT;
         }
       }

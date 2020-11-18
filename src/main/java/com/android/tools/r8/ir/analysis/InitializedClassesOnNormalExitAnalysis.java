@@ -117,8 +117,8 @@ public class InitializedClassesOnNormalExitAnalysis {
       DexEncodedField field =
           appView.appInfo().resolveField(instruction.getField()).getResolvedField();
       if (field != null) {
-        if (field.holder().isClassType()) {
-          markInitializedOnNormalExit(field.holder());
+        if (field.getHolderType().isClassType()) {
+          markInitializedOnNormalExit(field.getHolderType());
         } else {
           assert false : "Expected holder of field type to be a class type";
         }

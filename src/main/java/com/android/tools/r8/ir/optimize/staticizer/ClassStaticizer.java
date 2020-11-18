@@ -84,7 +84,7 @@ public final class ClassStaticizer {
     }
 
     DexType hostType() {
-      return singletonField.holder();
+      return singletonField.getHolderType();
     }
 
     DexProgramClass hostClass() {
@@ -495,7 +495,7 @@ public final class ClassStaticizer {
 
     if (ListUtils.lastIndexMatching(values, v -> v.getAliasedValue() == candidateValue) != 0
         || methodInvoked == null
-        || methodInvoked.holder() != info.candidate.type) {
+        || methodInvoked.getHolderType() != info.candidate.type) {
       return false;
     }
 
@@ -663,7 +663,7 @@ public final class ClassStaticizer {
               : resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
       if (ListUtils.lastIndexMatching(invoke.inValues(), isAliasedValue) == 0
           && methodInvoked != null
-          && methodInvoked.holder() == candidateInfo.candidate.type) {
+          && methodInvoked.getHolderType() == candidateInfo.candidate.type) {
         return true;
       }
     }

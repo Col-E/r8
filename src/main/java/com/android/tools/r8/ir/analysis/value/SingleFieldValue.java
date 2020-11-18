@@ -95,7 +95,7 @@ public abstract class SingleFieldValue extends SingleValue {
     if (!encodedField.isPublic()) {
       return false;
     }
-    DexClass holder = appView.definitionFor(encodedField.holder());
+    DexClass holder = appView.definitionFor(encodedField.getHolderType());
     if (holder == null) {
       assert false;
       return false;

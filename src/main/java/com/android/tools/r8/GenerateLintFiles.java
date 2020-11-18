@@ -146,7 +146,7 @@ public class GenerateLintFiles {
     List<DexEncodedMethod> directMethods = new ArrayList<>();
     List<DexEncodedMethod> virtualMethods = new ArrayList<>();
     for (DexEncodedMethod method : methods) {
-      assert method.holder() == clazz.type;
+      assert method.getHolderType() == clazz.type;
       CfCode code = null;
       if (!method.accessFlags.isAbstract() /*&& !method.accessFlags.isNative()*/) {
         code = buildEmptyThrowingCfCode(method.method);

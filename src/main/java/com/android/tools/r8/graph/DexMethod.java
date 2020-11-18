@@ -50,14 +50,6 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     visitor.visitDexMethod(this, other);
   }
 
-  public DexType getHolderType() {
-    return holder;
-  }
-
-  public DexString getName() {
-    return name;
-  }
-
   public DexType getParameter(int index) {
     return proto.getParameter(index);
   }

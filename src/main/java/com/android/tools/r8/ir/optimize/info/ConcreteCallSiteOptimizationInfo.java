@@ -80,7 +80,8 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     int size = method.method.getArity() + argOffset;
     TypeElement[] staticTypes = new TypeElement[size];
     if (!method.isStatic()) {
-      staticTypes[0] = TypeElement.fromDexType(method.holder(), definitelyNotNull(), appView);
+      staticTypes[0] =
+          TypeElement.fromDexType(method.getHolderType(), definitelyNotNull(), appView);
     }
     for (int i = 0; i < method.method.getArity(); i++) {
       staticTypes[i + argOffset] =

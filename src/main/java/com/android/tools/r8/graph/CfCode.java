@@ -758,7 +758,7 @@ public class CfCode extends Code implements Comparable<CfCode> {
               origin, appView.graphLens().getOriginalMethodSignature(method.method), appView),
           appView);
     }
-    DexType context = appView.graphLens().lookupType(method.holder());
+    DexType context = appView.graphLens().lookupType(method.getHolderType());
     DexType returnType = appView.graphLens().lookupType(method.method.getReturnType());
     RewrittenPrototypeDescription rewrittenDescription = RewrittenPrototypeDescription.none();
     if (applyProtoTypeChanges) {

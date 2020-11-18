@@ -819,7 +819,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (fieldAccessInfo == null || !fieldAccessInfo.isWritten()) {
       return false;
     }
-    DexType holder = field.holder();
+    DexType holder = field.getHolderType();
     return fieldAccessInfo.isWrittenOnlyInMethodSatisfying(
         method ->
             method.getDefinition().isInstanceInitializer() && method.getHolderType() == holder);
@@ -829,7 +829,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
     DexEncodedMethod staticInitializer =
-        definitionFor(field.holder()).asProgramClass().getClassInitializer();
+        definitionFor(field.getHolderType()).asProgramClass().getClassInitializer();
     return staticInitializer != null && isFieldOnlyWrittenInMethod(field, staticInitializer);
   }
 
@@ -849,7 +849,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   private boolean isLibraryOrClasspathField(DexEncodedField field) {
-    DexClass holder = definitionFor(field.holder());
+    DexClass holder = definitionFor(field.getHolderType());
     return holder == null || holder.isLibraryClass() || holder.isClasspathClass();
   }
 

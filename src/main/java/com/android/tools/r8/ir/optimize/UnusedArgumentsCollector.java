@@ -153,7 +153,8 @@ public class UnusedArgumentsCollector {
           // Constructors must be named `<init>`.
           return null;
         }
-        newSignature = appView.dexItemFactory().createMethod(method.holder(), newProto, newName);
+        newSignature =
+            appView.dexItemFactory().createMethod(method.getHolderType(), newProto, newName);
         count++;
       } while (!isMethodSignatureAvailable(newSignature));
       return newSignature;
@@ -193,7 +194,8 @@ public class UnusedArgumentsCollector {
           // Constructors must be named `<init>`.
           return null;
         }
-        newSignature = appView.dexItemFactory().createMethod(method.holder(), newProto, newName);
+        newSignature =
+            appView.dexItemFactory().createMethod(method.getHolderType(), newProto, newName);
         count++;
       } while (methodPool.hasSeen(equivalence.wrap(newSignature)));
       return newSignature;

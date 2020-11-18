@@ -16,7 +16,7 @@ public abstract class DexClassAndMember<
   public DexClassAndMember(DexClass holder, D definition) {
     assert holder != null;
     assert definition != null;
-    assert holder.type == definition.holder();
+    assert holder.type == definition.getHolderType();
     this.holder = holder;
     this.definition = definition;
   }

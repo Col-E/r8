@@ -403,7 +403,7 @@ public class MemberValuePropagation {
         } else {
           assert current.isStaticGet();
           replaceInstructionByInitClassIfPossible(
-              current, target.holder(), code, iterator, context);
+              current, target.getHolderType(), code, iterator, context);
         }
 
         // Insert the definition of the replacement.
@@ -502,7 +502,7 @@ public class MemberValuePropagation {
     }
 
     replaceInstructionByInitClassIfPossible(
-        current, field.holder(), code, iterator, code.context());
+        current, field.getHolderType(), code, iterator, code.context());
   }
 
   /**

@@ -101,7 +101,7 @@ public class R8GMSCoreLookupTest extends TestBase {
             .asLookupResultSuccess();
     assertNotNull(lookupResult);
     assertFalse(lookupResult.hasLambdaTargets());
-    if (subtypingInfo.subtypes(method.holder()).stream()
+    if (subtypingInfo.subtypes(method.getHolderType()).stream()
         .allMatch(t -> appInfo().definitionFor(t).isInterface())) {
       Counter counter = new Counter();
       lookupResult.forEach(

@@ -107,7 +107,7 @@ class EnumUnboxingTreeFixer {
                 + method.name.toString());
     DexProto proto = encodedMethod.isStatic() ? method.proto : factory.prependHolderToProto(method);
     DexMethod newMethod = factory.createMethod(newHolder, fixupProto(proto), newMethodName);
-    assert appView.definitionFor(encodedMethod.holder()).lookupMethod(newMethod) == null;
+    assert appView.definitionFor(encodedMethod.getHolderType()).lookupMethod(newMethod) == null;
     lensBuilder.move(method, newMethod, encodedMethod.isStatic(), true);
     encodedMethod.accessFlags.promoteToPublic();
     encodedMethod.accessFlags.promoteToStatic();
@@ -145,7 +145,7 @@ class EnumUnboxingTreeFixer {
   }
 
   private DexMethod ensureUniqueMethod(DexEncodedMethod encodedMethod, DexMethod newMethod) {
-    DexClass holder = appView.definitionFor(encodedMethod.holder());
+    DexClass holder = appView.definitionFor(encodedMethod.getHolderType());
     assert holder != null;
     if (newMethod.isInstanceInitializer(appView.dexItemFactory())) {
       newMethod =

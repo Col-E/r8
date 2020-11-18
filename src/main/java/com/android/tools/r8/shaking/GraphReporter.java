@@ -281,7 +281,7 @@ public class GraphReporter {
 
   public KeepReasonWitness reportCompanionMethod(
       DexEncodedMethod definition, DexEncodedMethod implementation) {
-    assert InterfaceMethodRewriter.isCompanionClassType(implementation.holder());
+    assert InterfaceMethodRewriter.isCompanionClassType(implementation.getHolderType());
     if (keptGraphConsumer == null) {
       return KeepReasonWitness.INSTANCE;
     }
@@ -356,7 +356,8 @@ public class GraphReporter {
     if (skipReporting(reason)) {
       return KeepReasonWitness.INSTANCE;
     }
-    if (reason.edgeKind() == EdgeKind.IsLibraryMethod && isNonProgramClass(method.holder())) {
+    if (reason.edgeKind() == EdgeKind.IsLibraryMethod
+        && isNonProgramClass(method.getHolderType())) {
       // Don't report edges to actual library methods.
       // TODO(b/120959039): This should be dead code once no library classes are ever enqueued.
       return KeepReasonWitness.INSTANCE;
