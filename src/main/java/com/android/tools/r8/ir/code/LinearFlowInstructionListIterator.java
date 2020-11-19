@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
 
@@ -21,6 +22,7 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
 
   private BasicBlock currentBlock;
   private InstructionListIterator currentBlockIterator;
+  private Set<BasicBlock> seenBlocks = Sets.newIdentityHashSet();
 
   public LinearFlowInstructionListIterator(IRCode code, BasicBlock block) {
     this(code, block, 0);
@@ -32,10 +34,15 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
     this.currentBlockIterator = block.listIterator(code, index);
     // If index is pointing after the last instruction, and it is a goto with a linear edge,
     // we have to move the pointer. This is achieved by calling previous and next.
+    seenBlocks.add(block);
     if (index > 0) {
       this.previous();
       this.next();
     }
+  }
+
+  public boolean hasVisitedBlock(BasicBlock basicBlock) {
+    return seenBlocks.contains(basicBlock);
   }
 
   @Override
@@ -146,6 +153,7 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
       target = candidate;
     }
     currentBlock = target;
+    seenBlocks.add(target);
     currentBlockIterator = currentBlock.listIterator(code);
     return currentBlockIterator.next();
   }
@@ -183,6 +191,7 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
       return currentBlockIterator.previous();
     }
     currentBlock = target;
+    seenBlocks.add(target);
     currentBlockIterator = currentBlock.listIterator(code, currentBlock.getInstructions().size());
     // Iterate over the jump.
     currentBlockIterator.previous();

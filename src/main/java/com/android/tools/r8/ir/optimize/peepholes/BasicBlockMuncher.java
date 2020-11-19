@@ -5,13 +5,14 @@
 package com.android.tools.r8.ir.optimize.peepholes;
 
 import static com.android.tools.r8.utils.InternalOptions.TestingOptions.NO_LIMIT;
+import static com.android.tools.r8.utils.PredicateUtils.not;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.LinearFlowInstructionListIterator;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.ListIterator;
@@ -45,7 +46,7 @@ public class BasicBlockMuncher {
     int iterations = 0;
     while (blocksIterator.hasPrevious()) {
       BasicBlock currentBlock = blocksIterator.previous();
-      InstructionListIterator it =
+      LinearFlowInstructionListIterator it =
           new LinearFlowInstructionListIterator(
               code, currentBlock, currentBlock.getInstructions().size());
       boolean matched = false;
@@ -74,6 +75,11 @@ public class BasicBlockMuncher {
               new LinearFlowInstructionListIterator(
                   code, currentBlock, currentBlock.getInstructions().size());
         } else {
+          // Move the iterator to the first block we have not seen.
+          if (IteratorUtils.previousUntilUnsafe(blocksIterator, not(it::hasVisitedBlock)) != null) {
+            // Ensure that we visit the first not visited block.
+            blocksIterator.next();
+          }
           break;
         }
       }
