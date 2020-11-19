@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableMap;
 
@@ -17,13 +18,13 @@ class ClassStaticizerGraphLens extends NestedGraphLens {
   ClassStaticizerGraphLens(
       AppView<?> appView,
       BiMap<DexField, DexField> fieldMapping,
-      BiMap<DexMethod, DexMethod> methodMapping) {
+      BidirectionalOneToOneHashMap<DexMethod, DexMethod> methodMapping) {
     super(
         ImmutableMap.of(),
         methodMapping,
         fieldMapping,
         fieldMapping.inverse(),
-        methodMapping.inverse(),
+        methodMapping.getInverseOneToOneMap(),
         appView.graphLens(),
         appView.dexItemFactory());
   }

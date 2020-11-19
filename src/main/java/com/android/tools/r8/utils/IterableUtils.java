@@ -88,6 +88,10 @@ public class IterableUtils {
     return Iterables.concat(Iterables.transform(iterable, val -> map.apply(val)));
   }
 
+  public static <T> Iterable<T> empty() {
+    return Collections.emptyList();
+  }
+
   public static <T> Iterable<T> emptyIf(Iterable<T> iterable, boolean condition) {
     if (condition) {
       return Collections.emptySet();

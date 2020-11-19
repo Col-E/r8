@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.utils.IterableUtils;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
@@ -74,7 +75,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
       Map<DexType, Map<DexMethod, GraphLensLookupResultProvider>>
           contextualVirtualToDirectMethodMaps,
       BiMap<DexField, DexField> originalFieldSignatures,
-      BiMap<DexMethod, DexMethod> originalMethodSignatures,
+      BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures,
       Map<DexMethod, DexMethod> originalMethodSignaturesForBridges,
       GraphLens previousLens) {
     super(
@@ -171,7 +172,8 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
     private final Map<DexType, Map<DexMethod, GraphLensLookupResultProvider>>
         contextualVirtualToDirectMethodMaps = new IdentityHashMap<>();
 
-    private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
+    private final BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures =
+        new BidirectionalOneToOneHashMap<>();
     private final Map<DexMethod, DexMethod> originalMethodSignaturesForBridges =
         new IdentityHashMap<>();
 
@@ -215,11 +217,12 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
               context);
         }
       }
-      for (Map.Entry<DexMethod, DexMethod> entry : builder.originalMethodSignatures.entrySet()) {
-        newBuilder.recordMove(
-            entry.getValue(),
-            builder.getMethodSignatureAfterClassMerging(entry.getKey(), mergedClasses));
-      }
+      builder.originalMethodSignatures.forEach(
+          (renamedMethodSignature, originalMethodSignature) ->
+              newBuilder.recordMove(
+                  originalMethodSignature,
+                  builder.getMethodSignatureAfterClassMerging(
+                      renamedMethodSignature, mergedClasses)));
       for (Map.Entry<DexMethod, DexMethod> entry :
           builder.originalMethodSignaturesForBridges.entrySet()) {
         newBuilder.recordCreationOfBridgeMethod(

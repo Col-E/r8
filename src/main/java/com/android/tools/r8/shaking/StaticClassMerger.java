@@ -23,6 +23,7 @@ import com.android.tools.r8.utils.MethodJavaSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.SingletonEquivalence;
 import com.android.tools.r8.utils.TraversalContinuation;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
@@ -199,7 +200,8 @@ public class StaticClassMerger {
   private final Map<MergeKey, Representative> representatives = new HashMap<>();
 
   private final BiMap<DexField, DexField> fieldMapping = HashBiMap.create();
-  private final BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
+  private final BidirectionalOneToOneHashMap<DexMethod, DexMethod> methodMapping =
+      new BidirectionalOneToOneHashMap<>();
 
   private int numberOfMergedClasses = 0;
 
@@ -234,7 +236,8 @@ public class StaticClassMerger {
   private NestedGraphLens buildGraphLens() {
     if (!fieldMapping.isEmpty() || !methodMapping.isEmpty()) {
       BiMap<DexField, DexField> originalFieldSignatures = fieldMapping.inverse();
-      BiMap<DexMethod, DexMethod> originalMethodSignatures = methodMapping.inverse();
+      BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures =
+          methodMapping.getInverseOneToOneMap();
       return new NestedGraphLens(
           ImmutableMap.of(),
           methodMapping,
@@ -497,7 +500,7 @@ public class StaticClassMerger {
       newMethods.add(sourceMethodAfterMove);
 
       DexMethod originalMethod =
-          methodMapping.inverse().getOrDefault(sourceMethod.method, sourceMethod.method);
+          methodMapping.getRepresentativeKeyOrDefault(sourceMethod.method, sourceMethod.method);
       methodMapping.forcePut(originalMethod, sourceMethodAfterMove.method);
 
       existingMethods.add(equivalence.wrap(sourceMethodAfterMove.method));

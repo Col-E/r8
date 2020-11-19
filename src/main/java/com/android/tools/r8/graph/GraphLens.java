@@ -14,6 +14,8 @@ import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -229,7 +231,8 @@ public abstract class GraphLens {
     protected final Map<DexField, DexField> fieldMap = new IdentityHashMap<>();
 
     protected final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
-    protected final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
+    protected final BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures =
+        new BidirectionalOneToOneHashMap<>();
 
     public void map(DexType from, DexType to) {
       if (from == to) {
@@ -965,7 +968,8 @@ public abstract class GraphLens {
     // Maps that store the original signature of fields and methods that have been affected, for
     // example, by vertical class merging. Needed to generate a correct Proguard map in the end.
     protected final BiMap<DexField, DexField> originalFieldSignatures;
-    protected BiMap<DexMethod, DexMethod> originalMethodSignatures;
+    protected BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
+        originalMethodSignatures;
 
     // Overrides this if the sub type needs to be a nested lens while it doesn't have any mappings
     // at all, e.g., publicizer lens that changes invocation type only.
@@ -978,7 +982,7 @@ public abstract class GraphLens {
         Map<DexMethod, DexMethod> methodMap,
         Map<DexField, DexField> fieldMap,
         BiMap<DexField, DexField> originalFieldSignatures,
-        BiMap<DexMethod, DexMethod> originalMethodSignatures,
+        BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> originalMethodSignatures,
         GraphLens previousLens,
         DexItemFactory dexItemFactory) {
       super(dexItemFactory, previousLens);
@@ -1138,15 +1142,11 @@ public abstract class GraphLens {
 
     @Override
     protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
-      return originalMethodSignatures != null
-          ? originalMethodSignatures.getOrDefault(method, method)
-          : method;
+      return originalMethodSignatures.getRepresentativeValueOrDefault(method, method);
     }
 
     protected DexMethod internalGetNextMethodSignature(DexMethod method) {
-      return originalMethodSignatures != null
-          ? originalMethodSignatures.inverse().getOrDefault(method, method)
-          : method;
+      return originalMethodSignatures.getRepresentativeKeyOrDefault(method, method);
     }
 
     @Override

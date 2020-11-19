@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
@@ -20,11 +21,11 @@ public class RepackagingLens extends NestedGraphLens {
   private RepackagingLens(
       AppView<AppInfoWithLiveness> appView,
       BiMap<DexField, DexField> originalFieldSignatures,
-      BiMap<DexMethod, DexMethod> originalMethodSignatures,
+      BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures,
       BiMap<DexType, DexType> originalTypes) {
     super(
         originalTypes.inverse(),
-        originalMethodSignatures.inverse(),
+        originalMethodSignatures.getInverseBacking(),
         originalFieldSignatures.inverse(),
         originalFieldSignatures,
         originalMethodSignatures,
@@ -48,7 +49,8 @@ public class RepackagingLens extends NestedGraphLens {
 
     protected final BiMap<DexType, DexType> originalTypes = HashBiMap.create();
     protected final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
-    protected final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
+    protected final BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures =
+        new BidirectionalOneToOneHashMap<>();
 
     public void recordMove(DexField from, DexField to) {
       originalFieldSignatures.put(to, from);

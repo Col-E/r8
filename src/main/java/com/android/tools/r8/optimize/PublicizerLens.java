@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.util.Set;
@@ -25,7 +26,7 @@ final class PublicizerLens extends NestedGraphLens {
         ImmutableMap.of(),
         ImmutableMap.of(),
         null,
-        null,
+        BidirectionalManyToManyRepresentativeMap.empty(),
         appView.graphLens(),
         appView.dexItemFactory());
     this.appView = appView;

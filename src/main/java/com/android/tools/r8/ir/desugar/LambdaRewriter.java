@@ -42,6 +42,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.BiMap;
@@ -440,7 +441,7 @@ public class LambdaRewriter {
         Map<DexMethod, DexMethod> methodMap,
         Map<DexField, DexField> fieldMap,
         BiMap<DexField, DexField> originalFieldSignatures,
-        BiMap<DexMethod, DexMethod> originalMethodSignatures,
+        BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures,
         GraphLens previousLens,
         DexItemFactory dexItemFactory) {
       super(

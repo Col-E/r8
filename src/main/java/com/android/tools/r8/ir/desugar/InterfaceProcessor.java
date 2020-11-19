@@ -48,8 +48,9 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -514,15 +515,16 @@ public final class InterfaceProcessor {
   // are to static companion methods.
   public static class InterfaceProcessorNestedGraphLens extends NestedGraphLens {
 
-    private BiMap<DexMethod, DexMethod> extraOriginalMethodSignatures;
+    private BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
+        extraOriginalMethodSignatures;
 
     public InterfaceProcessorNestedGraphLens(
         Map<DexType, DexType> typeMap,
         Map<DexMethod, DexMethod> methodMap,
         Map<DexField, DexField> fieldMap,
         BiMap<DexField, DexField> originalFieldSignatures,
-        BiMap<DexMethod, DexMethod> originalMethodSignatures,
-        BiMap<DexMethod, DexMethod> extraOriginalMethodSignatures,
+        BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures,
+        BidirectionalOneToOneHashMap<DexMethod, DexMethod> extraOriginalMethodSignatures,
         GraphLens previousLens,
         DexItemFactory dexItemFactory) {
       super(
@@ -551,12 +553,13 @@ public final class InterfaceProcessor {
     }
 
     public void toggleMappingToExtraMethods() {
-      BiMap<DexMethod, DexMethod> tmp = originalMethodSignatures;
+      BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> tmp = originalMethodSignatures;
       this.originalMethodSignatures = extraOriginalMethodSignatures;
       this.extraOriginalMethodSignatures = tmp;
     }
 
-    public BiMap<DexMethod, DexMethod> getExtraOriginalMethodSignatures() {
+    public BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
+        getExtraOriginalMethodSignatures() {
       return extraOriginalMethodSignatures;
     }
 
@@ -577,16 +580,14 @@ public final class InterfaceProcessor {
 
     @Override
     protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
-      return extraOriginalMethodSignatures.getOrDefault(
-          method, originalMethodSignatures.getOrDefault(method, method));
+      return extraOriginalMethodSignatures.getRepresentativeValueOrDefault(
+          method, originalMethodSignatures.getRepresentativeValueOrDefault(method, method));
     }
 
     @Override
     protected DexMethod internalGetNextMethodSignature(DexMethod method) {
-      return originalMethodSignatures
-          .inverse()
-          .getOrDefault(
-              method, extraOriginalMethodSignatures.inverse().getOrDefault(method, method));
+      return originalMethodSignatures.getRepresentativeKeyOrDefault(
+          method, extraOriginalMethodSignatures.getRepresentativeKeyOrDefault(method, method));
     }
 
     @Override
@@ -600,7 +601,8 @@ public final class InterfaceProcessor {
 
     public static class Builder extends NestedGraphLens.Builder {
 
-      private final BiMap<DexMethod, DexMethod> extraOriginalMethodSignatures = HashBiMap.create();
+      private final BidirectionalOneToOneHashMap<DexMethod, DexMethod>
+          extraOriginalMethodSignatures = new BidirectionalOneToOneHashMap<>();
 
       public void recordCodeMovedToCompanionClass(DexMethod from, DexMethod to) {
         assert from != to;

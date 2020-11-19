@@ -26,9 +26,9 @@ import com.android.tools.r8.utils.SymbolGenerationUtils;
 import com.android.tools.r8.utils.SymbolGenerationUtils.MixedCasing;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
@@ -48,7 +48,8 @@ public class UnusedArgumentsCollector {
   private final AppView<AppInfoWithLiveness> appView;
   private final MethodPoolCollection methodPoolCollection;
 
-  private final BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
+  private final BidirectionalOneToOneHashMap<DexMethod, DexMethod> methodMapping =
+      new BidirectionalOneToOneHashMap<>();
   private final Map<DexMethod, ArgumentInfoCollection> removedArguments = new IdentityHashMap<>();
 
   public static class UnusedArgumentsGraphLens extends NestedGraphLens {
@@ -60,7 +61,7 @@ public class UnusedArgumentsCollector {
         Map<DexMethod, DexMethod> methodMap,
         Map<DexField, DexField> fieldMap,
         BiMap<DexField, DexField> originalFieldSignatures,
-        BiMap<DexMethod, DexMethod> originalMethodSignatures,
+        BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures,
         GraphLens previousLens,
         DexItemFactory dexItemFactory,
         Map<DexMethod, ArgumentInfoCollection> removedArguments) {
@@ -111,7 +112,7 @@ public class UnusedArgumentsCollector {
           methodMapping,
           ImmutableMap.of(),
           ImmutableBiMap.of(),
-          methodMapping.inverse(),
+          methodMapping.getInverseOneToOneMap(),
           appView.graphLens(),
           appView.dexItemFactory(),
           removedArguments);

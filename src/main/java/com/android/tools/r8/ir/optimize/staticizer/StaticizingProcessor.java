@@ -45,6 +45,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
@@ -737,7 +738,8 @@ final class StaticizingProcessor {
   }
 
   private ProgramMethodSet staticizeMethodSymbols() {
-    BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
+    BidirectionalOneToOneHashMap<DexMethod, DexMethod> methodMapping =
+        new BidirectionalOneToOneHashMap<>();
     BiMap<DexField, DexField> fieldMapping = HashBiMap.create();
 
     ProgramMethodSet staticizedMethods = ProgramMethodSet.create();
@@ -801,7 +803,7 @@ final class StaticizingProcessor {
       DexProgramClass candidateClass,
       DexType hostType,
       DexProgramClass hostClass,
-      BiMap<DexMethod, DexMethod> methodMapping,
+      BidirectionalOneToOneHashMap<DexMethod, DexMethod> methodMapping,
       BiMap<DexField, DexField> fieldMapping) {
     candidateToHostMapping.put(candidateClass.type, hostType);
 
@@ -856,7 +858,7 @@ final class StaticizingProcessor {
         // has just been migrated to the host class.
         staticizedMethods.createAndAdd(hostClass, newMethod);
       }
-      DexMethod originalMethod = methodMapping.inverse().get(method.method);
+      DexMethod originalMethod = methodMapping.getRepresentativeKey(method.method);
       if (originalMethod == null) {
         methodMapping.put(method.method, newMethod.method);
       } else {
