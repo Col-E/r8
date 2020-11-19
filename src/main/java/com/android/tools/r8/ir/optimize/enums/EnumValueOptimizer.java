@@ -228,16 +228,9 @@ public class EnumValueOptimizer {
         continue;
       }
 
-      Int2IntMap ordinalToTargetMap = new Int2IntArrayMap(switchInsn.numberOfKeys());
-      for (int i = 0; i < switchInsn.numberOfKeys(); i++) {
-        assert switchInsn.targetBlockIndices()[i] != switchInsn.getFallthroughBlockIndex();
-        DexField field = info.indexMap.get(switchInsn.getKey(i));
-        EnumValueInfo valueInfo = info.valueInfoMap.getEnumValueInfo(field);
-        if (valueInfo != null) {
-          ordinalToTargetMap.put(valueInfo.ordinal, switchInsn.targetBlockIndices()[i]);
-        } else {
-          // The switch map refers to a field on the enum that does not exist in this compilation.
-        }
+      Int2IntMap ordinalToTargetMap = computeOrdinalToTargetMap(switchInsn, info);
+      if (ordinalToTargetMap == null) {
+        continue;
       }
 
       int fallthroughBlockIndex = switchInsn.getFallthroughBlockIndex();
@@ -320,6 +313,24 @@ public class EnumValueOptimizer {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+  }
+
+  private Int2IntMap computeOrdinalToTargetMap(IntSwitch switchInsn, EnumSwitchInfo info) {
+    Int2IntMap ordinalToTargetMap = new Int2IntArrayMap(switchInsn.numberOfKeys());
+    for (int i = 0; i < switchInsn.numberOfKeys(); i++) {
+      assert switchInsn.targetBlockIndices()[i] != switchInsn.getFallthroughBlockIndex();
+      DexField field = info.indexMap.get(switchInsn.getKey(i));
+      EnumValueInfo valueInfo = info.valueInfoMap.getEnumValueInfo(field);
+      if (valueInfo != null) {
+        if (appView.appInfo().isPinned(field)) {
+          return null;
+        }
+        ordinalToTargetMap.put(valueInfo.ordinal, switchInsn.targetBlockIndices()[i]);
+      } else {
+        // The switch map refers to a field on the enum that does not exist in this compilation.
+      }
+    }
+    return ordinalToTargetMap;
   }
 
   private static final class EnumSwitchInfo {
