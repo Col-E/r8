@@ -27,6 +27,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoKotlinMetadata;
 import com.android.tools.r8.horizontalclassmerging.policies.NoNativeMethods;
 import com.android.tools.r8.horizontalclassmerging.policies.NoServiceLoaders;
 import com.android.tools.r8.horizontalclassmerging.policies.NoStaticClassInitializer;
+import com.android.tools.r8.horizontalclassmerging.policies.NoUnusedArguments;
 import com.android.tools.r8.horizontalclassmerging.policies.NotMatchedByNoHorizontalClassMerging;
 import com.android.tools.r8.horizontalclassmerging.policies.NotVerticallyMergedIntoSubtype;
 import com.android.tools.r8.horizontalclassmerging.policies.PreserveMethodCharacteristics;
@@ -121,6 +122,7 @@ public class HorizontalClassMerger {
         new NoKeepRules(appView),
         new NoKotlinMetadata(),
         new NoKotlinLambdas(appView),
+        new NoUnusedArguments(appView),
         new NoServiceLoaders(appView),
         new NotVerticallyMergedIntoSubtype(appView),
         new NoDirectRuntimeTypeChecks(runtimeTypeCheckInfo),
