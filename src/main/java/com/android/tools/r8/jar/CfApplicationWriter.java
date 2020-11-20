@@ -255,6 +255,15 @@ public class CfApplicationWriter {
         options.reporter, handler -> consumer.accept(ByteDataView.of(result), desc, handler));
   }
 
+  private CfVersion classFileVersionAfterDesugaring(CfVersion version) {
+    if (!appView.options().isDesugaring()) {
+      return version;
+    }
+    CfVersion maxVersionAfterDesugar =
+        options.canUseDefaultAndStaticInterfaceMethods() ? CfVersion.V1_8 : CfVersion.V1_7;
+    return Ordered.min(maxVersionAfterDesugar, version);
+  }
+
   private CfVersion getClassFileVersion(DexEncodedMethod method) {
     if (!method.hasClassFileVersion()) {
       // In this case bridges have been introduced for the Cf back-end,
@@ -282,7 +291,8 @@ public class CfApplicationWriter {
     for (DexEncodedMethod method : clazz.virtualMethods()) {
       version = Ordered.max(version, getClassFileVersion(method));
     }
-    return version;
+    // Possibly downgrade class file version if code has been desugared.
+    return classFileVersionAfterDesugaring(version);
   }
 
   private DexValue getSystemAnnotationValue(DexAnnotationSet annotations, DexType type) {

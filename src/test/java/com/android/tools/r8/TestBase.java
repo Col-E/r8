@@ -17,6 +17,7 @@ import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
@@ -1723,5 +1724,36 @@ public class TestBase {
         .addClasspathClasses(classpath)
         .compile()
         .writeToZip();
+  }
+
+  protected static CfVersion extractClassFileVersion(byte[] classFileBytes) {
+    class ClassFileVersionExtractor extends ClassVisitor {
+      private int version;
+
+      private ClassFileVersionExtractor() {
+        super(ASM_VERSION);
+      }
+
+      @Override
+      public void visit(
+          int version,
+          int access,
+          String name,
+          String signature,
+          String superName,
+          String[] interfaces) {
+        this.version = version;
+      }
+
+      CfVersion getClassFileVersion() {
+        return CfVersion.fromRaw(version);
+      }
+    }
+
+    ClassReader reader = new ClassReader(classFileBytes);
+    ClassFileVersionExtractor extractor = new ClassFileVersionExtractor();
+    reader.accept(
+        extractor, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+    return extractor.getClassFileVersion();
   }
 }
