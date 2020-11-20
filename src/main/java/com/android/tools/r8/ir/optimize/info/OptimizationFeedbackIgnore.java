@@ -14,7 +14,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
-import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.BitSet;
 import java.util.Set;
@@ -115,8 +115,9 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
       DexEncodedMethod method, ClassInlinerEligibilityInfo eligibility) {}
 
   @Override
-  public void setInstanceInitializerInfo(
-      DexEncodedMethod method, InstanceInitializerInfo instanceInitializerInfo) {}
+  public void setInstanceInitializerInfoCollection(
+      DexEncodedMethod method,
+      InstanceInitializerInfoCollection instanceInitializerInfoCollection) {}
 
   @Override
   public void setInitializerEnablingJavaVmAssertions(DexEncodedMethod method) {}

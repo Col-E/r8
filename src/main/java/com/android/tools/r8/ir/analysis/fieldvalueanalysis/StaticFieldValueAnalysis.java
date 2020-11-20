@@ -348,7 +348,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
         singleTarget
             .getDefinition()
             .getOptimizationInfo()
-            .getInstanceInitializerInfo()
+            .getInstanceInitializerInfo(uniqueConstructorInvoke)
             .fieldInitializationInfos();
     if (initializationInfos.isEmpty()) {
       return ObjectState.empty();

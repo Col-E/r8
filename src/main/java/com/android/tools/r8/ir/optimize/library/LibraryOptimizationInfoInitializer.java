@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.optimize.info.LibraryOptimizationInfoInitializerFeedback;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
+import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.ir.optimize.info.initializer.NonTrivialInstanceInitializerInfo;
 import com.google.common.collect.Sets;
 import java.util.BitSet;
@@ -67,11 +68,12 @@ public class LibraryOptimizationInfoInitializer {
               .recordInitializationInfo(
                   enumMembers.ordinalField, factory.createArgumentInitializationInfo(2))
               .build();
-      feedback.setInstanceInitializerInfo(
+      feedback.setInstanceInitializerInfoCollection(
           enumConstructor,
-          NonTrivialInstanceInitializerInfo.builder(fieldInitializationInfos)
-              .setParent(dexItemFactory.objectMembers.constructor)
-              .build());
+          InstanceInitializerInfoCollection.of(
+              NonTrivialInstanceInitializerInfo.builder(fieldInitializationInfos)
+                  .setParent(dexItemFactory.objectMembers.constructor)
+                  .build()));
     }
   }
 

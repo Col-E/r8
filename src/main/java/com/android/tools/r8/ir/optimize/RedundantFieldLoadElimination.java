@@ -366,7 +366,7 @@ public class RedundantFieldLoadElimination {
     }
 
     InstanceInitializerInfo instanceInitializerInfo =
-        singleTarget.getDefinition().getOptimizationInfo().getInstanceInitializerInfo();
+        singleTarget.getDefinition().getOptimizationInfo().getInstanceInitializerInfo(invoke);
     if (instanceInitializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
       killAllNonFinalActiveFields();
     }

@@ -147,7 +147,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
         singleTarget
             .getDefinition()
             .getOptimizationInfo()
-            .getInstanceInitializerInfo()
+            .getInstanceInitializerInfo(invoke)
             .fieldInitializationInfos();
     for (DexEncodedField field : singleTarget.getHolder().instanceFields()) {
       assert isSubjectToOptimization(field);
@@ -169,7 +169,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
         parentConstructor
             .getDefinition()
             .getOptimizationInfo()
-            .getInstanceInitializerInfo()
+            .getInstanceInitializerInfo(parentConstructorCall)
             .fieldInitializationInfos();
     infos.forEach(
         appView,

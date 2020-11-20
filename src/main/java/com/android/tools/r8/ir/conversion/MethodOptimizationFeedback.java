@@ -14,7 +14,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
-import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.BitSet;
 import java.util.Set;
@@ -60,8 +60,8 @@ public interface MethodOptimizationFeedback {
 
   void setClassInlinerEligibility(DexEncodedMethod method, ClassInlinerEligibilityInfo eligibility);
 
-  void setInstanceInitializerInfo(
-      DexEncodedMethod method, InstanceInitializerInfo instanceInitializerInfo);
+  void setInstanceInitializerInfoCollection(
+      DexEncodedMethod method, InstanceInitializerInfoCollection instanceInitializerInfoCollection);
 
   void setInitializerEnablingJavaVmAssertions(DexEncodedMethod method);
 

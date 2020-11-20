@@ -21,7 +21,7 @@ import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
@@ -255,7 +255,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
     }
 
     // Find the single constructor invocation.
-    InvokeMethod constructorInvoke =
+    InvokeDirect constructorInvoke =
         newInstance.getUniqueConstructorInvoke(appView.dexItemFactory());
     if (constructorInvoke == null || constructorInvoke.getInvokedMethod().holder != clazz.type) {
       // Didn't find a (valid) constructor invocation, give up.
@@ -269,7 +269,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
     }
 
     InstanceInitializerInfo initializerInfo =
-        constructor.getOptimizationInfo().getInstanceInitializerInfo();
+        constructor.getOptimizationInfo().getInstanceInitializerInfo(constructorInvoke);
 
     List<DexEncodedField> fields = clazz.getDirectAndIndirectInstanceFields(appView);
     if (!fields.isEmpty()) {

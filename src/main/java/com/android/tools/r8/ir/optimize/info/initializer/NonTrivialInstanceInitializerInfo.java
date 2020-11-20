@@ -38,6 +38,16 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
     this.parent = parent;
   }
 
+  @Override
+  public boolean isNonTrivialInstanceInitializerInfo() {
+    return true;
+  }
+
+  @Override
+  public NonTrivialInstanceInitializerInfo asNonTrivialInstanceInitializerInfo() {
+    return this;
+  }
+
   private static boolean verifyNoUnknownBits(int data) {
     int knownBits =
         INSTANCE_FIELD_INITIALIZATION_INDEPENDENT_OF_ENVIRONMENT

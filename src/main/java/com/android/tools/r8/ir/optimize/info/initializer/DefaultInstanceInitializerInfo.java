@@ -25,6 +25,11 @@ public class DefaultInstanceInitializerInfo extends InstanceInitializerInfo {
   }
 
   @Override
+  public boolean isDefaultInstanceInitializerInfo() {
+    return true;
+  }
+
+  @Override
   public DexMethod getParent() {
     return null;
   }

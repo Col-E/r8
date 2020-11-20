@@ -229,7 +229,7 @@ public class LibraryMethodOverrideAnalysis {
       }
 
       InstanceInitializerInfo initializerInfo =
-          singleTarget.getDefinition().getOptimizationInfo().getInstanceInitializerInfo();
+          singleTarget.getDefinition().getOptimizationInfo().getInstanceInitializerInfo(invoke);
       return initializerInfo.receiverNeverEscapesOutsideConstructorChain();
     }
   }

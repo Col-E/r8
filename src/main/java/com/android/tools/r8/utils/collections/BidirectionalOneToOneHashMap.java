@@ -50,7 +50,7 @@ public class BidirectionalOneToOneHashMap<K, V>
 
   @Override
   public V get(Object key) {
-    return getRepresentativeValue((K) key);
+    return backing.get(key);
   }
 
   @Override

@@ -12,11 +12,12 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
-import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.BitSet;
@@ -39,8 +40,8 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   private BridgeInfo bridgeInfo = null;
   private ClassInlinerEligibilityInfo classInlinerEligibility =
       DefaultMethodOptimizationInfo.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
-  private InstanceInitializerInfo instanceInitializerInfo =
-      DefaultInstanceInitializerInfo.getInstance();
+  private InstanceInitializerInfoCollection instanceInitializerInfoCollection =
+      InstanceInitializerInfoCollection.empty();
   private ParameterUsagesInfo parametersUsages =
       DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO;
   // Stores information about nullability hint per parameter. If set, that means, the method
@@ -138,7 +139,7 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     inlining = template.inlining;
     bridgeInfo = template.bridgeInfo;
     classInlinerEligibility = template.classInlinerEligibility;
-    instanceInitializerInfo = template.instanceInitializerInfo;
+    instanceInitializerInfoCollection = template.instanceInitializerInfoCollection;
     parametersUsages = template.parametersUsages;
     nonNullParamOrThrow = template.nonNullParamOrThrow;
     nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
@@ -172,9 +173,8 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
 
   public UpdatableMethodOptimizationInfo fixupInstanceInitializerInfo(
       AppView<AppInfoWithLiveness> appView, GraphLens lens) {
-    if (instanceInitializerInfo != null) {
-      instanceInitializerInfo = instanceInitializerInfo.rewrittenWithLens(appView, lens);
-    }
+    instanceInitializerInfoCollection =
+        instanceInitializerInfoCollection.rewrittenWithLens(appView, lens);
     return this;
   }
 
@@ -248,8 +248,13 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
-  public InstanceInitializerInfo getInstanceInitializerInfo() {
-    return instanceInitializerInfo;
+  public InstanceInitializerInfo getContextInsensitiveInstanceInitializerInfo() {
+    return instanceInitializerInfoCollection.getContextInsensitive();
+  }
+
+  @Override
+  public InstanceInitializerInfo getInstanceInitializerInfo(InvokeDirect invoke) {
+    return instanceInitializerInfoCollection.get(invoke);
   }
 
   @Override
@@ -371,8 +376,9 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     this.classInlinerEligibility = eligibility;
   }
 
-  void setInstanceInitializerInfo(InstanceInitializerInfo instanceInitializerInfo) {
-    this.instanceInitializerInfo = instanceInitializerInfo;
+  void setInstanceInitializerInfoCollection(
+      InstanceInitializerInfoCollection instanceInitializerInfoCollection) {
+    this.instanceInitializerInfoCollection = instanceInitializerInfoCollection;
   }
 
   void setInitializerEnablingJavaAssertions() {
@@ -520,7 +526,7 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     // classInlinerEligibility: chances are the method is not an instance method anymore.
     classInlinerEligibility = DefaultMethodOptimizationInfo.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
     // initializerInfo: the computed initializer info may become invalid.
-    instanceInitializerInfo = null;
+    instanceInitializerInfoCollection = InstanceInitializerInfoCollection.empty();
     // initializerEnablingJavaAssertions: `this` could trigger <clinit> of the previous holder.
     setFlag(
         INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG,

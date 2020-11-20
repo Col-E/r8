@@ -162,7 +162,7 @@ public class FieldAssignmentTracker {
         singleTarget
             .getDefinition()
             .getOptimizationInfo()
-            .getInstanceInitializerInfo()
+            .getInstanceInitializerInfo(invoke)
             .fieldInitializationInfos();
 
     // Synchronize on the lattice element (abstractInstanceFieldValuesForClass) in case we process
@@ -232,7 +232,7 @@ public class FieldAssignmentTracker {
         InstanceFieldInitializationInfo fieldInitializationInfo =
             method
                 .getOptimizationInfo()
-                .getInstanceInitializerInfo()
+                .getContextInsensitiveInstanceInitializerInfo()
                 .fieldInitializationInfos()
                 .get(field);
         if (fieldInitializationInfo.isSingleValue()) {

@@ -12,6 +12,14 @@ import java.util.function.IntFunction;
 
 public class MapUtils {
 
+  public static <K, V> K firstKey(Map<K, V> map) {
+    return map.keySet().iterator().next();
+  }
+
+  public static <K, V> V firstValue(Map<K, V> map) {
+    return map.values().iterator().next();
+  }
+
   public static <K, V> Map<K, V> map(
       Map<K, V> map,
       IntFunction<Map<K, V>> factory,

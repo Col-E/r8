@@ -13,6 +13,18 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class InstanceInitializerInfo {
 
+  public boolean isDefaultInstanceInitializerInfo() {
+    return false;
+  }
+
+  public boolean isNonTrivialInstanceInitializerInfo() {
+    return false;
+  }
+
+  public NonTrivialInstanceInitializerInfo asNonTrivialInstanceInitializerInfo() {
+    return null;
+  }
+
   public abstract DexMethod getParent();
 
   public abstract InstanceFieldInitializationInfoCollection fieldInitializationInfos();

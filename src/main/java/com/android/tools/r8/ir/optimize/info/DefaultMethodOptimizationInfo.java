@@ -9,6 +9,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
@@ -82,7 +83,12 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
-  public InstanceInitializerInfo getInstanceInitializerInfo() {
+  public InstanceInitializerInfo getContextInsensitiveInstanceInitializerInfo() {
+    return DefaultInstanceInitializerInfo.getInstance();
+  }
+
+  @Override
+  public InstanceInitializerInfo getInstanceInitializerInfo(InvokeDirect invoke) {
     return DefaultInstanceInitializerInfo.getInstance();
   }
 

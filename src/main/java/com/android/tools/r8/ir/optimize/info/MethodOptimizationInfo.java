@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
@@ -68,7 +69,9 @@ public abstract class MethodOptimizationInfo {
 
   public abstract Set<DexType> getInitializedClassesOnNormalExit();
 
-  public abstract InstanceInitializerInfo getInstanceInitializerInfo();
+  public abstract InstanceInitializerInfo getContextInsensitiveInstanceInitializerInfo();
+
+  public abstract InstanceInitializerInfo getInstanceInitializerInfo(InvokeDirect invoke);
 
   public abstract boolean isInitializerEnablingJavaVmAssertions();
 

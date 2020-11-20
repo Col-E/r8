@@ -698,7 +698,7 @@ public class EnumUnboxer {
               hasInstanceInitializer = true;
               if (directMethod
                   .getOptimizationInfo()
-                  .getInstanceInitializerInfo()
+                  .getContextInsensitiveInstanceInitializerInfo()
                   .mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
                 markEnumAsUnboxable(Reason.INVALID_INIT, enumClass);
                 break;
@@ -714,6 +714,7 @@ public class EnumUnboxer {
           }
 
           if (enumClass.classInitializationMayHaveSideEffects(appView)) {
+            enumClass.classInitializationMayHaveSideEffects(appView);
             markEnumAsUnboxable(Reason.INVALID_CLINIT, enumClass);
           }
         });

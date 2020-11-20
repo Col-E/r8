@@ -14,7 +14,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
-import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.AppInfoWithLivenessModifier;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -254,10 +254,11 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void setInstanceInitializerInfo(
-      DexEncodedMethod method, InstanceInitializerInfo instanceInitializerInfo) {
+  public synchronized void setInstanceInitializerInfoCollection(
+      DexEncodedMethod method,
+      InstanceInitializerInfoCollection instanceInitializerInfoCollection) {
     getMethodOptimizationInfoForUpdating(method)
-        .setInstanceInitializerInfo(instanceInitializerInfo);
+        .setInstanceInitializerInfoCollection(instanceInitializerInfoCollection);
   }
 
   @Override

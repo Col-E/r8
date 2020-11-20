@@ -202,7 +202,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
         return singleTarget
             .getDefinition()
             .getOptimizationInfo()
-            .getInstanceInitializerInfo()
+            .getInstanceInitializerInfo(this)
             .readSet();
       }
     }

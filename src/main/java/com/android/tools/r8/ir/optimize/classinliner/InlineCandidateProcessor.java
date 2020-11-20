@@ -826,7 +826,7 @@ final class InlineCandidateProcessor {
 
     // Check that the `eligibleInstance` does not escape via the constructor.
     InstanceInitializerInfo instanceInitializerInfo =
-        singleTarget.getDefinition().getOptimizationInfo().getInstanceInitializerInfo();
+        singleTarget.getDefinition().getOptimizationInfo().getInstanceInitializerInfo(invoke);
     if (instanceInitializerInfo.receiverMayEscapeOutsideConstructorChain()) {
       return null;
     }
@@ -856,7 +856,11 @@ final class InlineCandidateProcessor {
           NopWhyAreYouNotInliningReporter.getInstance())) {
         return null;
       }
-      parent = encodedParentMethod.getOptimizationInfo().getInstanceInitializerInfo().getParent();
+      parent =
+          encodedParentMethod
+              .getOptimizationInfo()
+              .getContextInsensitiveInstanceInitializerInfo()
+              .getParent();
     }
 
     return new InliningInfo(singleTarget, eligibleClass.type);
@@ -1317,7 +1321,7 @@ final class InlineCandidateProcessor {
       return false;
     }
     InstanceInitializerInfo initializerInfo =
-        definition.getOptimizationInfo().getInstanceInitializerInfo();
+        definition.getOptimizationInfo().getContextInsensitiveInstanceInitializerInfo();
     return initializerInfo.receiverNeverEscapesOutsideConstructorChain();
   }
 

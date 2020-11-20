@@ -93,8 +93,8 @@ import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsageBuilder;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeAnalyzer;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
-import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.ir.optimize.info.initializer.NonTrivialInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.typechecks.CheckCastAndInstanceOfMethodSpecialization;
 import com.android.tools.r8.kotlin.Kotlin;
@@ -437,11 +437,8 @@ public class MethodOptimizationInfoCollector {
     NonTrivialInstanceInitializerInfo.Builder builder =
         NonTrivialInstanceInitializerInfo.builder(instanceFieldInitializationInfos);
     InstanceInitializerInfo instanceInitializerInfo = analyzeInstanceInitializer(code, builder);
-    feedback.setInstanceInitializerInfo(
-        method,
-        instanceInitializerInfo != null
-            ? instanceInitializerInfo
-            : DefaultInstanceInitializerInfo.getInstance());
+    feedback.setInstanceInitializerInfoCollection(
+        method, InstanceInitializerInfoCollection.of(instanceInitializerInfo));
   }
 
   // This method defines trivial instance initializer as follows:
@@ -586,7 +583,8 @@ public class MethodOptimizationInfoCollector {
                   builder.setParent(invokedMethod);
                   break;
                 }
-                builder.merge(singleTarget.getOptimizationInfo().getInstanceInitializerInfo());
+                builder.merge(
+                    singleTarget.getOptimizationInfo().getInstanceInitializerInfo(invoke));
                 for (int i = 1; i < invoke.arguments().size(); i++) {
                   Value argument =
                       invoke.arguments().get(i).getAliasedValue(aliasesThroughAssumeAndCheckCasts);
