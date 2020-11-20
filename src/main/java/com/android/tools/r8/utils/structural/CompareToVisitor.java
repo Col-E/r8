@@ -40,8 +40,7 @@ public abstract class CompareToVisitor {
     visitItemIterator(items1.iterator(), items2.iterator(), S::acceptCompareTo);
   }
 
-  public abstract void visitDexString(
-      DexString string1, DexString string2, Comparator<DexString> comparator);
+  public abstract void visitDexString(DexString string1, DexString string2);
 
   public abstract void visitDexType(DexType type1, DexType type2);
 

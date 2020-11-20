@@ -46,9 +46,15 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
     throw new Unreachable();
   }
 
+  /** DexString is a leaf item so we directly define its compareTo which avoids overhead. */
+  @Override
+  public int compareTo(DexString other) {
+    return internalCompareTo(other);
+  }
+
   @Override
   public void acceptCompareTo(DexString other, CompareToVisitor visitor) {
-    visitor.visitDexString(this, other, DexString::internalCompareTo);
+    visitor.visitDexString(this, other);
   }
 
   @Override

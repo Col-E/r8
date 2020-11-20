@@ -87,6 +87,7 @@ public final class DexSplitterHelper {
           getDistribution(app, featureClassMapping, mapper);
       for (Entry<String, LazyLoadedDexApplication.Builder> entry : applications.entrySet()) {
         String feature = entry.getKey();
+        timing.begin("Feature " + feature);
         DexApplication featureApp = entry.getValue().build();
         assert !options.hasMethodsFilter();
 
@@ -121,6 +122,7 @@ public final class DexSplitterHelper {
         } finally {
           consumer.finished(options.reporter);
         }
+        timing.end();
       }
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);

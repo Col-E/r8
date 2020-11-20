@@ -79,10 +79,9 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
   }
 
   @Override
-  public final void visitDexString(
-      DexString string1, DexString string2, Comparator<DexString> comparator) {
+  public void visitDexString(DexString string1, DexString string2) {
     if (stillEqual()) {
-      setOrder(comparator.compare(string1, string2));
+      setOrder(string1.compareTo(string2));
     }
   }
 

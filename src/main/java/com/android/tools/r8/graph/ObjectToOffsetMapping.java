@@ -7,6 +7,9 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.structural.CompareToVisitorWithStringTable;
+import com.android.tools.r8.utils.structural.CompareToVisitorWithTypeTable;
 import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap.Entry;
@@ -17,6 +20,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 public class ObjectToOffsetMapping {
@@ -53,7 +57,8 @@ public class ObjectToOffsetMapping {
       Collection<DexField> fields,
       Collection<DexString> strings,
       Collection<DexCallSite> callSites,
-      Collection<DexMethodHandle> methodHandles) {
+      Collection<DexMethodHandle> methodHandles,
+      Timing timing) {
     assert appView != null;
     assert graphLens != null;
     assert classes != null;
@@ -69,18 +74,42 @@ public class ObjectToOffsetMapping {
     this.namingLens = namingLens;
     this.initClassLens = initClassLens;
     this.lensCodeRewriter = new LensCodeRewriterUtils(appView);
+    timing.begin("Sort strings");
+    this.strings = createSortedMap(strings, DexString::compareTo, this::setFirstJumboString);
+    timing.end();
+    timing.begin("Sort types");
+    this.types = createSortedMap(types, compareWithStringTable(), this::failOnOverflow);
+    timing.end();
+    timing.begin("Sort classes");
     this.classes = sortClasses(appView.appInfo(), classes, namingLens);
-    this.protos = createSortedMap(protos, compare(namingLens), this::failOnOverflow);
-    this.types = createSortedMap(types, compare(namingLens), this::failOnOverflow);
-    this.methods = createSortedMap(methods, compare(namingLens), this::failOnOverflow);
-    this.fields = createSortedMap(fields, compare(namingLens), this::failOnOverflow);
-    this.strings = createSortedMap(strings, compare(namingLens), this::setFirstJumboString);
+    timing.end();
+    timing.begin("Sort protos");
+    this.protos = createSortedMap(protos, compareWithTypeTable(), this::failOnOverflow);
+    timing.end();
+    timing.begin("Sort methods");
+    this.methods = createSortedMap(methods, compareWithTypeTable(), this::failOnOverflow);
+    timing.end();
+    timing.begin("Sort fields");
+    this.fields = createSortedMap(fields, compareWithTypeTable(), this::failOnOverflow);
+    timing.end();
+    timing.begin("Sort call-sites");
     this.callSites = createSortedMap(callSites, DexCallSite::compareTo, this::failOnOverflow);
-    this.methodHandles = createSortedMap(methodHandles, compare(namingLens), this::failOnOverflow);
+    timing.end();
+    timing.begin("Sort method handles");
+    this.methodHandles =
+        createSortedMap(methodHandles, compareWithTypeTable(), this::failOnOverflow);
+    timing.end();
   }
 
-  private static <T extends NamingLensComparable<T>> Comparator<T> compare(NamingLens namingLens) {
-    return (a, b) -> a.compareToWithNamingLens(b, namingLens);
+  private <T extends NamingLensComparable<T>> Comparator<T> compareWithStringTable() {
+    return (a, b) ->
+        CompareToVisitorWithStringTable.run(
+            a, b, namingLens, (ToIntFunction<DexString>) strings::getInt);
+  }
+
+  private <T extends NamingLensComparable<T>> Comparator<T> compareWithTypeTable() {
+    return (a, b) ->
+        CompareToVisitorWithTypeTable.run(a, b, namingLens, strings::getInt, types::getInt);
   }
 
   private void setFirstJumboString(DexString string) {
@@ -95,7 +124,7 @@ public class ObjectToOffsetMapping {
   private <T> Reference2IntLinkedOpenHashMap<T> createSortedMap(
       Collection<T> items, Comparator<T> comparator, Consumer<T> onUInt16Overflow) {
     if (items.isEmpty()) {
-      return null;
+      return new Reference2IntLinkedOpenHashMap<>();
     }
     // Sort items and compute the offset mapping for each in sorted order.
     ArrayList<T> sorted = new ArrayList<>(items);

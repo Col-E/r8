@@ -3,6 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import static com.android.tools.r8.TestBase.getTestParameters;
+
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
@@ -16,11 +20,25 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.Timing;
 import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class DebugByteCodeWriterTest {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public DebugByteCodeWriterTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   private ObjectToOffsetMapping emptyObjectTObjectMapping() {
     return new ObjectToOffsetMapping(
@@ -39,7 +57,8 @@ public class DebugByteCodeWriterTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Collections.emptyList(),
-        Collections.emptyList());
+        Collections.emptyList(),
+        Timing.empty());
   }
 
   @Test

@@ -290,9 +290,11 @@ public final class D8 {
           // desugared library only on cf inputs. We cannot easily rewrite part of the program
           // without iterating again the IR. We fall-back to writing one app with rewriting and
           // merging it with the other app in rewriteNonDexInputs.
+          timing.begin("Rewrite non-dex inputs");
           DexApplication app =
               rewriteNonDexInputs(
                   appView, inputApp, options, executor, timing, appView.appInfo().app());
+          timing.end();
           appView.setAppInfo(
               new AppInfo(
                   appView.appInfo().getSyntheticItems().commit(app),

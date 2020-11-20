@@ -34,6 +34,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -209,7 +210,11 @@ public class VirtualFile {
   }
 
   public ObjectToOffsetMapping computeMapping(
-      AppView<?> appView, GraphLens graphLens, NamingLens namingLens, InitClassLens initClassLens) {
+      AppView<?> appView,
+      GraphLens graphLens,
+      NamingLens namingLens,
+      InitClassLens initClassLens,
+      Timing timing) {
     assert transaction.isEmpty();
     return new ObjectToOffsetMapping(
         appView,
@@ -223,7 +228,8 @@ public class VirtualFile {
         indexedItems.fields,
         indexedItems.strings,
         indexedItems.callSites,
-        indexedItems.methodHandles);
+        indexedItems.methodHandles,
+        timing);
   }
 
   void addClass(DexProgramClass clazz) {

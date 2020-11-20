@@ -54,6 +54,8 @@ import com.android.tools.r8.utils.PredicateUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.Timing.TimingMerger;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ObjectArrays;
 import it.unimi.dsi.fastutil.objects.Reference2LongMap;
@@ -229,7 +231,8 @@ public class ApplicationWriter {
   }
 
   public void write(ExecutorService executorService) throws IOException, ExecutionException {
-    appView.appInfo().app().timing.begin("DexApplication.write");
+    Timing timing = appView.appInfo().app().timing;
+    timing.begin("DexApplication.write");
     ProguardMapId proguardMapId = null;
     if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
       proguardMapId = proguardMapSupplier.writeProguardMap();
@@ -248,19 +251,27 @@ public class ApplicationWriter {
       }
     }
     try {
+      timing.begin("Insert Attribute Annotations");
       // TODO(b/151313715): Move this to the writer threads.
       insertAttributeAnnotations();
+      timing.end();
 
       // Each DexCallSite must have its instruction offset set for sorting.
       if (options.isGeneratingDex()) {
+        timing.begin("Set call-site contexts");
         setCallSiteContexts(executorService);
+        timing.end();
       }
 
       // Generate the dex file contents.
       List<Future<Boolean>> dexDataFutures = new ArrayList<>();
+      timing.begin("Distribute");
       List<VirtualFile> virtualFiles = distribute(executorService);
+      timing.end();
       if (options.encodeChecksums) {
+        timing.begin("Encode checksums");
         encodeChecksums(virtualFiles);
+        timing.end();
       }
       assert markers == null
           || markers.isEmpty()
@@ -270,69 +281,25 @@ public class ApplicationWriter {
           true);
 
       // TODO(b/151313617): Sorting annotations mutates elements so run single threaded on main.
+      timing.begin("Sort Annotations");
       SortAnnotations sortAnnotations = new SortAnnotations(namingLens);
       appView.appInfo().classes().forEach((clazz) -> clazz.addDependencies(sortAnnotations));
+      timing.end();
 
-      for (VirtualFile virtualFile : virtualFiles) {
-        if (virtualFile.isEmpty()) {
-          continue;
-        }
-        dexDataFutures.add(
-            executorService.submit(
-                () -> {
-                  ProgramConsumer consumer;
-                  ByteBufferProvider byteBufferProvider;
-                  if (programConsumer != null) {
-                    consumer = programConsumer;
-                    byteBufferProvider = programConsumer;
-                  } else if (virtualFile.getPrimaryClassDescriptor() != null) {
-                    consumer = options.getDexFilePerClassFileConsumer();
-                    byteBufferProvider = options.getDexFilePerClassFileConsumer();
-                  } else {
-                    if (virtualFile.getFeatureSplit() != null) {
-                      ProgramConsumer featureConsumer =
-                          virtualFile.getFeatureSplit().getProgramConsumer();
-                      assert featureConsumer instanceof DexIndexedConsumer;
-                      consumer = featureConsumer;
-                      byteBufferProvider = (DexIndexedConsumer) featureConsumer;
-                    } else {
-                      consumer = options.getDexIndexedConsumer();
-                      byteBufferProvider = options.getDexIndexedConsumer();
-                    }
-                  }
-                  ObjectToOffsetMapping objectMapping =
-                      virtualFile.computeMapping(appView, graphLens, namingLens, initClassLens);
-                  MethodToCodeObjectMapping codeMapping =
-                      rewriteCodeWithJumboStrings(
-                          objectMapping, virtualFile.classes(), appView.appInfo().app());
-                  ByteBufferResult result =
-                      writeDexFile(objectMapping, codeMapping, byteBufferProvider);
-                  ByteDataView data =
-                      new ByteDataView(
-                          result.buffer.array(), result.buffer.arrayOffset(), result.length);
-                  if (consumer instanceof DexFilePerClassFileConsumer) {
-                    ((DexFilePerClassFileConsumer) consumer)
-                        .accept(
-                            virtualFile.getPrimaryClassDescriptor(),
-                            data,
-                            virtualFile.getClassDescriptors(),
-                            options.reporter);
-                  } else {
-                    ((DexIndexedConsumer) consumer)
-                        .accept(
-                            virtualFile.getId(),
-                            data,
-                            virtualFile.getClassDescriptors(),
-                            options.reporter);
-                  }
-                  // Release use of the backing buffer now that accept has returned.
-                  data.invalidate();
-                  byteBufferProvider.releaseByteBuffer(result.buffer.asByteBuffer());
-                  return true;
-                }));
-      }
-      // Wait for all files to be processed before moving on.
-      ThreadUtils.awaitFutures(dexDataFutures);
+      TimingMerger merger =
+          timing.beginMerger("Write files", ThreadUtils.getNumberOfThreads(executorService));
+      Collection<Timing> timings =
+          ThreadUtils.processItemsWithResults(
+              virtualFiles,
+              virtualFile -> {
+                Timing fileTiming = Timing.create("VirtualFile " + virtualFile.getId(), options);
+                writeVirtualFile(virtualFile, fileTiming);
+                fileTiming.end();
+                return fileTiming;
+              },
+              executorService);
+      merger.add(timings);
+      merger.end();
       // A consumer can manage the generated keep rules.
       if (options.desugaredLibraryKeepRuleConsumer != null && !desugaredLibraryCodeToKeep.isNop()) {
         assert !options.isDesugaredLibraryCompilation();
@@ -343,8 +310,62 @@ public class ApplicationWriter {
       // Supply info to all additional resource consumers.
       supplyAdditionalConsumers(appView.appInfo().app(), appView, graphLens, namingLens, options);
     } finally {
-      appView.appInfo().app().timing.end();
+      timing.end();
     }
+  }
+
+  private void writeVirtualFile(VirtualFile virtualFile, Timing timing) {
+    if (virtualFile.isEmpty()) {
+      return;
+    }
+    ProgramConsumer consumer;
+    ByteBufferProvider byteBufferProvider;
+    if (programConsumer != null) {
+      consumer = programConsumer;
+      byteBufferProvider = programConsumer;
+    } else if (virtualFile.getPrimaryClassDescriptor() != null) {
+      consumer = options.getDexFilePerClassFileConsumer();
+      byteBufferProvider = options.getDexFilePerClassFileConsumer();
+    } else {
+      if (virtualFile.getFeatureSplit() != null) {
+        ProgramConsumer featureConsumer = virtualFile.getFeatureSplit().getProgramConsumer();
+        assert featureConsumer instanceof DexIndexedConsumer;
+        consumer = featureConsumer;
+        byteBufferProvider = (DexIndexedConsumer) featureConsumer;
+      } else {
+        consumer = options.getDexIndexedConsumer();
+        byteBufferProvider = options.getDexIndexedConsumer();
+      }
+    }
+    timing.begin("Compute object offset mapping");
+    ObjectToOffsetMapping objectMapping =
+        virtualFile.computeMapping(appView, graphLens, namingLens, initClassLens, timing);
+    timing.end();
+    timing.begin("Rewrite jumbo strings");
+    MethodToCodeObjectMapping codeMapping =
+        rewriteCodeWithJumboStrings(objectMapping, virtualFile.classes(), appView.appInfo().app());
+    timing.end();
+    timing.begin("Write bytes");
+    ByteBufferResult result = writeDexFile(objectMapping, codeMapping, byteBufferProvider);
+    ByteDataView data =
+        new ByteDataView(result.buffer.array(), result.buffer.arrayOffset(), result.length);
+    timing.end();
+    timing.begin("Pass bytes to consumer");
+    if (consumer instanceof DexFilePerClassFileConsumer) {
+      ((DexFilePerClassFileConsumer) consumer)
+          .accept(
+              virtualFile.getPrimaryClassDescriptor(),
+              data,
+              virtualFile.getClassDescriptors(),
+              options.reporter);
+    } else {
+      ((DexIndexedConsumer) consumer)
+          .accept(virtualFile.getId(), data, virtualFile.getClassDescriptors(), options.reporter);
+    }
+    timing.end();
+    // Release use of the backing buffer now that accept has returned.
+    data.invalidate();
+    byteBufferProvider.releaseByteBuffer(result.buffer.asByteBuffer());
   }
 
   public static void supplyAdditionalConsumers(

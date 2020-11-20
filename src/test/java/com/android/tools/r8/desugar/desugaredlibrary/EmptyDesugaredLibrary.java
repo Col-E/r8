@@ -13,6 +13,8 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.charset.StandardCharsets;
@@ -21,8 +23,21 @@ import java.nio.file.Path;
 import java.util.Set;
 import java.util.zip.ZipFile;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public EmptyDesugaredLibrary(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   private L8Command.Builder prepareL8Builder(AndroidApiLevel minApiLevel) {
     return L8Command.builder()
