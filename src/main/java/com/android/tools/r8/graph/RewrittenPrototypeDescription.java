@@ -396,6 +396,12 @@ public class RewrittenPrototypeDescription {
     return rewrittenReturnInfo != null;
   }
 
+  public boolean requiresRewritingAtCallSite() {
+    return hasRewrittenReturnInfo()
+        || numberOfExtraParameters() > 0
+        || argumentInfoCollection.numberOfRemovedArguments() > 0;
+  }
+
   public RewrittenTypeInfo getRewrittenReturnInfo() {
     return rewrittenReturnInfo;
   }

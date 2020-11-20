@@ -223,9 +223,11 @@ public class LensCodeRewriter {
                   graphLens.lookupMethod(invokedMethod, method.getReference(), invoke.getType());
               DexMethod actualTarget = lensLookup.getReference();
               Invoke.Type actualInvokeType = lensLookup.getType();
-              if (actualTarget != invokedMethod || invoke.getType() != actualInvokeType) {
-                RewrittenPrototypeDescription prototypeChanges = lensLookup.getPrototypeChanges();
 
+              RewrittenPrototypeDescription prototypeChanges = lensLookup.getPrototypeChanges();
+              if (prototypeChanges.requiresRewritingAtCallSite()
+                  || invoke.getType() != actualInvokeType
+                  || actualTarget != invokedMethod) {
                 List<Value> newInValues;
                 ArgumentInfoCollection argumentInfoCollection =
                     prototypeChanges.getArgumentInfoCollection();
