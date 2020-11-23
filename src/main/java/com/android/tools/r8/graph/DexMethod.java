@@ -9,7 +9,7 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
-import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,13 +31,13 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     }
   }
 
-  private static void accept(StructuralSpecification<DexMethod, ?> spec) {
+  private static void specify(StructuralSpecification<DexMethod, ?> spec) {
     spec.withItem(DexMethod::getHolderType).withItem(DexMethod::getName).withItem(m -> m.proto);
   }
 
   @Override
-  public StructuralAccept<DexMethod> getStructuralAccept() {
-    return DexMethod::accept;
+  public StructuralMapping<DexMethod> getStructuralMapping() {
+    return DexMethod::specify;
   }
 
   @Override

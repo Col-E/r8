@@ -11,7 +11,7 @@ public interface StructuralItem<T extends StructuralItem<T>> extends Ordered<T> 
 
   T self();
 
-  StructuralAccept<T> getStructuralAccept();
+  StructuralMapping<T> getStructuralMapping();
 
   // CompareTo implementation and callbacks.
 
@@ -44,7 +44,7 @@ public interface StructuralItem<T extends StructuralItem<T>> extends Ordered<T> 
 
   /** Default accept for compareTo visitors. Override to change behavior. */
   default int acceptCompareTo(T other, CompareToVisitor visitor) {
-    return visitor.visit(self(), other, self().getStructuralAccept());
+    return visitor.visit(self(), other, self().getStructuralMapping());
   }
 
   // Hashing implemenation and callbacks.
@@ -83,6 +83,6 @@ public interface StructuralItem<T extends StructuralItem<T>> extends Ordered<T> 
 
   /** Default accept for hashing visitors. Override to change behavior. */
   default void acceptHashing(HashingVisitor visitor) {
-    visitor.visit(self(), self().getStructuralAccept());
+    visitor.visit(self(), self().getStructuralMapping());
   }
 }

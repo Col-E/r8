@@ -5,7 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
@@ -25,7 +25,7 @@ public class DexProto extends IndexedDexItem implements NamingLensComparable<Dex
     this.parameters = parameters;
   }
 
-  private static void accept(StructuralSpecification<DexProto, ?> spec) {
+  private static void specify(StructuralSpecification<DexProto, ?> spec) {
     spec.withItem(DexProto::getReturnType)
         .withItem(p -> p.parameters)
         // TODO(b/172206529): Consider removing shorty.
@@ -33,8 +33,8 @@ public class DexProto extends IndexedDexItem implements NamingLensComparable<Dex
   }
 
   @Override
-  public StructuralAccept<DexProto> getStructuralAccept() {
-    return DexProto::accept;
+  public StructuralMapping<DexProto> getStructuralMapping() {
+    return DexProto::specify;
   }
 
   @Override

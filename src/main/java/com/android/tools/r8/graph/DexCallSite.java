@@ -10,8 +10,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.io.BaseEncoding;
 import java.io.ByteArrayOutputStream;
@@ -108,7 +108,7 @@ public final class DexCallSite extends IndexedDexItem implements StructuralItem<
   }
 
   @Override
-  public StructuralAccept<DexCallSite> getStructuralAccept() {
+  public StructuralMapping<DexCallSite> getStructuralMapping() {
     return DexCallSite::specify;
   }
 

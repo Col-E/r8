@@ -9,8 +9,8 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
@@ -47,7 +47,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem
   }
 
   @Override
-  public StructuralAccept<DexAnnotationSet> getStructuralAccept() {
+  public StructuralMapping<DexAnnotationSet> getStructuralMapping() {
     return DexAnnotationSet::specify;
   }
 

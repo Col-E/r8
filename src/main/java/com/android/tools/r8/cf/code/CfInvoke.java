@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Arrays;
 import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
@@ -44,6 +45,10 @@ public class CfInvoke extends CfInstruction {
   private final DexMethod method;
   private final int opcode;
   private final boolean itf;
+
+  private static void specify(StructuralSpecification<CfInvoke, ?> spec) {
+    spec.withBool(CfInvoke::isInterface).withItem(CfInvoke::getMethod);
+  }
 
   public CfInvoke(int opcode, DexMethod method, boolean itf) {
     assert Opcodes.INVOKEVIRTUAL <= opcode && opcode <= Opcodes.INVOKEINTERFACE;
@@ -63,10 +68,7 @@ public class CfInvoke extends CfInstruction {
   public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     CfInvoke otherInvoke = other.asInvoke();
-    return visitor.visit(
-        this,
-        otherInvoke,
-        spec -> spec.withBool(CfInvoke::isInterface).withItem(CfInvoke::getMethod));
+    return visitor.visit(this, otherInvoke, CfInvoke::specify);
   }
 
   public DexMethod getMethod() {

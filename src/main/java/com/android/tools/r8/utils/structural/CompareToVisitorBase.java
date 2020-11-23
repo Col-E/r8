@@ -83,7 +83,7 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
   }
 
   @Override
-  public final <S> int visit(S item1, S item2, StructuralAccept<S> accept) {
+  public final <S> int visit(S item1, S item2, StructuralMapping<S> accept) {
     ItemSpecification<S> itemVisitor = new ItemSpecification<>(item1, item2, this);
     accept.apply(itemVisitor);
     return itemVisitor.order;

@@ -9,8 +9,9 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 
 public enum ValueType implements StructuralItem<ValueType> {
   OBJECT,
@@ -19,14 +20,18 @@ public enum ValueType implements StructuralItem<ValueType> {
   LONG,
   DOUBLE;
 
+  private static void specify(StructuralSpecification<ValueType, ?> spec) {
+    spec.withInt(Enum::ordinal);
+  }
+
   @Override
   public ValueType self() {
     return this;
   }
 
   @Override
-  public StructuralAccept<ValueType> getStructuralAccept() {
-    return spec -> spec.withInt(Enum::ordinal);
+  public StructuralMapping<ValueType> getStructuralMapping() {
+    return ValueType::specify;
   }
 
   public boolean isObject() {

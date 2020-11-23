@@ -16,8 +16,8 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,7 +49,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   }
 
   @Override
-  public StructuralAccept<DexAnnotation> getStructuralAccept() {
+  public StructuralMapping<DexAnnotation> getStructuralMapping() {
     return DexAnnotation::specify;
   }
 

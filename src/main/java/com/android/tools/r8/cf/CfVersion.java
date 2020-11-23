@@ -5,8 +5,8 @@ package com.android.tools.r8.cf;
 
 import com.android.tools.r8.utils.structural.Equatable;
 import com.android.tools.r8.utils.structural.HashCodeVisitor;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import org.objectweb.asm.Opcodes;
 
@@ -57,7 +57,7 @@ public final class CfVersion implements StructuralItem<CfVersion> {
   }
 
   @Override
-  public StructuralAccept<CfVersion> getStructuralAccept() {
+  public StructuralMapping<CfVersion> getStructuralMapping() {
     return CfVersion::specify;
   }
 

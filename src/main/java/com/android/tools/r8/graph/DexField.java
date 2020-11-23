@@ -8,7 +8,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
-import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Collections;
 import java.util.function.BiConsumer;
@@ -28,7 +28,7 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
     }
   }
 
-  private static void accept(StructuralSpecification<DexField, ?> spec) {
+  private static void specify(StructuralSpecification<DexField, ?> spec) {
     spec.withItem(DexField::getHolderType).withItem(DexField::getName).withItem(DexField::getType);
   }
 
@@ -38,8 +38,8 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   }
 
   @Override
-  public StructuralAccept<DexField> getStructuralAccept() {
-    return DexField::accept;
+  public StructuralMapping<DexField> getStructuralMapping() {
+    return DexField::specify;
   }
 
   public DexType getType() {

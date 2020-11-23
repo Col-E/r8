@@ -4,9 +4,7 @@
 package com.android.tools.r8.utils.structural;
 
 /** Mapping of a specification over an item. */
-// TODO(b/171867022): Rename this to StructuralMapping to avoid confusion with the Acceptor and
-//  accept classes.
 @FunctionalInterface
-public interface StructuralAccept<T> {
+public interface StructuralMapping<T> {
   void apply(StructuralSpecification<T, ?> spec);
 }

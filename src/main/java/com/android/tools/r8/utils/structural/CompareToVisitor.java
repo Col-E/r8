@@ -48,16 +48,16 @@ public abstract class CompareToVisitor {
   public abstract int visitDexType(DexType type1, DexType type2);
 
   public int visitDexField(DexField field1, DexField field2) {
-    return visit(field1, field2, field1.getStructuralAccept());
+    return visit(field1, field2, field1.getStructuralMapping());
   }
 
   public int visitDexMethod(DexMethod method1, DexMethod method2) {
-    return visit(method1, method2, method1.getStructuralAccept());
+    return visit(method1, method2, method1.getStructuralMapping());
   }
 
   public abstract int visitDexReference(DexReference reference1, DexReference reference2);
 
-  public abstract <S> int visit(S item1, S item2, StructuralAccept<S> accept);
+  public abstract <S> int visit(S item1, S item2, StructuralMapping<S> accept);
 
   @Deprecated
   public abstract <S> int visit(S item1, S item2, Comparator<S> comparator);

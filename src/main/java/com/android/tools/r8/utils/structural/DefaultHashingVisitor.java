@@ -14,7 +14,7 @@ import com.google.common.hash.Hasher;
  */
 public class DefaultHashingVisitor {
 
-  public static <T> void run(T item, Hasher hasher, StructuralAccept<T> accept) {
+  public static <T> void run(T item, Hasher hasher, StructuralMapping<T> accept) {
     run(item, hasher, (i, visitor) -> visitor.visit(i, accept));
   }
 

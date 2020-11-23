@@ -8,7 +8,7 @@ import com.android.tools.r8.utils.structural.StructuralItem.CompareToAccept;
 
 public class CompareToVisitorWithTypeEquivalence extends CompareToVisitorBase {
 
-  public static <T> int run(T item1, T item2, RepresentativeMap map, StructuralAccept<T> visit) {
+  public static <T> int run(T item1, T item2, RepresentativeMap map, StructuralMapping<T> visit) {
     return run(item1, item2, map, (i1, i2, visitor) -> visitor.visit(i1, i2, visit));
   }
 

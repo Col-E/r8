@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -27,6 +28,10 @@ public class CfIinc extends CfInstruction {
 
   private final int var;
   private final int increment;
+
+  private static void specify(StructuralSpecification<CfIinc, ?> spec) {
+    spec.withInt(CfIinc::getLocalIndex).withInt(CfIinc::getIncrement);
+  }
 
   public CfIinc(int var, int increment) {
     this.var = var;
@@ -41,10 +46,7 @@ public class CfIinc extends CfInstruction {
   @Override
   public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    return visitor.visit(
-        this,
-        (CfIinc) other,
-        spec -> spec.withInt(CfIinc::getLocalIndex).withInt(CfIinc::getIncrement));
+    return visitor.visit(this, (CfIinc) other, CfIinc::specify);
   }
 
   @Override

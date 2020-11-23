@@ -27,6 +27,8 @@ public class CfPosition extends CfInstruction {
   private final CfLabel label;
   private final Position position;
 
+
+
   public CfPosition(CfLabel label, Position position) {
     this.label = label;
     this.position = position;

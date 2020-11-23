@@ -8,7 +8,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Objects;
 import org.objectweb.asm.Handle;
@@ -320,7 +320,7 @@ public class DexMethodHandle extends IndexedDexItem
   }
 
   @Override
-  public StructuralAccept<DexMethodHandle> getStructuralAccept() {
+  public StructuralMapping<DexMethodHandle> getStructuralMapping() {
     return DexMethodHandle::specify;
   }
 

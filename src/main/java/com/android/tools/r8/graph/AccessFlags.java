@@ -4,8 +4,8 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -61,7 +61,7 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
   }
 
   @Override
-  public StructuralAccept<T> getStructuralAccept() {
+  public StructuralMapping<T> getStructuralMapping() {
     return AccessFlags::specify;
   }
 

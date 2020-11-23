@@ -23,7 +23,7 @@ import java.util.function.ToLongFunction;
  */
 public class HashCodeVisitor<T> extends StructuralSpecification<T, HashCodeVisitor<T>> {
 
-  public static <T> int run(T item, StructuralAccept<T> visit) {
+  public static <T> int run(T item, StructuralMapping<T> visit) {
     HashCodeVisitor<T> visitor = new HashCodeVisitor<>(item);
     visit.apply(visitor);
     return visitor.hashCode;

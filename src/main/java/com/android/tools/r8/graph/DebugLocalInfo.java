@@ -5,8 +5,8 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -45,7 +45,7 @@ public class DebugLocalInfo implements StructuralItem<DebugLocalInfo> {
   }
 
   @Override
-  public StructuralAccept<DebugLocalInfo> getStructuralAccept() {
+  public StructuralMapping<DebugLocalInfo> getStructuralMapping() {
     return DebugLocalInfo::specify;
   }
 

@@ -25,8 +25,8 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.EncodedValueUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import org.objectweb.asm.Handle;
@@ -114,7 +114,7 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
   }
 
   @Override
-  public final StructuralAccept<DexValue> getStructuralAccept() {
+  public final StructuralMapping<DexValue> getStructuralMapping() {
     // DexValue is not generic at its base type (and can't as we use it as a polymorphic value),
     // so each concrete value must implement polymorphic accept functions. This base class
     // implements (most of) the polymorphic checks and concrete types implement the internal

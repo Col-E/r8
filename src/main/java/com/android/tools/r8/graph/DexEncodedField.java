@@ -20,8 +20,8 @@ import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.kotlin.KotlinFieldLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 
 public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
@@ -75,7 +75,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   @Override
-  public StructuralAccept<DexEncodedField> getStructuralAccept() {
+  public StructuralMapping<DexEncodedField> getStructuralMapping() {
     return DexEncodedField::specify;
   }
 

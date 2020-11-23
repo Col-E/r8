@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -30,6 +31,10 @@ public class CfMultiANewArray extends CfInstruction {
 
   private final DexType type;
   private final int dimensions;
+
+  private static void specify(StructuralSpecification<CfMultiANewArray, ?> spec) {
+    spec.withInt(CfMultiANewArray::getDimensions).withItem(CfMultiANewArray::getType);
+  }
 
   public CfMultiANewArray(DexType type, int dimensions) {
     this.type = type;
@@ -52,10 +57,7 @@ public class CfMultiANewArray extends CfInstruction {
   @Override
   public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    return visitor.visit(
-        this,
-        (CfMultiANewArray) other,
-        spec -> spec.withInt(CfMultiANewArray::getDimensions).withItem(CfMultiANewArray::getType));
+    return visitor.visit(this, (CfMultiANewArray) other, CfMultiANewArray::specify);
   }
 
   @Override

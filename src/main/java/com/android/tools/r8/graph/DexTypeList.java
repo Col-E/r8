@@ -8,8 +8,8 @@ import static com.android.tools.r8.utils.PredicateUtils.not;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.utils.ArrayUtils;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.Iterators;
 import java.util.Arrays;
@@ -72,7 +72,7 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
   }
 
   @Override
-  public StructuralAccept<DexTypeList> getStructuralAccept() {
+  public StructuralMapping<DexTypeList> getStructuralMapping() {
     return DexTypeList::specify;
   }
 

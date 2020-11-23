@@ -98,7 +98,7 @@ public class StructuralItemsCustomOrderTest extends TestBase {
     private final int x;
     private final B b;
 
-    private static void accept(StructuralSpecification<A, ?> spec) {
+    private static void specify(StructuralSpecification<A, ?> spec) {
       spec.withInt(a -> a.x).withItem(a -> a.b);
     }
 
@@ -108,8 +108,8 @@ public class StructuralItemsCustomOrderTest extends TestBase {
     }
 
     @Override
-    public StructuralAccept<A> getStructuralAccept() {
-      return A::accept;
+    public StructuralMapping<A> getStructuralMapping() {
+      return A::specify;
     }
 
     @Override
@@ -124,7 +124,7 @@ public class StructuralItemsCustomOrderTest extends TestBase {
 
     @Override
     public final int hashCode() {
-      return HashCodeVisitor.run(this, A::accept);
+      return HashCodeVisitor.run(this, A::specify);
     }
   }
 
@@ -132,7 +132,7 @@ public class StructuralItemsCustomOrderTest extends TestBase {
 
     private final int y;
 
-    private static void accept(StructuralSpecification<B, ?> spec) {
+    private static void specify(StructuralSpecification<B, ?> spec) {
       spec.withInt(b -> b.y);
     }
 
@@ -141,8 +141,8 @@ public class StructuralItemsCustomOrderTest extends TestBase {
     }
 
     @Override
-    public StructuralAccept<B> getStructuralAccept() {
-      return B::accept;
+    public StructuralMapping<B> getStructuralMapping() {
+      return B::specify;
     }
 
     @Override
@@ -157,14 +157,14 @@ public class StructuralItemsCustomOrderTest extends TestBase {
 
     @Override
     public final int hashCode() {
-      return HashCodeVisitor.run(this, B::accept);
+      return HashCodeVisitor.run(this, B::specify);
     }
 
     // Override allowing a change to the order of any type of compare-to visitation, e.g., with
     // and without a type equivalence map.
     @Override
     public int acceptCompareTo(B other, CompareToVisitor visitor) {
-      return visitor.visit(other, this, B::accept);
+      return visitor.visit(other, this, B::specify);
     }
   }
 }

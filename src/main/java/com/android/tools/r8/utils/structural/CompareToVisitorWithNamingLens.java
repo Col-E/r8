@@ -11,7 +11,7 @@ import com.android.tools.r8.utils.structural.StructuralItem.CompareToAccept;
 
 public class CompareToVisitorWithNamingLens extends CompareToVisitorBase {
 
-  public static <T> int run(T item1, T item2, NamingLens namingLens, StructuralAccept<T> visit) {
+  public static <T> int run(T item1, T item2, NamingLens namingLens, StructuralMapping<T> visit) {
     return run(item1, item2, namingLens, (i1, i2, visitor) -> visitor.visit(i1, i2, visit));
   }
 

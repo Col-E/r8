@@ -43,18 +43,18 @@ public abstract class HashingVisitor {
   public abstract void visitDexType(DexType type);
 
   public void visitDexField(DexField field) {
-    visit(field, field.getStructuralAccept());
+    visit(field, field.getStructuralMapping());
   }
 
   public void visitDexMethod(DexMethod method) {
-    visit(method, method.getStructuralAccept());
+    visit(method, method.getStructuralMapping());
   }
 
   public void visitDexReference(DexReference reference) {
     reference.accept(this::visitDexType, this::visitDexField, this::visitDexMethod);
   }
 
-  public abstract <S> void visit(S item, StructuralAccept<S> accept);
+  public abstract <S> void visit(S item, StructuralMapping<S> accept);
 
   @Deprecated
   public abstract <S> void visit(S item, BiConsumer<S, Hasher> hasher);

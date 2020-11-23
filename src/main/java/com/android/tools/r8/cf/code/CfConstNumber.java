@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -28,6 +29,10 @@ public class CfConstNumber extends CfInstruction {
 
   private final long value;
   private final ValueType type;
+
+  private static void specify(StructuralSpecification<CfConstNumber, ?> spec) {
+    spec.withLong(CfConstNumber::getRawValue).withItem(CfConstNumber::getType);
+  }
 
   public CfConstNumber(long value, ValueType type) {
     this.value = value;
@@ -42,10 +47,7 @@ public class CfConstNumber extends CfInstruction {
   @Override
   public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    return visitor.visit(
-        this,
-        (CfConstNumber) other,
-        spec -> spec.withLong(CfConstNumber::getRawValue).withItem(CfConstNumber::getType));
+    return visitor.visit(this, (CfConstNumber) other, CfConstNumber::specify);
   }
 
   public ValueType getType() {

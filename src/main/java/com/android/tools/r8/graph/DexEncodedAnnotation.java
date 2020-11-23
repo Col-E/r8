@@ -6,8 +6,8 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.utils.ArrayUtils;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -37,7 +37,7 @@ public class DexEncodedAnnotation extends DexItem implements StructuralItem<DexE
   }
 
   @Override
-  public StructuralAccept<DexEncodedAnnotation> getStructuralAccept() {
+  public StructuralMapping<DexEncodedAnnotation> getStructuralMapping() {
     return DexEncodedAnnotation::specify;
   }
 

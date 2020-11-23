@@ -20,7 +20,7 @@ import java.util.function.ToLongFunction;
 public class HashingVisitorWithTypeEquivalence extends HashingVisitor {
 
   public static <T> void run(
-      T item, Hasher hasher, RepresentativeMap map, StructuralAccept<T> accept) {
+      T item, Hasher hasher, RepresentativeMap map, StructuralMapping<T> accept) {
     run(item, hasher, map, (i, visitor) -> visitor.visit(i, accept));
   }
 
@@ -73,7 +73,7 @@ public class HashingVisitorWithTypeEquivalence extends HashingVisitor {
   }
 
   @Override
-  public <S> void visit(S item, StructuralAccept<S> accept) {
+  public <S> void visit(S item, StructuralMapping<S> accept) {
     accept.apply(new ItemSpecification<>(item, this));
   }
 

@@ -6,8 +6,8 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.utils.ArrayUtils;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -76,7 +76,7 @@ public class ParameterAnnotationsList extends DexItem
   }
 
   @Override
-  public StructuralAccept<ParameterAnnotationsList> getStructuralAccept() {
+  public StructuralMapping<ParameterAnnotationsList> getStructuralMapping() {
     return ParameterAnnotationsList::specify;
   }
 

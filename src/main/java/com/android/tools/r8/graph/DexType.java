@@ -26,7 +26,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
@@ -58,7 +58,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   }
 
   @Override
-  public StructuralAccept<DexType> getStructuralAccept() {
+  public StructuralMapping<DexType> getStructuralMapping() {
     // Structural accept is never accessed as all accept methods are defined directly.
     throw new Unreachable();
   }

@@ -117,7 +117,7 @@ public class StructuralItemsTest extends TestBase {
     private final int x;
     private final B b;
 
-    private static void accept(StructuralSpecification<A, ?> spec) {
+    private static void specify(StructuralSpecification<A, ?> spec) {
       spec.withInt(a -> a.x).withItem(a -> a.b);
     }
 
@@ -127,8 +127,8 @@ public class StructuralItemsTest extends TestBase {
     }
 
     @Override
-    public StructuralAccept<A> getStructuralAccept() {
-      return A::accept;
+    public StructuralMapping<A> getStructuralMapping() {
+      return A::specify;
     }
 
     @Override
@@ -143,7 +143,7 @@ public class StructuralItemsTest extends TestBase {
 
     @Override
     public int hashCode() {
-      return HashCodeVisitor.run(this, A::accept);
+      return HashCodeVisitor.run(this, A::specify);
     }
   }
 
@@ -151,7 +151,7 @@ public class StructuralItemsTest extends TestBase {
 
     private final int y;
 
-    private static void accept(StructuralSpecification<B, ?> spec) {
+    private static void specify(StructuralSpecification<B, ?> spec) {
       spec.withInt(b -> b.y);
     }
 
@@ -160,8 +160,8 @@ public class StructuralItemsTest extends TestBase {
     }
 
     @Override
-    public StructuralAccept<B> getStructuralAccept() {
-      return B::accept;
+    public StructuralMapping<B> getStructuralMapping() {
+      return B::specify;
     }
 
     @Override
@@ -176,7 +176,7 @@ public class StructuralItemsTest extends TestBase {
 
     @Override
     public int hashCode() {
-      return HashCodeVisitor.run(this, B::accept);
+      return HashCodeVisitor.run(this, B::specify);
     }
   }
 }

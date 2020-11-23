@@ -43,8 +43,8 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import com.android.tools.r8.utils.structural.StructuralAccept;
 import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -164,7 +164,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
   }
 
   @Override
-  public StructuralAccept<CfCode> getStructuralAccept() {
+  public StructuralMapping<CfCode> getStructuralMapping() {
     throw new Unreachable();
   }
 

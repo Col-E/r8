@@ -12,7 +12,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingCharIterator;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
-import com.android.tools.r8.utils.structural.StructuralAccept;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import java.io.UTFDataFormatException;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
@@ -41,7 +41,7 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
   }
 
   @Override
-  public StructuralAccept<DexString> getStructuralAccept() {
+  public StructuralMapping<DexString> getStructuralMapping() {
     // Structural accept is never accessed as all accept methods are defined directly.
     throw new Unreachable();
   }
