@@ -60,7 +60,7 @@ public class VerticallyMergedClasses implements MergedClasses {
   }
 
   @Override
-  public boolean hasBeenMerged(DexType type) {
+  public boolean hasBeenMergedIntoDifferentType(DexType type) {
     return hasBeenMergedIntoSubtype(type);
   }
 

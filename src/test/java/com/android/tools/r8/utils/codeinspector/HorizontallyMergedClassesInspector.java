@@ -47,7 +47,8 @@ public class HorizontallyMergedClassesInspector {
   }
 
   public HorizontallyMergedClassesInspector assertClassNotMerged(Class<?> clazz) {
-    assertFalse(horizontallyMergedClasses.hasBeenMerged(toDexType(clazz, dexItemFactory)));
+    assertFalse(
+        horizontallyMergedClasses.hasBeenMergedIntoDifferentType(toDexType(clazz, dexItemFactory)));
     return this;
   }
 

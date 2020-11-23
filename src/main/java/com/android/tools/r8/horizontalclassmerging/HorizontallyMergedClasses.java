@@ -42,13 +42,9 @@ public class HorizontallyMergedClasses implements MergedClasses {
     return mergedClasses.getKeys(type);
   }
 
+  @Override
   public boolean hasBeenMergedIntoDifferentType(DexType type) {
     return mergedClasses.hasKey(type);
-  }
-
-  @Override
-  public boolean hasBeenMerged(DexType type) {
-    return hasBeenMergedIntoDifferentType(type);
   }
 
   public boolean isMergeTarget(DexType type) {
@@ -56,7 +52,7 @@ public class HorizontallyMergedClasses implements MergedClasses {
   }
 
   public boolean hasBeenMergedOrIsMergeTarget(DexType type) {
-    return hasBeenMerged(type) || isMergeTarget(type);
+    return this.hasBeenMergedIntoDifferentType(type) || isMergeTarget(type);
   }
 
   Map<DexType, DexType> getForwardMap() {

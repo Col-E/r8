@@ -28,9 +28,9 @@ public class MergedClassesCollection implements MergedClasses {
   }
 
   @Override
-  public boolean hasBeenMerged(DexType type) {
+  public boolean hasBeenMergedIntoDifferentType(DexType type) {
     for (MergedClasses mergedClasses : collection) {
-      if (mergedClasses.hasBeenMerged(type)) {
+      if (mergedClasses.hasBeenMergedIntoDifferentType(type)) {
         return true;
       }
     }

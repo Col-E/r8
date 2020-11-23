@@ -15,7 +15,7 @@ public interface MergedClasses {
 
   void forEachMergeGroup(BiConsumer<Set<DexType>, DexType> consumer);
 
-  boolean hasBeenMerged(DexType type);
+  boolean hasBeenMergedIntoDifferentType(DexType type);
 
   boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView);
 
@@ -23,17 +23,18 @@ public interface MergedClasses {
    * Determine if the class has been merged by the merged classes object. If the merged classes is
    * null then return false.
    */
-  static boolean hasBeenMerged(MergedClasses mergedClasses, DexProgramClass clazz) {
-    return hasBeenMerged(mergedClasses, clazz.type);
+  static boolean hasBeenMergedIntoDifferentType(
+      MergedClasses mergedClasses, DexProgramClass clazz) {
+    return hasBeenMergedIntoDifferentType(mergedClasses, clazz.getType());
   }
 
   /**
    * Determine if the class has been merged by the merged classes object. If the merged classes is
    * null then return false.
    */
-  static boolean hasBeenMerged(MergedClasses mergedClasses, DexType type) {
+  static boolean hasBeenMergedIntoDifferentType(MergedClasses mergedClasses, DexType type) {
     if (mergedClasses != null) {
-      return mergedClasses.hasBeenMerged(type);
+      return mergedClasses.hasBeenMergedIntoDifferentType(type);
     }
     return false;
   }

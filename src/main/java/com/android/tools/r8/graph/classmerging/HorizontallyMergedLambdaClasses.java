@@ -33,7 +33,7 @@ public class HorizontallyMergedLambdaClasses implements MergedClasses {
   }
 
   @Override
-  public boolean hasBeenMerged(DexType type) {
+  public boolean hasBeenMergedIntoDifferentType(DexType type) {
     return mergedClasses.containsKey(type);
   }
 

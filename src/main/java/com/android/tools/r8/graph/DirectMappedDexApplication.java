@@ -119,8 +119,10 @@ public class DirectMappedDexApplication extends DexApplication {
         .allMatch(
             type ->
                 lens.lookupType(type) == type
-                    || MergedClasses.hasBeenMerged(appView.verticallyMergedClasses(), type)
-                    || MergedClasses.hasBeenMerged(appView.horizontallyMergedClasses(), type));
+                    || MergedClasses.hasBeenMergedIntoDifferentType(
+                        appView.verticallyMergedClasses(), type)
+                    || MergedClasses.hasBeenMergedIntoDifferentType(
+                        appView.horizontallyMergedClasses(), type));
     assert verifyCodeObjectsOwners();
     return true;
   }

@@ -34,7 +34,7 @@ public class StaticallyMergedClasses implements MergedClasses {
   }
 
   @Override
-  public boolean hasBeenMerged(DexType type) {
+  public boolean hasBeenMergedIntoDifferentType(DexType type) {
     return false;
   }
 

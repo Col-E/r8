@@ -27,7 +27,9 @@ public class HorizontallyMergedLambdaClassesInspector {
   }
 
   public HorizontallyMergedLambdaClassesInspector assertMerged(Class<?> clazz) {
-    assertTrue(horizontallyMergedLambdaClasses.hasBeenMerged(toDexType(clazz, dexItemFactory)));
+    assertTrue(
+        horizontallyMergedLambdaClasses.hasBeenMergedIntoDifferentType(
+            toDexType(clazz, dexItemFactory)));
     return this;
   }
 
@@ -39,7 +41,9 @@ public class HorizontallyMergedLambdaClassesInspector {
   }
 
   public HorizontallyMergedLambdaClassesInspector assertClassNotMerged(Class<?> clazz) {
-    assertFalse(horizontallyMergedLambdaClasses.hasBeenMerged(toDexType(clazz, dexItemFactory)));
+    assertFalse(
+        horizontallyMergedLambdaClasses.hasBeenMergedIntoDifferentType(
+            toDexType(clazz, dexItemFactory)));
     return this;
   }
 
