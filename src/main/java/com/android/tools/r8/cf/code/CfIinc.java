@@ -39,9 +39,9 @@ public class CfIinc extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    visitor.visit(
+    return visitor.visit(
         this,
         (CfIinc) other,
         spec -> spec.withInt(CfIinc::getLocalIndex).withInt(CfIinc::getIncrement));

@@ -163,8 +163,8 @@ public class StructuralItemsCustomOrderTest extends TestBase {
     // Override allowing a change to the order of any type of compare-to visitation, e.g., with
     // and without a type equivalence map.
     @Override
-    public void acceptCompareTo(B other, CompareToVisitor visitor) {
-      visitor.visit(other, this, B::accept);
+    public int acceptCompareTo(B other, CompareToVisitor visitor) {
+      return visitor.visit(other, this, B::accept);
     }
   }
 }

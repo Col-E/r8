@@ -44,9 +44,9 @@ public class CfCheckCast extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    type.acceptCompareTo(((CfCheckCast) other).type, visitor);
+    return type.acceptCompareTo(((CfCheckCast) other).type, visitor);
   }
 
   @Override

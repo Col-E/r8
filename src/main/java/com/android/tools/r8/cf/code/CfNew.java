@@ -44,9 +44,9 @@ public class CfNew extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    type.acceptCompareTo(((CfNew) other).type, visitor);
+    return type.acceptCompareTo(((CfNew) other).type, visitor);
   }
 
   @Override

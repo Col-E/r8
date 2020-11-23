@@ -46,8 +46,8 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   @Override
-  public void acceptCompareTo(DexMethod other, CompareToVisitor visitor) {
-    visitor.visitDexMethod(this, other);
+  public int acceptCompareTo(DexMethod other, CompareToVisitor visitor) {
+    return visitor.visitDexMethod(this, other);
   }
 
   public DexType getParameter(int index) {

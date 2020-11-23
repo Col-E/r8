@@ -153,11 +153,11 @@ public class CfFrame extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     // The frame should be determined by the code so it should for equal iff the code is equal.
     // Thus we just require the frame to be in place.
-    CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
+    return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 
   private static class InitializedType extends FrameType {

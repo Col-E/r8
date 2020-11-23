@@ -17,7 +17,7 @@ public interface StructuralItem<T extends StructuralItem<T>> extends Ordered<T> 
 
   @FunctionalInterface
   interface CompareToAccept<T> {
-    void acceptCompareTo(T item1, T item2, CompareToVisitor visitor);
+    int acceptCompareTo(T item1, T item2, CompareToVisitor visitor);
   }
 
   /**
@@ -43,8 +43,8 @@ public interface StructuralItem<T extends StructuralItem<T>> extends Ordered<T> 
   }
 
   /** Default accept for compareTo visitors. Override to change behavior. */
-  default void acceptCompareTo(T other, CompareToVisitor visitor) {
-    visitor.visit(self(), other, self().getStructuralAccept());
+  default int acceptCompareTo(T other, CompareToVisitor visitor) {
+    return visitor.visit(self(), other, self().getStructuralAccept());
   }
 
   // Hashing implemenation and callbacks.
@@ -61,7 +61,7 @@ public interface StructuralItem<T extends StructuralItem<T>> extends Ordered<T> 
    * ensure that the effect is in place for any HashingVisitor.
    */
   default void hash(Hasher hasher) {
-    DefaultHashingVisitor.run(self(), hasher, self().getStructuralAccept());
+    DefaultHashingVisitor.run(self(), hasher, StructuralItem::acceptHashing);
   }
 
   /** Hashing method to use from tests to avoid having guava types shared between R8 and tests. */
@@ -78,7 +78,7 @@ public interface StructuralItem<T extends StructuralItem<T>> extends Ordered<T> 
    * ensure that the effect is in place for any HashingVisitor.
    */
   default void hashWithTypeEquivalence(Hasher hasher, RepresentativeMap map) {
-    HashingVisitorWithTypeEquivalence.run(self(), hasher, map, self().getStructuralAccept());
+    HashingVisitorWithTypeEquivalence.run(self(), hasher, map, StructuralItem::acceptHashing);
   }
 
   /** Default accept for hashing visitors. Override to change behavior. */

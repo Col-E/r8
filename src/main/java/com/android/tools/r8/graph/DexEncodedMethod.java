@@ -358,18 +358,15 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         this, other, map, DexEncodedMethod::syntheticSpecify);
   }
 
-  private static void compareCodeObject(Code code1, Code code2, CompareToVisitor visitor) {
+  private static int compareCodeObject(Code code1, Code code2, CompareToVisitor visitor) {
     if (code1.isCfCode() && code2.isCfCode()) {
-      code1.asCfCode().acceptCompareTo(code2.asCfCode(), visitor);
-    } else if (code1.isDexCode() && code2.isDexCode()) {
-      visitor.visit(code1.asDexCode(), code2.asDexCode(), DexCode::compareTo);
-    } else {
-      throw new Unreachable(
-          "Unexpected attempt to compare incompatible synthetic objects: "
-              + code1
-              + " and "
-              + code2);
+      return code1.asCfCode().acceptCompareTo(code2.asCfCode(), visitor);
     }
+    if (code1.isDexCode() && code2.isDexCode()) {
+      return visitor.visit(code1.asDexCode(), code2.asDexCode(), DexCode::compareTo);
+    }
+    throw new Unreachable(
+        "Unexpected attempt to compare incompatible synthetic objects: " + code1 + " and " + code2);
   }
 
   private static void hashCodeObject(Code code, HashingVisitor visitor) {

@@ -43,9 +43,9 @@ public class CfInstanceOf extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    type.acceptCompareTo(other.asInstanceOf().type, visitor);
+    return type.acceptCompareTo(other.asInstanceOf().type, visitor);
   }
 
   @Override

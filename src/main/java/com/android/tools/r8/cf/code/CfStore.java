@@ -42,9 +42,9 @@ public class CfStore extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    visitor.visitInt(var, other.asStore().var);
+    return visitor.visitInt(var, other.asStore().var);
   }
 
   private int getStoreType() {

@@ -39,9 +39,9 @@ public class CfLabel extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    helper.compareLabels(this, other.asLabel(), visitor);
+    return helper.compareLabels(this, other.asLabel(), visitor);
   }
 
   @Override

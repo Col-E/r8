@@ -15,8 +15,7 @@ public class CompareToVisitorWithTypeEquivalence extends CompareToVisitorBase {
   public static <T> int run(
       T item1, T item2, RepresentativeMap map, CompareToAccept<T> compareToAccept) {
     CompareToVisitorWithTypeEquivalence state = new CompareToVisitorWithTypeEquivalence(map);
-    compareToAccept.acceptCompareTo(item1, item2, state);
-    return state.getOrder();
+    return compareToAccept.acceptCompareTo(item1, item2, state);
   }
 
   private final RepresentativeMap representatives;
@@ -26,11 +25,9 @@ public class CompareToVisitorWithTypeEquivalence extends CompareToVisitorBase {
   }
 
   @Override
-  public void visitDexType(DexType type1, DexType type2) {
-    if (stillEqual()) {
-      DexType repr1 = representatives.getRepresentative(type1);
-      DexType repr2 = representatives.getRepresentative(type2);
-      repr1.getDescriptor().acceptCompareTo(repr2.getDescriptor(), this);
-    }
+  public int visitDexType(DexType type1, DexType type2) {
+    DexType repr1 = representatives.getRepresentative(type1);
+    DexType repr2 = representatives.getRepresentative(type2);
+    return repr1.getDescriptor().acceptCompareTo(repr2.getDescriptor(), this);
   }
 }

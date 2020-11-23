@@ -18,102 +18,75 @@ import java.util.function.ToLongFunction;
 /** Base class to share most visiting methods */
 public abstract class CompareToVisitorBase extends CompareToVisitor {
 
-  private int order = 0;
-
-  public final boolean stillEqual() {
-    return order == 0;
+  @Override
+  public final int visitBool(boolean value1, boolean value2) {
+    return Boolean.compare(value1, value2);
   }
 
-  public final int getOrder() {
+  @Override
+  public final int visitInt(int value1, int value2) {
+    return Integer.compare(value1, value2);
+  }
+
+  @Override
+  public int visitLong(long value1, long value2) {
+    return Long.compare(value1, value2);
+  }
+
+  @Override
+  public int visitFloat(float value1, float value2) {
+    return Float.compare(value1, value2);
+  }
+
+  @Override
+  public int visitDouble(double value1, double value2) {
+    return Double.compare(value1, value2);
+  }
+
+  @Override
+  public <S> int visitItemIterator(
+      Iterator<S> it1, Iterator<S> it2, CompareToAccept<S> compareToAccept) {
+    int order = 0;
+    while (order == 0 && it1.hasNext() && it2.hasNext()) {
+      order = compareToAccept.acceptCompareTo(it1.next(), it2.next(), this);
+    }
+    if (order == 0) {
+      order = visitBool(it1.hasNext(), it2.hasNext());
+    }
     return order;
   }
 
-  public final void setOrder(int order) {
-    this.order = order;
+  @Override
+  public int visitDexString(DexString string1, DexString string2) {
+    return string1.compareTo(string2);
   }
 
   @Override
-  public final void visitBool(boolean value1, boolean value2) {
-    if (stillEqual()) {
-      setOrder(Boolean.compare(value1, value2));
-    }
-  }
-
-  @Override
-  public final void visitInt(int value1, int value2) {
-    if (stillEqual()) {
-      setOrder(Integer.compare(value1, value2));
-    }
-  }
-
-  @Override
-  public void visitLong(long value1, long value2) {
-    if (stillEqual()) {
-      setOrder(Long.compare(value1, value2));
-    }
-  }
-
-  @Override
-  public void visitFloat(float value1, float value2) {
-    if (stillEqual()) {
-      setOrder(Float.compare(value1, value2));
-    }
-  }
-
-  @Override
-  public void visitDouble(double value1, double value2) {
-    if (stillEqual()) {
-      setOrder(Double.compare(value1, value2));
-    }
-  }
-
-  @Override
-  public <S> void visitItemIterator(
-      Iterator<S> it1, Iterator<S> it2, CompareToAccept<S> compareToAccept) {
-    while (stillEqual() && it1.hasNext() && it2.hasNext()) {
-      compareToAccept.acceptCompareTo(it1.next(), it2.next(), this);
-    }
-    if (stillEqual()) {
-      visitBool(it1.hasNext(), it2.hasNext());
-    }
-  }
-
-  @Override
-  public void visitDexString(DexString string1, DexString string2) {
-    if (stillEqual()) {
-      setOrder(string1.compareTo(string2));
-    }
-  }
-
-  @Override
-  public void visitDexReference(DexReference reference1, DexReference reference2) {
-    if (stillEqual()) {
-      visitInt(reference1.referenceTypeOrder(), reference2.referenceTypeOrder());
-      if (stillEqual()) {
-        assert reference1.getClass() == reference2.getClass();
-        if (reference1.isDexType()) {
-          visitDexType(reference1.asDexType(), reference2.asDexType());
-        } else if (reference1.isDexField()) {
-          visitDexField(reference1.asDexField(), reference2.asDexField());
-        } else {
-          visitDexMethod(reference1.asDexMethod(), reference2.asDexMethod());
-        }
+  public int visitDexReference(DexReference reference1, DexReference reference2) {
+    int order = visitInt(reference1.referenceTypeOrder(), reference2.referenceTypeOrder());
+    if (order == 0) {
+      assert reference1.getClass() == reference2.getClass();
+      if (reference1.isDexType()) {
+        order = visitDexType(reference1.asDexType(), reference2.asDexType());
+      } else if (reference1.isDexField()) {
+        order = visitDexField(reference1.asDexField(), reference2.asDexField());
+      } else {
+        order = visitDexMethod(reference1.asDexMethod(), reference2.asDexMethod());
       }
     }
+    return order;
   }
 
   @Override
-  public final <S> void visit(S item1, S item2, Comparator<S> comparator) {
-    if (stillEqual()) {
-      setOrder(comparator.compare(item1, item2));
-    }
+  public final <S> int visit(S item1, S item2, Comparator<S> comparator) {
+    return comparator.compare(item1, item2);
   }
 
   @Override
-  public final <S> void visit(S item1, S item2, StructuralAccept<S> accept) {
-    if (stillEqual()) {
-      accept.apply(new ItemSpecification<>(item1, item2, this));
-    }
+  public final <S> int visit(S item1, S item2, StructuralAccept<S> accept) {
+    ItemSpecification<S> itemVisitor = new ItemSpecification<>(item1, item2, this);
+    accept.apply(itemVisitor);
+    return itemVisitor.order;
   }
 
   private static class ItemSpecification<T>
@@ -122,6 +95,7 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
     private final CompareToVisitorBase parent;
     private final T item1;
     private final T item2;
+    private int order = 0;
 
     private ItemSpecification(T item1, T item2, CompareToVisitorBase parent) {
       this.item1 = item1;
@@ -138,47 +112,47 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
 
     @Override
     public ItemSpecification<T> withBool(Predicate<T> getter) {
-      if (parent.stillEqual()) {
-        parent.visitBool(getter.test(item1), getter.test(item2));
+      if (order == 0) {
+        order = parent.visitBool(getter.test(item1), getter.test(item2));
       }
       return this;
     }
 
     @Override
     public ItemSpecification<T> withInt(ToIntFunction<T> getter) {
-      if (parent.stillEqual()) {
-        parent.visitInt(getter.applyAsInt(item1), getter.applyAsInt(item2));
+      if (order == 0) {
+        order = parent.visitInt(getter.applyAsInt(item1), getter.applyAsInt(item2));
       }
       return this;
     }
 
     @Override
     public ItemSpecification<T> withLong(ToLongFunction<T> getter) {
-      if (parent.stillEqual()) {
-        parent.visitLong(getter.applyAsLong(item1), getter.applyAsLong(item2));
+      if (order == 0) {
+        order = parent.visitLong(getter.applyAsLong(item1), getter.applyAsLong(item2));
       }
       return this;
     }
 
     @Override
     public ItemSpecification<T> withDouble(ToDoubleFunction<T> getter) {
-      if (parent.stillEqual()) {
-        parent.visitDouble(getter.applyAsDouble(item1), getter.applyAsDouble(item2));
+      if (order == 0) {
+        order = parent.visitDouble(getter.applyAsDouble(item1), getter.applyAsDouble(item2));
       }
       return this;
     }
 
     @Override
     public ItemSpecification<T> withIntArray(Function<T, int[]> getter) {
-      if (parent.stillEqual()) {
+      if (order == 0) {
         int[] is1 = getter.apply(item1);
         int[] is2 = getter.apply(item2);
         int minLength = Math.min(is1.length, is2.length);
-        for (int i = 0; i < minLength && parent.stillEqual(); i++) {
-          parent.visitInt(is1[i], is2[i]);
+        for (int i = 0; i < minLength && order == 0; i++) {
+          order = parent.visitInt(is1[i], is2[i]);
         }
-        if (parent.stillEqual()) {
-          parent.visitInt(is1.length, is2.length);
+        if (order == 0) {
+          order = parent.visitInt(is1.length, is2.length);
         }
       }
       return this;
@@ -190,13 +164,13 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
         Function<T, S> getter,
         CompareToAccept<S> compare,
         HashingAccept<S> hasher) {
-      if (parent.stillEqual()) {
+      if (order == 0) {
         boolean test1 = predicate.test(item1);
         boolean test2 = predicate.test(item2);
         if (test1 && test2) {
-          compare.acceptCompareTo(getter.apply(item1), getter.apply(item2), parent);
+          order = compare.acceptCompareTo(getter.apply(item1), getter.apply(item2), parent);
         } else {
-          parent.visitBool(test1, test2);
+          order = parent.visitBool(test1, test2);
         }
       }
       return this;
@@ -205,8 +179,8 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
     @Override
     protected <S> ItemSpecification<T> withItemIterator(
         Function<T, Iterator<S>> getter, CompareToAccept<S> compare, HashingAccept<S> hasher) {
-      if (parent.stillEqual()) {
-        parent.visitItemIterator(getter.apply(item1), getter.apply(item2), compare);
+      if (order == 0) {
+        order = parent.visitItemIterator(getter.apply(item1), getter.apply(item2), compare);
       }
       return this;
     }

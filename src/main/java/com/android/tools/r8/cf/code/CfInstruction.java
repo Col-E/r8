@@ -61,17 +61,16 @@ public abstract class CfInstruction implements CfOrDexInstruction {
    * <p>If an instruction is uniquely determined by the "compare id" then the override should simply
    * call '{@code CfCompareHelper::compareIdUniquelyDeterminesEquality}'.
    */
-  public abstract void internalAcceptCompareTo(
+  public abstract int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper);
 
-  public final void acceptCompareTo(
+  public final int acceptCompareTo(
       CfInstruction o, CompareToVisitor visitor, CfCompareHelper helper) {
-    int diff = getCompareToId() - o.getCompareToId();
-    if (diff == 0) {
-      internalAcceptCompareTo(o, visitor, helper);
-    } else {
-      visitor.visitInt(getCompareToId(), o.getCompareToId());
+    int diff = visitor.visitInt(getCompareToId(), o.getCompareToId());
+    if (diff != 0) {
+      return diff;
     }
+    return internalAcceptCompareTo(o, visitor, helper);
   }
 
   @Override

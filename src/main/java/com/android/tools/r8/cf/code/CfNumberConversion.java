@@ -46,9 +46,9 @@ public class CfNumberConversion extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
+    return CfCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 
   public NumericType getFromType() {

@@ -36,9 +36,9 @@ public class CfGoto extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    helper.compareLabels(target, ((CfGoto) other).target, visitor);
+    return helper.compareLabels(target, ((CfGoto) other).target, visitor);
   }
 
   @Override

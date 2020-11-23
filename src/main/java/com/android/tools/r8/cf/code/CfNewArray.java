@@ -47,9 +47,9 @@ public class CfNewArray extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    type.acceptCompareTo(((CfNewArray) other).type, visitor);
+    return type.acceptCompareTo(((CfNewArray) other).type, visitor);
   }
 
   private int getPrimitiveTypeCode() {

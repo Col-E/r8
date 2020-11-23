@@ -112,9 +112,9 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       return end;
     }
 
-    public void acceptCompareTo(
+    public int acceptCompareTo(
         LocalVariableInfo other, CompareToVisitor visitor, CfCompareHelper helper) {
-      visitor.visit(
+      return visitor.visit(
           this,
           other,
           spec ->
@@ -254,9 +254,9 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
   }
 
   @Override
-  public void acceptCompareTo(CfCode other, CompareToVisitor visitor) {
+  public int acceptCompareTo(CfCode other, CompareToVisitor visitor) {
     CfCompareHelper helper = new CfCompareHelper(this, other);
-    visitor.visit(
+    return visitor.visit(
         this,
         other,
         spec ->

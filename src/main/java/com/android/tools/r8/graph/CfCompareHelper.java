@@ -45,11 +45,12 @@ public class CfCompareHelper {
   }
 
   // Helper to signal that the concrete instruction is uniquely determined by its ID/opcode.
-  public static void compareIdUniquelyDeterminesEquality(
+  public static int compareIdUniquelyDeterminesEquality(
       CfInstruction instruction1, CfInstruction instruction2) {
     assert instruction1.getClass() == instruction2.getClass();
     assert instruction1.getCompareToId() == instruction2.getCompareToId();
     assert instruction1.toString().equals(instruction2.toString());
+    return 0;
   }
 
   private static Reference2IntMap<CfLabel> getLabelOrdering(CfCode code) {
@@ -71,8 +72,8 @@ public class CfCompareHelper {
     this.code2 = code2;
   }
 
-  public void compareLabels(CfLabel label1, CfLabel label2, CompareToVisitor visitor) {
-    labelAcceptor().acceptCompareTo(label1, label2, visitor);
+  public int compareLabels(CfLabel label1, CfLabel label2, CompareToVisitor visitor) {
+    return labelAcceptor().acceptCompareTo(label1, label2, visitor);
   }
 
   public StructuralAcceptor<CfLabel> labelAcceptor() {
@@ -83,8 +84,8 @@ public class CfCompareHelper {
             private final Reference2IntMap<CfLabel> labels2 = getLabelOrdering(code2);
 
             @Override
-            public void acceptCompareTo(CfLabel item1, CfLabel item2, CompareToVisitor visitor) {
-              visitor.visitInt(labels1.getInt(item1), labels2.getInt(item2));
+            public int acceptCompareTo(CfLabel item1, CfLabel item2, CompareToVisitor visitor) {
+              return visitor.visitInt(labels1.getInt(item1), labels2.getInt(item2));
             }
 
             @Override
@@ -100,9 +101,9 @@ public class CfCompareHelper {
     CfCompareHelper helper = this;
     return new StructuralAcceptor<CfInstruction>() {
       @Override
-      public void acceptCompareTo(
+      public int acceptCompareTo(
           CfInstruction item1, CfInstruction item2, CompareToVisitor visitor) {
-        item1.acceptCompareTo(item2, visitor, helper);
+        return item1.acceptCompareTo(item2, visitor, helper);
       }
 
       @Override
@@ -116,8 +117,8 @@ public class CfCompareHelper {
     CfCompareHelper helper = this;
     return new StructuralAcceptor<CfTryCatch>() {
       @Override
-      public void acceptCompareTo(CfTryCatch item1, CfTryCatch item2, CompareToVisitor visitor) {
-        item1.acceptCompareTo(item2, visitor, helper);
+      public int acceptCompareTo(CfTryCatch item1, CfTryCatch item2, CompareToVisitor visitor) {
+        return item1.acceptCompareTo(item2, visitor, helper);
       }
 
       @Override
@@ -131,9 +132,9 @@ public class CfCompareHelper {
     CfCompareHelper helper = this;
     return new StructuralAcceptor<LocalVariableInfo>() {
       @Override
-      public void acceptCompareTo(
+      public int acceptCompareTo(
           LocalVariableInfo item1, LocalVariableInfo item2, CompareToVisitor visitor) {
-        item1.acceptCompareTo(item2, visitor, helper);
+        return item1.acceptCompareTo(item2, visitor, helper);
       }
 
       @Override

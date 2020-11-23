@@ -8,8 +8,10 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.CompareToVisitorWithStringTable;
 import com.android.tools.r8.utils.structural.CompareToVisitorWithTypeTable;
+import com.android.tools.r8.utils.structural.StructuralItem;
 import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap.Entry;
@@ -20,7 +22,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 public class ObjectToOffsetMapping {
@@ -76,40 +77,36 @@ public class ObjectToOffsetMapping {
     this.lensCodeRewriter = new LensCodeRewriterUtils(appView);
     timing.begin("Sort strings");
     this.strings = createSortedMap(strings, DexString::compareTo, this::setFirstJumboString);
+    CompareToVisitor visitor =
+        new CompareToVisitorWithStringTable(namingLens, this.strings::getInt);
     timing.end();
     timing.begin("Sort types");
-    this.types = createSortedMap(types, compareWithStringTable(), this::failOnOverflow);
+    this.types = createSortedMap(types, compare(visitor), this::failOnOverflow);
+    visitor =
+        new CompareToVisitorWithTypeTable(namingLens, this.strings::getInt, this.types::getInt);
     timing.end();
     timing.begin("Sort classes");
     this.classes = sortClasses(appView.appInfo(), classes, namingLens);
     timing.end();
     timing.begin("Sort protos");
-    this.protos = createSortedMap(protos, compareWithTypeTable(), this::failOnOverflow);
+    this.protos = createSortedMap(protos, compare(visitor), this::failOnOverflow);
     timing.end();
     timing.begin("Sort methods");
-    this.methods = createSortedMap(methods, compareWithTypeTable(), this::failOnOverflow);
+    this.methods = createSortedMap(methods, compare(visitor), this::failOnOverflow);
     timing.end();
     timing.begin("Sort fields");
-    this.fields = createSortedMap(fields, compareWithTypeTable(), this::failOnOverflow);
+    this.fields = createSortedMap(fields, compare(visitor), this::failOnOverflow);
     timing.end();
     timing.begin("Sort call-sites");
-    this.callSites = createSortedMap(callSites, DexCallSite::compareTo, this::failOnOverflow);
+    this.callSites = createSortedMap(callSites, compare(visitor), this::failOnOverflow);
     timing.end();
     timing.begin("Sort method handles");
-    this.methodHandles =
-        createSortedMap(methodHandles, compareWithTypeTable(), this::failOnOverflow);
+    this.methodHandles = createSortedMap(methodHandles, compare(visitor), this::failOnOverflow);
     timing.end();
   }
 
-  private <T extends NamingLensComparable<T>> Comparator<T> compareWithStringTable() {
-    return (a, b) ->
-        CompareToVisitorWithStringTable.run(
-            a, b, namingLens, (ToIntFunction<DexString>) strings::getInt);
-  }
-
-  private <T extends NamingLensComparable<T>> Comparator<T> compareWithTypeTable() {
-    return (a, b) ->
-        CompareToVisitorWithTypeTable.run(a, b, namingLens, strings::getInt, types::getInt);
+  private <T extends StructuralItem<T>> Comparator<T> compare(CompareToVisitor visitor) {
+    return (a, b) -> a.acceptCompareTo(b, visitor);
   }
 
   private void setFirstJumboString(DexString string) {

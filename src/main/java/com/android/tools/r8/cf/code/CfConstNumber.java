@@ -40,9 +40,9 @@ public class CfConstNumber extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    visitor.visit(
+    return visitor.visit(
         this,
         (CfConstNumber) other,
         spec -> spec.withLong(CfConstNumber::getRawValue).withItem(CfConstNumber::getType));

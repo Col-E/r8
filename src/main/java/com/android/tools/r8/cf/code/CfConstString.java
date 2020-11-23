@@ -36,9 +36,9 @@ public class CfConstString extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    string.acceptCompareTo(other.asConstString().string, visitor);
+    return string.acceptCompareTo(other.asConstString().string, visitor);
   }
 
   public DexString getString() {

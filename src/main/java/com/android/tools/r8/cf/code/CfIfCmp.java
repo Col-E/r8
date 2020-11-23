@@ -44,12 +44,12 @@ public class CfIfCmp extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     CfIfCmp otherIf = (CfIfCmp) other;
     assert kind == otherIf.kind;
     assert type == otherIf.type;
-    helper.compareLabels(target, otherIf.target, visitor);
+    return helper.compareLabels(target, otherIf.target, visitor);
   }
 
   public Type getKind() {

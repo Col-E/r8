@@ -65,8 +65,8 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
 
   // DexType overrides accept to ensure the visitors always gets a visitDexType callback.
   @Override
-  public void acceptCompareTo(DexType other, CompareToVisitor visitor) {
-    visitor.visitDexType(this, other);
+  public int acceptCompareTo(DexType other, CompareToVisitor visitor) {
+    return visitor.visitDexType(this, other);
   }
 
   // DexType overrides accept to ensure the visitors always gets a visitDexType callback.

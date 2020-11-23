@@ -66,18 +66,23 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
 
   public final <S extends StructuralItem<S>> V withConditionalItem(
       Predicate<T> predicate, Function<T, S> getter) {
-    return withConditionalCustomItem(predicate, getter, S::acceptCompareTo, S::acceptHashing);
+    return withConditionalCustomItem(
+        predicate, getter, StructuralItem::acceptCompareTo, StructuralItem::acceptHashing);
   }
 
   public final <S extends StructuralItem<S>> V withItemCollection(
       Function<T, Collection<S>> getter) {
     return withItemIterator(
-        getter.andThen(Collection::iterator), S::acceptCompareTo, S::acceptHashing);
+        getter.andThen(Collection::iterator),
+        StructuralItem::acceptCompareTo,
+        StructuralItem::acceptHashing);
   }
 
   public final <S extends StructuralItem<S>> V withItemArray(Function<T, S[]> getter) {
     return withItemIterator(
-        getter.andThen(a -> Arrays.asList(a).iterator()), S::acceptCompareTo, S::acceptHashing);
+        getter.andThen(a -> Arrays.asList(a).iterator()),
+        StructuralItem::acceptCompareTo,
+        StructuralItem::acceptHashing);
   }
 
   /**

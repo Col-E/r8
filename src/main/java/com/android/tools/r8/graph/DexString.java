@@ -53,8 +53,8 @@ public class DexString extends IndexedDexItem implements NamingLensComparable<De
   }
 
   @Override
-  public void acceptCompareTo(DexString other, CompareToVisitor visitor) {
-    visitor.visitDexString(this, other);
+  public int acceptCompareTo(DexString other, CompareToVisitor visitor) {
+    return visitor.visitDexString(this, other);
   }
 
   @Override

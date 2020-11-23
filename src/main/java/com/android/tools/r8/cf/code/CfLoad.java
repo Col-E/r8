@@ -41,9 +41,9 @@ public class CfLoad extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    visitor.visitInt(var, other.asLoad().var);
+    return visitor.visitInt(var, other.asLoad().var);
   }
 
   private int getLoadType() {

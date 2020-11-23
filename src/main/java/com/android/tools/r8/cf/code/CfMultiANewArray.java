@@ -50,9 +50,9 @@ public class CfMultiANewArray extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    visitor.visit(
+    return visitor.visit(
         this,
         (CfMultiANewArray) other,
         spec -> spec.withInt(CfMultiANewArray::getDimensions).withItem(CfMultiANewArray::getType));

@@ -48,8 +48,8 @@ public class CfTryCatch {
     return new CfTryCatch(start, end, guards, targets);
   }
 
-  public void acceptCompareTo(CfTryCatch other, CompareToVisitor visitor, CfCompareHelper helper) {
-    visitor.visit(
+  public int acceptCompareTo(CfTryCatch other, CompareToVisitor visitor, CfCompareHelper helper) {
+    return visitor.visit(
         this,
         other,
         spec ->

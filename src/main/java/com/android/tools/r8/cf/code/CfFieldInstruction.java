@@ -60,9 +60,9 @@ public class CfFieldInstruction extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    visitor.visit(this, other.asFieldInstruction(), CfFieldInstruction::specify);
+    return visitor.visit(this, other.asFieldInstruction(), CfFieldInstruction::specify);
   }
 
   @Override

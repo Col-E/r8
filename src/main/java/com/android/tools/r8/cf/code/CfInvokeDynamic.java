@@ -49,9 +49,9 @@ public class CfInvokeDynamic extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    callSite.acceptCompareTo(((CfInvokeDynamic) other).callSite, visitor);
+    return callSite.acceptCompareTo(((CfInvokeDynamic) other).callSite, visitor);
   }
 
   @Override

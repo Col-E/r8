@@ -43,9 +43,9 @@ public class CfDexItemBasedConstString extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    visitor.visitDexReference(item, ((CfDexItemBasedConstString) other).item);
+    return visitor.visitDexReference(item, ((CfDexItemBasedConstString) other).item);
   }
 
   public DexReference getItem() {

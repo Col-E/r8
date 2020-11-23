@@ -60,10 +60,10 @@ public class CfInvoke extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
     CfInvoke otherInvoke = other.asInvoke();
-    visitor.visit(
+    return visitor.visit(
         this,
         otherInvoke,
         spec -> spec.withBool(CfInvoke::isInterface).withItem(CfInvoke::getMethod));

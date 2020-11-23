@@ -44,9 +44,9 @@ public class CfConstMethodHandle extends CfInstruction {
   }
 
   @Override
-  public void internalAcceptCompareTo(
+  public int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper) {
-    handle.acceptCompareTo(((CfConstMethodHandle) other).handle, visitor);
+    return handle.acceptCompareTo(((CfConstMethodHandle) other).handle, visitor);
   }
 
   @Override

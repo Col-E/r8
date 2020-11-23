@@ -134,8 +134,8 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   }
 
   @Override
-  public void acceptCompareTo(DexField other, CompareToVisitor visitor) {
-    visitor.visitDexField(this, other);
+  public int acceptCompareTo(DexField other, CompareToVisitor visitor) {
+    return visitor.visitDexField(this, other);
   }
 
   @Override
