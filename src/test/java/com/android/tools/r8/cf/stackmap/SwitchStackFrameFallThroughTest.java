@@ -4,13 +4,11 @@
 
 package com.android.tools.r8.cf.stackmap;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.CfCodeDiagnostics;
 import java.io.IOException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,10 +49,8 @@ public class SwitchStackFrameFallThroughTest extends TestBase {
         .addProgramClassFileData(SwitchStackFrameFallThroughTest$MainDump.dump())
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(options -> options.testing.readInputStackMaps = true)
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertWarningsMatch(diagnosticType(CfCodeDiagnostics.class));
-            });
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("java.io.IOException");
   }
 
   public static class Main {

@@ -156,5 +156,6 @@ public class CfSwitch extends CfInstruction {
     for (CfLabel target : targets) {
       frameBuilder.verifyTarget(target);
     }
+    frameBuilder.setNoFrame();
   }
 }
