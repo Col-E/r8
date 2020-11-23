@@ -108,8 +108,8 @@ public class DirectMappedDexApplication extends DexApplication {
     return "DexApplication (direct)";
   }
 
-  public boolean verifyWithLens(GraphLens lens) {
-    assert mappingIsValid(lens, allClasses.keySet());
+  public boolean verifyWithLens(DirectMappedDexApplication beforeLensApplication, GraphLens lens) {
+    assert mappingIsValid(beforeLensApplication.programClasses(), lens);
     assert verifyCodeObjectsOwners();
     return true;
   }
@@ -127,12 +127,14 @@ public class DirectMappedDexApplication extends DexApplication {
     return true;
   }
 
-  private boolean mappingIsValid(GraphLens graphLens, Iterable<DexType> types) {
+  private boolean mappingIsValid(
+      List<DexProgramClass> classesBeforeLensApplication, GraphLens lens) {
     // The lens might either map to a different type that is already present in the application
     // (e.g. relinking a type) or it might encode a type that was renamed, in which case the
     // original type will point to a definition that was renamed.
-    for (DexType type : types) {
-      DexType renamed = graphLens.lookupType(type);
+    for (DexProgramClass clazz : classesBeforeLensApplication) {
+      DexType type = clazz.getType();
+      DexType renamed = lens.lookupType(type);
       if (renamed.isIntType()) {
         continue;
       }

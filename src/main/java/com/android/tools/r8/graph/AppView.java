@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
-import com.android.tools.r8.graph.classmerging.MergedClasses;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
 import com.android.tools.r8.graph.classmerging.StaticallyMergedClasses;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
@@ -630,7 +629,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
     boolean changed = appView.setGraphLens(lens);
     assert changed;
-    assert application.verifyWithLens(lens);
+    assert application.verifyWithLens(appView.appInfo().app().asDirect(), lens);
 
     // The application has already been rewritten with the given applied lens. Therefore, we
     // temporarily replace that lens with a lens that does not have any rewritings to avoid the

@@ -319,8 +319,6 @@ APPS = [
     'url': 'https://github.com/chrisbanes/tivi',
     'revision': '8e2ddd8fe2d343264a66aa1ef8acbd4cc587e8ce',
     'folder': 'tivi',
-    # TODO(b/173974110): Enable recompilation.
-    'skip_recompilation': True,
   }),
   App({
     'id': 'com.keylesspalace.tusky',
