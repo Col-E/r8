@@ -44,7 +44,7 @@ public class NoIndirectRuntimeTypeChecks extends MultiClassSameReferencePolicy<D
       return cache.getBoolean(type);
     }
     DexClass clazz = appView.definitionFor(type);
-    if (!clazz.isInterface()) {
+    if (clazz == null || !clazz.isInterface()) {
       cache.put(type, true);
       return true;
     }
