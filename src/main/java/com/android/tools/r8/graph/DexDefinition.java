@@ -105,7 +105,15 @@ public abstract class DexDefinition extends DexItem {
 
   public abstract boolean isStaticMember();
 
-  public boolean isNotProgramDefinition() {
-    return isDexClass() ? !isProgramClass() : !asDexEncodedMember().isProgramClass();
+  public boolean isNotProgramDefinition(AppView<?> appView) {
+    if (isDexClass()) {
+      return asDexClass().isNotProgramClass();
+    }
+    DexClass clazz = appView.definitionFor(asDexEncodedMember().getHolderType());
+    return clazz == null || clazz.isNotProgramClass();
+  }
+
+  public DexType getContextType() {
+    return isDexClass() ? asDexClass().type : asDexEncodedMember().getHolderType();
   }
 }

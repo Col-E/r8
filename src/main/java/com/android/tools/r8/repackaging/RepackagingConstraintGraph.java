@@ -42,13 +42,13 @@ public class RepackagingConstraintGraph {
   private final ProgramPackage pkg;
   private final Map<DexDefinition, Node> nodes = new IdentityHashMap<>();
   private final Set<Node> pinnedNodes = Sets.newIdentityHashSet();
-  public final Node LIBRARY_BOUNDARY_NODE;
+  private final Node libraryBoundaryNode;
 
   public RepackagingConstraintGraph(AppView<AppInfoWithLiveness> appView, ProgramPackage pkg) {
     this.appView = appView;
     this.pkg = pkg;
-    LIBRARY_BOUNDARY_NODE = createNode(appView.definitionFor(appView.dexItemFactory().objectType));
-    pinnedNodes.add(LIBRARY_BOUNDARY_NODE);
+    libraryBoundaryNode = createNode(appView.definitionFor(appView.dexItemFactory().objectType));
+    pinnedNodes.add(libraryBoundaryNode);
   }
 
   /** Returns true if all classes in the package can be repackaged. */
@@ -79,11 +79,14 @@ public class RepackagingConstraintGraph {
   }
 
   Node getNode(DexDefinition definition) {
-    Node node = nodes.get(definition);
-    if (node == null && definition.isNotProgramDefinition()) {
-      return LIBRARY_BOUNDARY_NODE;
+    if (definition.isNotProgramDefinition(appView)) {
+      String packageDescriptor = definition.getContextType().getPackageDescriptor();
+      if (packageDescriptor.equals(pkg.getPackageDescriptor())) {
+        return libraryBoundaryNode;
+      }
+      return null;
     }
-    return node;
+    return nodes.get(definition);
   }
 
   public void populateConstraints(ExecutorService executorService) throws ExecutionException {
