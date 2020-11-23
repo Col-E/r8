@@ -70,7 +70,7 @@ public class RepackagingUseRegistry extends UseRegistry {
       return true;
     }
     if (accessFlags.isProtected()
-        && !appInfo.isSubtype(context.getContextType(), member.holder())) {
+        && !appInfo.isSubtype(context.getContextType(), member.getHolderType())) {
       return true;
     }
     return false;
