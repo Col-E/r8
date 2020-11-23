@@ -35,7 +35,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   public final DexEncodedAnnotation annotation;
 
   private static void specify(StructuralSpecification<DexAnnotation, ?> spec) {
-    spec.withInt(a -> a.visibility).withItem(a -> a.annotation);
+    spec.withItem(a -> a.annotation).withInt(a -> a.visibility);
   }
 
   public DexAnnotation(int visibility, DexEncodedAnnotation annotation) {

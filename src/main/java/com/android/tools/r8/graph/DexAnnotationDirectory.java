@@ -5,7 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,18 +45,18 @@ public class DexAnnotationDirectory extends DexItem {
     return clazz.annotations();
   }
 
-  public List<DexEncodedMethod> sortMethodAnnotations(NamingLens namingLens) {
-    methodAnnotations.sort((a, b) -> a.method.compareToWithNamingLens(b.method, namingLens));
+  public List<DexEncodedMethod> sortMethodAnnotations(CompareToVisitor visitor) {
+    methodAnnotations.sort((a, b) -> a.method.acceptCompareTo(b.method, visitor));
     return methodAnnotations;
   }
 
-  public List<DexEncodedMethod> sortParameterAnnotations(NamingLens namingLens) {
-    parameterAnnotations.sort((a, b) -> a.method.compareToWithNamingLens(b.method, namingLens));
+  public List<DexEncodedMethod> sortParameterAnnotations(CompareToVisitor visitor) {
+    parameterAnnotations.sort((a, b) -> a.method.acceptCompareTo(b.method, visitor));
     return parameterAnnotations;
   }
 
-  public List<DexEncodedField> sortFieldAnnotations(NamingLens namingLens) {
-    fieldAnnotations.sort((a, b) -> a.field.compareToWithNamingLens(b.field, namingLens));
+  public List<DexEncodedField> sortFieldAnnotations(CompareToVisitor visitor) {
+    fieldAnnotations.sort((a, b) -> a.field.acceptCompareTo(b.field, visitor));
     return fieldAnnotations;
   }
 

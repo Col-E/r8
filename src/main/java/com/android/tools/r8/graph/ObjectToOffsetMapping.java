@@ -46,6 +46,8 @@ public class ObjectToOffsetMapping {
 
   private DexString firstJumboString;
 
+  private final CompareToVisitor compareToVisitor;
+
   public ObjectToOffsetMapping(
       AppView<?> appView,
       GraphLens graphLens,
@@ -103,6 +105,26 @@ public class ObjectToOffsetMapping {
     timing.begin("Sort method handles");
     this.methodHandles = createSortedMap(methodHandles, compare(visitor), this::failOnOverflow);
     timing.end();
+
+    ObjectToOffsetMapping mapping = this;
+    compareToVisitor =
+        new CompareToVisitorWithTypeTable(namingLens, this.strings::getInt, this.types::getInt) {
+
+          @Override
+          public int visitDexField(DexField field1, DexField field2) {
+            return Integer.compare(mapping.fields.getInt(field1), mapping.fields.getInt(field2));
+          }
+
+          @Override
+          public int visitDexMethod(DexMethod method1, DexMethod method2) {
+            return Integer.compare(
+                mapping.methods.getInt(method1), mapping.methods.getInt(method2));
+          }
+        };
+  }
+
+  public CompareToVisitor getCompareToVisitor() {
+    return compareToVisitor;
   }
 
   private <T extends StructuralItem<T>> Comparator<T> compare(CompareToVisitor visitor) {

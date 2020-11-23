@@ -133,7 +133,7 @@ public class FileWriter {
       Log.verbose(FileWriter.class, "Writing encoded annotation @ %08x", dest.position());
     }
     List<DexAnnotationElement> elements = new ArrayList<>(Arrays.asList(annotation.elements));
-    elements.sort((a, b) -> a.name.compareToWithNamingLens(b.name, mapping.getNamingLens()));
+    elements.sort((a, b) -> a.name.acceptCompareTo(b.name, mapping.getCompareToVisitor()));
     dest.putUleb128(mapping.getOffsetFor(annotation.type));
     dest.putUleb128(elements.size());
     for (DexAnnotationElement element : elements) {
@@ -351,6 +351,7 @@ public class FileWriter {
   }
 
   private static String getKeyForDexCodeSorting(ProgramMethod method, ClassNameMapper proguardMap) {
+    // TODO(b/173999869): Could this instead compute sorting using dex items?
     Signature signature;
     String originalClassName;
     if (proguardMap != null) {
@@ -580,7 +581,8 @@ public class FileWriter {
     }
     List<DexAnnotation> annotations = new ArrayList<>(Arrays.asList(set.annotations));
     annotations.sort(
-        (a, b) -> a.annotation.type.compareToWithNamingLens(b.annotation.type, namingLens));
+        (a, b) ->
+            a.annotation.type.acceptCompareTo(b.annotation.type, mapping.getCompareToVisitor()));
     dest.putInt(annotations.size());
     for (DexAnnotation annotation : annotations) {
       dest.putInt(mixedSectionOffsets.getOffsetFor(annotation));
@@ -613,10 +615,11 @@ public class FileWriter {
     mixedSectionOffsets.setOffsetForAnnotationsDirectory(annotationDirectory, dest.align(4));
     dest.putInt(mixedSectionOffsets.getOffsetFor(annotationDirectory.getClazzAnnotations()));
     List<DexEncodedMethod> methodAnnotations =
-        annotationDirectory.sortMethodAnnotations(namingLens);
+        annotationDirectory.sortMethodAnnotations(mapping.getCompareToVisitor());
     List<DexEncodedMethod> parameterAnnotations =
-        annotationDirectory.sortParameterAnnotations(namingLens);
-    List<DexEncodedField> fieldAnnotations = annotationDirectory.sortFieldAnnotations(namingLens);
+        annotationDirectory.sortParameterAnnotations(mapping.getCompareToVisitor());
+    List<DexEncodedField> fieldAnnotations =
+        annotationDirectory.sortFieldAnnotations(mapping.getCompareToVisitor());
     dest.putInt(fieldAnnotations.size());
     dest.putInt(methodAnnotations.size());
     dest.putInt(parameterAnnotations.size());
@@ -630,7 +633,7 @@ public class FileWriter {
 
   private void writeEncodedFields(List<DexEncodedField> unsortedFields) {
     List<DexEncodedField> fields = new ArrayList<>(unsortedFields);
-    fields.sort((a, b) -> a.field.compareToWithNamingLens(b.field, namingLens));
+    fields.sort((a, b) -> a.field.acceptCompareTo(b.field, mapping.getCompareToVisitor()));
     int currentOffset = 0;
     for (DexEncodedField field : fields) {
       assert field.validateDexValue(application.dexItemFactory);
@@ -646,7 +649,7 @@ public class FileWriter {
   private void writeEncodedMethods(
       Iterable<DexEncodedMethod> unsortedMethods, boolean isSharedSynthetic) {
     List<DexEncodedMethod> methods = IterableUtils.toNewArrayList(unsortedMethods);
-    methods.sort((a, b) -> a.method.compareToWithNamingLens(b.method, namingLens));
+    methods.sort((a, b) -> a.method.acceptCompareTo(b.method, mapping.getCompareToVisitor()));
     int currentOffset = 0;
     for (DexEncodedMethod method : methods) {
       int nextOffset = mapping.getOffsetFor(method.method);
