@@ -550,10 +550,20 @@ public class IRConverter {
           definition.getMutableOptimizationInfo().setReachabilitySensitive(isReachabilitySensitive);
           convertMethod(method);
         });
+    // The class file version is downgraded after compilation. Some of the desugaring might need
+    // the initial class file version to determine how far a method can be downgraded.
+    if (clazz.hasClassFileVersion()) {
+      clazz.downgradeInitialClassFileVersion(
+          appView.options().classFileVersionAfterDesugaring(clazz.getInitialClassFileVersion()));
+    }
   }
 
   private void convertMethod(ProgramMethod method) {
     DexEncodedMethod definition = method.getDefinition();
+    if (definition.hasClassFileVersion()) {
+      definition.downgradeClassFileVersion(
+          appView.options().classFileVersionAfterDesugaring(definition.getClassFileVersion()));
+    }
     if (definition.getCode() == null) {
       return;
     }

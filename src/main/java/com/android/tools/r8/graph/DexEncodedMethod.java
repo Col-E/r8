@@ -843,6 +843,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     classFileVersion = Ordered.maxIgnoreNull(classFileVersion, version);
   }
 
+  public void downgradeClassFileVersion(CfVersion version) {
+    checkIfObsolete();
+    assert version != null;
+    classFileVersion = Ordered.minIgnoreNull(classFileVersion, version);
+  }
+
   public String qualifiedName() {
     checkIfObsolete();
     return method.qualifiedName();

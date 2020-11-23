@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -21,6 +22,7 @@ public class SyntheticMethodBuilder {
   private final SyntheticClassBuilder parent;
   private final String name;
   private DexProto proto = null;
+  private CfVersion classFileVersion;
   private SyntheticCodeGenerator codeGenerator = null;
   private MethodAccessFlags accessFlags = null;
 
@@ -31,6 +33,11 @@ public class SyntheticMethodBuilder {
 
   public SyntheticMethodBuilder setProto(DexProto proto) {
     this.proto = proto;
+    return this;
+  }
+
+  public SyntheticMethodBuilder setClassFileVersion(CfVersion classFileVersion) {
+    this.classFileVersion = classFileVersion;
     return this;
   }
 
@@ -55,7 +62,8 @@ public class SyntheticMethodBuilder {
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             getCodeObject(methodSignature),
-            isCompilerSynthesized);
+            isCompilerSynthesized,
+            classFileVersion);
     assert isValidSyntheticMethod(method);
     return method;
   }

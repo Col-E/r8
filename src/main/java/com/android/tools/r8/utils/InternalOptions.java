@@ -63,6 +63,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
+import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
@@ -1531,6 +1532,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public boolean canUseAssertionErrorTwoArgumentConstructor() {
     return (isGeneratingClassFiles() && !cfToCfDesugar) || hasMinApi(AndroidApiLevel.K);
+  }
+
+  public CfVersion classFileVersionAfterDesugaring(CfVersion version) {
+    if (!isDesugaring()) {
+      return version;
+    }
+    CfVersion maxVersionAfterDesugar =
+        canUseDefaultAndStaticInterfaceMethods() ? CfVersion.V1_8 : CfVersion.V1_7;
+    return Ordered.min(maxVersionAfterDesugar, version);
   }
 
   // The Apache Harmony-based AssertionError constructor which takes an Object on API 15 and older

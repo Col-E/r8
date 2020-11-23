@@ -20,6 +20,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.TraversalContinuation;
+import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -669,12 +670,16 @@ public class DexProgramClass extends DexClass
     this.initialClassFileVersion = initialClassFileVersion;
   }
 
+  public void downgradeInitialClassFileVersion(CfVersion version) {
+    assert version != null;
+    this.initialClassFileVersion = Ordered.minIgnoreNull(this.initialClassFileVersion, version);
+  }
+
   public boolean hasClassFileVersion() {
     return initialClassFileVersion != null;
   }
 
   public CfVersion getInitialClassFileVersion() {
-    assert initialClassFileVersion != null;
     return initialClassFileVersion;
   }
 

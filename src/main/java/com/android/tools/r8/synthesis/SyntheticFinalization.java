@@ -282,6 +282,8 @@ public class SyntheticFinalization {
                 methodBuilder
                     .setAccessFlags(definition.accessFlags)
                     .setProto(definition.getProto())
+                    .setClassFileVersion(
+                        definition.hasClassFileVersion() ? definition.getClassFileVersion() : null)
                     .setCode(m -> definition.getCode());
               });
           DexProgramClass externalSyntheticClass = builder.build();

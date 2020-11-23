@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.DesugarGraphConsumer;
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
@@ -54,6 +55,7 @@ import com.android.tools.r8.utils.ObjectUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
+import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -214,6 +216,21 @@ public final class InterfaceMethodRewriter {
     return emulatedInterfaces.get(itf);
   }
 
+  private void leavingStaticInvokeToInterface(
+      DexProgramClass holder, DexEncodedMethod encodedMethod) {
+    // When leaving static interface method invokes possibly upgrade the class file
+    // version, but don't go above the initial class file version. If the input was
+    // 1.7 or below, this will make a VerificationError on the input a VerificationError
+    // on the output. If the input was 1.8 or above the runtime behaviour (potential ICCE)
+    // will remain the same.
+    if (holder.hasClassFileVersion()) {
+      encodedMethod.upgradeClassFileVersion(
+          Ordered.min(CfVersion.V1_8, holder.getInitialClassFileVersion()));
+    } else {
+      encodedMethod.upgradeClassFileVersion(CfVersion.V1_8);
+    }
+  }
+
   // Rewrites the references to static and default interface methods.
   // NOTE: can be called for different methods concurrently.
   public void rewriteMethodReferences(IRCode code) {
@@ -257,6 +274,9 @@ public final class InterfaceMethodRewriter {
             // NOTE: leave unchanged those calls to undefined targets. This may lead to runtime
             // exception but we can not report it as error since it can also be the intended
             // behavior.
+            if (invokeStatic.getInterfaceBit()) {
+              leavingStaticInvokeToInterface(context.getHolder(), encodedMethod);
+            }
             warnMissingType(encodedMethod.method, method.holder);
           } else if (clazz.isInterface()) {
             if (isNonDesugaredLibraryClass(clazz)) {
@@ -304,13 +324,24 @@ public final class InterfaceMethodRewriter {
                         invokeStatic.outValue(),
                         invokeStatic.arguments()));
                 synchronized (synthesizedMethods) {
+                  // The synthetic dispatch class has static interface method invokes, so set
+                  // the class file version accordingly.
+                  newProgramMethod.getDefinition().upgradeClassFileVersion(CfVersion.V1_8);
                   synthesizedMethods.add(newProgramMethod);
                 }
+              } else {
+                // When leaving static interface method invokes upgrade the class file version.
+                encodedMethod.upgradeClassFileVersion(CfVersion.V1_8);
               }
             } else {
               instructions.replaceCurrentInstruction(
                   new InvokeStatic(staticAsMethodOfCompanionClass(method),
                       invokeStatic.outValue(), invokeStatic.arguments()));
+            }
+          } else {
+            assert !clazz.isInterface();
+            if (invokeStatic.getInterfaceBit()) {
+              leavingStaticInvokeToInterface(context.getHolder(), encodedMethod);
             }
           }
           continue;

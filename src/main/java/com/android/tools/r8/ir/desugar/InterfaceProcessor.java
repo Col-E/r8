@@ -213,7 +213,7 @@ public final class InterfaceProcessor {
         ParameterAnnotationsList.empty(),
         code,
         true,
-        iface.hasClassFileVersion() ? iface.getInitialClassFileVersion() : null);
+        iface.getInitialClassFileVersion());
   }
 
   private void processVirtualInterfaceMethods(
