@@ -47,6 +47,11 @@ def make_parser():
     help='Path to an R8 jar.',
     default=None)
   parser.add_argument(
+    '-override',
+    help='Do not override any extracted dump in temp-dir',
+    default=False,
+    action='store_true')
+  parser.add_argument(
     '--nolib',
     help='Use the non-lib distribution (default uses the lib distribution)',
     default=False,
@@ -168,7 +173,13 @@ def read_dump(args, temp):
     return Dump(args.dump)
   dump_file = zipfile.ZipFile(os.path.abspath(args.dump), 'r')
   with utils.ChangedWorkingDirectory(temp):
-    dump_file.extractall()
+    if args.override or not os.path.isfile(
+        os.path.join(temp, 'proguard.config')):
+      print("Extracting into: %s" % temp)
+      dump_file.extractall()
+      if not os.path.isfile(os.path.join(temp, 'proguard.config')):
+        error("Did not extract into %s. Either the zip file is invalid or the "
+              "dump is missing files" % temp)
     return Dump(temp)
 
 def determine_build_properties(args, dump):
