@@ -149,8 +149,8 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
             .getOptimizationInfo()
             .getInstanceInitializerInfo(invoke)
             .fieldInitializationInfos();
-    for (DexEncodedField field : singleTarget.getHolder().instanceFields()) {
-      assert isSubjectToOptimization(field);
+    for (DexEncodedField field :
+        singleTarget.getHolder().getDirectAndIndirectInstanceFields(appView)) {
       InstanceFieldInitializationInfo info = infos.get(field);
       if (info.isArgumentInitializationInfo()) {
         int argumentIndex = info.asArgumentInitializationInfo().getArgumentIndex();

@@ -29,6 +29,10 @@ public class DontInlinePolicy extends SingleClassPolicy {
   private boolean disallowInlining(ProgramMethod method) {
     Code code = method.getDefinition().getCode();
 
+    if (appView.appInfo().isNeverInlineMethod(method.getReference())) {
+      return true;
+    }
+
     // For non-jar/cf code we currently cannot guarantee that markForceInline() will succeed.
     if (code == null || !code.isCfCode()) {
       return true;
