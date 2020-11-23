@@ -89,6 +89,15 @@ public class ClassInitializerDefaultsOptimization {
       }
       return false;
     }
+
+    public DexValue getStaticValue(DexEncodedField field) {
+      assert hasStaticValue(field);
+      assert field.isStatic();
+      if (fieldsWithStaticValues != null && fieldsWithStaticValues.containsKey(field)) {
+        return fieldsWithStaticValues.get(field);
+      }
+      return field.getStaticValue();
+    }
   }
 
   private static class WaveDoneAction implements Action {

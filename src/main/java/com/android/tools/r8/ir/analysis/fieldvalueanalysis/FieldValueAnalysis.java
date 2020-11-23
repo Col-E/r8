@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
@@ -85,6 +86,10 @@ public abstract class FieldValueAnalysis {
     return null;
   }
 
+  StaticFieldValueAnalysis asStaticFieldValueAnalysis() {
+    return null;
+  }
+
   abstract boolean isSubjectToOptimization(DexEncodedField field);
 
   void recordFieldPut(DexEncodedField field, Instruction instruction) {
@@ -148,6 +153,16 @@ public abstract class FieldValueAnalysis {
       boolean priorReadsWillReadSameValue =
           !classInitializerDefaultsResult.hasStaticValue(field) && fieldPut.value().isZero();
       if (!priorReadsWillReadSameValue && fieldMaybeReadBeforeInstruction(field, fieldPut)) {
+        if (!isInstanceFieldValueAnalysis()) {
+          // At this point the value read in the field can be only the default static value, if read
+          // prior to the put, or the value put, if read after the put. We still want to record it
+          // because the default static value is typically null/0, so code present after a null/0
+          // check can take advantage of the optimization.
+          DexValue valueBeforePut = classInitializerDefaultsResult.getStaticValue(field);
+          asStaticFieldValueAnalysis()
+              .updateFieldOptimizationInfoWith2Values(
+                  field, fieldPut, fieldPut.value(), valueBeforePut);
+        }
         continue;
       }
       updateFieldOptimizationInfo(field, fieldPut, fieldPut.value());

@@ -88,6 +88,14 @@ public abstract class AbstractValue {
     return false;
   }
 
+  public boolean isNullOrAbstractValue() {
+    return false;
+  }
+
+  public NullOrAbstractValue asNullOrAbstractValue() {
+    return null;
+  }
+
   public AbstractValue join(AbstractValue other) {
     if (isBottom() || other.isUnknown()) {
       return other;

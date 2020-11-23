@@ -9,16 +9,20 @@ import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.EnumValuesObjectState;
+import com.android.tools.r8.ir.analysis.value.NullOrAbstractValue;
 import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -56,6 +60,11 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     new StaticFieldValueAnalysis(appView.withLiveness(), code, feedback)
         .computeFieldOptimizationInfo(classInitializerDefaultsResult);
     timing.end();
+  }
+
+  @Override
+  StaticFieldValueAnalysis asStaticFieldValueAnalysis() {
+    return this;
   }
 
   @Override
@@ -98,13 +107,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   @Override
   void updateFieldOptimizationInfo(DexEncodedField field, FieldInstruction fieldPut, Value value) {
     // Abstract value.
-    Value root = value.getAliasedValue();
-    AbstractValue abstractValue = root.getAbstractValue(appView, context);
-    if (abstractValue.isUnknown()) {
-      feedback.recordFieldHasAbstractValue(field, appView, computeSingleFieldValue(field, root));
-    } else {
-      feedback.recordFieldHasAbstractValue(field, appView, abstractValue);
-    }
+    feedback.recordFieldHasAbstractValue(field, appView, getOrComputeAbstractValue(value, field));
 
     // Dynamic upper bound type.
     TypeElement fieldType =
@@ -120,6 +123,27 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       assert dynamicLowerBoundType.lessThanOrEqual(dynamicUpperBoundType, appView);
       feedback.markFieldHasDynamicLowerBoundType(field, dynamicLowerBoundType);
     }
+  }
+
+  public void updateFieldOptimizationInfoWith2Values(
+      DexEncodedField field, FieldInstruction fieldPut, Value valuePut, DexValue valueBeforePut) {
+    // We are interested in the AbstractValue only if it's null or a value, so we can use the value
+    // if the code is protected by a null check.
+    if (valueBeforePut != DexValueNull.NULL) {
+      return;
+    }
+    feedback.recordFieldHasAbstractValue(
+        field, appView, NullOrAbstractValue.create(getOrComputeAbstractValue(valuePut, field)));
+    // TODO(b/172528424): investigate if we can set the dynamic type if it's only null vs a value.
+  }
+
+  private AbstractValue getOrComputeAbstractValue(Value value, DexEncodedField field) {
+    Value root = value.getAliasedValue();
+    AbstractValue abstractValue = root.getAbstractValue(appView, context);
+    if (abstractValue.isUnknown()) {
+      return computeSingleFieldValue(field, root);
+    }
+    return abstractValue;
   }
 
   private SingleFieldValue computeSingleFieldValue(DexEncodedField field, Value value) {
@@ -273,8 +297,12 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     }
 
     NewInstance newInstance = value.definition.asNewInstance();
+    // Some enums have direct subclasses, and the subclass is instantiated here.
     if (newInstance.clazz != context.getHolderType()) {
-      return null;
+      DexClass dexClass = appView.definitionFor(newInstance.clazz);
+      if (dexClass == null || dexClass.superType != context.getHolderType()) {
+        return null;
+      }
     }
 
     if (value.hasDebugUsers() || value.hasPhiUsers()) {

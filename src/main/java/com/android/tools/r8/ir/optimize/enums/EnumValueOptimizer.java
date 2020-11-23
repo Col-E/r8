@@ -14,13 +14,10 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.analysis.value.SingleStringValue;
 import com.android.tools.r8.ir.code.ArrayGet;
@@ -37,7 +34,6 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.SwitchMapCollector;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ArrayUtils;
@@ -103,40 +99,20 @@ public class EnumValueOptimizer {
 
         FieldOptimizationInfo optimizationInfo = definition.getOptimizationInfo();
         AbstractValue abstractValue = optimizationInfo.getAbstractValue();
-        if (!abstractValue.isSingleFieldValue()) {
-          continue;
-        }
-
-        ObjectState objectState = abstractValue.asSingleFieldValue().getState();
-        if (objectState.isEmpty()) {
-          continue;
-        }
 
         Value outValue = methodWithReceiver.outValue();
         if (isOrdinalInvoke) {
-          DexField ordinalField = appView.dexItemFactory().enumMembers.ordinalField;
-          DexEncodedField ordinalDefinition =
-              ordinalField.lookupOnClass(appView.definitionForHolder(ordinalField));
-          if (ordinalDefinition != null) {
-            SingleNumberValue ordinalValue =
-                objectState.getAbstractFieldValue(ordinalDefinition).asSingleNumberValue();
+          SingleNumberValue ordinalValue =
+              getOrdinalValue(code, abstractValue, methodWithReceiver.getReceiver().isNeverNull());
             if (ordinalValue != null) {
               iterator.replaceCurrentInstruction(
                   new ConstNumber(outValue, ordinalValue.getValue()));
-            }
           }
           continue;
         }
 
-        DexField nameField = appView.dexItemFactory().enumMembers.nameField;
-        DexEncodedField nameDefinition =
-            nameField.lookupOnClass(appView.definitionForHolder(nameField));
-        if (nameField == null) {
-          continue;
-        }
-
         SingleStringValue nameValue =
-            objectState.getAbstractFieldValue(nameDefinition).asSingleStringValue();
+            getNameValue(code, abstractValue, methodWithReceiver.getReceiver().isNeverNull());
         if (nameValue == null) {
           continue;
         }
@@ -228,7 +204,7 @@ public class EnumValueOptimizer {
         continue;
       }
 
-      Int2IntMap ordinalToTargetMap = computeOrdinalToTargetMap(switchInsn, info);
+      Int2IntMap ordinalToTargetMap = computeOrdinalToTargetMap(code, switchInsn, info);
       if (ordinalToTargetMap == null) {
         continue;
       }
@@ -315,22 +291,60 @@ public class EnumValueOptimizer {
     }
   }
 
-  private Int2IntMap computeOrdinalToTargetMap(IntSwitch switchInsn, EnumSwitchInfo info) {
-    Int2IntMap ordinalToTargetMap = new Int2IntArrayMap(switchInsn.numberOfKeys());
+  private Int2IntArrayMap computeOrdinalToTargetMap(
+      IRCode code, IntSwitch switchInsn, EnumSwitchInfo info) {
+    Int2IntArrayMap ordinalToTargetMap = new Int2IntArrayMap(switchInsn.numberOfKeys());
     for (int i = 0; i < switchInsn.numberOfKeys(); i++) {
       assert switchInsn.targetBlockIndices()[i] != switchInsn.getFallthroughBlockIndex();
       DexField field = info.indexMap.get(switchInsn.getKey(i));
-      EnumValueInfo valueInfo = info.valueInfoMap.getEnumValueInfo(field);
-      if (valueInfo != null) {
-        if (appView.appInfo().isPinned(field)) {
+      DexEncodedField enumInstanceField =
+          appView.appInfo().resolveField(field, code.context()).getResolvedField();
+      if (enumInstanceField == null) {
+        // The switch map refers to a field on the enum that does not exist in this compilation.
+      } else {
+        AbstractValue abstractValue = enumInstanceField.getOptimizationInfo().getAbstractValue();
+        // The rewriting effectively leaves in place the myEnum.ordinal() call, so if the value
+        // is null, the same NPE happens at runtime, we can assume the value is non null in the
+        // switch map after the ordinal call.
+        SingleNumberValue ordinalValue = getOrdinalValue(code, abstractValue, true);
+        if (ordinalValue == null) {
           return null;
         }
-        ordinalToTargetMap.put(valueInfo.ordinal, switchInsn.targetBlockIndices()[i]);
-      } else {
-        // The switch map refers to a field on the enum that does not exist in this compilation.
+        ordinalToTargetMap.put(
+            ordinalValue.asSingleNumberValue().getIntValue(), switchInsn.targetBlockIndices()[i]);
       }
     }
     return ordinalToTargetMap;
+  }
+
+  private SingleStringValue getNameValue(
+      IRCode code, AbstractValue abstractValue, boolean neverNull) {
+    AbstractValue ordinalValue =
+        getEnumFieldValue(code, abstractValue, factory.enumMembers.nameField, neverNull);
+    return ordinalValue == null ? null : ordinalValue.asSingleStringValue();
+  }
+
+  private SingleNumberValue getOrdinalValue(
+      IRCode code, AbstractValue abstractValue, boolean neverNull) {
+    AbstractValue ordinalValue =
+        getEnumFieldValue(code, abstractValue, factory.enumMembers.ordinalField, neverNull);
+    return ordinalValue == null ? null : ordinalValue.asSingleNumberValue();
+  }
+
+  private AbstractValue getEnumFieldValue(
+      IRCode code, AbstractValue abstractValue, DexField field, boolean neverNull) {
+    if (neverNull && abstractValue.isNullOrAbstractValue()) {
+      abstractValue = abstractValue.asNullOrAbstractValue().getNonNullValue();
+    }
+    if (!abstractValue.isSingleFieldValue()) {
+      return null;
+    }
+    DexEncodedField encodedField =
+        appView.appInfo().resolveField(field, code.context()).getResolvedField();
+    if (encodedField == null) {
+      return null;
+    }
+    return abstractValue.asSingleFieldValue().getState().getAbstractFieldValue(encodedField);
   }
 
   private static final class EnumSwitchInfo {
@@ -340,21 +354,18 @@ public class EnumValueOptimizer {
     final Instruction arrayGet;
     public final Instruction staticGet;
     final Int2ReferenceMap<DexField> indexMap;
-    final EnumValueInfoMap valueInfoMap;
 
     private EnumSwitchInfo(
         DexType enumClass,
         Instruction ordinalInvoke,
         Instruction arrayGet,
         Instruction staticGet,
-        Int2ReferenceMap<DexField> indexMap,
-        EnumValueInfoMap valueInfoMap) {
+        Int2ReferenceMap<DexField> indexMap) {
       this.enumClass = enumClass;
       this.ordinalInvoke = ordinalInvoke;
       this.arrayGet = arrayGet;
       this.staticGet = staticGet;
       this.indexMap = indexMap;
-      this.valueInfoMap = valueInfoMap;
     }
   }
 
@@ -371,8 +382,7 @@ public class EnumValueOptimizer {
    *
    * </blockquote>
    *
-   * and extracts the components and the index and ordinal maps. See {@link
-   * EnumValueInfoMapCollector} and {@link SwitchMapCollector} for details.
+   * and extracts the components and the index and ordinal maps.
    */
   private EnumSwitchInfo analyzeSwitchOverEnum(IntSwitch switchInsn) {
     Instruction input = switchInsn.inValues().get(0).definition;
@@ -412,10 +422,6 @@ public class EnumValueOptimizer {
     }
     // Due to member rebinding, only the fields are certain to provide the actual enums class.
     DexType enumType = indexMap.values().iterator().next().holder;
-    EnumValueInfoMap valueInfoMap = appView.appInfo().getEnumValueInfoMap(enumType);
-    if (valueInfoMap == null) {
-      return null;
-    }
-    return new EnumSwitchInfo(enumType, ordinalInvoke, arrayGet, staticGet, indexMap, valueInfoMap);
+    return new EnumSwitchInfo(enumType, ordinalInvoke, arrayGet, staticGet, indexMap);
   }
 }
