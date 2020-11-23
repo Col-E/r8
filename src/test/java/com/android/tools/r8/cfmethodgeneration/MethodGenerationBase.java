@@ -94,6 +94,7 @@ public abstract class MethodGenerationBase extends TestBase {
 
   private void readMethodTemplatesInto(CfCodePrinter codePrinter) throws IOException {
     InternalOptions options = new InternalOptions();
+    options.testing.readInputStackMaps = true;
     JarClassFileReader reader =
         new JarClassFileReader(
             new JarApplicationReader(options),

@@ -393,7 +393,7 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.programConsumer = getProgramConsumer();
-    if (internal.programConsumer instanceof ClassFileConsumer) {
+    if (internal.isGeneratingClassFiles()) {
       internal.cfToCfDesugar = true;
     }
     internal.mainDexListConsumer = getMainDexListConsumer();

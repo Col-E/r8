@@ -595,6 +595,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         || getProguardConfiguration().getKeepAttributes().innerClasses;
   }
 
+  public boolean canUseInputStackMaps() {
+    return testing.readInputStackMaps ? testing.readInputStackMaps : isGeneratingClassFiles();
+  }
+
   public boolean printCfg = false;
   public String printCfgFile;
   public boolean ignoreMissingClasses = false;

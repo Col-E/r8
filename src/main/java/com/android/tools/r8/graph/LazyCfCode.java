@@ -998,7 +998,7 @@ public class LazyCfCode extends Code {
       JarApplicationReader application, boolean reachabilitySensitive) {
     // TODO(b/166841731): We should compute our own from the compressed format.
     int parsingOptions =
-        application.options.testing.readInputStackMaps
+        application.options.canUseInputStackMaps()
             ? ClassReader.EXPAND_FRAMES
             : ClassReader.SKIP_FRAMES;
     ProguardConfiguration configuration = application.options.getProguardConfiguration();
