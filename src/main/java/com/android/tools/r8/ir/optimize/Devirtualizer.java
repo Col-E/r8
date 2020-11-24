@@ -354,7 +354,11 @@ public class Devirtualizer {
     if (newResolutionResult == null
         || newResolutionResult
             .isAccessibleForVirtualDispatchFrom(context, appView.appInfo())
-            .isPossiblyFalse()) {
+            .isPossiblyFalse()
+        || !newResolutionResult
+            .getResolvedMethod()
+            .getAccessFlags()
+            .isAtLeastAsVisibleAs(resolutionResult.getResolvedMethod().getAccessFlags())) {
       return target;
     }
 

@@ -5,13 +5,11 @@
 package com.android.tools.r8.ir.optimize.devirtualize;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -48,33 +46,25 @@ public class PrivateOverridePublicizerDevirtualizerTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(PrivateOverridePublicizerDevirtualizerTest.class)
-            .enableInliningAnnotations()
-            .enableNoVerticalClassMergingAnnotations()
-            .enableNeverClassInliningAnnotations()
-            .addKeepMainRule(Main.class)
-            .allowAccessModification()
-            .noMinification()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspect(
-                inspector -> {
-                  ClassSubject classA = inspector.clazz(A.class);
-                  assertThat(classA, isPresent());
-                  MethodSubject fooA = classA.uniqueMethodWithName("foo");
-                  // TODO(b/173812804): This should not be removed.
-                  assertThat(fooA, not(isPresent()));
-                })
-            .run(parameters.getRuntime(), Main.class);
-    if (parameters.isDexRuntime()) {
-      // TODO(b/173812804): This should not fail verification
-      runResult.assertFailureWithErrorThatThrows(VerifyError.class);
-    } else {
-      // TODO(b/173812804): This should have been A::foo, B::foo.
-      runResult.assertSuccessWithOutputLines("B::foo", "B::foo");
-    }
+    testForR8(parameters.getBackend())
+        .addInnerClasses(PrivateOverridePublicizerDevirtualizerTest.class)
+        .enableInliningAnnotations()
+        .enableNoVerticalClassMergingAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .addKeepMainRule(Main.class)
+        .allowAccessModification()
+        .noMinification()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject classA = inspector.clazz(A.class);
+              assertThat(classA, isPresent());
+              MethodSubject fooA = classA.uniqueMethodWithName("foo");
+              assertThat(fooA, isPresent());
+            })
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @NeverClassInline
