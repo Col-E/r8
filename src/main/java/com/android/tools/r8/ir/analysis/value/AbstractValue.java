@@ -106,6 +106,12 @@ public abstract class AbstractValue {
     if (equals(other)) {
       return this;
     }
+    if (isNull()) {
+      return NullOrAbstractValue.create(other);
+    }
+    if (other.isNull()) {
+      return NullOrAbstractValue.create(this);
+    }
     return UnknownValue.getInstance();
   }
 

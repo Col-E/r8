@@ -109,11 +109,19 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     // Abstract value.
     feedback.recordFieldHasAbstractValue(field, appView, getOrComputeAbstractValue(value, field));
 
+    setDynamicType(field, value, false);
+  }
+
+  private void setDynamicType(DexEncodedField field, Value value, boolean maybeNull) {
     // Dynamic upper bound type.
     TypeElement fieldType =
         TypeElement.fromDexType(field.field.type, Nullability.maybeNull(), appView);
     TypeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
     if (dynamicUpperBoundType.strictlyLessThan(fieldType, appView)) {
+      if (maybeNull && dynamicUpperBoundType.isDefinitelyNotNull()) {
+        assert dynamicUpperBoundType.isReferenceType();
+        dynamicUpperBoundType = dynamicUpperBoundType.asReferenceType().asMaybeNull();
+      }
       feedback.markFieldHasDynamicUpperBoundType(field, dynamicUpperBoundType);
     }
 
@@ -121,6 +129,9 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     ClassTypeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
     if (dynamicLowerBoundType != null) {
       assert dynamicLowerBoundType.lessThanOrEqual(dynamicUpperBoundType, appView);
+      if (maybeNull && dynamicLowerBoundType.isDefinitelyNotNull()) {
+        dynamicLowerBoundType = dynamicLowerBoundType.asMaybeNull().asClassType();
+      }
       feedback.markFieldHasDynamicLowerBoundType(field, dynamicLowerBoundType);
     }
   }
@@ -134,7 +145,8 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     }
     feedback.recordFieldHasAbstractValue(
         field, appView, NullOrAbstractValue.create(getOrComputeAbstractValue(valuePut, field)));
-    // TODO(b/172528424): investigate if we can set the dynamic type if it's only null vs a value.
+
+    setDynamicType(field, valuePut, true);
   }
 
   private AbstractValue getOrComputeAbstractValue(Value value, DexEncodedField field) {
