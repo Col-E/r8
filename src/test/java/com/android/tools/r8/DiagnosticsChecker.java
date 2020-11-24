@@ -48,10 +48,10 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
     void run(DiagnosticsHandler handler) throws CompilationFailedException;
   }
 
-  public static void checkContains(String snippet, List<Diagnostic> diagnostics) {
+  private static void checkContains(String snippet, List<Diagnostic> diagnostics) {
     List<String> messages = ListUtils.map(diagnostics, Diagnostic::getDiagnosticMessage);
     System.out.println("Expecting match for '" + snippet + "'");
-    System.out.println("StdErr:\n" + messages);
+    System.out.println("Diagnostics messages:\n" + messages);
     assertTrue(
         "Expected to find snippet '"
             + snippet
@@ -60,8 +60,24 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
         diagnostics.stream().anyMatch(d -> d.getDiagnosticMessage().contains(snippet)));
   }
 
+  private static void checkNotContains(String snippet, List<Diagnostic> diagnostics) {
+    List<String> messages = ListUtils.map(diagnostics, Diagnostic::getDiagnosticMessage);
+    System.out.println("Expecting no match for '" + snippet + "'");
+    System.out.println("Diagnostics messages:\n" + messages);
+    assertTrue(
+        "Expected to *not* find snippet '"
+            + snippet
+            + "' in error messages:\n"
+            + String.join("\n", messages),
+        diagnostics.stream().noneMatch(d -> d.getDiagnosticMessage().contains(snippet)));
+  }
+
   public static void checkContains(Collection<String> snippets, List<Diagnostic> diagnostics) {
     snippets.forEach(snippet -> checkContains(snippet, diagnostics));
+  }
+
+  public static void checkNotContains(Collection<String> snippets, List<Diagnostic> diagnostics) {
+    snippets.forEach(snippet -> checkNotContains(snippet, diagnostics));
   }
 
   public void checkErrorsContains(String snippet) {

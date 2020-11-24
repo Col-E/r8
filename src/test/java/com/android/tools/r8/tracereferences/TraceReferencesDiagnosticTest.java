@@ -172,6 +172,8 @@ public class TraceReferencesDiagnosticTest extends TestBase {
       DiagnosticsChecker.checkErrorDiagnostics(
           checker -> {
             DiagnosticsChecker.checkContains(snippets, checker.errors);
+            DiagnosticsChecker.checkNotContains(
+                ImmutableList.of("Classe(s) without definition:"), checker.errors);
             try {
               assertEquals(1, checker.errors.size());
               assertTrue(checker.errors.get(0) instanceof MissingDefinitionsDiagnostic);

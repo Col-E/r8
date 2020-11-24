@@ -82,12 +82,18 @@ public class MissingDefinitionsDiagnostic implements Diagnostic {
     builder.append(" without definition");
     builder.append(System.lineSeparator());
     builder.append(System.lineSeparator());
-    builder.append("Classe(s) without definition:" + System.lineSeparator());
-    appendSorted(builder, missingClasses);
-    builder.append("Field(s) without definition:" + System.lineSeparator());
-    appendSorted(builder, missingFields);
-    builder.append("Method(s) without definition:" + System.lineSeparator());
-    appendSorted(builder, missingMethods);
+    if (missingClasses.size() > 0) {
+      builder.append("Classe(s) without definition:" + System.lineSeparator());
+      appendSorted(builder, missingClasses);
+    }
+    if (missingFields.size() > 0) {
+      builder.append("Field(s) without definition:" + System.lineSeparator());
+      appendSorted(builder, missingFields);
+    }
+    if (missingMethods.size() > 0) {
+      builder.append("Method(s) without definition:" + System.lineSeparator());
+      appendSorted(builder, missingMethods);
+    }
     return builder.toString();
   }
 }
