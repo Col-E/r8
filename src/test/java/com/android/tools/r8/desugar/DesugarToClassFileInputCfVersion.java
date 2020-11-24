@@ -50,18 +50,11 @@ public class DesugarToClassFileInputCfVersion extends TestBase {
             .writeToZip();
 
     if (parameters.getRuntime().isCf()) {
-      // Run on the JVM given that Cf version is supported.
-      if (cfVersion <= parameters.getRuntime().asCf().getVm().getClassfileVersion()) {
-        testForJvm()
-            .addProgramFiles(jar)
-            .run(parameters.getRuntime(), TestClass.class)
-            .assertSuccessWithOutputLines("Hello, world!");
-      } else {
-        testForJvm()
-            .addProgramFiles(jar)
-            .run(parameters.getRuntime(), TestClass.class)
-            .assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class);
-      }
+      // Run on the JVM given that Cf version is supported. When we desugar we now target 1.7 (51).
+      testForJvm()
+          .addProgramFiles(jar)
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutputLines("Hello, world!");
     } else {
       assert parameters.getRuntime().isDex();
       // Convert to DEX without desugaring.
