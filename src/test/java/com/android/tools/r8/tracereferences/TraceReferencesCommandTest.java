@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
@@ -524,10 +526,93 @@ public class TraceReferencesCommandTest extends TestBase {
                 Origin.unknown(),
                 diagnosticsChecker)
             .build());
-
     assertEquals(0, diagnosticsChecker.errors.size());
     assertEquals(1, diagnosticsChecker.warnings.size());
     assertEquals(0, diagnosticsChecker.infos.size());
+  }
+
+  @Test
+  public void testMissingReference_errorToWarningStdErr() throws Throwable {
+    Path dir = temp.newFolder().toPath();
+    Path targetJar =
+        zipWithTestClasses(dir.resolve("target.jar"), ImmutableList.of(OtherTarget.class));
+    Path sourceJar = zipWithTestClasses(dir.resolve("source.jar"), ImmutableList.of(Source.class));
+    PrintStream originalErr = System.err;
+    PrintStream originalOut = System.out;
+    ByteArrayOutputStream baosErr = new ByteArrayOutputStream();
+    ByteArrayOutputStream baosOut = new ByteArrayOutputStream();
+    try {
+      System.setErr(new PrintStream(baosErr));
+      System.setOut(new PrintStream(baosOut));
+      TraceReferences.run(
+          TraceReferencesCommand.parse(
+                  new String[] {
+                    "--check",
+                    "--lib",
+                    ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+                    "--target",
+                    targetJar.toString(),
+                    "--source",
+                    sourceJar.toString(),
+                    "--map-diagnostics:MissingDefinitionsDiagnostic",
+                    "error",
+                    "warning"
+                  },
+                  Origin.unknown())
+              .build());
+    } finally {
+      System.setErr(originalErr);
+      System.setOut(originalOut);
+    }
+
+    assertThat(
+        baosErr.toString(Charsets.UTF_8.name()),
+        containsString(
+            "Warning: Tracereferences found 1 classe(s), 1 field(s) and 1 method(s) without"
+                + " definition"));
+    assertEquals(0, baosOut.size());
+  }
+
+  @Test
+  public void testMissingReference_errorToInfoStdOut() throws Throwable {
+    Path dir = temp.newFolder().toPath();
+    Path targetJar =
+        zipWithTestClasses(dir.resolve("target.jar"), ImmutableList.of(OtherTarget.class));
+    Path sourceJar = zipWithTestClasses(dir.resolve("source.jar"), ImmutableList.of(Source.class));
+    PrintStream originalErr = System.err;
+    PrintStream originalOut = System.out;
+    ByteArrayOutputStream baosErr = new ByteArrayOutputStream();
+    ByteArrayOutputStream baosOut = new ByteArrayOutputStream();
+    try {
+      System.setErr(new PrintStream(baosErr));
+      System.setOut(new PrintStream(baosOut));
+      TraceReferences.run(
+          TraceReferencesCommand.parse(
+                  new String[] {
+                    "--check",
+                    "--lib",
+                    ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+                    "--target",
+                    targetJar.toString(),
+                    "--source",
+                    sourceJar.toString(),
+                    "--map-diagnostics:MissingDefinitionsDiagnostic",
+                    "error",
+                    "info"
+                  },
+                  Origin.unknown())
+              .build());
+    } finally {
+      System.setErr(originalErr);
+      System.setOut(originalOut);
+    }
+
+    assertEquals(0, baosErr.size());
+    assertThat(
+        baosOut.toString(Charsets.UTF_8.name()),
+        containsString(
+            "Info: Tracereferences found 1 classe(s), 1 field(s) and 1 method(s) without"
+                + " definition"));
   }
 
   private void checkTargetPartlyMissing(DiagnosticsChecker diagnosticsChecker) {

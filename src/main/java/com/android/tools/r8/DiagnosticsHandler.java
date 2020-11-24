@@ -39,7 +39,8 @@ public interface DiagnosticsHandler {
    */
   default void warning(Diagnostic warning) {
     if (warning.getOrigin() != Origin.unknown()) {
-      System.err.print("Warning in " + warning.getOrigin() + ":\n  ");
+      System.err.println("Warning in " + warning.getOrigin() + ":");
+      System.err.print("  ");
     } else {
       System.err.print("Warning: ");
     }
@@ -53,7 +54,10 @@ public interface DiagnosticsHandler {
    */
   default void info(Diagnostic info) {
     if (info.getOrigin() != Origin.unknown()) {
-      System.out.print("In " + info.getOrigin() + ":\n  ");
+      System.out.println("Info in " + info.getOrigin() + ":");
+      System.out.print("  ");
+    } else {
+      System.out.print("Info: ");
     }
     System.out.println(info.getDiagnosticMessage());
   }
