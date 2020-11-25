@@ -568,10 +568,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public void pruneItems(PrunedItems prunedItems) {
-    pruneItems(withLiveness(), prunedItems);
+    pruneItems(prunedItems, withLiveness());
   }
 
-  private static void pruneItems(AppView<AppInfoWithLiveness> appView, PrunedItems prunedItems) {
+  private static void pruneItems(PrunedItems prunedItems, AppView<AppInfoWithLiveness> appView) {
     if (!prunedItems.hasRemovedClasses() && !appView.options().configurationDebugging) {
       assert appView.appInfo().app() == prunedItems.getPrunedApp();
       return;
