@@ -367,18 +367,18 @@ def cloudSystemDependencies = [
         linux: [
                 "third_party": ["openjdk/openjdk-9.0.4/linux",
                                 "openjdk/jdk8/linux-x86",
-                                "openjdk/jdk-11/Linux",
+                                "openjdk/jdk-11/linux",
                                 "openjdk/jdk-15/linux"],
         ],
         osx: [
                 "third_party": ["openjdk/openjdk-9.0.4/osx",
                                 "openjdk/jdk8/darwin-x86",
-                                "openjdk/jdk-11/Mac",
+                                "openjdk/jdk-11/osx",
                                 "openjdk/jdk-15/osx"],
         ],
         windows: [
                 "third_party": ["openjdk/openjdk-9.0.4/windows",
-                                "openjdk/jdk-11/Windows",
+                                "openjdk/jdk-11/windows",
                                 "openjdk/jdk-15/windows"],
         ],
 ]
@@ -589,32 +589,35 @@ setJdkCompilationWithCompatibility(
         JavaVersion.VERSION_1_9,
         false)
 setJdkCompilationWithCompatibility(
+        sourceSets.examplesJava11.compileJavaTaskName,
+        'jdk-11',
+        JavaVersion.VERSION_11,
+        false)
+setJdkCompilationWithCompatibility(
+        sourceSets.examplesJava10.compileJavaTaskName,
+        'jdk-11',
+        JavaVersion.VERSION_1_10,
+        false)
+setJdkCompilationWithCompatibility(
+        sourceSets.examplesJava11.compileJavaTaskName,
+        'jdk-11',
+        JavaVersion.VERSION_11,
+        false)
+setJdkCompilationWithCompatibility(
+        sourceSets.examplesTestNGRunner.compileJavaTaskName,
+        'jdk-11',
+        JavaVersion.VERSION_11,
+        false)
+setJdkCompilationWithCompatibility(
+        sourceSets.jdk11TimeTests.compileJavaTaskName,
+        'jdk-11',
+        JavaVersion.VERSION_11,
+        false)
+setJdkCompilationWithCompatibility(
         sourceSets.examplesJava15.compileJavaTaskName,
         'jdk-15',
         JavaVersion.VERSION_15,
         true)
-
-def setJdk11CompilationWithCompatibility(String sourceSet, JavaVersion compatibility) {
-    tasks.named(sourceSet).get().configure {
-        def jdkDir = 'third_party/openjdk/jdk-11/'
-        options.fork = true
-        options.forkOptions.jvmArgs = []
-        if (OperatingSystem.current().isLinux()) {
-            options.forkOptions.javaHome = file(jdkDir + 'Linux')
-        } else if (OperatingSystem.current().isMacOsX()) {
-            options.forkOptions.javaHome = file(jdkDir + 'Mac/Contents/Home')
-        } else {
-            options.forkOptions.javaHome = file(jdkDir + 'Windows')
-        }
-        sourceCompatibility = compatibility
-        targetCompatibility = compatibility
-    }
-}
-
-setJdk11CompilationWithCompatibility(sourceSets.examplesJava10.compileJavaTaskName, JavaVersion.VERSION_1_10)
-setJdk11CompilationWithCompatibility(sourceSets.examplesJava11.compileJavaTaskName, JavaVersion.VERSION_11)
-setJdk11CompilationWithCompatibility(sourceSets.examplesTestNGRunner.compileJavaTaskName, JavaVersion.VERSION_11)
-setJdk11CompilationWithCompatibility(sourceSets.jdk11TimeTests.compileJavaTaskName, JavaVersion.VERSION_11)
 
 task compileMainWithJava11 (type: JavaCompile) {
     dependsOn downloadDeps
@@ -622,11 +625,11 @@ task compileMainWithJava11 (type: JavaCompile) {
     options.fork = true
     options.forkOptions.jvmArgs = []
     if (OperatingSystem.current().isLinux()) {
-        options.forkOptions.javaHome = file(jdkDir + 'Linux')
+        options.forkOptions.javaHome = file(jdkDir + 'linux')
     } else if (OperatingSystem.current().isMacOsX()) {
-        options.forkOptions.javaHome = file(jdkDir + 'Mac/Contents/Home')
+        options.forkOptions.javaHome = file(jdkDir + 'osx/Contents/Home')
     } else {
-        options.forkOptions.javaHome = file(jdkDir + 'Windows')
+        options.forkOptions.javaHome = file(jdkDir + 'windows')
     }
     source = sourceSets.main.allSource
     destinationDir = file(java11ClassFiles)
