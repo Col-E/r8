@@ -135,6 +135,11 @@ sourceSets {
             srcDirs = ['src/test/examplesJava11']
         }
     }
+    examplesJava15 {
+        java {
+            srcDirs = ['src/test/examplesJava15']
+        }
+    }
     jdk11TimeTests {
         java {
             srcDirs = [
@@ -287,7 +292,7 @@ def r8LibExludeDepsPath = "$buildDir/libs/r8lib-exclude-deps.jar"
 def r8DesugaredPath = "$buildDir/libs/r8desugared.jar"
 def r8LibGeneratedKeepRulesPath = "$buildDir/generated/keep.txt"
 def r8LibTestPath = "$buildDir/classes/r8libtest"
-def java11ClassFiles = "build/classes/java/mainJava11"
+def java11ClassFiles = "$buildDir/classes/java/mainJava11"
 
 def osString = OperatingSystem.current().isLinux() ? "linux" :
         OperatingSystem.current().isMacOsX() ? "mac" : "windows"
@@ -558,20 +563,36 @@ sourceSets.configureEach { sourceSet ->
     }
 }
 
-tasks.named(sourceSets.examplesJava9.compileJavaTaskName).get().configure {
-    def jdkDir = 'third_party/openjdk/openjdk-9.0.4/'
-    options.fork = true
-    options.forkOptions.jvmArgs = []
-    if (OperatingSystem.current().isLinux()) {
-        options.forkOptions.javaHome = file(jdkDir + 'linux')
-    } else if (OperatingSystem.current().isMacOsX()) {
-        options.forkOptions.javaHome = file(jdkDir + 'osx')
-    } else {
-        options.forkOptions.javaHome = file(jdkDir + 'windows')
+def setJdkCompilationWithCompatibility(String sourceSet, String javaHome, JavaVersion compatibility, boolean enablePreview) {
+    tasks.named(sourceSet).get().configure {
+        def jdkDir = "third_party/openjdk/${javaHome}/"
+        options.fork = true
+        options.forkOptions.jvmArgs = []
+        if (enablePreview) {
+            options.compilerArgs.add('--enable-preview')
+        }
+        if (OperatingSystem.current().isLinux()) {
+            options.forkOptions.javaHome = file(jdkDir + 'linux')
+        } else if (OperatingSystem.current().isMacOsX()) {
+            options.forkOptions.javaHome = file(jdkDir + 'osx')
+        } else {
+            options.forkOptions.javaHome = file(jdkDir + 'windows')
+        }
+        sourceCompatibility = compatibility
+        targetCompatibility = compatibility
     }
-    sourceCompatibility = JavaVersion.VERSION_1_9
-    targetCompatibility = JavaVersion.VERSION_1_9
 }
+
+setJdkCompilationWithCompatibility(
+        sourceSets.examplesJava9.compileJavaTaskName,
+        'openjdk-9.0.4',
+        JavaVersion.VERSION_1_9,
+        false)
+setJdkCompilationWithCompatibility(
+        sourceSets.examplesJava15.compileJavaTaskName,
+        'jdk-15',
+        JavaVersion.VERSION_15,
+        true)
 
 def setJdk11CompilationWithCompatibility(String sourceSet, JavaVersion compatibility) {
     tasks.named(sourceSet).get().configure {
@@ -717,6 +738,8 @@ task repackageDepsNew(type: ShadowJar) {
 }
 
 task repackageSourcesNew(type: ShadowJar) {
+    // If this fails then remove all generated folders from
+    // build/classes/java/test that is not {com,dalvik}
     from sourceSets.main.output
     mergeServiceFiles(it)
     baseName 'sources_main'
@@ -733,6 +756,7 @@ def r8CreateTask(name, baseNameName, sources, includeSwissArmyKnife) {
     return tasks.create("r8Create${name}", ShadowJar) {
         from consolidatedLicense.outputs.files
         from sources
+        exclude "$buildDir/classes/**"
         baseName baseNameName
         classifier = null
         version = null
@@ -1522,53 +1546,28 @@ task buildExampleAndroidPJars {
     }
 }
 
-task buildExampleJava9Jars {
-    def examplesDir = file("src/test/examplesJava9")
-    examplesDir.eachDir { dir ->
-        def name = dir.getName();
-        def exampleOutputDir = file("build/test/examplesJava9");
-        def jarName = "${name}.jar"
-        dependsOn "jar_examplesJava9_${name}"
-        task "jar_examplesJava9_${name}"(type: Jar) {
-            archiveName = jarName
-            destinationDir = exampleOutputDir
-            from sourceSets.examplesJava9.output
-            include "**/" + name + "/**/*.class"
+def buildExampleJarsCreateTask(javaVersion, sourceSet) {
+    return tasks.create("buildExample${javaVersion}Jars") {
+        def examplesDir = file("src/test/examples${javaVersion}")
+        examplesDir.eachDir { dir ->
+            def name = dir.getName();
+            def exampleOutputDir = file("build/test/examples${javaVersion}");
+            def jarName = "${name}.jar"
+            dependsOn "jar_examples${javaVersion}_${name}"
+            task "jar_examples${javaVersion}_${name}"(type: Jar) {
+                archiveName = jarName
+                destinationDir = exampleOutputDir
+                from sourceSet.output
+                include "**/" + name + "/**/*.class"
+            }
         }
     }
 }
 
-task buildExampleJava10Jars {
-    def examplesDir = file("src/test/examplesJava10")
-    examplesDir.eachDir { dir ->
-        def name = dir.getName();
-        def exampleOutputDir = file("build/test/examplesJava10");
-        def jarName = "${name}.jar"
-        dependsOn "jar_examplesJava10_${name}"
-        task "jar_examplesJava10_${name}"(type: Jar) {
-            archiveName = jarName
-            destinationDir = exampleOutputDir
-            from sourceSets.examplesJava10.output
-            include "**/" + name + "/**/*.class"
-        }
-    }
-}
-
-task buildExampleJava11Jars {
-    def examplesDir = file("src/test/examplesJava11")
-    examplesDir.eachDir { dir ->
-        def name = dir.getName();
-        def exampleOutputDir = file("build/test/examplesJava11");
-        def jarName = "${name}.jar"
-        dependsOn "jar_examplesJava11_${name}"
-        task "jar_examplesJava11_${name}"(type: Jar) {
-            archiveName = jarName
-            destinationDir = exampleOutputDir
-            from sourceSets.examplesJava11.output
-            include "**/" + name + "/**/*.class"
-        }
-    }
-}
+buildExampleJarsCreateTask("Java9", sourceSets.examplesJava9)
+buildExampleJarsCreateTask("Java10", sourceSets.examplesJava10)
+buildExampleJarsCreateTask("Java11", sourceSets.examplesJava11)
+buildExampleJarsCreateTask("Java15", sourceSets.examplesJava15)
 
 task provideArtFrameworksDependencies {
     cloudDependencies.tools.forEach({ art ->
@@ -1688,6 +1687,7 @@ task buildExamples {
     dependsOn buildExampleJava9Jars
     dependsOn buildExampleJava10Jars
     dependsOn buildExampleJava11Jars
+    dependsOn buildExampleJava15Jars
     dependsOn buildExampleAndroidApi
     def examplesDir = file("src/test/examples")
     def noDexTests = [

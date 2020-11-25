@@ -27,6 +27,7 @@ public abstract class TestRuntime {
     JDK9("jdk9", 53),
     JDK10("jdk10", 54),
     JDK11("jdk11", 55),
+    JDK15("jdk15", 59),
     ;
 
     private final String name;
@@ -67,6 +68,7 @@ public abstract class TestRuntime {
   private static final Path JDK9_PATH =
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "openjdk-9.0.4");
   private static final Path JDK11_PATH = Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "jdk-11");
+  private static final Path JDK15_PATH = Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "jdk-15");
 
   public static CfRuntime getCheckedInJdk8() {
     Path home;
@@ -105,6 +107,20 @@ public abstract class TestRuntime {
       home = JDK11_PATH.resolve("Windows");
     }
     return new CfRuntime(CfVm.JDK11, home);
+  }
+
+  // TODO(b/169692487): Add this to 'getCheckedInCfRuntimes' when we start having support for JDK15.
+  public static CfRuntime getCheckedInJdk15() {
+    Path home;
+    if (ToolHelper.isLinux()) {
+      home = JDK15_PATH.resolve("linux");
+    } else if (ToolHelper.isMac()) {
+      home = JDK15_PATH.resolve("osx");
+    } else {
+      assert ToolHelper.isWindows();
+      home = JDK15_PATH.resolve("windows");
+    }
+    return new CfRuntime(CfVm.JDK15, home);
   }
 
   public static List<CfRuntime> getCheckedInCfRuntimes() {

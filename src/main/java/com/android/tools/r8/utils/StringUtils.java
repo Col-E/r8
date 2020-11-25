@@ -341,4 +341,11 @@ public class StringUtils {
     throwable.printStackTrace(new PrintWriter(sw));
     return sw.toString();
   }
+
+  public static String capitalize(String stringToCapitalize) {
+    if (stringToCapitalize == null || stringToCapitalize.isEmpty()) {
+      return stringToCapitalize;
+    }
+    return stringToCapitalize.substring(0, 1).toUpperCase() + stringToCapitalize.substring(1);
+  }
 }
