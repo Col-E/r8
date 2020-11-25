@@ -25,12 +25,15 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.SuccessfulMemberResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.VerificationUtils;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class RepackagingUseRegistry extends UseRegistry {
 
   private final AppInfoWithLiveness appInfo;
+  private final InternalOptions options;
   private final RepackagingConstraintGraph constraintGraph;
   private final ProgramDefinition context;
   private final InitClassLens initClassLens;
@@ -42,6 +45,7 @@ public class RepackagingUseRegistry extends UseRegistry {
       ProgramDefinition context) {
     super(appView.dexItemFactory());
     this.appInfo = appView.appInfo();
+    this.options = appView.options();
     this.constraintGraph = constraintGraph;
     this.context = context;
     this.initClassLens = appView.initClassLens();
@@ -65,11 +69,9 @@ public class RepackagingUseRegistry extends UseRegistry {
     if (accessFlags.isPackagePrivate()) {
       return true;
     }
-    if (accessFlags.isProtected()
-        && !appInfo.isSubtype(context.getContextType(), member.getHolderType())) {
-      return true;
-    }
-    return false;
+    return accessFlags.isProtected()
+        && !VerificationUtils.isValidProtectedMemberAccess(
+            appInfo, options, member.getHolderType(), context.getContextType());
   }
 
   public void registerFieldAccess(DexField field) {
