@@ -7,6 +7,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.PrunedItems;
 import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -87,10 +88,10 @@ public class MainDexClasses {
     return mainDexClasses.size();
   }
 
-  public MainDexClasses withoutPrunedClasses(Set<DexType> prunedClasses) {
+  public MainDexClasses withoutPrunedItems(PrunedItems prunedItems) {
     MainDexClasses mainDexClassesAfterPruning = createEmptyMainDexClasses();
     for (DexType mainDexClass : mainDexClasses) {
-      if (!prunedClasses.contains(mainDexClass)) {
+      if (!prunedItems.getRemovedClasses().contains(mainDexClass)) {
         mainDexClassesAfterPruning.mainDexClasses.add(mainDexClass);
       }
     }

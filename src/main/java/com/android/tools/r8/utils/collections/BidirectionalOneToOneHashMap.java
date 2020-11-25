@@ -6,7 +6,6 @@ package com.android.tools.r8.utils.collections;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -144,7 +143,7 @@ public class BidirectionalOneToOneHashMap<K, V>
   }
 
   @Override
-  public Collection<V> values() {
+  public Set<V> values() {
     return backing.values();
   }
 }

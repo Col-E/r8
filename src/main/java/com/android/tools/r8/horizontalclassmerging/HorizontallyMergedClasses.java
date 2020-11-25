@@ -45,6 +45,10 @@ public class HorizontallyMergedClasses implements MergedClasses {
     return mergedClasses.getKeys(type);
   }
 
+  public Set<DexType> getTargets() {
+    return mergedClasses.values();
+  }
+
   @Override
   public boolean hasBeenMergedIntoDifferentType(DexType type) {
     return mergedClasses.containsKey(type);

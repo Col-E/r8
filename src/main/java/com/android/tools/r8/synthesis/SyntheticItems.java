@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.synthesis.SyntheticFinalization.Result;
 import com.google.common.collect.ImmutableList;
@@ -301,14 +302,13 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   // Commit of the synthetic items to a new fully populated application.
 
   public CommittedItems commit(DexApplication application) {
-    return commitPrunedClasses(application, Collections.emptySet());
+    return commitPrunedItems(PrunedItems.empty(application));
   }
 
-  public CommittedItems commitPrunedClasses(
-      DexApplication application, Set<DexType> removedClasses) {
+  public CommittedItems commitPrunedItems(PrunedItems prunedItems) {
     return commit(
-        application,
-        removedClasses,
+        prunedItems.getPrunedApp(),
+        prunedItems.getNoLongerSyntheticItems(),
         legacyPendingClasses,
         legacySyntheticTypes,
         pendingDefinitions,

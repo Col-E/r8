@@ -26,7 +26,6 @@ import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,11 +138,11 @@ public class AppServices {
     return new AppServices(appView, rewrittenFeatureMappings.build());
   }
 
-  public AppServices prunedCopy(Collection<DexType> removedClasses) {
+  public AppServices prunedCopy(PrunedItems prunedItems) {
     ImmutableMap.Builder<DexType, Map<FeatureSplit, List<DexType>>> rewrittenServicesBuilder =
         ImmutableMap.builder();
     for (Entry<DexType, Map<FeatureSplit, List<DexType>>> entry : services.entrySet()) {
-      if (removedClasses.contains(entry.getKey())) {
+      if (prunedItems.getRemovedClasses().contains(entry.getKey())) {
         continue;
       }
       ImmutableMap.Builder<FeatureSplit, List<DexType>> prunedFeatureSplitImpls =
@@ -152,7 +151,7 @@ public class AppServices {
         ImmutableList.Builder<DexType> rewrittenServiceImplementationTypesBuilder =
             ImmutableList.builder();
         for (DexType serviceImplementationType : featureSplitEntry.getValue()) {
-          if (!removedClasses.contains(serviceImplementationType)) {
+          if (!prunedItems.getRemovedClasses().contains(serviceImplementationType)) {
             rewrittenServiceImplementationTypesBuilder.add(serviceImplementationType);
           }
         }

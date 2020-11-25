@@ -120,6 +120,7 @@ public class BidirectionalManyToOneHashMap<K, V> implements MutableBidirectional
     inverse.computeIfAbsent(value, ignore -> new LinkedHashSet<>()).add(key);
   }
 
+  @Override
   public Set<V> values() {
     return inverse.keySet();
   }

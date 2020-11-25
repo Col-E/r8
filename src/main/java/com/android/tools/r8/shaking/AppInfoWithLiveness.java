@@ -40,6 +40,7 @@ import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -318,20 +319,16 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.initClassReferences);
   }
 
-  private AppInfoWithLiveness(
-      AppInfoWithLiveness previous,
-      DirectMappedDexApplication application,
-      Set<DexType> removedClasses,
-      Collection<? extends DexReference> additionalPinnedItems) {
+  private AppInfoWithLiveness(AppInfoWithLiveness previous, PrunedItems prunedItems) {
     this(
-        previous.getSyntheticItems().commitPrunedClasses(application, removedClasses),
-        previous.getClassToFeatureSplitMap().withoutPrunedClasses(removedClasses),
-        previous.getMainDexClasses().withoutPrunedClasses(removedClasses),
+        previous.getSyntheticItems().commitPrunedItems(prunedItems),
+        previous.getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
+        previous.getMainDexClasses().withoutPrunedItems(prunedItems),
         previous.deadProtoTypes,
         previous.missingTypes,
-        removedClasses == null
-            ? previous.liveTypes
-            : Sets.difference(previous.liveTypes, removedClasses),
+        prunedItems.hasRemovedClasses()
+            ? Sets.difference(previous.liveTypes, prunedItems.getRemovedClasses())
+            : previous.liveTypes,
         previous.targetedMethods,
         previous.failedResolutionTargets,
         previous.bootstrapMethods,
@@ -342,7 +339,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.methodAccessInfoCollection,
         previous.objectAllocationInfoCollection,
         previous.callSites,
-        extendPinnedItems(previous, additionalPinnedItems),
+        extendPinnedItems(previous, prunedItems.getAdditionalPinnedItems()),
         previous.mayHaveSideEffects,
         previous.noSideEffects,
         previous.assumedValues,
@@ -362,14 +359,14 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.noStaticClassMerging,
         previous.neverPropagateValue,
         previous.identifierNameStrings,
-        removedClasses == null
-            ? previous.prunedTypes
-            : CollectionUtils.mergeSets(previous.prunedTypes, removedClasses),
+        prunedItems.hasRemovedClasses()
+            ? CollectionUtils.mergeSets(previous.prunedTypes, prunedItems.getRemovedClasses())
+            : previous.prunedTypes,
         previous.switchMaps,
         previous.enumValueInfoMaps,
         previous.lockCandidates,
         previous.initClassReferences);
-    assert keepInfo.verifyNoneArePinned(removedClasses, previous);
+    assert keepInfo.verifyNoneArePinned(prunedItems.getRemovedClasses(), previous);
   }
 
   private static KeepInfoCollection extendPinnedItems(
@@ -940,17 +937,15 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * Returns a copy of this AppInfoWithLiveness where the set of classes is pruned using the given
    * DexApplication object.
    */
-  public AppInfoWithLiveness prunedCopyFrom(
-      DirectMappedDexApplication application,
-      Set<DexType> removedClasses,
-      Collection<? extends DexReference> additionalPinnedItems) {
+  public AppInfoWithLiveness prunedCopyFrom(PrunedItems prunedItems) {
     assert checkIfObsolete();
-    if (!removedClasses.isEmpty()) {
+    if (!prunedItems.hasRemovedClasses()) {
       // Rebuild the hierarchy.
       objectAllocationInfoCollection.mutate(mutator -> {}, this);
-      keepInfo.mutate(keepInfo -> keepInfo.removeKeepInfoForPrunedItems(removedClasses));
+      keepInfo.mutate(
+          keepInfo -> keepInfo.removeKeepInfoForPrunedItems(prunedItems.getRemovedClasses()));
     }
-    return new AppInfoWithLiveness(this, application, removedClasses, additionalPinnedItems);
+    return new AppInfoWithLiveness(this, prunedItems);
   }
 
   public AppInfoWithLiveness rebuildWithLiveness(

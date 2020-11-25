@@ -87,6 +87,11 @@ public class EmptyBidirectionalOneToOneMap<K, V>
   }
 
   @Override
+  public Set<V> values() {
+    return Collections.emptySet();
+  }
+
+  @Override
   public BidirectionalOneToOneMap<V, K> getInverseOneToOneMap() {
     return new EmptyBidirectionalOneToOneMap<>();
   }

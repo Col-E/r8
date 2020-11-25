@@ -37,6 +37,7 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis;
@@ -419,8 +420,12 @@ public class R8 {
 
           // Recompute the subtyping information.
           Set<DexType> removedClasses = pruner.getRemovedClasses();
-          appView.removePrunedClasses(
-              prunedApp, removedClasses, pruner.getMethodsToKeepForConfigurationDebugging());
+          appView.pruneItems(
+              PrunedItems.builder()
+                  .setPrunedApp(prunedApp)
+                  .addRemovedClasses(removedClasses)
+                  .addAdditionalPinnedItems(pruner.getMethodsToKeepForConfigurationDebugging())
+                  .build());
           new AbstractMethodRemover(
                   appViewWithLiveness, appViewWithLiveness.appInfo().computeSubtypingInfo())
               .run();
@@ -587,7 +592,12 @@ public class R8 {
               merger.run(appBuilder, mainDexTracingResult, runtimeTypeCheckInfo);
           if (lens != null) {
             DirectMappedDexApplication app = appBuilder.build();
-            appView.removePrunedClasses(app, appView.horizontallyMergedClasses().getSources());
+            appView.pruneItems(
+                PrunedItems.builder()
+                    .setPrunedApp(app)
+                    .addRemovedClasses(appView.horizontallyMergedClasses().getSources())
+                    .addNoLongerSyntheticItems(appView.horizontallyMergedClasses().getTargets())
+                    .build());
             appView.rewriteWithLens(lens);
 
             // Only required for class merging, clear instance to save memory.
@@ -748,10 +758,12 @@ public class R8 {
                   options.reporter, options.usageInformationConsumer);
             }
 
-            appView.removePrunedClasses(
-                application,
-                CollectionUtils.mergeSets(prunedTypes, removedClasses),
-                pruner.getMethodsToKeepForConfigurationDebugging());
+            appView.pruneItems(
+                PrunedItems.builder()
+                    .setPrunedApp(application)
+                    .addRemovedClasses(CollectionUtils.mergeSets(prunedTypes, removedClasses))
+                    .addAdditionalPinnedItems(pruner.getMethodsToKeepForConfigurationDebugging())
+                    .build());
 
             new BridgeHoisting(appViewWithLiveness).run();
 

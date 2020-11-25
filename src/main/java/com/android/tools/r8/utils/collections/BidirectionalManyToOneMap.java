@@ -25,4 +25,6 @@ public interface BidirectionalManyToOneMap<K, V> extends BidirectionalManyToMany
   Map<K, V> getForwardMap();
 
   Set<K> keySet();
+
+  Set<V> values();
 }

@@ -38,8 +38,6 @@ import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -569,35 +567,17 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return !cfByteCodePassThrough.isEmpty();
   }
 
-  public void removePrunedClasses(
-      DirectMappedDexApplication prunedApp, Set<DexType> removedClasses) {
-    removePrunedClasses(prunedApp, removedClasses, Collections.emptySet());
+  public void pruneItems(PrunedItems prunedItems) {
+    pruneItems(withLiveness(), prunedItems);
   }
 
-  public void removePrunedClasses(
-      DirectMappedDexApplication prunedApp,
-      Set<DexType> removedClasses,
-      Collection<DexMethod> methodsToKeepForConfigurationDebugging) {
-    assert enableWholeProgramOptimizations();
-    assert appInfo().hasLiveness();
-    removePrunedClasses(
-        prunedApp, removedClasses, methodsToKeepForConfigurationDebugging, withLiveness());
-  }
-
-  private static void removePrunedClasses(
-      DirectMappedDexApplication prunedApp,
-      Set<DexType> removedClasses,
-      Collection<DexMethod> methodsToKeepForConfigurationDebugging,
-      AppView<AppInfoWithLiveness> appView) {
-    if (removedClasses.isEmpty() && !appView.options().configurationDebugging) {
-      assert appView.appInfo.app() == prunedApp;
+  private static void pruneItems(AppView<AppInfoWithLiveness> appView, PrunedItems prunedItems) {
+    if (!prunedItems.hasRemovedClasses() && !appView.options().configurationDebugging) {
+      assert appView.appInfo().app() == prunedItems.getPrunedApp();
       return;
     }
-    appView.setAppInfo(
-        appView
-            .appInfo()
-            .prunedCopyFrom(prunedApp, removedClasses, methodsToKeepForConfigurationDebugging));
-    appView.setAppServices(appView.appServices().prunedCopy(removedClasses));
+    appView.setAppInfo(appView.appInfo().prunedCopyFrom(prunedItems));
+    appView.setAppServices(appView.appServices().prunedCopy(prunedItems));
   }
 
   public void rewriteWithLens(NonIdentityGraphLens lens) {

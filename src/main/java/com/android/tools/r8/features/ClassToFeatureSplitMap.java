@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.Sets;
@@ -135,11 +136,11 @@ public class ClassToFeatureSplitMap {
     return rewrittenClassToFeatureSplitMap;
   }
 
-  public ClassToFeatureSplitMap withoutPrunedClasses(Set<DexType> prunedClasses) {
+  public ClassToFeatureSplitMap withoutPrunedItems(PrunedItems prunedItems) {
     ClassToFeatureSplitMap classToFeatureSplitMapAfterPruning = new ClassToFeatureSplitMap();
     classToFeatureSplitMap.forEach(
         (type, featureSplit) -> {
-          if (!prunedClasses.contains(type)) {
+          if (!prunedItems.getRemovedClasses().contains(type)) {
             classToFeatureSplitMapAfterPruning.classToFeatureSplitMap.put(type, featureSplit);
           }
         });
