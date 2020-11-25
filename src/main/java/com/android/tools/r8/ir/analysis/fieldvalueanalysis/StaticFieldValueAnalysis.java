@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -42,12 +43,15 @@ import com.android.tools.r8.utils.Timing;
 
 public class StaticFieldValueAnalysis extends FieldValueAnalysis {
 
+  private final StaticFieldValues.Builder builder;
+
   private StaticFieldValueAnalysis(
       AppView<AppInfoWithLiveness> appView, IRCode code, OptimizationFeedback feedback) {
     super(appView, code, feedback);
+    builder = StaticFieldValues.builder(code.context().getHolder());
   }
 
-  public static void run(
+  public static StaticFieldValues run(
       AppView<?> appView,
       IRCode code,
       ClassInitializerDefaultsResult classInitializerDefaultsResult,
@@ -57,14 +61,27 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     assert appView.enableWholeProgramOptimizations();
     assert code.context().getDefinition().isClassInitializer();
     timing.begin("Analyze class initializer");
-    new StaticFieldValueAnalysis(appView.withLiveness(), code, feedback)
-        .computeFieldOptimizationInfo(classInitializerDefaultsResult);
+    StaticFieldValues result =
+        new StaticFieldValueAnalysis(appView.withLiveness(), code, feedback)
+            .analyze(classInitializerDefaultsResult, code.context().getHolderType());
     timing.end();
+    return result;
+  }
+
+  @Override
+  boolean isStaticFieldValueAnalysis() {
+    return true;
   }
 
   @Override
   StaticFieldValueAnalysis asStaticFieldValueAnalysis() {
     return this;
+  }
+
+  StaticFieldValues analyze(
+      ClassInitializerDefaultsResult classInitializerDefaultsResult, DexType holderType) {
+    computeFieldOptimizationInfo(classInitializerDefaultsResult);
+    return builder.build();
   }
 
   @Override
@@ -105,14 +122,32 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
-  void updateFieldOptimizationInfo(DexEncodedField field, FieldInstruction fieldPut, Value value) {
-    // Abstract value.
-    feedback.recordFieldHasAbstractValue(field, appView, getOrComputeAbstractValue(value, field));
-
-    setDynamicType(field, value, false);
+  boolean isSubjectToOptimizationIgnoringPinning(DexEncodedField field) {
+    return field.isStatic()
+        && field.getHolderType() == context.getHolderType()
+        && appView
+            .appInfo()
+            .isFieldOnlyWrittenInMethodIgnoringPinning(field, context.getDefinition());
   }
 
-  private void setDynamicType(DexEncodedField field, Value value, boolean maybeNull) {
+  @Override
+  void updateFieldOptimizationInfo(DexEncodedField field, FieldInstruction fieldPut, Value value) {
+    AbstractValue abstractValue = getOrComputeAbstractValue(value, field);
+    updateFieldOptimizationInfo(field, value, abstractValue, false);
+  }
+
+  void updateFieldOptimizationInfo(
+      DexEncodedField field, Value value, AbstractValue abstractValue, boolean maybeNull) {
+    builder.recordStaticField(field, abstractValue, appView.dexItemFactory());
+
+    // We cannot modify FieldOptimizationInfo of pinned fields.
+    if (appView.appInfo().isPinned(field)) {
+      return;
+    }
+
+    // Abstract value.
+    feedback.recordFieldHasAbstractValue(field, appView, abstractValue);
+
     // Dynamic upper bound type.
     TypeElement fieldType =
         TypeElement.fromDexType(field.field.type, Nullability.maybeNull(), appView);
@@ -137,16 +172,16 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   public void updateFieldOptimizationInfoWith2Values(
-      DexEncodedField field, FieldInstruction fieldPut, Value valuePut, DexValue valueBeforePut) {
+      DexEncodedField field, Value valuePut, DexValue valueBeforePut) {
     // We are interested in the AbstractValue only if it's null or a value, so we can use the value
     // if the code is protected by a null check.
     if (valueBeforePut != DexValueNull.NULL) {
       return;
     }
-    feedback.recordFieldHasAbstractValue(
-        field, appView, NullOrAbstractValue.create(getOrComputeAbstractValue(valuePut, field)));
 
-    setDynamicType(field, valuePut, true);
+    AbstractValue abstractValue =
+        NullOrAbstractValue.create(getOrComputeAbstractValue(valuePut, field));
+    updateFieldOptimizationInfo(field, valuePut, abstractValue, true);
   }
 
   private AbstractValue getOrComputeAbstractValue(Value value, DexEncodedField field) {

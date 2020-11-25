@@ -803,6 +803,13 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (isPinned(field.field)) {
       return false;
     }
+    return isFieldOnlyWrittenInMethodIgnoringPinning(field, method);
+  }
+
+  public boolean isFieldOnlyWrittenInMethodIgnoringPinning(
+      DexEncodedField field, DexEncodedMethod method) {
+    assert checkIfObsolete();
+    assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
     FieldAccessInfo fieldAccessInfo = getFieldAccessInfoCollection().get(field.field);
     return fieldAccessInfo != null
         && fieldAccessInfo.isWritten()

@@ -124,6 +124,11 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
+  boolean isSubjectToOptimizationIgnoringPinning(DexEncodedField field) {
+    throw new Unreachable("Used by static analysis only.");
+  }
+
+  @Override
   void updateFieldOptimizationInfo(DexEncodedField field, FieldInstruction fieldPut, Value value) {
     if (fieldNeverWrittenBetweenInstancePutAndMethodExit(field, fieldPut.asInstancePut())) {
       recordInstanceFieldIsInitializedWithValue(field, value);

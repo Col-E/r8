@@ -28,6 +28,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues.EnumStaticFieldValues;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -86,6 +88,8 @@ public class EnumUnboxer {
   private final EnumUnboxingCandidateInfoCollection enumUnboxingCandidatesInfo;
   private final ProgramPackageCollection enumsToUnboxWithPackageRequirement =
       ProgramPackageCollection.createEmpty();
+  private final Map<DexType, EnumStaticFieldValues> staticFieldValuesMap =
+      new ConcurrentHashMap<>();
 
   private EnumUnboxingRewriter enumUnboxerRewriter;
 
@@ -453,6 +457,7 @@ public class EnumUnboxer {
           }
           builder.put(enumClass.type, typeBuilder.build());
         });
+    staticFieldValuesMap.clear();
     return new EnumInstanceFieldDataMap(builder.build());
   }
 
@@ -492,6 +497,17 @@ public class EnumUnboxer {
   public Constraint constraintForEnumUnboxing(
       DexEncodedMethod method, EnumAccessibilityUseRegistry useRegistry) {
     return useRegistry.computeConstraint(method.asProgramMethod(appView));
+  }
+
+  public void recordEnumState(DexProgramClass clazz, StaticFieldValues staticFieldValues) {
+    if (staticFieldValues == null || !staticFieldValues.isEnumStaticFieldValues()) {
+      return;
+    }
+    assert clazz.isEnum();
+    EnumStaticFieldValues enumStaticFieldValues = staticFieldValues.asEnumStaticFieldValues();
+    if (getEnumUnboxingCandidateOrNull(clazz.type) != null) {
+      staticFieldValuesMap.put(clazz.type, enumStaticFieldValues);
+    }
   }
 
   private class EnumAccessibilityUseRegistry extends UseRegistry {
@@ -939,8 +955,13 @@ public class EnumUnboxer {
     EnumValueInfoMapCollection.EnumValueInfoMap enumValueInfoMap =
         appView.appInfo().getEnumValueInfoMap(enumClass.type);
     for (DexField staticField : enumValueInfoMap.enumValues()) {
+      EnumStaticFieldValues enumStaticFieldValues = staticFieldValuesMap.get(enumClass.type);
+      if (enumStaticFieldValues == null) {
+        return EnumInstanceFieldUnknownData.getInstance();
+      }
       ObjectState enumInstanceState =
-          computeEnumInstanceObjectState(enumClass, staticField, enumValueInfoMap);
+          enumStaticFieldValues.getObjectStateForPossiblyPinnedEnumInstance(
+              staticField, enumValueInfoMap.getEnumValueInfo(staticField).ordinal);
       if (enumInstanceState == null) {
         // The enum instance is effectively unused. No need to generate anything for it, the path
         // will never be taken.
@@ -964,52 +985,6 @@ public class EnumUnboxer {
       return new EnumInstanceFieldOrdinalData();
     }
     return new EnumInstanceFieldMappingData(data);
-  }
-
-  // We need to access the enum instance object state to figure out if it contains known constant
-  // field values. The enum instance may be accessed in two ways, directly through the enum
-  // static field, or through the enum $VALUES field. If none of them are kept, the instance is
-  // effectively unused. The object state may be stored in the enum static field optimization
-  // info, if kept, or in the $VALUES optimization info, if kept.
-  // If the enum instance is unused, this method answers null.
-  private ObjectState computeEnumInstanceObjectState(
-      DexProgramClass enumClass,
-      DexField staticField,
-      EnumValueInfoMapCollection.EnumValueInfoMap enumValueInfoMap) {
-    // Attempt 1: Get object state from the instance field's optimization info.
-    DexEncodedField encodedStaticField = enumClass.lookupStaticField(staticField);
-    AbstractValue enumInstanceValue = encodedStaticField.getOptimizationInfo().getAbstractValue();
-    if (enumInstanceValue.isSingleFieldValue()) {
-      return enumInstanceValue.asSingleFieldValue().getState();
-    }
-    if (enumInstanceValue.isUnknown()) {
-      return ObjectState.empty();
-    }
-    assert enumInstanceValue.isZero();
-
-    // Attempt 2: Get object state from the values field's optimization info.
-    DexEncodedField valuesField =
-        enumClass.lookupStaticField(
-            factory.createField(
-                enumClass.type,
-                factory.createArrayType(1, enumClass.type),
-                factory.enumValuesFieldName));
-    AbstractValue valuesValue = valuesField.getOptimizationInfo().getAbstractValue();
-    if (valuesValue.isZero()) {
-      // Unused enum instance.
-      return null;
-    }
-    if (valuesValue.isUnknown()) {
-      return ObjectState.empty();
-    }
-    assert valuesValue.isSingleFieldValue();
-    ObjectState valuesState = valuesValue.asSingleFieldValue().getState();
-    if (valuesState.isEnumValuesObjectState()) {
-      return valuesState
-          .asEnumValuesObjectState()
-          .getObjectStateForOrdinal(enumValueInfoMap.getEnumValueInfo(staticField).ordinal);
-    }
-    return ObjectState.empty();
   }
 
   private void reportEnumsAnalysis() {

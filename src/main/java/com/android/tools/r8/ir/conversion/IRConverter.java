@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.analysis.fieldaccess.FieldAccessAnalysis;
 import com.android.tools.r8.ir.analysis.fieldaccess.TrivialFieldAccessReprocessor;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.InstanceFieldValueAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValueAnalysis;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
 import com.android.tools.r8.ir.code.AlwaysMaterializingUser;
@@ -1708,15 +1709,20 @@ public class IRConverter {
     }
 
     InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos = null;
+    StaticFieldValues staticFieldValues = null;
     if (method.getDefinition().isInitializer()) {
       if (method.getDefinition().isClassInitializer()) {
-        StaticFieldValueAnalysis.run(
-            appView, code, classInitializerDefaultsResult, feedback, timing);
+        staticFieldValues =
+            StaticFieldValueAnalysis.run(
+                appView, code, classInitializerDefaultsResult, feedback, timing);
       } else {
         instanceFieldInitializationInfos =
             InstanceFieldValueAnalysis.run(
                 appView, code, classInitializerDefaultsResult, feedback, timing);
       }
+    }
+    if (enumUnboxer != null) {
+      enumUnboxer.recordEnumState(method.getHolder(), staticFieldValues);
     }
     methodOptimizationInfoCollector.collectMethodOptimizationInfo(
         method, code, feedback, dynamicTypeOptimization, instanceFieldInitializationInfos, timing);
