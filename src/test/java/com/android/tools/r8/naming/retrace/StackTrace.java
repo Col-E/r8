@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Equivalence;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -487,6 +488,53 @@ public class StackTrace {
     }
   }
 
+  // Equivalence comparing stack traces without taking the line number for a specific stack trace
+  // line into account.
+  public static class EquivalenceWithoutSpecificLineNumber extends StackTraceEquivalence {
+
+    private StackTraceLine lineToIgnoreLineNumberFor;
+
+    private EquivalenceWithoutSpecificLineNumber(StackTraceLine lineToIgnoreLineNumberFor) {
+      this.lineToIgnoreLineNumberFor = lineToIgnoreLineNumberFor;
+    }
+
+    public static EquivalenceWithoutSpecificLineNumber create(
+        StackTraceLine lineToIgnoreLineNumberFor) {
+      return new EquivalenceWithoutSpecificLineNumber(lineToIgnoreLineNumberFor);
+    }
+
+    public class LineEquivalence extends Equivalence<StackTraceLine> {
+
+      private LineEquivalence() {}
+
+      @Override
+      protected boolean doEquivalent(StackTraceLine a, StackTraceLine b) {
+        if (!a.className.equals(b.className)
+            || !a.methodName.equals(b.methodName)
+            || !a.fileName.equals(b.fileName)) {
+          return false;
+        }
+        if (a.lineNumber == b.lineNumber) {
+          return true;
+        }
+        return a.className.equals(lineToIgnoreLineNumberFor.className)
+            && a.methodName.equals(lineToIgnoreLineNumberFor.methodName)
+            && a.fileName.equals(lineToIgnoreLineNumberFor.fileName);
+      }
+
+      @Override
+      protected int doHash(StackTraceLine stackTraceLine) {
+        return Objects.hash(
+            stackTraceLine.className, stackTraceLine.methodName, stackTraceLine.fileName);
+      }
+    }
+
+    @Override
+    public Equivalence<StackTraceLine> getLineEquivalence() {
+      return new LineEquivalence();
+    }
+  }
+
   public static class StackTraceMatcherBase extends TypeSafeMatcher<StackTrace> {
     private final StackTrace expected;
     private final StackTraceEquivalence equivalence;
@@ -567,5 +615,20 @@ public class StackTrace {
 
   public static Matcher<StackTrace> isSameExceptForFileNameAndLineNumber(StackTrace stackTrace) {
     return new StackTraceIgnoreFileNameAndLineNumberMatcher(stackTrace);
+  }
+
+  public static class StackTraceIgnoreSpecificLineNumberMatcher extends StackTraceMatcherBase {
+    private StackTraceIgnoreSpecificLineNumberMatcher(
+        StackTrace expected, StackTraceLine lineToIgnoreLineNumberFor) {
+      super(
+          expected,
+          EquivalenceWithoutSpecificLineNumber.create(lineToIgnoreLineNumberFor),
+          "(ignoring file name and line number)");
+    }
+  }
+
+  public static Matcher<StackTrace> isSameExceptForSpecificLineNumber(
+      StackTrace stackTrace, StackTraceLine lineToIgnoreLineNumberFor) {
+    return new StackTraceIgnoreSpecificLineNumberMatcher(stackTrace, lineToIgnoreLineNumberFor);
   }
 }

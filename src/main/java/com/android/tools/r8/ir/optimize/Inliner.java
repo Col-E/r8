@@ -625,7 +625,7 @@ public class Inliner implements PostOptimization {
           shouldSynthesizeMonitorEnterExit && !target.getDefinition().isStatic();
       if (shouldSynthesizeNullCheckForReceiver
           && !isSynthesizingNullCheckForReceiverUsingMonitorEnter) {
-        synthesizeNullCheckForReceiver(appView, code);
+        synthesizeNullCheckForReceiver(appView, code, invoke);
       }
 
       // Insert monitor-enter and monitor-exit instructions if the method is synchronized.
@@ -767,7 +767,8 @@ public class Inliner implements PostOptimization {
       iterator.add(new InitClass(code.createValue(TypeElement.getInt()), target.getHolderType()));
     }
 
-    private void synthesizeNullCheckForReceiver(AppView<?> appView, IRCode code) {
+    private void synthesizeNullCheckForReceiver(
+        AppView<?> appView, IRCode code, InvokeMethod invoke) {
       List<Value> arguments = code.collectArguments();
       if (!arguments.isEmpty()) {
         Value receiver = arguments.get(0);
@@ -782,7 +783,7 @@ public class Inliner implements PostOptimization {
         assert !throwBlock.hasCatchHandlers();
 
         InstructionListIterator iterator = throwBlock.listIterator(code);
-        iterator.setInsertionPosition(entryBlock.exit().getPosition());
+        iterator.setInsertionPosition(invoke.getPosition());
         if (appView.options().canUseRequireNonNull()) {
           DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
           iterator.add(new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(receiver)));

@@ -94,8 +94,7 @@ public class R8TestRunResult extends SingleTestRunResult<R8TestRunResult> {
   }
 
   public <E extends Throwable> R8TestRunResult inspectStackTrace(
-      ThrowingBiConsumer<StackTrace, CodeInspector, E> consumer)
-      throws E, IOException, ExecutionException {
+      ThrowingBiConsumer<StackTrace, CodeInspector, E> consumer) throws E, IOException {
     consumer.accept(getStackTrace(), new CodeInspector(app, proguardMap));
     return self();
   }
