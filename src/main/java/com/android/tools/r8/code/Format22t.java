@@ -13,7 +13,8 @@ import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 
 public abstract class Format22t extends Base2Format {
@@ -21,6 +22,10 @@ public abstract class Format22t extends Base2Format {
   public final byte A;
   public final byte B;
   public /* offset */ short CCCC;
+
+  private static void specify(StructuralSpecification<Format22t, ?> spec) {
+    spec.withInt(i -> i.A).withInt(i -> i.B).withInt(i -> i.CCCC);
+  }
 
   // vB | vA | op | +CCCC
   Format22t(int high, BytecodeStream stream) {
@@ -56,9 +61,8 @@ public abstract class Format22t extends Base2Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    Format22t o = (Format22t) other;
-    return ComparatorUtils.compareInts(A, o.A, B, o.B, CCCC, o.CCCC);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (Format22t) other, Format22t::specify);
   }
 
   public abstract Type getType();

@@ -42,11 +42,6 @@ public abstract class InvokeMethodRange extends Format3rc<DexMethod> {
   public abstract Type getInvokeType();
 
   @Override
-  int internalCompareBBBB(Format3rc<?> other) {
-    return BBBB.compareTo((DexMethod) other.BBBB);
-  }
-
-  @Override
   public void write(
       ShortBuffer dest,
       ProgramMethod context,

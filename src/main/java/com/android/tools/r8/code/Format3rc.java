@@ -6,14 +6,21 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.function.BiPredicate;
 
-public abstract class Format3rc<T extends IndexedDexItem> extends Base3Format {
+public abstract class Format3rc<T extends IndexedDexItem & StructuralItem<T>> extends Base3Format {
 
   public final short AA;
   public final char CCCC;
   public T BBBB;
+
+  private static <T extends IndexedDexItem & StructuralItem<T>> void specify(
+      StructuralSpecification<Format3rc<T>, ?> spec) {
+    spec.withInt(i -> i.AA).withInt(i -> i.CCCC).withItem(i -> i.BBBB);
+  }
 
   // AA | op | [meth|type]@BBBBB | CCCC
   Format3rc(int high, BytecodeStream stream, T[] map) {
@@ -41,13 +48,9 @@ public abstract class Format3rc<T extends IndexedDexItem> extends Base3Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    Format3rc<?> o = (Format3rc<?>) other;
-    int diff = ComparatorUtils.compareInts(AA, o.AA, CCCC, o.CCCC);
-    return diff != 0 ? diff : internalCompareBBBB(o);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (Format3rc<T>) other, Format3rc::specify);
   }
-
-  abstract int internalCompareBBBB(Format3rc<?> other);
 
   private void appendRegisterRange(StringBuilder builder) {
     int firstRegister = CCCC;

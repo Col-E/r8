@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 
 public class DexItemBasedConstString extends Format21c<DexReference> {
@@ -68,8 +69,8 @@ public class DexItemBasedConstString extends Format21c<DexReference> {
   }
 
   @Override
-  int internalCompareBBBB(Format21c<?> other) {
-    return BBBB.referenceCompareTo(((DexItemBasedConstString) other).BBBB);
+  void internalSubSpecify(StructuralSpecification<Format21c<DexReference>, ?> spec) {
+    spec.withDexReference(i -> i.BBBB);
   }
 
   @Override

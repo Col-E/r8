@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.structural;
 
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.utils.structural.StructuralItem.CompareToAccept;
 import com.android.tools.r8.utils.structural.StructuralItem.HashingAccept;
 import java.util.Arrays;
@@ -15,6 +16,14 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 
 public abstract class StructuralSpecification<T, V extends StructuralSpecification<T, V>> {
+
+  abstract V self();
+
+  /** Apply a structural mapping to the present specification. */
+  public final V withSpec(StructuralMapping<T> spec) {
+    spec.apply(this);
+    return self();
+  }
 
   /**
    * Base for accessing and visiting a sub-part on an item.
@@ -85,6 +94,25 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
         StructuralItem::acceptHashing);
   }
 
+  public final <S extends StructuralItem<S>> V withItemArrayAllowingNullMembers(
+      Function<T, S[]> getter) {
+    return withItemIterator(
+        getter.andThen(a -> Arrays.asList(a).iterator()),
+        (a, b, visitor) -> {
+          if (a == null || b == null) {
+            return visitor.visitBool(a != null, b != null);
+          }
+          return a.acceptCompareTo(b, visitor);
+        },
+        (a, visitor) -> {
+          if (a == null) {
+            visitor.visitInt(0);
+          } else {
+            a.acceptHashing(visitor);
+          }
+        });
+  }
+
   /**
    * Helper to declare an assert on the item.
    *
@@ -103,4 +131,8 @@ public abstract class StructuralSpecification<T, V extends StructuralSpecificati
   public abstract V withDouble(ToDoubleFunction<T> getter);
 
   public abstract V withIntArray(Function<T, int[]> getter);
+
+  public abstract V withShortArray(Function<T, short[]> getter);
+
+  public abstract V withDexReference(Function<T, DexReference> getter);
 }

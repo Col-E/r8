@@ -10,8 +10,9 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 
 public abstract class Format22b extends Base2Format {
@@ -19,6 +20,10 @@ public abstract class Format22b extends Base2Format {
   public final short AA;
   public final short BB;
   public final byte CC;
+
+  private static void specify(StructuralSpecification<Format22b, ?> spec) {
+    spec.withInt(i -> i.AA).withInt(i -> i.BB).withInt(i -> i.CC);
+  }
 
   // vAA | op | #+CC | VBB
   /*package*/ Format22b(int high, BytecodeStream stream) {
@@ -54,9 +59,8 @@ public abstract class Format22b extends Base2Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    Format22b o = (Format22b) other;
-    return ComparatorUtils.compareInts(AA, o.AA, BB, o.BB, CC, o.CC);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (Format22b) other, Format22b::specify);
   }
 
   @Override

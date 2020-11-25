@@ -68,7 +68,7 @@ public final class CfVersion implements StructuralItem<CfVersion> {
 
   @Override
   public int hashCode() {
-    return HashCodeVisitor.run(this, CfVersion::specify);
+    return HashCodeVisitor.run(this);
   }
 
   @Override

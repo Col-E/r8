@@ -10,12 +10,17 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 
 abstract class Format12x extends Base1Format {
 
   public final byte A, B;
+
+  private static void specify(StructuralSpecification<Format12x, ?> spec) {
+    spec.withInt(i -> i.A).withInt(i -> i.B);
+  }
 
   // vB | vA | op
   Format12x(int high, BytecodeStream stream) {
@@ -47,9 +52,8 @@ abstract class Format12x extends Base1Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    Format12x o = (Format12x) other;
-    return ComparatorUtils.compareInts(A, o.A, B, o.B);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (Format12x) other, Format12x::specify);
   }
 
 

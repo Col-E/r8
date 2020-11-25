@@ -4,6 +4,7 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 
 public class Nop extends Format10x {
 
@@ -33,7 +34,7 @@ public class Nop extends Format10x {
 
   // Notice that this must be overridden by the "Nop" subtypes!
   @Override
-  int internalCompareTo(Instruction other) {
+  int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
     return DexCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 

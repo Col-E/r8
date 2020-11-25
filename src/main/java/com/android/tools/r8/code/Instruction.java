@@ -6,6 +6,7 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -19,10 +20,15 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.Equatable;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
 
-public abstract class Instruction implements CfOrDexInstruction, Comparable<Instruction> {
+public abstract class Instruction implements CfOrDexInstruction, StructuralItem<Instruction> {
   public static final Instruction[] EMPTY_ARRAY = {};
 
   public final static int[] NO_TARGETS = null;
@@ -294,26 +300,39 @@ public abstract class Instruction implements CfOrDexInstruction, Comparable<Inst
 
   @Override
   public final boolean equals(Object other) {
-    return other instanceof Instruction && compareTo((Instruction) other) == 0;
+    return Equatable.equalsImpl(this, other);
   }
 
   @Override
   public abstract int hashCode();
+
+  @Override
+  public Instruction self() {
+    return this;
+  }
+
+  @Override
+  public StructuralMapping<Instruction> getStructuralMapping() {
+    throw new Unreachable();
+  }
 
   int getCompareToId() {
     return getOpcode();
   }
 
   // Abstract compare-to called only if the opcode/compare-id of the instruction matches.
-  abstract int internalCompareTo(Instruction other);
+  abstract int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor);
 
   @Override
-  public final int compareTo(Instruction other) {
-    if (this == other) {
-      return 0;
-    }
-    int opcodeDiff = Integer.compare(getCompareToId(), other.getCompareToId());
-    return opcodeDiff != 0 ? opcodeDiff : internalCompareTo(other);
+  public final int acceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    int opcodeDiff = visitor.visitInt(getCompareToId(), other.getCompareToId());
+    return opcodeDiff != 0 ? opcodeDiff : internalAcceptCompareTo(other, visitor);
+  }
+
+  @Override
+  public final void acceptHashing(HashingVisitor visitor) {
+    // Rather than traverse the full instruction, the compare ID will likely give a reasonable hash.
+    visitor.visitInt(getCompareToId());
   }
 
   public abstract String getName();

@@ -10,13 +10,18 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 
 public abstract class Format31t extends Base3Format {
 
   public final short AA;
   protected /* offset */ int BBBBBBBB;
+
+  private static void specify(StructuralSpecification<Format31t, ?> spec) {
+    spec.withInt(i -> i.AA).withInt(i -> i.BBBBBBBB);
+  }
 
   // vAA | op | +BBBBlo | +BBBBhi
   Format31t(int high, BytecodeStream stream) {
@@ -63,9 +68,8 @@ public abstract class Format31t extends Base3Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    Format31t o = (Format31t) other;
-    return ComparatorUtils.compareInts(AA, o.AA, BBBBBBBB, o.BBBBBBBB);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (Format31t) other, Format31t::specify);
   }
 
   @Override

@@ -10,13 +10,18 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
-import java.util.Comparator;
 
 abstract class Format51l extends Base5Format {
 
   public final short AA;
   public final long BBBBBBBBBBBBBBBB;
+
+  private static void specify(StructuralSpecification<Format51l, ?> spec) {
+    spec.withInt(i -> i.AA).withLong(i -> i.BBBBBBBBBBBBBBBB);
+  }
 
   // AA | op | BBBB | BBBB | BBBB | BBBB
   Format51l(int high, BytecodeStream stream) {
@@ -48,10 +53,8 @@ abstract class Format51l extends Base5Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    return Comparator.comparingInt((Format51l i) -> i.AA)
-        .thenComparingLong(i -> i.BBBBBBBBBBBBBBBB)
-        .compare(this, (Format51l) other);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (Format51l) other, Format51l::specify);
   }
 
   @Override

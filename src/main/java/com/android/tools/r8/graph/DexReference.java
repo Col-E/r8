@@ -73,19 +73,4 @@ public abstract class DexReference extends IndexedDexItem {
     assert isDexMethod();
     return 3;
   }
-
-  public int referenceCompareTo(DexReference o) {
-    int typeDiff = referenceTypeOrder() - o.referenceTypeOrder();
-    if (typeDiff != 0) {
-      return typeDiff;
-    }
-    if (isDexType()) {
-      return asDexType().compareTo(o.asDexType());
-    }
-    if (isDexField()) {
-      return asDexField().compareTo(o.asDexField());
-    }
-    assert isDexMethod();
-    return asDexMethod().compareTo(o.asDexMethod());
-  }
 }

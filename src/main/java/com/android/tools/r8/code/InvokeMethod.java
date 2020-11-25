@@ -42,11 +42,6 @@ public abstract class InvokeMethod extends Format35c<DexMethod> {
   public abstract Invoke.Type getInvokeType();
 
   @Override
-  int internalCompareBBBB(Format35c<?> other) {
-    return BBBB.compareTo((DexMethod) other.BBBB);
-  }
-
-  @Override
   public void write(
       ShortBuffer dest,
       ProgramMethod context,

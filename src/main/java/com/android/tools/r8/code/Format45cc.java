@@ -16,7 +16,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 
 /** Format45cc for instructions of size 4, with 5 registers and 2 constant pool index. */
@@ -30,6 +31,17 @@ public abstract class Format45cc extends Base4Format {
   public final byte G;
   public DexMethod BBBB;
   public DexProto HHHH;
+
+  private static void specify(StructuralSpecification<Format45cc, ?> spec) {
+    spec.withInt(i -> i.A)
+        .withInt(i -> i.C)
+        .withInt(i -> i.D)
+        .withInt(i -> i.E)
+        .withInt(i -> i.F)
+        .withInt(i -> i.G)
+        .withItem(i -> i.BBBB)
+        .withItem(i -> i.HHHH);
+  }
 
   Format45cc(int high, BytecodeStream stream, DexMethod[] methodMap, DexProto[] protoMap) {
     super(stream);
@@ -77,21 +89,8 @@ public abstract class Format45cc extends Base4Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    Format45cc o = (Format45cc) other;
-    int diff =
-        ComparatorUtils.compareInts(
-            A, o.A,
-            C, o.C,
-            D, o.D,
-            E, o.E,
-            F, o.F,
-            G, o.G);
-    if (diff != 0) {
-      return diff;
-    }
-    int bDiff = BBBB.compareTo(o.BBBB);
-    return bDiff != 0 ? bDiff : HHHH.compareTo(o.HHHH);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (Format45cc) other, Format45cc::specify);
   }
 
   @Override

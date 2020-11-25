@@ -6,10 +6,12 @@ package com.android.tools.r8.code;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.function.BiPredicate;
 
-public abstract class Format35c<T extends IndexedDexItem> extends Base3Format {
+public abstract class Format35c<T extends IndexedDexItem & StructuralItem<T>> extends Base3Format {
 
   public final byte A;
   public final byte C;
@@ -18,6 +20,17 @@ public abstract class Format35c<T extends IndexedDexItem> extends Base3Format {
   public final byte F;
   public final byte G;
   public T BBBB;
+
+  private static <T extends IndexedDexItem & StructuralItem<T>> void specify(
+      StructuralSpecification<Format35c<T>, ?> spec) {
+    spec.withInt(i -> i.A)
+        .withInt(i -> i.C)
+        .withInt(i -> i.D)
+        .withInt(i -> i.E)
+        .withInt(i -> i.F)
+        .withInt(i -> i.G)
+        .withItem(i -> i.BBBB);
+  }
 
   // A | G | op | BBBB | F | E | D | C
   Format35c(int high, BytecodeStream stream, T[] map) {
@@ -56,20 +69,9 @@ public abstract class Format35c<T extends IndexedDexItem> extends Base3Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    Format35c<?> o = (Format35c<?>) other;
-    int diff =
-        ComparatorUtils.compareInts(
-            A, o.A,
-            C, o.C,
-            D, o.D,
-            E, o.E,
-            F, o.F,
-            G, o.G);
-    return diff != 0 ? diff : internalCompareBBBB(o);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (Format35c<T>) other, Format35c::specify);
   }
-
-  abstract int internalCompareBBBB(Format35c<?> other);
 
   private void appendRegisterArguments(StringBuilder builder, String separator) {
     builder.append("{ ");

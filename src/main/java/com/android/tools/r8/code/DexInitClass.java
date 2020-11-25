@@ -16,8 +16,9 @@ import com.android.tools.r8.ir.code.FieldMemberType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
-import java.util.Comparator;
 
 public class DexInitClass extends Base2Format {
 
@@ -27,6 +28,10 @@ public class DexInitClass extends Base2Format {
 
   private final int dest;
   private final DexType clazz;
+
+  private static void specify(StructuralSpecification<DexInitClass, ?> spec) {
+    spec.withInt(i -> i.dest).withItem(i -> i.clazz);
+  }
 
   public DexInitClass(int dest, DexType clazz) {
     assert clazz.isClassType();
@@ -127,10 +132,8 @@ public class DexInitClass extends Base2Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    return Comparator.comparingInt((DexInitClass i) -> i.dest)
-        .thenComparing(i -> i.clazz)
-        .compare(this, (DexInitClass) other);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (DexInitClass) other, DexInitClass::specify);
   }
 
   @Override

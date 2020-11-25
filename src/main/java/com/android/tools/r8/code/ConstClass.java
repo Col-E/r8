@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 
 public class ConstClass extends Format21c<DexType> {
@@ -29,8 +30,8 @@ public class ConstClass extends Format21c<DexType> {
   }
 
   @Override
-  int internalCompareBBBB(Format21c<?> other) {
-    return BBBB.compareTo((DexType) other.BBBB);
+  void internalSubSpecify(StructuralSpecification<Format21c<DexType>, ?> spec) {
+    spec.withItem(i -> i.BBBB);
   }
 
   @Override

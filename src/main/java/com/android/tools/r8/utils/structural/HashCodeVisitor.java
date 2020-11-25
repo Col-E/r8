@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.structural;
 
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.utils.structural.StructuralItem.CompareToAccept;
 import com.android.tools.r8.utils.structural.StructuralItem.HashingAccept;
 import java.util.Arrays;
@@ -23,6 +24,10 @@ import java.util.function.ToLongFunction;
  */
 public class HashCodeVisitor<T> extends StructuralSpecification<T, HashCodeVisitor<T>> {
 
+  public static <T extends StructuralItem<T>> int run(T item) {
+    return run(item, item.getStructuralMapping());
+  }
+
   public static <T> int run(T item, StructuralMapping<T> visit) {
     HashCodeVisitor<T> visitor = new HashCodeVisitor<>(item);
     visit.apply(visitor);
@@ -35,6 +40,11 @@ public class HashCodeVisitor<T> extends StructuralSpecification<T, HashCodeVisit
 
   private HashCodeVisitor(T item) {
     this.item = item;
+  }
+
+  @Override
+  HashCodeVisitor<T> self() {
+    return this;
   }
 
   private HashCodeVisitor<T> amend(int value) {
@@ -75,6 +85,11 @@ public class HashCodeVisitor<T> extends StructuralSpecification<T, HashCodeVisit
   }
 
   @Override
+  public HashCodeVisitor<T> withShortArray(Function<T, short[]> getter) {
+    return amend(Arrays.hashCode(getter.apply(item)));
+  }
+
+  @Override
   protected <S> HashCodeVisitor<T> withConditionalCustomItem(
       Predicate<T> predicate,
       Function<T, S> getter,
@@ -97,5 +112,10 @@ public class HashCodeVisitor<T> extends StructuralSpecification<T, HashCodeVisit
       amend(it.next().hashCode());
     }
     return this;
+  }
+
+  @Override
+  public HashCodeVisitor<T> withDexReference(Function<T, DexReference> getter) {
+    return amend(getter.apply(item).hashCode());
   }
 }

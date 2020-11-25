@@ -13,6 +13,8 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
 
@@ -20,6 +22,10 @@ abstract class Format31c extends Base3Format {
 
   public final short AA;
   public DexString BBBBBBBB;
+
+  private static void specify(StructuralSpecification<Format31c, ?> spec) {
+    spec.withInt(i -> i.AA).withItem(i -> i.BBBBBBBB);
+  }
 
   // vAA | op | string@BBBBlo | string@#+BBBBhi
   Format31c(int high, BytecodeStream stream, DexString[] map) {
@@ -51,10 +57,8 @@ abstract class Format31c extends Base3Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    Format31c o = (Format31c) other;
-    int diff = Short.compare(AA, o.AA);
-    return diff != 0 ? diff : BBBBBBBB.compareTo(o.BBBBBBBB);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (Format31c) other, Format31c::specify);
   }
 
   @Override

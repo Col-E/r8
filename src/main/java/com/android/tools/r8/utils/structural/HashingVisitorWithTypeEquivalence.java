@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.structural;
 
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.structural.StructuralItem.CompareToAccept;
@@ -101,6 +102,11 @@ public class HashingVisitorWithTypeEquivalence extends HashingVisitor {
     }
 
     @Override
+    ItemSpecification<T> self() {
+      return this;
+    }
+
+    @Override
     public ItemSpecification<T> withAssert(Predicate<T> predicate) {
       assert predicate.test(item);
       return this;
@@ -140,6 +146,15 @@ public class HashingVisitorWithTypeEquivalence extends HashingVisitor {
     }
 
     @Override
+    public ItemSpecification<T> withShortArray(Function<T, short[]> getter) {
+      short[] ints = getter.apply(item);
+      for (int i = 0; i < ints.length; i++) {
+        parent.visitInt(ints[i]);
+      }
+      return this;
+    }
+
+    @Override
     protected <S> ItemSpecification<T> withConditionalCustomItem(
         Predicate<T> predicate,
         Function<T, S> getter,
@@ -158,6 +173,12 @@ public class HashingVisitorWithTypeEquivalence extends HashingVisitor {
     protected <S> ItemSpecification<T> withItemIterator(
         Function<T, Iterator<S>> getter, CompareToAccept<S> compare, HashingAccept<S> hasher) {
       parent.visitItemIterator(getter.apply(item), hasher);
+      return this;
+    }
+
+    @Override
+    public ItemSpecification<T> withDexReference(Function<T, DexReference> getter) {
+      parent.visitDexReference(getter.apply(item));
       return this;
     }
   }

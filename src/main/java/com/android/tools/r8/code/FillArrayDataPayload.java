@@ -9,17 +9,21 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 import java.util.Arrays;
-import java.util.Comparator;
 
 public class FillArrayDataPayload extends Nop {
 
   public final int element_width;
   public final long size;
   public final short[] data;
+
+  private static void specify(StructuralSpecification<FillArrayDataPayload, ?> spec) {
+    spec.withInt(i -> i.element_width).withLong(i -> i.size).withShortArray(i -> i.data);
+  }
 
   FillArrayDataPayload(int high, BytecodeStream stream) {
     super(high, stream);
@@ -62,11 +66,8 @@ public class FillArrayDataPayload extends Nop {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    return Comparator.comparingInt((FillArrayDataPayload i) -> i.element_width)
-        .thenComparingLong(i -> i.size)
-        .thenComparing(i -> i.data, ComparatorUtils::compareShortArray)
-        .compare(this, (FillArrayDataPayload) other);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (FillArrayDataPayload) other, FillArrayDataPayload::specify);
   }
 
   @Override

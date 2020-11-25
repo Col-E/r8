@@ -7,11 +7,16 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DebugBytecodeWriter;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Position;
-import java.util.Comparator;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Objects;
 
-public abstract class DexDebugEvent extends DexItem implements Comparable<DexDebugEvent> {
+public abstract class DexDebugEvent extends DexItem implements StructuralItem<DexDebugEvent> {
 
   // Compare ID(s) for virtual debug events.
   private static final int DBG_SET_INLINE_FRAME_COMPARE_ID = Constants.DBG_LAST_SPECIAL + 1;
@@ -41,15 +46,30 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
 
   abstract int getCompareToId();
 
-  abstract int internalCompareTo(DexDebugEvent other);
+  abstract int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor);
+
+  abstract void internalAcceptHashing(HashingVisitor visitor);
 
   @Override
-  public final int compareTo(DexDebugEvent other) {
-    if (this == other) {
-      return 0;
-    }
-    int diff = Integer.compare(getCompareToId(), other.getCompareToId());
-    return diff != 0 ? diff : internalCompareTo(other);
+  public DexDebugEvent self() {
+    return this;
+  }
+
+  @Override
+  public StructuralMapping<DexDebugEvent> getStructuralMapping() {
+    throw new Unreachable();
+  }
+
+  @Override
+  public final int acceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
+    int diff = visitor.visitInt(getCompareToId(), other.getCompareToId());
+    return diff != 0 ? diff : internalAcceptCompareTo(other, visitor);
+  }
+
+  @Override
+  public final void acceptHashing(HashingVisitor visitor) {
+    visitor.visitInt(getCompareToId());
+    internalAcceptHashing(visitor);
   }
 
   public abstract void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping);
@@ -102,8 +122,13 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
     }
 
     @Override
-    int internalCompareTo(DexDebugEvent other) {
-      return Integer.compare(delta, ((AdvancePC) other).delta);
+    int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
+      return visitor.visitInt(delta, ((AdvancePC) other).delta);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitInt(delta);
     }
   }
 
@@ -139,9 +164,14 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
     }
 
     @Override
-    int internalCompareTo(DexDebugEvent other) {
+    int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
       assert other instanceof SetPrologueEnd;
       return 0;
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      // Nothing to hash as the ID has already been hashed.
     }
   }
 
@@ -177,9 +207,14 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
     }
 
     @Override
-    int internalCompareTo(DexDebugEvent other) {
+    int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
       assert other instanceof SetEpilogueBegin;
       return 0;
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      // Nothing to hash as the ID has already been hashed.
     }
   }
 
@@ -219,8 +254,13 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
     }
 
     @Override
-    int internalCompareTo(DexDebugEvent other) {
-      return Integer.compare(delta, ((AdvanceLine) other).delta);
+    int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
+      return visitor.visitInt(delta, ((AdvanceLine) other).delta);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitInt(delta);
     }
   }
 
@@ -230,6 +270,13 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
     final DexString name;
     final DexType type;
     final DexString signature;
+
+    private static void spec(StructuralSpecification<StartLocal, ?> spec) {
+      spec.withInt(e -> e.registerNum)
+          .withItem(e -> e.name)
+          .withItem(e -> e.type)
+          .withNullableItem(e -> e.signature);
+    }
 
     public StartLocal(
         int registerNum,
@@ -298,12 +345,13 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
     }
 
     @Override
-    int internalCompareTo(DexDebugEvent other) {
-      return Comparator.comparingInt((StartLocal e) -> e.registerNum)
-          .thenComparing(e -> e.name)
-          .thenComparing(e -> e.type)
-          .thenComparing(e -> e.signature, Comparator.nullsFirst(DexString::compareTo))
-          .compare(this, (StartLocal) other);
+    int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
+      return visitor.visit(this, (StartLocal) other, StartLocal::spec);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visit(this, StartLocal::spec);
     }
   }
 
@@ -343,8 +391,13 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
     }
 
     @Override
-    int internalCompareTo(DexDebugEvent other) {
-      return Integer.compare(registerNum, ((EndLocal) other).registerNum);
+    int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
+      return visitor.visitInt(registerNum, ((EndLocal) other).registerNum);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitInt(registerNum);
     }
   }
 
@@ -384,8 +437,13 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
     }
 
     @Override
-    int internalCompareTo(DexDebugEvent other) {
-      return Integer.compare(registerNum, ((RestartLocal) other).registerNum);
+    int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
+      return visitor.visitInt(registerNum, ((RestartLocal) other).registerNum);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitInt(registerNum);
     }
   }
 
@@ -430,8 +488,13 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
     }
 
     @Override
-    int internalCompareTo(DexDebugEvent other) {
-      return fileName.compareTo(((SetFile) other).fileName);
+    int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
+      return fileName.acceptCompareTo(((SetFile) other).fileName, visitor);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      fileName.acceptHashing(visitor);
     }
   }
 
@@ -439,6 +502,10 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
 
     final DexMethod callee;
     final Position caller;
+
+    private static void specify(StructuralSpecification<SetInlineFrame, ?> spec) {
+      spec.withItem(e -> e.callee).withNullableItem(e -> e.caller);
+    }
 
     SetInlineFrame(DexMethod callee, Position caller) {
       assert callee != null;
@@ -472,10 +539,13 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
     }
 
     @Override
-    int internalCompareTo(DexDebugEvent other) {
-      return Comparator.comparing((SetInlineFrame e) -> e.callee, DexMethod::compareTo)
-          .thenComparing(e -> e.caller, Comparator.nullsFirst(Position::compareTo))
-          .compare(this, (SetInlineFrame) other);
+    int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
+      return visitor.visit(this, (SetInlineFrame) other, SetInlineFrame::specify);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visit(this, SetInlineFrame::specify);
     }
 
     @Override
@@ -540,8 +610,13 @@ public abstract class DexDebugEvent extends DexItem implements Comparable<DexDeb
     }
 
     @Override
-    int internalCompareTo(DexDebugEvent other) {
-      return Integer.compare(value, ((Default) other).value);
+    int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
+      return visitor.visitInt(value, ((Default) other).value);
+    }
+
+    @Override
+    void internalAcceptHashing(HashingVisitor visitor) {
+      visitor.visitInt(value);
     }
   }
 }

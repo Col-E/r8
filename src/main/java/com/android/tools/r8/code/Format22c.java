@@ -7,7 +7,8 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.function.BiPredicate;
 
 public abstract class Format22c<T extends DexReference> extends Base2Format {
@@ -15,6 +16,10 @@ public abstract class Format22c<T extends DexReference> extends Base2Format {
   public final byte A;
   public final byte B;
   public T CCCC;
+
+  private static void specify(StructuralSpecification<Format22c<? extends DexReference>, ?> spec) {
+    spec.withInt(i -> i.A).withInt(i -> i.B).withDexReference(i -> i.CCCC);
+  }
 
   // vB | vA | op | [type|field]@CCCC
   /*package*/ Format22c(int high, BytecodeStream stream, T[] map) {
@@ -38,10 +43,8 @@ public abstract class Format22c<T extends DexReference> extends Base2Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    Format22c<? extends DexReference> o = (Format22c<? extends DexReference>) other;
-    int diff = ComparatorUtils.compareInts(A, o.A, B, o.B);
-    return diff != 0 ? diff : CCCC.referenceCompareTo(o.CCCC);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (Format22c<? extends DexReference>) other, Format22c::specify);
   }
 
   @Override

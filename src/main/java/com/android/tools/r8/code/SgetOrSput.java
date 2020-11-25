@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 
 abstract class SgetOrSput extends Format21c<DexField> {
@@ -49,7 +50,7 @@ abstract class SgetOrSput extends Format21c<DexField> {
   }
 
   @Override
-  int internalCompareBBBB(Format21c<?> other) {
-    return BBBB.compareTo((DexField) other.BBBB);
+  void internalSubSpecify(StructuralSpecification<Format21c<DexField>, ?> spec) {
+    spec.withItem(i -> i.BBBB);
   }
 }

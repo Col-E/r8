@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.nio.ShortBuffer;
 
 abstract class Format30t extends Base3Format {
@@ -42,8 +43,8 @@ abstract class Format30t extends Base3Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    return Integer.compare(AAAAAAAA, ((Format30t) other).AAAAAAAA);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visitInt(AAAAAAAA, ((Format30t) other).AAAAAAAA);
   }
 
   @Override

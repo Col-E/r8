@@ -8,17 +8,21 @@ import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 import java.util.Arrays;
-import java.util.Comparator;
 
 public class SparseSwitchPayload extends SwitchPayload {
 
   public final int size;
   public final int[] keys;
   public final /* offset */ int[] targets;
+
+  private static void specify(StructuralSpecification<SparseSwitchPayload, ?> spec) {
+    spec.withInt(i -> i.size).withIntArray(i -> i.keys).withIntArray(i -> i.targets);
+  }
 
   public SparseSwitchPayload(int high, BytecodeStream stream) {
     super(high, stream);
@@ -64,11 +68,8 @@ public class SparseSwitchPayload extends SwitchPayload {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    return Comparator.comparingInt((SparseSwitchPayload i) -> i.size)
-        .thenComparing(i -> i.keys, ComparatorUtils::compareIntArray)
-        .thenComparing(i -> i.targets, ComparatorUtils::compareIntArray)
-        .compare(this, (SparseSwitchPayload) other);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (SparseSwitchPayload) other, SparseSwitchPayload::specify);
   }
 
   @Override

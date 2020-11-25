@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 
 public class ConstMethodHandle extends Format21c<DexMethodHandle> {
@@ -51,8 +52,8 @@ public class ConstMethodHandle extends Format21c<DexMethodHandle> {
   }
 
   @Override
-  int internalCompareBBBB(Format21c<?> other) {
-    return BBBB.compareTo((DexMethodHandle) other.BBBB);
+  void internalSubSpecify(StructuralSpecification<Format21c<DexMethodHandle>, ?> spec) {
+    spec.withItem(i -> i.BBBB);
   }
 
   @Override

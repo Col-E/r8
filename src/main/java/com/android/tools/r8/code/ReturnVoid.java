@@ -4,6 +4,7 @@
 package com.android.tools.r8.code;
 
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
 
 public class ReturnVoid extends Format10x {
 
@@ -33,7 +34,7 @@ public class ReturnVoid extends Format10x {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
     return DexCompareHelper.compareIdUniquelyDeterminesEquality(this, other);
   }
 

@@ -5,16 +5,24 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
-import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.utils.structural.Equatable;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 
-public class DexDebugInfo extends CachedHashValueDexItem implements Comparable<DexDebugInfo> {
+public class DexDebugInfo extends CachedHashValueDexItem implements StructuralItem<DexDebugInfo> {
 
   public final int startLine;
   public final DexString[] parameters;
   public DexDebugEvent[] events;
+
+  private static void specify(StructuralSpecification<DexDebugInfo, ?> spec) {
+    spec.withInt(d -> d.startLine)
+        .withItemArrayAllowingNullMembers(d -> d.parameters)
+        .withItemArray(d -> d.events);
+  }
 
   public DexDebugInfo(int startLine, DexString[] parameters, DexDebugEvent[] events) {
     assert startLine >= 0;
@@ -24,6 +32,16 @@ public class DexDebugInfo extends CachedHashValueDexItem implements Comparable<D
     // This call to hashCode is just an optimization to speedup equality when
     // canonicalizing DexDebugInfo objects inside a synchronize method.
     hashCode();
+  }
+
+  @Override
+  public DexDebugInfo self() {
+    return this;
+  }
+
+  @Override
+  public StructuralMapping<DexDebugInfo> getStructuralMapping() {
+    return DexDebugInfo::specify;
   }
 
   public List<DexDebugEntry> computeEntries(DexMethod method) {
@@ -43,20 +61,7 @@ public class DexDebugInfo extends CachedHashValueDexItem implements Comparable<D
 
   @Override
   public final boolean computeEquals(Object other) {
-    return other instanceof DexDebugInfo && compareTo((DexDebugInfo) other) == 0;
-  }
-
-  @Override
-  public final int compareTo(DexDebugInfo other) {
-    if (this == other) {
-      return 0;
-    }
-    return Comparator.comparingInt((DexDebugInfo i) -> i.startLine)
-        .thenComparing(
-            i -> i.parameters,
-            ComparatorUtils.arrayComparator(Comparator.nullsFirst(DexString::compareTo)))
-        .thenComparing(i -> i.events, ComparatorUtils.arrayComparator())
-        .compare(this, other);
+    return Equatable.equalsImpl(this, other);
   }
 
   public void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens) {

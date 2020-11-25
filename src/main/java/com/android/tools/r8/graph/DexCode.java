@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.utils.ComparatorUtils.arrayComparator;
-
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.SwitchPayload;
@@ -22,13 +20,16 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.structural.Equatable;
+import com.android.tools.r8.utils.structural.HashCodeVisitor;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -36,7 +37,7 @@ import java.util.Map;
 import java.util.Set;
 
 // DexCode corresponds to code item in dalvik/dex-format.html
-public class DexCode extends Code implements Comparable<DexCode> {
+public class DexCode extends Code implements StructuralItem<DexCode> {
 
   static final String FAKE_THIS_PREFIX = "_";
   static final String FAKE_THIS_SUFFIX = "this";
@@ -51,6 +52,16 @@ public class DexCode extends Code implements Comparable<DexCode> {
   public DexString highestSortingString;
   private DexDebugInfo debugInfo;
   private DexDebugInfoForWriting debugInfoForWriting;
+
+  private static void specify(StructuralSpecification<DexCode, ?> spec) {
+    spec.withInt(c -> c.registerSize)
+        .withInt(c -> c.incomingRegisterSize)
+        .withInt(c -> c.outgoingRegisterSize)
+        .withItemArray(c -> c.tries)
+        .withItemArray(c -> c.handlers)
+        .withNullableItem(c -> c.debugInfo)
+        .withItemArray(c -> c.instructions);
+  }
 
   public DexCode(
       int registerSize,
@@ -71,6 +82,16 @@ public class DexCode extends Code implements Comparable<DexCode> {
     assert handlers != null;
     assert instructions != null;
     hashCode();  // Cache the hash code eagerly.
+  }
+
+  @Override
+  public DexCode self() {
+    return this;
+  }
+
+  @Override
+  public StructuralMapping<DexCode> getStructuralMapping() {
+    return DexCode::specify;
   }
 
   public DexCode withoutThisParameter() {
@@ -183,26 +204,8 @@ public class DexCode extends Code implements Comparable<DexCode> {
   }
 
   @Override
-  public int compareTo(DexCode other) {
-    if (this == other) {
-      return 0;
-    }
-    int diff =
-        Comparator.comparingInt((DexCode c) -> c.incomingRegisterSize)
-            .thenComparingInt(c -> c.registerSize)
-            .thenComparingInt(c -> c.outgoingRegisterSize)
-            .thenComparing(c -> c.tries, arrayComparator())
-            .thenComparing(c -> c.handlers, arrayComparator())
-            .thenComparing(c -> c.debugInfo, Comparator.nullsFirst(DexDebugInfo::compareTo))
-            .thenComparing((DexCode c) -> c.instructions, arrayComparator())
-            .compare(this, other);
-    assert (diff == 0) == (0 == toString().compareTo(other.toString()));
-    return diff;
-  }
-
-  @Override
   public boolean computeEquals(Object other) {
-    return other instanceof DexCode && compareTo((DexCode) other) == 0;
+    return Equatable.equalsImpl(this, other);
   }
 
   @Override
@@ -453,7 +456,7 @@ public class DexCode extends Code implements Comparable<DexCode> {
     return last.getOffset() + last.getSize();
   }
 
-  public static class Try extends DexItem implements Comparable<Try> {
+  public static class Try extends DexItem implements StructuralItem<Try> {
 
     public static final int NO_INDEX = -1;
 
@@ -462,11 +465,28 @@ public class DexCode extends Code implements Comparable<DexCode> {
     public /* offset */ int instructionCount;
     public int handlerIndex;
 
+    private static void specify(StructuralSpecification<Try, ?> spec) {
+      // The handler offset is the offset given by the dex input and does not determine the item.
+      spec.withInt(t -> t.startAddress)
+          .withInt(t -> t.instructionCount)
+          .withInt(t -> t.handlerIndex);
+    }
+
     public Try(int startAddress, int instructionCount, int handlerOffset) {
       this.startAddress = startAddress;
       this.instructionCount = instructionCount;
       this.handlerOffset = handlerOffset;
       this.handlerIndex = NO_INDEX;
+    }
+
+    @Override
+    public Try self() {
+      return this;
+    }
+
+    @Override
+    public StructuralMapping<Try> getStructuralMapping() {
+      return Try::specify;
     }
 
     public void setHandlerIndex(Int2IntMap map) {
@@ -480,18 +500,7 @@ public class DexCode extends Code implements Comparable<DexCode> {
 
     @Override
     public boolean equals(Object other) {
-      return other instanceof Try && compareTo((Try) other) == 0;
-    }
-
-    @Override
-    public int compareTo(Try other) {
-      if (this == other) {
-        return 0;
-      }
-      return ComparatorUtils.compareInts(
-          startAddress, other.startAddress,
-          instructionCount, other.instructionCount,
-          handlerIndex, other.handlerIndex);
+      return Equatable.equalsImpl(this, other);
     }
 
     @Override
@@ -512,12 +521,16 @@ public class DexCode extends Code implements Comparable<DexCode> {
 
   }
 
-  public static class TryHandler extends DexItem implements Comparable<TryHandler> {
+  public static class TryHandler extends DexItem implements StructuralItem<TryHandler> {
 
     public static final int NO_HANDLER = -1;
 
     public final TypeAddrPair[] pairs;
     public final /* offset */ int catchAllAddr;
+
+    private static void specify(StructuralSpecification<TryHandler, ?> spec) {
+      spec.withInt(h -> h.catchAllAddr).withItemArray(h -> h.pairs);
+    }
 
     public TryHandler(TypeAddrPair[] pairs, int catchAllAddr) {
       this.pairs = pairs;
@@ -525,23 +538,23 @@ public class DexCode extends Code implements Comparable<DexCode> {
     }
 
     @Override
+    public TryHandler self() {
+      return this;
+    }
+
+    @Override
+    public StructuralMapping<TryHandler> getStructuralMapping() {
+      return TryHandler::specify;
+    }
+
+    @Override
     public int hashCode() {
-      return catchAllAddr + Arrays.hashCode(pairs) * 7;
+      return HashCodeVisitor.run(this);
     }
 
     @Override
     public boolean equals(Object other) {
-      return other instanceof TryHandler && compareTo((TryHandler) other) == 0;
-    }
-
-    @Override
-    public int compareTo(TryHandler other) {
-      if (this == other) {
-        return 0;
-      }
-      return Comparator.comparingInt((TryHandler h) -> h.catchAllAddr)
-          .thenComparing(h -> h.pairs, arrayComparator())
-          .compare(this, other);
+      return Equatable.equalsImpl(this, other);
     }
 
     public void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens) {
@@ -576,14 +589,28 @@ public class DexCode extends Code implements Comparable<DexCode> {
       return builder.toString();
     }
 
-    public static class TypeAddrPair extends DexItem implements Comparable<TypeAddrPair> {
+    public static class TypeAddrPair extends DexItem implements StructuralItem<TypeAddrPair> {
 
       private final DexType type;
       public final /* offset */ int addr;
 
+      private static void specify(StructuralSpecification<TypeAddrPair, ?> spec) {
+        spec.withItem(p -> p.type).withInt(p -> p.addr);
+      }
+
       public TypeAddrPair(DexType type, int addr) {
         this.type = type;
         this.addr = addr;
+      }
+
+      @Override
+      public TypeAddrPair self() {
+        return this;
+      }
+
+      @Override
+      public StructuralMapping<TypeAddrPair> getStructuralMapping() {
+        return TypeAddrPair::specify;
       }
 
       public DexType getType() {
@@ -612,17 +639,7 @@ public class DexCode extends Code implements Comparable<DexCode> {
 
       @Override
       public boolean equals(Object other) {
-        return other instanceof TypeAddrPair && compareTo((TypeAddrPair) other) == 0;
-      }
-
-      @Override
-      public int compareTo(TypeAddrPair other) {
-        if (this == other) {
-          return 0;
-        }
-        return Comparator.comparingInt((TypeAddrPair p) -> p.addr)
-            .thenComparing(p -> p.type)
-            .compare(this, other);
+        return Equatable.equalsImpl(this, other);
       }
     }
   }

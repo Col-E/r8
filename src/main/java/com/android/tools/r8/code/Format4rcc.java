@@ -15,8 +15,9 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
-import java.util.Comparator;
 import java.util.function.BiPredicate;
 
 /** Format4rcc for instructions of size 4, with a range of registers and 2 constant pool index. */
@@ -26,6 +27,10 @@ public abstract class Format4rcc extends Base4Format {
   public final char CCCC;
   public DexMethod BBBB;
   public DexProto HHHH;
+
+  private static void specify(StructuralSpecification<Format4rcc, ?> spec) {
+    spec.withInt(i -> i.AA).withInt(i -> i.CCCC).withItem(i -> i.BBBB).withItem(i -> i.HHHH);
+  }
 
   // AA | op | [meth]@BBBB | CCCC | [proto]@HHHH
   Format4rcc(int high, BytecodeStream stream, DexMethod[] methodMap, DexProto[] protoMap) {
@@ -70,12 +75,8 @@ public abstract class Format4rcc extends Base4Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    return Comparator.comparingInt((Format4rcc i) -> i.AA)
-        .thenComparingInt(i -> i.CCCC)
-        .thenComparing(i -> i.BBBB)
-        .thenComparing(i -> i.HHHH)
-        .compare(this, (Format4rcc) other);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (Format4rcc) other, Format4rcc::specify);
   }
 
   @Override

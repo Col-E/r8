@@ -9,13 +9,18 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.utils.ComparatorUtils;
+import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.nio.ShortBuffer;
 
 abstract class Format21h extends Base2Format {
 
   public final short AA;
   public final char BBBB;
+
+  private static void specify(StructuralSpecification<Format21h, ?> spec) {
+    spec.withInt(i -> i.AA).withInt(i -> i.BBBB);
+  }
 
   // AA | op | BBBB0000[00000000]
   /*package*/ Format21h(int high, BytecodeStream stream) {
@@ -48,9 +53,8 @@ abstract class Format21h extends Base2Format {
   }
 
   @Override
-  final int internalCompareTo(Instruction other) {
-    Format21h o = (Format21h) other;
-    return ComparatorUtils.compareInts(AA, o.AA, BBBB, o.BBBB);
+  final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
+    return visitor.visit(this, (Format21h) other, Format21h::specify);
   }
 
   @Override

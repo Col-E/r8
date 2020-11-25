@@ -104,6 +104,11 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
     }
 
     @Override
+    ItemSpecification<T> self() {
+      return this;
+    }
+
+    @Override
     public ItemSpecification<T> withAssert(Predicate<T> predicate) {
       assert predicate.test(item1);
       assert predicate.test(item2);
@@ -159,6 +164,22 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
     }
 
     @Override
+    public ItemSpecification<T> withShortArray(Function<T, short[]> getter) {
+      if (order == 0) {
+        short[] is1 = getter.apply(item1);
+        short[] is2 = getter.apply(item2);
+        int minLength = Math.min(is1.length, is2.length);
+        for (int i = 0; i < minLength && order == 0; i++) {
+          order = parent.visitInt(is1[i], is2[i]);
+        }
+        if (order == 0) {
+          order = parent.visitInt(is1.length, is2.length);
+        }
+      }
+      return this;
+    }
+
+    @Override
     public <S> ItemSpecification<T> withConditionalCustomItem(
         Predicate<T> predicate,
         Function<T, S> getter,
@@ -181,6 +202,14 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
         Function<T, Iterator<S>> getter, CompareToAccept<S> compare, HashingAccept<S> hasher) {
       if (order == 0) {
         order = parent.visitItemIterator(getter.apply(item1), getter.apply(item2), compare);
+      }
+      return this;
+    }
+
+    @Override
+    public ItemSpecification<T> withDexReference(Function<T, DexReference> getter) {
+      if (order == 0) {
+        order = parent.visitDexReference(getter.apply(item1), getter.apply(item2));
       }
       return this;
     }

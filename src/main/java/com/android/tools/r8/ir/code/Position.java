@@ -7,11 +7,13 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.annotations.VisibleForTesting;
-import java.util.Comparator;
 import java.util.Objects;
 
-public class Position implements Comparable<Position> {
+public class Position implements StructuralItem<Position> {
 
   // A no-position marker. Not having a position means the position is implicitly defined by the
   // context, e.g., the marker does not materialize anything concrete.
@@ -35,6 +37,14 @@ public class Position implements Comparable<Position> {
 
   public final DexMethod method;
   public final Position callerPosition;
+
+  private static void specify(StructuralSpecification<Position, ?> spec) {
+    spec.withInt(p -> p.line)
+        .withNullableItem(p -> p.file)
+        .withBool(p -> p.synthetic)
+        .withNullableItem(p -> p.method)
+        .withNullableItem(p -> p.callerPosition);
+  }
 
   public Position(int line, DexString file, DexMethod method, Position callerPosition) {
     this(line, file, method, callerPosition, false);
@@ -91,6 +101,16 @@ public class Position implements Comparable<Position> {
     return position;
   }
 
+  @Override
+  public Position self() {
+    return this;
+  }
+
+  @Override
+  public StructuralMapping<Position> getStructuralMapping() {
+    return Position::specify;
+  }
+
   public boolean isNone() {
     return line == -1;
   }
@@ -126,19 +146,6 @@ public class Position implements Comparable<Position> {
     result = 31 * result + Objects.hashCode(method);
     result = 31 * result + Objects.hashCode(callerPosition);
     return result;
-  }
-
-  @Override
-  public int compareTo(Position o) {
-    if (this == o) {
-      return 0;
-    }
-    return Comparator.comparingInt((Position p) -> p.line)
-        .thenComparing(p -> p.file, Comparator.nullsFirst(DexString::compareTo))
-        .thenComparing(p -> p.synthetic)
-        .thenComparing(p -> p.method)
-        .thenComparing(p -> p.callerPosition, Comparator.nullsFirst(Position::compareTo))
-        .compare(this, o);
   }
 
   private String toString(boolean forceMethod) {
