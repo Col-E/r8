@@ -29,6 +29,9 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableMap;
@@ -54,14 +57,13 @@ public class UninstantiatedTypeOptimization {
     private final Map<DexMethod, ArgumentInfoCollection> removedArgumentsInfoPerMethod;
 
     UninstantiatedTypeOptimizationGraphLens(
-        BidirectionalOneToOneHashMap<DexMethod, DexMethod> methodMap,
+        BidirectionalOneToOneMap<DexMethod, DexMethod> methodMap,
         Map<DexMethod, ArgumentInfoCollection> removedArgumentsInfoPerMethod,
         AppView<?> appView) {
       super(
           ImmutableMap.of(),
-          methodMap,
-          ImmutableMap.of(),
-          null,
+          methodMap.getForwardMap(),
+          new EmptyBidirectionalOneToOneMap<>(),
           methodMap.getInverseOneToOneMap(),
           appView.graphLens(),
           appView.dexItemFactory());
@@ -129,7 +131,7 @@ public class UninstantiatedTypeOptimization {
     }
 
     Map<Wrapper<DexMethod>, Set<DexType>> changedVirtualMethods = new HashMap<>();
-    BidirectionalOneToOneHashMap<DexMethod, DexMethod> methodMapping =
+    MutableBidirectionalOneToOneMap<DexMethod, DexMethod> methodMapping =
         new BidirectionalOneToOneHashMap<>();
     Map<DexMethod, ArgumentInfoCollection> removedArgumentsInfoPerMethod = new IdentityHashMap<>();
 
@@ -140,7 +142,7 @@ public class UninstantiatedTypeOptimization {
                 processClass(
                     clazz,
                     changedVirtualMethods,
-                    methodMapping.getForwardBacking(),
+                    methodMapping.getForwardMap(),
                     methodPoolCollection,
                     removedArgumentsInfoPerMethod));
 

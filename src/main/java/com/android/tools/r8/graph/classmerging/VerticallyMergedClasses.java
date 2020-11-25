@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -22,12 +23,12 @@ public class VerticallyMergedClasses implements MergedClasses {
   }
 
   public static VerticallyMergedClasses empty() {
-    return new VerticallyMergedClasses(BidirectionalManyToOneMap.empty());
+    return new VerticallyMergedClasses(new EmptyBidirectionalOneToOneMap<>());
   }
 
   @Override
   public void forEachMergeGroup(BiConsumer<Set<DexType>, DexType> consumer) {
-    mergedClasses.forEach(consumer);
+    mergedClasses.forEachManyToOneMapping(consumer);
   }
 
   public Map<DexType, DexType> getForwardMap() {

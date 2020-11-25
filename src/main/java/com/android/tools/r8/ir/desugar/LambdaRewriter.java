@@ -42,10 +42,10 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -439,16 +439,14 @@ public class LambdaRewriter {
     LambdaRewriterLens(
         Map<DexType, DexType> typeMap,
         Map<DexMethod, DexMethod> methodMap,
-        Map<DexField, DexField> fieldMap,
-        BiMap<DexField, DexField> originalFieldSignatures,
-        BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures,
+        BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
+        BidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures,
         GraphLens previousLens,
         DexItemFactory dexItemFactory) {
       super(
           typeMap,
           methodMap,
           fieldMap,
-          originalFieldSignatures,
           originalMethodSignatures,
           previousLens,
           dexItemFactory);
@@ -479,7 +477,6 @@ public class LambdaRewriter {
             typeMap,
             methodMap,
             fieldMap,
-            originalFieldSignatures,
             originalMethodSignatures,
             previousLens,
             dexItemFactory);

@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.Invoke.Type;
-import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
+import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
 import com.google.common.collect.ImmutableMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -34,9 +34,8 @@ public class NestedPrivateMethodLens extends NestedGraphLens {
     super(
         ImmutableMap.of(),
         methodMap,
-        ImmutableMap.of(),
-        null,
-        BidirectionalManyToManyRepresentativeMap.empty(),
+        new EmptyBidirectionalOneToOneMap<>(),
+        new EmptyBidirectionalOneToOneMap<>(),
         previousLens,
         appView.dexItemFactory());
     // No concurrent maps here, we do not want synchronization overhead.

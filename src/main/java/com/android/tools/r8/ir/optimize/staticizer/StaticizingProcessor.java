@@ -47,10 +47,9 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
+import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -738,9 +737,10 @@ final class StaticizingProcessor {
   }
 
   private ProgramMethodSet staticizeMethodSymbols() {
-    BidirectionalOneToOneHashMap<DexMethod, DexMethod> methodMapping =
+    MutableBidirectionalOneToOneMap<DexMethod, DexMethod> methodMapping =
         new BidirectionalOneToOneHashMap<>();
-    BiMap<DexField, DexField> fieldMapping = HashBiMap.create();
+    MutableBidirectionalOneToOneMap<DexField, DexField> fieldMapping =
+        new BidirectionalOneToOneHashMap<>();
 
     ProgramMethodSet staticizedMethods = ProgramMethodSet.create();
     for (CandidateInfo candidate : classStaticizer.candidates.values()) {
@@ -803,8 +803,8 @@ final class StaticizingProcessor {
       DexProgramClass candidateClass,
       DexType hostType,
       DexProgramClass hostClass,
-      BidirectionalOneToOneHashMap<DexMethod, DexMethod> methodMapping,
-      BiMap<DexField, DexField> fieldMapping) {
+      MutableBidirectionalOneToOneMap<DexMethod, DexMethod> methodMapping,
+      MutableBidirectionalOneToOneMap<DexField, DexField> fieldMapping) {
     candidateToHostMapping.put(candidateClass.type, hostType);
 
     // Process static fields.

@@ -58,7 +58,8 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
-import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
@@ -206,8 +207,8 @@ public class VerticalClassMerger {
   private final Set<DexProgramClass> mergeCandidates = new LinkedHashSet<>();
 
   // Map from source class to target class.
-  private final BidirectionalManyToOneMap<DexType, DexType> mergedClasses =
-      new BidirectionalManyToOneMap<>();
+  private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedClasses =
+      new BidirectionalManyToOneHashMap<>();
 
   // Set of types that must not be merged into their subtype.
   private final Set<DexType> pinnedTypes = Sets.newIdentityHashSet();

@@ -33,7 +33,7 @@ public class ClassStaticFieldsMerger {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
-  private final boolean isFresh(DexField fieldReference) {
+  private boolean isFresh(DexField fieldReference) {
     return !targetFields.containsKey(fieldReference);
   }
 
@@ -48,7 +48,7 @@ public class ClassStaticFieldsMerger {
     field = field.toTypeSubstitutedField(newFieldReference);
     targetFields.put(newFieldReference, field);
 
-    lensBuilder.moveField(oldFieldReference, newFieldReference);
+    lensBuilder.recordNewFieldSignature(oldFieldReference, newFieldReference);
   }
 
   public void addFields(DexProgramClass toMerge) {

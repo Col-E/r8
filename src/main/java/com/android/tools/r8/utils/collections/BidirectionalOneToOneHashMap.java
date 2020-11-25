@@ -4,15 +4,17 @@
 
 package com.android.tools.r8.utils.collections;
 
-import com.android.tools.r8.utils.IterableUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class BidirectionalOneToOneHashMap<K, V>
-    extends BidirectionalManyToManyRepresentativeMap<K, V> implements Map<K, V> {
+    implements MutableBidirectionalOneToOneMap<K, V>, Map<K, V> {
 
   private final BiMap<K, V> backing;
 
@@ -44,8 +46,19 @@ public class BidirectionalOneToOneHashMap<K, V>
     return backing.entrySet();
   }
 
-  public V forcePut(K key, V value) {
-    return backing.forcePut(key, value);
+  @Override
+  public void forEach(BiConsumer<? super K, ? super V> consumer) {
+    backing.forEach(consumer);
+  }
+
+  @Override
+  public void forEachKey(Consumer<? super K> consumer) {
+    backing.keySet().forEach(consumer);
+  }
+
+  @Override
+  public void forEachManyToOneMapping(BiConsumer<? super Set<K>, V> consumer) {
+    backing.forEach((key, value) -> consumer.accept(Collections.singleton(key), value));
   }
 
   @Override
@@ -54,15 +67,17 @@ public class BidirectionalOneToOneHashMap<K, V>
   }
 
   @Override
-  public BiMap<K, V> getForwardBacking() {
+  public V getOrDefault(Object key, V defaultValue) {
+    V value = get(key);
+    return value != null ? value : defaultValue;
+  }
+
+  @Override
+  public BiMap<K, V> getForwardMap() {
     return backing;
   }
 
   @Override
-  public BiMap<V, K> getInverseBacking() {
-    return backing.inverse();
-  }
-
   public BidirectionalOneToOneHashMap<V, K> getInverseOneToOneMap() {
     return new BidirectionalOneToOneHashMap<>(backing.inverse());
   }
@@ -78,19 +93,19 @@ public class BidirectionalOneToOneHashMap<K, V>
   }
 
   @Override
-  public Iterable<K> getKeys(V value) {
+  public Set<K> getKeys(V value) {
     if (containsValue(value)) {
-      return IterableUtils.singleton(getRepresentativeKey(value));
+      return Collections.singleton(getRepresentativeKey(value));
     }
-    return IterableUtils.empty();
+    return Collections.emptySet();
   }
 
   @Override
-  public Iterable<V> getValues(K key) {
+  public Set<V> getValues(K key) {
     if (containsKey(key)) {
-      return IterableUtils.singleton(getRepresentativeValue(key));
+      return Collections.singleton(getRepresentativeValue(key));
     }
-    return IterableUtils.empty();
+    return Collections.emptySet();
   }
 
   @Override
@@ -105,11 +120,12 @@ public class BidirectionalOneToOneHashMap<K, V>
 
   @Override
   public V put(K key, V value) {
-    return backing.put(key, value);
+    return backing.forcePut(key, value);
   }
 
-  public void putAll(BidirectionalOneToOneHashMap<K, V> map) {
-    putAll(map.backing);
+  @Override
+  public void putAll(BidirectionalManyToManyMap<K, V> map) {
+    map.forEach(this::put);
   }
 
   @Override

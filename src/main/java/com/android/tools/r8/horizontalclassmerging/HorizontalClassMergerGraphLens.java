@@ -13,8 +13,13 @@ import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.utils.IterableUtils;
-import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
 import com.google.common.collect.BiMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -28,29 +33,24 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   private final Map<DexMethod, List<ExtraParameter>> methodExtraParameters;
   private final Map<DexMethod, DexMethod> extraOriginalMethodSignatures;
   private final HorizontallyMergedClasses mergedClasses;
-  private final Map<DexField, DexField> extraOriginalFieldSignatures;
 
   private HorizontalClassMergerGraphLens(
       AppView<?> appView,
       HorizontallyMergedClasses mergedClasses,
       Map<DexMethod, List<ExtraParameter>> methodExtraParameters,
-      Map<DexField, DexField> fieldMap,
+      BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
-      BiMap<DexField, DexField> originalFieldSignatures,
-      BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures,
+      BidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures,
       Map<DexMethod, DexMethod> extraOriginalMethodSignatures,
-      Map<DexField, DexField> extraOriginalFieldSignatures,
       GraphLens previousLens) {
     super(
         mergedClasses.getForwardMap(),
         methodMap,
         fieldMap,
-        originalFieldSignatures,
         originalMethodSignatures,
         previousLens,
         appView.dexItemFactory());
     this.methodExtraParameters = methodExtraParameters;
-    this.extraOriginalFieldSignatures = extraOriginalFieldSignatures;
     this.extraOriginalMethodSignatures = extraOriginalMethodSignatures;
     this.mergedClasses = mergedClasses;
   }
@@ -82,15 +82,6 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
     return getPrevious().getOriginalMethodSignature(originalConstructor);
   }
 
-  @Override
-  public DexField getOriginalFieldSignature(DexField field) {
-    DexField originalField = extraOriginalFieldSignatures.get(field);
-    if (originalField == null) {
-      return super.getOriginalFieldSignature(field);
-    }
-    return getPrevious().getOriginalFieldSignature(originalField);
-  }
-
   /**
    * If an overloaded constructor is requested, add the constructor id as a parameter to the
    * constructor. Otherwise return the lookup on the underlying graph lens.
@@ -111,7 +102,8 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   }
 
   public static class Builder {
-    private ManyToOneMap<DexField, DexField> fieldMap = new ManyToOneMap<>();
+    private MutableBidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap =
+        new BidirectionalManyToOneRepresentativeHashMap<>();
     private ManyToOneMap<DexMethod, DexMethod> methodMap = new ManyToOneMap<>();
     private final Map<DexMethod, List<ExtraParameter>> methodExtraParameters =
         new IdentityHashMap<>();
@@ -127,24 +119,14 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
                 assert false;
                 return group.iterator().next();
               });
-      ManyToOneInverseMap<DexField, DexField> inverseFieldMap =
-          fieldMap.inverse(
-              group -> {
-                // Every group should have a representative. Fail in debug mode.
-                assert false;
-                return group.iterator().next();
-              });
-
       return new HorizontalClassMergerGraphLens(
           appView,
           mergedClasses,
           methodExtraParameters,
-          fieldMap.getForwardMap(),
+          fieldMap,
           methodMap.getForwardMap(),
-          inverseFieldMap.getBiMap().getForwardBacking(),
           inverseMethodMap.getBiMap(),
           inverseMethodMap.getExtraMap(),
-          inverseFieldMap.getExtraMap(),
           appView.graphLens());
     }
 
@@ -152,39 +134,51 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       methodMap = methodMap.remap(remapMethods, Function.identity(), Function.identity());
     }
 
-    public void remapFields(BiMap<DexField, DexField> remapFields) {
-      fieldMap = fieldMap.remap(remapFields, Function.identity(), Function.identity());
-    }
-
-    public Builder moveField(DexField from, DexField to) {
-      fieldMap.put(from, to);
-      fieldMap.putInverse(from, to);
+    Builder recordNewFieldSignature(DexField oldFieldSignature, DexField newFieldSignature) {
+      Set<DexField> originalFieldSignatures = fieldMap.removeValue(oldFieldSignature);
+      if (originalFieldSignatures.isEmpty()) {
+        fieldMap.put(oldFieldSignature, newFieldSignature);
+      } else if (originalFieldSignatures.size() == 1) {
+        fieldMap.put(originalFieldSignatures.iterator().next(), newFieldSignature);
+      } else {
+        for (DexField originalFieldSignature : originalFieldSignatures) {
+          fieldMap.put(originalFieldSignature, newFieldSignature);
+        }
+        DexField representative = fieldMap.removeRepresentativeFor(oldFieldSignature);
+        assert representative != null;
+        fieldMap.setRepresentative(newFieldSignature, representative);
+      }
       return this;
     }
 
-    public Builder setRepresentativeField(DexField from, DexField to) {
-      fieldMap.setRepresentative(from, to);
+    Builder recordNewFieldSignature(
+        Iterable<DexField> oldFieldSignatures,
+        DexField newFieldSignature,
+        DexField representative) {
+      assert Streams.stream(oldFieldSignatures).noneMatch(fieldMap::containsValue);
+      assert Iterables.contains(oldFieldSignatures, representative);
+      for (DexField oldFieldSignature : oldFieldSignatures) {
+        fieldMap.put(oldFieldSignature, newFieldSignature);
+      }
+      fieldMap.setRepresentative(newFieldSignature, representative);
       return this;
     }
 
     /** Unidirectional mapping from one method to another. */
     public Builder recordExtraOriginalSignature(DexMethod from, DexMethod to) {
       methodMap.setRepresentative(from, to);
-
       return this;
     }
 
     /** Unidirectional mapping from one method to another. */
     public Builder mapMethod(DexMethod from, DexMethod to) {
       methodMap.put(from, to);
-
       return this;
     }
 
     /** Unidirectional mapping from one method to another. */
     public Builder mapMethodInverse(DexMethod from, DexMethod to) {
       methodMap.putInverse(from, to);
-
       return this;
     }
 

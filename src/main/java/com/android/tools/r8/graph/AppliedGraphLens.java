@@ -6,7 +6,8 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.utils.MapUtils;
-import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
@@ -25,8 +26,8 @@ import java.util.Set;
  */
 public final class AppliedGraphLens extends NonIdentityGraphLens {
 
-  private final BidirectionalManyToOneMap<DexType, DexType> renamedTypeNames =
-      new BidirectionalManyToOneMap<>();
+  private final MutableBidirectionalManyToOneMap<DexType, DexType> renamedTypeNames =
+      new BidirectionalManyToOneHashMap<>();
   private final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
   private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
 
@@ -102,11 +103,8 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
 
   @Override
   public Iterable<DexType> getOriginalTypes(DexType type) {
-    Set<DexType> originalTypes = renamedTypeNames.getKeysOrNull(type);
-    if (originalTypes == null) {
-      return ImmutableList.of(type);
-    }
-    return originalTypes;
+    Set<DexType> originalTypes = renamedTypeNames.getKeys(type);
+    return originalTypes.isEmpty() ? ImmutableList.of(type) : originalTypes;
   }
 
   @Override

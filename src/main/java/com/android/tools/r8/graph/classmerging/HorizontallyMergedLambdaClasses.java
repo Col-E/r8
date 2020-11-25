@@ -8,7 +8,9 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -19,8 +21,10 @@ public class HorizontallyMergedLambdaClasses implements MergedClasses {
   private final BidirectionalManyToOneMap<DexType, DexType> mergedClasses;
 
   public HorizontallyMergedLambdaClasses(Map<DexType, LambdaGroup> lambdas) {
-    this.mergedClasses = new BidirectionalManyToOneMap<>();
+    MutableBidirectionalManyToOneMap<DexType, DexType> mergedClasses =
+        new BidirectionalManyToOneHashMap<>();
     lambdas.forEach((lambda, group) -> mergedClasses.put(lambda, group.getGroupClassType()));
+    this.mergedClasses = mergedClasses;
   }
 
   public static HorizontallyMergedLambdaClasses empty() {
@@ -29,7 +33,7 @@ public class HorizontallyMergedLambdaClasses implements MergedClasses {
 
   @Override
   public void forEachMergeGroup(BiConsumer<Set<DexType>, DexType> consumer) {
-    mergedClasses.forEach(consumer);
+    mergedClasses.forEachManyToOneMapping(consumer);
   }
 
   @Override

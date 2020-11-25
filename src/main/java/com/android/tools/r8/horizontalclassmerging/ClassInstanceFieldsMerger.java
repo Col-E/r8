@@ -5,11 +5,12 @@
 package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerGraphLens.Builder;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -50,20 +51,19 @@ public class ClassInstanceFieldsMerger {
     }
   }
 
-  private void mergeField(DexEncodedField oldField, DexEncodedField newField) {
-    if (newField.isFinal() && !oldField.isFinal()) {
+  private void fixAccessFlags(DexEncodedField newField, Collection<DexEncodedField> oldFields) {
+    if (newField.isFinal() && Iterables.any(oldFields, oldField -> !oldField.isFinal())) {
       newField.getAccessFlags().demoteFromFinal();
     }
-    lensBuilder.moveField(oldField.field, newField.field);
   }
 
-  private void mergeFields(DexEncodedField newField, Collection<DexEncodedField> oldFields) {
-    DexField newFieldReference = newField.getReference();
-
-    lensBuilder.moveField(newFieldReference, newFieldReference);
-    lensBuilder.setRepresentativeField(newFieldReference, newFieldReference);
-
-    oldFields.forEach(oldField -> mergeField(oldField, newField));
+  private void mergeFields(DexEncodedField newField, List<DexEncodedField> oldFields) {
+    fixAccessFlags(newField, oldFields);
+    lensBuilder.recordNewFieldSignature(
+        Iterables.transform(
+            IterableUtils.append(oldFields, newField), DexEncodedField::getReference),
+        newField.getReference(),
+        newField.getReference());
   }
 
   public void merge() {

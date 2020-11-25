@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.IdentityHashMap;
@@ -29,9 +29,8 @@ class EnumUnboxingLens extends GraphLens.NestedGraphLens {
   EnumUnboxingLens(
       Map<DexType, DexType> typeMap,
       Map<DexMethod, DexMethod> methodMap,
-      Map<DexField, DexField> fieldMap,
-      BiMap<DexField, DexField> originalFieldSignatures,
-      BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures,
+      BidirectionalOneToOneMap<DexField, DexField> fieldMap,
+      BidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures,
       GraphLens previousLens,
       DexItemFactory dexItemFactory,
       Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod,
@@ -40,7 +39,6 @@ class EnumUnboxingLens extends GraphLens.NestedGraphLens {
         typeMap,
         methodMap,
         fieldMap,
-        originalFieldSignatures,
         originalMethodSignatures,
         previousLens,
         dexItemFactory);
@@ -76,8 +74,9 @@ class EnumUnboxingLens extends GraphLens.NestedGraphLens {
   static class Builder {
 
     protected final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
-    protected final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
-    protected final BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures =
+    protected final MutableBidirectionalOneToOneMap<DexField, DexField> newFieldSignatures =
+        new BidirectionalOneToOneHashMap<>();
+    protected final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures =
         new BidirectionalOneToOneHashMap<>();
 
     private Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
@@ -94,7 +93,7 @@ class EnumUnboxingLens extends GraphLens.NestedGraphLens {
       if (from == to) {
         return;
       }
-      originalFieldSignatures.put(to, from);
+      newFieldSignatures.put(from, to);
     }
 
     public void move(DexMethod from, DexMethod to, boolean fromStatic, boolean toStatic) {
@@ -143,16 +142,13 @@ class EnumUnboxingLens extends GraphLens.NestedGraphLens {
 
     public EnumUnboxingLens build(
         DexItemFactory dexItemFactory, GraphLens previousLens, Set<DexType> unboxedEnums) {
-      if (typeMap.isEmpty()
-          && originalFieldSignatures.isEmpty()
-          && originalMethodSignatures.isEmpty()) {
+      if (typeMap.isEmpty() && newFieldSignatures.isEmpty() && originalMethodSignatures.isEmpty()) {
         return null;
       }
       return new EnumUnboxingLens(
           typeMap,
-          originalMethodSignatures.getInverseOneToOneMap(),
-          originalFieldSignatures.inverse(),
-          originalFieldSignatures,
+          originalMethodSignatures.getInverseOneToOneMap().getForwardMap(),
+          newFieldSignatures,
           originalMethodSignatures,
           previousLens,
           dexItemFactory,

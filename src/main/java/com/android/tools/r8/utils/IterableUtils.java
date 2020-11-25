@@ -15,6 +15,10 @@ import java.util.function.Predicate;
 
 public class IterableUtils {
 
+  public static <T> Iterable<T> append(Iterable<T> iterable, T element) {
+    return Iterables.concat(iterable, singleton(element));
+  }
+
   public static <T> List<T> ensureUnmodifiableList(Iterable<T> iterable) {
     List<T> list;
     if (iterable instanceof List<?>) {

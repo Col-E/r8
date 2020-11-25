@@ -24,10 +24,10 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.SingletonEquivalence;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset.Entry;
@@ -199,8 +199,9 @@ public class StaticClassMerger {
 
   private final Map<MergeKey, Representative> representatives = new HashMap<>();
 
-  private final BiMap<DexField, DexField> fieldMapping = HashBiMap.create();
-  private final BidirectionalOneToOneHashMap<DexMethod, DexMethod> methodMapping =
+  private final MutableBidirectionalOneToOneMap<DexField, DexField> newFieldSignatures =
+      new BidirectionalOneToOneHashMap<>();
+  private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> methodMapping =
       new BidirectionalOneToOneHashMap<>();
 
   private int numberOfMergedClasses = 0;
@@ -222,27 +223,18 @@ public class StaticClassMerger {
 
   public NestedGraphLens run() {
     appView.appInfo().classesWithDeterministicOrder().forEach(this::merge);
-    if (Log.ENABLED) {
-      Log.info(
-          getClass(),
-          "Merged %s classes with %s members.",
-          numberOfMergedClasses,
-          fieldMapping.size() + methodMapping.size());
-    }
     appView.setStaticallyMergedClasses(mergedClassesBuilder.build());
     return buildGraphLens();
   }
 
   private NestedGraphLens buildGraphLens() {
-    if (!fieldMapping.isEmpty() || !methodMapping.isEmpty()) {
-      BiMap<DexField, DexField> originalFieldSignatures = fieldMapping.inverse();
-      BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures =
+    if (!newFieldSignatures.isEmpty() || !methodMapping.isEmpty()) {
+      BidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures =
           methodMapping.getInverseOneToOneMap();
       return new NestedGraphLens(
           ImmutableMap.of(),
-          methodMapping,
-          fieldMapping,
-          originalFieldSignatures,
+          methodMapping.getForwardMap(),
+          newFieldSignatures,
           originalMethodSignatures,
           appView.graphLens(),
           appView.dexItemFactory());
@@ -501,7 +493,7 @@ public class StaticClassMerger {
 
       DexMethod originalMethod =
           methodMapping.getRepresentativeKeyOrDefault(sourceMethod.method, sourceMethod.method);
-      methodMapping.forcePut(originalMethod, sourceMethodAfterMove.method);
+      methodMapping.put(originalMethod, sourceMethodAfterMove.method);
 
       existingMethods.add(equivalence.wrap(sourceMethodAfterMove.method));
     }
@@ -536,8 +528,8 @@ public class StaticClassMerger {
       result[index++] = sourceFieldAfterMove;
 
       DexField originalField =
-          fieldMapping.inverse().getOrDefault(sourceField.field, sourceField.field);
-      fieldMapping.forcePut(originalField, sourceFieldAfterMove.field);
+          newFieldSignatures.getRepresentativeKeyOrDefault(sourceField.field, sourceField.field);
+      newFieldSignatures.put(originalField, sourceFieldAfterMove.field);
 
       existingFields.add(equivalence.wrap(sourceFieldAfterMove.field));
     }

@@ -46,7 +46,6 @@ class TreeFixer {
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory dexItemFactory;
   private final BiMap<DexMethod, DexMethod> movedMethods = HashBiMap.create();
-  private final BiMap<DexField, DexField> movedFields = HashBiMap.create();
   private final SyntheticArgumentClass syntheticArgumentClass;
   private final BiMap<DexMethodSignature, DexMethodSignature> reservedInterfaceSignatures =
       HashBiMap.create();
@@ -130,7 +129,6 @@ class TreeFixer {
     }
 
     lensBuilder.remapMethods(movedMethods);
-    lensBuilder.remapFields(movedFields);
 
     HorizontalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
     fieldAccessChangesBuilder.build(this::fixupMethodReference).modify(appView);
@@ -365,26 +363,26 @@ class TreeFixer {
     Set<DexField> existingFields = Sets.newIdentityHashSet();
 
     for (int i = 0; i < fields.size(); i++) {
-      DexEncodedField encodedField = fields.get(i);
-      DexField field = encodedField.field;
-      DexField newField = fixupFieldReference(field);
+      DexEncodedField oldField = fields.get(i);
+      DexField oldFieldReference = oldField.getReference();
+      DexField newFieldReference = fixupFieldReference(oldFieldReference);
 
       // Rename the field if it already exists.
-      if (!existingFields.add(newField)) {
-        DexField template = newField;
-        newField =
+      if (!existingFields.add(newFieldReference)) {
+        DexField template = newFieldReference;
+        newFieldReference =
             dexItemFactory.createFreshMember(
                 tryName ->
                     Optional.of(template.withName(tryName, dexItemFactory))
                         .filter(tryMethod -> !existingFields.contains(tryMethod)),
-                newField.name.toSourceString());
-        boolean added = existingFields.add(newField);
+                newFieldReference.name.toSourceString());
+        boolean added = existingFields.add(newFieldReference);
         assert added;
       }
 
-      if (newField != encodedField.field) {
-        movedFields.put(field, newField);
-        setter.setField(i, encodedField.toTypeSubstitutedField(newField));
+      if (newFieldReference != oldFieldReference) {
+        lensBuilder.recordNewFieldSignature(oldFieldReference, newFieldReference);
+        setter.setField(i, oldField.toTypeSubstitutedField(newFieldReference));
       }
     }
   }

@@ -11,7 +11,8 @@ import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -20,8 +21,8 @@ class BridgeHoistingResult {
   private final AppView<AppInfoWithLiveness> appView;
 
   // Mapping from non-hoisted bridge methods to hoisted bridge methods.
-  private final BidirectionalManyToOneMap<DexMethod, DexMethod> bridgeToHoistedBridgeMap =
-      new BidirectionalManyToOneMap<>();
+  private final MutableBidirectionalManyToOneMap<DexMethod, DexMethod> bridgeToHoistedBridgeMap =
+      new BidirectionalManyToOneHashMap<>();
 
   // Mapping from non-hoisted bridge methods to the set of contexts in which they are accessed.
   private final MethodAccessInfoCollection.IdentityBuilder bridgeMethodAccessInfoCollectionBuilder =
@@ -32,7 +33,7 @@ class BridgeHoistingResult {
   }
 
   public void forEachHoistedBridge(BiConsumer<ProgramMethod, BridgeInfo> consumer) {
-    bridgeToHoistedBridgeMap.forEach(
+    bridgeToHoistedBridgeMap.forEachManyToOneMapping(
         (bridges, hoistedBridge) -> {
           DexProgramClass clazz = appView.definitionForProgramType(hoistedBridge.getHolderType());
           ProgramMethod method = hoistedBridge.lookupOnProgramClass(clazz);

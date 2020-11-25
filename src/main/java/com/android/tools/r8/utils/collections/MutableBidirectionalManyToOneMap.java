@@ -4,9 +4,7 @@
 
 package com.android.tools.r8.utils.collections;
 
-import java.util.Map;
 import java.util.Set;
-import java.util.function.BiConsumer;
 
 /**
  * Interface that accommodates many-to-one mappings.
@@ -14,15 +12,11 @@ import java.util.function.BiConsumer;
  * <p>This interface inherits from {@link BidirectionalManyToManyMap} to allow implementing
  * many-to-many mappings using many-to-one mappings.
  */
-public interface BidirectionalManyToOneMap<K, V> extends BidirectionalManyToManyMap<K, V> {
+public interface MutableBidirectionalManyToOneMap<K, V> extends BidirectionalManyToOneMap<K, V> {
 
-  void forEachManyToOneMapping(BiConsumer<? super Set<K>, V> consumer);
+  void put(K key, V value);
 
-  V get(Object key);
+  V remove(K key);
 
-  V getOrDefault(Object key, V defaultValue);
-
-  Map<K, V> getForwardMap();
-
-  Set<K> keySet();
+  Set<K> removeValue(V value);
 }

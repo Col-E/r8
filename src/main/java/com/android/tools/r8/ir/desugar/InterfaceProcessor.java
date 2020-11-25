@@ -49,8 +49,10 @@ import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
-import com.google.common.collect.BiMap;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -521,17 +523,15 @@ public final class InterfaceProcessor {
     public InterfaceProcessorNestedGraphLens(
         Map<DexType, DexType> typeMap,
         Map<DexMethod, DexMethod> methodMap,
-        Map<DexField, DexField> fieldMap,
-        BiMap<DexField, DexField> originalFieldSignatures,
-        BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures,
-        BidirectionalOneToOneHashMap<DexMethod, DexMethod> extraOriginalMethodSignatures,
+        BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
+        BidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures,
+        BidirectionalOneToOneMap<DexMethod, DexMethod> extraOriginalMethodSignatures,
         GraphLens previousLens,
         DexItemFactory dexItemFactory) {
       super(
           typeMap,
           methodMap,
           fieldMap,
-          originalFieldSignatures,
           originalMethodSignatures,
           previousLens,
           dexItemFactory);
@@ -601,7 +601,7 @@ public final class InterfaceProcessor {
 
     public static class Builder extends NestedGraphLens.Builder {
 
-      private final BidirectionalOneToOneHashMap<DexMethod, DexMethod>
+      private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod>
           extraOriginalMethodSignatures = new BidirectionalOneToOneHashMap<>();
 
       public void recordCodeMovedToCompanionClass(DexMethod from, DexMethod to) {
@@ -613,7 +613,7 @@ public final class InterfaceProcessor {
       @Override
       public InterfaceProcessorNestedGraphLens build(
           DexItemFactory dexItemFactory, GraphLens previousLens) {
-        if (originalFieldSignatures.isEmpty()
+        if (fieldMap.isEmpty()
             && originalMethodSignatures.isEmpty()
             && extraOriginalMethodSignatures.isEmpty()) {
           return null;
@@ -622,7 +622,6 @@ public final class InterfaceProcessor {
             typeMap,
             methodMap,
             fieldMap,
-            originalFieldSignatures,
             originalMethodSignatures,
             extraOriginalMethodSignatures,
             previousLens,

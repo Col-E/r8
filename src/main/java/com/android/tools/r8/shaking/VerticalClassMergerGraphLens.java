@@ -17,9 +17,10 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.utils.IterableUtils;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
@@ -69,20 +70,18 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
   private VerticalClassMergerGraphLens(
       AppView<?> appView,
       VerticallyMergedClasses mergedClasses,
-      Map<DexField, DexField> fieldMap,
+      BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
       Set<DexMethod> mergedMethods,
       Map<DexType, Map<DexMethod, GraphLensLookupResultProvider>>
           contextualVirtualToDirectMethodMaps,
-      BiMap<DexField, DexField> originalFieldSignatures,
-      BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures,
+      BidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures,
       Map<DexMethod, DexMethod> originalMethodSignaturesForBridges,
       GraphLens previousLens) {
     super(
         mergedClasses.getForwardMap(),
         methodMap,
         fieldMap,
-        originalFieldSignatures,
         originalMethodSignatures,
         previousLens,
         appView.dexItemFactory());
@@ -166,13 +165,14 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
 
     private final DexItemFactory dexItemFactory;
 
-    protected final BiMap<DexField, DexField> fieldMap = HashBiMap.create();
+    protected final MutableBidirectionalOneToOneMap<DexField, DexField> fieldMap =
+        new BidirectionalOneToOneHashMap<>();
     protected final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
     private final ImmutableSet.Builder<DexMethod> mergedMethodsBuilder = ImmutableSet.builder();
     private final Map<DexType, Map<DexMethod, GraphLensLookupResultProvider>>
         contextualVirtualToDirectMethodMaps = new IdentityHashMap<>();
 
-    private final BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures =
+    private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures =
         new BidirectionalOneToOneHashMap<>();
     private final Map<DexMethod, DexMethod> originalMethodSignaturesForBridges =
         new IdentityHashMap<>();
@@ -185,11 +185,10 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
 
     static Builder createBuilderForFixup(Builder builder, VerticallyMergedClasses mergedClasses) {
       Builder newBuilder = new Builder(builder.dexItemFactory);
-      for (Map.Entry<DexField, DexField> entry : builder.fieldMap.entrySet()) {
-        newBuilder.map(
-            entry.getKey(),
-            builder.getFieldSignatureAfterClassMerging(entry.getValue(), mergedClasses));
-      }
+      builder.fieldMap.forEach(
+          (key, value) ->
+              newBuilder.map(
+                  key, builder.getFieldSignatureAfterClassMerging(value, mergedClasses)));
       for (Map.Entry<DexMethod, DexMethod> entry : builder.methodMap.entrySet()) {
         newBuilder.map(
             entry.getKey(),
@@ -237,7 +236,6 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
       if (mergedClasses.isEmpty()) {
         return null;
       }
-      BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
       // Build new graph lens.
       return new VerticalClassMergerGraphLens(
           appView,
@@ -246,7 +244,6 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
           methodMap,
           mergedMethodsBuilder.build(),
           contextualVirtualToDirectMethodMaps,
-          originalFieldSignatures,
           originalMethodSignatures,
           originalMethodSignaturesForBridges,
           appView.graphLens());
@@ -308,7 +305,7 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
     }
 
     public boolean hasOriginalSignatureMappingFor(DexField field) {
-      return fieldMap.inverse().containsKey(field);
+      return fieldMap.containsValue(field);
     }
 
     public boolean hasOriginalSignatureMappingFor(DexMethod method) {

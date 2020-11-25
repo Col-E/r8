@@ -8,7 +8,10 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.classmerging.MergedClasses;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -22,12 +25,12 @@ public class HorizontallyMergedClasses implements MergedClasses {
   }
 
   public static HorizontallyMergedClasses empty() {
-    return new HorizontallyMergedClasses(new BidirectionalManyToOneMap<>());
+    return new HorizontallyMergedClasses(new EmptyBidirectionalOneToOneMap<>());
   }
 
   @Override
   public void forEachMergeGroup(BiConsumer<Set<DexType>, DexType> consumer) {
-    mergedClasses.forEach(consumer);
+    mergedClasses.forEachManyToOneMapping(consumer);
   }
 
   public DexType getMergeTargetOrDefault(DexType type) {
@@ -44,11 +47,11 @@ public class HorizontallyMergedClasses implements MergedClasses {
 
   @Override
   public boolean hasBeenMergedIntoDifferentType(DexType type) {
-    return mergedClasses.hasKey(type);
+    return mergedClasses.containsKey(type);
   }
 
   public boolean isMergeTarget(DexType type) {
-    return mergedClasses.hasValue(type);
+    return mergedClasses.containsValue(type);
   }
 
   public boolean hasBeenMergedOrIsMergeTarget(DexType type) {
@@ -71,8 +74,8 @@ public class HorizontallyMergedClasses implements MergedClasses {
   }
 
   public static class Builder {
-    private final BidirectionalManyToOneMap<DexType, DexType> mergedClasses =
-        new BidirectionalManyToOneMap<>();
+    private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedClasses =
+        new BidirectionalManyToOneHashMap<>();
 
     public HorizontallyMergedClasses build() {
       return new HorizontallyMergedClasses(mergedClasses);

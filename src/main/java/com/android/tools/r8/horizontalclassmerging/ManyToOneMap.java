@@ -5,6 +5,7 @@
 package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.HashMap;
@@ -50,7 +51,7 @@ public class ManyToOneMap<K, V> {
   }
 
   public ManyToOneInverseMap<K, V> inverse(Function<Set<K>, K> pickRepresentative) {
-    BidirectionalOneToOneHashMap<V, K> biMap = new BidirectionalOneToOneHashMap<>();
+    MutableBidirectionalOneToOneMap<V, K> biMap = new BidirectionalOneToOneHashMap<>();
     Map<V, K> extraMap = new HashMap<>();
     for (Entry<V, Set<K>> entry : inverseMap.entrySet()) {
       K representative = representativeMap.get(entry.getKey());

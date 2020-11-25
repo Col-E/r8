@@ -4,20 +4,20 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
-import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
 import java.util.Map;
 
 /** The inverse of a {@link ManyToOneMap} used for generating graph lens maps. */
 public class ManyToOneInverseMap<K, V> {
-  private final BidirectionalOneToOneHashMap<V, K> biMap;
+  private final BidirectionalOneToOneMap<V, K> biMap;
   private final Map<V, K> extraMap;
 
-  ManyToOneInverseMap(BidirectionalOneToOneHashMap<V, K> biMap, Map<V, K> extraMap) {
+  ManyToOneInverseMap(BidirectionalOneToOneMap<V, K> biMap, Map<V, K> extraMap) {
     this.biMap = biMap;
     this.extraMap = extraMap;
   }
 
-  public BidirectionalOneToOneHashMap<V, K> getBiMap() {
+  public BidirectionalOneToOneMap<V, K> getBiMap() {
     return biMap;
   }
 

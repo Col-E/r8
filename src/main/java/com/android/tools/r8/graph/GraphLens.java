@@ -15,10 +15,12 @@ import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -32,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * A GraphLens implements a virtual view on top of the graph, used to delay global rewrites until
@@ -65,6 +68,10 @@ public abstract class GraphLens {
       return reference;
     }
 
+    public R getRewrittenReference(BidirectionalManyToOneRepresentativeMap<R, R> rewritings) {
+      return rewritings.getOrDefault(reference, reference);
+    }
+
     public R getRewrittenReference(Map<R, R> rewritings) {
       return rewritings.getOrDefault(reference, reference);
     }
@@ -75,6 +82,11 @@ public abstract class GraphLens {
 
     public R getReboundReference() {
       return reboundReference;
+    }
+
+    public R getRewrittenReboundReference(
+        BidirectionalManyToOneRepresentativeMap<R, R> rewritings) {
+      return rewritings.getOrDefault(reboundReference, reboundReference);
     }
 
     public R getRewrittenReboundReference(Map<R, R> rewritings) {
@@ -228,10 +240,10 @@ public abstract class GraphLens {
 
     protected final Map<DexType, DexType> typeMap = new IdentityHashMap<>();
     protected final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
-    protected final Map<DexField, DexField> fieldMap = new IdentityHashMap<>();
+    protected final MutableBidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap =
+        new BidirectionalManyToOneRepresentativeHashMap<>();
 
-    protected final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
-    protected final BidirectionalOneToOneHashMap<DexMethod, DexMethod> originalMethodSignatures =
+    protected final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures =
         new BidirectionalOneToOneHashMap<>();
 
     public void map(DexType from, DexType to) {
@@ -248,13 +260,6 @@ public abstract class GraphLens {
       methodMap.put(from, to);
     }
 
-    public void map(DexField from, DexField to) {
-      if (from == to) {
-        return;
-      }
-      fieldMap.put(from, to);
-    }
-
     public void move(DexMethod from, DexMethod to) {
       if (from == to) {
         return;
@@ -268,7 +273,6 @@ public abstract class GraphLens {
         return;
       }
       fieldMap.put(from, to);
-      originalFieldSignatures.put(to, from);
     }
 
     public GraphLens build(DexItemFactory dexItemFactory) {
@@ -283,7 +287,6 @@ public abstract class GraphLens {
           typeMap,
           methodMap,
           fieldMap,
-          originalFieldSignatures,
           originalMethodSignatures,
           previousLens,
           dexItemFactory);
@@ -963,11 +966,10 @@ public abstract class GraphLens {
 
     protected final Map<DexType, DexType> typeMap;
     protected final Map<DexMethod, DexMethod> methodMap;
-    protected final Map<DexField, DexField> fieldMap;
+    protected final BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap;
 
-    // Maps that store the original signature of fields and methods that have been affected, for
-    // example, by vertical class merging. Needed to generate a correct Proguard map in the end.
-    protected final BiMap<DexField, DexField> originalFieldSignatures;
+    // Map that store the original signature of methods that have been affected, for example, by
+    // vertical class merging. Needed to generate a correct Proguard map in the end.
     protected BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
         originalMethodSignatures;
 
@@ -980,8 +982,7 @@ public abstract class GraphLens {
     public NestedGraphLens(
         Map<DexType, DexType> typeMap,
         Map<DexMethod, DexMethod> methodMap,
-        Map<DexField, DexField> fieldMap,
-        BiMap<DexField, DexField> originalFieldSignatures,
+        BidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap,
         BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> originalMethodSignatures,
         GraphLens previousLens,
         DexItemFactory dexItemFactory) {
@@ -993,7 +994,6 @@ public abstract class GraphLens {
       this.typeMap = typeMap.isEmpty() ? null : typeMap;
       this.methodMap = methodMap;
       this.fieldMap = fieldMap;
-      this.originalFieldSignatures = originalFieldSignatures;
       this.originalMethodSignatures = originalMethodSignatures;
       this.dexItemFactory = dexItemFactory;
     }
@@ -1022,10 +1022,7 @@ public abstract class GraphLens {
 
     @Override
     public DexField getOriginalFieldSignature(DexField field) {
-      DexField originalField =
-          originalFieldSignatures != null
-              ? originalFieldSignatures.getOrDefault(field, field)
-              : field;
+      DexField originalField = fieldMap.getRepresentativeKeyOrDefault(field, field);
       return getPrevious().getOriginalFieldSignature(originalField);
     }
 
@@ -1038,9 +1035,7 @@ public abstract class GraphLens {
     @Override
     public DexField getRenamedFieldSignature(DexField originalField) {
       DexField renamedField = getPrevious().getRenamedFieldSignature(originalField);
-      return originalFieldSignatures != null
-          ? originalFieldSignatures.inverse().getOrDefault(renamedField, renamedField)
-          : renamedField;
+      return fieldMap.getOrDefault(renamedField, renamedField);
     }
 
     @Override
@@ -1221,10 +1216,15 @@ public abstract class GraphLens {
         builder.append(entry.getKey().toSourceString()).append(" -> ");
         builder.append(entry.getValue().toSourceString()).append(System.lineSeparator());
       }
-      for (Map.Entry<DexField, DexField> entry : fieldMap.entrySet()) {
-        builder.append(entry.getKey().toSourceString()).append(" -> ");
-        builder.append(entry.getValue().toSourceString()).append(System.lineSeparator());
-      }
+      fieldMap.forEachManyToOneMapping(
+          (keys, value) -> {
+            builder.append(
+                keys.stream()
+                    .map(DexField::toSourceString)
+                    .collect(Collectors.joining("," + System.lineSeparator())));
+            builder.append(" -> ");
+            builder.append(value.toSourceString()).append(System.lineSeparator());
+          });
       builder.append(getPrevious().toString());
       return builder.toString();
     }

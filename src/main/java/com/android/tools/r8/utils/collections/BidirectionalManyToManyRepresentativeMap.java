@@ -4,91 +4,27 @@
 
 package com.android.tools.r8.utils.collections;
 
-import java.util.Map;
+/**
+ * Interface that accommodates many-to-many mappings.
+ *
+ * <p>This interface additionally adds a "representative" for each one-to-many/many-to-one mapping.
+ * The representative for a given key is a value from {@link #getValues(K)}. The representative for
+ * a given value is a key from {@link #getKeys(V)}.
+ */
+public interface BidirectionalManyToManyRepresentativeMap<K, V>
+    extends BidirectionalManyToManyMap<K, V> {
 
-public abstract class BidirectionalManyToManyRepresentativeMap<K, V> {
+  K getRepresentativeKey(V value);
 
-  public static <K, V> BidirectionalManyToManyRepresentativeMap<K, V> empty() {
-    return new EmptyBidirectionalManyToManyRepresentativeMap<>();
-  }
-
-  public abstract boolean containsKey(K key);
-
-  public abstract boolean containsValue(V value);
-
-  public abstract Map<K, V> getForwardBacking();
-
-  public abstract Map<V, K> getInverseBacking();
-
-  public final Inverse getInverseManyToManyMap() {
-    return new Inverse();
-  }
-
-  public abstract K getRepresentativeKey(V value);
-
-  public final K getRepresentativeKeyOrDefault(V value, K defaultValue) {
+  default K getRepresentativeKeyOrDefault(V value, K defaultValue) {
     K representativeKey = getRepresentativeKey(value);
     return representativeKey != null ? representativeKey : defaultValue;
   }
 
-  public abstract V getRepresentativeValue(K key);
+  V getRepresentativeValue(K key);
 
-  public final V getRepresentativeValueOrDefault(K key, V defaultValue) {
+  default V getRepresentativeValueOrDefault(K key, V defaultValue) {
     V representativeValue = getRepresentativeValue(key);
     return representativeValue != null ? representativeValue : defaultValue;
-  }
-
-  public abstract Iterable<K> getKeys(V value);
-
-  public abstract Iterable<V> getValues(K key);
-
-  public abstract boolean isEmpty();
-
-  public class Inverse extends BidirectionalManyToManyRepresentativeMap<V, K> {
-
-    @Override
-    public boolean containsKey(V key) {
-      return BidirectionalManyToManyRepresentativeMap.this.containsValue(key);
-    }
-
-    @Override
-    public boolean containsValue(K value) {
-      return BidirectionalManyToManyRepresentativeMap.this.containsKey(value);
-    }
-
-    @Override
-    public Map<V, K> getForwardBacking() {
-      return BidirectionalManyToManyRepresentativeMap.this.getInverseBacking();
-    }
-
-    @Override
-    public Map<K, V> getInverseBacking() {
-      return BidirectionalManyToManyRepresentativeMap.this.getForwardBacking();
-    }
-
-    @Override
-    public V getRepresentativeKey(K value) {
-      return BidirectionalManyToManyRepresentativeMap.this.getRepresentativeValue(value);
-    }
-
-    @Override
-    public K getRepresentativeValue(V key) {
-      return BidirectionalManyToManyRepresentativeMap.this.getRepresentativeKey(key);
-    }
-
-    @Override
-    public Iterable<V> getKeys(K value) {
-      return BidirectionalManyToManyRepresentativeMap.this.getValues(value);
-    }
-
-    @Override
-    public Iterable<K> getValues(V key) {
-      return BidirectionalManyToManyRepresentativeMap.this.getKeys(key);
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return BidirectionalManyToManyRepresentativeMap.this.isEmpty();
-    }
   }
 }

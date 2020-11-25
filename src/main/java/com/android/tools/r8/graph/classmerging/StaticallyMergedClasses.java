@@ -8,7 +8,10 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -21,7 +24,7 @@ public class StaticallyMergedClasses implements MergedClasses {
   }
 
   public static StaticallyMergedClasses empty() {
-    return new StaticallyMergedClasses(BidirectionalManyToOneMap.empty());
+    return new StaticallyMergedClasses(new EmptyBidirectionalOneToOneMap<>());
   }
 
   public static Builder builder() {
@@ -30,7 +33,7 @@ public class StaticallyMergedClasses implements MergedClasses {
 
   @Override
   public void forEachMergeGroup(BiConsumer<Set<DexType>, DexType> consumer) {
-    mergedClasses.forEach(consumer);
+    mergedClasses.forEachManyToOneMapping(consumer);
   }
 
   @Override
@@ -45,8 +48,8 @@ public class StaticallyMergedClasses implements MergedClasses {
 
   public static class Builder {
 
-    private final BidirectionalManyToOneMap<DexType, DexType> mergedClasses =
-        new BidirectionalManyToOneMap<>();
+    private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedClasses =
+        new BidirectionalManyToOneHashMap<>();
 
     private Builder() {}
 
