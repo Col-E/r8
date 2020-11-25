@@ -33,6 +33,7 @@ abstract class Format21c<T extends IndexedDexItem> extends Base2Format {
     return ((BBBB.hashCode() << 8) | AA) ^ getClass().hashCode();
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
     return visitor.visit(

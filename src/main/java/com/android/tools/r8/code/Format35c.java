@@ -68,6 +68,7 @@ public abstract class Format35c<T extends IndexedDexItem & StructuralItem<T>> ex
         | G) ^ getClass().hashCode();
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
     return visitor.visit(this, (Format35c<T>) other, Format35c::specify);

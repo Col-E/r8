@@ -47,6 +47,7 @@ public abstract class Format3rc<T extends IndexedDexItem & StructuralItem<T>> ex
     return ((CCCC << 24) | (BBBB.hashCode() << 4) | AA) ^ getClass().hashCode();
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   final int internalAcceptCompareTo(Instruction other, CompareToVisitor visitor) {
     return visitor.visit(this, (Format3rc<T>) other, Format3rc::specify);
