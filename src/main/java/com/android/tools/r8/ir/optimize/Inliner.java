@@ -763,7 +763,7 @@ public class Inliner implements PostOptimization {
       assert !initClassBlock.hasCatchHandlers();
 
       InstructionListIterator iterator = initClassBlock.listIterator(code);
-      iterator.setInsertionPosition(entryBlock.exit().getPosition());
+      iterator.setInsertionPosition(invoke.getPosition());
       iterator.add(new InitClass(code.createValue(TypeElement.getInt()), target.getHolderType()));
     }
 
