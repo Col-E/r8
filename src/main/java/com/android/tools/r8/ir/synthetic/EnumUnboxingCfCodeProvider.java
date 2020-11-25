@@ -28,7 +28,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
@@ -64,7 +63,6 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
   public static class EnumUnboxingInstanceFieldCfCodeProvider extends EnumUnboxingCfCodeProvider {
 
     private final DexType returnType;
-    private final EnumValueInfoMap enumValueInfoMap;
     private final EnumInstanceFieldMappingData fieldDataMap;
     private final AbstractValue nullValue;
 
@@ -72,12 +70,10 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
         AppView<?> appView,
         DexType holder,
         DexType returnType,
-        EnumValueInfoMap enumValueInfoMap,
         EnumInstanceFieldMappingData fieldDataMap,
         AbstractValue nullValue) {
       super(appView, holder);
       this.returnType = returnType;
-      this.enumValueInfoMap = enumValueInfoMap;
       this.fieldDataMap = fieldDataMap;
       this.nullValue = nullValue;
     }
@@ -101,19 +97,16 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
 
       // if (i == 1) { return 10;}
       // if (i == 2) { return 20;}
-      enumValueInfoMap.forEach(
-          (field, enumValueInfo) -> {
-            AbstractValue value = fieldDataMap.getData(field);
-            if (value != null) {
-              CfLabel dest = new CfLabel();
-              instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));
-              instructions.add(new CfConstNumber(enumValueInfo.convertToInt(), ValueType.INT));
-              instructions.add(new CfIfCmp(If.Type.NE, ValueType.INT, dest));
-              addCfInstructionsForAbstractValue(instructions, value, returnType);
-              instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
-              instructions.add(dest);
-              instructions.add(new CfFrame(locals, ImmutableDeque.of()));
-            }
+      fieldDataMap.forEach(
+          (unboxedEnumValue, value) -> {
+            CfLabel dest = new CfLabel();
+            instructions.add(new CfLoad(ValueType.fromDexType(factory.intType), 0));
+            instructions.add(new CfConstNumber(unboxedEnumValue, ValueType.INT));
+            instructions.add(new CfIfCmp(If.Type.NE, ValueType.INT, dest));
+            addCfInstructionsForAbstractValue(instructions, value, returnType);
+            instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
+            instructions.add(dest);
+            instructions.add(new CfFrame(locals, ImmutableDeque.of()));
           });
 
       if (nullValue != null) {
@@ -132,19 +125,16 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
 
   public static class EnumUnboxingValueOfCfCodeProvider extends EnumUnboxingCfCodeProvider {
 
-    private DexType enumType;
-    private EnumValueInfoMap map;
+    private final DexType enumType;
     private final EnumInstanceFieldMappingData fieldDataMap;
 
     public EnumUnboxingValueOfCfCodeProvider(
         AppView<?> appView,
         DexType holder,
         DexType enumType,
-        EnumValueInfoMap map,
         EnumInstanceFieldMappingData fieldDataMap) {
       super(appView, holder);
       this.enumType = enumType;
-      this.map = map;
       this.fieldDataMap = fieldDataMap;
     }
 
@@ -180,16 +170,15 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
 
       // if (s.equals("A")) { return 1;}
       // if (s.equals("B")) { return 2;}
-      map.forEach(
-          (field, enumValueInfo) -> {
+      fieldDataMap.forEach(
+          (unboxedEnumValue, value) -> {
             CfLabel dest = new CfLabel();
             instructions.add(new CfLoad(ValueType.fromDexType(factory.stringType), 0));
-            AbstractValue value = fieldDataMap.getData(field);
             addCfInstructionsForAbstractValue(instructions, value, factory.stringType);
             instructions.add(
                 new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.stringMembers.equals, false));
             instructions.add(new CfIf(If.Type.EQ, ValueType.INT, dest));
-            instructions.add(new CfConstNumber(enumValueInfo.convertToInt(), ValueType.INT));
+            instructions.add(new CfConstNumber(unboxedEnumValue, ValueType.INT));
             instructions.add(new CfReturn(ValueType.INT));
             instructions.add(dest);
             instructions.add(new CfFrame(locals, ImmutableDeque.of()));

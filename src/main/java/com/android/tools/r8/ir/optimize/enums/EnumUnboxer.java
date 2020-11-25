@@ -66,12 +66,12 @@ import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
-import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -108,6 +108,10 @@ public class EnumUnboxer {
     }
     assert !appView.options().debug;
     enumUnboxingCandidatesInfo = new EnumUnboxingCandidateAnalysis(appView, this).findCandidates();
+  }
+
+  public static int ordinalToUnboxedInt(int ordinal) {
+    return ordinal + 1;
   }
 
   private void markEnumAsUnboxable(Reason reason, DexProgramClass enumClass) {
@@ -445,20 +449,29 @@ public class EnumUnboxer {
         ImmutableMap.builder();
     enumUnboxingCandidatesInfo.forEachCandidateAndRequiredInstanceFieldData(
         (enumClass, fields) -> {
-          ImmutableMap.Builder<DexField, EnumInstanceFieldKnownData> typeBuilder =
-              ImmutableMap.builder();
-          for (DexField field : fields) {
-            EnumInstanceFieldData enumInstanceFieldData = computeEnumFieldData(field, enumClass);
-            if (enumInstanceFieldData.isUnknown()) {
-              markEnumAsUnboxable(Reason.MISSING_INSTANCE_FIELD_DATA, enumClass);
-              return;
-            }
-            typeBuilder.put(field, enumInstanceFieldData.asEnumFieldKnownData());
+          ImmutableMap<DexField, EnumInstanceFieldKnownData> data =
+              buildEnumInstanceFieldData(enumClass, fields);
+          if (data == null) {
+            markEnumAsUnboxable(Reason.MISSING_INSTANCE_FIELD_DATA, enumClass);
+            return;
           }
-          builder.put(enumClass.type, typeBuilder.build());
+          builder.put(enumClass.type, data);
         });
     staticFieldValuesMap.clear();
     return new EnumInstanceFieldDataMap(builder.build());
+  }
+
+  private ImmutableMap<DexField, EnumInstanceFieldKnownData> buildEnumInstanceFieldData(
+      DexProgramClass enumClass, Set<DexField> fields) {
+    ImmutableMap.Builder<DexField, EnumInstanceFieldKnownData> typeBuilder = ImmutableMap.builder();
+    for (DexField field : fields) {
+      EnumInstanceFieldData enumInstanceFieldData = computeEnumFieldData(field, enumClass);
+      if (enumInstanceFieldData.isUnknown()) {
+        return null;
+      }
+      typeBuilder.put(field, enumInstanceFieldData.asEnumFieldKnownData());
+    }
+    return typeBuilder.build();
   }
 
   private void analyzeAccessibility() {
@@ -951,7 +964,8 @@ public class EnumUnboxer {
         appView.appInfo().resolveFieldOn(enumClass, instanceField).getResolvedField();
     assert encodedInstanceField != null;
     boolean canBeOrdinal = instanceField.type.isIntType();
-    Map<DexField, AbstractValue> data = new IdentityHashMap<>();
+    ImmutableInt2ReferenceSortedMap.Builder<AbstractValue> data =
+        ImmutableInt2ReferenceSortedMap.builder();
     EnumValueInfoMapCollection.EnumValueInfoMap enumValueInfoMap =
         appView.appInfo().getEnumValueInfoMap(enumClass.type);
     for (DexField staticField : enumValueInfoMap.enumValues()) {
@@ -970,7 +984,7 @@ public class EnumUnboxer {
         if (!(fieldValue.isSingleNumberValue() || fieldValue.isSingleStringValue())) {
           return EnumInstanceFieldUnknownData.getInstance();
         }
-        data.put(staticField, fieldValue);
+        data.put(enumValueInfoMap.getEnumValueInfo(staticField).convertToInt(), fieldValue);
         if (canBeOrdinal) {
           int ordinalValue = enumValueInfoMap.getEnumValueInfo(staticField).ordinal;
           assert fieldValue.isSingleNumberValue();
@@ -984,7 +998,7 @@ public class EnumUnboxer {
     if (canBeOrdinal) {
       return new EnumInstanceFieldOrdinalData();
     }
-    return new EnumInstanceFieldMappingData(data);
+    return new EnumInstanceFieldMappingData(data.build());
   }
 
   private void reportEnumsAnalysis() {

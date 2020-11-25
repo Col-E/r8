@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import java.util.Map;
+import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
+import java.util.function.BiConsumer;
 
 /*
  * My instances represent the values of an enum field for each of the enum instance.
@@ -83,9 +83,9 @@ public abstract class EnumInstanceFieldData {
   }
 
   public static class EnumInstanceFieldMappingData extends EnumInstanceFieldKnownData {
-    private final Map<DexField, AbstractValue> mapping;
+    private final ImmutableInt2ReferenceSortedMap<AbstractValue> mapping;
 
-    public EnumInstanceFieldMappingData(Map<DexField, AbstractValue> mapping) {
+    public EnumInstanceFieldMappingData(ImmutableInt2ReferenceSortedMap<AbstractValue> mapping) {
       this.mapping = mapping;
     }
 
@@ -104,8 +104,12 @@ public abstract class EnumInstanceFieldData {
       return this;
     }
 
-    public AbstractValue getData(DexField field) {
-      return mapping.get(field);
+    public AbstractValue getData(int unboxedEnumValue) {
+      return mapping.get(unboxedEnumValue);
+    }
+
+    public void forEach(BiConsumer<? super Integer, ? super AbstractValue> consumer) {
+      mapping.forEach(consumer);
     }
   }
 }

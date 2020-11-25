@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -125,7 +126,7 @@ public class EnumValueInfoMapCollection {
     }
 
     public int convertToInt() {
-      return ordinal + 1;
+      return EnumUnboxer.ordinalToUnboxedInt(ordinal);
     }
 
     EnumValueInfo rewrittenWithLens(GraphLens lens) {

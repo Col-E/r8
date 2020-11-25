@@ -599,7 +599,6 @@ public class EnumUnboxingRewriter {
                 appView,
                 method.holder,
                 field.type,
-                enumsToUnbox.getEnumValueInfoMap(enumType),
                 unboxedEnumsInstanceFieldData
                     .getInstanceFieldData(enumType, field)
                     .asEnumFieldMappingData(),
@@ -618,7 +617,6 @@ public class EnumUnboxingRewriter {
                 appView,
                 method.holder,
                 enumType,
-                enumsToUnbox.getEnumValueInfoMap(enumType),
                 unboxedEnumsInstanceFieldData
                     .getInstanceFieldData(enumType, factory.enumMembers.nameField)
                     .asEnumFieldMappingData())
