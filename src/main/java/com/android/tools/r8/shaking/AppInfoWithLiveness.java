@@ -939,7 +939,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    */
   public AppInfoWithLiveness prunedCopyFrom(PrunedItems prunedItems) {
     assert checkIfObsolete();
-    if (!prunedItems.hasRemovedClasses()) {
+    if (prunedItems.hasRemovedClasses()) {
       // Rebuild the hierarchy.
       objectAllocationInfoCollection.mutate(mutator -> {}, this);
       keepInfo.mutate(
