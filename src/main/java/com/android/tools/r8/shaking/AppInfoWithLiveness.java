@@ -270,6 +270,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.enumValueInfoMaps = enumValueInfoMaps;
     this.lockCandidates = lockCandidates;
     this.initClassReferences = initClassReferences;
+    verify();
   }
 
   private AppInfoWithLiveness(
@@ -366,7 +367,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.enumValueInfoMaps,
         previous.lockCandidates,
         previous.initClassReferences);
-    assert keepInfo.verifyNoneArePinned(prunedItems.getRemovedClasses(), previous);
+  }
+
+  private void verify() {
+    assert keepInfo.verifyPinnedTypesAreLive(liveTypes);
+    assert objectAllocationInfoCollection.verifyAllocatedTypesAreLive(liveTypes, this);
   }
 
   private static KeepInfoCollection extendPinnedItems(
@@ -453,6 +458,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.lockCandidates = previous.lockCandidates;
     this.initClassReferences = previous.initClassReferences;
     previous.markObsolete();
+    verify();
   }
 
   public static AppInfoWithLivenessModifier modifier() {
@@ -941,7 +947,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     assert checkIfObsolete();
     if (prunedItems.hasRemovedClasses()) {
       // Rebuild the hierarchy.
-      objectAllocationInfoCollection.mutate(mutator -> {}, this);
+      objectAllocationInfoCollection.mutate(
+          mutator -> mutator.removeAllocationsForPrunedItems(prunedItems), this);
       keepInfo.mutate(
           keepInfo -> keepInfo.removeKeepInfoForPrunedItems(prunedItems.getRemovedClasses()));
     }

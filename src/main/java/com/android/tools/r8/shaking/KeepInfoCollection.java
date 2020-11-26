@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -23,7 +22,6 @@ import com.android.tools.r8.shaking.KeepFieldInfo.Joiner;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -155,14 +153,7 @@ public abstract class KeepInfoCollection {
         && getInfo(reference, definitions).isMinificationAllowed(configuration);
   }
 
-  public final boolean verifyNoneArePinned(Collection<DexType> types, AppInfo appInfo) {
-    for (DexType type : types) {
-      DexProgramClass clazz =
-          asProgramClassOrNull(appInfo.definitionForWithoutExistenceAssert(type));
-      assert clazz == null || !getClassInfo(clazz).isPinned();
-    }
-    return true;
-  }
+  public abstract boolean verifyPinnedTypesAreLive(Set<DexType> liveTypes);
 
   // TODO(b/156715504): We should try to avoid the need for iterating pinned items.
   @Deprecated
@@ -443,6 +434,15 @@ public abstract class KeepInfoCollection {
     public KeepInfoCollection mutate(Consumer<MutableKeepInfoCollection> mutator) {
       mutator.accept(this);
       return this;
+    }
+
+    @Override
+    public boolean verifyPinnedTypesAreLive(Set<DexType> liveTypes) {
+      keepClassInfo.forEach(
+          (type, info) -> {
+            assert !info.isPinned() || liveTypes.contains(type);
+          });
+      return true;
     }
 
     @Override

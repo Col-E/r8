@@ -46,7 +46,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
    */
   final Set<DexProgramClass> interfacesWithUnknownSubtypeHierarchy = Sets.newIdentityHashSet();
 
-  /** Map of types directly implemented by lambdas to those lambdas. */
+  /** Map of types directly implemented by lambdas to those types. */
   final Map<DexType, List<LambdaDescriptor>> instantiatedLambdas = new IdentityHashMap<>();
 
   /**
@@ -213,6 +213,40 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
 
   public Set<DexType> getInstantiatedLambdaInterfaces() {
     return instantiatedLambdas.keySet();
+  }
+
+  public void removeAllocationsForPrunedItems(PrunedItems prunedItems) {
+    Set<DexType> removedClasses = prunedItems.getRemovedClasses();
+    if (removedClasses.isEmpty()) {
+      return;
+    }
+    classesWithAllocationSiteTracking
+        .entrySet()
+        .removeIf(entry -> removedClasses.contains(entry.getKey().getType()));
+    classesWithoutAllocationSiteTracking.removeIf(
+        clazz -> removedClasses.contains(clazz.getType()));
+    boolean removed =
+        interfacesWithUnknownSubtypeHierarchy.removeIf(
+            iface -> removedClasses.contains(iface.getType()));
+    assert !removed : "Unexpected removal of an interface marking an unknown hierarchy.";
+    removedClasses.forEach(instantiatedLambdas::remove);
+  }
+
+  public boolean verifyAllocatedTypesAreLive(
+      Set<DexType> liveTypes, DexDefinitionSupplier definitions) {
+    for (DexProgramClass clazz : classesWithAllocationSiteTracking.keySet()) {
+      assert liveTypes.contains(clazz.getType());
+    }
+    for (DexProgramClass clazz : classesWithoutAllocationSiteTracking) {
+      assert liveTypes.contains(clazz.getType());
+    }
+    for (DexProgramClass iface : interfacesWithUnknownSubtypeHierarchy) {
+      assert liveTypes.contains(iface.getType());
+    }
+    for (DexType iface : instantiatedLambdas.keySet()) {
+      assert definitions.definitionFor(iface).isNotProgramClass() || liveTypes.contains(iface);
+    }
+    return true;
   }
 
   public static class Builder extends ObjectAllocationInfoCollectionImpl {
