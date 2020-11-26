@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -133,7 +132,7 @@ public class LambdaRewriter {
    */
   public int desugarLambdas(ProgramMethod method, AppInfoWithClassHierarchy appInfo) {
     return desugarLambdas(
-        method.getDefinition(),
+        method,
         callsite -> {
           LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callsite, appInfo, method);
           if (descriptor == null) {
@@ -145,8 +144,8 @@ public class LambdaRewriter {
 
   // Same as above, but where lambdas are always known to exist for the call sites.
   public static int desugarLambdas(
-      DexEncodedMethod method, Function<DexCallSite, LambdaClass> callSites) {
-    CfCode code = method.getCode().asCfCode();
+      ProgramMethod method, Function<DexCallSite, LambdaClass> callSites) {
+    CfCode code = method.getDefinition().getCode().asCfCode();
     List<CfInstruction> instructions = code.getInstructions();
     Supplier<List<CfInstruction>> lazyNewInstructions =
         Suppliers.memoize(() -> new ArrayList<>(instructions));
