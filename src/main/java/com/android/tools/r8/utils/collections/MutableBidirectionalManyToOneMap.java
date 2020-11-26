@@ -6,17 +6,18 @@ package com.android.tools.r8.utils.collections;
 
 import java.util.Set;
 
-/**
- * Interface that accommodates many-to-one mappings.
- *
- * <p>This interface inherits from {@link BidirectionalManyToManyMap} to allow implementing
- * many-to-many mappings using many-to-one mappings.
- */
+/** Interface that provides mutable access to the implementation of a many-to-one mapping. */
 public interface MutableBidirectionalManyToOneMap<K, V> extends BidirectionalManyToOneMap<K, V> {
+
+  void clear();
 
   void put(K key, V value);
 
+  void put(Iterable<K> key, V value);
+
   V remove(K key);
+
+  void removeAll(Iterable<K> keys);
 
   Set<K> removeValue(V value);
 }

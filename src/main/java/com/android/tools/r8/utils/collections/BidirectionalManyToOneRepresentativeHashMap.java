@@ -16,6 +16,12 @@ public class BidirectionalManyToOneRepresentativeHashMap<K, V>
   private final Map<V, K> representatives = new IdentityHashMap<>();
 
   @Override
+  public void clear() {
+    super.clear();
+    representatives.clear();
+  }
+
+  @Override
   public K removeRepresentativeFor(V value) {
     return representatives.remove(value);
   }

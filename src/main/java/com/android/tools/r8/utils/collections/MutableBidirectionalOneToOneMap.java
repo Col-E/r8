@@ -4,12 +4,7 @@
 
 package com.android.tools.r8.utils.collections;
 
-/**
- * Interface that accommodates one-to-one mappings.
- *
- * <p>This interface inherits from {@link BidirectionalManyToManyRepresentativeMap} to allow
- * implementing many-to-many mappings using one-to-one mappings.
- */
+/** Interface that provides mutable access to the implementation of a one-to-one mapping. */
 public interface MutableBidirectionalOneToOneMap<K, V> extends BidirectionalOneToOneMap<K, V> {
 
   V put(K key, V value);

@@ -27,6 +27,12 @@ public class BidirectionalManyToOneHashMap<K, V> implements MutableBidirectional
   }
 
   @Override
+  public void clear() {
+    backing.clear();
+    inverse.clear();
+  }
+
+  @Override
   public boolean containsKey(K key) {
     return backing.containsKey(key);
   }
@@ -101,6 +107,11 @@ public class BidirectionalManyToOneHashMap<K, V> implements MutableBidirectional
   }
 
   @Override
+  public void removeAll(Iterable<K> keys) {
+    keys.forEach(this::remove);
+  }
+
+  @Override
   public Set<K> removeValue(V value) {
     Set<K> keys = inverse.remove(value);
     if (keys == null) {
@@ -118,6 +129,11 @@ public class BidirectionalManyToOneHashMap<K, V> implements MutableBidirectional
     remove(key);
     backing.put(key, value);
     inverse.computeIfAbsent(value, ignore -> new LinkedHashSet<>()).add(key);
+  }
+
+  @Override
+  public void put(Iterable<K> keys, V value) {
+    keys.forEach(key -> put(key, value));
   }
 
   @Override
