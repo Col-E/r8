@@ -58,6 +58,10 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
     return proto.parameters;
   }
 
+  public DexProto getProto() {
+    return proto;
+  }
+
   public DexType getReturnType() {
     return proto.returnType;
   }

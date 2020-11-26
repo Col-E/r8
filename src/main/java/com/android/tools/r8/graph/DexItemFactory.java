@@ -188,7 +188,6 @@ public class DexItemFactory {
 
   public final DexString convertMethodName = createString("convert");
   public final DexString wrapperFieldName = createString("wrappedValue");
-  public final DexString initMethodName = createString("<init>");
 
   public final DexString getClassMethodName = createString("getClass");
   public final DexString finalizeMethodName = createString("finalize");
@@ -1357,7 +1356,7 @@ public class DexItemFactory {
 
     public final DexMethod initWithMessage =
         createMethod(
-            illegalArgumentExceptionType, createProto(voidType, stringType), initMethodName);
+            illegalArgumentExceptionType, createProto(voidType, stringType), constructorMethodName);
   }
 
   /**

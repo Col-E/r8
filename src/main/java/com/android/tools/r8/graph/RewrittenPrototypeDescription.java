@@ -329,14 +329,16 @@ public class RewrittenPrototypeDescription {
     }
   }
 
-  private static final RewrittenPrototypeDescription none = new RewrittenPrototypeDescription();
+  private static final RewrittenPrototypeDescription NONE = new RewrittenPrototypeDescription();
 
   private final List<ExtraParameter> extraParameters;
   private final ArgumentInfoCollection argumentInfoCollection;
   private final RewrittenTypeInfo rewrittenReturnInfo;
 
   private RewrittenPrototypeDescription() {
-    this(Collections.emptyList(), null, ArgumentInfoCollection.empty());
+    this.extraParameters = Collections.emptyList();
+    this.rewrittenReturnInfo = null;
+    this.argumentInfoCollection = ArgumentInfoCollection.empty();
   }
 
   private RewrittenPrototypeDescription(
@@ -347,6 +349,16 @@ public class RewrittenPrototypeDescription {
     this.extraParameters = extraParameters;
     this.rewrittenReturnInfo = rewrittenReturnInfo;
     this.argumentInfoCollection = argumentsInfo;
+    assert !isEmpty();
+  }
+
+  private static RewrittenPrototypeDescription create(
+      List<ExtraParameter> extraParameters,
+      RewrittenTypeInfo rewrittenReturnInfo,
+      ArgumentInfoCollection argumentsInfo) {
+    return extraParameters.isEmpty() && rewrittenReturnInfo == null && argumentsInfo.isEmpty()
+        ? none()
+        : new RewrittenPrototypeDescription(extraParameters, rewrittenReturnInfo, argumentsInfo);
   }
 
   public static RewrittenPrototypeDescription createForUninstantiatedTypes(
@@ -356,18 +368,16 @@ public class RewrittenPrototypeDescription {
     DexType returnType = method.proto.returnType;
     RewrittenTypeInfo returnInfo =
         returnType.isAlwaysNull(appView) ? RewrittenTypeInfo.toVoid(returnType, appView) : null;
-    return new RewrittenPrototypeDescription(
-        Collections.emptyList(), returnInfo, removedArgumentsInfo);
+    return create(Collections.emptyList(), returnInfo, removedArgumentsInfo);
   }
 
   public static RewrittenPrototypeDescription createForRewrittenTypes(
       RewrittenTypeInfo returnInfo, ArgumentInfoCollection rewrittenArgumentsInfo) {
-    return new RewrittenPrototypeDescription(
-        Collections.emptyList(), returnInfo, rewrittenArgumentsInfo);
+    return create(Collections.emptyList(), returnInfo, rewrittenArgumentsInfo);
   }
 
   public static RewrittenPrototypeDescription none() {
-    return none;
+    return NONE;
   }
 
   public boolean isEmpty() {

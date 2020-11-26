@@ -441,7 +441,7 @@ public class DesugaredLibraryWrapperSynthesizer {
         factory.createMethod(
             field.holder,
             factory.createProto(factory.voidType, field.type),
-            factory.initMethodName);
+            factory.constructorMethodName);
     return newSynthesizedMethod(
         method,
         Constants.ACC_PRIVATE | Constants.ACC_SYNTHETIC,

@@ -276,7 +276,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
               factory.createMethod(
                   wrapperField.holder,
                   factory.createProto(factory.voidType, argType),
-                  factory.initMethodName),
+                  factory.constructorMethodName),
               false));
       instructions.add(new CfReturn(ValueType.fromDexType(wrapperField.holder)));
       return standardCfCodeFromInstructions(instructions);
@@ -303,7 +303,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
               factory.createMethod(
                   factory.objectType,
                   factory.createProto(factory.voidType),
-                  factory.initMethodName),
+                  factory.constructorMethodName),
               false));
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.type), 1));
@@ -337,7 +337,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
               factory.createMethod(
                   factory.runtimeExceptionType,
                   factory.createProto(factory.voidType, factory.stringType),
-                  factory.initMethodName),
+                  factory.constructorMethodName),
               false));
       instructions.add(new CfThrow());
       return standardCfCodeFromInstructions(instructions);

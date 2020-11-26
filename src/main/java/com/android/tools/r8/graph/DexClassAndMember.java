@@ -39,6 +39,10 @@ public abstract class DexClassAndMember<
     return definition;
   }
 
+  public DexString getName() {
+    return getReference().getName();
+  }
+
   public R getReference() {
     return definition.getReference();
   }

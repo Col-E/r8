@@ -13,7 +13,6 @@ import java.util.function.Consumer;
 
 public class VirtualMethodEntryPointSynthesizedCode extends SynthesizedCode {
   private final Int2ReferenceSortedMap<DexMethod> mappedMethods;
-  private final DexField classIdField;
 
   public VirtualMethodEntryPointSynthesizedCode(
       Int2ReferenceSortedMap<DexMethod> mappedMethods,
@@ -27,7 +26,6 @@ public class VirtualMethodEntryPointSynthesizedCode extends SynthesizedCode {
                 mappedMethods, classIdField, superMethod, method, position, originalMethod));
 
     this.mappedMethods = mappedMethods;
-    this.classIdField = classIdField;
   }
 
   @Override
