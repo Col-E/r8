@@ -38,6 +38,16 @@ public class MergedClassesCollection implements MergedClasses {
   }
 
   @Override
+  public boolean isMergeTarget(DexType type) {
+    for (MergedClasses mergedClasses : collection) {
+      if (mergedClasses.isMergeTarget(type)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
   public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
     for (MergedClasses mergedClasses : collection) {
       assert mergedClasses.verifyAllSourcesPruned(appView);

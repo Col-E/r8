@@ -56,7 +56,8 @@ public class VerticallyMergedClasses implements MergedClasses {
     return mergedClasses.isEmpty();
   }
 
-  public boolean isTarget(DexType type) {
+  @Override
+  public boolean isMergeTarget(DexType type) {
     return !getSourcesFor(type).isEmpty();
   }
 

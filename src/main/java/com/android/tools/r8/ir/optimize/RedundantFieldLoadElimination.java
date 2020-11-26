@@ -344,7 +344,7 @@ public class RedundantFieldLoadElimination {
     HorizontallyMergedClasses horizontallyMergedClasses = appView.horizontallyMergedClasses();
     assert verticallyMergedClasses != null;
     assert horizontallyMergedClasses != null;
-    assert verticallyMergedClasses.isTarget(method.getHolderType())
+    assert verticallyMergedClasses.isMergeTarget(method.getHolderType())
         || horizontallyMergedClasses.isMergeTarget(method.getHolderType());
     assert appView
         .dexItemFactory()

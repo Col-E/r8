@@ -42,6 +42,11 @@ public class HorizontallyMergedLambdaClasses implements MergedClasses {
   }
 
   @Override
+  public boolean isMergeTarget(DexType type) {
+    return mergedClasses.containsValue(type);
+  }
+
+  @Override
   public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
     for (DexType source : mergedClasses.keySet()) {
       assert appView.appInfo().wasPruned(source)

@@ -54,6 +54,7 @@ public class HorizontallyMergedClasses implements MergedClasses {
     return mergedClasses.containsKey(type);
   }
 
+  @Override
   public boolean isMergeTarget(DexType type) {
     return mergedClasses.containsValue(type);
   }

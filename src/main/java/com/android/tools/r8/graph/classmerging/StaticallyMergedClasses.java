@@ -42,6 +42,13 @@ public class StaticallyMergedClasses implements MergedClasses {
   }
 
   @Override
+  public boolean isMergeTarget(DexType type) {
+    // Intentionally returns false since static class merging technically doesn't merge any classes,
+    // it only moves static members.
+    return false;
+  }
+
+  @Override
   public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
     return true;
   }

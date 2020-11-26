@@ -17,6 +17,8 @@ public interface MergedClasses {
 
   boolean hasBeenMergedIntoDifferentType(DexType type);
 
+  boolean isMergeTarget(DexType type);
+
   boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView);
 
   /**
