@@ -289,6 +289,8 @@ public class DexItemFactory {
   public final DexString constructorMethodName = createString(Constants.INSTANCE_INITIALIZER_NAME);
   public final DexString classConstructorMethodName =
       createString(Constants.CLASS_INITIALIZER_NAME);
+  public final DexString temporaryConstructorMethodPrefix =
+      createString(Constants.TEMPORARY_INSTANCE_INITIALIZER_PREFIX);
 
   public final DexString thisName = createString("this");
   public final DexString enumValuesFieldName = createString("$VALUES");

@@ -832,7 +832,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     DexType holder = field.getHolderType();
     return fieldAccessInfo.isWrittenOnlyInMethodSatisfying(
         method ->
-            method.getDefinition().isInstanceInitializer() && method.getHolderType() == holder);
+            method.getHolderType() == holder
+                && method
+                    .getDefinition()
+                    .isOrWillBeInlinedIntoInstanceInitializer(dexItemFactory()));
   }
 
   public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexEncodedField field) {

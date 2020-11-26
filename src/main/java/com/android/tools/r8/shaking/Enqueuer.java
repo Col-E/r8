@@ -822,6 +822,7 @@ public class Enqueuer {
   // Utility to avoid adding to the worklist if already live.
   private boolean enqueueMarkMethodLiveAction(ProgramMethod method, KeepReason reason) {
     if (liveMethods.add(method, reason)) {
+      assert !method.getDefinition().getOptimizationInfo().forceInline();
       workList.enqueueMarkMethodLiveAction(method, reason);
       return true;
     }

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import static com.android.tools.r8.dex.Constants.TEMPORARY_INSTANCE_INITIALIZER_PREFIX;
+
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
@@ -111,7 +113,7 @@ public class ConstructorMerger {
       ClassMethodsBuilder classMethodsBuilder, DexEncodedMethod constructor) {
     DexMethod method =
         dexItemFactory.createFreshMethodName(
-            "constructor",
+            TEMPORARY_INSTANCE_INITIALIZER_PREFIX,
             constructor.getHolderType(),
             constructor.proto(),
             group.getTarget().getType(),

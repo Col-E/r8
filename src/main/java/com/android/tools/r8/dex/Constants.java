@@ -140,6 +140,7 @@ public class Constants {
   public static final String JAVA_LANG_OBJECT_NAME = "java/lang/Object";
   public static final String INSTANCE_INITIALIZER_NAME = "<init>";
   public static final String CLASS_INITIALIZER_NAME = "<clinit>";
+  public static final String TEMPORARY_INSTANCE_INITIALIZER_PREFIX = "$r8$constructor";
 
   public static final int MAX_NON_JUMBO_INDEX = U16BIT_MAX;
 
