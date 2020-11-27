@@ -119,34 +119,33 @@ public class LibraryMemberOptimizer implements CodeOptimization {
         new IdentityHashMap<>();
     while (instructionIterator.hasNext()) {
       Instruction instruction = instructionIterator.next();
-      if (instruction.isInvokeMethod()) {
-        InvokeMethod invoke = instruction.asInvokeMethod();
-        DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
-        if (singleTarget != null) {
-          optimizeInvoke(
-              code, instructionIterator, invoke, singleTarget, affectedValues, optimizationStates);
-        }
+      if (!instruction.isInvokeMethod()) {
+        continue;
       }
+
+      InvokeMethod invoke = instruction.asInvokeMethod();
+      DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
+      if (singleTarget == null) {
+        continue;
+      }
+
+      LibraryMethodModelCollection<?> optimizer =
+          libraryMethodModelCollections.get(singleTarget.getHolderType());
+      if (optimizer == null) {
+        continue;
+      }
+
+      LibraryMethodModelCollection.State optimizationState =
+          optimizationStates.computeIfAbsent(
+              optimizer,
+              libraryMethodModelCollection ->
+                  libraryMethodModelCollection.createInitialState(
+                      methodProcessor, methodProcessingId));
+      optimizer.optimize(
+          code, instructionIterator, invoke, singleTarget, affectedValues, optimizationState);
     }
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-  }
-
-  private void optimizeInvoke(
-      IRCode code,
-      InstructionListIterator instructionIterator,
-      InvokeMethod invoke,
-      DexClassAndMethod singleTarget,
-      Set<Value> affectedValues,
-      Map<LibraryMethodModelCollection<?>, LibraryMethodModelCollection.State> optimizationStates) {
-    LibraryMethodModelCollection<?> optimizer =
-        libraryMethodModelCollections.getOrDefault(
-            singleTarget.getHolderType(), NopLibraryMethodModelCollection.getInstance());
-    LibraryMethodModelCollection.State optimizationState =
-        optimizationStates.computeIfAbsent(
-            optimizer, LibraryMethodModelCollection::createInitialState);
-    optimizer.optimize(
-        code, instructionIterator, invoke, singleTarget, affectedValues, optimizationState);
   }
 }

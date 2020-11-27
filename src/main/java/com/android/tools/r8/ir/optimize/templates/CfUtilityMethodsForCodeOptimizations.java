@@ -72,4 +72,40 @@ public final class CfUtilityMethodsForCodeOptimizations {
         ImmutableList.of(),
         ImmutableList.of());
   }
+
+  public static CfCode CfUtilityMethodsForCodeOptimizationsTemplates_toStringIfNotNull(
+      InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfIf(If.Type.EQ, ValueType.OBJECT, label2),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.objectType,
+                    options.itemFactory.createProto(options.itemFactory.stringType),
+                    options.itemFactory.createString("toString")),
+                false),
+            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            label2,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0},
+                    new FrameType[] {FrameType.initialized(options.itemFactory.objectType)}),
+                new ArrayDeque<>(Arrays.asList())),
+            new CfReturnVoid(),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
 }

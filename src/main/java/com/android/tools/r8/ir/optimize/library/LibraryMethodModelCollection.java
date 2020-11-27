@@ -10,13 +10,16 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodProcessingId;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.library.LibraryMethodModelCollection.State;
 import java.util.Set;
 
 /** Used to model the behavior of library methods for optimization purposes. */
 public interface LibraryMethodModelCollection<T extends State> {
 
-  default T createInitialState() {
+  default T createInitialState(
+      MethodProcessor methodProcessor, MethodProcessingId methodProcessingId) {
     return null;
   }
 

@@ -9,6 +9,8 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodProcessingId;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.library.StatelessLibraryMethodModelCollection.State;
 import java.util.Set;
 
@@ -16,7 +18,8 @@ public abstract class StatelessLibraryMethodModelCollection
     implements LibraryMethodModelCollection<State> {
 
   @Override
-  public final State createInitialState() {
+  public final State createInitialState(
+      MethodProcessor methodProcessor, MethodProcessingId methodProcessingId) {
     return null;
   }
 

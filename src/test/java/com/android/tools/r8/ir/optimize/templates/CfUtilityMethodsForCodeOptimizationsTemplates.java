@@ -6,6 +6,12 @@ package com.android.tools.r8.ir.optimize.templates;
 
 public class CfUtilityMethodsForCodeOptimizationsTemplates {
 
+  public static void toStringIfNotNull(Object o) {
+    if (o != null) {
+      o.toString();
+    }
+  }
+
   public static void throwClassCastExceptionIfNotNull(Object o) {
     if (o != null) {
       throw new ClassCastException();

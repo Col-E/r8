@@ -19,6 +19,35 @@ import com.android.tools.r8.utils.InternalOptions;
 
 public class UtilityMethodsForCodeOptimizations {
 
+  public static UtilityMethodForCodeOptimizations synthesizeToStringIfNotNullMethod(
+      AppView<?> appView, ProgramMethod context, MethodProcessingId methodProcessingId) {
+    InternalOptions options = appView.options();
+    if (options.isGeneratingClassFiles()) {
+      // TODO(b/172194277): Allow synthetics when generating CF.
+      return null;
+    }
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
+    ProgramMethod syntheticMethod =
+        syntheticItems.createMethod(
+            context,
+            dexItemFactory,
+            builder ->
+                builder
+                    .setProto(proto)
+                    .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                    .setCode(method -> getToStringIfNotNullCodeTemplate(method, options)),
+            methodProcessingId);
+    return new UtilityMethodForCodeOptimizations(syntheticMethod);
+  }
+
+  private static CfCode getToStringIfNotNullCodeTemplate(
+      DexMethod method, InternalOptions options) {
+    return CfUtilityMethodsForCodeOptimizations
+        .CfUtilityMethodsForCodeOptimizationsTemplates_toStringIfNotNull(options, method);
+  }
+
   public static UtilityMethodForCodeOptimizations synthesizeThrowClassCastExceptionIfNotNullMethod(
       AppView<?> appView, ProgramMethod context, MethodProcessingId methodProcessingId) {
     InternalOptions options = appView.options();

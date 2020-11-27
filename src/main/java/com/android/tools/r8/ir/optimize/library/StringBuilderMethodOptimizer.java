@@ -23,6 +23,10 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodProcessingId;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
+import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.library.StringBuilderMethodOptimizer.State;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.WorkList;
@@ -33,20 +37,23 @@ import java.util.Set;
 
 public class StringBuilderMethodOptimizer implements LibraryMethodModelCollection<State> {
 
+  private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final InternalOptions options;
   private final StringBuildingMethods stringBuilderMethods;
 
   StringBuilderMethodOptimizer(AppView<?> appView) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
+    this.appView = appView;
     this.dexItemFactory = dexItemFactory;
     this.options = appView.options();
     this.stringBuilderMethods = dexItemFactory.stringBuilderMethods;
   }
 
   @Override
-  public State createInitialState() {
-    return new State();
+  public State createInitialState(
+      MethodProcessor methodProcessor, MethodProcessingId methodProcessingId) {
+    return new State(methodProcessor, methodProcessingId);
   }
 
   @Override
@@ -65,12 +72,13 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
     if (invoke.isInvokeMethodWithReceiver()) {
       InvokeMethodWithReceiver invokeWithReceiver = invoke.asInvokeMethodWithReceiver();
       if (stringBuilderMethods.isAppendMethod(singleTarget.getReference())) {
-        optimizeAppend(instructionIterator, invokeWithReceiver, singleTarget, state);
+        optimizeAppend(code, instructionIterator, invokeWithReceiver, singleTarget, state);
       }
     }
   }
 
   private void optimizeAppend(
+      IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethodWithReceiver invoke,
       DexClassAndMethod singleTarget,
@@ -88,26 +96,51 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
     } else if (stringBuilderMethods.isAppendObjectMethod(appendMethod)) {
       Value object = invoke.getArgument(1);
       if (object.isNeverNull()) {
+        // Replace the instruction by java.lang.Object.toString().
         instructionIterator.replaceCurrentInstruction(
             InvokeVirtual.builder()
-                .setSingleArgument(object)
                 .setMethod(dexItemFactory.objectMembers.toString)
+                .setSingleArgument(object)
                 .build());
       } else if (options.canUseJavaUtilObjects()) {
+        // Replace the instruction by java.util.Objects.toString().
         instructionIterator.replaceCurrentInstruction(
             InvokeStatic.builder()
-                .setSingleArgument(object)
                 .setMethod(dexItemFactory.objectsMethods.toStringWithObject)
+                .setSingleArgument(object)
                 .build());
         // Allow the java.util.Objects optimizer to optimize the newly added toString().
         instructionIterator.previous();
+      } else {
+        // Replace the instruction by toStringIfNotNull().
+        UtilityMethodForCodeOptimizations toStringIfNotNullMethod =
+            UtilityMethodsForCodeOptimizations.synthesizeToStringIfNotNullMethod(
+                appView, code.context(), state.methodProcessingId);
+        // TODO(b/172194277): Allow synthetics when generating CF.
+        if (toStringIfNotNullMethod != null) {
+          toStringIfNotNullMethod.optimize(state.methodProcessor);
+          InvokeStatic replacement =
+              InvokeStatic.builder()
+                  .setMethod(toStringIfNotNullMethod.getMethod())
+                  .setSingleArgument(object)
+                  .build();
+          instructionIterator.replaceCurrentInstruction(replacement);
+        }
       }
     }
   }
 
   class State implements LibraryMethodModelCollection.State {
 
+    final MethodProcessor methodProcessor;
+    final MethodProcessingId methodProcessingId;
+
     final Reference2BooleanMap<Value> unusedBuilders = new Reference2BooleanOpenHashMap<>();
+
+    State(MethodProcessor methodProcessor, MethodProcessingId methodProcessingId) {
+      this.methodProcessor = methodProcessor;
+      this.methodProcessingId = methodProcessingId;
+    }
 
     boolean isUnusedBuilder(Value value) {
       if (!unusedBuilders.containsKey(value)) {

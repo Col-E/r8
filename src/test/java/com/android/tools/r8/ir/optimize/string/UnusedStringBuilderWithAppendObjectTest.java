@@ -42,7 +42,9 @@ public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
               MethodSubject mainMethod = inspector.clazz(Main.class).mainMethod();
               assertThat(
                   mainMethod,
-                  notIf(instantiatesClass(StringBuilder.class), canUseJavaUtilObjects(parameters)));
+                  notIf(
+                      instantiatesClass(StringBuilder.class),
+                      canUseJavaUtilObjects(parameters) || parameters.isDexRuntime()));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithEmptyOutput();
