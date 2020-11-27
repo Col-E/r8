@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -65,14 +67,15 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
           .addProperty("property", JAVA_LANG_STRING, Visibility.PRIVATE)
           .addProperty("indirectPropertyGetter", JAVA_LANG_STRING, Visibility.PRIVATE);
 
-  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  @Parameterized.Parameters(name = "target: {0}, kotlinc: {1}, allowAccessModification: {2}")
   public static Collection<Object[]> data() {
-    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+    return buildParameters(
+        KotlinTargetVersion.values(), getKotlinCompilers(), BooleanUtils.values());
   }
 
   public R8KotlinAccessorTest(
-      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
-    super(targetVersion, allowAccessModification);
+      KotlinTargetVersion targetVersion, KotlinCompiler kotlinc, boolean allowAccessModification) {
+    super(targetVersion, kotlinc, allowAccessModification);
   }
 
   @Test

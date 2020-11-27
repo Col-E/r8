@@ -4,13 +4,14 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.JvmTestRunResult;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -19,9 +20,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,44 +32,36 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
   private static final String PKG_LIB = PKG + ".primitive_type_rewrite_lib";
   private static final String PKG_APP = PKG + ".primitive_type_rewrite_app";
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, compiler: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataPrimitiveTypeRewriteTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static Map<KotlinTargetVersion, Path> libJars = new HashMap<>();
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path baseLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(
-                  getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_LIB), "lib"))
-              .compile();
-      libJars.put(targetVersion, baseLibJar);
-    }
-  }
+  private static final KotlinCompileMemoizer libJars =
+      getCompileMemoizer(
+          getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_LIB), "lib"));
 
   @Test
   public void smokeTest() throws Exception {
-    Path libJar = libJars.get(targetVersion);
+    Path libJar = libJars.getForConfiguration(kotlinc, targetVersion);
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutputLines(EXPECTED);
@@ -90,7 +80,9 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
   private void runTest(boolean keepUnit) throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addProgramFiles(ToolHelper.getKotlinStdlibJar(), libJars.get(targetVersion))
+            .addProgramFiles(
+                ToolHelper.getKotlinStdlibJar(kotlinc),
+                libJars.getForConfiguration(kotlinc, targetVersion))
             .addKeepAllClassesRuleWithAllowObfuscation()
             .addKeepRules("-keep class " + PKG_LIB + ".LibKt { *; }")
             .addKeepRules("-keep class kotlin.Metadata { *; }")
@@ -107,7 +99,7 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
             .writeToZip();
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
@@ -115,7 +107,7 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
             .compile();
     final JvmTestRunResult runResult =
         testForJvm()
-            .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+            .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
             .addClasspath(output)
             .run(parameters.getRuntime(), PKG_APP + ".MainKt");
     if (keepUnit) {

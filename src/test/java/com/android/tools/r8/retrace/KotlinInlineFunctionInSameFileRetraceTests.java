@@ -4,8 +4,8 @@
 package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.Collectors.toSingle;
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.containsLinePositions;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineFrame;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineStack;
@@ -16,11 +16,9 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.TestBase;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.naming.retrace.StackTrace;
@@ -30,15 +28,16 @@ import com.android.tools.r8.utils.codeinspector.Matchers.LinePosition;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class KotlinInlineFunctionInSameFileRetraceTests extends TestBase {
+public class KotlinInlineFunctionInSameFileRetraceTests extends KotlinTestBase {
 
   private static final String FILENAME_INLINE = "InlineFunctionsInSameFile.kt";
   private static final String MAIN = "retrace.InlineFunctionsInSameFileKt";
@@ -46,30 +45,37 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends TestBase {
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  public static List<Object[]> data() {
+    // TODO(b/141817471): Extend with compilation modes.
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
-  public KotlinInlineFunctionInSameFileRetraceTests(TestParameters parameters) {
+  public KotlinInlineFunctionInSameFileRetraceTests(
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static Function<TestRuntime, Path> compilationResults =
-      memoizeFunction(KotlinInlineFunctionInSameFileRetraceTests::compileKotlinCode);
+  private static final KotlinCompileMemoizer compilationResults =
+      getCompileMemoizer(getKotlinSources());
 
-  private static Path compileKotlinCode(TestRuntime runtime) throws IOException {
-    CfRuntime cfRuntime = runtime.isCf() ? runtime.asCf() : TestRuntime.getCheckedInJdk9();
-    return kotlinc(cfRuntime, getStaticTemp(), KOTLINC, KotlinTargetVersion.JAVA_8)
-        .addSourceFiles(
-            getFilesInTestFolderRelativeToClass(KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
-        .compile();
+  private static Collection<Path> getKotlinSources() {
+    try {
+      return getFilesInTestFolderRelativeToClass(
+          KotlinInlineFunctionRetraceTest.class, "kt", ".kt");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test
   public void testRuntime() throws ExecutionException, CompilationFailedException, IOException {
     testForRuntime(parameters)
-        .addProgramFiles(compilationResults.apply(parameters.getRuntime()))
-        .addRunClasspathFiles(buildOnDexRuntime(parameters, ToolHelper.getKotlinStdlibJar()))
+        .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
+        .addRunClasspathFiles(buildOnDexRuntime(parameters, ToolHelper.getKotlinStdlibJar(kotlinc)))
         .run(parameters.getRuntime(), MAIN)
         .assertFailureWithErrorThatMatches(containsString("foo"))
         .assertFailureWithErrorThatMatches(
@@ -80,11 +86,11 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends TestBase {
   @Test
   public void testRetraceKotlinInlineStaticFunction()
       throws ExecutionException, CompilationFailedException, IOException {
-    Path kotlinSources = compilationResults.apply(parameters.getRuntime());
+    Path kotlinSources = compilationResults.getForConfiguration(kotlinc, targetVersion);
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
-        .addProgramFiles(compilationResults.apply(parameters.getRuntime()))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(MAIN)

@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -21,23 +23,26 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class MetadataRewriteKeepTest extends KotlinMetadataTestBase {
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   private final TestParameters parameters;
 
-  public MetadataRewriteKeepTest(TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+  public MetadataRewriteKeepTest(
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
         .addKeepKotlinMetadata()
         .addKeepRules("-keep class kotlin.io.** { *; }")
@@ -49,7 +54,7 @@ public class MetadataRewriteKeepTest extends KotlinMetadataTestBase {
   @Test
   public void testR8KeepIf() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
         .addKeepRules("-keep class kotlin.io.** { *; }")
         .addKeepRules("-if class *", "-keep class kotlin.Metadata { *; }")

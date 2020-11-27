@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
@@ -12,6 +12,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -25,10 +26,7 @@ import com.android.tools.r8.utils.codeinspector.KmPropertySubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -46,45 +44,36 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteInCompanionTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static Map<KotlinTargetVersion, Path> companionLibJarMap = new HashMap<>();
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    String companionLibFolder = PKG_PREFIX + "/companion_lib";
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path companionLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(getKotlinFileInTest(companionLibFolder, "lib"))
-              .compile();
-      companionLibJarMap.put(targetVersion, companionLibJar);
-    }
-  }
+  private static final KotlinCompileMemoizer companionLibJarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/companion_lib", "lib"));
 
   @Test
   public void smokeTest() throws Exception {
-    Path libJar = companionLibJarMap.get(targetVersion);
+    Path libJar = companionLibJarMap.getForConfiguration(kotlinc, targetVersion);
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/companion_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".companion_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -94,8 +83,8 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
   public void testMetadataInCompanion_kept() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(companionLibJarMap.get(targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(companionLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep everything
             .addKeepRules("-keep class **.companion_lib.** { *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -109,14 +98,14 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             .writeToZip();
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/companion_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".companion_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -126,8 +115,8 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
   public void testMetadataInCompanion_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(companionLibJarMap.get(targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(companionLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             // Property in companion with @JvmField is defined in the host class, without accessors.
@@ -151,14 +140,14 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             .writeToZip();
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/companion_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".companion_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

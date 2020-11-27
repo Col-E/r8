@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.kotlin.lambda.b148525512;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
@@ -12,6 +12,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -22,16 +23,13 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -44,43 +42,45 @@ public class B148525512 extends KotlinTestBase {
   private static final String featureKtClassNamet = kotlinTestClassesPackage + ".FeatureKt";
   private static final String baseClassName = kotlinTestClassesPackage + ".Base";
 
-  private static final Map<KotlinTargetVersion, Path> kotlinBaseClasses = new HashMap<>();
-  private static final Map<KotlinTargetVersion, Path> kotlinFeatureClasses = new HashMap<>();
+  private static final KotlinCompileMemoizer kotlinBaseClasses =
+      getCompileMemoizer(getKotlinFileInTestPackage(pkg, "base"))
+          .configure(
+              kotlinCompilerTool -> kotlinCompilerTool.addClasspathFiles(getFeatureApiPath()));
+  private static final KotlinCompileMemoizer kotlinFeatureClasses =
+      getCompileMemoizer(getKotlinFileInTestPackage(pkg, "feature"))
+          .configure(
+              kotlinCompilerTool -> {
+                // Compile the feature Kotlin code with the base classes on classpath.
+                kotlinCompilerTool.addClasspathFiles(
+                    kotlinBaseClasses.getForConfiguration(
+                        kotlinCompilerTool.getCompiler(), kotlinCompilerTool.getTargetVersion()));
+              });
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0},{1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),
-        KotlinTargetVersion.values());
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
-  public B148525512(TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+  public B148525512(
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  @ClassRule public static TemporaryFolder classTemp = new TemporaryFolder();
-
-  @BeforeClass
-  public static void compileKotlin() throws Exception {
-    // Compile the base Kotlin with the FeatureAPI Java class on classpath.
-    Path featureApiJar = classTemp.newFile("feature_api.jar").toPath();
-    writeClassesToJar(featureApiJar, FeatureAPI.class);
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path ktBaseClasses =
-          kotlinc(KOTLINC, targetVersion)
-              .addClasspathFiles(featureApiJar)
-              .addSourceFiles(getKotlinFileInTestPackage(pkg, "base"))
-              .compile();
-      kotlinBaseClasses.put(targetVersion, ktBaseClasses);
-      // Compile the feature Kotlin code with the base classes on classpath.
-      Path ktFeatureClasses =
-          kotlinc(KOTLINC, targetVersion)
-              .addClasspathFiles(ktBaseClasses)
-              .addSourceFiles(getKotlinFileInTestPackage(pkg, "feature"))
-              .compile();
-      kotlinFeatureClasses.put(targetVersion, ktFeatureClasses);
+  private static Path getFeatureApiPath() {
+    try {
+      Path featureApiJar = getStaticTemp().getRoot().toPath().resolve("feature_api.jar");
+      if (Files.exists(featureApiJar)) {
+        return featureApiJar;
+      }
+      writeClassesToJar(featureApiJar, FeatureAPI.class);
+      return featureApiJar;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -118,8 +118,8 @@ public class B148525512 extends KotlinTestBase {
     Path featureCode = temp.newFile("feature.zip").toPath();
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(kotlinBaseClasses.get(targetVersion))
+            .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(kotlinBaseClasses.getForConfiguration(kotlinc, targetVersion))
             .addProgramClasses(FeatureAPI.class)
             .addKeepMainRule(baseKtClassName)
             .addKeepClassAndMembersRules(baseClassName)
@@ -134,7 +134,8 @@ public class B148525512 extends KotlinTestBase {
                     builder
                         .addProgramResourceProvider(
                             ArchiveResourceProvider.fromArchive(
-                                kotlinFeatureClasses.get(targetVersion), true))
+                                kotlinFeatureClasses.getForConfiguration(kotlinc, targetVersion),
+                                true))
                         .setProgramConsumer(new ArchiveConsumer(featureCode, false))
                         .build())
             .allowDiagnosticWarningMessages()

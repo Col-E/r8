@@ -4,12 +4,13 @@
 
 package com.android.tools.r8.kotlin.reflection;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
-import com.android.tools.r8.TestBase;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -17,60 +18,50 @@ import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import java.io.File;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class KotlinReflectTest extends TestBase {
+public class KotlinReflectTest extends KotlinTestBase {
 
   private final TestParameters parameters;
   private final KotlinTargetVersion targetVersion;
   private static final String EXPECTED_OUTPUT = "Hello World!";
   private static final String PKG = KotlinReflectTest.class.getPackage().getName();
-  private static Map<KotlinTargetVersion, Path> compiledJars = new HashMap<>();
+  private static final KotlinCompileMemoizer compiledJars =
+      getCompileMemoizer(
+          Paths.get(
+              ToolHelper.TESTS_DIR,
+              "java",
+              DescriptorUtils.getBinaryNameFromJavaType(PKG),
+              "SimpleReflect" + FileUtils.KT_EXTENSION));
 
-  @Parameters(name = "{0}, target: {1}")
+  @Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), KotlinTargetVersion.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
-  public KotlinReflectTest(TestParameters parameters, KotlinTargetVersion targetVersion) {
+  public KotlinReflectTest(
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
     this.targetVersion = targetVersion;
-  }
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      compiledJars.put(
-          targetVersion,
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(
-                  Paths.get(
-                      ToolHelper.TESTS_DIR,
-                      "java",
-                      DescriptorUtils.getBinaryNameFromJavaType(PKG),
-                      "SimpleReflect" + FileUtils.KT_EXTENSION))
-              .compile());
-    }
   }
 
   @Test
   public void testCf() throws Exception {
     assumeTrue(parameters.isCfRuntime());
     testForJvm()
-        .addProgramFiles(compiledJars.get(targetVersion))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(ToolHelper.getKotlinReflectJar())
+        .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
         .run(parameters.getRuntime(), PKG + ".SimpleReflectKt")
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
   }
@@ -80,9 +71,9 @@ public class KotlinReflectTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     final File output = temp.newFile("output.zip");
     testForD8(parameters.getBackend())
-        .addProgramFiles(compiledJars.get(targetVersion))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(ToolHelper.getKotlinReflectJar())
+        .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
         .setProgramConsumer(new ArchiveConsumer(output.toPath(), true))
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(
@@ -98,9 +89,9 @@ public class KotlinReflectTest extends TestBase {
   public void testR8() throws Exception {
     final File foo = temp.newFile("foo");
     testForR8(parameters.getBackend())
-        .addProgramFiles(compiledJars.get(targetVersion))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(ToolHelper.getKotlinReflectJar())
+        .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)

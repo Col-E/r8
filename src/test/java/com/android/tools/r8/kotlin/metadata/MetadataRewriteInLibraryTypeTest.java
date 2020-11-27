@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -11,6 +11,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -21,9 +22,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,54 +32,51 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteInLibraryTypeTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static final Map<KotlinTargetVersion, Path> baseLibJarMap = new HashMap<>();
-  private static final Map<KotlinTargetVersion, Path> extLibJarMap = new HashMap<>();
-  private static final Map<KotlinTargetVersion, Path> appJarMap = new HashMap<>();
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    String baseLibFolder = PKG_PREFIX + "/libtype_lib_base";
-    String extLibFolder = PKG_PREFIX + "/libtype_lib_ext";
-    String appFolder = PKG_PREFIX + "/libtype_app";
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path baseLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(getKotlinFileInTest(baseLibFolder, "base"))
-              .compile();
-      Path extLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addClasspathFiles(baseLibJar)
-              .addSourceFiles(getKotlinFileInTest(extLibFolder, "ext"))
-              .compile();
-      Path appJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addClasspathFiles(baseLibJar)
-              .addClasspathFiles(extLibJar)
-              .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
-              .compile();
-      baseLibJarMap.put(targetVersion, baseLibJar);
-      extLibJarMap.put(targetVersion, extLibJar);
-      appJarMap.put(targetVersion, appJar);
-    }
-  }
+  private static final KotlinCompileMemoizer baseLibJarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/libtype_lib_base", "base"));
+  private static final KotlinCompileMemoizer extLibJarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/libtype_lib_ext", "ext"))
+          .configure(
+              kotlinCompilerTool -> {
+                kotlinCompilerTool.addClasspathFiles(
+                    baseLibJarMap.getForConfiguration(
+                        kotlinCompilerTool.getCompiler(), kotlinCompilerTool.getTargetVersion()));
+              });
+  private static final KotlinCompileMemoizer appJarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/libtype_app", "main"))
+          .configure(
+              kotlinCompilerTool -> {
+                kotlinCompilerTool.addClasspathFiles(
+                    baseLibJarMap.getForConfiguration(
+                        kotlinCompilerTool.getCompiler(), kotlinCompilerTool.getTargetVersion()));
+                kotlinCompilerTool.addClasspathFiles(
+                    extLibJarMap.getForConfiguration(
+                        kotlinCompilerTool.getCompiler(), kotlinCompilerTool.getTargetVersion()));
+              });
 
   @Test
   public void smokeTest() throws Exception {
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJarMap.get(targetVersion))
-        .addClasspath(extLibJarMap.get(targetVersion), appJarMap.get(targetVersion))
+        .addRunClasspathFiles(
+            ToolHelper.getKotlinStdlibJar(kotlinc),
+            baseLibJarMap.getForConfiguration(kotlinc, targetVersion))
+        .addClasspath(
+            extLibJarMap.getForConfiguration(kotlinc, targetVersion),
+            appJarMap.getForConfiguration(kotlinc, targetVersion))
         .run(parameters.getRuntime(), PKG + ".libtype_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -93,7 +88,9 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
         testForR8(parameters.getBackend())
             // Intentionally not providing baseLibJar as lib file nor classpath file.
             .addClasspathFiles()
-            .addProgramFiles(extLibJarMap.get(targetVersion), appJarMap.get(targetVersion))
+            .addProgramFiles(
+                extLibJarMap.getForConfiguration(kotlinc, targetVersion),
+                appJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep Ext extension method which requires metadata to be called with Kotlin syntax
             // from other kotlin code.
             .addKeepRules("-keep class **.ExtKt { <methods>; }")
@@ -112,7 +109,9 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
             .writeToZip();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJarMap.get(targetVersion))
+        .addRunClasspathFiles(
+            ToolHelper.getKotlinStdlibJar(kotlinc),
+            baseLibJarMap.getForConfiguration(kotlinc, targetVersion))
         .addClasspath(out)
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutput(EXPECTED);

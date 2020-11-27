@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
@@ -10,6 +11,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -28,14 +30,17 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), KotlinTargetVersion.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
-  public MetadataStripTest(TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+  public MetadataStripTest(
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
@@ -48,7 +53,7 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
         testForR8(parameters.getBackend())
             .addProgramFiles(getKotlinJarFile(folder))
             .addProgramFiles(getJavaJarFile(folder))
-            .addProgramFiles(ToolHelper.getKotlinReflectJar())
+            .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
             .addKeepMainRule(mainClassName)
             .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)

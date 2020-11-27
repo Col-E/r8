@@ -28,7 +28,7 @@ public class DexTypeTest {
         new ApplicationReader(
                 AndroidApp.builder()
                     .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
-                    .addLibraryFiles(ToolHelper.getKotlinStdlibJar())
+                    .addLibraryFiles(ToolHelper.getKotlinStdlibJar(ToolHelper.getKotlinC_1_3_72()))
                     .build(),
                 options,
                 Timing.empty())

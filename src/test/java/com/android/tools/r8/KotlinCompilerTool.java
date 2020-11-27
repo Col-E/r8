@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.junit.rules.TemporaryFolder;
 
@@ -29,28 +30,34 @@ public class KotlinCompilerTool {
   public static final class KotlinCompiler {
 
     private final String name;
-    private final Path path;
+    private final Path lib;
+    private final Path compiler;
 
-    public KotlinCompiler(String name, Path path) {
+    public KotlinCompiler(String name) {
       this.name = name;
-      this.path = path;
+      this.lib = Paths.get(ToolHelper.THIRD_PARTY_DIR, "kotlin", name, "kotlinc", "lib");
+      this.compiler = lib.resolve("kotlin-compiler.jar");
     }
 
-    public Path getPath() {
-      return path;
+    public KotlinCompiler(String name, Path compiler) {
+      this.name = name;
+      this.compiler = compiler;
+      this.lib = null;
+    }
+
+    public Path getCompiler() {
+      return compiler;
+    }
+
+    public Path getFolder() {
+      return lib;
+    }
+
+    @Override
+    public String toString() {
+      return name;
     }
   }
-
-  public static KotlinCompiler KOTLINC =
-      new KotlinCompiler(
-          "kotlinc",
-          Paths.get(
-              ToolHelper.THIRD_PARTY_DIR,
-              "kotlin",
-              "kotlin-compiler-1.3.72",
-              "kotlinc",
-              "lib",
-              "kotlin-compiler.jar"));
 
   private final CfRuntime jdk;
   private final TestState state;
@@ -68,6 +75,14 @@ public class KotlinCompilerTool {
     this.state = state;
     this.compiler = compiler;
     this.targetVersion = targetVersion;
+  }
+
+  public KotlinCompiler getCompiler() {
+    return compiler;
+  }
+
+  public KotlinTargetVersion getTargetVersion() {
+    return targetVersion;
   }
 
   public static KotlinCompilerTool create(
@@ -145,6 +160,11 @@ public class KotlinCompilerTool {
     return this;
   }
 
+  public KotlinCompilerTool apply(Consumer<KotlinCompilerTool> consumer) {
+    consumer.accept(this);
+    return this;
+  }
+
   private Path getOrCreateOutputPath() throws IOException {
     return output != null ? output : state.getNewTempFolder().resolve("out.jar");
   }
@@ -167,7 +187,7 @@ public class KotlinCompilerTool {
     List<String> cmdline = new ArrayList<>();
     cmdline.add(jdk.getJavaExecutable().toString());
     cmdline.add("-cp");
-    cmdline.add(compiler.getPath().toString());
+    cmdline.add(compiler.getCompiler().toString());
     cmdline.add(ToolHelper.K2JVMCompiler);
     if (useJvmAssertions) {
       cmdline.add("-Xassertions=jvm");

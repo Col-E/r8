@@ -3,12 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -34,11 +36,12 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
       o.enableInlining = false;
     };
 
-  @Parameterized.Parameters(name = "{0} target: {1}, allowAccessModification: {2}")
+  @Parameterized.Parameters(name = "{0} target: {1}, kotlinc: {2}, allowAccessModification: {3}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimes().build(),
         KotlinTargetVersion.values(),
+        getKotlinCompilers(),
         BooleanUtils.values());
   }
 
@@ -47,8 +50,9 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
   public KotlinDuplicateAnnotationTest(
       TestParameters parameters,
       KotlinTargetVersion targetVersion,
+      KotlinCompiler kotlinc,
       boolean allowAccessModification) {
-    super(targetVersion, allowAccessModification);
+    super(targetVersion, kotlinc, allowAccessModification);
     this.parameters = parameters;
   }
 

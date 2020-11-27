@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -13,6 +13,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -26,10 +27,7 @@ import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,45 +39,36 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0} target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteInFunctionTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static final Map<KotlinTargetVersion, Path> funLibJarMap = new HashMap<>();
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    String funLibFolder = PKG_PREFIX + "/function_lib";
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path funLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(getKotlinFileInTest(funLibFolder, "B"))
-              .compile();
-      funLibJarMap.put(targetVersion, funLibJar);
-    }
-  }
+  private static final KotlinCompileMemoizer funLibJarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/function_lib", "B"));
 
   @Test
   public void smokeTest() throws Exception {
-    Path libJar = funLibJarMap.get(targetVersion);
+    Path libJar = funLibJarMap.getForConfiguration(kotlinc, targetVersion);
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/function_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".function_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -90,7 +79,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
   public void testMetadataInFunction_merged() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addProgramFiles(funLibJarMap.get(targetVersion))
+            .addProgramFiles(funLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")
@@ -102,14 +91,14 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
             .writeToZip();
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/function_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".function_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -148,8 +137,8 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
   public void testMetadataInFunction_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(funLibJarMap.get(targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(funLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")
@@ -163,14 +152,14 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
             .writeToZip();
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/function_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".function_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

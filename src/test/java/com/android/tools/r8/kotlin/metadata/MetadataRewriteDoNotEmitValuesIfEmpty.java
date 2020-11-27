@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -27,24 +29,26 @@ public class MetadataRewriteDoNotEmitValuesIfEmpty extends KotlinMetadataTestBas
 
   private final Set<String> nullableFieldKeys = Sets.newHashSet("pn", "xs", "xi");
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   private final TestParameters parameters;
 
   public MetadataRewriteDoNotEmitValuesIfEmpty(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
   @Test
   public void testKotlinStdLib() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepKotlinMetadata()

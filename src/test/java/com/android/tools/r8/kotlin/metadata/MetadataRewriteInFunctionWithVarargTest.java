@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -13,6 +13,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -28,10 +29,7 @@ import com.android.tools.r8.utils.codeinspector.KmValueParameterSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -42,45 +40,36 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteInFunctionWithVarargTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static Map<KotlinTargetVersion, Path> varargLibJarMap = new HashMap<>();
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    String varargLibFolder = PKG_PREFIX + "/vararg_lib";
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path varargLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(getKotlinFileInTest(varargLibFolder, "lib"))
-              .compile();
-      varargLibJarMap.put(targetVersion, varargLibJar);
-    }
-  }
+  private static final KotlinCompileMemoizer varargLibJarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/vararg_lib", "lib"));
 
   @Test
   public void smokeTest() throws Exception {
-    Path libJar = varargLibJarMap.get(targetVersion);
+    Path libJar = varargLibJarMap.getForConfiguration(kotlinc, targetVersion);
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/vararg_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".vararg_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -90,8 +79,8 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
   public void testMetadataInFunctionWithVararg() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(varargLibJarMap.get(targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(varargLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // keep SomeClass#foo, since there is a method reference in the app.
             .addKeepRules("-keep class **.SomeClass { *** foo(...); }")
             // Keep LibKt, along with bar function.
@@ -105,14 +94,14 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
             .writeToZip();
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/vararg_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".vararg_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
+
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
@@ -20,15 +23,18 @@ import org.junit.runners.Parameterized;
 public class ProcessKotlinStdlibTest extends KotlinTestBase {
   private final TestParameters parameters;
 
-  public ProcessKotlinStdlibTest(TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
-    this.parameters = parameters;
-  }
-
   @Parameterized.Parameters(name = "{0} target: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withAllRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
+  }
+
+  public ProcessKotlinStdlibTest(
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
+    this.parameters = parameters;
   }
 
   private void test(Collection<String> rules, boolean expectInvalidFoo) throws Exception {
@@ -41,7 +47,7 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
       ThrowableConsumer<R8FullTestBuilder> consumer)
       throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .addKeepRules(rules)
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)

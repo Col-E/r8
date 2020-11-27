@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -11,6 +11,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -23,10 +24,7 @@ import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,54 +35,45 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteInClasspathTypeTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static final Map<KotlinTargetVersion, Path> baseLibJarMap = new HashMap<>();
-  private static final Map<KotlinTargetVersion, Path> extLibJarMap = new HashMap<>();
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    String baseLibFolder = PKG_PREFIX + "/classpath_lib_base";
-    String extLibFolder = PKG_PREFIX + "/classpath_lib_ext";
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path baseLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(getKotlinFileInTest(baseLibFolder, "itf"))
-              .compile();
-      Path extLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addClasspathFiles(baseLibJar)
-              .addSourceFiles(getKotlinFileInTest(extLibFolder, "impl"))
-              .compile();
-      baseLibJarMap.put(targetVersion, baseLibJar);
-      extLibJarMap.put(targetVersion, extLibJar);
-    }
-  }
+  private static final KotlinCompileMemoizer baseLibJarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/classpath_lib_base", "itf"));
+  private static final KotlinCompileMemoizer extLibJarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/classpath_lib_ext", "impl"))
+          .configure(
+              kotlinCompilerTool -> {
+                kotlinCompilerTool.addClasspathFiles(
+                    baseLibJarMap.getForConfiguration(
+                        kotlinCompilerTool.getCompiler(), kotlinCompilerTool.getTargetVersion()));
+              });
 
   @Test
   public void smokeTest() throws Exception {
-    Path baseLibJar = baseLibJarMap.get(targetVersion);
-    Path extLibJar = extLibJarMap.get(targetVersion);
+    Path baseLibJar = baseLibJarMap.getForConfiguration(kotlinc, targetVersion);
+    Path extLibJar = extLibJarMap.getForConfiguration(kotlinc, targetVersion);
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(baseLibJar, extLibJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/classpath_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJar, extLibJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), baseLibJar, extLibJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -92,11 +81,11 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
 
   @Test
   public void testMetadataInClasspathType_renamed() throws Exception {
-    Path baseLibJar = baseLibJarMap.get(targetVersion);
+    Path baseLibJar = baseLibJarMap.getForConfiguration(kotlinc, targetVersion);
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(baseLibJar, ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(extLibJarMap.get(targetVersion))
+            .addClasspathFiles(baseLibJar, ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(extLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the Extra class and its interface (which has the method).
             .addKeepRules("-keep class **.Extra")
             // Keep Super, but allow minification.
@@ -110,14 +99,14 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
             .writeToZip();
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(baseLibJar, libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/classpath_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJar, libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), baseLibJar, libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

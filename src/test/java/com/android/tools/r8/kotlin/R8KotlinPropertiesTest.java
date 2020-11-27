@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming;
@@ -93,14 +95,15 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
         o.enableClassStaticizer = false;
       };
 
-  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  @Parameterized.Parameters(name = "target: {0}, kotlinc: {1}, allowAccessModification: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+    return buildParameters(
+        KotlinTargetVersion.values(), getKotlinCompilers(), BooleanUtils.values());
   }
 
   public R8KotlinPropertiesTest(
-      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
-    super(targetVersion, allowAccessModification);
+      KotlinTargetVersion targetVersion, KotlinCompiler kotlinc, boolean allowAccessModification) {
+    super(targetVersion, kotlinc, allowAccessModification);
   }
 
   @Test

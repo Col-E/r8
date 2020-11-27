@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.rewrite.assertions;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
@@ -15,6 +15,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.AssertionsConfiguration;
 import com.android.tools.r8.D8TestBuilder;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
@@ -28,14 +29,11 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import org.junit.Assume;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,51 +45,31 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class AssertionConfigurationKotlinTest extends KotlinTestBase implements Opcodes {
 
-  private static class KotlinCompilationKey {
-    KotlinTargetVersion targetVersion;
-    boolean useJvmAssertions;
-
-    private KotlinCompilationKey(KotlinTargetVersion targetVersion, boolean useJvmAssertions) {
-      this.targetVersion = targetVersion;
-      this.useJvmAssertions = useJvmAssertions;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(targetVersion, useJvmAssertions);
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (other == null) {
-        return false;
-      }
-      if (getClass() != other.getClass()) {
-        return false;
-      }
-      KotlinCompilationKey kotlinCompilationKey = (KotlinCompilationKey) other;
-      return targetVersion == kotlinCompilationKey.targetVersion
-          && useJvmAssertions == kotlinCompilationKey.useJvmAssertions;
-    }
-  }
-
   private static final Package pkg = AssertionConfigurationKotlinTest.class.getPackage();
   private static final String kotlintestclasesPackage = pkg.getName() + ".kotlintestclasses";
   private static final String testClassKt = kotlintestclasesPackage + ".TestClassKt";
   private static final String class1 = kotlintestclasesPackage + ".Class1";
   private static final String class2 = kotlintestclasesPackage + ".Class2";
 
-  private static final Map<KotlinCompilationKey, Path> kotlinClasses = new HashMap<>();
+  private static final KotlinCompileMemoizer kotlinWithJvmAssertions =
+      getCompileMemoizer(getKotlinFilesForPackage())
+          .configure(kotlinCompilerTool -> kotlinCompilerTool.setUseJvmAssertions(true));
+  private static final KotlinCompileMemoizer kotlinWithoutJvmAssertions =
+      getCompileMemoizer(getKotlinFilesForPackage())
+          .configure(kotlinCompilerTool -> kotlinCompilerTool.setUseJvmAssertions(false));
+
   private final TestParameters parameters;
   private final boolean kotlinStdlibAsLibrary;
   private final boolean useJvmAssertions;
-  private final KotlinCompilationKey kotlinCompilationKey;
+  private final KotlinCompileMemoizer compiledForAssertions;
 
-  @Parameterized.Parameters(name = "{0}, {1}, kotlin-stdlib as library: {2}, -Xassertions=jvm: {3}")
+  @Parameterized.Parameters(
+      name = "{0}, target: {1}, kotlinc: {2}, kotlin-stdlib as library: {3}, -Xassertions=jvm: {4}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
         KotlinTargetVersion.values(),
+        getKotlinCompilers(),
         BooleanUtils.values(),
         BooleanUtils.values());
   }
@@ -99,31 +77,27 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   public AssertionConfigurationKotlinTest(
       TestParameters parameters,
       KotlinTargetVersion targetVersion,
+      KotlinCompiler kotlinc,
       boolean kotlinStdlibAsClasspath,
       boolean useJvmAssertions) {
-    super(targetVersion);
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
     this.kotlinStdlibAsLibrary = kotlinStdlibAsClasspath;
     this.useJvmAssertions = useJvmAssertions;
-    this.kotlinCompilationKey = new KotlinCompilationKey(targetVersion, useJvmAssertions);
+    this.compiledForAssertions =
+        useJvmAssertions ? kotlinWithJvmAssertions : kotlinWithoutJvmAssertions;
   }
 
-  @BeforeClass
-  public static void compileKotlin() throws Exception {
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      for (boolean useJvmAssertions : BooleanUtils.values()) {
-        Path ktClasses =
-            kotlinc(KOTLINC, targetVersion)
-                .addSourceFiles(getKotlinFilesInTestPackage(pkg))
-                .setUseJvmAssertions(useJvmAssertions)
-                .compile();
-        kotlinClasses.put(new KotlinCompilationKey(targetVersion, useJvmAssertions), ktClasses);
-      }
+  private static List<Path> getKotlinFilesForPackage() {
+    try {
+      return getKotlinFilesInTestPackage(pkg);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
   private Path kotlinStdlibLibraryForRuntime() throws Exception {
-    Path kotlinStdlibCf = ToolHelper.getKotlinStdlibJar();
+    Path kotlinStdlibCf = ToolHelper.getKotlinStdlibJar(kotlinc);
     if (parameters.getRuntime().isCf()) {
       return kotlinStdlibCf;
     }
@@ -144,8 +118,8 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       throws Exception {
     if (kotlinStdlibAsLibrary) {
       testForD8()
-          .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-          .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
+          .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+          .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
           .setMinApi(parameters.getApiLevel())
           .apply(builderConsumer)
           .addRunClasspathFiles(kotlinStdlibLibraryForRuntime())
@@ -156,8 +130,8 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
           .assertSuccessWithOutputLines(outputLines);
     } else {
       testForD8()
-          .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-          .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
+          .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+          .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
           .setMinApi(parameters.getApiLevel())
           .apply(builderConsumer)
           .run(
@@ -187,11 +161,11 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
         .applyIf(
             kotlinStdlibAsLibrary,
             b -> {
-              b.addClasspathFiles(ToolHelper.getKotlinStdlibJar());
+              b.addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc));
               b.addRunClasspathFiles(kotlinStdlibLibraryForRuntime());
             },
-            b -> b.addProgramFiles(ToolHelper.getKotlinStdlibJar()))
-        .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
+            b -> b.addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc)))
+        .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
         .addKeepMainRule(testClassKt)
         .addKeepClassAndMembersRules(class1, class2)
         .setMinApi(parameters.getApiLevel())
@@ -476,7 +450,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   public void testAssertionsForCfEnableWithStackMap() throws Exception {
     Assume.assumeTrue(parameters.isCfRuntime());
     Assume.assumeTrue(useJvmAssertions);
-    Assume.assumeTrue(kotlinCompilationKey.targetVersion == KotlinTargetVersion.JAVA_8);
+    Assume.assumeTrue(targetVersion == KotlinTargetVersion.JAVA_8);
     // Compile time enabling or disabling assertions means the -ea flag has no effect.
     runR8Test(
         builder -> {
@@ -554,7 +528,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     Assume.assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addProgramClassFileData(dumpModifiedKotlinAssertions())
-        .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
+        .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
         .setMinApi(parameters.getApiLevel())
         .addAssertionsConfiguration(AssertionsConfiguration.Builder::passthroughAllAssertions)
         .run(
@@ -563,7 +537,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
         .assertSuccessWithOutputLines(noAllAssertionsExpectedLines());
     testForD8()
         .addProgramClassFileData(dumpModifiedKotlinAssertions())
-        .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
+        .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
         .setMinApi(parameters.getApiLevel())
         .addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions)
         .run(
@@ -572,7 +546,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
         .assertSuccessWithOutputLines(allAssertionsExpectedLines());
     testForD8()
         .addProgramClassFileData(dumpModifiedKotlinAssertions())
-        .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
+        .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
         .setMinApi(parameters.getApiLevel())
         .addAssertionsConfiguration(AssertionsConfiguration.Builder::disableAllAssertions)
         .run(

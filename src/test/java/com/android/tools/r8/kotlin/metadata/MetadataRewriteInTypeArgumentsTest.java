@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isDexClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -12,6 +12,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -30,12 +31,9 @@ import com.android.tools.r8.utils.codeinspector.KmTypeSubject;
 import com.android.tools.r8.utils.codeinspector.KmValueParameterSubject;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import kotlinx.metadata.KmClassifier.TypeParameter;
 import kotlinx.metadata.KmVariance;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -79,45 +77,36 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteInTypeArgumentsTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static final Map<KotlinTargetVersion, Path> jarMap = new HashMap<>();
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    String typeAliasLibFolder = PKG_PREFIX + "/typeargument_lib";
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path typeAliasLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(getKotlinFileInTest(typeAliasLibFolder, "lib"))
-              .compile();
-      jarMap.put(targetVersion, typeAliasLibJar);
-    }
-  }
+  private static final KotlinCompileMemoizer jarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/typeargument_lib", "lib"));
 
   @Test
   public void smokeTest() throws Exception {
-    Path libJar = jarMap.get(targetVersion);
+    Path libJar = jarMap.getForConfiguration(kotlinc, targetVersion);
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/typeargument_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".typeargument_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -127,8 +116,8 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
   public void testMetadataInTypeAliasWithR8() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(jarMap.get(targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(jarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep ClassThatWillBeObfuscated, but allow minification.
             .addKeepRules("-keep,allowobfuscation class **ClassThatWillBeObfuscated")
             .addKeepRules("-keepclassmembers class **ClassThatWillBeObfuscated { *; }")
@@ -148,12 +137,12 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
             .inspect(this::inspect)
             .writeToZip();
     Path mainJar =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/typeargument_app", "main"))
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(mainJar)
         .run(parameters.getRuntime(), PKG + ".typeargument_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

@@ -3,13 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.bootstrap;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.internal.CompilationTestBase;
@@ -38,27 +37,29 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
           "Hello.kt");
   private static final int MAX_SIZE = (int) (31361268 * 0.4);
 
-  private TestParameters parameters;
+  private final TestParameters parameters;
+  private final KotlinCompiler kotlinCompiler;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntimes().build();
+  @Parameters(name = "{0}, kotlinc: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(getTestParameters().withCfRuntimes().build(), getKotlinCompilers());
   }
 
-  public KotlinCompilerTreeShakingTest(TestParameters parameters) {
+  public KotlinCompilerTreeShakingTest(TestParameters parameters, KotlinCompiler kotlinCompiler) {
     this.parameters = parameters;
+    this.kotlinCompiler = kotlinCompiler;
   }
 
   @Test
   public void testForRuntime() throws Exception {
     // Compile Hello.kt and make sure it works as expected.
     Path classPathBefore =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), kotlinCompiler, KotlinTargetVersion.JAVA_8)
             .addSourceFiles(HELLO_KT)
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar())
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinCompiler))
         .addClasspath(classPathBefore)
         .run(parameters.getRuntime(), PKG_NAME + ".HelloKt")
         .assertSuccessWithOutputLines("I'm Woody. Howdy, howdy, howdy.");
@@ -69,41 +70,40 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
           + "b/144877828: assertion error in method naming state during interface method renaming; "
           + "b/144859533: umbrella"
   )
+
   @Test
   public void test() throws Exception {
     List<Path> libs =
         ImmutableList.of(
-            ToolHelper.getKotlinStdlibJar(),
-            ToolHelper.getKotlinReflectJar(),
-            Paths.get(ToolHelper.KT_SCRIPT_RT));
+            ToolHelper.getKotlinStdlibJar(kotlinCompiler),
+            ToolHelper.getKotlinReflectJar(kotlinCompiler),
+            ToolHelper.getKotlinScriptRuntime(kotlinCompiler));
     // Process kotlin-compiler.jar.
     Path r8ProcessedKotlinc =
         testForR8(parameters.getBackend())
             .addLibraryFiles(libs)
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-            .addProgramFiles(Paths.get(ToolHelper.KT_COMPILER))
+            .addProgramFiles(kotlinCompiler.getCompiler())
             .addKeepAttributes("*Annotation*")
             .addKeepClassAndMembersRules(ToolHelper.K2JVMCompiler)
             .addKeepClassAndMembersRules("**.K2JVMCompilerArguments")
             .addKeepClassAndMembersRules("**.*Argument*")
             .addKeepClassAndMembersRules("**.Freezable")
             .addKeepRules(
-                "-keepclassmembers class * {",
-                "  *** parseCommandLineArguments(...);",
-                "}"
-            )
+                "-keepclassmembers class * {", "  *** parseCommandLineArguments(...);", "}")
             .addKeepRules(
                 "-keepclassmembers,allowoptimization enum * {",
                 "    public static **[] values();",
                 "    public static ** valueOf(java.lang.String);",
                 "}")
-            .addOptionsModification(o -> {
-              // Ignore com.sun.tools.javac.main.JavaCompiler and others
-              // Resulting jar may not be able to deal with .java source files, though.
-              o.ignoreMissingClasses = true;
-              // b/144861100: invoke-static on interface is allowed up to JDK 8.
-              o.testing.allowInvokeErrors = true;
-            })
+            .addOptionsModification(
+                o -> {
+                  // Ignore com.sun.tools.javac.main.JavaCompiler and others
+                  // Resulting jar may not be able to deal with .java source files, though.
+                  o.ignoreMissingClasses = true;
+                  // b/144861100: invoke-static on interface is allowed up to JDK 8.
+                  o.testing.allowInvokeErrors = true;
+                })
             .compile()
             .writeToZip();
 
@@ -125,7 +125,7 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar())
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinCompiler))
         .addClasspath(classPathAfter)
         .run(parameters.getRuntime(), PKG_NAME + ".HelloKt")
         .assertSuccessWithOutputLines("I'm Woody. Howdy, howdy, howdy.");

@@ -4,12 +4,14 @@
 
 package com.android.tools.r8.kotlin.lambda;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.google.common.base.Predicates.alwaysTrue;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -46,17 +48,23 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   private final boolean enableUnusedInterfaceRemoval;
 
   @Parameterized.Parameters(
-      name = "target: {0}, allow access modification: {1}, unused interface removal: {2}")
+      name =
+          "target: {0}, kotlinc: {1}, allow access modification: {2}, unused interface removal:"
+              + " {3}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        KotlinTargetVersion.values(), BooleanUtils.values(), BooleanUtils.values());
+        KotlinTargetVersion.values(),
+        getKotlinCompilers(),
+        BooleanUtils.values(),
+        BooleanUtils.values());
   }
 
   public KotlinLambdaMergingTest(
       KotlinTargetVersion targetVersion,
+      KotlinCompiler kotlinc,
       boolean allowAccessModification,
       boolean enableUnusedInterfaceRemoval) {
-    super(targetVersion, allowAccessModification);
+    super(targetVersion, kotlinc, allowAccessModification);
     this.enableUnusedInterfaceRemoval = enableUnusedInterfaceRemoval;
   }
 

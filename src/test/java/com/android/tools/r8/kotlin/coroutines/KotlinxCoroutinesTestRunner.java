@@ -4,9 +4,10 @@
 
 package com.android.tools.r8.kotlin.coroutines;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -49,16 +50,19 @@ public class KotlinxCoroutinesTestRunner extends KotlinMetadataTestBase {
   private Set<String> notWorkingTests =
       Sets.newHashSet("kotlinx.coroutines.test.TestDispatchersTest");
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   private final TestParameters parameters;
 
-  public KotlinxCoroutinesTestRunner(TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+  public KotlinxCoroutinesTestRunner(
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
@@ -88,7 +92,7 @@ public class KotlinxCoroutinesTestRunner extends KotlinMetadataTestBase {
   }
 
   private Path compileTestSources(Path baseJar) throws Exception {
-    return kotlinc(KOTLINC, targetVersion)
+    return kotlinc(kotlinc, targetVersion)
         .addArguments(
             "-Xuse-experimental=kotlinx.coroutines.InternalCoroutinesApi",
             "-Xuse-experimental=kotlinx.coroutines.ObsoleteCoroutinesApi",

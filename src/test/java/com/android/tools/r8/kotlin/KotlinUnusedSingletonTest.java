@@ -3,12 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -25,17 +27,18 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
 
-  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  @Parameterized.Parameters(name = "target: {0}, kotlinc: {1}, allowAccessModification: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+    return buildParameters(
+        KotlinTargetVersion.values(), getKotlinCompilers(), BooleanUtils.values());
   }
 
   private static final String printlnSignature =
       "void java.io.PrintStream.println(java.lang.Object)";
 
   public KotlinUnusedSingletonTest(
-      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
-    super(targetVersion, allowAccessModification);
+      KotlinTargetVersion targetVersion, KotlinCompiler kotlinc, boolean allowAccessModification) {
+    super(targetVersion, kotlinc, allowAccessModification);
   }
 
   @Test

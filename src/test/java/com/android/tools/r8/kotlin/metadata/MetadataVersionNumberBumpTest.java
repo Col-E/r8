@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.ToolHelper.getKotlinC_1_3_72;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.objectweb.asm.Opcodes.ASM7;
@@ -43,7 +44,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
   }
 
   public MetadataVersionNumberBumpTest(TestParameters parameters) {
-    super(KotlinTargetVersion.JAVA_8);
+    super(KotlinTargetVersion.JAVA_8, getKotlinC_1_3_72());
     this.parameters = parameters;
   }
 
@@ -86,7 +87,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
   private void rewriteMetadataVersion(Consumer<byte[]> rewrittenBytesConsumer, int[] newVersion)
       throws IOException {
     ZipUtils.iter(
-        ToolHelper.getKotlinStdlibJar().toString(),
+        ToolHelper.getKotlinStdlibJar(kotlinc).toString(),
         ((entry, input) -> {
           if (!entry.getName().endsWith(".class")) {
             return;

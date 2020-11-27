@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionProperty;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -14,6 +14,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -27,9 +28,6 @@ import com.android.tools.r8.utils.codeinspector.KmPropertySubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -40,38 +38,29 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteInPropertyTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static final Map<KotlinTargetVersion, Path> propertyTypeLibJarMap = new HashMap<>();
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    String propertyTypeLibFolder = PKG_PREFIX + "/fragile_property_lib";
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path propertyTypeLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(getKotlinFileInTest(propertyTypeLibFolder, "lib"))
-              .compile();
-      propertyTypeLibJarMap.put(targetVersion, propertyTypeLibJar);
-    }
-  }
+  private static final KotlinCompileMemoizer propertyTypeLibJarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/fragile_property_lib", "lib"));
 
   @Test
   public void smokeTest_getterApp() throws Exception {
-    Path libJar = propertyTypeLibJarMap.get(targetVersion);
+    Path libJar = propertyTypeLibJarMap.getForConfiguration(kotlinc, targetVersion);
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(PKG_PREFIX + "/fragile_property_only_getter", "getter_user"))
@@ -79,7 +68,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_getter.Getter_userKt")
         .assertSuccessWithOutput(EXPECTED_GETTER);
@@ -89,8 +78,8 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
   public void testMetadataInProperty_getterOnly() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(propertyTypeLibJarMap.get(targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(propertyTypeLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep property getters
             .addKeepRules("-keep class **.Person { <init>(...); }")
             .addKeepRules("-keepclassmembers class **.Person { *** get*(); }")
@@ -100,7 +89,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .writeToZip();
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(PKG_PREFIX + "/fragile_property_only_getter", "getter_user"))
@@ -108,7 +97,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_getter.Getter_userKt")
         .assertSuccessWithOutput(EXPECTED_GETTER);
@@ -159,10 +148,10 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
 
   @Test
   public void smokeTest_setterApp() throws Exception {
-    Path libJar = propertyTypeLibJarMap.get(targetVersion);
+    Path libJar = propertyTypeLibJarMap.getForConfiguration(kotlinc, targetVersion);
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(PKG_PREFIX + "/fragile_property_only_setter", "setter_user"))
@@ -170,7 +159,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_setter.Setter_userKt")
         .assertSuccessWithOutputLines();
@@ -180,8 +169,8 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
   public void testMetadataInProperty_setterOnly() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(propertyTypeLibJarMap.get(targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(propertyTypeLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep property setters (and users)
             .addKeepRules("-keep class **.Person { <init>(...); }")
             .addKeepRules("-keepclassmembers class **.Person { void set*(...); }")
@@ -195,7 +184,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .writeToZip();
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(PKG_PREFIX + "/fragile_property_only_setter", "setter_user"))
@@ -203,7 +192,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_setter.Setter_userKt")
         .assertSuccessWithOutputLines();

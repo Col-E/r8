@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotR
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -21,9 +22,10 @@ public abstract class AbstractR8KotlinNamingTestBase extends AbstractR8KotlinTes
 
   AbstractR8KotlinNamingTestBase(
       KotlinTargetVersion kotlinTargetVersion,
+      KotlinCompiler kotlinc,
       boolean allowAccessModification,
       boolean minification) {
-    super(kotlinTargetVersion, allowAccessModification);
+    super(kotlinTargetVersion, kotlinc, allowAccessModification);
     this.minification = minification;
   }
 

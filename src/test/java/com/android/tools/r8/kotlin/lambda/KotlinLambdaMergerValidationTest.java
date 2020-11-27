@@ -3,10 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.lambda;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
@@ -25,15 +26,17 @@ public class KotlinLambdaMergerValidationTest extends AbstractR8KotlinTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), KotlinTargetVersion.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public KotlinLambdaMergerValidationTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion, false);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc, false);
     this.parameters = parameters;
   }
 
@@ -46,17 +49,17 @@ public class KotlinLambdaMergerValidationTest extends AbstractR8KotlinTestBase {
     CfRuntime cfRuntime =
         parameters.isCfRuntime() ? parameters.getRuntime().asCf() : TestRuntime.getCheckedInJdk9();
     Path ktClasses =
-        kotlinc(cfRuntime, KOTLINC, targetVersion)
+        kotlinc(cfRuntime, kotlinc, targetVersion)
             .addSourceFiles(getKotlinFileInTest(folder, "b143165163"))
             .compile();
     testForR8(parameters.getBackend())
         .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-        .addLibraryFiles(ToolHelper.getKotlinStdlibJar())
+        .addLibraryFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .addProgramFiles(ktClasses)
         .addKeepMainRule("**.B143165163Kt")
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar())
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .run(parameters.getRuntime(), pkg + ".B143165163Kt")
         .assertSuccessWithOutputLines("outer foo bar", "outer foo default");
   }
@@ -70,11 +73,11 @@ public class KotlinLambdaMergerValidationTest extends AbstractR8KotlinTestBase {
     CfRuntime cfRuntime =
         parameters.isCfRuntime() ? parameters.getRuntime().asCf() : TestRuntime.getCheckedInJdk9();
     Path ktClasses =
-        kotlinc(cfRuntime, KOTLINC, targetVersion)
+        kotlinc(cfRuntime, kotlinc, targetVersion)
             .addSourceFiles(getKotlinFileInTest(folder, "b143165163"))
             .compile();
     testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .addProgramFiles(ktClasses)
         .addKeepMainRule("**.B143165163Kt")
         .allowDiagnosticWarningMessages()

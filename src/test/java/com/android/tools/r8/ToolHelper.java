@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
@@ -140,17 +141,7 @@ public class ToolHelper {
   public static final String RHINO_ANDROID_JAR =
       "third_party/rhino-android-1.1.1/rhino-android-1.1.1.jar";
   public static final String RHINO_JAR = "third_party/rhino-1.7.10/rhino-1.7.10.jar";
-  static final String KT_PRELOADER =
-      "third_party/kotlin/kotlin-compiler-1.3.72/kotlinc/lib/kotlin-preloader.jar";
-  public static final String KT_COMPILER =
-      "third_party/kotlin/kotlin-compiler-1.3.72/kotlinc/lib/kotlin-compiler.jar";
   public static final String K2JVMCompiler = "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler";
-  public static final String KT_STDLIB =
-      "third_party/kotlin/kotlin-compiler-1.3.72/kotlinc/lib/kotlin-stdlib.jar";
-  public static final String KT_REFLECT =
-      "third_party/kotlin/kotlin-compiler-1.3.72/kotlinc/lib/kotlin-reflect.jar";
-  public static final String KT_SCRIPT_RT =
-      "third_party/kotlin/kotlin-compiler-1.3.72/kotlinc/lib/kotlin-script-runtime.jar";
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
   private static final AndroidApiLevel DEFAULT_MIN_SDK = AndroidApiLevel.I;
 
@@ -841,16 +832,22 @@ public class ToolHelper {
     throw new Unreachable("Unable to find a most recent android.jar");
   }
 
-  public static Path getKotlinStdlibJar() {
-    Path path = Paths.get(KT_STDLIB);
-    assert Files.exists(path) : "Expected kotlin stdlib jar";
-    return path;
+  public static Path getKotlinStdlibJar(KotlinCompiler kotlinc) {
+    Path stdLib = kotlinc.getFolder().resolve("kotlin-stdlib.jar");
+    assert Files.exists(stdLib) : "Expected kotlin stdlib jar";
+    return stdLib;
   }
 
-  public static Path getKotlinReflectJar() {
-    Path path = Paths.get(KT_REFLECT);
-    assert Files.exists(path) : "Expected kotlin reflect jar";
-    return path;
+  public static Path getKotlinReflectJar(KotlinCompiler kotlinc) {
+    Path reflectJar = kotlinc.getFolder().resolve("kotlin-reflect.jar");
+    assert Files.exists(reflectJar) : "Expected kotlin reflect jar";
+    return reflectJar;
+  }
+
+  public static Path getKotlinScriptRuntime(KotlinCompiler kotlinc) {
+    Path reflectJar = kotlinc.getFolder().resolve("kotlin-script-runtime.jar");
+    assert Files.exists(reflectJar) : "Expected kotlin script runtime jar";
+    return reflectJar;
   }
 
   public static Path getJdwpTestsCfJarPath(AndroidApiLevel minSdk) {
@@ -1353,41 +1350,6 @@ public class ToolHelper {
   public static ProcessResult runJava(CfRuntime runtime, List<Path> classpath, String... args)
       throws IOException {
     return runJava(runtime, ImmutableList.of(), classpath, args);
-  }
-
-  @Deprecated
-  public static ProcessResult runKotlinc(
-      List<Path> classPaths,
-      Path directoryToCompileInto,
-      List<String> extraOptions,
-      Path... filesToCompile)
-      throws IOException {
-    List<String> cmdline = new ArrayList<>(Arrays.asList(getJavaExecutable()));
-    cmdline.add("-jar");
-    cmdline.add(KT_PRELOADER);
-    cmdline.add("org.jetbrains.kotlin.preloading.Preloader");
-    cmdline.add("-cp");
-    cmdline.add(KT_COMPILER);
-    cmdline.add(K2JVMCompiler);
-    String[] strings = Arrays.stream(filesToCompile).map(Path::toString).toArray(String[]::new);
-    Collections.addAll(cmdline, strings);
-    cmdline.add("-d");
-    cmdline.add(directoryToCompileInto.toString());
-    List<String> cp = classPaths == null ? null
-        : classPaths.stream().map(Path::toString).collect(Collectors.toList());
-    if (cp != null) {
-      cmdline.add("-cp");
-      if (isWindows()) {
-        cmdline.add(String.join(";", cp));
-      } else {
-        cmdline.add(String.join(":", cp));
-      }
-    }
-    if (extraOptions != null) {
-      cmdline.addAll(extraOptions);
-    }
-    ProcessBuilder builder = new ProcessBuilder(cmdline);
-    return ToolHelper.runProcess(builder);
   }
 
   public static ProcessResult runJava(
@@ -2158,6 +2120,14 @@ public class ToolHelper {
           throw new Unimplemented("JvmTarget not specified for " + this);
       }
     }
+  }
+
+  public static KotlinCompiler getKotlinC_1_3_72() {
+    return new KotlinCompiler("kotlin-compiler-1.3.72");
+  }
+
+  public static KotlinCompiler[] getKotlinCompilers() {
+    return new KotlinCompiler[] {getKotlinC_1_3_72()};
   }
 
   public static void disassemble(AndroidApp app, PrintStream ps)

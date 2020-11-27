@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
+
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
@@ -42,14 +45,15 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   private Consumer<InternalOptions> disableClassInliner = o -> o.enableClassInlining = false;
 
-  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  @Parameterized.Parameters(name = "target: {0}, kotlinc: {2}, allowAccessModification: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+    return buildParameters(
+        KotlinTargetVersion.values(), getKotlinCompilers(), BooleanUtils.values());
   }
 
   public R8KotlinDataClassTest(
-      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
-    super(targetVersion, allowAccessModification);
+      KotlinTargetVersion targetVersion, KotlinCompiler kotlinc, boolean allowAccessModification) {
+    super(targetVersion, kotlinc, allowAccessModification);
   }
 
   @Test

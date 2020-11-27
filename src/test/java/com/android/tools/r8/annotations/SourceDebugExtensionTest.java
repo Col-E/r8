@@ -4,16 +4,16 @@
 
 package com.android.tools.r8.annotations;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,14 +36,17 @@ import org.junit.runners.Parameterized.Parameters;
 public class SourceDebugExtensionTest extends TestBase {
 
   private final TestParameters parameters;
+  private final KotlinCompiler kotlinCompiler;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameters(name = "{0}, kotlinc: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), getKotlinCompilers());
   }
 
-  public SourceDebugExtensionTest(TestParameters parameters) {
+  public SourceDebugExtensionTest(TestParameters parameters, KotlinCompiler kotlinCompiler) {
     this.parameters = parameters;
+    this.kotlinCompiler = kotlinCompiler;
   }
 
   @Test
@@ -50,7 +54,7 @@ public class SourceDebugExtensionTest extends TestBase {
     CfRuntime cfRuntime =
         parameters.isCfRuntime() ? parameters.getRuntime().asCf() : TestRuntime.getCheckedInJdk9();
     Path kotlinSources =
-        kotlinc(cfRuntime, getStaticTemp(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(cfRuntime, getStaticTemp(), kotlinCompiler, KotlinTargetVersion.JAVA_8)
             .addSourceFiles(
                 getFilesInTestFolderRelativeToClass(
                     KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
@@ -58,7 +62,7 @@ public class SourceDebugExtensionTest extends TestBase {
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     inspectSourceDebugExtension(kotlinInspector);
     testForR8(parameters.getBackend())
-        .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
+        .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinCompiler))
         .addProgramFiles(kotlinSources)
         .addKeepAttributes(ProguardKeepAttributes.SOURCE_DEBUG_EXTENSION)
         .addKeepAllClassesRule()

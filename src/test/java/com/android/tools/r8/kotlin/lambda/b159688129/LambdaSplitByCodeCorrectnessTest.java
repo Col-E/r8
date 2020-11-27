@@ -4,10 +4,11 @@
 
 package com.android.tools.r8.kotlin.lambda.b159688129;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
@@ -33,17 +34,21 @@ public class LambdaSplitByCodeCorrectnessTest extends AbstractR8KotlinTestBase {
   private final KotlinTargetVersion targetVersion;
   private final boolean splitGroup;
 
-  @Parameters(name = "{0}, targetVersion: {1}, splitGroup: {2}")
+  @Parameters(name = "{0}, kotlinc: {2} targetVersion: {1}, splitGroup: {3}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withDexRuntimes().withAllApiLevels().build(),
         KotlinTargetVersion.values(),
+        getKotlinCompilers(),
         BooleanUtils.values());
   }
 
   public LambdaSplitByCodeCorrectnessTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion, boolean splitGroup) {
-    super(targetVersion);
+      TestParameters parameters,
+      KotlinTargetVersion targetVersion,
+      KotlinCompiler kotlinc,
+      boolean splitGroup) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
     this.targetVersion = targetVersion;
     this.splitGroup = splitGroup;
@@ -56,11 +61,11 @@ public class LambdaSplitByCodeCorrectnessTest extends AbstractR8KotlinTestBase {
     CfRuntime cfRuntime =
         parameters.isCfRuntime() ? parameters.getRuntime().asCf() : TestRuntime.getCheckedInJdk9();
     Path ktClasses =
-        kotlinc(cfRuntime, KOTLINC, targetVersion)
+        kotlinc(cfRuntime, kotlinc, targetVersion)
             .addSourceFiles(getKotlinFileInTest(folder, "Simple"))
             .compile();
     testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .addProgramFiles(ktClasses)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(PKG_NAME + ".SimpleKt")

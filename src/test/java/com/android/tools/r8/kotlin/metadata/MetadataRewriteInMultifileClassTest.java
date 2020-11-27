@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -16,6 +16,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -31,11 +32,8 @@ import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -46,47 +44,38 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteInMultifileClassTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static final Map<KotlinTargetVersion, Path> multifileLibJarMap = new HashMap<>();
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    String multifileLibFolder = PKG_PREFIX + "/multifileclass_lib";
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path multifileLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(
-                  getKotlinFileInTest(multifileLibFolder, "signed"),
-                  getKotlinFileInTest(multifileLibFolder, "unsigned"))
-              .compile();
-      multifileLibJarMap.put(targetVersion, multifileLibJar);
-    }
-  }
+  private static final KotlinCompileMemoizer multifileLibJarMap =
+      getCompileMemoizer(
+          getKotlinFileInTest(PKG_PREFIX + "/multifileclass_lib", "signed"),
+          getKotlinFileInTest(PKG_PREFIX + "/multifileclass_lib", "unsigned"));
 
   @Test
   public void smokeTest() throws Exception {
-    Path libJar = multifileLibJarMap.get(targetVersion);
+    Path libJar = multifileLibJarMap.getForConfiguration(kotlinc, targetVersion);
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/multifileclass_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".multifileclass_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -96,8 +85,8 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
   public void testMetadataInMultifileClass_merged() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(multifileLibJarMap.get(targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(multifileLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep UtilKt#comma*Join*(). Let R8 optimize (inline) others, such as joinOf*(String).
             .addKeepRules("-keep class **.UtilKt")
             .addKeepRules("-keepclassmembers class * { ** comma*Join*(...); }")
@@ -107,7 +96,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             .writeToZip();
 
     ProcessResult kotlinTestCompileResult =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/multifileclass_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
@@ -137,8 +126,8 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
   public void testMetadataInMultifileClass_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(multifileLibJarMap.get(targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(multifileLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep UtilKt#comma*Join*().
             .addKeepRules("-keep class **.UtilKt")
             .addKeepRules("-keep,allowobfuscation class **.UtilKt__SignedKt")
@@ -151,7 +140,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             .writeToZip();
 
     ProcessResult kotlinTestCompileResult =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/multifileclass_app", "main"))
             .setOutputPath(temp.newFolder().toPath())

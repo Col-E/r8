@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isDexClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -13,6 +13,7 @@ import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -30,9 +31,6 @@ import com.android.tools.r8.utils.codeinspector.KmTypeSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -63,40 +61,31 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteInTypeAliasTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static final Map<KotlinTargetVersion, Path> typeAliasLibJarMap = new HashMap<>();
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    String typeAliasLibFolder = PKG_PREFIX + "/typealias_lib";
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path typeAliasLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(
-                  getKotlinFileInTest(typeAliasLibFolder, "lib"),
-                  getKotlinFileInTest(typeAliasLibFolder, "lib_ext"))
-              .compile();
-      typeAliasLibJarMap.put(targetVersion, typeAliasLibJar);
-    }
-  }
+  private static final KotlinCompileMemoizer typeAliasLibJarMap =
+      getCompileMemoizer(
+          getKotlinFileInTest(PKG_PREFIX + "/typealias_lib", "lib"),
+          getKotlinFileInTest(PKG_PREFIX + "/typealias_lib", "lib_ext"));
 
   @Test
   public void smokeTest() throws Exception {
-    Path libJar = typeAliasLibJarMap.get(targetVersion);
+    Path libJar = typeAliasLibJarMap.getForConfiguration(kotlinc, targetVersion);
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/typealias_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
@@ -104,7 +93,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
 
     testForJvm()
         .addRunClasspathFiles(
-            ToolHelper.getKotlinStdlibJar(), ToolHelper.getKotlinReflectJar(), libJar)
+            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".typealias_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -116,8 +105,9 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     String renamedSuperTypeName = "com.android.tools.r8.kotlin.metadata.typealias_lib.FooBar";
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(), ToolHelper.getKotlinReflectJar())
-            .addProgramFiles(typeAliasLibJarMap.get(targetVersion))
+            .addClasspathFiles(
+                ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc))
+            .addProgramFiles(typeAliasLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep non-private members of Impl
             .addKeepRules("-keep class **.Impl { !private *; }")
             // Keep but allow obfuscation of types.
@@ -144,14 +134,14 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
             .writeToZip();
 
     Path appJar =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/typealias_app", "main"))
             .compile();
 
     testForJvm()
         .addRunClasspathFiles(
-            ToolHelper.getKotlinStdlibJar(), ToolHelper.getKotlinReflectJar(), libJar)
+            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc), libJar)
         .addClasspath(appJar)
         .run(parameters.getRuntime(), PKG + ".typealias_app.MainKt")
         .assertSuccessWithOutput(EXPECTED.replace(superTypeName, renamedSuperTypeName));

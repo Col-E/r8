@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -21,14 +23,15 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
   private static final String FOLDER = "non_null";
   private static final String STRING = "java.lang.String";
 
-  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  @Parameterized.Parameters(name = "target: {0}, kotlinc: {1}, allowAccessModification: {2}")
   public static Collection<Object[]> data() {
-    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+    return buildParameters(
+        KotlinTargetVersion.values(), getKotlinCompilers(), BooleanUtils.values());
   }
 
   public SimplifyIfNotNullKotlinTest(
-      KotlinTargetVersion targetVersion, boolean allowAccessModification) {
-    super(targetVersion, allowAccessModification);
+      KotlinTargetVersion targetVersion, KotlinCompiler kotlinc, boolean allowAccessModification) {
+    super(targetVersion, kotlinc, allowAccessModification);
   }
 
   @Test

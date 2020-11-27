@@ -8,6 +8,7 @@ import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNull;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
@@ -21,8 +22,8 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public abstract class KotlinMetadataTestBase extends AbstractR8KotlinTestBase {
 
-  public KotlinMetadataTestBase(KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+  public KotlinMetadataTestBase(KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
   }
 
   static final String PKG = KotlinMetadataTestBase.class.getPackage().getName();
@@ -40,8 +41,8 @@ public abstract class KotlinMetadataTestBase extends AbstractR8KotlinTestBase {
   static final String KT_FUNCTION1 = "Lkotlin/Function1;";
   static final String KT_COMPARABLE = "Lkotlin/Comparable;";
 
-  public void assertEqualMetadata(CodeInspector originalInspector, CodeInspector rewrittenInspector)
-      throws Exception {
+  public void assertEqualMetadata(
+      CodeInspector originalInspector, CodeInspector rewrittenInspector) {
     for (FoundClassSubject clazzSubject : originalInspector.allClasses()) {
       ClassSubject r8Clazz = rewrittenInspector.clazz(clazzSubject.getOriginalName());
       assertThat(r8Clazz, isPresent());

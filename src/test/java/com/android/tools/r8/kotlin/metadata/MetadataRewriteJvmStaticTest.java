@@ -3,13 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.metadata.jvmstatic_app.MainJava;
@@ -23,8 +23,7 @@ import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPropertySubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import org.junit.BeforeClass;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -39,39 +38,34 @@ public class MetadataRewriteJvmStaticTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntimes().build();
+  @Parameterized.Parameters(name = "{0}, kotlinc: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(getTestParameters().withCfRuntimes().build(), getKotlinCompilers());
   }
 
-  public MetadataRewriteJvmStaticTest(TestParameters parameters) {
+  public MetadataRewriteJvmStaticTest(TestParameters parameters, KotlinCompiler kotlinc) {
     // We are testing static methods on interfaces which requires java 8.
-    super(KotlinTargetVersion.JAVA_8);
+    super(KotlinTargetVersion.JAVA_8, kotlinc);
     this.parameters = parameters;
   }
 
-  private static Path kotlincLibJar = Paths.get("");
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    kotlincLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addSourceFiles(
-                getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_LIB), "lib"))
-            .compile();
-  }
+  private static KotlinCompileMemoizer kotlincLibJar =
+      getCompileMemoizer(
+          getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_LIB), "lib"));
 
   @Test
   public void smokeTest() throws Exception {
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
-            .addClasspathFiles(kotlincLibJar)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
+            .addClasspathFiles(kotlincLibJar.getForConfiguration(kotlinc, targetVersion))
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), kotlincLibJar)
+        .addRunClasspathFiles(
+            ToolHelper.getKotlinStdlibJar(kotlinc),
+            kotlincLibJar.getForConfiguration(kotlinc, targetVersion))
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -80,7 +74,9 @@ public class MetadataRewriteJvmStaticTest extends KotlinMetadataTestBase {
   @Test
   public void smokeTestJava() throws Exception {
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), kotlincLibJar)
+        .addRunClasspathFiles(
+            ToolHelper.getKotlinStdlibJar(kotlinc),
+            kotlincLibJar.getForConfiguration(kotlinc, targetVersion))
         .addProgramClassFileData(MainJava.dump())
         .run(parameters.getRuntime(), MainJava.class)
         .assertSuccessWithOutput(EXPECTED);
@@ -90,7 +86,7 @@ public class MetadataRewriteJvmStaticTest extends KotlinMetadataTestBase {
   public void testMetadata() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addProgramFiles(kotlincLibJar)
+            .addProgramFiles(kotlincLibJar.getForConfiguration(kotlinc, targetVersion))
             .addKeepAllClassesRule()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile()
@@ -102,14 +98,14 @@ public class MetadataRewriteJvmStaticTest extends KotlinMetadataTestBase {
 
   private void testKotlin(Path libJar) throws Exception {
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -117,7 +113,7 @@ public class MetadataRewriteJvmStaticTest extends KotlinMetadataTestBase {
 
   private void testJava(Path libJar) throws Exception {
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addProgramClassFileData(MainJava.dump())
         .run(parameters.getRuntime(), MainJava.class)
         .assertSuccessWithOutput(EXPECTED);

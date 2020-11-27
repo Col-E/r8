@@ -4,17 +4,20 @@
 
 package com.android.tools.r8.kotlin.lambda;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
+
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.optimize.lambda.kotlin.JStyleLambdaGroupIdFactory;
 import com.android.tools.r8.ir.optimize.lambda.kotlin.KotlinLambdaGroupIdFactory;
 import com.android.tools.r8.kotlin.lambda.JStyleKotlinLambdaMergingWithEnumUnboxingTest.Main.EnumUnboxingCandidate;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,14 +27,19 @@ import org.junit.runners.Parameterized.Parameters;
 public class JStyleKotlinLambdaMergingWithEnumUnboxingTest extends TestBase {
 
   private final TestParameters parameters;
+  private final KotlinCompiler kotlinc;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return TestBase.getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{0}, kotlinc: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        TestBase.getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getKotlinCompilers());
   }
 
-  public JStyleKotlinLambdaMergingWithEnumUnboxingTest(TestParameters parameters) {
+  public JStyleKotlinLambdaMergingWithEnumUnboxingTest(
+      TestParameters parameters, KotlinCompiler kotlinc) {
     this.parameters = parameters;
+    this.kotlinc = kotlinc;
   }
 
   @Test
@@ -39,7 +47,7 @@ public class JStyleKotlinLambdaMergingWithEnumUnboxingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addDefaultRuntimeLibrary(parameters)
-        .addLibraryFiles(ToolHelper.getKotlinStdlibJar())
+        .addLibraryFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options ->

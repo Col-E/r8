@@ -5,22 +5,21 @@
 package com.android.tools.r8.kotlin.sealed;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.function.BiFunction;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,30 +36,32 @@ public class SealedClassTest extends KotlinTestBase {
   @Parameters(name = "{0}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), KotlinTargetVersion.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
-  public SealedClassTest(TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+  public SealedClassTest(
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static BiFunction<TestRuntime, KotlinTargetVersion, Path> compilationResults =
-      memoizeBiFunction(SealedClassTest::compileKotlinCode);
+  private static KotlinCompileMemoizer compilationResults = getCompileMemoizer();
 
-  private static Path compileKotlinCode(TestRuntime runtime, KotlinTargetVersion targetVersion)
-      throws IOException {
-    CfRuntime cfRuntime = runtime.isCf() ? runtime.asCf() : TestRuntime.getCheckedInJdk9();
-    return kotlinc(cfRuntime, getStaticTemp(), KOTLINC, targetVersion)
-        .addSourceFiles(getFilesInTestFolderRelativeToClass(SealedClassTest.class, "kt", ".kt"))
-        .compile();
+  private static Collection<Path> getKotlinSources() {
+    try {
+      return getFilesInTestFolderRelativeToClass(SealedClassTest.class, "kt", ".kt");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test
   public void testRuntime() throws ExecutionException, CompilationFailedException, IOException {
     testForRuntime(parameters)
-        .addProgramFiles(compilationResults.apply(parameters.getRuntime(), targetVersion))
-        .addRunClasspathFiles(buildOnDexRuntime(parameters, ToolHelper.getKotlinStdlibJar()))
+        .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
+        .addRunClasspathFiles(buildOnDexRuntime(parameters, ToolHelper.getKotlinStdlibJar(kotlinc)))
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines(EXPECTED);
   }
@@ -68,8 +69,8 @@ public class SealedClassTest extends KotlinTestBase {
   @Test
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
-        .addProgramFiles(compilationResults.apply(parameters.getRuntime(), targetVersion))
-        .addProgramFiles(buildOnDexRuntime(parameters, ToolHelper.getKotlinStdlibJar()))
+        .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
+        .addProgramFiles(buildOnDexRuntime(parameters, ToolHelper.getKotlinStdlibJar(kotlinc)))
         .setMinApi(parameters.getApiLevel())
         .allowAccessModification()
         .allowDiagnosticWarningMessages(parameters.isCfRuntime())

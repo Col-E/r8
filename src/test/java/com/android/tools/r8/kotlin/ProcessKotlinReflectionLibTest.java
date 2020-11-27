@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
+
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
@@ -18,18 +21,21 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
-  private final TestParameters parameters;
 
-  public ProcessKotlinReflectionLibTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
-    this.parameters = parameters;
-  }
+  private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0} target: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withAllRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
+  }
+
+  public ProcessKotlinReflectionLibTest(
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
+    this.parameters = parameters;
   }
 
   private void test(Collection<String> rules) throws Exception {
@@ -39,8 +45,9 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
   private void test(
       Collection<String> rules, ThrowableConsumer<R8FullTestBuilder> consumer) throws Exception {
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getMostRecentAndroidJar(), ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(ToolHelper.getKotlinReflectJar())
+        .addLibraryFiles(
+            ToolHelper.getMostRecentAndroidJar(), ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
         .addKeepRules(rules)
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)

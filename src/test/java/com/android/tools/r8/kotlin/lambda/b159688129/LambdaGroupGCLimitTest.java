@@ -50,7 +50,7 @@ public class LambdaGroupGCLimitTest extends TestBase {
     String PKG_NAME = LambdaGroupGCLimitTest.class.getPackage().getName();
     R8FullTestBuilder testBuilder =
         testForR8(parameters.getBackend())
-            .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+            .addProgramFiles(ToolHelper.getKotlinStdlibJar(ToolHelper.getKotlinC_1_3_72()))
             .setMinApi(parameters.getApiLevel())
             .noMinification();
     Path classFiles = temp.newFile("classes.jar").toPath();

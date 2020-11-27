@@ -4,8 +4,9 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -13,9 +14,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -27,45 +25,37 @@ public class MetadataRewriteCrossinlineAnonFunctionTest extends KotlinMetadataTe
   private static final String PKG_LIB = PKG + ".crossinline_anon_lib";
   private static final String PKG_APP = PKG + ".crossinline_anon_app";
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteCrossinlineAnonFunctionTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static Map<KotlinTargetVersion, Path> libJars = new HashMap<>();
+  private static final KotlinCompileMemoizer libJars =
+      getCompileMemoizer(
+          getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_LIB), "lib"));
   private final TestParameters parameters;
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path baseLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(
-                  getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_LIB), "lib"))
-              .compile();
-      libJars.put(targetVersion, baseLibJar);
-    }
-  }
 
   @Test
   public void smokeTest() throws Exception {
-    Path libJar = libJars.get(targetVersion);
+    Path libJar = libJars.getForConfiguration(kotlinc, targetVersion);
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -75,19 +65,19 @@ public class MetadataRewriteCrossinlineAnonFunctionTest extends KotlinMetadataTe
   public void testMetadataForLib() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addProgramFiles(libJars.get(targetVersion))
+            .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
             .addKeepAllClassesRule()
             .addKeepAllAttributes()
             .compile()
             .writeToZip();
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addProgramFiles(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED);

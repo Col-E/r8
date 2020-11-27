@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKotlinClassifier;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -12,6 +12,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -20,11 +21,7 @@ import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
-import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,47 +33,39 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), KotlinTargetVersion.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteInRenamedTypeTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static final Map<KotlinTargetVersion, Path> annoJarMap = new HashMap<>();
-  private static final Map<KotlinTargetVersion, Path> inputJarMap = new HashMap<>();
-
-  @BeforeClass
-  public static void createInputJar() throws Exception {
-    String inputFolder = PKG_PREFIX + "/anno";
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path annoJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(getKotlinFileInTest(inputFolder, "Anno"))
-              .compile();
-      Path inputJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addClasspathFiles(annoJar)
-              .addSourceFiles(getKotlinFileInTest(inputFolder, "main"))
-              .compile();
-      annoJarMap.put(targetVersion, annoJar);
-      inputJarMap.put(targetVersion, inputJar);
-    }
-  }
+  private static final KotlinCompileMemoizer annoJarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/anno", "Anno"));
+  private static final KotlinCompileMemoizer inputJarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/anno", "main"))
+          .configure(
+              kotlinCompilerTool -> {
+                kotlinCompilerTool.addClasspathFiles(
+                    annoJarMap.getForConfiguration(
+                        kotlinCompilerTool.getCompiler(), kotlinCompilerTool.getTargetVersion()));
+              });
 
   @Test
   public void testR8_kotlinStdlibAsLib() throws Exception {
     testForR8(parameters.getBackend())
         .addLibraryFiles(
-            annoJarMap.get(targetVersion),
+            annoJarMap.getForConfiguration(kotlinc, targetVersion),
             ToolHelper.getJava8RuntimeJar(),
-            ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(inputJarMap.get(targetVersion))
+            ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(inputJarMap.getForConfiguration(kotlinc, targetVersion))
         .addKeepRules(OBFUSCATE_RENAMED, KEEP_KEPT)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .compile()
@@ -86,8 +75,10 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
   @Test
   public void testR8_kotlinStdlibAsClassPath() throws Exception {
     testForR8(parameters.getBackend())
-        .addClasspathFiles(annoJarMap.get(targetVersion), ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(inputJarMap.get(targetVersion))
+        .addClasspathFiles(
+            annoJarMap.getForConfiguration(kotlinc, targetVersion),
+            ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(inputJarMap.getForConfiguration(kotlinc, targetVersion))
         .addKeepRules(OBFUSCATE_RENAMED, KEEP_KEPT)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .compile()
@@ -97,8 +88,10 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
   @Test
   public void testR8_kotlinStdlibAsProgramFile() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(annoJarMap.get(targetVersion), ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(inputJarMap.get(targetVersion))
+        .addProgramFiles(
+            annoJarMap.getForConfiguration(kotlinc, targetVersion),
+            ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(inputJarMap.getForConfiguration(kotlinc, targetVersion))
         .addKeepRules(OBFUSCATE_RENAMED, KEEP_KEPT)
         .addKeepRules("-keep class **.Anno")
         .addKeepKotlinMetadata()

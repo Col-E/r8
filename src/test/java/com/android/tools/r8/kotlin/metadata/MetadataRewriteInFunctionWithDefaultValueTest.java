@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -12,6 +12,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -27,10 +28,7 @@ import com.android.tools.r8.utils.codeinspector.KmValueParameterSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,45 +39,36 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
 
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteInFunctionWithDefaultValueTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
-  private static Map<KotlinTargetVersion, Path> defaultValueLibJarMap = new HashMap<>();
-
-  @BeforeClass
-  public static void createLibJar() throws Exception {
-    String default_valueLibFolder = PKG_PREFIX + "/default_value_lib";
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path default_valueLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(getKotlinFileInTest(default_valueLibFolder, "lib"))
-              .compile();
-      defaultValueLibJarMap.put(targetVersion, default_valueLibJar);
-    }
-  }
+  private static final KotlinCompileMemoizer defaultValueLibJarMap =
+      getCompileMemoizer(getKotlinFileInTest(PKG_PREFIX + "/default_value_lib", "lib"));
 
   @Test
   public void smokeTest() throws Exception {
-    Path libJar = defaultValueLibJarMap.get(targetVersion);
+    Path libJar = defaultValueLibJarMap.getForConfiguration(kotlinc, targetVersion);
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/default_value_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".default_value_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -89,8 +78,9 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
   public void testMetadataInFunctionWithDefaultValue() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addLibraryFiles(ToolHelper.getJava8RuntimeJar(), ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(defaultValueLibJarMap.get(targetVersion))
+            .addLibraryFiles(
+                ToolHelper.getJava8RuntimeJar(), ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(defaultValueLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep LibKt and applyMap function, along with applyMap$default
             .addKeepRules("-keep class **.LibKt { *** applyMap*(...); }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -102,14 +92,14 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
             .writeToZip();
 
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/default_value_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".default_value_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

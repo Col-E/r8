@@ -4,8 +4,9 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -15,9 +16,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,38 +33,31 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
           "null",
           "New value has been read in CustomDelegate from 'x'");
 
-  @Parameterized.Parameters(name = "{0} target: {1}")
+  @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withCfRuntimes().build(),
+        KotlinTargetVersion.values(),
+        getKotlinCompilers());
   }
 
   public MetadataRewriteDelegatedPropertyTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
-    super(targetVersion);
+      TestParameters parameters, KotlinTargetVersion targetVersion, KotlinCompiler kotlinc) {
+    super(targetVersion, kotlinc);
     this.parameters = parameters;
   }
 
   private final TestParameters parameters;
-  private static Map<KotlinTargetVersion, Path> jars = new HashMap<>();
-
-  @BeforeClass
-  public static void createJar() throws Exception {
-    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path baseLibJar =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(
-                  getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
-              .compile();
-      jars.put(targetVersion, baseLibJar);
-    }
-  }
+  private static final KotlinCompileMemoizer jars =
+      getCompileMemoizer(
+          getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"));
 
   @Test
   public void smokeTest() throws Exception {
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), ToolHelper.getKotlinReflectJar())
-        .addClasspath(jars.get(targetVersion))
+        .addRunClasspathFiles(
+            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc))
+        .addClasspath(jars.getForConfiguration(kotlinc, targetVersion))
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED_MAIN);
   }
@@ -76,17 +67,20 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
   public void testMetadataForLib() throws Exception {
     Path outputJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(jars.get(targetVersion))
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addProgramFiles(jars.getForConfiguration(kotlinc, targetVersion))
             .addKeepAllClassesRule()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile()
             .inspect(
                 inspector ->
-                    assertEqualMetadata(new CodeInspector(jars.get(targetVersion)), inspector))
+                    assertEqualMetadata(
+                        new CodeInspector(jars.getForConfiguration(kotlinc, targetVersion)),
+                        inspector))
             .writeToZip();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), ToolHelper.getKotlinReflectJar())
+        .addRunClasspathFiles(
+            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc))
         .addClasspath(outputJar)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED_MAIN);

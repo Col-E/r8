@@ -3,16 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
+import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -22,21 +24,25 @@ import org.junit.runners.Parameterized.Parameters;
 public class KotlinStdLibCompilationTest extends TestBase {
 
   private final TestParameters parameters;
+  private final KotlinCompiler kotlinc;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection setup() {
-    return TestParametersBuilder.builder().withAllRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{0}, kotlinc: {1}")
+  public static List<Object[]> setup() {
+    return buildParameters(
+        TestParametersBuilder.builder().withAllRuntimes().withAllApiLevels().build(),
+        getKotlinCompilers());
   }
 
-  public KotlinStdLibCompilationTest(TestParameters parameters) {
+  public KotlinStdLibCompilationTest(TestParameters parameters, KotlinCompiler kotlinc) {
     this.parameters = parameters;
+    this.kotlinc = kotlinc;
   }
 
   @Test
   public void testD8() throws CompilationFailedException {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages);
   }
@@ -44,7 +50,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
   @Test
   public void testR8() throws CompilationFailedException {
     testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .noMinification()
         .noTreeShaking()
         .addKeepAllAttributes()
