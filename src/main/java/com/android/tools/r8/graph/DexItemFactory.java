@@ -1628,9 +1628,10 @@ public class DexItemFactory {
     public boolean constructorInvokeIsSideEffectFree(InvokeMethod invoke) {
       DexMethod invokedMethod = invoke.getInvokedMethod();
       if (invokedMethod == charSequenceConstructor) {
-        // NullPointerException - if seq is null.
-        Value seqValue = invoke.inValues().get(1);
-        return !seqValue.getType().isNullable();
+        // Performs callbacks on the given CharSequence, which may have side effects.
+        TypeElement charSequenceType = invoke.getArgument(1).getType();
+        return charSequenceType.isClassType()
+            && charSequenceType.asClassType().getClassType() == stringType;
       }
 
       if (invokedMethod == defaultConstructor) {

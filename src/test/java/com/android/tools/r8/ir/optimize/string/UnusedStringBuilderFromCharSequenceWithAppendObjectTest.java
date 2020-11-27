@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.string;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -33,13 +34,17 @@ public class UnusedStringBuilderFromCharSequenceWithAppendObjectTest extends Tes
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithEmptyOutput();
-    // TODO(christofferqa): Should succeed with output;
-    //  .assertSuccessWithOutputLines(
-    //      "CustomCharSequence.length()",
-    //      "CustomCharSequence.length()",
-    //      "CustomCharSequence.length()",
-    //      "CustomCharSequence.charAt(0)");
+        .assertSuccessWithOutputLinesIf(
+            parameters.isCfRuntime()
+                || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0),
+            "CustomCharSequence.length()",
+            "CustomCharSequence.length()",
+            "CustomCharSequence.length()",
+            "CustomCharSequence.charAt(0)")
+        .assertSuccessWithOutputLinesIf(
+            parameters.isDexRuntime()
+                && parameters.getDexRuntimeVersion().isOlderThan(Version.V7_0_0),
+            "CustomCharSequence.toString()");
   }
 
   static class Main {
@@ -63,12 +68,18 @@ public class UnusedStringBuilderFromCharSequenceWithAppendObjectTest extends Tes
         throw new RuntimeException();
       }
       System.out.println("CustomCharSequence.charAt(0)");
-      return 0;
+      return 'A';
     }
 
     @Override
     public CharSequence subSequence(int i, int i1) {
       throw new RuntimeException();
+    }
+
+    @Override
+    public String toString() {
+      System.out.println("CustomCharSequence.toString()");
+      return "A";
     }
   }
 }

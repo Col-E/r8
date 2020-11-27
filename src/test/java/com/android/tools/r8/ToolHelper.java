@@ -271,8 +271,16 @@ public class ToolHelper {
         return compareTo(other) > 0;
       }
 
+      public boolean isNewerThanOrEqual(Version other) {
+        return compareTo(other) >= 0;
+      }
+
       public boolean isAtLeast(Version other) {
         return compareTo(other) >= 0;
+      }
+
+      public boolean isOlderThan(Version other) {
+        return compareTo(other) < 0;
       }
 
       public boolean isOlderThanOrEqual(Version other) {
