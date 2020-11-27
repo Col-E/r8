@@ -142,7 +142,9 @@ def main(argv):
 
 def delete_branches(branches):
   assert len(branches) > 0
-  utils.RunCmd(['git', 'branch', '-D'].extend(branches), quiet=True)
+  cmd = ['git', 'branch', '-D']
+  cmd.extend(branches)
+  utils.RunCmd(cmd, quiet=True)
 
 def get_branch_with_name(name, branches):
   for branch in branches:
