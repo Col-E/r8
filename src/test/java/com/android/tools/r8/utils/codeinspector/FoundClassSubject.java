@@ -311,6 +311,21 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public boolean isImplementing(Class<?> clazz) {
+    return isImplementing(clazz.getTypeName());
+  }
+
+  @Override
+  public boolean isImplementing(String javaTypeName) {
+    for (DexType itf : getDexProgramClass().interfaces) {
+      if (itf.toSourceString().equals(javaTypeName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
   public boolean isAnnotation() {
     return dexClass.accessFlags.isAnnotation();
   }

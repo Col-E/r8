@@ -169,6 +169,10 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract boolean isImplementing(ClassSubject subject);
 
+  public abstract boolean isImplementing(Class<?> clazz);
+
+  public abstract boolean isImplementing(String javaTypeName);
+
   public String dumpMethods() {
     StringBuilder dump = new StringBuilder();
     forAllMethods(
