@@ -45,7 +45,6 @@ class TreeFixer {
   private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory dexItemFactory;
-  private final BiMap<DexMethod, DexMethod> movedMethods = HashBiMap.create();
   private final SyntheticArgumentClass syntheticArgumentClass;
   private final BiMap<DexMethodSignature, DexMethodSignature> reservedInterfaceSignatures =
       HashBiMap.create();
@@ -127,9 +126,6 @@ class TreeFixer {
     for (DexProgramClass root : subtypingForrest.getProgramRoots()) {
       subtypingForrest.traverseNodeDepthFirst(root, HashBiMap.create(), this::fixupProgramClass);
     }
-
-    lensBuilder.remapMethods(movedMethods);
-
     HorizontalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
     fieldAccessChangesBuilder.build(this::fixupMethodReference).modify(appView);
     new AnnotationFixer(lens).run(appView.appInfo().classes());
@@ -162,6 +158,8 @@ class TreeFixer {
     fixupFields(clazz.staticFields(), clazz::setStaticField);
     fixupFields(clazz.instanceFields(), clazz::setInstanceField);
 
+    lensBuilder.commitPendingUpdates();
+
     return remappedClassVirtualMethods;
   }
 
@@ -171,7 +169,7 @@ class TreeFixer {
     // Don't process this method if it does not refer to a merge class type.
     boolean referencesMergeClass =
         Iterables.any(
-            originalMethodReference.proto.getBaseTypes(dexItemFactory),
+            originalMethodReference.getProto().getBaseTypes(dexItemFactory),
             mergedClasses::hasBeenMergedOrIsMergeTarget);
     if (!referencesMergeClass) {
       return method;
@@ -198,8 +196,7 @@ class TreeFixer {
 
     DexMethod newMethodReference =
         newMethodSignature.withHolder(originalMethodReference, dexItemFactory);
-    movedMethods.put(originalMethodReference, newMethodReference);
-
+    lensBuilder.fixupMethod(originalMethodReference, newMethodReference);
     return method.toTypeSubstitutedMethod(newMethodReference);
   }
 
@@ -215,17 +212,17 @@ class TreeFixer {
     iface.getMethodCollection().replaceVirtualMethods(this::fixupVirtualInterfaceMethod);
     fixupFields(iface.staticFields(), iface::setStaticField);
     fixupFields(iface.instanceFields(), iface::setInstanceField);
+    lensBuilder.commitPendingUpdates();
   }
 
   private DexEncodedMethod fixupProgramMethod(
       DexMethod newMethodReference, DexEncodedMethod method) {
     DexMethod originalMethodReference = method.getReference();
-
     if (newMethodReference == originalMethodReference) {
       return method;
     }
 
-    movedMethods.put(originalMethodReference, newMethodReference);
+    lensBuilder.fixupMethod(originalMethodReference, newMethodReference);
 
     DexEncodedMethod newMethod = method.toTypeSubstitutedMethod(newMethodReference);
     if (newMethod.isNonPrivateVirtualMethod()) {
@@ -381,7 +378,7 @@ class TreeFixer {
       }
 
       if (newFieldReference != oldFieldReference) {
-        lensBuilder.recordNewFieldSignature(oldFieldReference, newFieldReference);
+        lensBuilder.fixupField(oldFieldReference, newFieldReference);
         setter.setField(i, oldField.toTypeSubstitutedField(newFieldReference));
       }
     }

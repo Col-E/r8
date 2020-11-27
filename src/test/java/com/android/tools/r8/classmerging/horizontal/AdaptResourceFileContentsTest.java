@@ -36,7 +36,8 @@ public class AdaptResourceFileContentsTest extends HorizontalClassMergingTestBas
             .addInnerClasses(getClass())
             .addKeepMainRule(Main.class)
             .addOptionsModification(
-                options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+                options ->
+                    options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
             .addOptionsModification(options -> options.dataResourceConsumer = dataResourceConsumer)
             .enableNeverClassInliningAnnotations()
             .addDataEntryResources(

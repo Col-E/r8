@@ -23,7 +23,8 @@ public class StaticAndVirtualMethodCollisionTest extends HorizontalClassMergingT
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addHorizontallyMergedClassesInspectorIf(
             enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
         .enableInliningAnnotations()
@@ -36,10 +37,10 @@ public class StaticAndVirtualMethodCollisionTest extends HorizontalClassMergingT
   static class Main {
 
     public static void main(String[] args) {
-      new A().foo();
+      A.foo();
       new A().bar();
       new B().foo();
-      new B().bar();
+      B.bar();
     }
   }
 

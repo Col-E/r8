@@ -229,8 +229,7 @@ public class VirtualMethodMerger {
         classFileVersion = Ordered.maxIgnoreNull(classFileVersion, methodVersion);
       }
       DexMethod newMethod = moveMethod(classMethodsBuilder, method);
-      lensBuilder.mapMethod(newMethod, newMethod);
-      lensBuilder.mapMethodInverse(method.getReference(), newMethod);
+      lensBuilder.recordNewMethodSignature(method.getReference(), newMethod);
       classIdToMethodMap.put(classIdentifiers.getInt(method.getHolderType()), newMethod);
       if (representative == null) {
         representative = method;
@@ -274,16 +273,14 @@ public class VirtualMethodMerger {
 
     // Map each old non-abstract method to the newly synthesized method in the graph lens.
     for (ProgramMethod oldMethod : methods) {
-      if (oldMethod.getDefinition().isAbstract()) {
-        lensBuilder.mapMethod(oldMethod.getReference(), newMethodReference);
-      } else {
-        lensBuilder.moveMethod(oldMethod.getReference(), newMethodReference);
-      }
+      lensBuilder.mapMethod(oldMethod.getReference(), newMethodReference);
     }
-    lensBuilder.recordExtraOriginalSignature(bridgeMethodReference, newMethodReference);
+
+    // Add a mapping from a synthetic name to the synthetic merged method.
+    lensBuilder.recordNewMethodSignature(bridgeMethodReference, newMethodReference);
 
     classMethodsBuilder.addVirtualMethod(newMethod);
 
-    fieldAccessChangesBuilder.fieldReadByMethod(group.getClassIdField(), newMethod.method);
+    fieldAccessChangesBuilder.fieldReadByMethod(group.getClassIdField(), newMethodReference);
   }
 }

@@ -28,7 +28,8 @@ public class VerticalMergingPreoptimizedTest extends HorizontalClassMergingTestB
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()

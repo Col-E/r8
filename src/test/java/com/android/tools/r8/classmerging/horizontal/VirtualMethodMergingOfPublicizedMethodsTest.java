@@ -25,7 +25,8 @@ public class VirtualMethodMergingOfPublicizedMethodsTest extends HorizontalClass
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .allowAccessModification()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

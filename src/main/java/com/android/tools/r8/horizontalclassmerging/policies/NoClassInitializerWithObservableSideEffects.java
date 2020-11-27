@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
 
@@ -12,9 +13,19 @@ import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
  * okay for superclasses to have static initializers as all classes are expected to have the same
  * super class.
  */
-public class NoStaticClassInitializer extends SingleClassPolicy {
+public class NoClassInitializerWithObservableSideEffects extends SingleClassPolicy {
+
   @Override
   public boolean canMerge(DexProgramClass program) {
-    return !program.hasClassInitializer();
+    if (!program.hasClassInitializer()) {
+      return true;
+    }
+    DexEncodedMethod clinit = program.getClassInitializer();
+    return clinit.getOptimizationInfo().classInitializerMayBePostponed() || isKotlinLambda(program);
+  }
+
+  private boolean isKotlinLambda(DexProgramClass program) {
+    return program.getKotlinInfo().isSyntheticClass()
+        && program.getKotlinInfo().asSyntheticClass().isLambda();
   }
 }

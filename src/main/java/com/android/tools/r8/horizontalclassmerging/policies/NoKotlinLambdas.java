@@ -18,7 +18,7 @@ public class NoKotlinLambdas extends SingleClassPolicy {
 
   @Override
   public boolean shouldSkipPolicy() {
-    return appView.options().enableHorizontalClassMergingOfKotlinLambdas;
+    return appView.options().horizontalClassMergerOptions().isKotlinLambdaMergingEnabled();
   }
 
   @Override

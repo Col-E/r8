@@ -34,7 +34,8 @@ public class TreeFixerInterfaceImplementedByParentTest extends HorizontalClassMe
         .addKeepMainRule(Main.class)
         .noMinification()
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()

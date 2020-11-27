@@ -19,6 +19,10 @@ public class IgnoreSynthetics extends SingleClassPolicy {
 
   @Override
   public boolean canMerge(DexProgramClass program) {
-    return !appView.getSyntheticItems().isSyntheticClass(program);
+    if (appView.getSyntheticItems().isSyntheticClass(program)) {
+      return appView.options().horizontalClassMergerOptions().isJavaLambdaMergingEnabled()
+          && appView.getSyntheticItems().isLegacySyntheticClass(program);
+    }
+    return true;
   }
 }

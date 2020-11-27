@@ -31,7 +31,8 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
         .addKeepMainRule(Main.class)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

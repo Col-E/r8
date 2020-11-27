@@ -12,6 +12,8 @@ public abstract class Policy {
   /** Counter keeping track of how many classes this policy has removed. For debugging only. */
   public int numberOfRemovedClasses;
 
+  public void clear() {}
+
   public boolean shouldSkipPolicy() {
     return false;
   }

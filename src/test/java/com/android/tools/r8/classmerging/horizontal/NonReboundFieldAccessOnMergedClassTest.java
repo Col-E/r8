@@ -26,7 +26,8 @@ public class NonReboundFieldAccessOnMergedClassTest extends HorizontalClassMergi
         .addInnerClasses(NonReboundFieldAccessOnMergedClassTestClasses.class)
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addHorizontallyMergedClassesInspector(
             inspector -> {
               if (enableHorizontalClassMerging) {

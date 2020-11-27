@@ -46,7 +46,8 @@ public class MergedVirtualMethodStackTraceTest extends HorizontalClassMergingTes
         .addKeepAttributeSourceFile()
         .addDontWarn(C.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -64,7 +65,6 @@ public class MergedVirtualMethodStackTraceTest extends HorizontalClassMergingTes
                 StackTrace expectedStackTraceWithMergedMethod =
                     StackTrace.builder()
                         .add(expectedStackTrace)
-
                         .add(
                             1,
                             StackTraceLine.builder()

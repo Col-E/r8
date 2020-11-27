@@ -26,7 +26,8 @@ public class ConstructorMergingWithArgumentsTest extends HorizontalClassMergingT
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)

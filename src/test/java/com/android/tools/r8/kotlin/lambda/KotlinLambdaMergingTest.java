@@ -42,7 +42,7 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     // Ensure that enclosing method and inner class attributes are kept even on classes that are
     // not explicitly mentioned by a keep rule.
     options.forceProguardCompatibility = true;
-    options.enableHorizontalClassMergingOfKotlinLambdas = false;
+    options.horizontalClassMergerOptions().disableKotlinLambdaMerging();
   }
 
   private final boolean enableUnusedInterfaceRemoval;

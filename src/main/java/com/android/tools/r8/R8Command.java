@@ -869,7 +869,8 @@ public final class R8Command extends BaseCompilerCommand {
             ? LineNumberOptimization.ON
             : LineNumberOptimization.OFF;
 
-    assert proguardConfiguration.isOptimizing() || !internal.enableHorizontalClassMerging;
+    assert proguardConfiguration.isOptimizing()
+        || internal.horizontalClassMergerOptions().isDisabled();
     assert internal.enableStaticClassMerging || !proguardConfiguration.isOptimizing();
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
     assert internal.enableVerticalClassMerging || !proguardConfiguration.isOptimizing();
@@ -879,7 +880,7 @@ public final class R8Command extends BaseCompilerCommand {
       internal.getProguardConfiguration().getKeepAttributes().localVariableTypeTable = true;
       internal.enableInlining = false;
       internal.enableClassInlining = false;
-      internal.enableHorizontalClassMerging = false;
+      internal.horizontalClassMergerOptions().disable();
       internal.enableStaticClassMerging = false;
       internal.enableVerticalClassMerging = false;
       internal.enableClassStaticizer = false;
@@ -891,7 +892,7 @@ public final class R8Command extends BaseCompilerCommand {
       // If R8 is not shrinking, there is no point in running various optimizations since the
       // optimized classes will still remain in the program (the application size could increase).
       internal.enableEnumUnboxing = false;
-      internal.enableHorizontalClassMerging = false;
+      internal.horizontalClassMergerOptions().disable();
       internal.enableLambdaMerging = false;
       internal.enableStaticClassMerging = false;
       internal.enableVerticalClassMerging = false;
@@ -900,7 +901,7 @@ public final class R8Command extends BaseCompilerCommand {
     if (!internal.enableInlining) {
       // If R8 cannot perform inlining, then the synthetic constructors would not inline the called
       // constructors, producing invalid code.
-      internal.enableHorizontalClassMerging = false;
+      internal.horizontalClassMergerOptions().disable();
     }
 
     // Amend the proguard-map consumer with options from the proguard configuration.
@@ -958,7 +959,7 @@ public final class R8Command extends BaseCompilerCommand {
     if (internal.isGeneratingClassFiles()) {
       internal.outline.enabled = false;
       internal.enableEnumUnboxing = false;
-      internal.enableHorizontalClassMerging = false;
+      internal.horizontalClassMergerOptions().disable();
     }
 
     // EXPERIMENTAL flags.

@@ -70,6 +70,8 @@ public class SimplePolicyExecutor extends PolicyExecutor {
         linkedGroups = applyMultiClassPolicy((MultiClassPolicy) policy, linkedGroups);
       }
 
+      policy.clear();
+
       // Any policy should not return any trivial groups.
       assert linkedGroups.stream().allMatch(group -> group.size() >= 2);
     }

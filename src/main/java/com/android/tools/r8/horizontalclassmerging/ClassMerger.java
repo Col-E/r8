@@ -6,8 +6,10 @@ package com.android.tools.r8.horizontalclassmerging;
 
 import static com.google.common.base.Predicates.not;
 
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -19,6 +21,9 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
@@ -46,8 +51,10 @@ public class ClassMerger {
 
   public static final String CLASS_ID_FIELD_NAME = "$r8$classId";
 
+  private final AppView<AppInfoWithLiveness> appView;
   private final MergeGroup group;
   private final DexItemFactory dexItemFactory;
+  private final ClassInitializerSynthesizedCode classInitializerSynthesizedCode;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
   private final HorizontallyMergedClasses.Builder mergedClassesBuilder;
   private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
@@ -66,7 +73,9 @@ public class ClassMerger {
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       MergeGroup group,
       Collection<VirtualMethodMerger> virtualMethodMergers,
-      Collection<ConstructorMerger> constructorMergers) {
+      Collection<ConstructorMerger> constructorMergers,
+      ClassInitializerSynthesizedCode classInitializerSynthesizedCode) {
+    this.appView = appView;
     this.lensBuilder = lensBuilder;
     this.mergedClassesBuilder = mergedClassesBuilder;
     this.fieldAccessChangesBuilder = fieldAccessChangesBuilder;
@@ -75,6 +84,7 @@ public class ClassMerger {
     this.constructorMergers = constructorMergers;
 
     this.dexItemFactory = appView.dexItemFactory();
+    this.classInitializerSynthesizedCode = classInitializerSynthesizedCode;
     this.classStaticFieldsMerger = new ClassStaticFieldsMerger(appView, lensBuilder, group);
     this.classInstanceFieldsMerger = new ClassInstanceFieldsMerger(lensBuilder, group);
 
@@ -91,18 +101,54 @@ public class ClassMerger {
   }
 
   void mergeDirectMethods(SyntheticArgumentClass syntheticArgumentClass) {
+    mergeStaticClassInitializers();
     mergeDirectMethods(group.getTarget());
     group.forEachSource(this::mergeDirectMethods);
     mergeConstructors(syntheticArgumentClass);
+  }
+
+  void mergeStaticClassInitializers() {
+    if (classInitializerSynthesizedCode.isEmpty()) {
+      return;
+    }
+
+    DexMethod newClinit = dexItemFactory.createClassInitializer(group.getTarget().getType());
+
+    CfCode code = classInitializerSynthesizedCode.synthesizeCode(group.getTarget().getType());
+    if (!group.getTarget().hasClassInitializer()) {
+      classMethodsBuilder.addDirectMethod(
+          new DexEncodedMethod(
+              newClinit,
+              MethodAccessFlags.fromSharedAccessFlags(
+                  Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, true),
+              MethodTypeSignature.noSignature(),
+              DexAnnotationSet.empty(),
+              ParameterAnnotationsList.empty(),
+              code,
+              true,
+              classInitializerSynthesizedCode.getCfVersion()));
+    } else {
+      DexEncodedMethod clinit = group.getTarget().getClassInitializer();
+      clinit.setCode(code, appView);
+      CfVersion cfVersion = classInitializerSynthesizedCode.getCfVersion();
+      if (cfVersion != null) {
+        clinit.upgradeClassFileVersion(cfVersion);
+      } else {
+        assert appView.options().isGeneratingDex();
+      }
+      classMethodsBuilder.addDirectMethod(clinit);
+    }
   }
 
   void mergeDirectMethods(DexProgramClass toMerge) {
     toMerge.forEachProgramDirectMethod(
         method -> {
           DexEncodedMethod definition = method.getDefinition();
-          assert !definition.isClassInitializer();
-
-          if (!definition.isInstanceInitializer()) {
+          if (definition.isClassInitializer()) {
+            lensBuilder.moveMethod(
+                method.getReference(),
+                dexItemFactory.createClassInitializer(group.getTarget().getType()));
+          } else if (!definition.isInstanceInitializer()) {
             DexMethod newMethod =
                 method.getReference().withHolder(group.getTarget().getType(), dexItemFactory);
             if (!classMethodsBuilder.isFresh(newMethod)) {
@@ -114,7 +160,6 @@ public class ClassMerger {
             }
           }
         });
-
     // Clear the members of the class to be merged since they have now been moved to the target.
     toMerge.getMethodCollection().clearDirectMethods();
   }
@@ -217,6 +262,8 @@ public class ClassMerger {
   public static class Builder {
     private final AppView<AppInfoWithLiveness> appView;
     private final MergeGroup group;
+    private final ClassInitializerSynthesizedCode.Builder classInitializerSynthesizedCodeBuilder =
+        new ClassInitializerSynthesizedCode.Builder();
     private final Map<DexProto, ConstructorMerger.Builder> constructorMergerBuilders =
         new LinkedHashMap<>();
     private final List<ConstructorMerger.Builder> unmergedConstructorBuilders = new ArrayList<>();
@@ -242,20 +289,17 @@ public class ClassMerger {
     }
 
     private void setupForMethodMerging(DexProgramClass toMerge) {
-      toMerge.forEachProgramDirectMethod(
-          method -> {
-            DexEncodedMethod definition = method.getDefinition();
-            assert !definition.isClassInitializer();
-            if (definition.isInstanceInitializer()) {
-              addConstructor(method);
-            }
-          });
+      if (toMerge.hasClassInitializer()) {
+        classInitializerSynthesizedCodeBuilder.add(toMerge.getClassInitializer());
+      }
+      toMerge.forEachProgramDirectMethodMatching(
+          DexEncodedMethod::isInstanceInitializer, this::addConstructor);
       toMerge.forEachProgramVirtualMethod(this::addVirtualMethod);
     }
 
     private void addConstructor(ProgramMethod method) {
       assert method.getDefinition().isInstanceInitializer();
-      if (appView.options().enableHorizontalClassMergingConstructorMerging) {
+      if (appView.options().horizontalClassMergerOptions().isConstructorMergingEnabled()) {
         constructorMergerBuilders
             .computeIfAbsent(
                 method.getDefinition().getProto(), ignore -> new ConstructorMerger.Builder(appView))
@@ -276,7 +320,7 @@ public class ClassMerger {
     }
 
     private Collection<ConstructorMerger.Builder> getConstructorMergerBuilders() {
-      return appView.options().enableHorizontalClassMergingConstructorMerging
+      return appView.options().horizontalClassMergerOptions().isConstructorMergingEnabled()
           ? constructorMergerBuilders.values()
           : unmergedConstructorBuilders;
     }
@@ -313,7 +357,8 @@ public class ClassMerger {
           fieldAccessChangesBuilder,
           group,
           virtualMethodMergers,
-          constructorMergers);
+          constructorMergers,
+          classInitializerSynthesizedCodeBuilder.build());
     }
   }
 }

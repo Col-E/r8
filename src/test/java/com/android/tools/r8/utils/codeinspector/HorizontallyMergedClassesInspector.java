@@ -12,6 +12,8 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
+import com.android.tools.r8.utils.SetUtils;
+import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -30,8 +32,27 @@ public class HorizontallyMergedClassesInspector {
     horizontallyMergedClasses.forEachMergeGroup(consumer);
   }
 
+  public Set<Set<DexType>> getMergeGroups() {
+    Set<Set<DexType>> mergeGroups = Sets.newLinkedHashSet();
+    forEachMergeGroup(
+        (sources, target) -> {
+          Set<DexType> mergeGroup = SetUtils.newIdentityHashSet(sources);
+          mergeGroup.add(target);
+          mergeGroups.add(mergeGroup);
+        });
+    return mergeGroups;
+  }
+
+  public Set<DexType> getSources() {
+    return horizontallyMergedClasses.getSources();
+  }
+
   public DexType getTarget(DexType clazz) {
     return horizontallyMergedClasses.getMergeTargetOrDefault(clazz);
+  }
+
+  public Set<DexType> getTargets() {
+    return horizontallyMergedClasses.getTargets();
   }
 
   public HorizontallyMergedClassesInspector assertMergedInto(Class<?> from, Class<?> target) {

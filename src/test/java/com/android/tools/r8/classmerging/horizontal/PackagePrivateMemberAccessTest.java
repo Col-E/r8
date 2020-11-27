@@ -28,7 +28,8 @@ public class PackagePrivateMemberAccessTest extends HorizontalClassMergingTestBa
         .addProgramClasses(B.class)
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .allowAccessModification(false)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

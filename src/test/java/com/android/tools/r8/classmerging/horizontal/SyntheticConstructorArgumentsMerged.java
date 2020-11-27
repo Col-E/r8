@@ -26,7 +26,7 @@ public class SyntheticConstructorArgumentsMerged extends HorizontalClassMergingT
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             options -> {
-              options.enableHorizontalClassMerging = enableHorizontalClassMerging;
+              options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging);
             })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

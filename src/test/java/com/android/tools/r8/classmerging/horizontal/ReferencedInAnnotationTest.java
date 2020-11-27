@@ -38,7 +38,8 @@ public class ReferencedInAnnotationTest extends HorizontalClassMergingTestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(Annotation.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addKeepRuntimeVisibleAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

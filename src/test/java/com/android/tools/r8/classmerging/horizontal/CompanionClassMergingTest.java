@@ -27,7 +27,8 @@ public class CompanionClassMergingTest extends HorizontalClassMergingTestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addOptionsModification(options -> options.enableClassInlining = false)
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

@@ -28,7 +28,8 @@ public class VirtualMethodMergingOfFinalAndNonFinalMethodTest
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()

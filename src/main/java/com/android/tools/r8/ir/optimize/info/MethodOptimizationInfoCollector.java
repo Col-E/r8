@@ -1076,6 +1076,7 @@ public class MethodOptimizationInfoCollector {
         assert !context.getHolderType().isD8R8SynthesizedLambdaClassType()
                 || options.debug
                 || appView.appInfo().hasPinnedInstanceInitializer(context.getHolderType())
+                || appView.options().horizontalClassMergerOptions().isJavaLambdaMergingEnabled()
             : "Unexpected observable side effects from lambda `" + context.toSourceString() + "`";
       }
       return;

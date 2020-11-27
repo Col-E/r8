@@ -4,9 +4,11 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.horizontalclassmerging.ClassMerger.CLASS_ID_FIELD_NAME;
+import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX;
+import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_INSTANCE_FIELD_NAME;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.horizontalclassmerging.ClassMerger;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.desugar.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
@@ -614,21 +616,14 @@ public abstract class GraphLens {
         continue;
       }
       for (DexEncodedField field : clazz.fields()) {
-        // The field $r8$clinitField may be synthesized by R8 in order to trigger the initialization
-        // of the enclosing class. It is not present in the input, and therefore we do not require
-        // that it can be mapped back to the original program.
-        if (field.field.match(dexItemFactory.objectMembers.clinitField)) {
-          continue;
-        }
-
-        // TODO(b/167947782): Should be a general check to see if the field is D8/R8 synthesized.
-        if (field.getReference().name.toSourceString().equals(ClassMerger.CLASS_ID_FIELD_NAME)) {
-          continue;
-        }
-
-        DexField originalField = getOriginalFieldSignature(field.field);
+        // Fields synthesized by R8 are not present in the input, and therefore we do not require
+        // that they can be mapped back to the original program.
+        DexField originalField = getOriginalFieldSignature(field.getReference());
         assert originalFields.contains(originalField)
-            : "Unable to map field `" + field.field.toSourceString() + "` back to original program";
+                || isD8R8SynthesizedField(originalField, dexItemFactory)
+            : "Unable to map field `"
+                + field.getReference().toSourceString()
+                + "` back to original program";
       }
       for (DexEncodedMethod method : clazz.methods()) {
         if (method.isD8R8Synthesized()) {
@@ -641,6 +636,22 @@ public abstract class GraphLens {
     }
 
     return true;
+  }
+
+  private boolean isD8R8SynthesizedField(DexField field, DexItemFactory dexItemFactory) {
+    // TODO(b/167947782): Should be a general check to see if the field is D8/R8 synthesized
+    //  instead of relying on field names.
+    if (field.match(dexItemFactory.objectMembers.clinitField)) {
+      return true;
+    }
+    if (field.getName().toSourceString().equals(CLASS_ID_FIELD_NAME)) {
+      return true;
+    }
+    if (field.getHolderType().toSourceString().contains(LAMBDA_CLASS_NAME_PREFIX)
+        && field.getName().toSourceString().equals(LAMBDA_INSTANCE_FIELD_NAME)) {
+      return true;
+    }
+    return false;
   }
 
   public abstract static class NonIdentityGraphLens extends GraphLens {

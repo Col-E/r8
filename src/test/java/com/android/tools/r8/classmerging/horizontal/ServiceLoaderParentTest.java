@@ -38,7 +38,8 @@ public class ServiceLoaderParentTest extends HorizontalClassMergingTestBase {
                 Origin.unknown()))
         .enableNoVerticalClassMergingAnnotations()
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccess()

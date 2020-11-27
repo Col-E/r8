@@ -26,7 +26,8 @@ public class ClassesWithDifferentInterfacesTest extends HorizontalClassMergingTe
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()

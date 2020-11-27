@@ -195,6 +195,6 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
 
   @Override
   public void classInitializerMayBePostponed(DexEncodedMethod method) {
-    // Ignored.
+    method.getMutableOptimizationInfo().markClassInitializerMayBePostponed();
   }
 }

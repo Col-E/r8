@@ -398,7 +398,15 @@ public class LambdaDesugaring {
     try {
       testEnforcedSignatureHelper();
     } catch (Exception e) {
-      System.out.println(e.getMessage());
+      if (e.getMessage().contains("cannot be cast to lambdadesugaring.LambdaDesugaring$B")
+          || e.getMessage()
+              .contains("cannot be cast to class lambdadesugaring.LambdaDesugaring$B")) {
+        System.out.println(
+            "lambdadesugaring.LambdaDesugaring$A cannot be cast to"
+                + " lambdadesugaring.LambdaDesugaring$B");
+      } else {
+        System.out.println(e.getMessage());
+      }
     }
 
     atA(t -> new LambdaDesugaring().reorder(t));

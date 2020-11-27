@@ -28,7 +28,8 @@ public class PinnedClassMemberReferenceTest extends HorizontalClassMergingTestBa
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .noMinification()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()

@@ -67,6 +67,8 @@ public class LambdaSplitByCodeCorrectnessTest extends AbstractR8KotlinTestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
         .addProgramFiles(ktClasses)
+        .addOptionsModification(
+            options -> options.horizontalClassMergerOptions().disableKotlinLambdaMerging())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(PKG_NAME + ".SimpleKt")
         .applyIf(
@@ -75,8 +77,7 @@ public class LambdaSplitByCodeCorrectnessTest extends AbstractR8KotlinTestBase {
                 b.addOptionsModification(
                     internalOptions ->
                         // Setting verificationSizeLimitInBytesOverride = 1 will force a a chain
-                        // having
-                        // only a single implementation method in each.
+                        // having only a single implementation method in each.
                         internalOptions.testing.verificationSizeLimitInBytesOverride =
                             splitGroup ? 1 : -1))
         .noMinification()

@@ -126,7 +126,7 @@ public class B148525512 extends KotlinTestBase {
             .addKeepClassAndMembersRules(featureKtClassNamet)
             .addKeepClassAndMembersRules(FeatureAPI.class)
             .addOptionsModification(
-                options -> options.enableHorizontalClassMergingOfKotlinLambdas = false)
+                options -> options.horizontalClassMergerOptions().disableKotlinLambdaMerging())
             .setMinApi(parameters.getApiLevel())
             .noMinification() // The check cast inspection above relies on original names.
             .addFeatureSplit(

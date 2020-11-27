@@ -22,8 +22,19 @@ public class NoEnums extends SingleClassPolicy {
   }
 
   @Override
+  public void clear() {
+    cache.clear();
+  }
+
+  @Override
   public boolean canMerge(DexProgramClass program) {
-    return !program.isEnum() && !isEnumSubtype(program);
+    if (program.isEnum()) {
+      return false;
+    }
+    if (isEnumSubtype(program)) {
+      return false;
+    }
+    return true;
   }
 
   private boolean isEnumSubtype(DexClass clazz) {

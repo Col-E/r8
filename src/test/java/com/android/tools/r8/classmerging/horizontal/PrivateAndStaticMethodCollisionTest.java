@@ -22,7 +22,8 @@ public class PrivateAndStaticMethodCollisionTest extends HorizontalClassMergingT
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addHorizontallyMergedClassesInspectorIf(
             enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
         .enableInliningAnnotations()

@@ -30,7 +30,6 @@ import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 public class ConstructorMerger {
@@ -154,7 +153,7 @@ public class ConstructorMerger {
       }
       DexMethod movedConstructor = moveConstructor(classMethodsBuilder, constructor);
       lensBuilder.mapMethod(movedConstructor, movedConstructor);
-      lensBuilder.mapMethodInverse(constructor.method, movedConstructor);
+      lensBuilder.recordNewMethodSignature(constructor.getReference(), movedConstructor);
       typeConstructorClassMap.put(
           classIdentifiers.getInt(constructor.getHolderType()), movedConstructor);
     }
@@ -167,13 +166,29 @@ public class ConstructorMerger {
             classMethodsBuilder::isFresh);
     int extraNulls = newConstructorReference.getArity() - methodReferenceTemplate.getArity();
 
-    DexMethod representativeConstructorReference = constructors.iterator().next().method;
+    DexEncodedMethod representative = constructors.iterator().next();
+    DexMethod originalConstructorReference =
+        appView.graphLens().getOriginalMethodSignature(representative.getReference());
+
+    // Create a special original method signature for the synthesized constructor that did not exist
+    // prior to horizontal class merging. Otherwise we might accidentally think that the synthesized
+    // constructor corresponds to the previous <init>() method on the target class, which could have
+    // unintended side-effects such as leading to unused argument removal being applied to the
+    // synthesized constructor all-though it by construction doesn't have any unused arguments.
+    DexMethod bridgeConstructorReference =
+        dexItemFactory.createFreshMethodName(
+            "$r8$init$bridge",
+            null,
+            originalConstructorReference.getProto(),
+            originalConstructorReference.getHolderType(),
+            classMethodsBuilder::isFresh);
+
     ConstructorEntryPointSynthesizedCode synthesizedCode =
         new ConstructorEntryPointSynthesizedCode(
             typeConstructorClassMap,
             newConstructorReference,
             group.getClassIdField(),
-            appView.graphLens().getOriginalMethodSignature(representativeConstructorReference));
+            bridgeConstructorReference);
     DexEncodedMethod newConstructor =
         new DexEncodedMethod(
             newConstructorReference,
@@ -185,34 +200,20 @@ public class ConstructorMerger {
             true,
             classFileVersion);
 
-    if (isTrivialMerge()) {
-      // The constructor does not require the additional argument, just map it like a regular
-      // method.
-      DexEncodedMethod oldConstructor = constructors.iterator().next();
-      if (extraNulls > 0) {
-        List<ExtraParameter> extraParameters = new LinkedList<>();
-        extraParameters.addAll(Collections.nCopies(extraNulls, new ExtraUnusedNullParameter()));
-        lensBuilder.moveMergedConstructor(
-            oldConstructor.method, newConstructorReference, extraParameters);
-      } else {
-        lensBuilder.moveMethod(oldConstructor.method, newConstructorReference);
-      }
-    } else {
-      // Map each old constructor to the newly synthesized constructor in the graph lens.
-      for (DexEncodedMethod oldConstructor : constructors) {
+    // Map each old constructor to the newly synthesized constructor in the graph lens.
+    for (DexEncodedMethod oldConstructor : constructors) {
+      List<ExtraParameter> extraParameters = new ArrayList<>();
+      if (constructors.size() > 1) {
         int classIdentifier = classIdentifiers.getInt(oldConstructor.getHolderType());
-
-        List<ExtraParameter> extraParameters = new LinkedList<>();
         extraParameters.add(new ExtraConstantIntParameter(classIdentifier));
-        extraParameters.addAll(Collections.nCopies(extraNulls, new ExtraUnusedNullParameter()));
-
-        lensBuilder.moveMergedConstructor(
-            oldConstructor.method, newConstructorReference, extraParameters);
       }
+      extraParameters.addAll(Collections.nCopies(extraNulls, new ExtraUnusedNullParameter()));
+      lensBuilder.mapMergedConstructor(
+          oldConstructor.getReference(), newConstructorReference, extraParameters);
     }
-    // Map the first constructor to the newly synthesized constructor.
-    lensBuilder.recordExtraOriginalSignature(
-        representativeConstructorReference, newConstructorReference);
+
+    // Add a mapping from a synthetic name to the synthetic constructor.
+    lensBuilder.recordNewMethodSignature(bridgeConstructorReference, newConstructorReference);
 
     classMethodsBuilder.addDirectMethod(newConstructor);
 

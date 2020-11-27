@@ -46,7 +46,8 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
         .addKeepAttributeLineNumberTable()
         .addKeepAttributeSourceFile()
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -63,7 +64,9 @@ public class MergedConstructorStackTraceTest extends HorizontalClassMergingTestB
                             2,
                             StackTraceLine.builder()
                                 .setClassName(A.class.getTypeName())
-                                .setMethodName("<init>")
+                                // TODO(b/124483578): The synthetic method should not be part of the
+                                //  retraced stack trace.
+                                .setMethodName("$r8$init$bridge")
                                 .setFileName(getClass().getSimpleName() + ".java")
                                 .setLineNumber(0)
                                 .build())

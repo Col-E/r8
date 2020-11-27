@@ -202,7 +202,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     enableClassStaticizer = false;
     enableDevirtualization = false;
     enableLambdaMerging = false;
-    enableHorizontalClassMerging = false;
+    horizontalClassMergerOptions.disable();
     enableStaticClassMerging = false;
     enableVerticalClassMerging = false;
     enableEnumUnboxing = false;
@@ -238,11 +238,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableFieldBitAccessAnalysis =
       System.getProperty("com.android.tools.r8.fieldBitAccessAnalysis") != null;
   public boolean enableStaticClassMerging = true;
-  public boolean enableHorizontalClassMerging = true;
-  public boolean enableHorizontalClassMergingConstructorMerging = true;
-  public int horizontalClassMergingMaxGroupSize = 30;
-  public int horizontalClassMergingSyntheticArgumentCount = 3;
-  public boolean enableHorizontalClassMergingOfKotlinLambdas = true;
   public boolean enableVerticalClassMerging = true;
   public boolean enableArgumentRemoval = true;
   public boolean enableUnusedInterfaceRemoval = true;
@@ -582,7 +577,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
    * and check cast instructions needs to be collected.
    */
   public boolean isClassMergingExtensionRequired() {
-    return enableHorizontalClassMerging || enableVerticalClassMerging;
+    return horizontalClassMergerOptions.isEnabled() || enableVerticalClassMerging;
   }
 
   @Override
@@ -615,6 +610,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   private final CallSiteOptimizationOptions callSiteOptimizationOptions =
       new CallSiteOptimizationOptions();
+  private final HorizontalClassMergerOptions horizontalClassMergerOptions =
+      new HorizontalClassMergerOptions();
   private final ProtoShrinkingOptions protoShrinking = new ProtoShrinkingOptions();
   private final KotlinOptimizationOptions kotlinOptimizationOptions =
       new KotlinOptimizationOptions();
@@ -636,6 +633,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public CallSiteOptimizationOptions callSiteOptimizationOptions() {
     return callSiteOptimizationOptions;
+  }
+
+  public HorizontalClassMergerOptions horizontalClassMergerOptions() {
+    return horizontalClassMergerOptions;
   }
 
   public ProtoShrinkingOptions protoShrinking() {
@@ -1240,6 +1241,70 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean isTypePropagationEnabled() {
       return enableTypePropagation;
+    }
+  }
+
+  public static class HorizontalClassMergerOptions {
+
+    public boolean enable = true;
+    public boolean enableConstructorMerging = true;
+    public boolean enableJavaLambdaMerging = false;
+    public boolean enableKotlinLambdaMerging = true;
+
+    public int syntheticArgumentCount = 3;
+    public int maxGroupSize = 30;
+
+    public void disable() {
+      enable = false;
+    }
+
+    @Deprecated
+    public void disableKotlinLambdaMerging() {
+      enableKotlinLambdaMerging = false;
+    }
+
+    public void enable() {
+      enable = true;
+    }
+
+    public void enableIf(boolean enable) {
+      this.enable = enable;
+    }
+
+    public void enableJavaLambdaMerging() {
+      enableJavaLambdaMerging = true;
+    }
+
+    public void enableKotlinLambdaMergingIf(boolean enableKotlinLambdaMerging) {
+      this.enableKotlinLambdaMerging = enableKotlinLambdaMerging;
+    }
+
+    public int getMaxGroupSize() {
+      return maxGroupSize;
+    }
+
+    public int getSyntheticArgumentCount() {
+      return syntheticArgumentCount;
+    }
+
+    public boolean isConstructorMergingEnabled() {
+      return enableConstructorMerging;
+    }
+
+    public boolean isDisabled() {
+      return !isEnabled();
+    }
+
+    public boolean isEnabled() {
+      return enable;
+    }
+
+    public boolean isJavaLambdaMergingEnabled() {
+      return enableJavaLambdaMerging;
+    }
+
+    public boolean isKotlinLambdaMergingEnabled() {
+      return enableKotlinLambdaMerging;
     }
   }
 

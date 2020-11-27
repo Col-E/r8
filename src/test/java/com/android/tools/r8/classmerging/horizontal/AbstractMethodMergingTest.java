@@ -23,7 +23,8 @@ public class AbstractMethodMergingTest extends HorizontalClassMergingTestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addHorizontallyMergedClassesInspectorIf(
             enableHorizontalClassMerging, inspector -> inspector.assertMergedInto(B.class, A.class))
         .enableInliningAnnotations()

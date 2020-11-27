@@ -48,7 +48,7 @@ public class PreventMergeMainDexTracingTest extends HorizontalClassMergingTestBa
         .addMainDexClassRules(Main.class)
         .addOptionsModification(
             options -> {
-              options.enableHorizontalClassMerging = enableHorizontalClassMerging;
+              options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging);
               options.minimalMainDex = true;
             })
         .enableNeverClassInliningAnnotations()

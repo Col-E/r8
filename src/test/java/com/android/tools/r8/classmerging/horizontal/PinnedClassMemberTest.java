@@ -23,7 +23,8 @@ public class PinnedClassMemberTest extends HorizontalClassMergingTestBase {
         .addKeepMainRule(Main.class)
         .addKeepRules("-keepclassmembers class " + B.class.getTypeName() + " { void foo(); }")
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)

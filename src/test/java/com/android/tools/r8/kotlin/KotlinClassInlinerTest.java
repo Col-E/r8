@@ -335,7 +335,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                       // condition.
                       options.testing.addCallEdgesForLibraryInvokes = true;
 
-                      options.enableHorizontalClassMergingOfKotlinLambdas = false;
+                      options.horizontalClassMergerOptions().disableKotlinLambdaMerging();
                     })
                 .apply(configuration));
   }

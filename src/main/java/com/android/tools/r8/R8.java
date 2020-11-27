@@ -583,7 +583,9 @@ public class R8 {
             timing.end();
           }
         }
-        if (options.enableHorizontalClassMerging && options.enableInlining) {
+        if (options.horizontalClassMergerOptions().isEnabled()
+            && options.enableInlining
+            && options.isShrinking()) {
           timing.begin("HorizontalClassMerger");
           HorizontalClassMerger merger = new HorizontalClassMerger(appViewWithLiveness);
           DirectMappedDexApplication.Builder appBuilder =

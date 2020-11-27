@@ -23,7 +23,7 @@ public class InlineSynthesizedLambdaClass extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public InlineSynthesizedLambdaClass(TestParameters parameters) {
@@ -42,7 +42,7 @@ public class InlineSynthesizedLambdaClass extends TestBase {
             .addKeepMainRule(Lambda.class)
             .allowAccessModification()
             .noMinification()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), Lambda.class)
             .assertSuccessWithOutput(javaOutput)
             .inspector();

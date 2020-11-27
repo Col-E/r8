@@ -42,7 +42,8 @@ public class ClassesWithFeatureSplitTest extends HorizontalClassMergingTestBase 
             .addKeepFeatureMainRule(Feature1Main.class)
             .addKeepFeatureMainRule(Feature2Main.class)
             .addOptionsModification(
-                options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+                options ->
+                    options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
             .enableNeverClassInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile()

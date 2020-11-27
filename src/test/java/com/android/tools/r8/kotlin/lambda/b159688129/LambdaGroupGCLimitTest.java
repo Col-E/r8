@@ -8,15 +8,17 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -32,16 +34,20 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class LambdaGroupGCLimitTest extends TestBase {
 
+  private final boolean enableHorizontalClassMergingOfKotlinLambdas;
   private final TestParameters parameters;
   private final int LAMBDA_HOLDER_LIMIT = 50;
   private final int LAMBDAS_PER_CLASS_LIMIT = 100;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{1}, horizontal class merging: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }
 
-  public LambdaGroupGCLimitTest(TestParameters parameters) {
+  public LambdaGroupGCLimitTest(
+      boolean enableHorizontalClassMergingOfKotlinLambdas, TestParameters parameters) {
+    this.enableHorizontalClassMergingOfKotlinLambdas = enableHorizontalClassMergingOfKotlinLambdas;
     this.parameters = parameters;
   }
 
@@ -51,6 +57,11 @@ public class LambdaGroupGCLimitTest extends TestBase {
     R8FullTestBuilder testBuilder =
         testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getKotlinStdlibJar(ToolHelper.getKotlinC_1_3_72()))
+            .addOptionsModification(
+                options ->
+                    options
+                        .horizontalClassMergerOptions()
+                        .enableKotlinLambdaMergingIf(enableHorizontalClassMergingOfKotlinLambdas))
             .setMinApi(parameters.getApiLevel())
             .noMinification();
     Path classFiles = temp.newFile("classes.jar").toPath();
@@ -63,7 +74,27 @@ public class LambdaGroupGCLimitTest extends TestBase {
       testBuilder.addKeepClassAndMembersRules(PKG_NAME + ".MainKt" + mainId);
     }
     writeClassFileDataToJar(classFiles, classFileData);
-    R8TestCompileResult compileResult = testBuilder.addProgramFiles(classFiles).compile();
+    R8TestCompileResult compileResult =
+        testBuilder
+            .addProgramFiles(classFiles)
+            .addHorizontallyMergedClassesInspector(
+                inspector -> {
+                  if (enableHorizontalClassMergingOfKotlinLambdas) {
+                    HorizontalClassMergerOptions defaultHorizontalClassMergerOptions =
+                        new HorizontalClassMergerOptions();
+                    assertEquals(4833, inspector.getSources().size());
+                    assertEquals(167, inspector.getTargets().size());
+                    assertTrue(
+                        inspector.getMergeGroups().stream()
+                            .allMatch(
+                                mergeGroup ->
+                                    mergeGroup.size()
+                                        <= defaultHorizontalClassMergerOptions.getMaxGroupSize()));
+                  } else {
+                    inspector.assertNoClassesMerged();
+                  }
+                })
+            .compile();
     Path path = compileResult.writeToZip();
     compileResult
         .run(parameters.getRuntime(), PKG_NAME + ".MainKt0")
@@ -74,7 +105,9 @@ public class LambdaGroupGCLimitTest extends TestBase {
                   codeInspector.allClasses().stream()
                       .filter(c -> c.getFinalName().contains("LambdaGroup"))
                       .collect(Collectors.toList());
-              assertEquals(1, lambdaGroups.size());
+              assertEquals(
+                  1 - BooleanUtils.intValue(enableHorizontalClassMergingOfKotlinLambdas),
+                  lambdaGroups.size());
             });
     Path oatFile = temp.newFile("out.oat").toPath();
     ProcessResult processResult =

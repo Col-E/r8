@@ -107,7 +107,9 @@ public class SyntheticArgumentClass {
       boolean requiresMainDex = appView.appInfo().getMainDexClasses().containsAnyOf(mergeClasses);
 
       List<DexType> syntheticArgumentTypes = new ArrayList<>();
-      for (int i = 0; i < appView.options().horizontalClassMergingSyntheticArgumentCount; i++) {
+      for (int i = 0;
+          i < appView.options().horizontalClassMergerOptions().getSyntheticArgumentCount();
+          i++) {
         syntheticArgumentTypes.add(
             synthesizeClass(appView, appBuilder, context, requiresMainDex, i));
       }

@@ -58,7 +58,8 @@ public class NestClassTest extends HorizontalClassMergingTestBase {
         .addKeepMainRule(examplesTypeName(BasicNestHostHorizontalClassMerging.class))
         .addExamplesProgramFiles(R.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .compile()

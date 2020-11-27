@@ -25,7 +25,8 @@ public class ClassWithInstanceFieldsTest extends HorizontalClassMergingTestBase 
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

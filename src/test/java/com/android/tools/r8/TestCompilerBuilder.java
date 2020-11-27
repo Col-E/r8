@@ -47,7 +47,7 @@ public abstract class TestCompilerBuilder<
       options -> {
         options.testing.allowClassInlinerGracefulExit = false;
         options.testing.reportUnusedProguardConfigurationRules = true;
-        options.enableHorizontalClassMerging = true;
+        options.horizontalClassMergerOptions().enable();
       };
 
   final Backend backend;
@@ -130,7 +130,6 @@ public abstract class TestCompilerBuilder<
 
   public T addHorizontallyMergedClassesInspectorIf(
       boolean condition, Consumer<HorizontallyMergedClassesInspector> inspector) {
-
     if (condition) {
       return addHorizontallyMergedClassesInspector(inspector);
     }

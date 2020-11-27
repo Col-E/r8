@@ -31,7 +31,8 @@ public class MergingProducesFieldCollisionTest extends HorizontalClassMergingTes
         .addProgramClassFileData(transformedC)
         .addProgramClasses(Parent.class, A.class, B.class, Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

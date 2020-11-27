@@ -36,7 +36,8 @@ public class TreeFixerInterfaceCollisionTest extends HorizontalClassMergingTestB
         .addKeepMainRule(Main.class)
         .noMinification()
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()

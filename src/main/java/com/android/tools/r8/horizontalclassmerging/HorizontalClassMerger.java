@@ -15,6 +15,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.DontMergeSynchronize
 import com.android.tools.r8.horizontalclassmerging.policies.IgnoreSynthetics;
 import com.android.tools.r8.horizontalclassmerging.policies.LimitGroups;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
+import com.android.tools.r8.horizontalclassmerging.policies.NoClassInitializerWithObservableSideEffects;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassesOrMembersWithAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoDirectRuntimeTypeChecks;
 import com.android.tools.r8.horizontalclassmerging.policies.NoEnums;
@@ -26,7 +27,6 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoKotlinLambdas;
 import com.android.tools.r8.horizontalclassmerging.policies.NoKotlinMetadata;
 import com.android.tools.r8.horizontalclassmerging.policies.NoNativeMethods;
 import com.android.tools.r8.horizontalclassmerging.policies.NoServiceLoaders;
-import com.android.tools.r8.horizontalclassmerging.policies.NoStaticClassInitializer;
 import com.android.tools.r8.horizontalclassmerging.policies.NotMatchedByNoHorizontalClassMerging;
 import com.android.tools.r8.horizontalclassmerging.policies.NotVerticallyMergedIntoSubtype;
 import com.android.tools.r8.horizontalclassmerging.policies.PreserveMethodCharacteristics;
@@ -64,11 +64,9 @@ public class HorizontalClassMerger {
     MergeGroup initialGroup = new MergeGroup(appView.appInfo().classesWithDeterministicOrder());
 
     // Run the policies on all program classes to produce a final grouping.
+    List<Policy> policies = getPolicies(mainDexTracingResult, runtimeTypeCheckInfo);
     Collection<MergeGroup> groups =
-        new SimplePolicyExecutor()
-            .run(
-                Collections.singletonList(initialGroup),
-                getPolicies(mainDexTracingResult, runtimeTypeCheckInfo));
+        new SimplePolicyExecutor().run(Collections.singletonList(initialGroup), policies);
 
     // If there are no groups, then end horizontal class merging.
     if (groups.isEmpty()) {
@@ -116,7 +114,7 @@ public class HorizontalClassMerger {
         new IgnoreSynthetics(appView),
         new NoClassesOrMembersWithAnnotations(),
         new NoInnerClasses(),
-        new NoStaticClassInitializer(),
+        new NoClassInitializerWithObservableSideEffects(),
         new NoNativeMethods(),
         new NoKeepRules(appView),
         new NoKotlinMetadata(),

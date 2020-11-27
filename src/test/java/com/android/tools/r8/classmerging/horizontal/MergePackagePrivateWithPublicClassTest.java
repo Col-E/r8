@@ -27,7 +27,8 @@ public class MergePackagePrivateWithPublicClassTest extends HorizontalClassMergi
             PackagePrivateClassRunner.class, PackagePrivateClassRunner.getPrivateClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

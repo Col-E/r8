@@ -224,8 +224,16 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return nonLecacySyntheticItems.containsKey(type) || legacySyntheticTypes.contains(type);
   }
 
+  private boolean isLegacyCommittedSynthetic(DexType type) {
+    return legacySyntheticTypes.contains(type);
+  }
+
   public boolean isPendingSynthetic(DexType type) {
     return pendingDefinitions.containsKey(type) || legacyPendingClasses.containsKey(type);
+  }
+
+  public boolean isLegacyPendingSynthetic(DexType type) {
+    return legacyPendingClasses.containsKey(type);
   }
 
   public boolean isSyntheticClass(DexType type) {
@@ -237,6 +245,14 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   public boolean isSyntheticClass(DexProgramClass clazz) {
     return isSyntheticClass(clazz.type);
+  }
+
+  public boolean isLegacySyntheticClass(DexType type) {
+    return isLegacyCommittedSynthetic(type) || isLegacyPendingSynthetic(type);
+  }
+
+  public boolean isLegacySyntheticClass(DexProgramClass clazz) {
+    return isLegacySyntheticClass(clazz.getType());
   }
 
   public Collection<DexProgramClass> getLegacyPendingClasses() {

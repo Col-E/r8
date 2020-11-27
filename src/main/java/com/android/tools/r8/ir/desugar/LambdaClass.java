@@ -33,6 +33,8 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
@@ -64,6 +66,8 @@ import java.util.zip.CRC32;
  * call site, and thus two such classes will require two separate lambda classes.
  */
 public final class LambdaClass {
+
+  private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
   final AppView<?> appView;
   final LambdaRewriter rewriter;
@@ -293,6 +297,7 @@ public final class LambdaClass {
               ParameterAnnotationsList.empty(),
               LambdaClassConstructorSourceCode.build(this),
               true);
+      feedback.classInitializerMayBePostponed(methods[1]);
     }
     return methods;
   }

@@ -26,7 +26,8 @@ public class LargeConstructorsMergingTest extends HorizontalClassMergingTestBase
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addOptionsModification(
-            options -> options.enableHorizontalClassMerging = enableHorizontalClassMerging)
+            options ->
+                options.horizontalClassMergerOptions().enableIf(enableHorizontalClassMerging))
         .addOptionsModification(options -> options.testing.verificationSizeLimitInBytesOverride = 4)
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
