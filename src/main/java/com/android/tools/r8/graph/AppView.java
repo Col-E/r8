@@ -93,7 +93,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   // When input has been (partially) desugared these are the classes which has been library
   // desugared. This information is populated in the IR converter.
-  private Set<DexProgramClass> alreadyLibraryDesugared = null;
+  private Set<DexType> alreadyLibraryDesugared = null;
 
   private AppView(
       T appInfo,
@@ -641,7 +641,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         });
   }
 
-  public void setAlreadyLibraryDesugared(Set<DexProgramClass> alreadyLibraryDesugared) {
+  public void setAlreadyLibraryDesugared(Set<DexType> alreadyLibraryDesugared) {
     assert this.alreadyLibraryDesugared == null;
     this.alreadyLibraryDesugared = alreadyLibraryDesugared;
   }
@@ -651,6 +651,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       return false;
     }
     assert alreadyLibraryDesugared != null;
-    return alreadyLibraryDesugared.contains(clazz);
+    return alreadyLibraryDesugared.contains(clazz.getType());
   }
 }

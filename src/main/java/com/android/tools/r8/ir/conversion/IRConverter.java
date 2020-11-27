@@ -488,13 +488,13 @@ public class IRConverter {
       // Classes which has already been through library desugaring will not go through IR
       // processing again.
       LibraryDesugaredChecker libraryDesugaredChecker = new LibraryDesugaredChecker(appView);
-      Set<DexProgramClass> alreadyLibraryDesugared = Sets.newConcurrentHashSet();
+      Set<DexType> alreadyLibraryDesugared = Sets.newConcurrentHashSet();
       ThreadUtils.processItems(
           application.classes(),
           clazz -> {
             if (libraryDesugaredChecker.isClassLibraryDesugared(clazz)) {
               if (appView.options().desugarSpecificOptions().allowAllDesugaredInput) {
-                alreadyLibraryDesugared.add(clazz);
+                alreadyLibraryDesugared.add(clazz.getType());
               } else {
                 throw new CompilationError(
                     "Code for "
