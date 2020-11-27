@@ -25,12 +25,14 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.SuccessfulMemberResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class RepackagingUseRegistry extends UseRegistry {
 
   private final AppInfoWithLiveness appInfo;
+  private final InternalOptions options;
   private final RepackagingConstraintGraph constraintGraph;
   private final ProgramDefinition context;
   private final InitClassLens initClassLens;
@@ -42,6 +44,7 @@ public class RepackagingUseRegistry extends UseRegistry {
       ProgramDefinition context) {
     super(appView.dexItemFactory());
     this.appInfo = appView.appInfo();
+    this.options = appView.options();
     this.constraintGraph = constraintGraph;
     this.context = context;
     this.initClassLens = appView.initClassLens();
@@ -60,31 +63,51 @@ public class RepackagingUseRegistry extends UseRegistry {
     return false;
   }
 
-  private boolean isOnlyAccessibleFromSamePackage(DexClassAndMember<?, ?> member) {
-    AccessFlags<?> accessFlags = member.getAccessFlags();
+  private boolean isOnlyAccessibleFromSamePackage(
+      SuccessfulMemberResolutionResult<?, ?> resolutionResult, boolean isInvoke) {
+    AccessFlags<?> accessFlags = resolutionResult.getResolutionPair().getAccessFlags();
     if (accessFlags.isPackagePrivate()) {
       return true;
     }
-    if (accessFlags.isProtected()
-        && !appInfo.isSubtype(context.getContextType(), member.getHolderType())) {
-      return true;
+    if (accessFlags.isProtected()) {
+      if (!appInfo.isSubtype(
+          context.getContextType(), resolutionResult.getResolvedHolder().getType())) {
+        return true;
+      }
+      // Check for assignability if we are generating CF:
+      // https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.8
+      if (isInvoke
+          && options.isGeneratingClassFiles()
+          && !appInfo.isSubtype(
+              resolutionResult.getInitialResolutionHolder().getType(), context.getContextType())) {
+        return true;
+      }
     }
     return false;
   }
 
   public void registerFieldAccess(DexField field) {
-    registerMemberAccess(appInfo.resolveField(field));
+    registerMemberAccess(appInfo.resolveField(field), false);
   }
 
   public ProgramMethod registerMethodReference(DexMethod method) {
     ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
-    registerMemberAccess(resolutionResult);
+    registerMemberAccess(resolutionResult, false);
     return resolutionResult.isSingleResolution()
         ? resolutionResult.asSingleResolution().getResolvedProgramMethod()
         : null;
   }
 
+  private void registerMemberAccessForInvoke(MemberResolutionResult<?, ?> resolutionResult) {
+    registerMemberAccess(resolutionResult, true);
+  }
+
   public void registerMemberAccess(MemberResolutionResult<?, ?> resolutionResult) {
+    registerMemberAccess(resolutionResult, false);
+  }
+
+  private void registerMemberAccess(
+      MemberResolutionResult<?, ?> resolutionResult, boolean isInvoke) {
     SuccessfulMemberResolutionResult<?, ?> successfulResolutionResult =
         resolutionResult.asSuccessfulMemberResolutionResult();
     if (successfulResolutionResult == null) {
@@ -96,14 +119,16 @@ public class RepackagingUseRegistry extends UseRegistry {
     }
 
     // Check access to the initial resolution holder.
-    registerClassTypeAccess(successfulResolutionResult.getInitialResolutionHolder());
+    DexClass initialResolutionHolder = successfulResolutionResult.getInitialResolutionHolder();
+    registerClassTypeAccess(initialResolutionHolder);
 
     // Similarly, check access to the resolved member.
     DexClassAndMember<?, ?> resolutionPair = successfulResolutionResult.getResolutionPair();
     if (resolutionPair != null) {
       RepackagingConstraintGraph.Node resolvedMemberNode =
           constraintGraph.getNode(resolutionPair.getDefinition());
-      if (resolvedMemberNode != null && isOnlyAccessibleFromSamePackage(resolutionPair)) {
+      if (resolvedMemberNode != null
+          && isOnlyAccessibleFromSamePackage(successfulResolutionResult, isInvoke)) {
         node.addNeighbor(resolvedMemberNode);
       }
     }
@@ -149,27 +174,27 @@ public class RepackagingUseRegistry extends UseRegistry {
 
   @Override
   public void registerInvokeVirtual(DexMethod invokedMethod) {
-    registerMemberAccess(appInfo.resolveMethod(invokedMethod, false));
+    registerMemberAccessForInvoke(appInfo.resolveMethod(invokedMethod, false));
   }
 
   @Override
   public void registerInvokeDirect(DexMethod invokedMethod) {
-    registerMemberAccess(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
+    registerMemberAccessForInvoke(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
   }
 
   @Override
   public void registerInvokeStatic(DexMethod invokedMethod) {
-    registerMemberAccess(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
+    registerMemberAccessForInvoke(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
   }
 
   @Override
   public void registerInvokeInterface(DexMethod invokedMethod) {
-    registerMemberAccess(appInfo.resolveMethod(invokedMethod, true));
+    registerMemberAccessForInvoke(appInfo.resolveMethod(invokedMethod, true));
   }
 
   @Override
   public void registerInvokeSuper(DexMethod invokedMethod) {
-    registerMemberAccess(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
+    registerMemberAccessForInvoke(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
   }
 
   @Override

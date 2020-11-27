@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.repackage;
 
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -46,15 +47,14 @@ public class RepackageProtectedInSeparatePackageTest extends RepackageTestBase {
             .compile()
             .inspect(
                 inspector -> {
-                  // TODO(b/173584786): We should not repackage Sub when generating CF.
-                  assertThat(Sub.class, isRepackaged(inspector));
+                  if (parameters.isCfRuntime()) {
+                    assertThat(Sub.class, not(isRepackaged(inspector)));
+                  } else {
+                    assertThat(Sub.class, isRepackaged(inspector));
+                  }
                 })
-            .run(parameters.getRuntime(), Main.class);
-    if (parameters.isCfRuntime()) {
-      runResult.assertFailureWithErrorThatThrows(VerifyError.class);
-    } else {
-      runResult.assertSuccessWithOutputLines(EXPECTED);
-    }
+            .run(parameters.getRuntime(), Main.class)
+            .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class Base {
