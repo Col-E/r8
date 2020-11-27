@@ -756,4 +756,8 @@ public class DexProgramClass extends DexClass
   public long getChecksum() {
     return checksumSupplier.getChecksum(this);
   }
+
+  public ChecksumSupplier getChecksumSupplier() {
+    return checksumSupplier;
+  }
 }

@@ -4,11 +4,8 @@
 
 package com.android.tools.r8.classFiltering;
 
-import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.ProgramResource;
-import com.android.tools.r8.ProgramResourceProvider;
-import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -118,14 +115,16 @@ public class ClassFilteringTest extends TestBase {
 
   @Test
   public void testDexMergingWithChecksumMissing() throws Exception {
-    // Step #1: Build the dex file seperately as an incremental build tools usually do but this time
+    // Step #1: Build the dex file separately as an incremental build tools usually do but this time
     // make one of the dex file missing checksum information.
-    Path[] dexInput = new Path[] {
-        buildDex(TestClass.class,true, null),
-        buildDex(TestClass.Keep.class,true, null),
-        buildDex(TestClass.Remove.class, false, null)};
+    Path[] dexInput =
+        new Path[] {
+          buildDex(TestClass.class, true, null),
+          buildDex(TestClass.Keep.class, true, null),
+          buildDex(TestClass.Remove.class, false, null)
+        };
 
-    // Step #2: Now use D8 as a merging tool and verify that the compilation fails as expect.
+    // Step #2: Now use D8 as a merging tool and verify that the compilation fails as expected.
     try {
       testForD8()
           .setMinApi(parameters.getApiLevel())
@@ -140,10 +139,8 @@ public class ClassFilteringTest extends TestBase {
     }
   }
 
-  /*
   @Test
-  public void testMultidexOutput()
-      throws CompilationFailedException, IOException, ExecutionException, ResourceException {
+  public void testDexFilePerClassFilteringOutput() throws Exception {
     // Step #1: Build the program pretending to be multidex files with DexPerClass.
     final Path outZip = testForD8()
         .setMinApi(parameters.getApiLevel())
@@ -153,22 +150,15 @@ public class ClassFilteringTest extends TestBase {
         .compile()
         .writeToZip();
 
-    final long crc = ToolHelper.getClassByteCrc(TestClass.Remove.class);
-
     // Step #2: Verify that the checksums are present and filtering is working as expected.
-    ProgramResourceProvider filter = new ArchiveProvider(outZip) {
-      @Override
-      public boolean includeClassWithChecksum(String classDescriptor, Long checksum) {
-        return !checksum.equals(crc);
-      }
-    };
+    final long crc = ToolHelper.getClassByteCrc(TestClass.Remove.class);
     testForD8()
-        .addProgramResourceProvider(filter)
+        .addProgramFiles(outZip)
+        .apply(b -> b.getBuilder().setDexClassChecksumFilter((desc, checksum) -> checksum != crc))
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput("Keep No Remove ");
   }
-  */
 
   @Test
   public void testLambdaChecksum() throws Exception {

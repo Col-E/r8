@@ -81,7 +81,7 @@ public class RepackagingTreeFixer {
             DexEncodedMethod.EMPTY_ARRAY,
             DexEncodedMethod.EMPTY_ARRAY,
             dexItemFactory.getSkipNameValidationForTesting(),
-            DexProgramClass::checksumFromType,
+            clazz.getChecksumSupplier(),
             fixupSynthesizedFrom(clazz.getSynthesizedFrom()));
     newClass.setInstanceFields(fixupFields(clazz.instanceFields()));
     newClass.setStaticFields(fixupFields(clazz.staticFields()));
