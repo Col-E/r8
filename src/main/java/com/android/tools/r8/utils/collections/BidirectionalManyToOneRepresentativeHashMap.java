@@ -52,4 +52,20 @@ public class BidirectionalManyToOneRepresentativeHashMap<K, V>
     }
     return Collections.emptySet();
   }
+
+  @Override
+  public V remove(K key) {
+    V value = super.remove(key);
+    if (getKeys(value).size() <= 1 || getRepresentativeKey(value) == key) {
+      removeRepresentativeFor(value);
+    }
+    return value;
+  }
+
+  @Override
+  public Set<K> removeValue(V value) {
+    Set<K> keys = super.removeValue(value);
+    removeRepresentativeFor(value);
+    return keys;
+  }
 }

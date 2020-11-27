@@ -75,6 +75,10 @@ public class MethodAccessInfoCollection {
     superInvokes.forEach(consumer);
   }
 
+  public void forEachSuperInvokeContext(DexMethod method, Consumer<ProgramMethod> consumer) {
+    superInvokes.getOrDefault(method, ProgramMethodSet.empty()).forEach(consumer);
+  }
+
   public void forEachVirtualInvoke(BiConsumer<DexMethod, ProgramMethodSet> consumer) {
     virtualInvokes.forEach(consumer);
   }

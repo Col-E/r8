@@ -11,8 +11,9 @@ import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
-import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
+import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -21,12 +22,8 @@ class BridgeHoistingResult {
   private final AppView<AppInfoWithLiveness> appView;
 
   // Mapping from non-hoisted bridge methods to hoisted bridge methods.
-  private final MutableBidirectionalManyToOneMap<DexMethod, DexMethod> bridgeToHoistedBridgeMap =
-      new BidirectionalManyToOneHashMap<>();
-
-  // Mapping from non-hoisted bridge methods to the set of contexts in which they are accessed.
-  private final MethodAccessInfoCollection.IdentityBuilder bridgeMethodAccessInfoCollectionBuilder =
-      MethodAccessInfoCollection.identityBuilder();
+  private final MutableBidirectionalManyToOneRepresentativeMap<DexMethod, DexMethod>
+      bridgeToHoistedBridgeMap = new BidirectionalManyToOneRepresentativeHashMap<>();
 
   BridgeHoistingResult(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
@@ -43,30 +40,46 @@ class BridgeHoistingResult {
         });
   }
 
-  public MethodAccessInfoCollection getBridgeMethodAccessInfoCollection() {
-    return bridgeMethodAccessInfoCollectionBuilder.build();
-  }
-
   public boolean isEmpty() {
     return bridgeToHoistedBridgeMap.isEmpty();
   }
 
-  public void move(DexMethod from, DexMethod to) {
-    Set<DexMethod> keys = bridgeToHoistedBridgeMap.getKeys(from);
-    if (keys.isEmpty()) {
-      bridgeToHoistedBridgeMap.put(from, to);
-    } else {
-      for (DexMethod original : keys) {
-        bridgeToHoistedBridgeMap.put(original, to);
+  public void move(Iterable<DexMethod> from, DexMethod to, DexMethod representative) {
+    DexMethod originalRepresentative =
+        bridgeToHoistedBridgeMap.getRepresentativeKeyOrDefault(representative, representative);
+    Set<DexMethod> originalFrom = Sets.newLinkedHashSet();
+    for (DexMethod method : from) {
+      Set<DexMethod> keys = bridgeToHoistedBridgeMap.removeValue(method);
+      if (keys.isEmpty()) {
+        originalFrom.add(method);
+      } else {
+        originalFrom.addAll(keys);
       }
     }
+    assert originalFrom.contains(originalRepresentative);
+    bridgeToHoistedBridgeMap.put(originalFrom, to);
+    bridgeToHoistedBridgeMap.setRepresentative(to, originalRepresentative);
+  }
 
+  public void recordNonReboundMethodAccesses(
+      MethodAccessInfoCollection.IdentityBuilder bridgeMethodAccessInfoCollectionBuilder) {
     MethodAccessInfoCollection methodAccessInfoCollection =
         appView.appInfo().getMethodAccessInfoCollection();
-    methodAccessInfoCollection.forEachVirtualInvokeContext(
-        from,
-        context ->
-            bridgeMethodAccessInfoCollectionBuilder.registerInvokeVirtualInContext(from, context));
+    bridgeToHoistedBridgeMap
+        .keySet()
+        .forEach(
+            from -> {
+              methodAccessInfoCollection.forEachSuperInvokeContext(
+                  from,
+                  context ->
+                      bridgeMethodAccessInfoCollectionBuilder.registerInvokeSuperInContext(
+                          from, context));
+              methodAccessInfoCollection.forEachVirtualInvokeContext(
+                  from,
+                  context ->
+                      bridgeMethodAccessInfoCollectionBuilder.registerInvokeVirtualInContext(
+                          from, context));
+            });
   }
 
   public BridgeHoistingLens buildLens() {

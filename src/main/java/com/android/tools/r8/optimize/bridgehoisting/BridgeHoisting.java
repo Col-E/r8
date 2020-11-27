@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.BottomUpClassHierarchyTraversal;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -31,6 +32,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -85,6 +87,11 @@ public class BridgeHoisting {
         .excludeInterfaces()
         .visit(appView.appInfo().classes(), clazz -> processClass(clazz, subtypingInfo));
     if (!result.isEmpty()) {
+      // Mapping from non-hoisted bridge methods to the set of contexts in which they are accessed.
+      MethodAccessInfoCollection.IdentityBuilder bridgeMethodAccessInfoCollectionBuilder =
+          MethodAccessInfoCollection.identityBuilder();
+      result.recordNonReboundMethodAccesses(bridgeMethodAccessInfoCollectionBuilder);
+
       BridgeHoistingLens lens = result.buildLens();
       appView.rewriteWithLens(lens);
 
@@ -96,7 +103,7 @@ public class BridgeHoisting {
       // bridge methods are left as-is in the code, but they are rewritten to the hoisted bridges
       // during the rewriting of AppInfoWithLiveness. Therefore, this conservatively records that
       // there may be an invoke-virtual instruction that targets each of the removed bridges.
-      methodAccessInfoCollectionModifier.addAll(result.getBridgeMethodAccessInfoCollection());
+      methodAccessInfoCollectionModifier.addAll(bridgeMethodAccessInfoCollectionBuilder.build());
 
       // Additionally, we record the invokes from the newly synthesized bridge methods.
       result.forEachHoistedBridge(
@@ -203,7 +210,9 @@ public class BridgeHoisting {
     List<DexProgramClass> eligibleSubclasses = mostFrequentBridge.getValue();
 
     // Choose one of the bridge definitions as the one that we will be moving to the superclass.
-    ProgramMethod representative = findRepresentative(eligibleSubclasses, method);
+    List<ProgramMethod> eligibleBridgeMethods =
+        getBridgesEligibleForHoisting(eligibleSubclasses, method);
+    ProgramMethod representative = eligibleBridgeMethods.iterator().next();
 
     // Guard against accessibility issues.
     if (mayBecomeInaccessibleAfterHoisting(clazz, representative)) {
@@ -237,7 +246,10 @@ public class BridgeHoisting {
       newMethod.getAccessFlags().demoteFromFinal();
     }
     clazz.addVirtualMethod(newMethod);
-    result.move(representative.getReference(), newMethodReference);
+    result.move(
+        Iterables.transform(eligibleBridgeMethods, DexClassAndMember::getReference),
+        newMethodReference,
+        representative.getReference());
 
     // Remove all of the bridges in the eligible subclasses.
     for (DexProgramClass subclass : eligibleSubclasses) {
@@ -260,14 +272,17 @@ public class BridgeHoisting {
     return result;
   }
 
-  private ProgramMethod findRepresentative(Iterable<DexProgramClass> subclasses, DexMethod method) {
+  private List<ProgramMethod> getBridgesEligibleForHoisting(
+      Iterable<DexProgramClass> subclasses, DexMethod reference) {
+    List<ProgramMethod> result = new ArrayList<>();
     for (DexProgramClass subclass : subclasses) {
-      DexEncodedMethod definition = subclass.lookupVirtualMethod(method);
-      if (definition != null) {
-        return new ProgramMethod(subclass, definition);
+      ProgramMethod method = subclass.lookupProgramMethod(reference);
+      if (method != null) {
+        result.add(method);
       }
     }
-    throw new Unreachable();
+    assert !result.isEmpty();
+    return result;
   }
 
   private boolean mayBecomeInaccessibleAfterHoisting(
