@@ -47,7 +47,8 @@ public class SealedClassTest extends KotlinTestBase {
     this.parameters = parameters;
   }
 
-  private static KotlinCompileMemoizer compilationResults = getCompileMemoizer();
+  private static final KotlinCompileMemoizer compilationResults =
+      getCompileMemoizer(getKotlinSources());
 
   private static Collection<Path> getKotlinSources() {
     try {

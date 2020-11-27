@@ -91,6 +91,7 @@ public abstract class KotlinTestBase extends TestBase {
   }
 
   public static KotlinCompileMemoizer getCompileMemoizer(Collection<Path> sources) {
+    assert sources.size() > 0;
     return new KotlinCompileMemoizer(sources);
   }
 
