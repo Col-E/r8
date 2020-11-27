@@ -36,6 +36,7 @@ public class LibraryMethodSideEffectModelCollection {
             .put(dexItemFactory.npeMethods.initWithMessage, alwaysTrue())
             .put(dexItemFactory.objectMembers.constructor, alwaysTrue())
             .put(dexItemFactory.objectMembers.getClass, alwaysTrue())
+            .put(dexItemFactory.stringBuilderMethods.toString, alwaysTrue())
             .put(dexItemFactory.stringMembers.hashCode, alwaysTrue());
     putAll(builder, dexItemFactory.classMethods.getNames, alwaysTrue());
     putAll(

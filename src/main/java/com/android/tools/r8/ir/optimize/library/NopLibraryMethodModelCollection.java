@@ -13,7 +13,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import java.util.Set;
 
-public class NopLibraryMethodModelCollection implements LibraryMethodModelCollection {
+public class NopLibraryMethodModelCollection extends StatelessLibraryMethodModelCollection {
 
   private static final NopLibraryMethodModelCollection INSTANCE =
       new NopLibraryMethodModelCollection();

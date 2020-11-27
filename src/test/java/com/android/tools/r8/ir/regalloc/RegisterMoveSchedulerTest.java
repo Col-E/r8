@@ -73,6 +73,12 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
+    public void replaceCurrentInstructionWithConstString(
+        AppView<?> appView, IRCode code, DexString value) {
+      throw new Unimplemented();
+    }
+
+    @Override
     public void replaceCurrentInstructionWithStaticGet(
         AppView<?> appView, IRCode code, DexField field, Set<Value> affectedValues) {
       throw new Unimplemented();

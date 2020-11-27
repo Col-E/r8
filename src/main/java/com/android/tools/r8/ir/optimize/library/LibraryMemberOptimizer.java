@@ -35,7 +35,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
   /** The library types that are modeled. */
   private final Set<DexType> modeledLibraryTypes = Sets.newIdentityHashSet();
 
-  private final Map<DexType, LibraryMethodModelCollection> libraryMethodModelCollections =
+  private final Map<DexType, LibraryMethodModelCollection<?>> libraryMethodModelCollections =
       new IdentityHashMap<>();
 
   public LibraryMemberOptimizer(AppView<?> appView) {
@@ -43,6 +43,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
     register(new BooleanMethodOptimizer(appView));
     register(new ObjectMethodOptimizer(appView));
     register(new ObjectsMethodOptimizer(appView));
+    register(new StringBuilderMethodOptimizer(appView));
     register(new StringMethodOptimizer(appView));
     if (appView.enableWholeProgramOptimizations()) {
       // Subtyping is required to prove the enum class is a subtype of java.lang.Enum.
@@ -98,9 +99,9 @@ public class LibraryMemberOptimizer implements CodeOptimization {
     return modeledLibraryTypes.contains(type);
   }
 
-  private void register(LibraryMethodModelCollection optimizer) {
+  private void register(LibraryMethodModelCollection<?> optimizer) {
     DexType modeledType = optimizer.getType();
-    LibraryMethodModelCollection existing =
+    LibraryMethodModelCollection<?> existing =
         libraryMethodModelCollections.put(modeledType, optimizer);
     assert existing == null;
     modeledLibraryTypes.add(modeledType);
@@ -114,13 +115,16 @@ public class LibraryMemberOptimizer implements CodeOptimization {
       MethodProcessingId methodProcessingId) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionListIterator instructionIterator = code.instructionListIterator();
+    Map<LibraryMethodModelCollection<?>, LibraryMethodModelCollection.State> optimizationStates =
+        new IdentityHashMap<>();
     while (instructionIterator.hasNext()) {
       Instruction instruction = instructionIterator.next();
       if (instruction.isInvokeMethod()) {
         InvokeMethod invoke = instruction.asInvokeMethod();
         DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
         if (singleTarget != null) {
-          optimizeInvoke(code, instructionIterator, invoke, singleTarget, affectedValues);
+          optimizeInvoke(
+              code, instructionIterator, invoke, singleTarget, affectedValues, optimizationStates);
         }
       }
     }
@@ -134,10 +138,15 @@ public class LibraryMemberOptimizer implements CodeOptimization {
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues) {
-    LibraryMethodModelCollection optimizer =
+      Set<Value> affectedValues,
+      Map<LibraryMethodModelCollection<?>, LibraryMethodModelCollection.State> optimizationStates) {
+    LibraryMethodModelCollection<?> optimizer =
         libraryMethodModelCollections.getOrDefault(
             singleTarget.getHolderType(), NopLibraryMethodModelCollection.getInstance());
-    optimizer.optimize(code, instructionIterator, invoke, singleTarget, affectedValues);
+    LibraryMethodModelCollection.State optimizationState =
+        optimizationStates.computeIfAbsent(
+            optimizer, LibraryMethodModelCollection::createInitialState);
+    optimizer.optimize(
+        code, instructionIterator, invoke, singleTarget, affectedValues, optimizationState);
   }
 }

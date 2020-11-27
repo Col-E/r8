@@ -17,7 +17,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
+public class UnusedStringBuilderWithAppendMaybeNullObjectTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -26,7 +26,7 @@ public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public UnusedStringBuilderWithAppendObjectTest(TestParameters parameters) {
+  public UnusedStringBuilderWithAppendMaybeNullObjectTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -51,7 +51,7 @@ public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
   static class Main {
 
     public static void main(String[] args) {
-      A a = System.currentTimeMillis() > 0 ? new A() : null;
+      A a = System.currentTimeMillis() < 0 ? new A() : null;
       new StringBuilder().append(a).toString();
     }
   }

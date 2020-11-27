@@ -18,7 +18,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import java.util.Set;
 
-public class StringMethodOptimizer implements LibraryMethodModelCollection {
+public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection {
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;

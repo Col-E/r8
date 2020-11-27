@@ -1587,6 +1587,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return intermediate || hasMinApi(AndroidApiLevel.L);
   }
 
+  public boolean canUseJavaUtilObjects() {
+    return (isGeneratingClassFiles() && !cfToCfDesugar) || hasMinApi(AndroidApiLevel.K);
+  }
+
   public boolean canUseRequireNonNull() {
     return isGeneratingDex() && hasMinApi(AndroidApiLevel.K);
   }

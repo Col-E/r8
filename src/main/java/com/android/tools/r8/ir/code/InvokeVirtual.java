@@ -33,6 +33,10 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
     super(target, result, arguments);
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public boolean getInterfaceBit() {
     return false;
@@ -166,5 +170,18 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeVirtual(
         this, clazz, context, appView, mode, assumption);
+  }
+
+  public static class Builder extends InvokeMethod.Builder<Builder, InvokeVirtual> {
+
+    @Override
+    public InvokeVirtual build() {
+      return amend(new InvokeVirtual(method, outValue, arguments));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

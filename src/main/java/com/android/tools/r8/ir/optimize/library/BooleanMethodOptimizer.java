@@ -19,7 +19,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import java.util.Set;
 
-public class BooleanMethodOptimizer implements LibraryMethodModelCollection {
+public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollection {
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;

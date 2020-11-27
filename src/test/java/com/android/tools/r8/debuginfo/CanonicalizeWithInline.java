@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debuginfo;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
@@ -15,7 +17,7 @@ import java.nio.file.Paths;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class CannonicalizeWithInline extends TestBase {
+public class CanonicalizeWithInline extends TestBase {
 
   private int getNumberOfDebugInfos(Path file) throws IOException {
     DexSection[] dexSections = DexParser.parseMapFrom(file);
@@ -28,25 +30,23 @@ public class CannonicalizeWithInline extends TestBase {
   }
 
   @Test
-  public void testCannonicalize() throws Exception {
-    Class clazzA = ClassA.class;
-    Class clazzB = ClassB.class;
+  public void testCanonicalize() throws Exception {
+    Class<?> clazzA = ClassA.class;
+    Class<?> clazzB = ClassB.class;
 
-    R8TestCompileResult result = testForR8(Backend.DEX)
-        .addProgramClasses(clazzA, clazzB)
-        .addKeepRules(
-            "-keepattributes SourceFile,LineNumberTable",
-            "-keep class ** {\n" +
-                "public void call(int);\n" +
-            "}"
-        )
-        // String concatenation optimization will remove dead builders in foobar.
-        .addOptionsModification(o -> o.enableStringConcatenationOptimization = false)
-        .compile();
+    R8TestCompileResult result =
+        testForR8(Backend.DEX)
+            .addProgramClasses(clazzA, clazzB)
+            .addKeepRules(
+                "-keepattributes SourceFile,LineNumberTable",
+                "-keep class ** {\n" + "public void call(int);\n" + "}")
+            .enableInliningAnnotations()
+            .enableSideEffectAnnotations()
+            .compile();
     Path classesPath = temp.getRoot().toPath();
     result.app.write(classesPath, OutputMode.DexIndexed);
-    int numberOfDebugInfos = getNumberOfDebugInfos(
-        Paths.get(temp.getRoot().getCanonicalPath(), "classes.dex"));
+    int numberOfDebugInfos =
+        getNumberOfDebugInfos(Paths.get(temp.getRoot().getCanonicalPath(), "classes.dex"));
     Assert.assertEquals(1, numberOfDebugInfos);
   }
 
@@ -57,11 +57,17 @@ public class CannonicalizeWithInline extends TestBase {
   public static class ClassA {
 
     public void call(int a) {
-        foobar(a);
+      foobar(a);
     }
 
     private String foobar(int a) {
-      String s = "aFoobar" + a;
+      return doSomething(a);
+    }
+
+    @AssumeMayHaveSideEffects
+    @NeverInline
+    private String doSomething(int a) {
+      String s = "bFoobar" + a;
       return s;
     }
   }
@@ -73,6 +79,12 @@ public class CannonicalizeWithInline extends TestBase {
     }
 
     private String foobar(int a) {
+      return doSomething(a);
+    }
+
+    @AssumeMayHaveSideEffects
+    @NeverInline
+    private String doSomething(int a) {
       String s = "bFoobar" + a;
       return s;
     }

@@ -30,7 +30,9 @@ import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.google.common.collect.ImmutableList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class InvokeMethod extends Invoke {
@@ -237,5 +239,31 @@ public abstract class InvokeMethod extends Invoke {
       }
     }
     return false;
+  }
+
+  abstract static class Builder<B extends Builder<B, I>, I extends InvokeMethod>
+      extends BuilderBase<B, I> {
+
+    protected DexMethod method;
+    protected List<Value> arguments = Collections.emptyList();
+
+    public B setArguments(List<Value> arguments) {
+      assert arguments != null;
+      this.arguments = arguments;
+      return self();
+    }
+
+    public B setSingleArgument(Value argument) {
+      return setArguments(ImmutableList.of(argument));
+    }
+
+    public B setMethod(DexMethod method) {
+      this.method = method;
+      return self();
+    }
+
+    public B setMethod(DexClassAndMethod method) {
+      return setMethod(method.getReference());
+    }
   }
 }

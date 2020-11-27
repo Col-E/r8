@@ -44,6 +44,37 @@ public class CodeMatchers {
     };
   }
 
+  public static Matcher<MethodSubject> instantiatesClass(Class<?> clazz) {
+    return instantiatesClass(clazz.getTypeName());
+  }
+
+  public static Matcher<MethodSubject> instantiatesClass(String clazz) {
+    return new TypeSafeMatcher<MethodSubject>() {
+      @Override
+      protected boolean matchesSafely(MethodSubject subject) {
+        if (!subject.isPresent()) {
+          return false;
+        }
+        if (!subject.getMethod().hasCode()) {
+          return false;
+        }
+        return subject
+            .streamInstructions()
+            .anyMatch(instruction -> instruction.isNewInstance(clazz));
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("instantiates class `" + clazz + "`");
+      }
+
+      @Override
+      public void describeMismatchSafely(final MethodSubject subject, Description description) {
+        description.appendText("method did not");
+      }
+    };
+  }
+
   public static Matcher<MethodSubject> invokesMethod(MethodSubject targetSubject) {
     if (!targetSubject.isPresent()) {
       throw new IllegalArgumentException();

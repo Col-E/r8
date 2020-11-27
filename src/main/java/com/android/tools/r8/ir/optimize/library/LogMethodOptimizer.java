@@ -17,7 +17,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import java.util.Set;
 
-public class LogMethodOptimizer implements LibraryMethodModelCollection {
+public class LogMethodOptimizer extends StatelessLibraryMethodModelCollection {
 
   private static final int VERBOSE = 2;
   private static final int DEBUG = 3;

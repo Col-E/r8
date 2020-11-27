@@ -14,7 +14,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import java.util.Set;
 
-public class ObjectMethodOptimizer implements LibraryMethodModelCollection {
+public class ObjectMethodOptimizer extends StatelessLibraryMethodModelCollection {
 
   private final DexItemFactory dexItemFactory;
 

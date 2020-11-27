@@ -10,10 +10,15 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.library.LibraryMethodModelCollection.State;
 import java.util.Set;
 
 /** Used to model the behavior of library methods for optimization purposes. */
-public interface LibraryMethodModelCollection {
+public interface LibraryMethodModelCollection<T extends State> {
+
+  default T createInitialState() {
+    return null;
+  }
 
   /**
    * The library class whose methods are being modeled by this collection of models. As an example,
@@ -30,5 +35,20 @@ public interface LibraryMethodModelCollection {
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues);
+      Set<Value> affectedValues,
+      T state);
+
+  @SuppressWarnings("unchecked")
+  default void optimize(
+      IRCode code,
+      InstructionListIterator instructionIterator,
+      InvokeMethod invoke,
+      DexClassAndMethod singleTarget,
+      Set<Value> affectedValues,
+      Object state) {
+    optimize(code, instructionIterator, invoke, singleTarget, affectedValues, (T) state);
+  }
+
+  /** Thread local optimization state to allow caching, etc. */
+  interface State {}
 }

@@ -4,20 +4,15 @@
 
 package com.android.tools.r8.ir.optimize.string;
 
-import static com.android.tools.r8.utils.codeinspector.CodeMatchers.instantiatesClass;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
-import static org.hamcrest.MatcherAssert.assertThat;
-
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
+public class UnusedStringBuilderFromCharSequenceWithAppendObjectTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -26,7 +21,7 @@ public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public UnusedStringBuilderWithAppendObjectTest(TestParameters parameters) {
+  public UnusedStringBuilderFromCharSequenceWithAppendObjectTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -37,30 +32,43 @@ public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(
-            inspector -> {
-              MethodSubject mainMethod = inspector.clazz(Main.class).mainMethod();
-              assertThat(
-                  mainMethod,
-                  notIf(instantiatesClass(StringBuilder.class), canUseJavaUtilObjects(parameters)));
-            })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithEmptyOutput();
+    // TODO(christofferqa): Should succeed with output;
+    //  .assertSuccessWithOutputLines(
+    //      "CustomCharSequence.length()",
+    //      "CustomCharSequence.length()",
+    //      "CustomCharSequence.length()",
+    //      "CustomCharSequence.charAt(0)");
   }
 
   static class Main {
 
     public static void main(String[] args) {
-      A a = System.currentTimeMillis() > 0 ? new A() : null;
-      new StringBuilder().append(a).toString();
+      new StringBuilder(new CustomCharSequence());
     }
   }
 
-  static class A {
+  static class CustomCharSequence implements CharSequence {
 
     @Override
-    public String toString() {
-      return "A";
+    public int length() {
+      System.out.println("CustomCharSequence.length()");
+      return 1;
+    }
+
+    @Override
+    public char charAt(int i) {
+      if (i != 0) {
+        throw new RuntimeException();
+      }
+      System.out.println("CustomCharSequence.charAt(0)");
+      return 0;
+    }
+
+    @Override
+    public CharSequence subSequence(int i, int i1) {
+      throw new RuntimeException();
     }
   }
 }

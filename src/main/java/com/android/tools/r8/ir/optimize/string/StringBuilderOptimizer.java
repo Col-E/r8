@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
@@ -215,10 +216,9 @@ public class StringBuilderOptimizer {
     private Set<Value> findAllLocalBuilders() {
       // During the first iteration, collect builders that are locally created.
       // TODO(b/114002137): Make sure new-instance is followed by <init> before any other calls.
-      for (Instruction instr : code.instructions()) {
-        if (instr.isNewInstance()
-            && optimizationConfiguration.isBuilderType(instr.asNewInstance().clazz)) {
-          Value builder = instr.asNewInstance().dest();
+      for (NewInstance newInstance : code.<NewInstance>instructions(Instruction::isNewInstance)) {
+        if (optimizationConfiguration.isBuilderType(newInstance.clazz)) {
+          Value builder = newInstance.asNewInstance().dest();
           assert !builderToStringCounts.containsKey(builder);
           builderToStringCounts.put(builder, 0);
         }
@@ -228,24 +228,21 @@ public class StringBuilderOptimizer {
       }
       int concatenationCount = 0;
       // During the second iteration, count builders' usage.
-      for (Instruction instr : code.instructions()) {
-        if (instr.isInvokeMethod()) {
-          InvokeMethod invoke = instr.asInvokeMethod();
-          DexMethod invokedMethod = invoke.getInvokedMethod();
-          if (optimizationConfiguration.isAppendMethod(invokedMethod)) {
-            concatenationCount++;
-            // The analysis might be overwhelmed.
-            if (concatenationCount > CONCATENATION_THRESHOLD) {
-              return ImmutableSet.of();
-            }
-          } else if (optimizationConfiguration.isToStringMethod(invokedMethod)) {
-            assert invoke.arguments().size() == 1;
-            Value receiver = invoke.getArgument(0).getAliasedValue();
-            for (Value builder : collectAllLinkedBuilders(receiver)) {
-              if (builderToStringCounts.containsKey(builder)) {
-                int count = builderToStringCounts.getInt(builder);
-                builderToStringCounts.put(builder, count + 1);
-              }
+      for (InvokeMethod invoke : code.<InvokeMethod>instructions(Instruction::isInvokeMethod)) {
+        DexMethod invokedMethod = invoke.getInvokedMethod();
+        if (optimizationConfiguration.isAppendMethod(invokedMethod)) {
+          concatenationCount++;
+          // The analysis might be overwhelmed.
+          if (concatenationCount > CONCATENATION_THRESHOLD) {
+            return ImmutableSet.of();
+          }
+        } else if (optimizationConfiguration.isToStringMethod(invokedMethod)) {
+          assert invoke.arguments().size() == 1;
+          Value receiver = invoke.getArgument(0).getAliasedValue();
+          for (Value builder : collectAllLinkedBuilders(receiver)) {
+            if (builderToStringCounts.containsKey(builder)) {
+              int count = builderToStringCounts.getInt(builder);
+              builderToStringCounts.put(builder, count + 1);
             }
           }
         }

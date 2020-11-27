@@ -275,6 +275,18 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public void replaceCurrentInstructionWithConstString(
+      AppView<?> appView, IRCode code, DexString value) {
+    if (current == null) {
+      throw new IllegalStateException();
+    }
+
+    // Replace the instruction by const-string.
+    ConstString constString = code.createStringConstant(appView, value, current.getLocalInfo());
+    replaceCurrentInstruction(constString);
+  }
+
+  @Override
   public void replaceCurrentInstructionWithStaticGet(
       AppView<?> appView, IRCode code, DexField field, Set<Value> affectedValues) {
     if (current == null) {

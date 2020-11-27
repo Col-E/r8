@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.instantiatesClass;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -17,7 +17,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
+public class UnusedStringBuilderWithAppendObjectSideEffectTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -26,7 +26,7 @@ public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public UnusedStringBuilderWithAppendObjectTest(TestParameters parameters) {
+  public UnusedStringBuilderWithAppendObjectSideEffectTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -40,19 +40,16 @@ public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
         .inspect(
             inspector -> {
               MethodSubject mainMethod = inspector.clazz(Main.class).mainMethod();
-              assertThat(
-                  mainMethod,
-                  notIf(instantiatesClass(StringBuilder.class), canUseJavaUtilObjects(parameters)));
+              assertThat(mainMethod, not(instantiatesClass(StringBuilder.class)));
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithEmptyOutput();
+        .assertSuccessWithOutputLines("A");
   }
 
   static class Main {
 
     public static void main(String[] args) {
-      A a = System.currentTimeMillis() > 0 ? new A() : null;
-      new StringBuilder().append(a).toString();
+      new StringBuilder().append(new A()).toString();
     }
   }
 
@@ -60,6 +57,7 @@ public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
 
     @Override
     public String toString() {
+      System.out.println("A");
       return "A";
     }
   }

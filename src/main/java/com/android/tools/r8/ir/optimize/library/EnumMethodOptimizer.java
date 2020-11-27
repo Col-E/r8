@@ -19,7 +19,8 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import java.util.Set;
 
-public class EnumMethodOptimizer implements LibraryMethodModelCollection {
+public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
+
   private final AppView<?> appView;
 
   EnumMethodOptimizer(AppView<?> appView) {

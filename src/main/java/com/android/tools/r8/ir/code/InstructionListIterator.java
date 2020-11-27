@@ -96,6 +96,14 @@ public interface InstructionListIterator
 
   void replaceCurrentInstructionWithConstInt(IRCode code, int value);
 
+  void replaceCurrentInstructionWithConstString(AppView<?> appView, IRCode code, DexString value);
+
+  default void replaceCurrentInstructionWithConstString(
+      AppView<?> appView, IRCode code, String value) {
+    replaceCurrentInstructionWithConstString(
+        appView, code, appView.dexItemFactory().createString(value));
+  }
+
   void replaceCurrentInstructionWithStaticGet(
       AppView<?> appView, IRCode code, DexField field, Set<Value> affectedValues);
 

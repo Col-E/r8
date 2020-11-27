@@ -5,7 +5,8 @@
 package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.instantiatesClass;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -17,7 +18,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
+public class UnusedStringBuilderWithAppendDefinitelyNullObjectTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -26,7 +27,7 @@ public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public UnusedStringBuilderWithAppendObjectTest(TestParameters parameters) {
+  public UnusedStringBuilderWithAppendDefinitelyNullObjectTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -40,9 +41,8 @@ public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
         .inspect(
             inspector -> {
               MethodSubject mainMethod = inspector.clazz(Main.class).mainMethod();
-              assertThat(
-                  mainMethod,
-                  notIf(instantiatesClass(StringBuilder.class), canUseJavaUtilObjects(parameters)));
+              assertThat(mainMethod, not(instantiatesClass(StringBuilder.class)));
+              assertThat(mainMethod, not(invokesMethodWithName("toString")));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithEmptyOutput();
@@ -51,16 +51,8 @@ public class UnusedStringBuilderWithAppendObjectTest extends TestBase {
   static class Main {
 
     public static void main(String[] args) {
-      A a = System.currentTimeMillis() > 0 ? new A() : null;
-      new StringBuilder().append(a).toString();
-    }
-  }
-
-  static class A {
-
-    @Override
-    public String toString() {
-      return "A";
+      Object o = null;
+      new StringBuilder().append(o).toString();
     }
   }
 }

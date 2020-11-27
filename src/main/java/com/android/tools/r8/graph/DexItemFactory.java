@@ -1135,6 +1135,8 @@ public class DexItemFactory {
     public final DexMethod requireNonNull;
     public final DexMethod requireNonNullWithMessage;
     public final DexMethod requireNonNullWithMessageSupplier;
+    public final DexMethod toStringWithObject =
+        createMethod(objectsType, createProto(stringType, objectType), "toString");
 
     private ObjectsMethods() {
       DexString requireNonNullMethodName = createString("requireNonNull");
@@ -1549,6 +1551,8 @@ public class DexItemFactory {
     public final DexMethod toString;
 
     private final Set<DexMethod> appendMethods;
+    private final Set<DexMethod> appendPrimitiveMethods;
+
     private StringBuildingMethods(DexType receiver) {
       DexString append = createString("append");
 
@@ -1567,7 +1571,6 @@ public class DexItemFactory {
       appendObject = createMethod(receiver, createProto(receiver, objectType), append);
       appendString = createMethod(receiver, createProto(receiver, stringType), append);
       appendStringBuffer = createMethod(receiver, createProto(receiver, stringBufferType), append);
-
       charSequenceConstructor =
           createMethod(receiver, createProto(voidType, charSequenceType), constructorMethodName);
       defaultConstructor = createMethod(receiver, createProto(voidType), constructorMethodName);
@@ -1592,6 +1595,9 @@ public class DexItemFactory {
               appendObject,
               appendString,
               appendStringBuffer);
+      appendPrimitiveMethods =
+          ImmutableSet.of(
+              appendBoolean, appendChar, appendInt, appendDouble, appendFloat, appendLong);
       constructorMethods =
           ImmutableSet.of(
               charSequenceConstructor, defaultConstructor, intConstructor, stringConstructor);
@@ -1601,6 +1607,22 @@ public class DexItemFactory {
 
     public boolean isAppendMethod(DexMethod method) {
       return appendMethods.contains(method);
+    }
+
+    public boolean isAppendObjectMethod(DexMethod method) {
+      return method == appendObject;
+    }
+
+    public boolean isAppendPrimitiveMethod(DexMethod method) {
+      return appendPrimitiveMethods.contains(method);
+    }
+
+    public boolean isAppendStringMethod(DexMethod method) {
+      return method == appendString;
+    }
+
+    public boolean isConstructorMethod(DexMethod method) {
+      return constructorMethods.contains(method);
     }
 
     public boolean constructorInvokeIsSideEffectFree(InvokeMethod invoke) {

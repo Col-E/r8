@@ -73,6 +73,12 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public void replaceCurrentInstructionWithConstString(
+      AppView<?> appView, IRCode code, DexString value) {
+    currentBlockIterator.replaceCurrentInstructionWithConstString(appView, code, value);
+  }
+
+  @Override
   public void replaceCurrentInstructionWithStaticGet(
       AppView<?> appView, IRCode code, DexField field, Set<Value> affectedValues) {
     currentBlockIterator.replaceCurrentInstructionWithStaticGet(

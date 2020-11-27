@@ -27,8 +27,6 @@ import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.ImmutableList;
-import java.util.Collections;
 import java.util.List;
 
 public class InvokeStatic extends InvokeMethod {
@@ -235,29 +233,7 @@ public class InvokeStatic extends InvokeMethod {
         .classInitializationMayHaveSideEffectsInContext(appView, context);
   }
 
-  public static class Builder extends BuilderBase<Builder, InvokeStatic> {
-
-    private DexMethod method;
-    private List<Value> arguments = Collections.emptyList();
-
-    public Builder setArguments(List<Value> arguments) {
-      assert arguments != null;
-      this.arguments = arguments;
-      return this;
-    }
-
-    public Builder setSingleArgument(Value argument) {
-      return setArguments(ImmutableList.of(argument));
-    }
-
-    public Builder setMethod(DexMethod method) {
-      this.method = method;
-      return this;
-    }
-
-    public Builder setMethod(DexClassAndMethod method) {
-      return setMethod(method.getReference());
-    }
+  public static class Builder extends InvokeMethod.Builder<Builder, InvokeStatic> {
 
     @Override
     public InvokeStatic build() {
