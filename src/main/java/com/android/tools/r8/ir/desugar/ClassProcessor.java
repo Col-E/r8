@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.synthetic.ExceptionThrowingSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
@@ -421,8 +422,39 @@ final class ClassProcessor {
     if (clazz.isNotProgramClass()) {
       return;
     }
+    Set<DexType> filtered = new HashSet<>(emulatedInterfaces);
+    WorkList<DexType> workList = WorkList.newIdentityWorkList();
+    for (DexType emulatedInterface : emulatedInterfaces) {
+      DexClass iface = appView.definitionFor(emulatedInterface);
+      if (iface != null) {
+        assert iface.isLibraryClass()
+            || appView.options().desugaredLibraryConfiguration.isLibraryCompilation();
+        workList.addIfNotSeen(iface.getInterfaces());
+      }
+    }
+    while (workList.hasNext()) {
+      DexType type = workList.next();
+      filtered.remove(type);
+      DexClass iface = appView.definitionFor(type);
+      if (iface == null) {
+        continue;
+      }
+      workList.addIfNotSeen(iface.getInterfaces());
+    }
+
+    for (DexType emulatedInterface : emulatedInterfaces) {
+      DexClass s = appView.definitionFor(emulatedInterface);
+      if (s != null) {
+        s = appView.definitionFor(s.superType);
+      }
+      while (s != null && s.getType() != appView.dexItemFactory().objectType) {
+        filtered.remove(s.getType());
+        s = appView.definitionFor(s.getSuperType());
+      }
+    }
+
     // We need to introduce them in deterministic order for deterministic compilation.
-    ArrayList<DexType> sortedEmulatedInterfaces = new ArrayList<>(emulatedInterfaces);
+    ArrayList<DexType> sortedEmulatedInterfaces = new ArrayList<>(filtered);
     Collections.sort(sortedEmulatedInterfaces);
     List<GenericSignature.ClassTypeSignature> extraInterfaceSignatures = new ArrayList<>();
     for (DexType extraInterface : sortedEmulatedInterfaces) {

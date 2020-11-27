@@ -58,9 +58,8 @@ public class ImplementedInterfacesTest extends DesugaredLibraryTestBase {
       assertFalse(clazz.isImplementing(desugaredJavaTypeNameFor(Serializable.class)));
       assertTrue(clazz.isImplementing(desugaredJavaTypeNameFor(Set.class)));
       assertTrue(clazz.isImplementing(desugaredJavaTypeNameFor(List.class)));
-      // TODO(b/174227163): These two are not needed as they are super interfaces of List and Set.
-      assertTrue(clazz.isImplementing(desugaredJavaTypeNameFor(Collection.class)));
-      assertTrue(clazz.isImplementing(desugaredJavaTypeNameFor(Iterable.class)));
+      assertFalse(clazz.isImplementing(desugaredJavaTypeNameFor(Collection.class)));
+      assertFalse(clazz.isImplementing(desugaredJavaTypeNameFor(Iterable.class)));
     }
   }
 
