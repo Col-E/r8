@@ -15,11 +15,11 @@ public class ConflictInGeneratedNameTest {
 
     public A() {
       print("In A.<init>()");
-      constructor$classmerging$ConflictInGeneratedNameTest$A();
+      $r8$constructor$classmerging$ConflictInGeneratedNameTest$A();
     }
 
-    private void constructor$classmerging$ConflictInGeneratedNameTest$A() {
-      print("In A.constructor$classmerging$ConflictInGeneratedNameTest$A()");
+    private void $r8$constructor$classmerging$ConflictInGeneratedNameTest$A() {
+      print("In A.$r8$constructor$classmerging$ConflictInGeneratedNameTest$A()");
     }
 
     public void printState() {

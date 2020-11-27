@@ -253,6 +253,7 @@ public class VerticalClassMergerTest extends TestBase {
                 testForR8(parameters.getBackend())
                     .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
                     .addOptionsModification(this::configure)
+                    .addOptionsModification(options -> options.enableValuePropagation = false)
                     .addOptionsModification(
                         options ->
                             options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE))
@@ -276,10 +277,11 @@ public class VerticalClassMergerTest extends TestBase {
     assertThat(clazzSubject.field("java.lang.String", "name" + suffix), isPresent());
     assertThat(clazzSubject.field("java.lang.String", "name" + suffix + "2"), isPresent());
 
-    // The direct method "constructor$classmerging$ConflictInGeneratedNameTest$A" is processed after
-    // the method "<init>" is renamed to exactly that name. Therefore the conflict should have been
-    // resolved by appending [suffix] to it.
-    assertThat(clazzSubject.method("void", "constructor" + suffix + suffix, EMPTY), isPresent());
+    // The direct method "$r8$constructor$classmerging$ConflictInGeneratedNameTest$A" is processed
+    // after the method "<init>" is renamed to exactly that name. Therefore the conflict should have
+    // been resolved by appending [suffix] to it.
+    assertThat(
+        clazzSubject.method("void", "$r8$constructor" + suffix + suffix, EMPTY), isPresent());
 
     // There should be two foo's.
     assertThat(clazzSubject.method("void", "foo", EMPTY), isPresent());

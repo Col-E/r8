@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.dex.Constants.TEMPORARY_INSTANCE_INITIALIZER_PREFIX;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
@@ -902,8 +903,6 @@ public class VerticalClassMerger {
 
   private class ClassMerger {
 
-    private static final String CONSTRUCTOR_NAME = "constructor";
-
     private final DexProgramClass source;
     private final DexProgramClass target;
     private final VerticalClassMergerGraphLens.Builder deferredRenamings =
@@ -1366,7 +1365,7 @@ public class VerticalClassMerger {
       DexMethod newSignature;
       int count = 1;
       do {
-        DexString newName = getFreshName(CONSTRUCTOR_NAME, count, oldHolder);
+        DexString newName = getFreshName(TEMPORARY_INSTANCE_INITIALIZER_PREFIX, count, oldHolder);
         newSignature =
             application.dexItemFactory.createMethod(target.type, method.method.proto, newName);
         count++;
