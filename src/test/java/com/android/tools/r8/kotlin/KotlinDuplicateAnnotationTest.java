@@ -56,12 +56,16 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
     this.parameters = parameters;
   }
 
+  private static final KotlinCompileMemoizer compiledJars =
+      getCompileMemoizer(getKotlinFilesInResource(FOLDER), FOLDER)
+          .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect());
+
   @Test
   public void test_dex() {
     assumeTrue("test DEX", parameters.isDexRuntime());
     try {
       testForR8(parameters.getBackend())
-          .addProgramFiles(getKotlinJarFile(FOLDER))
+          .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
           .addKeepMainRule(MAIN)
           .addKeepRules(KEEP_RULES)
           .noMinification()
@@ -78,7 +82,7 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
   public void test_cf() throws Exception {
     assumeTrue("test CF", parameters.isCfRuntime());
     testForR8(parameters.getBackend())
-        .addProgramFiles(getKotlinJarFile(FOLDER))
+        .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
         .addKeepMainRule(MAIN)
         .addKeepRules(KEEP_RULES)
         .noMinification()

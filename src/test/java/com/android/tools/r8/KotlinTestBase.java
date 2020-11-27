@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,7 @@ import org.hamcrest.Matcher;
 
 public abstract class KotlinTestBase extends TestBase {
 
-  protected  static final String checkParameterIsNotNullSignature =
+  protected static final String checkParameterIsNotNullSignature =
       "void kotlin.jvm.internal.Intrinsics.checkParameterIsNotNull("
           + "java.lang.Object, java.lang.String)";
   protected static final String throwParameterIsNotNullExceptionSignature =
@@ -35,6 +36,8 @@ public abstract class KotlinTestBase extends TestBase {
       DescriptorUtils.descriptorToJavaType(METADATA_DESCRIPTOR);
 
   private static final String RSRC = "kotlinR8TestResources";
+
+  private static final Map<String, KotlinCompileMemoizer> compileMemoizers = new HashMap<>();
 
   protected final KotlinCompiler kotlinc;
   protected final KotlinTargetVersion targetVersion;
@@ -64,9 +67,14 @@ public abstract class KotlinTestBase extends TestBase {
     return Paths.get(ToolHelper.TESTS_DIR, RSRC, folder, fileName + FileUtils.KT_EXTENSION);
   }
 
-  protected Path getKotlinJarFile(String folder) {
-    return Paths.get(ToolHelper.TESTS_BUILD_DIR, RSRC,
-        targetVersion.getFolderName(), folder + FileUtils.JAR_EXTENSION);
+  protected static List<Path> getKotlinFilesInResource(String folder) {
+    try {
+      return Files.walk(Paths.get(ToolHelper.TESTS_DIR, RSRC, folder))
+          .filter(path -> path.toString().endsWith(".kt") || path.toString().endsWith(".java"))
+          .collect(Collectors.toList());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   protected Path getJavaJarFile(String folder) {
@@ -93,6 +101,12 @@ public abstract class KotlinTestBase extends TestBase {
   public static KotlinCompileMemoizer getCompileMemoizer(Collection<Path> sources) {
     assert sources.size() > 0;
     return new KotlinCompileMemoizer(sources);
+  }
+
+  public static KotlinCompileMemoizer getCompileMemoizer(
+      Collection<Path> sources, String sharedFolder) {
+    return compileMemoizers.computeIfAbsent(
+        sharedFolder, ignore -> new KotlinCompileMemoizer(sources));
   }
 
   public static class KotlinCompileMemoizer {

@@ -52,11 +52,15 @@ public class EnumMinificationKotlinTest extends KotlinTestBase {
     this.minify = minify;
   }
 
+  private static final KotlinCompileMemoizer compiledJars =
+      getCompileMemoizer(getKotlinFilesInResource(FOLDER), FOLDER)
+          .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect());
+
   @Test
   public void b121221542() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
-            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .addKeepClassRulesWithAllowObfuscation(ENUM_CLASS_NAME)

@@ -81,13 +81,18 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     this.minify = minify;
   }
 
+  private static final KotlinCompileMemoizer compiledJars =
+      getCompileMemoizer(getKotlinFilesInResource(FOLDER), FOLDER)
+          .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect());
+
   @Test
   public void b120951621_JVMOutput() throws Exception {
     assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
-    AndroidApp app = AndroidApp.builder()
-        .addProgramFile(getKotlinJarFile(FOLDER))
-        .addProgramFile(getJavaJarFile(FOLDER))
-        .build();
+    AndroidApp app =
+        AndroidApp.builder()
+            .addProgramFile(compiledJars.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFile(getJavaJarFile(FOLDER))
+            .build();
     String result = runOnJava(app, MAIN_CLASS_NAME);
     assertEquals(JAVA_OUTPUT, result);
   }
@@ -96,7 +101,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   public void b120951621_keepAll() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
-            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .addKeepRules(KEEP_ANNOTATIONS)
@@ -132,7 +137,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   public void b120951621_partiallyKeep() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
-            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .addKeepRules(KEEP_ANNOTATIONS)
@@ -172,7 +177,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   public void b120951621_keepAnnotation() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
-            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .addKeepRules(KEEP_ANNOTATIONS)
@@ -208,7 +213,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   public void b120951621_noKeep() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
-            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .allowDiagnosticWarningMessages()

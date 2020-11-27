@@ -242,9 +242,14 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
       throws Exception {
     Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
 
+    Path kotlinJarFile =
+        getCompileMemoizer(getKotlinFilesInResource(folder), folder)
+            .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect())
+            .getForConfiguration(kotlinc, targetVersion);
+
     // Build classpath for compilation (and java execution)
     classpath.clear();
-    classpath.add(getKotlinJarFile(folder));
+    classpath.add(kotlinJarFile);
     classpath.add(getJavaJarFile(folder));
     classpath.addAll(extraClasspath);
 

@@ -35,11 +35,15 @@ public class KotlinLambdaMergingDebugTest extends AbstractR8KotlinTestBase {
     this.parameters = parameters;
   }
 
+  private static final KotlinCompileMemoizer compiledJars =
+      getCompileMemoizer(getKotlinFilesInResource(FOLDER), FOLDER)
+          .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect());
+
   @Test
   public void testMergingKStyleLambdasAndReprocessingInDebug() throws Exception {
     testForR8(parameters.getBackend())
         .setMode(CompilationMode.DEBUG)
-        .addProgramFiles(getKotlinJarFile(FOLDER))
+        .addProgramFiles(compiledJars.getForConfiguration(kotlinc, KotlinTargetVersion.JAVA_6))
         .addProgramFiles(getJavaJarFile(FOLDER))
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_CLASS)

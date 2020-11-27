@@ -119,6 +119,24 @@ public class KotlinCompilerTool {
     return addSourceFilesWithNonKtExtension(temp, Arrays.asList(files));
   }
 
+  public KotlinCompilerTool includeRuntime() {
+    assert !additionalArguments.contains("-include-runtime");
+    addArguments("-include-runtime");
+    return this;
+  }
+
+  public KotlinCompilerTool noReflect() {
+    assert !additionalArguments.contains("-no-reflect");
+    addArguments("-no-reflect");
+    return this;
+  }
+
+  public KotlinCompilerTool noStdLib() {
+    assert !additionalArguments.contains("-no-stdlib");
+    addArguments("-no-stdlib");
+    return this;
+  }
+
   public KotlinCompilerTool addSourceFilesWithNonKtExtension(
       TemporaryFolder temp, Collection<Path> files) {
     return addSourceFiles(

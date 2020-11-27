@@ -57,6 +57,10 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
     super(targetVersion, kotlinc, allowAccessModification, minification);
   }
 
+  private static final KotlinCompileMemoizer compiledJars =
+      getCompileMemoizer(getKotlinFilesInResource(FOLDER), FOLDER)
+          .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect());
+
   @Test
   public void test_example1() throws Exception {
     TestKotlinClass ex1 = new TestKotlinClass("intrinsics_identifiers.Example1Kt");
@@ -81,7 +85,7 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
     String mainClassName = ex3.getClassName();
     TestCompileResult<?, ?> result =
         testForR8(Backend.DEX)
-            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(mainClassName)
             .allowDiagnosticWarningMessages()
@@ -134,7 +138,7 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
     String mainClassName = testMain.getClassName();
     SingleTestRunResult<?> result =
         testForR8(Backend.DEX)
-            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .enableProguardTestOptions()
             .addKeepMainRule(mainClassName)

@@ -29,6 +29,7 @@ import org.junit.runners.Parameterized;
 public class MetadataStripTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
+  private static final String FOLDER = "lambdas_jstyle_runnable";
 
   @Parameterized.Parameters(name = "{0}, target: {1}, kotlinc: {2}")
   public static Collection<Object[]> data() {
@@ -44,15 +45,18 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
     this.parameters = parameters;
   }
 
+  private static final KotlinCompileMemoizer compiledJars =
+      getCompileMemoizer(getKotlinFilesInResource(FOLDER), FOLDER)
+          .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect());
+
   @Test
   public void testJstyleRunnable() throws Exception {
-    final String folder = "lambdas_jstyle_runnable";
     final String mainClassName = "lambdas_jstyle_runnable.MainKt";
     final String implementer1ClassName = "lambdas_jstyle_runnable.Implementer1Kt";
     R8TestRunResult result =
         testForR8(parameters.getBackend())
-            .addProgramFiles(getKotlinJarFile(folder))
-            .addProgramFiles(getJavaJarFile(folder))
+            .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
+            .addProgramFiles(getJavaJarFile(FOLDER))
             .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
             .addKeepMainRule(mainClassName)
             .addKeepKotlinMetadata()

@@ -46,36 +46,40 @@ public class KotlinIntrinsicsInlineTest extends AbstractR8KotlinTestBase {
     this.parameters = parameters;
   }
 
+  private static final KotlinCompileMemoizer compiledJars =
+      getCompileMemoizer(getKotlinFilesInResource(FOLDER), FOLDER)
+          .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect());
+
   @Test
   public void b139432507() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(getKotlinJarFile(FOLDER))
-        .addKeepRules(StringUtils.lines(
-            "-keepclasseswithmembers class " + MAIN + "{",
-            "  public static *** *(...);",
-            "}"))
+        .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
+        .addKeepRules(
+            StringUtils.lines(
+                "-keepclasseswithmembers class " + MAIN + "{", "  public static *** *(...);", "}"))
         .allowAccessModification(allowAccessModification)
         .noMinification()
         .setMinApi(parameters.getRuntime())
         .compile()
-        .inspect(inspector -> {
-          ClassSubject main = inspector.clazz(MAIN);
-          assertThat(main, isPresent());
+        .inspect(
+            inspector -> {
+              ClassSubject main = inspector.clazz(MAIN);
+              assertThat(main, isPresent());
 
-          // Note that isSupported itself has a parameter whose null check would be inlined
-          // with -allowaccessmodification.
-          MethodSubject isSupported = main.uniqueMethodWithName("isSupported");
-          assertThat(isSupported, isPresent());
-          assertEquals(
-              allowAccessModification ? 0 : 1,
-              countCall(isSupported, "checkParameterIsNotNull"));
+              // Note that isSupported itself has a parameter whose null check would be inlined
+              // with -allowaccessmodification.
+              MethodSubject isSupported = main.uniqueMethodWithName("isSupported");
+              assertThat(isSupported, isPresent());
+              assertEquals(
+                  allowAccessModification ? 0 : 1,
+                  countCall(isSupported, "checkParameterIsNotNull"));
 
-          // In general cases, null check won't be invoked only once or twice, hence no subtle
-          // situation in double inlining.
-          MethodSubject containsArray = main.uniqueMethodWithName("containsArray");
-          assertThat(containsArray, isPresent());
-          assertEquals(0, countCall(containsArray, "checkParameterIsNotNull"));
-        });
+              // In general cases, null check won't be invoked only once or twice, hence no subtle
+              // situation in double inlining.
+              MethodSubject containsArray = main.uniqueMethodWithName("containsArray");
+              assertThat(containsArray, isPresent());
+              assertEquals(0, countCall(containsArray, "checkParameterIsNotNull"));
+            });
   }
 
   @Test
@@ -92,27 +96,29 @@ public class KotlinIntrinsicsInlineTest extends AbstractR8KotlinTestBase {
 
   private void testSingle(String methodName) throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(getKotlinJarFile(FOLDER))
-        .addKeepRules(StringUtils.lines(
-            "-keepclasseswithmembers class " + MAIN + "{",
-            "  public static *** " + methodName + "(...);",
-            "}"))
+        .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
+        .addKeepRules(
+            StringUtils.lines(
+                "-keepclasseswithmembers class " + MAIN + "{",
+                "  public static *** " + methodName + "(...);",
+                "}"))
         .allowAccessModification(allowAccessModification)
         .noMinification()
         .setMinApi(parameters.getRuntime())
         .compile()
-        .inspect(inspector -> {
-          ClassSubject main = inspector.clazz(MAIN);
-          assertThat(main, isPresent());
+        .inspect(
+            inspector -> {
+              ClassSubject main = inspector.clazz(MAIN);
+              assertThat(main, isPresent());
 
-          MethodSubject method = main.uniqueMethodWithName(methodName);
-          assertThat(method, isPresent());
-          int arity = method.getMethod().method.getArity();
-          // One from the method's own argument, if any, and
-          // Two from Array utils, `contains` and `indexOf`, if inlined with access relaxation.
-          assertEquals(
-              allowAccessModification ? 0 : arity + 2,
-              countCall(method, "checkParameterIsNotNull"));
-        });
+              MethodSubject method = main.uniqueMethodWithName(methodName);
+              assertThat(method, isPresent());
+              int arity = method.getMethod().method.getArity();
+              // One from the method's own argument, if any, and
+              // Two from Array utils, `contains` and `indexOf`, if inlined with access relaxation.
+              assertEquals(
+                  allowAccessModification ? 0 : arity + 2,
+                  countCall(method, "checkParameterIsNotNull"));
+            });
   }
 }
