@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -47,9 +48,11 @@ import java.util.Set;
 public class Devirtualizer {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final InternalOptions options;
 
   public Devirtualizer(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
+    this.options = appView.options();
   }
 
   public void devirtualizeInvokeInterface(IRCode code) {
@@ -115,6 +118,7 @@ public class Devirtualizer {
               }
             }
           }
+          continue;
         }
 
         if (current.isInvokeSuper()) {
@@ -122,7 +126,7 @@ public class Devirtualizer {
 
           // Check if the instruction can be rewritten to invoke-super. This allows inlining of the
           // enclosing method into contexts outside the current class.
-          if (appView.options().testing.enableInvokeSuperToInvokeVirtualRewriting) {
+          if (options.testing.enableInvokeSuperToInvokeVirtualRewriting) {
             DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
             if (singleTarget != null) {
               DexMethod invokedMethod = invoke.getInvokedMethod();
@@ -225,7 +229,18 @@ public class Devirtualizer {
             if (castedReceiverCache.containsKey(receiver)
                 && castedReceiverCache.get(receiver).containsKey(holderClass.getType())) {
               Value cachedReceiver = castedReceiverCache.get(receiver).get(holderClass.getType());
-              if (dominatorTree.dominatedBy(block, cachedReceiver.definition.getBlock())) {
+              BasicBlock cachedReceiverBlock = cachedReceiver.definition.getBlock();
+              BasicBlock dominatorBlock = null;
+              if (cachedReceiverBlock.hasCatchHandlers()) {
+                if (cachedReceiverBlock.hasUniqueNormalSuccessor()) {
+                  dominatorBlock = cachedReceiverBlock.getUniqueNormalSuccessor();
+                } else {
+                  assert false;
+                }
+              } else {
+                dominatorBlock = cachedReceiverBlock;
+              }
+              if (dominatorBlock != null && dominatorTree.dominatedBy(block, dominatorBlock)) {
                 newReceiver = cachedReceiver;
               }
             }
@@ -245,16 +260,18 @@ public class Devirtualizer {
               // We need to add this checkcast *before* the devirtualized invoke-virtual.
               assert it.peekPrevious() == devirtualizedInvoke;
               it.previous();
-              // If the current block has catch handlers, split the new checkcast on its own block.
-              // Because checkcast is also a throwing instr, we should split before adding it.
-              // Otherwise, catch handlers are bound to a block with checkcast, not invoke IR.
+
+              // If the current block has catch handlers, then split the block before adding the new
+              // check-cast instruction. The catch handlers are copied to the split block to ensure
+              // that all throwing instructions are covered by a catch-all catch handler in case of
+              // monitor instructions (see also b/174167294).
               BasicBlock blockWithDevirtualizedInvoke =
-                  block.hasCatchHandlers() ? it.split(code, blocks) : block;
+                  block.hasCatchHandlers()
+                      ? it.splitCopyCatchHandlers(code, blocks, options)
+                      : block;
               if (blockWithDevirtualizedInvoke != block) {
                 // If we split, add the new checkcast at the end of the currently visiting block.
-                it = block.listIterator(code, block.getInstructions().size());
-                it.previous();
-                it.add(checkCast);
+                block.listIterator(code, block.getInstructions().size() - 1).add(checkCast);
                 // Update the dominator tree after the split.
                 dominatorTree = new DominatorTree(code);
                 // Restore the cursor.

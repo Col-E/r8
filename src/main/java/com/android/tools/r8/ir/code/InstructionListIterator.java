@@ -154,6 +154,9 @@ public interface InstructionListIterator
     return split(code, null);
   }
 
+  BasicBlock splitCopyCatchHandlers(
+      IRCode code, ListIterator<BasicBlock> blockIterator, InternalOptions options);
+
   /**
    * Split the block into three blocks. The first split is at the point of the {@link ListIterator}
    * cursor and the second split is <code>instructions</code> after the cursor. The existing

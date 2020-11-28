@@ -311,11 +311,10 @@ public class MemberValuePropagation {
         // Insert the definition of the replacement.
         replacement.setPosition(position);
         if (block.hasCatchHandlers()) {
-          BasicBlock splitBlock = iterator.split(code, blocks, false);
-          splitBlock.listIterator(code).add(replacement);
-          assert !block.hasCatchHandlers();
-          assert splitBlock.hasCatchHandlers();
-          block.copyCatchHandlers(code, blocks, splitBlock, appView.options());
+          iterator
+              .splitCopyCatchHandlers(code, blocks, appView.options())
+              .listIterator(code)
+              .add(replacement);
         } else {
           iterator.add(replacement);
         }
@@ -413,11 +412,10 @@ public class MemberValuePropagation {
         // Insert the definition of the replacement.
         replacement.setPosition(position);
         if (block.hasCatchHandlers()) {
-          BasicBlock splitBlock = iterator.split(code, blocks, false);
-          splitBlock.listIterator(code).add(replacement);
-          assert !block.hasCatchHandlers();
-          assert splitBlock.hasCatchHandlers();
-          block.copyCatchHandlers(code, blocks, splitBlock, appView.options());
+          iterator
+              .splitCopyCatchHandlers(code, blocks, appView.options())
+              .listIterator(code)
+              .add(replacement);
         } else {
           iterator.add(replacement);
         }

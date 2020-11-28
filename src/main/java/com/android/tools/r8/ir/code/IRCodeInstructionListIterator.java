@@ -92,6 +92,12 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
+  public BasicBlock splitCopyCatchHandlers(
+      IRCode code, ListIterator<BasicBlock> blockIterator, InternalOptions options) {
+    throw new Unimplemented();
+  }
+
+  @Override
   public BasicBlock inlineInvoke(
       AppView<?> appView,
       IRCode code,

@@ -41,12 +41,7 @@ public class DevirtualizeWithCatchHandlersTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLinesIf(
-            parameters.isCfRuntime() || parameters.getDexRuntimeVersion().isDalvik(), "A")
-        // TODO(b/174167294): Should succeed.
-        .assertFailureWithErrorThatThrowsIf(
-            parameters.isDexRuntime() && !parameters.getDexRuntimeVersion().isDalvik(),
-            VerifyError.class);
+        .assertSuccessWithOutputLines("A");
   }
 
   static class Main {

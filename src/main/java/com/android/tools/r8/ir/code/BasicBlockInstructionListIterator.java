@@ -463,6 +463,16 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     return newBlock;
   }
 
+  @Override
+  public BasicBlock splitCopyCatchHandlers(
+      IRCode code, ListIterator<BasicBlock> blockIterator, InternalOptions options) {
+    BasicBlock splitBlock = split(code, blockIterator, false);
+    assert !block.hasCatchHandlers();
+    assert splitBlock.hasCatchHandlers();
+    block.copyCatchHandlers(code, blockIterator, splitBlock, options);
+    return splitBlock;
+  }
+
   private boolean canThrow(IRCode code) {
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
