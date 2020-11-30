@@ -54,12 +54,11 @@ import java.util.Set;
 public class RedundantFieldLoadElimination {
 
   private static final int MAX_CAPACITY = 10000;
-  private static final int MIN_CAPACITY_PER_BLOCK = 50;
+  private static final int MAX_CAPACITY_PER_BLOCK = 50;
 
   private final AppView<?> appView;
   private final ProgramMethod method;
   private final IRCode code;
-  private final int maxCapacityPerBlock;
 
   // Values that may require type propagation.
   private final Set<Value> affectedValues = Sets.newIdentityHashSet();
@@ -75,7 +74,6 @@ public class RedundantFieldLoadElimination {
     this.appView = appView;
     this.method = code.context();
     this.code = code;
-    this.maxCapacityPerBlock = Math.max(MIN_CAPACITY_PER_BLOCK, MAX_CAPACITY / code.blocks.size());
   }
 
   public static boolean shouldRun(AppView<?> appView, IRCode code) {
@@ -187,7 +185,7 @@ public class RedundantFieldLoadElimination {
         // Already visited.
         continue;
       }
-      activeState = activeStates.computeActiveStateOnBlockEntry(head, maxCapacityPerBlock);
+      activeState = activeStates.computeActiveStateOnBlockEntry(head);
       activeStates.removeDeadBlockExitStates(head, pendingNormalSuccessors);
       BasicBlock block = head;
       BasicBlock end = null;
@@ -446,20 +444,19 @@ public class RedundantFieldLoadElimination {
 
     private int capacity = MAX_CAPACITY;
 
-    BlockState computeActiveStateOnBlockEntry(BasicBlock block, int maxCapacityPerBlock) {
+    BlockState computeActiveStateOnBlockEntry(BasicBlock block) {
       if (block.isEntry()) {
-        return new BlockState(maxCapacityPerBlock);
+        return new BlockState();
       }
       List<BasicBlock> predecessors = block.getPredecessors();
       Iterator<BasicBlock> predecessorIterator = predecessors.iterator();
-      BlockState state =
-          new BlockState(maxCapacityPerBlock, activeStateAtExit.get(predecessorIterator.next()));
+      BlockState state = new BlockState(activeStateAtExit.get(predecessorIterator.next()));
       while (predecessorIterator.hasNext()) {
         BasicBlock predecessor = predecessorIterator.next();
         BlockState predecessorExitState = activeStateAtExit.get(predecessor);
         if (predecessorExitState == null) {
           // Not processed yet.
-          return new BlockState(maxCapacityPerBlock);
+          return new BlockState();
         }
         state.intersect(predecessorExitState);
       }
@@ -482,7 +479,7 @@ public class RedundantFieldLoadElimination {
 
     private void ensureCapacity(BlockState state) {
       int stateSize = state.size();
-      assert stateSize <= state.maxCapacity;
+      assert stateSize <= MAX_CAPACITY_PER_BLOCK;
       int numberOfItemsToRemove = stateSize - capacity;
       if (numberOfItemsToRemove <= 0) {
         return;
@@ -571,14 +568,9 @@ public class RedundantFieldLoadElimination {
 
     private LinkedHashMap<DexField, FieldValue> nonFinalStaticFieldValues;
 
-    private final int maxCapacity;
+    public BlockState() {}
 
-    public BlockState(int maxCapacity) {
-      this.maxCapacity = maxCapacity;
-    }
-
-    public BlockState(int maxCapacity, BlockState state) {
-      this(maxCapacity);
+    public BlockState(BlockState state) {
       if (state != null) {
         if (state.finalInstanceFieldValues != null && !state.finalInstanceFieldValues.isEmpty()) {
           finalInstanceFieldValues = new LinkedHashMap<>();
@@ -614,8 +606,8 @@ public class RedundantFieldLoadElimination {
 
     public void ensureCapacityForNewElement() {
       int size = size();
-      assert size <= maxCapacity;
-      if (size == maxCapacity) {
+      assert size <= MAX_CAPACITY_PER_BLOCK;
+      if (size == MAX_CAPACITY_PER_BLOCK) {
         reduceSize(1);
       }
     }
