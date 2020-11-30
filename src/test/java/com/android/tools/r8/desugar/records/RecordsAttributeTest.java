@@ -7,12 +7,13 @@ package com.android.tools.r8.desugar.records;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.examples.jdk15.Records;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
@@ -25,23 +26,29 @@ import org.junit.runners.Parameterized.Parameters;
 public class RecordsAttributeTest extends TestBase {
 
   private final Backend backend;
+  private final TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withNoneRuntime().build(), Backend.values());
+    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk15).
+    return buildParameters(
+        getTestParameters().withCustomRuntime(CfRuntime.getCheckedInJdk15()).build(),
+        Backend.values());
   }
 
   public RecordsAttributeTest(TestParameters parameters, Backend backend) {
+    this.parameters = parameters;
     this.backend = backend;
   }
 
   @Test
   public void testJvm() throws Exception {
+    assumeFalse(parameters.isNoneRuntime());
     assumeTrue(backend == Backend.CF);
     testForJvm()
         .addRunClasspathFiles(Records.jar())
         .addVmArguments("--enable-preview")
-        .run(TestRuntime.getCheckedInJdk15(), Records.Main.typeName())
+        .run(parameters.getRuntime(), Records.Main.typeName())
         .assertSuccessWithOutputLines("Jane Doe", "42");
   }
 
@@ -56,7 +63,7 @@ public class RecordsAttributeTest extends TestBase {
               .compileWithExpectedDiagnostics(
                   diagnostics -> {
                     diagnostics.assertErrorThatMatches(
-                        diagnosticMessage(containsString("Unsupported class file version: 59")));
+                        diagnosticMessage(containsString("Records are not supported")));
                   });
         });
   }
@@ -73,7 +80,7 @@ public class RecordsAttributeTest extends TestBase {
               .compileWithExpectedDiagnostics(
                   diagnostics -> {
                     diagnostics.assertErrorThatMatches(
-                        diagnosticMessage(containsString("Unsupported class file version: 59")));
+                        diagnosticMessage(containsString("Records are not supported")));
                   });
         });
   }

@@ -28,7 +28,10 @@ public class SealedAttributeTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withNoneRuntime().build(), Backend.values());
+    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk15).
+    return buildParameters(
+        getTestParameters().withCustomRuntime(TestRuntime.getCheckedInJdk15()).build(),
+        Backend.values());
   }
 
   public SealedAttributeTest(TestParameters parameters, Backend backend) {
@@ -56,7 +59,7 @@ public class SealedAttributeTest extends TestBase {
               .compileWithExpectedDiagnostics(
                   diagnostics -> {
                     diagnostics.assertErrorThatMatches(
-                        diagnosticMessage(containsString("Unsupported class file version: 59")));
+                        diagnosticMessage(containsString("Sealed classes are not supported")));
                   });
         });
   }
@@ -73,7 +76,7 @@ public class SealedAttributeTest extends TestBase {
               .compileWithExpectedDiagnostics(
                   diagnostics -> {
                     diagnostics.assertErrorThatMatches(
-                        diagnosticMessage(containsString("Unsupported class file version: 59")));
+                        diagnosticMessage(containsString("Sealed classes are not supported")));
                   });
         });
   }

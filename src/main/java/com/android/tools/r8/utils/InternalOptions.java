@@ -21,6 +21,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Backend;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.ExperimentalClassFileVersionDiagnostic;
 import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
@@ -108,11 +109,13 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     ON
   }
 
-  public static final CfVersion SUPPORTED_CF_VERSION = CfVersion.V11;
+  public static final CfVersion SUPPORTED_CF_VERSION = CfVersion.V15;
+  public static final CfVersion EXPERIMENTAL_CF_VERSION = CfVersion.V12;
+
   public static final int SUPPORTED_DEX_VERSION =
       AndroidApiLevel.LATEST.getDexVersion().getIntValue();
 
-  public static final int ASM_VERSION = Opcodes.ASM7;
+  public static final int ASM_VERSION = Opcodes.ASM8;
 
   public final DexItemFactory itemFactory;
 
@@ -1042,6 +1045,23 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     message.append("Parser error: ");
     message.append(e.getMessage());
     reporter.warning(new StringDiagnostic(message.toString(), origin));
+  }
+
+  private final Box<Boolean> reportedExperimentClassFileVersion = new Box<>(false);
+
+  public void warningExperimentalClassFileVersion(Origin origin) {
+    synchronized (reportedExperimentClassFileVersion) {
+      if (reportedExperimentClassFileVersion.get()) {
+        return;
+      }
+      reportedExperimentClassFileVersion.set(true);
+      reporter.warning(
+          new ExperimentalClassFileVersionDiagnostic(
+              origin,
+              "One or more classes has class file version >= "
+                  + EXPERIMENTAL_CF_VERSION.major()
+                  + " which is not officially supported."));
+    }
   }
 
   public boolean printWarnings() {

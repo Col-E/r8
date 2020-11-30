@@ -63,6 +63,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.RecordComponentVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 
@@ -300,6 +301,12 @@ public class JarClassFileReader {
     }
 
     @Override
+    public RecordComponentVisitor visitRecordComponent(
+        String name, String descriptor, String signature) {
+      throw new CompilationError("Records are not supported", origin);
+    }
+
+    @Override
     public void visit(
         int rawVersion,
         int access,
@@ -310,6 +317,9 @@ public class JarClassFileReader {
       version = CfVersion.fromRaw(rawVersion);
       if (InternalOptions.SUPPORTED_CF_VERSION.isLessThan(version)) {
         throw new CompilationError("Unsupported class file version: " + version, origin);
+      }
+      if (version.isGreaterThanOrEqualTo(InternalOptions.EXPERIMENTAL_CF_VERSION)) {
+        application.options.warningExperimentalClassFileVersion(origin);
       }
       this.deprecated = AsmUtils.isDeprecated(access);
       accessFlags = ClassAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
@@ -402,6 +412,9 @@ public class JarClassFileReader {
     @Override
     public void visitAttribute(Attribute attr) {
       // Unknown attribute must only be ignored
+      if (attr.type.equals("PermittedSubclasses")) {
+        throw new CompilationError("Sealed classes are not supported", origin);
+      }
     }
 
     @Override
