@@ -19,10 +19,6 @@ import java.util.stream.Stream;
 
 public class TestParametersBuilder {
 
-  // Static computation of VMs configured as available by the testing invocation.
-  private static final List<TestRuntime> availableRuntimes =
-      getAvailableRuntimes().collect(Collectors.toList());
-
   // Predicate describing which test parameters are applicable to the test.
   // Built via the methods found below. Defaults to no applicable parameters, i.e., the emtpy set.
   private Predicate<TestParameters> filter = param -> false;
@@ -154,6 +150,7 @@ public class TestParametersBuilder {
 
   private Predicate<AndroidApiLevel> apiLevelFilter = param -> false;
   private List<AndroidApiLevel> explicitApiLevels = new ArrayList<>();
+  private List<TestRuntime> customRuntimes = new ArrayList<>();
 
   private TestParametersBuilder withApiFilter(Predicate<AndroidApiLevel> filter) {
     enableApiLevels = true;
@@ -195,13 +192,23 @@ public class TestParametersBuilder {
     return withApiFilter(api -> api.getLevel() < endExclusive.getLevel());
   }
 
+  public TestParametersBuilder withCustomRuntime(TestRuntime runtime) {
+    assert getUnfilteredAvailableRuntimes().noneMatch(r -> r == runtime);
+    customRuntimes.add(runtime);
+    return this;
+  }
+
   public TestParametersCollection build() {
     assert !enableApiLevels || enableApiLevelsForCf || hasDexRuntimeFilter;
-    return new TestParametersCollection(
+    List<TestParameters> availableParameters =
         getAvailableRuntimes()
             .flatMap(this::createParameters)
             .filter(filter)
-            .collect(Collectors.toList()));
+            .collect(Collectors.toList());
+    List<TestParameters> customParameters =
+        customRuntimes.stream().flatMap(this::createParameters).collect(Collectors.toList());
+    availableParameters.addAll(customParameters);
+    return new TestParametersCollection(availableParameters);
   }
 
   public Stream<TestParameters> createParameters(TestRuntime runtime) {

@@ -156,6 +156,11 @@ def ParseOptions():
       '--print-obfuscated-stacktraces', '--print_obfuscated_stacktraces',
       default=False, action='store_true',
       help='Print the obfuscated stacktraces')
+  result.add_option(
+      '--debug-agent', '--debug_agent',
+      help='Enable Java debug agent and suspend compilation (default disabled)',
+      default=False,
+      action='store_true')
   return result.parse_args()
 
 def archive_failures():
@@ -253,6 +258,8 @@ def Main():
   if options.worktree:
     gradle_args.append('-g=' + os.path.join(utils.REPO_ROOT, ".gradle_user_home"))
     gradle_args.append('--no-daemon')
+  if options.debug_agent:
+    gradle_args.append('--no-daemon')
 
   # Build an R8 with dependencies for bootstrapping tests before adding test sources.
   gradle_args.append('r8WithDeps')
@@ -263,6 +270,8 @@ def Main():
   # Add Gradle tasks
   gradle_args.append('cleanTest')
   gradle_args.append('test')
+  if options.debug_agent:
+    gradle_args.append('--debug-jvm')
   if options.fail_fast:
     gradle_args.append('--fail-fast')
   if options.failed:

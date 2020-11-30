@@ -57,12 +57,12 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.zip.CRC32;
 import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.Attribute;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.RecordComponentVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 
@@ -300,6 +300,17 @@ public class JarClassFileReader {
     }
 
     @Override
+    public RecordComponentVisitor visitRecordComponent(
+        String name, String descriptor, String signature) {
+      throw new CompilationError("Records are not supported", origin);
+    }
+
+    @Override
+    public void visitPermittedSubclass(String permittedSubclass) {
+      throw new CompilationError("Sealed classes are not supported", origin);
+    }
+
+    @Override
     public void visit(
         int rawVersion,
         int access,
@@ -310,6 +321,9 @@ public class JarClassFileReader {
       version = CfVersion.fromRaw(rawVersion);
       if (InternalOptions.SUPPORTED_CF_VERSION.isLessThan(version)) {
         throw new CompilationError("Unsupported class file version: " + version, origin);
+      }
+      if (version.isGreaterThanOrEqualTo(InternalOptions.EXPERIMENTAL_CF_VERSION)) {
+        application.options.warningExperimentalClassFileVersion(origin);
       }
       this.deprecated = AsmUtils.isDeprecated(access);
       accessFlags = ClassAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
@@ -397,11 +411,6 @@ public class JarClassFileReader {
         boolean visible) {
       // Java 8 type annotations are not supported by Dex, thus ignore them.
       return null;
-    }
-
-    @Override
-    public void visitAttribute(Attribute attr) {
-      // Unknown attribute must only be ignored
     }
 
     @Override
