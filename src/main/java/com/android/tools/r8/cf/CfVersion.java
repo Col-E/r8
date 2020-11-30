@@ -23,10 +23,6 @@ public final class CfVersion implements StructuralItem<CfVersion> {
   public static final CfVersion V9 = new CfVersion(Opcodes.V9);
   public static final CfVersion V10 = new CfVersion(Opcodes.V10);
   public static final CfVersion V11 = new CfVersion(Opcodes.V11);
-  public static final CfVersion V12 = new CfVersion(Opcodes.V12);
-  public static final CfVersion V13 = new CfVersion(Opcodes.V13);
-  public static final CfVersion V14 = new CfVersion(Opcodes.V14);
-  public static final CfVersion V15 = new CfVersion(Opcodes.V15);
 
   private final int version;
 
