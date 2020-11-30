@@ -61,7 +61,6 @@ import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.Uninstant
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector.UnusedArgumentsGraphLens;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingCfMethods;
-import com.android.tools.r8.ir.optimize.enums.EnumValueInfoMapCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.templates.CfUtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.jar.CfApplicationWriter;
@@ -616,9 +615,6 @@ public class R8 {
       // Collect switch maps and ordinals maps.
       if (options.enableEnumSwitchMapRemoval) {
         appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness).run());
-      }
-      if (options.enableEnumValueOptimization || options.enableEnumUnboxing) {
-        appViewWithLiveness.setAppInfo(new EnumValueInfoMapCollector(appViewWithLiveness).run());
       }
 
       // Collect the already pruned types before creating a new app info without liveness.

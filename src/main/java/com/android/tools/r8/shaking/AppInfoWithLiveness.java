@@ -25,7 +25,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
@@ -181,8 +180,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   final Set<DexType> prunedTypes;
   /** A map from switchmap class types to their corresponding switchmaps. */
   final Map<DexField, Int2ReferenceMap<DexField>> switchMaps;
-  /** A map from enum types to their value types and ordinals. */
-  final EnumValueInfoMapCollection enumValueInfoMaps;
 
   /* A cache to improve the lookup performance of lookupSingleVirtualTarget */
   private final SingleTargetLookupCache singleTargetLookupCache = new SingleTargetLookupCache();
@@ -227,7 +224,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Object2BooleanMap<DexReference> identifierNameStrings,
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
-      EnumValueInfoMapCollection enumValueInfoMaps,
       Set<DexType> lockCandidates,
       Map<DexType, Visibility> initClassReferences) {
     super(syntheticItems, classToFeatureSplitMap, mainDexClasses);
@@ -266,7 +262,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.identifierNameStrings = identifierNameStrings;
     this.prunedTypes = prunedTypes;
     this.switchMaps = switchMaps;
-    this.enumValueInfoMaps = enumValueInfoMaps;
     this.lockCandidates = lockCandidates;
     this.initClassReferences = initClassReferences;
     verify();
@@ -314,7 +309,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.identifierNameStrings,
         previous.prunedTypes,
         previous.switchMaps,
-        previous.enumValueInfoMaps,
         previous.lockCandidates,
         previous.initClassReferences);
   }
@@ -363,7 +357,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             ? CollectionUtils.mergeSets(previous.prunedTypes, prunedItems.getRemovedClasses())
             : previous.prunedTypes,
         previous.switchMaps,
-        previous.enumValueInfoMaps,
         previous.lockCandidates,
         previous.initClassReferences);
   }
@@ -411,9 +404,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   public AppInfoWithLiveness(
-      AppInfoWithLiveness previous,
-      Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
-      EnumValueInfoMapCollection enumValueInfoMaps) {
+      AppInfoWithLiveness previous, Map<DexField, Int2ReferenceMap<DexField>> switchMaps) {
     super(
         previous.getSyntheticItems().commit(previous.app()),
         previous.getClassToFeatureSplitMap(),
@@ -453,7 +444,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.identifierNameStrings = previous.identifierNameStrings;
     this.prunedTypes = previous.prunedTypes;
     this.switchMaps = switchMaps;
-    this.enumValueInfoMaps = enumValueInfoMaps;
     this.lockCandidates = previous.lockCandidates;
     this.initClassReferences = previous.initClassReferences;
     previous.markObsolete();
@@ -1006,7 +996,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         // Don't rewrite pruned types - the removed types are identified by their original name.
         prunedTypes,
         lens.rewriteFieldKeys(switchMaps),
-        enumValueInfoMaps.rewrittenWithLens(lens),
         lens.rewriteTypes(lockCandidates),
         lens.rewriteTypeKeys(initClassReferences));
   }
@@ -1211,13 +1200,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public AppInfoWithLiveness withSwitchMaps(Map<DexField, Int2ReferenceMap<DexField>> switchMaps) {
     assert checkIfObsolete();
     assert this.switchMaps.isEmpty();
-    return new AppInfoWithLiveness(this, switchMaps, enumValueInfoMaps);
-  }
-
-  public AppInfoWithLiveness withEnumValueInfoMaps(EnumValueInfoMapCollection enumValueInfoMaps) {
-    assert checkIfObsolete();
-    assert this.enumValueInfoMaps.isEmpty();
-    return new AppInfoWithLiveness(this, switchMaps, enumValueInfoMaps);
+    return new AppInfoWithLiveness(this, switchMaps);
   }
 
   /**

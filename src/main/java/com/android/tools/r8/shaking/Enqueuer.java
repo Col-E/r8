@@ -47,7 +47,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.DirectMappedDexApplication.Builder;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.FieldResolutionResult;
@@ -3337,7 +3336,6 @@ public class Enqueuer {
             joinIdentifierNameStrings(rootSet.identifierNameStrings, identifierNameStrings),
             Collections.emptySet(),
             Collections.emptyMap(),
-            EnumValueInfoMapCollection.empty(),
             lockCandidates,
             initClassReferences);
     appInfo.markObsolete();
