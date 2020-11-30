@@ -118,7 +118,8 @@ public class EnumUnboxer {
     ordinalField =
         appView.appInfo().resolveField(factory.enumMembers.ordinalField).getResolvedField();
     if (ordinalField == null) {
-      assert false : "Missing library field " + factory.enumMembers.ordinalField;
+      // This can happen when compiling for non standard libraries, in that case, this effectively
+      // disables the enum unboxer.
       enumUnboxingCandidatesInfo.clear();
     }
   }
