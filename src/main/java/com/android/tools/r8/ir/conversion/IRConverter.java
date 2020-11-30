@@ -22,7 +22,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
@@ -74,6 +73,7 @@ import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
+import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoCollector;
@@ -753,7 +753,7 @@ public class IRConverter {
     if (enumUnboxer != null) {
       enumUnboxer.unboxEnums(postMethodProcessorBuilder, executorService, feedback);
     } else {
-      appView.setUnboxedEnums(EnumValueInfoMapCollection.empty());
+      appView.setUnboxedEnums(EnumDataMap.empty());
     }
     if (!options.debug) {
       new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)

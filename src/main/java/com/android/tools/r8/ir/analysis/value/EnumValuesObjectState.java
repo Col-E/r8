@@ -33,6 +33,10 @@ public class EnumValuesObjectState extends ObjectState {
     return state[ordinal];
   }
 
+  public int getEnumValuesSize() {
+    return state.length;
+  }
+
   @Override
   public boolean isEnumValuesObjectState() {
     return true;

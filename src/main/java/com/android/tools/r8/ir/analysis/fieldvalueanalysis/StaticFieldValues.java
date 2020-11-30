@@ -95,40 +95,21 @@ public abstract class StaticFieldValues {
       return this;
     }
 
-    // We need to access the enum instance object state to figure out if it contains known constant
-    // field values. The enum instance may be accessed in two ways, directly through the enum
-    // static field, or through the enum $VALUES field. If none of them are kept, the instance is
-    // effectively unused. The object state may be stored in the enum static field optimization
-    // info, if kept, or in the $VALUES optimization info, if kept.
-    // If the enum instance is unused, this method answers null.
-    public ObjectState getObjectStateForPossiblyPinnedEnumInstance(DexField field, int ordinal) {
-
-      // Attempt 1: Get object state from the instance field's optimization info.
+    public ObjectState getObjectStateForPossiblyPinnedField(DexField field) {
       AbstractValue fieldValue = enumAbstractValues.get(field);
-      if (fieldValue != null) {
-        if (fieldValue.isSingleFieldValue()) {
-          return fieldValue.asSingleFieldValue().getState();
-        }
-        if (fieldValue.isUnknown()) {
-          return ObjectState.empty();
-        }
-        assert fieldValue.isZero();
-      }
-
-      // Attempt 2: Get object state from the values field's optimization info.
-      if (valuesAbstractValue.isZero()) {
-        // Unused enum instance.
+      if (fieldValue == null || fieldValue.isZero()) {
         return null;
       }
-      if (valuesAbstractValue.isUnknown()) {
-        return ObjectState.empty();
+      if (fieldValue.isSingleFieldValue()) {
+        return fieldValue.asSingleFieldValue().getState();
       }
-      assert valuesAbstractValue.isSingleFieldValue();
-      ObjectState valuesState = this.valuesAbstractValue.asSingleFieldValue().getState();
-      if (valuesState.isEnumValuesObjectState()) {
-        return valuesState.asEnumValuesObjectState().getObjectStateForOrdinal(ordinal);
-      }
+      assert fieldValue.isUnknown();
       return ObjectState.empty();
+    }
+
+    public AbstractValue getValuesAbstractValueForPossiblyPinnedField(DexField field) {
+      assert valuesField == field || valuesAbstractValue == null;
+      return valuesAbstractValue;
     }
   }
 

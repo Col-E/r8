@@ -5,10 +5,10 @@
 package com.android.tools.r8.ir.optimize.info.field;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Objects;
 
@@ -49,14 +49,14 @@ public class InstanceFieldTypeInitializationInfo implements InstanceFieldInitial
   @Override
   public InstanceFieldInitializationInfo rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens lens) {
-    EnumValueInfoMapCollection unboxedEnums = appView.unboxedEnums();
+    EnumDataMap enumDataMap = appView.unboxedEnums();
     if (dynamicLowerBoundType != null
-        && unboxedEnums.containsEnum(dynamicLowerBoundType.getClassType())) {
+        && enumDataMap.isUnboxedEnum(dynamicLowerBoundType.getClassType())) {
       // No point in tracking the type of primitives.
       return UnknownInstanceFieldInitializationInfo.getInstance();
     }
     if (dynamicUpperBoundType.isClassType()
-        && unboxedEnums.containsEnum(dynamicUpperBoundType.asClassType().getClassType())) {
+        && enumDataMap.isUnboxedEnum(dynamicUpperBoundType.asClassType().getClassType())) {
       // No point in tracking the type of primitives.
       return UnknownInstanceFieldInitializationInfo.getInstance();
     }

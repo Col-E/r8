@@ -54,8 +54,7 @@ public class EnumWithNonDefaultForwardingConstructorTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/160939354): Should succeed with 42.
-        .assertSuccessWithOutputLines(enableEnumUnboxing ? "0" : "42");
+        .assertSuccessWithOutputLines("42");
   }
 
   private void addProgramClasses(TestBuilder<?, ?> builder) throws Exception {

@@ -8,21 +8,20 @@ import static com.android.tools.r8.TestBase.toDexType;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection;
+import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 
 public class EnumUnboxingInspector {
 
   private final DexItemFactory dexItemFactory;
-  private final EnumValueInfoMapCollection unboxedEnums;
+  private final EnumDataMap unboxedEnums;
 
-  public EnumUnboxingInspector(
-      DexItemFactory dexItemFactory, EnumValueInfoMapCollection unboxedEnums) {
+  public EnumUnboxingInspector(DexItemFactory dexItemFactory, EnumDataMap unboxedEnums) {
     this.dexItemFactory = dexItemFactory;
     this.unboxedEnums = unboxedEnums;
   }
 
   public EnumUnboxingInspector assertUnboxed(Class<? extends Enum<?>> clazz) {
-    assertTrue(unboxedEnums.containsEnum(toDexType(clazz, dexItemFactory)));
+    assertTrue(unboxedEnums.isUnboxedEnum(toDexType(clazz, dexItemFactory)));
     return this;
   }
 

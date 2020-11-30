@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
+import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.ir.optimize.library.LibraryMemberOptimizer;
 import com.android.tools.r8.ir.optimize.library.LibraryMethodSideEffectModelCollection;
@@ -85,7 +86,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private HorizontallyMergedClasses horizontallyMergedClasses;
   private StaticallyMergedClasses staticallyMergedClasses;
   private VerticallyMergedClasses verticallyMergedClasses;
-  private EnumValueInfoMapCollection unboxedEnums = EnumValueInfoMapCollection.empty();
+  private EnumDataMap unboxedEnums = EnumDataMap.empty();
   // TODO(b/169115389): Remove
   private Set<DexMethod> cfByteCodePassThrough = ImmutableSet.of();
 
@@ -510,18 +511,18 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     testing().verticallyMergedClassesConsumer.accept(dexItemFactory(), verticallyMergedClasses);
   }
 
-  public EnumValueInfoMapCollection unboxedEnums() {
+  public EnumDataMap unboxedEnums() {
     return unboxedEnums;
   }
 
-  public void setUnboxedEnums(EnumValueInfoMapCollection unboxedEnums) {
+  public void setUnboxedEnums(EnumDataMap unboxedEnums) {
     assert this.unboxedEnums.isEmpty();
     this.unboxedEnums = unboxedEnums;
     testing().unboxedEnumsConsumer.accept(dexItemFactory(), unboxedEnums);
   }
 
   public boolean validateUnboxedEnumsHaveBeenPruned() {
-    for (DexType unboxedEnum : unboxedEnums.enumSet()) {
+    for (DexType unboxedEnum : unboxedEnums.getUnboxedEnums()) {
       assert appInfo.definitionForWithoutExistenceAssert(unboxedEnum) == null
           : "Enum " + unboxedEnum + " has been unboxed but is still in the program.";
       assert appInfo().withLiveness().wasPruned(unboxedEnum)

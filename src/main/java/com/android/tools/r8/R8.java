@@ -33,7 +33,6 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.DirectMappedDexApplication.Builder;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.InitClassLens;
@@ -626,10 +625,6 @@ public class R8 {
       // TODO: we should avoid removing liveness.
       Set<DexType> prunedTypes = appView.withLiveness().appInfo().getPrunedTypes();
 
-      // TODO: move to appview.
-      EnumValueInfoMapCollection enumValueInfoMapCollection =
-          appViewWithLiveness.appInfo().getEnumValueInfoMapCollection();
-
       timing.begin("Create IR");
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
@@ -729,13 +724,11 @@ public class R8 {
                   missingClasses,
                   prunedTypes);
           appView.setAppInfo(
-              enqueuer
-                  .traceApplication(
-                      appView.rootSet(),
-                      options.getProguardConfiguration().getDontWarnPatterns(),
-                      executorService,
-                      timing)
-                  .withEnumValueInfoMaps(enumValueInfoMapCollection));
+              enqueuer.traceApplication(
+                  appView.rootSet(),
+                  options.getProguardConfiguration().getDontWarnPatterns(),
+                  executorService,
+                  timing));
           // Rerunning the enqueuer should not give rise to any method rewritings.
           assert enqueuer.buildGraphLens() == null;
           appView.withGeneratedMessageLiteBuilderShrinker(

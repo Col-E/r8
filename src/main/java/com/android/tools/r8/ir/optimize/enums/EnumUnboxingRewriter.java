@@ -21,9 +21,6 @@ import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
@@ -76,8 +73,7 @@ public class EnumUnboxingRewriter {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory factory;
-  private final EnumValueInfoMapCollection enumsToUnbox;
-  private final EnumInstanceFieldDataMap unboxedEnumsInstanceFieldData;
+  private final EnumDataMap unboxedEnumsData;
   private final UnboxedEnumMemberRelocator relocator;
   private NestedGraphLens enumUnboxingLens;
 
@@ -93,18 +89,11 @@ public class EnumUnboxingRewriter {
 
   EnumUnboxingRewriter(
       AppView<AppInfoWithLiveness> appView,
-      Set<DexType> enumsToUnbox,
-      EnumInstanceFieldDataMap unboxedEnumsInstanceFieldData,
+      EnumDataMap unboxedEnumsInstanceFieldData,
       UnboxedEnumMemberRelocator relocator) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
-    EnumValueInfoMapCollection.Builder builder = EnumValueInfoMapCollection.builder();
-    for (DexType toUnbox : enumsToUnbox) {
-      assert appView.appInfo().withLiveness().getEnumValueInfoMap(toUnbox) != null;
-      builder.put(toUnbox, appView.appInfo().withLiveness().getEnumValueInfoMap(toUnbox));
-    }
-    this.enumsToUnbox = builder.build();
-    this.unboxedEnumsInstanceFieldData = unboxedEnumsInstanceFieldData;
+    this.unboxedEnumsData = unboxedEnumsInstanceFieldData;
     this.relocator = relocator;
 
     // Custom methods for java.lang.Enum methods ordinal, equals and compareTo.
@@ -147,14 +136,10 @@ public class EnumUnboxingRewriter {
     this.enumUnboxingLens = enumUnboxingLens;
   }
 
-  public EnumValueInfoMapCollection getEnumsToUnbox() {
-    return enumsToUnbox;
-  }
-
   Set<Phi> rewriteCode(IRCode code) {
     // We should not process the enum methods, they will be removed and they may contain invalid
     // rewriting rules.
-    if (enumsToUnbox.isEmpty()) {
+    if (unboxedEnumsData.isEmpty()) {
       return Sets.newIdentityHashSet();
     }
     assert code.isConsistentSSABeforeTypesAreCorrect();
@@ -223,7 +208,7 @@ public class EnumUnboxingRewriter {
               && invokeStatic.getArgument(0).isConstClass()) {
             DexType enumType =
                 invokeStatic.getArgument(0).getConstInstruction().asConstClass().getValue();
-            if (enumsToUnbox.containsEnum(enumType)) {
+            if (unboxedEnumsData.isUnboxedEnum(enumType)) {
               DexMethod valueOfMethod = computeValueOfUtilityMethod(enumType);
               Value outValue = invokeStatic.outValue();
               Value rewrittenOutValue = null;
@@ -282,17 +267,15 @@ public class EnumUnboxingRewriter {
         }
         if (instruction.isStaticGet()) {
           StaticGet staticGet = instruction.asStaticGet();
-          DexType holder = staticGet.getField().holder;
-          if (enumsToUnbox.containsEnum(holder)) {
+          DexField field = staticGet.getField();
+          DexType holder = field.holder;
+          if (unboxedEnumsData.isUnboxedEnum(holder)) {
             if (staticGet.outValue() == null) {
               iterator.removeOrReplaceByDebugLocalRead();
               continue;
             }
-            EnumValueInfoMap enumValueInfoMap = enumsToUnbox.getEnumValueInfoMap(holder);
-            assert enumValueInfoMap != null;
             affectedPhis.addAll(staticGet.outValue().uniquePhiUsers());
-            EnumValueInfo enumValueInfo = enumValueInfoMap.getEnumValueInfo(staticGet.getField());
-            if (enumValueInfo == null && staticGet.getField().name == factory.enumValuesFieldName) {
+            if (unboxedEnumsData.matchesValuesField(field)) {
               utilityMethods.computeIfAbsent(
                   valuesUtilityMethod, m -> synthesizeValuesUtilityMethod());
               DexField fieldValues = createValuesField(holder);
@@ -300,7 +283,9 @@ public class EnumUnboxingRewriter {
               DexMethod methodValues = createValuesMethod(holder);
               utilityMethods.computeIfAbsent(
                   methodValues,
-                  m -> computeValuesEncodedMethod(m, fieldValues, enumValueInfoMap.size()));
+                  m ->
+                      computeValuesEncodedMethod(
+                          m, fieldValues, unboxedEnumsData.getValuesSize(holder)));
               Value rewrittenOutValue =
                   code.createValue(
                       ArrayTypeElement.create(TypeElement.getInt(), definitelyNotNull()));
@@ -310,9 +295,10 @@ public class EnumUnboxingRewriter {
               convertedEnums.put(invoke, holder);
             } else {
               // Replace by ordinal + 1 for null check (null is 0).
-              assert enumValueInfo != null
-                  : "Invalid read to " + staticGet.getField().name + ", error during enum analysis";
-              ConstNumber intConstant = code.createIntConstant(enumValueInfo.convertToInt());
+              assert unboxedEnumsData.hasUnboxedValueFor(field)
+                  : "Invalid read to " + field.name + ", error during enum analysis";
+              ConstNumber intConstant =
+                  code.createIntConstant(unboxedEnumsData.getUnboxedValue(field));
               iterator.replaceCurrentInstruction(intConstant);
               convertedEnums.put(intConstant, holder);
             }
@@ -322,7 +308,7 @@ public class EnumUnboxingRewriter {
         if (instruction.isInstanceGet()) {
           InstanceGet instanceGet = instruction.asInstanceGet();
           DexType holder = instanceGet.getField().holder;
-          if (enumsToUnbox.containsEnum(holder)) {
+          if (unboxedEnumsData.isUnboxedEnum(holder)) {
             DexMethod fieldMethod = computeInstanceFieldMethod(instanceGet.getField());
             Value rewrittenOutValue =
                 code.createValue(
@@ -332,7 +318,7 @@ public class EnumUnboxingRewriter {
                 new InvokeStatic(
                     fieldMethod, rewrittenOutValue, ImmutableList.of(instanceGet.object()));
             iterator.replaceCurrentInstruction(invoke);
-            if (enumsToUnbox.containsEnum(instanceGet.getField().type)) {
+            if (unboxedEnumsData.isUnboxedEnum(instanceGet.getField().type)) {
               convertedEnums.put(invoke, instanceGet.getField().type);
             }
           }
@@ -393,7 +379,7 @@ public class EnumUnboxingRewriter {
 
   private DexMethod computeInstanceFieldMethod(DexField field) {
     EnumInstanceFieldKnownData enumFieldKnownData =
-        unboxedEnumsInstanceFieldData.getInstanceFieldData(field.holder, field);
+        unboxedEnumsData.getInstanceFieldData(field.holder, field);
     if (enumFieldKnownData.isOrdinal()) {
       utilityMethods.computeIfAbsent(ordinalUtilityMethod, m -> synthesizeOrdinalMethod());
       return ordinalUtilityMethod;
@@ -437,7 +423,7 @@ public class EnumUnboxingRewriter {
       return null;
     }
     DexType enumType = type.asClassType().getClassType();
-    return enumsToUnbox.containsEnum(enumType) ? enumType : null;
+    return unboxedEnumsData.isUnboxedEnum(enumType) ? enumType : null;
   }
 
   public String compatibleName(DexType type) {
@@ -478,7 +464,7 @@ public class EnumUnboxingRewriter {
   }
 
   private DexMethod computeInstanceFieldUtilityMethod(DexType enumType, DexField field) {
-    assert enumsToUnbox.containsEnum(enumType);
+    assert unboxedEnumsData.isUnboxedEnum(enumType);
     assert field.holder == enumType || field.holder == factory.enumType;
     String methodName =
         "get"
@@ -498,7 +484,7 @@ public class EnumUnboxingRewriter {
 
   private DexMethod computeStringValueOfUtilityMethod(DexType enumType) {
     // TODO(b/167994636): remove duplication between instance field name read and this method.
-    assert enumsToUnbox.containsEnum(enumType);
+    assert unboxedEnumsData.isUnboxedEnum(enumType);
     String methodName = "string$valueOf$" + compatibleName(enumType);
     DexMethod fieldMethod =
         factory.createMethod(
@@ -514,7 +500,7 @@ public class EnumUnboxingRewriter {
   }
 
   private DexMethod computeValueOfUtilityMethod(DexType enumType) {
-    assert enumsToUnbox.containsEnum(enumType);
+    assert unboxedEnumsData.isUnboxedEnum(enumType);
     DexMethod valueOf =
         factory.createMethod(
             relocator.getNewMemberLocationFor(enumType),
@@ -538,7 +524,7 @@ public class EnumUnboxingRewriter {
       return null;
     }
     DexType classType = baseType.asClassType().getClassType();
-    return enumsToUnbox.containsEnum(classType) ? classType : null;
+    return unboxedEnumsData.isUnboxedEnum(classType) ? classType : null;
   }
 
   void synthesizeEnumUnboxingUtilityMethods(IRConverter converter, ExecutorService executorService)
@@ -593,15 +579,13 @@ public class EnumUnboxingRewriter {
   private DexEncodedMethod synthesizeInstanceFieldMethod(
       DexMethod method, DexType enumType, DexField field, AbstractValue nullValue) {
     assert method.proto.returnType == field.type;
-    assert unboxedEnumsInstanceFieldData.getInstanceFieldData(enumType, field).isMapping();
+    assert unboxedEnumsData.getInstanceFieldData(enumType, field).isMapping();
     CfCode cfCode =
         new EnumUnboxingCfCodeProvider.EnumUnboxingInstanceFieldCfCodeProvider(
                 appView,
                 method.holder,
                 field.type,
-                unboxedEnumsInstanceFieldData
-                    .getInstanceFieldData(enumType, field)
-                    .asEnumFieldMappingData(),
+                unboxedEnumsData.getInstanceFieldData(enumType, field).asEnumFieldMappingData(),
                 nullValue)
             .generateCfCode();
     return synthesizeUtilityMethod(cfCode, method, false);
@@ -609,7 +593,7 @@ public class EnumUnboxingRewriter {
 
   private DexEncodedMethod synthesizeValueOfUtilityMethod(DexMethod method, DexType enumType) {
     assert method.proto.returnType == factory.intType;
-    assert unboxedEnumsInstanceFieldData
+    assert unboxedEnumsData
         .getInstanceFieldData(enumType, factory.enumMembers.nameField)
         .isMapping();
     CfCode cfCode =
@@ -617,7 +601,7 @@ public class EnumUnboxingRewriter {
                 appView,
                 method.holder,
                 enumType,
-                unboxedEnumsInstanceFieldData
+                unboxedEnumsData
                     .getInstanceFieldData(enumType, factory.enumMembers.nameField)
                     .asEnumFieldMappingData())
             .generateCfCode();

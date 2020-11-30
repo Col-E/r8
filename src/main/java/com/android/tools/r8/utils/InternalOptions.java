@@ -39,7 +39,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.graph.classmerging.StaticallyMergedClasses;
@@ -50,6 +49,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.optimize.Inliner;
+import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.ir.optimize.lambda.kotlin.KotlinLambdaGroupIdFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
@@ -1382,7 +1382,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public BiConsumer<DexItemFactory, StaticallyMergedClasses> staticallyMergedClassesConsumer =
         ConsumerUtils.emptyBiConsumer();
 
-    public BiConsumer<DexItemFactory, EnumValueInfoMapCollection> unboxedEnumsConsumer =
+    public BiConsumer<DexItemFactory, EnumDataMap> unboxedEnumsConsumer =
         ConsumerUtils.emptyBiConsumer();
 
     public BiConsumer<DexItemFactory, VerticallyMergedClasses> verticallyMergedClassesConsumer =

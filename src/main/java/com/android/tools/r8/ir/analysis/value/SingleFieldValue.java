@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -23,6 +22,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class SingleFieldValue extends SingleValue {
@@ -107,12 +107,9 @@ public abstract class SingleFieldValue extends SingleValue {
   public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     AbstractValueFactory factory = appView.abstractValueFactory();
     if (field.holder == field.type) {
-      EnumValueInfoMap unboxedEnumInfo = appView.unboxedEnums().getEnumValueInfoMap(field.type);
-      if (unboxedEnumInfo != null) {
-        // Return the ordinal of the unboxed enum.
-        assert unboxedEnumInfo.hasEnumValueInfo(field);
-        return factory.createSingleNumberValue(
-            unboxedEnumInfo.getEnumValueInfo(field).convertToInt());
+      EnumDataMap enumDataMap = appView.unboxedEnums();
+      if (enumDataMap.hasUnboxedValueFor(field)) {
+        return factory.createSingleNumberValue(enumDataMap.getUnboxedValue(field));
       }
     }
     return factory.createSingleFieldValue(
