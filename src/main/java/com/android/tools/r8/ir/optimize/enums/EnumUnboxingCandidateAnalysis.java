@@ -53,7 +53,7 @@ class EnumUnboxingCandidateAnalysis {
     if (!clazz.isEnum()) {
       return false;
     }
-    if (!clazz.isEffectivelyFinal(appView)) {
+    if (clazz.superType != factory.enumType || !clazz.isEffectivelyFinal(appView)) {
       enumUnboxer.reportFailure(clazz.type, Reason.SUBTYPES);
       return false;
     }
