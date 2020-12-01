@@ -56,6 +56,7 @@ public class ArrayTypeElement extends ReferenceTypeElement {
     return nesting;
   }
 
+  @Override
   public boolean isPrimitiveArrayType() {
     return memberTypeLattice.isPrimitiveType();
   }
