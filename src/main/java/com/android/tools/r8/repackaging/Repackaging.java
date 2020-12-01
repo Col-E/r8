@@ -21,7 +21,7 @@ import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.SortedProgramPackageCollection;
 import com.android.tools.r8.graph.TreeFixer;
-import com.android.tools.r8.graph.TreeFixerCallbacks;
+import com.android.tools.r8.repackaging.RepackagingLens.Builder;
 import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -78,25 +79,28 @@ public class Repackaging {
     // Running the tree fixer with an identity mapping helps ensure that the fixup of of items is
     // complete as the rewrite replaces all items regardless of repackaging.
     // The identity mapping should result in no move callbacks being called.
-    TreeFixerCallbacks callbacks =
-        new TreeFixerCallbacks() {
-          @Override
-          public void recordMove(DexField from, DexField to) {
-            assert false;
-          }
-
-          @Override
-          public void recordMove(DexMethod from, DexMethod to) {
-            assert false;
-          }
-
-          @Override
-          public void recordMove(DexType from, DexType to) {
-            assert false;
-          }
-        };
     Collection<DexProgramClass> newProgramClasses =
-        new TreeFixer(appView, Collections.emptyMap(), callbacks).run();
+        new TreeFixer(appView) {
+          @Override
+          public DexType mapClassType(DexType type) {
+            return type;
+          }
+
+          @Override
+          public void recordFieldChange(DexField from, DexField to) {
+            assert false;
+          }
+
+          @Override
+          public void recordMethodChange(DexMethod from, DexMethod to) {
+            assert false;
+          }
+
+          @Override
+          public void recordClassChange(DexType from, DexType to) {
+            assert false;
+          }
+        }.fixupClasses(appView.appInfo().classesWithDeterministicOrder());
     CommittedItems committedItems =
         appView
             .getSyntheticItems()
@@ -141,12 +145,47 @@ public class Repackaging {
       return null;
     }
     RepackagingLens.Builder lensBuilder = new RepackagingLens.Builder();
-    Collection<DexProgramClass> newProgramClasses =
-        new TreeFixer(appView, mappings, lensBuilder).run();
-    appBuilder.replaceProgramClasses(new ArrayList<>(newProgramClasses));
+    List<DexProgramClass> newProgramClasses =
+        new ArrayList<>(
+            new RepackagingTreeFixer(appView, mappings, lensBuilder)
+                .fixupClasses(appView.appInfo().classesWithDeterministicOrder()));
+    appBuilder.replaceProgramClasses(newProgramClasses);
     RepackagingLens lens = lensBuilder.build(appView);
     new AnnotationFixer(lens).run(appBuilder.getProgramClasses());
     return lens;
+  }
+
+  private static class RepackagingTreeFixer extends TreeFixer {
+
+    private final BiMap<DexType, DexType> mappings;
+    private final Builder lensBuilder;
+
+    public RepackagingTreeFixer(
+        AppView<?> appView, BiMap<DexType, DexType> mappings, Builder lensBuilder) {
+      super(appView);
+      this.mappings = mappings;
+      this.lensBuilder = lensBuilder;
+    }
+
+    @Override
+    public DexType mapClassType(DexType type) {
+      return mappings.getOrDefault(type, type);
+    }
+
+    @Override
+    public void recordFieldChange(DexField from, DexField to) {
+      lensBuilder.recordMove(from, to);
+    }
+
+    @Override
+    public void recordMethodChange(DexMethod from, DexMethod to) {
+      lensBuilder.recordMove(from, to);
+    }
+
+    @Override
+    public void recordClassChange(DexType from, DexType to) {
+      lensBuilder.recordMove(from, to);
+    }
   }
 
   private void processPackagesInDesiredLocation(

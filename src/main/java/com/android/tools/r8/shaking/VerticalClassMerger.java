@@ -15,12 +15,10 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexClass.FieldSetter;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -42,6 +40,7 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
+import com.android.tools.r8.graph.TreeFixer;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -654,7 +653,8 @@ public class VerticalClassMerger {
 
     timing.begin("fixup");
     VerticalClassMergerGraphLens lens =
-        new TreeFixer(appView, lensBuilder, verticallyMergedClasses, synthesizedBridges)
+        new VerticalClassMergerTreeFixer(
+                appView, lensBuilder, verticallyMergedClasses, synthesizedBridges)
             .fixupTypeReferences();
     KeepInfoCollection keepInfo = appView.appInfo().getKeepInfo();
     keepInfo.mutate(mutator -> mutator.removeKeepInfoForPrunedItems(mergedClasses.keySet()));
@@ -1465,23 +1465,20 @@ public class VerticalClassMerger {
     method.accessFlags.setPrivate();
   }
 
-  private static class TreeFixer {
+  private static class VerticalClassMergerTreeFixer extends TreeFixer {
 
     private final AppView<AppInfoWithLiveness> appView;
-    private final DexItemFactory dexItemFactory;
     private final VerticalClassMergerGraphLens.Builder lensBuilder;
     private final VerticallyMergedClasses mergedClasses;
     private final List<SynthesizedBridgeCode> synthesizedBridges;
 
-    private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
-
-    TreeFixer(
+    VerticalClassMergerTreeFixer(
         AppView<AppInfoWithLiveness> appView,
         VerticalClassMergerGraphLens.Builder lensBuilder,
         VerticallyMergedClasses mergedClasses,
         List<SynthesizedBridgeCode> synthesizedBridges) {
+      super(appView);
       this.appView = appView;
-      this.dexItemFactory = appView.dexItemFactory();
       this.lensBuilder =
           VerticalClassMergerGraphLens.Builder.createBuilderForFixup(lensBuilder, mergedClasses);
       this.mergedClasses = mergedClasses;
@@ -1492,11 +1489,11 @@ public class VerticalClassMerger {
       // Globally substitute merged class types in protos and holders.
       for (DexProgramClass clazz : appView.appInfo().classes()) {
         clazz.getMethodCollection().replaceMethods(this::fixupMethod);
-        fixupFields(clazz.staticFields(), clazz::setStaticField);
-        fixupFields(clazz.instanceFields(), clazz::setInstanceField);
+        clazz.setStaticFields(fixupFields(clazz.staticFields()));
+        clazz.setInstanceFields(fixupFields(clazz.instanceFields()));
       }
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
-        synthesizedBridge.updateMethodSignatures(this::fixupMethod);
+        synthesizedBridge.updateMethodSignatures(this::fixupMethodReference);
       }
       VerticalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
       if (lens != null) {
@@ -1505,85 +1502,45 @@ public class VerticalClassMerger {
       return lens;
     }
 
-    private DexEncodedMethod fixupMethod(DexEncodedMethod method) {
-      DexMethod methodReference = method.method;
-      DexMethod newMethodReference = fixupMethod(methodReference);
-      if (newMethodReference != methodReference) {
-        if (!lensBuilder.hasOriginalSignatureMappingFor(newMethodReference)) {
-          lensBuilder
-              .map(methodReference, newMethodReference)
-              .recordMove(methodReference, newMethodReference);
-        }
-        DexEncodedMethod newMethod = method.toTypeSubstitutedMethod(newMethodReference);
-        if (newMethod.isNonPrivateVirtualMethod()) {
-          // Since we changed the return type or one of the parameters, this method cannot be a
-          // classpath or library method override, since we only class merge program classes.
-          assert !method.isLibraryMethodOverride().isTrue();
-          newMethod.setLibraryMethodOverride(OptionalBool.FALSE);
-        }
-        return newMethod;
-      }
-      return method;
-    }
-
-    private void fixupFields(List<DexEncodedField> fields, FieldSetter setter) {
-      if (fields == null) {
-        return;
-      }
-      for (int i = 0; i < fields.size(); i++) {
-        DexEncodedField encodedField = fields.get(i);
-        DexField field = encodedField.field;
-        DexType newType = fixupType(field.type);
-        DexType newHolder = fixupType(field.holder);
-        DexField newField = dexItemFactory.createField(newHolder, newType, field.name);
-        if (newField != encodedField.field) {
-          if (!lensBuilder.hasOriginalSignatureMappingFor(newField)) {
-            lensBuilder.map(field, newField);
-          }
-          setter.setField(i, encodedField.toTypeSubstitutedField(newField));
-        }
-      }
-    }
-
-    private DexMethod fixupMethod(DexMethod method) {
-      return dexItemFactory.createMethod(
-          fixupType(method.holder), fixupProto(method.proto), method.name);
-    }
-
-    private DexProto fixupProto(DexProto proto) {
-      DexProto result = protoFixupCache.get(proto);
-      if (result == null) {
-        DexType returnType = fixupType(proto.returnType);
-        DexType[] arguments = fixupTypes(proto.parameters.values);
-        result = dexItemFactory.createProto(returnType, arguments);
-        protoFixupCache.put(proto, result);
-      }
-      return result;
-    }
-
-    private DexType fixupType(DexType type) {
-      if (type.isArrayType()) {
-        DexType base = type.toBaseType(dexItemFactory);
-        DexType fixed = fixupType(base);
-        if (base == fixed) {
-          return type;
-        }
-        return type.replaceBaseType(fixed, dexItemFactory);
-      }
-      if (type.isClassType()) {
-        while (mergedClasses.hasBeenMergedIntoSubtype(type)) {
-          type = mergedClasses.getTargetFor(type);
-        }
+    @Override
+    public DexType mapClassType(DexType type) {
+      while (mergedClasses.hasBeenMergedIntoSubtype(type)) {
+        type = mergedClasses.getTargetFor(type);
       }
       return type;
     }
 
-    private DexType[] fixupTypes(DexType[] types) {
-      DexType[] result = new DexType[types.length];
-      for (int i = 0; i < result.length; i++) {
-        result[i] = fixupType(types[i]);
+    @Override
+    public void recordClassChange(DexType from, DexType to) {
+      // Fixup of classes is not used so no class type should change.
+      throw new Unreachable();
+    }
+
+    @Override
+    public void recordFieldChange(DexField from, DexField to) {
+      if (!lensBuilder.hasOriginalSignatureMappingFor(to)) {
+        lensBuilder.map(from, to);
       }
-      return result;
+    }
+
+    @Override
+    public void recordMethodChange(DexMethod from, DexMethod to) {
+      if (!lensBuilder.hasOriginalSignatureMappingFor(to)) {
+        lensBuilder.map(from, to).recordMove(from, to);
+      }
+    }
+
+    @Override
+    public DexEncodedMethod recordMethodChange(
+        DexEncodedMethod method, DexEncodedMethod newMethod) {
+      recordMethodChange(method.method, newMethod.method);
+      if (newMethod.isNonPrivateVirtualMethod()) {
+        // Since we changed the return type or one of the parameters, this method cannot be a
+        // classpath or library method override, since we only class merge program classes.
+        assert !method.isLibraryMethodOverride().isTrue();
+        newMethod.setLibraryMethodOverride(OptionalBool.FALSE);
+      }
+      return newMethod;
     }
   }
 

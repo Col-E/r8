@@ -10,33 +10,59 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TreeFixer {
+public abstract class TreeFixer {
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
-  private final Map<DexType, DexType> repackagedClasses;
-  private final TreeFixerCallbacks callbacks;
 
-  private final Map<DexType, DexProgramClass> newProgramClasses = new IdentityHashMap<>();
+  private Map<DexType, DexProgramClass> newProgramClasses = null;
   private final Map<DexType, DexProgramClass> synthesizedFromClasses = new IdentityHashMap<>();
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
-  public TreeFixer(
-      AppView<?> appView, Map<DexType, DexType> repackagedClasses, TreeFixerCallbacks callbacks) {
+  public TreeFixer(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
-    this.repackagedClasses = repackagedClasses;
-    this.callbacks = callbacks;
   }
 
-  public Collection<DexProgramClass> run() {
-    assert newProgramClasses.isEmpty();
-    for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
+  /** Mapping of a class type to a potentially new class type. */
+  public abstract DexType mapClassType(DexType type);
+
+  /** Callback invoked each time an encoded field changes field reference. */
+  public abstract void recordFieldChange(DexField from, DexField to);
+
+  /** Callback invoked each time an encoded method changes method reference. */
+  public abstract void recordMethodChange(DexMethod from, DexMethod to);
+
+  /** Callback invoked each time a program class definition changes type reference. */
+  public abstract void recordClassChange(DexType from, DexType to);
+
+  private DexProgramClass recordClassChange(DexProgramClass from, DexProgramClass to) {
+    recordClassChange(from.getType(), to.getType());
+    return to;
+  }
+
+  private DexEncodedField recordFieldChange(DexEncodedField from, DexEncodedField to) {
+    recordFieldChange(from.field, to.field);
+    return to;
+  }
+
+  /** Callback to allow custom handling when an encoded method changes. */
+  public DexEncodedMethod recordMethodChange(DexEncodedMethod from, DexEncodedMethod to) {
+    recordMethodChange(from.method, to.method);
+    return to;
+  }
+
+  /** Fixup a collection of classes. */
+  public Collection<DexProgramClass> fixupClasses(Collection<DexProgramClass> classes) {
+    assert newProgramClasses == null;
+    newProgramClasses = new IdentityHashMap<>();
+    for (DexProgramClass clazz : classes) {
       newProgramClasses.computeIfAbsent(clazz.getType(), ignore -> fixupClass(clazz));
     }
     return newProgramClasses.values();
   }
 
+  // Should remain private as the correctness of the fixup requires the lazy 'newProgramClasses'.
   private DexProgramClass fixupClass(DexProgramClass clazz) {
     DexProgramClass newClass =
         new DexProgramClass(
@@ -82,7 +108,7 @@ public class TreeFixer {
     }
     // If the class type changed, record the move in the lens.
     if (newClass.getType() != clazz.getType()) {
-      callbacks.recordMove(clazz.getType(), newClass.getType());
+      return recordClassChange(clazz, newClass);
     }
     return newClass;
   }
@@ -108,7 +134,8 @@ public class TreeFixer {
         : enclosingMethodAttribute;
   }
 
-  private DexEncodedField[] fixupFields(List<DexEncodedField> fields) {
+  /** Fixup a list of fields. */
+  public DexEncodedField[] fixupFields(List<DexEncodedField> fields) {
     if (fields == null) {
       return DexEncodedField.EMPTY_ARRAY;
     }
@@ -123,8 +150,7 @@ public class TreeFixer {
     DexField fieldReference = field.getReference();
     DexField newFieldReference = fixupFieldReference(fieldReference);
     if (newFieldReference != fieldReference) {
-      callbacks.recordMove(fieldReference, newFieldReference);
-      return field.toTypeSubstitutedField(newFieldReference);
+      return recordFieldChange(field, field.toTypeSubstitutedField(newFieldReference));
     }
     return field;
   }
@@ -169,21 +195,20 @@ public class TreeFixer {
     }
     return newMethods;
   }
-
-  private DexEncodedMethod fixupMethod(DexEncodedMethod method) {
+  /** Fixup a method definition. */
+  public DexEncodedMethod fixupMethod(DexEncodedMethod method) {
     DexMethod methodReference = method.getReference();
     DexMethod newMethodReference = fixupMethodReference(methodReference);
     if (newMethodReference != methodReference) {
-      callbacks.recordMove(methodReference, newMethodReference);
-      return method.toTypeSubstitutedMethod(newMethodReference);
+      return recordMethodChange(method, method.toTypeSubstitutedMethod(newMethodReference));
     }
     return method;
   }
 
-  private DexMethod fixupMethodReference(DexMethod method) {
-    return appView
-        .dexItemFactory()
-        .createMethod(fixupType(method.holder), fixupProto(method.proto), method.name);
+  /** Fixup a method reference. */
+  public DexMethod fixupMethodReference(DexMethod method) {
+    return dexItemFactory.createMethod(
+        fixupType(method.holder), fixupProto(method.proto), method.name);
   }
 
   private NestHostClassAttribute fixupNestHost(NestHostClassAttribute nestHostClassAttribute) {
@@ -220,8 +245,10 @@ public class TreeFixer {
     return result;
   }
 
+  // Should remain private as its correctness relies on the setup of 'newProgramClasses'.
   private Collection<DexProgramClass> fixupSynthesizedFrom(
       Collection<DexProgramClass> synthesizedFrom) {
+    assert newProgramClasses != null;
     if (synthesizedFrom.isEmpty()) {
       return synthesizedFrom;
     }
@@ -256,7 +283,7 @@ public class TreeFixer {
       return type.replaceBaseType(fixed, dexItemFactory);
     }
     if (type.isClassType()) {
-      return repackagedClasses.getOrDefault(type, type);
+      return mapClassType(type);
     }
     return type;
   }

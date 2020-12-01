@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
-import com.android.tools.r8.graph.TreeFixerCallbacks;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
@@ -47,7 +46,7 @@ public class RepackagingLens extends NestedGraphLens {
     return originalTypes.get(to) == from || super.isSimpleRenaming(from, to);
   }
 
-  public static class Builder implements TreeFixerCallbacks {
+  public static class Builder {
 
     protected final BiMap<DexType, DexType> originalTypes = HashBiMap.create();
     protected final MutableBidirectionalOneToOneMap<DexField, DexField> newFieldSignatures =
@@ -55,17 +54,14 @@ public class RepackagingLens extends NestedGraphLens {
     protected final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures =
         new BidirectionalOneToOneHashMap<>();
 
-    @Override
     public void recordMove(DexField from, DexField to) {
       newFieldSignatures.put(from, to);
     }
 
-    @Override
     public void recordMove(DexMethod from, DexMethod to) {
       originalMethodSignatures.put(to, from);
     }
 
-    @Override
     public void recordMove(DexType from, DexType to) {
       originalTypes.put(to, from);
     }
