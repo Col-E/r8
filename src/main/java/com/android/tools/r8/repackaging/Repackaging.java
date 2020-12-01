@@ -20,6 +20,8 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.SortedProgramPackageCollection;
+import com.android.tools.r8.graph.TreeFixer;
+import com.android.tools.r8.graph.TreeFixerCallbacks;
 import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -76,8 +78,8 @@ public class Repackaging {
     // Running the tree fixer with an identity mapping helps ensure that the fixup of of items is
     // complete as the rewrite replaces all items regardless of repackaging.
     // The identity mapping should result in no move callbacks being called.
-    TreeFixingCallbacks callbacks =
-        new TreeFixingCallbacks() {
+    TreeFixerCallbacks callbacks =
+        new TreeFixerCallbacks() {
           @Override
           public void recordMove(DexField from, DexField to) {
             assert false;
@@ -94,7 +96,7 @@ public class Repackaging {
           }
         };
     Collection<DexProgramClass> newProgramClasses =
-        new RepackagingTreeFixer(appView, Collections.emptyMap(), callbacks).run();
+        new TreeFixer(appView, Collections.emptyMap(), callbacks).run();
     CommittedItems committedItems =
         appView
             .getSyntheticItems()
@@ -140,7 +142,7 @@ public class Repackaging {
     }
     RepackagingLens.Builder lensBuilder = new RepackagingLens.Builder();
     Collection<DexProgramClass> newProgramClasses =
-        new RepackagingTreeFixer(appView, mappings, lensBuilder).run();
+        new TreeFixer(appView, mappings, lensBuilder).run();
     appBuilder.replaceProgramClasses(new ArrayList<>(newProgramClasses));
     RepackagingLens lens = lensBuilder.build(appView);
     new AnnotationFixer(lens).run(appBuilder.getProgramClasses());

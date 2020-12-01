@@ -2,41 +2,27 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.repackaging;
+package com.android.tools.r8.graph;
 
-import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.EnclosingMethodAttribute;
-import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.graph.NestHostClassAttribute;
-import com.android.tools.r8.graph.NestMemberClassAttribute;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class RepackagingTreeFixer {
+public class TreeFixer {
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final Map<DexType, DexType> repackagedClasses;
-  private final TreeFixingCallbacks callbacks;
+  private final TreeFixerCallbacks callbacks;
 
   private final Map<DexType, DexProgramClass> newProgramClasses = new IdentityHashMap<>();
   private final Map<DexType, DexProgramClass> synthesizedFromClasses = new IdentityHashMap<>();
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
-  public RepackagingTreeFixer(
-      AppView<?> appView, Map<DexType, DexType> repackagedClasses, TreeFixingCallbacks callbacks) {
+  public TreeFixer(
+      AppView<?> appView, Map<DexType, DexType> repackagedClasses, TreeFixerCallbacks callbacks) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.repackagedClasses = repackagedClasses;
