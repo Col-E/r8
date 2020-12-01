@@ -316,9 +316,11 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       return computeObjectState(definition.outValue());
     }
     if (definition.isStaticGet()) {
-      // TODO(b/166532388) : Enums with many instance rely on staticGets to set the $VALUES data
-      // instead of directly keeping the values in registers. We could consider analysing these
-      // and answer the analysed object state here.
+      // Enums with many instance rely on staticGets to set the $VALUES data instead of directly
+      // keeping the values in registers, due to the max capacity of the redundant field load
+      // elimination. The capacity has already been increased, so that this case is extremely
+      // uncommon (very large enums).
+      // TODO(b/169050248): We could consider analysing these to answer the object state here.
       return ObjectState.empty();
     }
     return ObjectState.empty();

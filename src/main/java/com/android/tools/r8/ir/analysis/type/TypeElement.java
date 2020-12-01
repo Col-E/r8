@@ -262,6 +262,10 @@ public abstract class TypeElement {
     return false;
   }
 
+  public boolean isPrimitiveArrayType() {
+    return false;
+  }
+
   public ArrayTypeElement asArrayType() {
     return null;
   }
