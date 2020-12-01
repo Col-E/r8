@@ -155,7 +155,8 @@ public abstract class TreeFixerBase {
     return field;
   }
 
-  private DexField fixupFieldReference(DexField field) {
+  /** Fixup a field reference. */
+  public DexField fixupFieldReference(DexField field) {
     DexType newType = fixupType(field.type);
     DexType newHolder = fixupType(field.holder);
     return dexItemFactory.createField(newHolder, newType, field.name);
@@ -234,7 +235,8 @@ public abstract class TreeFixerBase {
     return changed ? newNestMemberAttributes : nestMemberAttributes;
   }
 
-  private DexProto fixupProto(DexProto proto) {
+  /** Fixup a proto descriptor. */
+  public DexProto fixupProto(DexProto proto) {
     DexProto result = protoFixupCache.get(proto);
     if (result == null) {
       DexType returnType = fixupType(proto.returnType);
@@ -273,7 +275,8 @@ public abstract class TreeFixerBase {
     return type != null ? fixupType(type) : null;
   }
 
-  private DexType fixupType(DexType type) {
+  /** Fixup a type reference. */
+  public DexType fixupType(DexType type) {
     if (type.isArrayType()) {
       DexType base = type.toBaseType(dexItemFactory);
       DexType fixed = fixupType(base);
@@ -303,5 +306,10 @@ public abstract class TreeFixerBase {
   private DexTypeList fixupTypeList(DexTypeList types) {
     DexType[] newTypes = fixupTypes(types.values);
     return newTypes != types.values ? new DexTypeList(newTypes) : types;
+  }
+
+  /** Fixup a method signature. */
+  public DexMethodSignature fixupMethodSignature(DexMethodSignature signature) {
+    return signature.withProto(fixupProto(signature.getProto()));
   }
 }

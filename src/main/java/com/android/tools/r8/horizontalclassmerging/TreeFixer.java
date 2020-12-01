@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass.FieldSetter;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -16,6 +17,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -38,7 +40,7 @@ import java.util.Set;
  * have been remapped to new classes by the class merger. While doing so, all updated changes are
  * tracked in {@link TreeFixer#lensBuilder}.
  */
-class TreeFixer {
+class TreeFixer extends TreeFixerBase {
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
   private final HorizontallyMergedClasses mergedClasses;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
@@ -55,6 +57,7 @@ class TreeFixer {
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       SyntheticArgumentClass syntheticArgumentClass) {
+    super(appView);
     this.appView = appView;
     this.mergedClasses = mergedClasses;
     this.lensBuilder = lensBuilder;
@@ -384,53 +387,26 @@ class TreeFixer {
     }
   }
 
-  public DexField fixupFieldReference(DexField field) {
-    DexType newType = fixupType(field.type);
-    DexType newHolder = fixupType(field.holder);
-    return appView.dexItemFactory().createField(newHolder, newType, field.name);
+  @Override
+  public DexType mapClassType(DexType type) {
+    return mergedClasses.getMergeTargetOrDefault(type);
   }
 
-  private DexMethod fixupMethodReference(DexMethod method) {
-    return appView
-        .dexItemFactory()
-        .createMethod(fixupType(method.holder), fixupProto(method.proto), method.name);
+  @Override
+  public void recordClassChange(DexType from, DexType to) {
+    // Classes are not changed but in-place updated.
+    throw new Unreachable();
   }
 
-  private DexMethodSignature fixupMethodSignature(DexMethodSignature signature) {
-    return signature.withProto(fixupProto(signature.getProto()));
+  @Override
+  public void recordFieldChange(DexField from, DexField to) {
+    // Fields are manually changed in 'fixupFields' above.
+    throw new Unreachable();
   }
 
-  private DexProto fixupProto(DexProto proto) {
-    DexProto result = protoFixupCache.get(proto);
-    if (result == null) {
-      DexType returnType = fixupType(proto.returnType);
-      DexType[] arguments = fixupTypes(proto.parameters.values);
-      result = appView.dexItemFactory().createProto(returnType, arguments);
-      protoFixupCache.put(proto, result);
-    }
-    return result;
-  }
-
-  private DexType fixupType(DexType type) {
-    if (type.isArrayType()) {
-      DexType base = type.toBaseType(appView.dexItemFactory());
-      DexType fixed = fixupType(base);
-      if (base == fixed) {
-        return type;
-      }
-      return type.replaceBaseType(fixed, appView.dexItemFactory());
-    }
-    if (type.isClassType()) {
-      type = mergedClasses.getMergeTargetOrDefault(type);
-    }
-    return type;
-  }
-
-  private DexType[] fixupTypes(DexType[] types) {
-    DexType[] result = new DexType[types.length];
-    for (int i = 0; i < result.length; i++) {
-      result[i] = fixupType(types[i]);
-    }
-    return result;
+  @Override
+  public void recordMethodChange(DexMethod from, DexMethod to) {
+    // Methods are manually changed in 'fixupMethods' above.
+    throw new Unreachable();
   }
 }
