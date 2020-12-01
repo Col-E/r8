@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.SortedProgramPackageCollection;
-import com.android.tools.r8.graph.TreeFixer;
+import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.repackaging.RepackagingLens.Builder;
 import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -80,7 +80,7 @@ public class Repackaging {
     // complete as the rewrite replaces all items regardless of repackaging.
     // The identity mapping should result in no move callbacks being called.
     Collection<DexProgramClass> newProgramClasses =
-        new TreeFixer(appView) {
+        new TreeFixerBase(appView) {
           @Override
           public DexType mapClassType(DexType type) {
             return type;
@@ -155,7 +155,7 @@ public class Repackaging {
     return lens;
   }
 
-  private static class RepackagingTreeFixer extends TreeFixer {
+  private static class RepackagingTreeFixer extends TreeFixerBase {
 
     private final BiMap<DexType, DexType> mappings;
     private final Builder lensBuilder;

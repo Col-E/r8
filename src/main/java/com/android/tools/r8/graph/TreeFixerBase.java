@@ -10,7 +10,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class TreeFixer {
+public abstract class TreeFixerBase {
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
@@ -19,7 +19,7 @@ public abstract class TreeFixer {
   private final Map<DexType, DexProgramClass> synthesizedFromClasses = new IdentityHashMap<>();
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
-  public TreeFixer(AppView<?> appView) {
+  public TreeFixerBase(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
   }

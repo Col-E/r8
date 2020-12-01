@@ -40,7 +40,7 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
-import com.android.tools.r8.graph.TreeFixer;
+import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -1465,7 +1465,7 @@ public class VerticalClassMerger {
     method.accessFlags.setPrivate();
   }
 
-  private static class VerticalClassMergerTreeFixer extends TreeFixer {
+  private static class VerticalClassMergerTreeFixer extends TreeFixerBase {
 
     private final AppView<AppInfoWithLiveness> appView;
     private final VerticalClassMergerGraphLens.Builder lensBuilder;
