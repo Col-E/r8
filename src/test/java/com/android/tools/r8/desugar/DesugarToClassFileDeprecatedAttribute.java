@@ -8,7 +8,9 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.ClassFileConsumer.ForwardingConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -114,6 +116,28 @@ public class DesugarToClassFileDeprecatedAttribute extends TestBase {
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutputLines("Hello, world!");
     }
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    R8FullTestBuilder builder =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(TestClass.class)
+            .addKeepClassAndMembersRules(TestClass.class)
+            .addKeepAllAttributes()
+            .setMinApi(parameters.getApiLevel());
+    if (parameters.isCfRuntime()) {
+      builder.setProgramConsumer(
+          new ForwardingConsumer(null) {
+            @Override
+            public void accept(ByteDataView data, String descriptor, DiagnosticsHandler handler) {
+              checkDeprecatedAttributes(data.getBuffer());
+            }
+          });
+    }
+    builder
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutputLines("Hello, world!");
   }
 
   @Deprecated

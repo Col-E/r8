@@ -46,9 +46,6 @@ public class DexProgramClass extends DexClass
 
   public static final DexProgramClass[] EMPTY_ARRAY = {};
 
-  private static final DexEncodedArray SENTINEL_NOT_YET_COMPUTED =
-      new DexEncodedArray(DexValue.EMPTY_ARRAY);
-
   private final ProgramResource.Kind originKind;
   private final Collection<DexProgramClass> synthesizedFrom;
   private CfVersion initialClassFileVersion = null;

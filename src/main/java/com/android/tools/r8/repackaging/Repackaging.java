@@ -8,11 +8,13 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.utils.DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR;
 import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.DirectMappedDexApplication.Builder;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.graph.ProgramPackageCollection;
@@ -23,6 +25,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -63,6 +66,34 @@ public class Repackaging {
     return lens;
   }
 
+  public static boolean verifyIdentityRepackaging(
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
+    // Running the tree fixer with an identity mapping helps ensure that the fixup of of items is
+    // complete as the rewrite replaces all items regardless of repackaging.
+    Builder builder = appView.appInfo().app().asDirect().builder();
+    RepackagingTreeFixer treeFixer =
+        new RepackagingTreeFixer(builder, appView, Collections.emptyMap());
+    assert treeFixer.verifyRun();
+    if (appView.appInfo().hasLiveness()) {
+      appView
+          .withLiveness()
+          .setAppInfo(
+              appView
+                  .withLiveness()
+                  .appInfo()
+                  .rebuildWithLiveness(
+                      appView.getSyntheticItems().commit(builder.build()), Collections.emptySet()));
+    } else {
+      appView
+          .withClassHierarchy()
+          .setAppInfo(
+              appView
+                  .appInfo()
+                  .rebuildWithClassHierarchy(appView.getSyntheticItems().commit(builder.build())));
+    }
+    return true;
+  }
+
   private RepackagingLens run(
       DirectMappedDexApplication.Builder appBuilder, ExecutorService executorService)
       throws ExecutionException {
@@ -80,7 +111,7 @@ public class Repackaging {
     if (mappings.isEmpty()) {
       return null;
     }
-    return new RepackagingTreeFixer(appBuilder, appView, mappings).run();
+    return new RepackagingTreeFixer(appBuilder, appView, mappings).run(appView);
   }
 
   private void processPackagesInDesiredLocation(

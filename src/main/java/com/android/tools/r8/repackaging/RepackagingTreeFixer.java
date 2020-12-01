@@ -30,7 +30,7 @@ import java.util.Map;
 public class RepackagingTreeFixer {
 
   private final DirectMappedDexApplication.Builder appBuilder;
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final RepackagingLens.Builder lensBuilder = new RepackagingLens.Builder();
   private final Map<DexType, DexType> repackagedClasses;
@@ -41,7 +41,7 @@ public class RepackagingTreeFixer {
 
   public RepackagingTreeFixer(
       DirectMappedDexApplication.Builder appBuilder,
-      AppView<AppInfoWithLiveness> appView,
+      AppView<?> appView,
       Map<DexType, DexType> repackagedClasses) {
     this.appBuilder = appBuilder;
     this.appView = appView;
@@ -49,15 +49,24 @@ public class RepackagingTreeFixer {
     this.repackagedClasses = repackagedClasses;
   }
 
-  public RepackagingLens run() {
+  public RepackagingLens run(AppView<AppInfoWithLiveness> appView) {
     // Globally substitute repackaged class types.
+    fixupApplication();
+    RepackagingLens lens = lensBuilder.build(appView);
+    new AnnotationFixer(lens).run(newProgramClasses.values());
+    return lens;
+  }
+
+  public boolean verifyRun() {
+    fixupApplication();
+    return true;
+  }
+
+  private void fixupApplication() {
     for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
       newProgramClasses.computeIfAbsent(clazz.getType(), ignore -> fixupClass(clazz));
     }
     appBuilder.replaceProgramClasses(new ArrayList<>(newProgramClasses.values()));
-    RepackagingLens lens = lensBuilder.build(appView);
-    new AnnotationFixer(lens).run(newProgramClasses.values());
-    return lens;
   }
 
   private DexProgramClass fixupClass(DexProgramClass clazz) {
@@ -93,6 +102,17 @@ public class RepackagingTreeFixer {
         fixupMethods(
             clazz.getMethodCollection().virtualMethods(),
             clazz.getMethodCollection().numberOfVirtualMethods()));
+    // Transfer properties that are not passed to the constructor.
+    if (clazz.hasClassFileVersion()) {
+      newClass.setInitialClassFileVersion(clazz.getInitialClassFileVersion());
+    }
+    if (clazz.isDeprecated()) {
+      newClass.setDeprecated();
+    }
+    if (clazz.getKotlinInfo() != null) {
+      newClass.setKotlinInfo(clazz.getKotlinInfo());
+    }
+    // If the class type changed, record the move in the lens.
     if (newClass.getType() != clazz.getType()) {
       lensBuilder.recordMove(clazz.getType(), newClass.getType());
     }

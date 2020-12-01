@@ -90,7 +90,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   // TODO(b/169115389): Remove
   private Set<DexMethod> cfByteCodePassThrough = ImmutableSet.of();
 
-  private Map<DexClass, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
+  private Map<DexType, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
 
   // When input has been (partially) desugared these are the classes which has been library
   // desugared. This information is populated in the IR converter.
@@ -251,11 +251,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public void setSourceDebugExtensionForType(DexClass clazz, DexValueString sourceDebugExtension) {
-    this.sourceDebugExtensions.put(clazz, sourceDebugExtension);
+    sourceDebugExtensions.put(clazz.type, sourceDebugExtension);
   }
 
   public DexValueString getSourceDebugExtensionForType(DexClass clazz) {
-    return this.sourceDebugExtensions.get(clazz);
+    return sourceDebugExtensions.get(clazz.type);
   }
 
   @Override
