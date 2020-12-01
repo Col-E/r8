@@ -10,21 +10,26 @@ import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.DirectMappedDexApplication.Builder;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ProgramPackage;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.SortedProgramPackageCollection;
+import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -70,10 +75,36 @@ public class Repackaging {
       AppView<? extends AppInfoWithClassHierarchy> appView) {
     // Running the tree fixer with an identity mapping helps ensure that the fixup of of items is
     // complete as the rewrite replaces all items regardless of repackaging.
-    Builder builder = appView.appInfo().app().asDirect().builder();
-    RepackagingTreeFixer treeFixer =
-        new RepackagingTreeFixer(builder, appView, Collections.emptyMap());
-    assert treeFixer.verifyRun();
+    // The identity mapping should result in no move callbacks being called.
+    TreeFixingCallbacks callbacks =
+        new TreeFixingCallbacks() {
+          @Override
+          public void recordMove(DexField from, DexField to) {
+            assert false;
+          }
+
+          @Override
+          public void recordMove(DexMethod from, DexMethod to) {
+            assert false;
+          }
+
+          @Override
+          public void recordMove(DexType from, DexType to) {
+            assert false;
+          }
+        };
+    Collection<DexProgramClass> newProgramClasses =
+        new RepackagingTreeFixer(appView, Collections.emptyMap(), callbacks).run();
+    CommittedItems committedItems =
+        appView
+            .getSyntheticItems()
+            .commit(
+                appView
+                    .appInfo()
+                    .app()
+                    .builder()
+                    .replaceProgramClasses(new ArrayList<>(newProgramClasses))
+                    .build());
     if (appView.appInfo().hasLiveness()) {
       appView
           .withLiveness()
@@ -81,15 +112,11 @@ public class Repackaging {
               appView
                   .withLiveness()
                   .appInfo()
-                  .rebuildWithLiveness(
-                      appView.getSyntheticItems().commit(builder.build()), Collections.emptySet()));
+                  .rebuildWithLiveness(committedItems, Collections.emptySet()));
     } else {
       appView
           .withClassHierarchy()
-          .setAppInfo(
-              appView
-                  .appInfo()
-                  .rebuildWithClassHierarchy(appView.getSyntheticItems().commit(builder.build())));
+          .setAppInfo(appView.appInfo().rebuildWithClassHierarchy(committedItems));
     }
     return true;
   }
@@ -111,7 +138,13 @@ public class Repackaging {
     if (mappings.isEmpty()) {
       return null;
     }
-    return new RepackagingTreeFixer(appBuilder, appView, mappings).run(appView);
+    RepackagingLens.Builder lensBuilder = new RepackagingLens.Builder();
+    Collection<DexProgramClass> newProgramClasses =
+        new RepackagingTreeFixer(appView, mappings, lensBuilder).run();
+    appBuilder.replaceProgramClasses(new ArrayList<>(newProgramClasses));
+    RepackagingLens lens = lensBuilder.build(appView);
+    new AnnotationFixer(lens).run(appBuilder.getProgramClasses());
+    return lens;
   }
 
   private void processPackagesInDesiredLocation(

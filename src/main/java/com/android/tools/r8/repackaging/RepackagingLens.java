@@ -46,7 +46,7 @@ public class RepackagingLens extends NestedGraphLens {
     return originalTypes.get(to) == from || super.isSimpleRenaming(from, to);
   }
 
-  public static class Builder {
+  public static class Builder implements TreeFixingCallbacks {
 
     protected final BiMap<DexType, DexType> originalTypes = HashBiMap.create();
     protected final MutableBidirectionalOneToOneMap<DexField, DexField> newFieldSignatures =
@@ -54,14 +54,17 @@ public class RepackagingLens extends NestedGraphLens {
     protected final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> originalMethodSignatures =
         new BidirectionalOneToOneHashMap<>();
 
+    @Override
     public void recordMove(DexField from, DexField to) {
       newFieldSignatures.put(from, to);
     }
 
+    @Override
     public void recordMove(DexMethod from, DexMethod to) {
       originalMethodSignatures.put(to, from);
     }
 
+    @Override
     public void recordMove(DexType from, DexType to) {
       originalTypes.put(to, from);
     }

@@ -14,13 +14,10 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestHostClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
-import com.android.tools.r8.shaking.AnnotationFixer;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -29,44 +26,29 @@ import java.util.Map;
 
 public class RepackagingTreeFixer {
 
-  private final DirectMappedDexApplication.Builder appBuilder;
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
-  private final RepackagingLens.Builder lensBuilder = new RepackagingLens.Builder();
   private final Map<DexType, DexType> repackagedClasses;
+  private final TreeFixingCallbacks callbacks;
 
   private final Map<DexType, DexProgramClass> newProgramClasses = new IdentityHashMap<>();
   private final Map<DexType, DexProgramClass> synthesizedFromClasses = new IdentityHashMap<>();
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
   public RepackagingTreeFixer(
-      DirectMappedDexApplication.Builder appBuilder,
-      AppView<?> appView,
-      Map<DexType, DexType> repackagedClasses) {
-    this.appBuilder = appBuilder;
+      AppView<?> appView, Map<DexType, DexType> repackagedClasses, TreeFixingCallbacks callbacks) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.repackagedClasses = repackagedClasses;
+    this.callbacks = callbacks;
   }
 
-  public RepackagingLens run(AppView<AppInfoWithLiveness> appView) {
-    // Globally substitute repackaged class types.
-    fixupApplication();
-    RepackagingLens lens = lensBuilder.build(appView);
-    new AnnotationFixer(lens).run(newProgramClasses.values());
-    return lens;
-  }
-
-  public boolean verifyRun() {
-    fixupApplication();
-    return true;
-  }
-
-  private void fixupApplication() {
+  public Collection<DexProgramClass> run() {
+    assert newProgramClasses.isEmpty();
     for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
       newProgramClasses.computeIfAbsent(clazz.getType(), ignore -> fixupClass(clazz));
     }
-    appBuilder.replaceProgramClasses(new ArrayList<>(newProgramClasses.values()));
+    return newProgramClasses.values();
   }
 
   private DexProgramClass fixupClass(DexProgramClass clazz) {
@@ -114,7 +96,7 @@ public class RepackagingTreeFixer {
     }
     // If the class type changed, record the move in the lens.
     if (newClass.getType() != clazz.getType()) {
-      lensBuilder.recordMove(clazz.getType(), newClass.getType());
+      callbacks.recordMove(clazz.getType(), newClass.getType());
     }
     return newClass;
   }
@@ -155,7 +137,7 @@ public class RepackagingTreeFixer {
     DexField fieldReference = field.getReference();
     DexField newFieldReference = fixupFieldReference(fieldReference);
     if (newFieldReference != fieldReference) {
-      lensBuilder.recordMove(fieldReference, newFieldReference);
+      callbacks.recordMove(fieldReference, newFieldReference);
       return field.toTypeSubstitutedField(newFieldReference);
     }
     return field;
@@ -206,7 +188,7 @@ public class RepackagingTreeFixer {
     DexMethod methodReference = method.getReference();
     DexMethod newMethodReference = fixupMethodReference(methodReference);
     if (newMethodReference != methodReference) {
-      lensBuilder.recordMove(methodReference, newMethodReference);
+      callbacks.recordMove(methodReference, newMethodReference);
       return method.toTypeSubstitutedMethod(newMethodReference);
     }
     return method;
