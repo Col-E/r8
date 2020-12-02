@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldType;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldTypeFactory;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
+import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo.ProtoMessageInfoBuilderException;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObjectFromInvokeStatic;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObjectFromStaticGet;
@@ -184,7 +185,7 @@ public class RawMessageInfoDecoder {
       }
 
       return builder.build();
-    } catch (InvalidRawMessageInfoException e) {
+    } catch (InvalidRawMessageInfoException | ProtoMessageInfoBuilderException e) {
       // This should generally not happen, so leave an assert here just in case.
       assert false;
       return null;

@@ -59,7 +59,7 @@ public class ProtoMessageInfo {
       oneOfObjects.add(new ProtoOneOfObjectPair(oneOfObject, oneOfCaseObject));
     }
 
-    public ProtoMessageInfo build() {
+    public ProtoMessageInfo build() throws ProtoMessageInfoBuilderException {
       removeDeadFields();
       removeUnusedSharedData();
       return new ProtoMessageInfo(dynamicMethod, flags, fields, hasBitsObjects, oneOfObjects);
@@ -79,7 +79,7 @@ public class ProtoMessageInfo {
       }
     }
 
-    private void removeUnusedSharedData() {
+    private void removeUnusedSharedData() throws ProtoMessageInfoBuilderException {
       if (fields == null || fields.isEmpty()) {
         oneOfObjects = null;
         hasBitsObjects = null;
@@ -149,6 +149,13 @@ public class ProtoMessageInfo {
           i++;
         }
 
+        // We should not have any bits pointing to dead proto fields.
+        for (ProtoFieldObject hasBitsObject : hasBitsObjects) {
+          if (hasBitsObject.isDeadProtoFieldObject()) {
+            throw new ProtoMessageInfoBuilderException();
+          }
+        }
+
         assert hasBitsObjects.stream().noneMatch(ProtoFieldObject::isDeadProtoFieldObject);
       }
 
@@ -169,6 +176,10 @@ public class ProtoMessageInfo {
         }
       }
     }
+  }
+
+  public static class ProtoMessageInfoBuilderException extends Exception {
+    private ProtoMessageInfoBuilderException() {}
   }
 
   private final ProgramMethod dynamicMethod;
