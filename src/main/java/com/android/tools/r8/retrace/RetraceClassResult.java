@@ -33,6 +33,8 @@ public interface RetraceClassResult {
 
   RetraceClassResult forEach(Consumer<Element> resultConsumer);
 
+  boolean hasRetraceResult();
+
   boolean isAmbiguous();
 
   @Keep

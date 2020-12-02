@@ -10,11 +10,13 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.retrace.RetraceClassResult.Element;
 import com.android.tools.r8.retrace.RetraceSourceFileResult;
 import com.android.tools.r8.retrace.RetracedClass;
 import com.android.tools.r8.retrace.RetracedMethod;
 import com.android.tools.r8.retrace.RetracedMethod.KnownRetracedMethod;
+import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.Sets;
@@ -72,7 +74,7 @@ public class RetraceUtils {
   }
 
   static RetraceSourceFileResult getSourceFile(
-      Element classElement, RetracedClass context, String sourceFile, RetracerImpl retracer) {
+      Element classElement, RetracedClass context, String sourceFile, Retracer retracer) {
     // If no context is specified always retrace using the found class element.
     if (context == null) {
       return classElement.retraceSourceFile(sourceFile);
@@ -80,8 +82,7 @@ public class RetraceUtils {
     if (context.equals(classElement.getRetracedClass())) {
       return classElement.retraceSourceFile(sourceFile);
     } else {
-      RetraceClassResultImpl contextClassResult =
-          retracer.retraceClass(context.getClassReference());
+      RetraceClassResult contextClassResult = retracer.retraceClass(context.getClassReference());
       assert !contextClassResult.isAmbiguous();
       if (contextClassResult.hasRetraceResult()) {
         Box<RetraceSourceFileResult> retraceSourceFile = new Box<>();

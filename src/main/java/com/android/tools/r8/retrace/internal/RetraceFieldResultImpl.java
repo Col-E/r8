@@ -4,31 +4,30 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.RetraceFieldResult;
 import com.android.tools.r8.retrace.RetraceSourceFileResult;
+import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-@Keep
 public class RetraceFieldResultImpl implements RetraceFieldResult {
 
   private final RetraceClassResultImpl classResult;
   private final List<Pair<RetraceClassResultImpl.ElementImpl, List<MemberNaming>>> memberNamings;
   private final FieldDefinition fieldDefinition;
-  private final RetracerImpl retracer;
+  private final Retracer retracer;
 
   RetraceFieldResultImpl(
       RetraceClassResultImpl classResult,
       List<Pair<RetraceClassResultImpl.ElementImpl, List<MemberNaming>>> memberNamings,
       FieldDefinition fieldDefinition,
-      RetracerImpl retracer) {
+      Retracer retracer) {
     this.classResult = classResult;
     this.memberNamings = memberNamings;
     this.fieldDefinition = fieldDefinition;

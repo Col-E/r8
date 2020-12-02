@@ -5,11 +5,16 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.retrace.internal.StackTraceElementProxyRetracerImpl.RetraceStackTraceProxyImpl;
+import com.android.tools.r8.retrace.internal.StackTraceElementProxyRetracerImpl;
 import java.util.stream.Stream;
 
 @Keep
 public interface StackTraceElementProxyRetracer<T extends StackTraceElementProxy<?>> {
 
-  Stream<RetraceStackTraceProxyImpl<T>> retrace(T element);
+  Stream<RetraceStackTraceProxy<T>> retrace(T element);
+
+  static <T extends StackTraceElementProxy<?>> StackTraceElementProxyRetracer<T> createDefault(
+      Retracer retracer) {
+    return new StackTraceElementProxyRetracerImpl<>(retracer);
+  }
 }

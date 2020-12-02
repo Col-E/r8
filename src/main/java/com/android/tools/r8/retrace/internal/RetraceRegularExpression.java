@@ -5,6 +5,7 @@
 package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.retrace.StackTraceVisitor;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.ClassNameType;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.StackTraceElementStringProxyBuilder;
 import java.util.ArrayList;
@@ -15,7 +16,6 @@ import java.util.regex.Pattern;
 
 public class RetraceRegularExpression implements StackTraceVisitor<StackTraceElementStringProxy> {
 
-  private final RetracerImpl retracer;
   private final List<String> stackTrace;
   private final String regularExpression;
 
@@ -35,9 +35,7 @@ public class RetraceRegularExpression implements StackTraceVisitor<StackTraceEle
   private static final String CAPTURE_GROUP_PREFIX = "captureGroup";
   private static final int FIRST_CAPTURE_GROUP_INDEX = 0;
 
-  public RetraceRegularExpression(
-      RetracerImpl retracer, List<String> stackTrace, String regularExpression) {
-    this.retracer = retracer;
+  public RetraceRegularExpression(List<String> stackTrace, String regularExpression) {
     this.stackTrace = stackTrace;
     this.regularExpression = regularExpression;
   }

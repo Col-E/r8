@@ -4,13 +4,11 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetracedType;
 import java.util.Objects;
 
-@Keep
 public final class RetracedTypeImpl implements RetracedType {
 
   private final TypeReference typeReference;

@@ -36,7 +36,6 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.DirectClassNameMapperProguardMapProducer;
-import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -464,7 +463,7 @@ public class CodeInspector {
   }
 
   public Retracer retrace() {
-    return RetracerImpl.create(
+    return Retracer.createDefault(
         new InternalProguardMapProducer(
             mapping == null ? ClassNameMapper.builder().build() : mapping),
         new TestDiagnosticMessagesImpl());

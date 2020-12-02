@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceMethodResult;
+import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -16,19 +16,18 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-@Keep
 public class RetraceMethodResultImpl implements RetraceMethodResult {
 
   private final MethodDefinition methodDefinition;
   private final RetraceClassResultImpl classResult;
   private final List<Pair<RetraceClassResultImpl.ElementImpl, List<MappedRange>>> mappedRanges;
-  private final RetracerImpl retracer;
+  private final Retracer retracer;
 
   RetraceMethodResultImpl(
       RetraceClassResultImpl classResult,
       List<Pair<RetraceClassResultImpl.ElementImpl, List<MappedRange>>> mappedRanges,
       MethodDefinition methodDefinition,
-      RetracerImpl retracer) {
+      Retracer retracer) {
     this.classResult = classResult;
     this.mappedRanges = mappedRanges;
     this.methodDefinition = methodDefinition;

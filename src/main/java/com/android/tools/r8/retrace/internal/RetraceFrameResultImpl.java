@@ -13,6 +13,7 @@ import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceSourceFileResult;
 import com.android.tools.r8.retrace.RetracedClassMember;
 import com.android.tools.r8.retrace.RetracedMethod;
+import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -29,14 +30,14 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
   private final MethodDefinition methodDefinition;
   private final int obfuscatedPosition;
   private final List<Pair<RetraceClassResultImpl.ElementImpl, List<MappedRange>>> mappedRanges;
-  private final RetracerImpl retracer;
+  private final Retracer retracer;
 
   public RetraceFrameResultImpl(
       RetraceClassResultImpl classResult,
       List<Pair<RetraceClassResultImpl.ElementImpl, List<MappedRange>>> mappedRanges,
       MethodDefinition methodDefinition,
       int obfuscatedPosition,
-      RetracerImpl retracer) {
+      Retracer retracer) {
     this.classResult = classResult;
     this.methodDefinition = methodDefinition;
     this.obfuscatedPosition = obfuscatedPosition;

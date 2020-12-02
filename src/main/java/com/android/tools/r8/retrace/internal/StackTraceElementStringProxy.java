@@ -10,11 +10,11 @@ import static com.android.tools.r8.retrace.internal.StackTraceElementStringProxy
 
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.retrace.RetraceStackTraceProxy;
 import com.android.tools.r8.retrace.RetracedClass;
 import com.android.tools.r8.retrace.RetracedField;
 import com.android.tools.r8.retrace.RetracedType;
 import com.android.tools.r8.retrace.StackTraceElementProxy;
-import com.android.tools.r8.retrace.internal.StackTraceElementProxyRetracerImpl.RetraceStackTraceProxyImpl;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.android.tools.r8.utils.TriFunction;
@@ -136,7 +136,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
   }
 
   public String toRetracedItem(
-      RetraceStackTraceProxyImpl<StackTraceElementStringProxy> retracedProxy,
+      RetraceStackTraceProxy<StackTraceElementStringProxy> retracedProxy,
       boolean printAmbiguous,
       boolean verbose) {
     StringBuilder sb = new StringBuilder();
@@ -334,7 +334,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
     protected final int startIndex;
     protected final int endIndex;
     private final TriFunction<
-            RetraceStackTraceProxyImpl<StackTraceElementStringProxy>,
+            RetraceStackTraceProxy<StackTraceElementStringProxy>,
             StackTraceElementStringProxy,
             Boolean,
             String>
@@ -344,7 +344,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
         int startIndex,
         int endIndex,
         TriFunction<
-                RetraceStackTraceProxyImpl<StackTraceElementStringProxy>,
+                RetraceStackTraceProxy<StackTraceElementStringProxy>,
                 StackTraceElementStringProxy,
                 Boolean,
                 String>
@@ -367,7 +367,7 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
         int startIndex,
         int endIndex,
         TriFunction<
-                RetraceStackTraceProxyImpl<StackTraceElementStringProxy>,
+                RetraceStackTraceProxy<StackTraceElementStringProxy>,
                 StackTraceElementStringProxy,
                 Boolean,
                 String>

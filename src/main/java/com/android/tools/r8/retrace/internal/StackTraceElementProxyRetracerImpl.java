@@ -8,11 +8,14 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.retrace.RetraceFieldResult;
+import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceStackTraceProxy;
+import com.android.tools.r8.retrace.RetraceTypeResult;
 import com.android.tools.r8.retrace.RetracedClass;
 import com.android.tools.r8.retrace.RetracedField;
 import com.android.tools.r8.retrace.RetracedMethod;
 import com.android.tools.r8.retrace.RetracedType;
+import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.StackTraceElementProxy;
 import com.android.tools.r8.retrace.StackTraceElementProxyRetracer;
 import com.android.tools.r8.utils.Box;
@@ -27,18 +30,18 @@ import java.util.stream.Stream;
 public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy<?>>
     implements StackTraceElementProxyRetracer<T> {
 
-  private final RetracerImpl retracer;
+  private final Retracer retracer;
 
-  public StackTraceElementProxyRetracerImpl(RetracerImpl retracer) {
+  public StackTraceElementProxyRetracerImpl(Retracer retracer) {
     this.retracer = retracer;
   }
 
   @Override
-  public Stream<RetraceStackTraceProxyImpl<T>> retrace(T element) {
+  public Stream<RetraceStackTraceProxy<T>> retrace(T element) {
     if (!element.hasClassName()) {
       return Stream.of(RetraceStackTraceProxyImpl.builder(element).build());
     }
-    RetraceClassResultImpl classResult = retracer.retraceClass(element.getClassReference());
+    RetraceClassResult classResult = retracer.retraceClass(element.getClassReference());
     if (element.hasMethodName()) {
       return retraceMethod(element, classResult);
     } else if (element.hasFieldName()) {
@@ -48,7 +51,7 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
     }
   }
 
-  private Stream<RetraceStackTraceProxyImpl<T>> retraceClassOrType(
+  private Stream<RetraceStackTraceProxy<T>> retraceClassOrType(
       T element, RetraceClassResult classResult) {
     return classResult.stream()
         .flatMap(
@@ -76,15 +79,15 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
                                     })));
   }
 
-  private Stream<RetraceStackTraceProxyImpl<T>> retraceMethod(
-      T element, RetraceClassResultImpl classResult) {
+  private Stream<RetraceStackTraceProxy<T>> retraceMethod(
+      T element, RetraceClassResult classResult) {
     return retraceFieldOrReturnType(element)
         .flatMap(
             fieldOrReturnTypeConsumer ->
                 retracedMethodArguments(element)
                     .flatMap(
                         argumentsConsumer -> {
-                          RetraceFrameResultImpl frameResult =
+                          RetraceFrameResult frameResult =
                               element.hasLineNumber()
                                   ? classResult.lookupFrame(
                                       element.getMethodName(), element.getLineNumber())
@@ -123,7 +126,7 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
                         }));
   }
 
-  private Stream<RetraceStackTraceProxyImpl<T>> retraceField(
+  private Stream<RetraceStackTraceProxy<T>> retraceField(
       T element, RetraceClassResult classResult) {
     return retraceFieldOrReturnType(element)
         .flatMap(
@@ -166,7 +169,7 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
       return Stream.of(proxy -> proxy.setRetracedFieldOrReturnType(RetracedTypeImpl.createVoid()));
     } else {
       TypeReference typeReference = Reference.typeFromTypeName(elementOrReturnType);
-      RetraceTypeResultImpl retraceTypeResult = retracer.retraceType(typeReference);
+      RetraceTypeResult retraceTypeResult = retracer.retraceType(typeReference);
       return retraceTypeResult.stream()
           .map(
               type ->
@@ -184,7 +187,7 @@ public class StackTraceElementProxyRetracerImpl<T extends StackTraceElementProxy
     if (!element.hasMethodArguments()) {
       return Stream.of(noEffect -> {});
     }
-    List<RetraceTypeResultImpl> retracedResults =
+    List<RetraceTypeResult> retracedResults =
         Arrays.stream(element.getMethodArguments().split(","))
             .map(typeName -> retracer.retraceType(Reference.typeFromTypeName(typeName)))
             .collect(Collectors.toList());

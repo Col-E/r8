@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetracedMethod;
@@ -14,7 +13,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-@Keep
 public abstract class RetracedMethodImpl implements RetracedMethod {
 
   private static final int NO_POSITION = -1;

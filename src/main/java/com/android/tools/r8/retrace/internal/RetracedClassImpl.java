@@ -4,11 +4,9 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.retrace.RetracedClass;
 
-@Keep
 public final class RetracedClassImpl implements RetracedClass {
 
   private final ClassReference classReference;

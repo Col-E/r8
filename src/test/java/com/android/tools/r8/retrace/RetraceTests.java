@@ -15,7 +15,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
-import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.retrace.stacktraces.ActualBotStackTraceBase;
 import com.android.tools.r8.retrace.stacktraces.ActualIdentityStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
@@ -201,9 +200,9 @@ public class RetraceTests extends TestBase {
   }
 
   private void inspectRetraceTest(
-      StackTraceForTest stackTraceForTest, Consumer<Retracer> inspection) throws Exception {
+      StackTraceForTest stackTraceForTest, Consumer<Retracer> inspection) {
     inspection.accept(
-        RetracerImpl.create(stackTraceForTest::mapping, new TestDiagnosticMessagesImpl()));
+        Retracer.createDefault(stackTraceForTest::mapping, new TestDiagnosticMessagesImpl()));
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {

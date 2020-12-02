@@ -6,20 +6,21 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceTypeResult;
+import com.android.tools.r8.retrace.Retracer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class RetraceTypeResultImpl implements RetraceTypeResult {
 
   private final TypeReference obfuscatedType;
-  private final RetracerImpl retracer;
+  private final Retracer retracer;
 
-  private RetraceTypeResultImpl(TypeReference obfuscatedType, RetracerImpl retracer) {
+  private RetraceTypeResultImpl(TypeReference obfuscatedType, Retracer retracer) {
     this.obfuscatedType = obfuscatedType;
     this.retracer = retracer;
   }
 
-  static RetraceTypeResultImpl create(TypeReference obfuscatedType, RetracerImpl retracer) {
+  static RetraceTypeResultImpl create(TypeReference obfuscatedType, Retracer retracer) {
     return new RetraceTypeResultImpl(obfuscatedType, retracer);
   }
 

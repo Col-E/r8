@@ -7,6 +7,8 @@ package com.android.tools.r8.retrace.internal;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.retrace.RetraceInvalidStackTraceLineDiagnostics;
+import com.android.tools.r8.retrace.StackTraceVisitor;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.ClassNameType;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.StackTraceElementStringProxyBuilder;
 import com.android.tools.r8.utils.DescriptorUtils;

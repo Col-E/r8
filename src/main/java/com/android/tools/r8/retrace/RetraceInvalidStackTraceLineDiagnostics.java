@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.retrace.internal;
+package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.Keep;
@@ -40,7 +40,7 @@ public class RetraceInvalidStackTraceLineDiagnostics implements Diagnostic {
     return message;
   }
 
-  static RetraceInvalidStackTraceLineDiagnostics createNull(int lineNumber) {
+  public static RetraceInvalidStackTraceLineDiagnostics createNull(int lineNumber) {
     return new RetraceInvalidStackTraceLineDiagnostics(lineNumber, NULL_STACK_TRACE_LINE_MESSAGE);
   }
 

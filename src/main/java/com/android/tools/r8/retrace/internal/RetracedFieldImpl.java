@@ -4,13 +4,11 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetracedField;
 import java.util.Objects;
 
-@Keep
 public abstract class RetracedFieldImpl implements RetracedField {
 
   private RetracedFieldImpl() {}

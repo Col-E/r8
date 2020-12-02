@@ -17,6 +17,7 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.retrace.RetraceFrameResult;
+import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -29,17 +30,17 @@ public class RetraceClassResultImpl implements RetraceClassResult {
 
   private final ClassReference obfuscatedReference;
   private final ClassNamingForNameMapper mapper;
-  private final RetracerImpl retracer;
+  private final Retracer retracer;
 
   private RetraceClassResultImpl(
-      ClassReference obfuscatedReference, ClassNamingForNameMapper mapper, RetracerImpl retracer) {
+      ClassReference obfuscatedReference, ClassNamingForNameMapper mapper, Retracer retracer) {
     this.obfuscatedReference = obfuscatedReference;
     this.mapper = mapper;
     this.retracer = retracer;
   }
 
   static RetraceClassResultImpl create(
-      ClassReference obfuscatedReference, ClassNamingForNameMapper mapper, RetracerImpl retracer) {
+      ClassReference obfuscatedReference, ClassNamingForNameMapper mapper, Retracer retracer) {
     return new RetraceClassResultImpl(obfuscatedReference, mapper, retracer);
   }
 
@@ -162,7 +163,8 @@ public class RetraceClassResultImpl implements RetraceClassResult {
         : mappedRangesForPosition;
   }
 
-  boolean hasRetraceResult() {
+  @Override
+  public boolean hasRetraceResult() {
     return mapper != null;
   }
 
@@ -196,7 +198,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
         RetraceClassResultImpl classResult,
         List<Pair<ElementImpl, T>> mappings,
         D definition,
-        RetracerImpl retracer);
+        Retracer retracer);
   }
 
   @Override
