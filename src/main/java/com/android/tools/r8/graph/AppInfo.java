@@ -63,6 +63,18 @@ public class AppInfo implements DexDefinitionSupplier {
     this.obsolete = obsolete;
   }
 
+  public AppInfo prunedCopyFrom(PrunedItems prunedItems) {
+    assert getClass() == AppInfo.class;
+    assert checkIfObsolete();
+    assert prunedItems.getPrunedApp() == app();
+    if (prunedItems.isEmpty()) {
+      return this;
+    }
+    return new AppInfo(
+        getSyntheticItems().commitPrunedItems(prunedItems),
+        getMainDexClasses().withoutPrunedItems(prunedItems));
+  }
+
   protected InternalOptions options() {
     return app.options;
   }

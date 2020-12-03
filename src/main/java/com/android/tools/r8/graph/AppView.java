@@ -569,16 +569,27 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public void pruneItems(PrunedItems prunedItems) {
-    pruneItems(prunedItems, withLiveness());
-  }
-
-  private static void pruneItems(PrunedItems prunedItems, AppView<AppInfoWithLiveness> appView) {
-    if (!prunedItems.hasRemovedClasses() && !appView.options().configurationDebugging) {
-      assert appView.appInfo().app() == prunedItems.getPrunedApp();
+    if (prunedItems.isEmpty()) {
+      assert appInfo().app() == prunedItems.getPrunedApp();
       return;
     }
-    appView.setAppInfo(appView.appInfo().prunedCopyFrom(prunedItems));
-    appView.setAppServices(appView.appServices().prunedCopy(prunedItems));
+    if (appInfo.hasLiveness()) {
+      AppView<AppInfoWithLiveness> self = withLiveness();
+      self.setAppInfo(self.appInfo().prunedCopyFrom(prunedItems));
+    } else if (appInfo.hasClassHierarchy()) {
+      AppView<AppInfoWithClassHierarchy> self = withClassHierarchy();
+      self.setAppInfo(self.appInfo().prunedCopyFrom(prunedItems));
+    } else {
+      pruneAppInfo(prunedItems, this);
+    }
+    if (appServices() != null) {
+      setAppServices(appServices().prunedCopy(prunedItems));
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void pruneAppInfo(PrunedItems prunedItems, AppView<?> appView) {
+    ((AppView<AppInfo>) appView).setAppInfo(appView.appInfo().prunedCopyFrom(prunedItems));
   }
 
   public void rewriteWithLens(NonIdentityGraphLens lens) {

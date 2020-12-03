@@ -34,6 +34,10 @@ public class PrunedItems {
     return new Builder().setPrunedApp(application).build();
   }
 
+  public boolean isEmpty() {
+    return removedClasses.isEmpty() && additionalPinnedItems.isEmpty();
+  }
+
   public DexApplication getPrunedApp() {
     return prunedApp;
   }

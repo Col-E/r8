@@ -32,7 +32,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -114,11 +113,7 @@ public class Repackaging {
     if (appView.appInfo().hasLiveness()) {
       appView
           .withLiveness()
-          .setAppInfo(
-              appView
-                  .withLiveness()
-                  .appInfo()
-                  .rebuildWithLiveness(committedItems, Collections.emptySet()));
+          .setAppInfo(appView.withLiveness().appInfo().rebuildWithLiveness(committedItems));
     } else {
       appView
           .withClassHierarchy()

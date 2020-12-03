@@ -267,16 +267,14 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     verify();
   }
 
-  private AppInfoWithLiveness(
-      AppInfoWithLiveness previous, CommittedItems committedItems, Set<DexType> removedTypes) {
+  private AppInfoWithLiveness(AppInfoWithLiveness previous, CommittedItems committedItems) {
     this(
         committedItems,
         previous.getClassToFeatureSplitMap(),
         previous.getMainDexClasses(),
         previous.deadProtoTypes,
         previous.missingTypes,
-        CollectionUtils.mergeSets(
-            Sets.difference(previous.liveTypes, removedTypes), committedItems.getCommittedTypes()),
+        CollectionUtils.mergeSets(previous.liveTypes, committedItems.getCommittedTypes()),
         previous.targetedMethods,
         previous.failedResolutionTargets,
         previous.bootstrapMethods,
@@ -925,8 +923,14 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * Returns a copy of this AppInfoWithLiveness where the set of classes is pruned using the given
    * DexApplication object.
    */
+  @Override
   public AppInfoWithLiveness prunedCopyFrom(PrunedItems prunedItems) {
+    assert getClass() == AppInfoWithLiveness.class;
     assert checkIfObsolete();
+    if (prunedItems.isEmpty()) {
+      assert app() == prunedItems.getPrunedApp();
+      return this;
+    }
     if (prunedItems.hasRemovedClasses()) {
       // Rebuild the hierarchy.
       objectAllocationInfoCollection.mutate(
@@ -937,9 +941,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return new AppInfoWithLiveness(this, prunedItems);
   }
 
-  public AppInfoWithLiveness rebuildWithLiveness(
-      CommittedItems committedItems, Set<DexType> removedTypes) {
-    return new AppInfoWithLiveness(this, committedItems, removedTypes);
+  public AppInfoWithLiveness rebuildWithLiveness(CommittedItems committedItems) {
+    return new AppInfoWithLiveness(this, committedItems);
   }
 
   public AppInfoWithLiveness rewrittenWithLens(

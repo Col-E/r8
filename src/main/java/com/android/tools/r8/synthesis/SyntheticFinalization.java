@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.Builder;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -39,11 +40,11 @@ public class SyntheticFinalization {
 
   public static class Result {
     public final CommittedItems commit;
-    public final ImmutableSet<DexType> removedSyntheticClasses;
+    public final PrunedItems prunedItems;
 
-    public Result(CommittedItems commit, ImmutableSet<DexType> removedSyntheticClasses) {
+    public Result(CommittedItems commit, PrunedItems prunedItems) {
       this.commit = commit;
-      this.removedSyntheticClasses = removedSyntheticClasses;
+      this.prunedItems = prunedItems;
     }
   }
 
@@ -126,6 +127,17 @@ public class SyntheticFinalization {
 
     appView.setGraphLens(lensBuilder.build(options.itemFactory, graphLens));
     assert appView.appInfo().getMainDexClasses() == mainDexClasses;
+
+    Set<DexType> finalSyntheticTypes = Sets.newIdentityHashSet();
+    finalSyntheticClasses.forEach(clazz -> finalSyntheticTypes.add(clazz.getType()));
+
+    Set<DexType> prunedSynthetics = Sets.newIdentityHashSet();
+    for (DexType type : syntheticItems.keySet()) {
+      if (!finalSyntheticTypes.contains(type)) {
+        prunedSynthetics.add(type);
+      }
+    }
+
     return new Result(
         new CommittedItems(
             SyntheticItems.INVALID_ID_AFTER_SYNTHETIC_FINALIZATION,
@@ -133,7 +145,7 @@ public class SyntheticFinalization {
             legacySyntheticTypes,
             ImmutableMap.of(),
             ImmutableList.of()),
-        syntheticItems.keySet());
+        PrunedItems.builder().setPrunedApp(app).addRemovedClasses(prunedSynthetics).build());
   }
 
   private boolean verifyNoNestedSynthetics() {

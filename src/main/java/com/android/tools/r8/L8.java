@@ -131,6 +131,7 @@ public class L8 {
           appView.getSyntheticItems().computeFinalSynthetics(appView);
       if (result != null) {
         appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexClasses()));
+        appView.pruneItems(result.prunedItems);
       }
 
       NamingLens namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);

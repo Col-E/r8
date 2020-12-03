@@ -264,6 +264,7 @@ public final class D8 {
             appView.getSyntheticItems().computeFinalSynthetics(appView);
         if (result != null) {
           appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexClasses()));
+          appView.pruneItems(result.prunedItems);
         }
         new CfApplicationWriter(
                 appView,
@@ -307,6 +308,7 @@ public final class D8 {
             appView.getSyntheticItems().computeFinalSynthetics(appView);
         if (result != null) {
           appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexClasses()));
+          appView.pruneItems(result.prunedItems);
         }
 
         new ApplicationWriter(

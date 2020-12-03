@@ -89,6 +89,9 @@ public class MainDexClasses {
   }
 
   public MainDexClasses withoutPrunedItems(PrunedItems prunedItems) {
+    if (prunedItems.isEmpty()) {
+      return this;
+    }
     MainDexClasses mainDexClassesAfterPruning = createEmptyMainDexClasses();
     for (DexType mainDexClass : mainDexClasses) {
       if (!prunedItems.getRemovedClasses().contains(mainDexClass)) {

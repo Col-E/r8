@@ -861,12 +861,11 @@ public class R8 {
       if (result != null) {
         if (appView.appInfo().hasLiveness()) {
           appViewWithLiveness.setAppInfo(
-              appViewWithLiveness
-                  .appInfo()
-                  .rebuildWithLiveness(result.commit, result.removedSyntheticClasses));
+              appViewWithLiveness.appInfo().rebuildWithLiveness(result.commit));
         } else {
           appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(result.commit));
         }
+        appViewWithLiveness.pruneItems(result.prunedItems);
       }
 
       // Perform minification.

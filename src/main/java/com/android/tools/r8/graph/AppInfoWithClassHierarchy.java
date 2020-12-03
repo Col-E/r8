@@ -93,6 +93,20 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         getMainDexClasses());
   }
 
+  @Override
+  public AppInfoWithClassHierarchy prunedCopyFrom(PrunedItems prunedItems) {
+    assert getClass() == AppInfoWithClassHierarchy.class;
+    assert checkIfObsolete();
+    assert prunedItems.getPrunedApp() == app();
+    if (prunedItems.isEmpty()) {
+      return this;
+    }
+    return new AppInfoWithClassHierarchy(
+        getSyntheticItems().commitPrunedItems(prunedItems),
+        getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
+        getMainDexClasses().withoutPrunedItems(prunedItems));
+  }
+
   public ClassToFeatureSplitMap getClassToFeatureSplitMap() {
     return classToFeatureSplitMap;
   }
