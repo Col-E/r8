@@ -331,6 +331,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean quiet = false;
   // Throw exception if there is a warning about invalid debug info.
   public boolean invalidDebugInfoFatal = false;
+  // Don't gracefully recover from invalid debug info.
+  public boolean invalidDebugInfoStrict =
+      System.getProperty("com.android.tools.r8.strictdebuginfo") != null;
 
   // When dexsplitting we ignore main dex classes missing in the application. These will be
   // fused together by play store when shipped for pre-L devices.

@@ -2251,6 +2251,15 @@ public class IRBuilder {
   }
 
   private Value getUninitializedDebugLocalValue(int register, ValueTypeConstraint typeConstraint) {
+    if (appView.options().invalidDebugInfoStrict) {
+      throw new InvalidDebugInfoException(
+          "Information in locals-table is invalid. "
+              + "Local refers to uninitialized register: "
+              + register
+              + " with constraint "
+              + typeConstraint
+              + ".");
+    }
     // A debug initiated value must have a precise type constraint.
     assert typeConstraint.isPrecise();
     TypeElement type = typeConstraint.isObject() ? getNull() : typeConstraint.toPrimitiveType();
