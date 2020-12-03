@@ -167,8 +167,8 @@ public final class PlainStackTraceVisitor
               .registerClassName(classStartIndex, methodSeparator, ClassNameType.TYPENAME)
               .registerMethodName(methodSeparator + 1, parensStart);
       // Check if we have a filename and position.
-      int separatorIndex = firstCharFromIndex(line, parensStart, ':');
-      if (separatorIndex < parensEnd) {
+      int separatorIndex = line.lastIndexOf(':', parensEnd);
+      if (separatorIndex > -1 && separatorIndex < parensEnd) {
         builder.registerSourceFile(parensStart + 1, separatorIndex);
         builder.registerLineNumber(separatorIndex + 1, parensEnd);
       } else {

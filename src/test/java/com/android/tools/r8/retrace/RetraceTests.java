@@ -23,6 +23,7 @@ import com.android.tools.r8.retrace.stacktraces.AmbiguousStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousWithMultipleLineMappingsStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureNonVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.CircularReferenceStackTrace;
+import com.android.tools.r8.retrace.stacktraces.ColonInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameWithInnerClassesStackTrace;
@@ -31,6 +32,7 @@ import com.android.tools.r8.retrace.stacktraces.InlineSourceFileContextStackTrac
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MemberFieldOverlapStackTrace;
+import com.android.tools.r8.retrace.stacktraces.MultipleDotsInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NamedModuleStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NullStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ObfucatedExceptionClassStackTrace;
@@ -38,6 +40,7 @@ import com.android.tools.r8.retrace.stacktraces.ObfuscatedRangeToSingleLineStack
 import com.android.tools.r8.retrace.stacktraces.RetraceAssertionErrorStackTrace;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
 import com.android.tools.r8.retrace.stacktraces.SuppressedStackTrace;
+import com.android.tools.r8.retrace.stacktraces.UnicodeInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.UnknownSourceStackTrace;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
@@ -193,7 +196,22 @@ public class RetraceTests extends TestBase {
   }
 
   @Test
-  public void testMemberFieldOverlapStackTrace() throws Exception {
+  public void testColonInSourceFileNameStackTrace() {
+    runRetraceTest(new ColonInFileNameStackTrace());
+  }
+
+  @Test
+  public void testMultipleDotsInFileNameStackTrace() {
+    runRetraceTest(new MultipleDotsInFileNameStackTrace());
+  }
+
+  @Test
+  public void testUnicodeInFileNameStackTrace() {
+    runRetraceTest(new UnicodeInFileNameStackTrace());
+  }
+
+  @Test
+  public void testMemberFieldOverlapStackTrace() {
     MemberFieldOverlapStackTrace stackTraceForTest = new MemberFieldOverlapStackTrace();
     runRetraceTest(stackTraceForTest);
     inspectRetraceTest(stackTraceForTest, stackTraceForTest::inspectField);
