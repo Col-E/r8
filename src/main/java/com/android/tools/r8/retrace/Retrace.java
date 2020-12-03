@@ -16,7 +16,6 @@ import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
 import com.android.tools.r8.retrace.internal.PlainStackTraceVisitor;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
 import com.android.tools.r8.retrace.internal.RetraceRegularExpression;
-import com.android.tools.r8.retrace.internal.StackTraceElementProxyRetracerImpl;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -175,24 +174,10 @@ public class Retrace {
           command.regularExpression != null
               ? new RetraceRegularExpression(command.stackTrace, command.regularExpression)
               : new PlainStackTraceVisitor(command.stackTrace, command.diagnosticsHandler);
-      List<String> retracedStrings = new ArrayList<>();
-      Box<StackTraceElementStringProxy> lastReportedFrame = new Box<>();
-      run(
-          stackTraceVisitor,
-          new StackTraceElementProxyRetracerImpl<>(retracer),
-          (stackTraceElement, frames) -> {
-            frames.forEach(
-                frame -> {
-                  StackTraceElementStringProxy originalItem = frame.getOriginalItem();
-                  retracedStrings.add(
-                      originalItem.toRetracedItem(
-                          frame, lastReportedFrame.get() == stackTraceElement, command.isVerbose));
-                  lastReportedFrame.set(stackTraceElement);
-                });
-          });
       timing.end();
       timing.begin("Report result");
-      command.retracedStackTraceConsumer.accept(retracedStrings);
+      command.retracedStackTraceConsumer.accept(
+          runInternal(stackTraceVisitor, retracer, command.isVerbose));
       timing.end();
       if (command.printTimes()) {
         timing.report();
@@ -204,8 +189,41 @@ public class Retrace {
   }
 
   /**
-   * Entry point for running retrace over visited stack traces.
+   * Entry point for running retrace with default parsing on a stack trace
    *
+   * @param retracer the retracer used to parse each stack trace frame.
+   * @param stackTrace the stack trace to be parsed.
+   * @param isVerbose if the output should embed verbose information.
+   * @return the retraced strings in flat format
+   */
+  public static List<String> run(Retracer retracer, List<String> stackTrace, boolean isVerbose) {
+    return runInternal(
+        new RetraceRegularExpression(stackTrace, DEFAULT_REGULAR_EXPRESSION), retracer, isVerbose);
+  }
+
+  private static List<String> runInternal(
+      StackTraceVisitor<StackTraceElementStringProxy> stackTraceVisitor,
+      Retracer retracer,
+      boolean isVerbose) {
+    List<String> retracedStrings = new ArrayList<>();
+    Box<StackTraceElementStringProxy> lastReportedFrame = new Box<>();
+    run(
+        stackTraceVisitor,
+        StackTraceElementProxyRetracer.createDefault(retracer),
+        (stackTraceElement, frames) -> {
+          frames.forEach(
+              frame -> {
+                StackTraceElementStringProxy originalItem = frame.getOriginalItem();
+                retracedStrings.add(
+                    originalItem.toRetracedItem(
+                        frame, lastReportedFrame.get() == stackTraceElement, isVerbose));
+                lastReportedFrame.set(stackTraceElement);
+              });
+        });
+    return retracedStrings;
+  }
+
+  /**
    * @param stackTraceVisitor the stack trace visitor.
    * @param proxyRetracer the retracer used to parse each stack trace frame.
    * @param resultConsumer consumer to accept each parsed stack trace frame. The stack-trace element

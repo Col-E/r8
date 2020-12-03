@@ -9,6 +9,7 @@ import com.android.tools.r8.Keep;
 import java.util.List;
 import java.util.function.Consumer;
 
+@Keep
 public class RetraceCommand {
 
   final boolean isVerbose;
@@ -144,7 +145,6 @@ public class RetraceCommand {
     }
   }
 
-  @Keep
   public interface ProguardMapProducer {
     String get();
   }
