@@ -20,7 +20,8 @@ public class ProtoShrinker {
   public final GeneratedExtensionRegistryShrinker generatedExtensionRegistryShrinker;
   public final GeneratedMessageLiteShrinker generatedMessageLiteShrinker;
   public final GeneratedMessageLiteBuilderShrinker generatedMessageLiteBuilderShrinker;
-  public final EnumLiteProtoShrinker enumProtoShrinker;
+  public final EnumLiteProtoShrinker enumLiteProtoShrinker;
+  public final ProtoEnumSwitchMapRemover protoEnumSwitchMapRemover;
   public final ProtoReferences references;
 
   private Set<DexType> deadProtoTypes = Sets.newIdentityHashSet();
@@ -42,9 +43,13 @@ public class ProtoShrinker {
         appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking
             ? new GeneratedMessageLiteBuilderShrinker(appView, references)
             : null;
-    this.enumProtoShrinker =
-        appView.options().protoShrinking().isProtoEnumShrinkingEnabled()
+    this.enumLiteProtoShrinker =
+        appView.options().protoShrinking().isEnumLiteProtoShrinkingEnabled()
             ? new EnumLiteProtoShrinker(appView, references)
+            : null;
+    this.protoEnumSwitchMapRemover =
+        appView.options().protoShrinking().enableRemoveProtoEnumSwitchMap()
+            ? new ProtoEnumSwitchMapRemover(references)
             : null;
     this.references = references;
   }

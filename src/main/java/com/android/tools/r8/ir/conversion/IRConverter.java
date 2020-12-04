@@ -1724,6 +1724,12 @@ public class IRConverter {
     if (enumUnboxer != null) {
       enumUnboxer.recordEnumState(method.getHolder(), staticFieldValues);
     }
+    if (appView.options().protoShrinking().enableRemoveProtoEnumSwitchMap()) {
+      appView
+          .protoShrinker()
+          .protoEnumSwitchMapRemover
+          .recordStaticValues(method.getHolder(), staticFieldValues);
+    }
     methodOptimizationInfoCollector.collectMethodOptimizationInfo(
         method, code, feedback, dynamicTypeOptimization, instanceFieldInitializationInfos, timing);
   }

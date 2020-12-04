@@ -307,6 +307,20 @@ public class EnumValueOptimizer {
         // is null, the same NPE happens at runtime, we can assume the value is non null in the
         // switch map after the ordinal call.
         SingleNumberValue ordinalValue = getOrdinalValue(code, abstractValue, true);
+        if (ordinalValue == null
+            && appView.options().protoShrinking().enableRemoveProtoEnumSwitchMap()) {
+          ordinalValue =
+              appView
+                  .protoShrinker()
+                  .protoEnumSwitchMapRemover
+                  .getOrdinal(
+                      appView.programDefinitionFor(info.enumClass, code.context()),
+                      enumInstanceField,
+                      appView
+                          .appInfo()
+                          .resolveField(factory.enumMembers.ordinalField, code.context())
+                          .getResolvedField());
+        }
         if (ordinalValue == null) {
           return null;
         }

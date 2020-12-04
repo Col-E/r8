@@ -56,7 +56,7 @@ public class EnumLiteProtoShrinker {
   }
 
   public void clearDeadEnumLiteMaps() {
-    assert appView.options().protoShrinking().isProtoEnumShrinkingEnabled();
+    assert appView.options().protoShrinking().isEnumLiteProtoShrinkingEnabled();
     // The optimization only enables further enums to be unboxed, no point to run it if enum
     // unboxing is disabled.
     if (!appView.options().enableEnumUnboxing) {

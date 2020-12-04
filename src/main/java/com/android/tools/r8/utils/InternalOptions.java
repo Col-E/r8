@@ -1338,6 +1338,13 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableGeneratedMessageLiteBuilderShrinking = false;
     public boolean traverseOneOfAndRepeatedProtoFields = false;
     public boolean enableEnumLiteProtoShrinking = false;
+    // Breaks the Chrome build if this is not enabled because of MethodToInvoke switchMaps.
+    // See b/174530756 for more details.
+    public boolean enableProtoEnumSwitchMapShrinking = true;
+
+    public boolean enableRemoveProtoEnumSwitchMap() {
+      return isProtoShrinkingEnabled() && enableProtoEnumSwitchMapShrinking;
+    }
 
     public boolean isProtoShrinkingEnabled() {
       return enableGeneratedExtensionRegistryShrinking
@@ -1346,7 +1353,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
           || enableEnumLiteProtoShrinking;
     }
 
-    public boolean isProtoEnumShrinkingEnabled() {
+    public boolean isEnumLiteProtoShrinkingEnabled() {
       return enableEnumLiteProtoShrinking;
     }
   }

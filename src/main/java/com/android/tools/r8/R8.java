@@ -428,8 +428,8 @@ public class R8 {
                   appViewWithLiveness, appViewWithLiveness.appInfo().computeSubtypingInfo())
               .run();
 
-          if (appView.options().protoShrinking().isProtoEnumShrinkingEnabled()) {
-            appView.protoShrinker().enumProtoShrinker.clearDeadEnumLiteMaps();
+          if (appView.options().protoShrinking().isEnumLiteProtoShrinkingEnabled()) {
+            appView.protoShrinker().enumLiteProtoShrinker.clearDeadEnumLiteMaps();
           }
 
           AnnotationRemover annotationRemover =
@@ -795,8 +795,8 @@ public class R8 {
         }
 
         if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
-          if (appView.options().protoShrinking().isProtoEnumShrinkingEnabled()) {
-            appView.protoShrinker().enumProtoShrinker.verifyDeadEnumLiteMapsAreDead();
+          if (appView.options().protoShrinking().isEnumLiteProtoShrinkingEnabled()) {
+            appView.protoShrinker().enumLiteProtoShrinker.verifyDeadEnumLiteMapsAreDead();
           }
 
           IRConverter converter = new IRConverter(appView, timing, null, mainDexTracingResult);

@@ -321,8 +321,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public <U> U withProtoEnumShrinker(Function<EnumLiteProtoShrinker, U> fn, U defaultValue) {
-    if (protoShrinker != null && options().protoShrinking().isProtoEnumShrinkingEnabled()) {
-      return fn.apply(protoShrinker.enumProtoShrinker);
+    if (protoShrinker != null && options().protoShrinking().isEnumLiteProtoShrinkingEnabled()) {
+      return fn.apply(protoShrinker.enumLiteProtoShrinker);
     }
     return defaultValue;
   }
