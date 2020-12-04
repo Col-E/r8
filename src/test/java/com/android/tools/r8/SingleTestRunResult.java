@@ -182,6 +182,14 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
     return self();
   }
 
+  public RR forCfRuntime(Consumer<RR> action) {
+    if (runtime.isCf()) {
+      action.accept(self());
+      executedSatisfyingRuntime = true;
+    }
+    return self();
+  }
+
   public RR otherwise(Consumer<RR> action) {
     if (!executedSatisfyingRuntime) {
       action.accept(self());
