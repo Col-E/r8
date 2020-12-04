@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.AndroidApp;
@@ -16,6 +17,8 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import org.hamcrest.Matcher;
 
 public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
@@ -23,6 +26,7 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
   protected final AndroidApp app;
   private final TestRuntime runtime;
   private final ProcessResult result;
+  private boolean executedSatisfyingRuntime = false;
 
   public SingleTestRunResult(AndroidApp app, TestRuntime runtime, ProcessResult result) {
     this.app = app;
@@ -167,6 +171,21 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
     StringBuilder sb = new StringBuilder();
     appendProcessResult(sb);
     ps.println(sb.toString());
+    return self();
+  }
+
+  public RR forDexRuntimeSatisfying(Predicate<DexVm.Version> predicate, Consumer<RR> action) {
+    if (runtime.isDex() && predicate.test(runtime.asDex().getVm().getVersion())) {
+      action.accept(self());
+      executedSatisfyingRuntime = true;
+    }
+    return self();
+  }
+
+  public RR otherwise(Consumer<RR> action) {
+    if (!executedSatisfyingRuntime) {
+      action.accept(self());
+    }
     return self();
   }
 }

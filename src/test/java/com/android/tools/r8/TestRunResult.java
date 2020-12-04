@@ -81,13 +81,6 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
     return assertFailure();
   }
 
-  public RR assertFailureWithErrorThatMatchesIf(boolean condition, Matcher<String> matcher) {
-    if (condition) {
-      return assertFailureWithErrorThatMatches(matcher);
-    }
-    return self();
-  }
-
   public RR assertFailureWithOutput(String expected) {
     assertStdoutMatches(is(expected));
     return assertFailure();
