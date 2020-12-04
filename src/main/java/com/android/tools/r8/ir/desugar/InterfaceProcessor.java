@@ -240,7 +240,6 @@ public final class InterfaceProcessor {
         }
 
         MethodAccessFlags newFlags = virtual.accessFlags.copy();
-        newFlags.unsetBridge();
         newFlags.promoteToStatic();
         DexEncodedMethod.setDebugInfoWithFakeThisParameter(
             code, companionMethod.getArity(), appView);
