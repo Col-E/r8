@@ -307,6 +307,10 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
     return null;
   }
 
+  public boolean isNestedDexValue() {
+    return false;
+  }
+
   public abstract AbstractValue toAbstractValue(AbstractValueFactory factory);
 
   static DexValue fromAsmBootstrapArgument(
@@ -1130,6 +1134,11 @@ public abstract class DexValue extends DexItem implements StructuralItem<DexValu
 
     private NestedDexValue(T value) {
       this.value = value;
+    }
+
+    @Override
+    public boolean isNestedDexValue() {
+      return true;
     }
 
     @Override

@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -47,14 +46,7 @@ public class EnumAndIdentifierBasedStringInAnnotationTest extends RepackageTestB
         .compile()
         .inspect(inspector -> assertThat(inspector.clazz(Enum.class), isPresentAndRenamed()))
         .run(parameters.getRuntime(), Main.class)
-        // It is truly amazing that these two ART VMs can find the value with incorrect names :)
-        .forDexRuntimeSatisfying(
-            version ->
-                version.isNewerThanOrEqual(Version.V5_1_1)
-                    && version.isOlderThanOrEqual(Version.V6_0_1),
-            result -> result.assertSuccessWithOutputLines("TEST_ONE"))
-        // TODO(b/174742877): We should not throw an error.
-        .otherwise(result -> result.assertFailureWithErrorThatThrows(ClassNotFoundException.class));
+        .assertSuccessWithOutputLines("TEST_ONE");
   }
 
   public enum Enum {

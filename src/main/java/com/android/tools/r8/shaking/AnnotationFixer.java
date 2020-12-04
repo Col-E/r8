@@ -4,15 +4,21 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
+import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
+import com.android.tools.r8.graph.DexValue.DexValueEnum;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.utils.ArrayUtils;
@@ -56,27 +62,65 @@ public class AnnotationFixer {
   }
 
   private DexAnnotationElement rewriteAnnotationElement(DexAnnotationElement original) {
-    DexValue rewrittenValue = rewriteValue(original.value);
+    DexValue rewrittenValue = rewriteComplexValue(original.value);
     if (rewrittenValue != original.value) {
       return new DexAnnotationElement(original.name, rewrittenValue);
     }
     return original;
   }
 
-  private DexValue rewriteValue(DexValue value) {
-    if (value.isDexValueType()) {
+  private DexValue rewriteComplexValue(DexValue value) {
+    if (value.isDexValueArray()) {
+      DexValue[] originalValues = value.asDexValueArray().getValues();
+      DexValue[] rewrittenValues =
+          ArrayUtils.map(DexValue[].class, originalValues, this::rewriteComplexValue);
+      if (rewrittenValues != originalValues) {
+        return new DexValueArray(rewrittenValues);
+      }
+    } else if (value.isDexValueAnnotation()) {
+      DexValueAnnotation original = value.asDexValueAnnotation();
+      DexEncodedAnnotation rewritten = rewriteEncodedAnnotation(original.getValue());
+      if (original.value == rewritten) {
+        return value;
+      }
+      return new DexValueAnnotation(rewritten);
+    }
+    return rewriteNestedValue(value);
+  }
+
+  private DexValue rewriteNestedValue(DexValue value) {
+    if (value.isDexItemBasedValueString()) {
+      DexItemBasedValueString valueString = value.asDexItemBasedValueString();
+      DexReference original = valueString.value;
+      DexReference rewritten = lens.lookupReference(original);
+      if (original != rewritten) {
+        return new DexItemBasedValueString(rewritten, valueString.getNameComputationInfo());
+      }
+    } else if (value.isDexValueEnum()) {
+      DexField original = value.asDexValueEnum().value;
+      DexField rewritten = lens.lookupField(original);
+      if (original != rewritten) {
+        return new DexValueEnum(rewritten);
+      }
+    } else if (value.isDexValueField()) {
+      throw new Unreachable("Unexpected field in annotation");
+    } else if (value.isDexValueMethod()) {
+      throw new Unreachable("Unexpected method in annotation");
+    } else if (value.isDexValueMethodHandle()) {
+      throw new Unreachable("Unexpected method handle in annotation");
+    } else if (value.isDexValueMethodType()) {
+      throw new Unreachable("Unexpected method type in annotation");
+    } else if (value.isDexValueString()) {
+      // If we identified references in the string it would be a DexItemBasedValueString.
+    } else if (value.isDexValueType()) {
       DexType originalType = value.asDexValueType().value;
       DexType rewrittenType = lens.lookupType(originalType);
       if (rewrittenType != originalType) {
         return new DexValueType(rewrittenType);
       }
-    } else if (value.isDexValueArray()) {
-      DexValue[] originalValues = value.asDexValueArray().getValues();
-      DexValue[] rewrittenValues =
-          ArrayUtils.map(DexValue[].class, originalValues, this::rewriteValue);
-      if (rewrittenValues != originalValues) {
-        return new DexValueArray(rewrittenValues);
-      }
+    } else {
+      // Assert that we have not forgotten a value.
+      assert !value.isNestedDexValue();
     }
     return value;
   }
