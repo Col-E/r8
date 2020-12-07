@@ -51,13 +51,9 @@ public class B137392797 extends TestBase implements Opcodes {
     //   * REQUIRED: annotation for Test.field1
     //   * OPTIONAL: default value of WireField.label
     // When generating class file the field values[] is also present as values() is kept.
-    assertEquals(
-        parameters.isCfRuntime() && defaultEnumValueInAnnotation ? 3 : 2,
-        classSubject.allFields().size());
+    assertEquals(parameters.isCfRuntime() ? 3 : 2, classSubject.allFields().size());
     // Methods <clinit>, <init> always present. values() present if generating class file.
-    assertEquals(
-        parameters.isCfRuntime() && defaultEnumValueInAnnotation ? 3 : 2,
-        classSubject.allMethods().size());
+    assertEquals(parameters.isCfRuntime() ? 3 : 2, classSubject.allMethods().size());
   }
 
   @Test
@@ -254,7 +250,7 @@ public class B137392797 extends TestBase implements Opcodes {
     return classWriter.toByteArray();
   }
 
-  public static byte[] classWireFieldLabel() throws Exception {
+  public static byte[] classWireFieldLabel() {
 
     ClassWriter classWriter = new ClassWriter(0);
     FieldVisitor fieldVisitor;
