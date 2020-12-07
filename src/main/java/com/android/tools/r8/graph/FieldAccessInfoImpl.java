@@ -185,7 +185,7 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   /** Returns true if this field is read by the program. */
   @Override
   public boolean isRead() {
-    return !readsWithContexts.isEmpty() || isReadFromAnnotation();
+    return !readsWithContexts.isEmpty() || isReadFromAnnotation() || isReadFromMethodHandle();
   }
 
   @Override

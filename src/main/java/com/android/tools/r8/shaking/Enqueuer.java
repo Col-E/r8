@@ -4431,14 +4431,11 @@ public class Enqueuer {
                     fieldReference, new FieldAccessInfoImpl(fieldReference));
         fieldAccessInfo.setReadFromAnnotation();
         markStaticFieldAsLive(field, KeepReason.referencedInAnnotation(annotationHolder));
-        // When an annotation has a field of an enum type with a default value then Java VM
-        // will use the values() method on that enum class.
-        if (options.isGeneratingClassFiles()
-            && annotationHolder == dexItemFactory.annotationDefault) {
-          if (field.getHolder().isEnum()) {
-            markEnumValuesAsReachable(
-                field.getHolder(), KeepReason.referencedInAnnotation(annotationHolder));
-          }
+        // When an annotation has a field of an enum type the JVM will use the values() method on
+        // that enum class if the field is referenced.
+        if (options.isGeneratingClassFiles() && field.getHolder().isEnum()) {
+          markEnumValuesAsReachable(
+              field.getHolder(), KeepReason.referencedInAnnotation(annotationHolder));
         }
       } else {
         // There is no dispatch on annotations, so only keep what is directly referenced.

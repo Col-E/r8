@@ -46,10 +46,7 @@ public class EnumInAnnotationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepRuntimeVisibleAnnotations()
         .run(parameters.getRuntime(), Main.class)
-        .forCfRuntime(
-            result ->
-                result.assertFailureWithErrorThatThrows(EnumConstantNotPresentException.class))
-        .otherwise(result -> result.assertSuccessWithOutputLines("TEST_ONE"));
+        .assertSuccessWithOutputLines("TEST_ONE");
   }
 
   public enum Enum {
