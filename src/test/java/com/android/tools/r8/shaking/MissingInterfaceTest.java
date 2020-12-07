@@ -4,115 +4,97 @@
 package com.android.tools.r8.shaking;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.util.List;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-interface GoingToBeMissed {
-  void onSomeEvent(long soLong);
-}
-
-class TestClassForB112849320 {
-  GoingToBeMissed instance;
-  void foo(GoingToBeMissed instance) {
-    System.out.println("B112849320");
-    this.instance = instance;
-  }
-
-  void bar() {
-    instance.onSomeEvent(8L);
-  }
-
-  public static void main(String[] args) {
-    TestClassForB112849320 self = new TestClassForB112849320();
-    self.foo(l -> {
-      if (l > 0) {
-        System.out.println(l);
-      }
-    });
-    self.bar();
-  }
-}
-
+@RunWith(Parameterized.class)
 public class MissingInterfaceTest extends TestBase {
-  private static String MAIN_NAME = TestClassForB112849320.class.getCanonicalName();
-  private Path libJar;
-  private Path libDex;
 
-  @Before
-  public void setUp() throws Exception {
-    libJar = writeToJar(ImmutableList.of(ToolHelper.getClassAsBytes(GoingToBeMissed.class)));
-    libDex = temp.getRoot().toPath().resolve("lib.zip");
-    AndroidApp libApp = ToolHelper.runD8(readClasses(GoingToBeMissed.class));
-    libApp.writeToZip(libDex, OutputMode.DexIndexed);
+  private final TestParameters parameters;
+  private final String[] EXPECTED = new String[] {"B112849320", "8"};
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  public MissingInterfaceTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
   public void test_missingInterface() throws Exception {
-    List<String> config = ImmutableList.of(
-        "-printmapping",
-        "-keep class " + MAIN_NAME + " {",
-        "  public static void main(...);",
-        "}"
-    );
-    R8Command.Builder builder = R8Command.builder();
-    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClassForB112849320.class));
-    builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
-    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
-    builder.addProguardConfiguration(config, Origin.unknown());
-    AndroidApp processedApp = ToolHelper.runR8(builder.build(), options -> {
-      options.enableInlining = false;
-    });
-
-    Path outDex = temp.getRoot().toPath().resolve("dex.zip");
-    processedApp.writeToZip(outDex, OutputMode.DexIndexed);
-    ProcessResult artResult = ToolHelper.runArtRaw(
-        ImmutableList.of(outDex.toString(), libDex.toString()), MAIN_NAME, null);
-    assertNotEquals(0, artResult.exitCode);
-    assertThat(artResult.stdout, containsString("B112849320"));
-    assertNotEquals(-1, artResult.stderr.indexOf("AbstractMethodError"));
+    testForR8(parameters.getBackend())
+        .addProgramClasses(TestClassForB112849320.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(TestClassForB112849320.class)
+        .addOptionsModification(options -> options.enableInlining = false)
+        .allowDiagnosticWarningMessages(
+            parameters.isCfRuntime() || !parameters.canUseDefaultAndStaticInterfaceMethods())
+        .compile()
+        .addRunClasspathFiles(
+            buildOnDexRuntime(
+                parameters,
+                writeToJar(ImmutableList.of(ToolHelper.getClassAsBytes(GoingToBeMissed.class)))))
+        .run(parameters.getRuntime(), TestClassForB112849320.class)
+        .forCfRuntime(r -> r.assertSuccessWithOutputLines(EXPECTED))
+        .otherwise(
+            r -> {
+              r.assertStdoutMatches(containsString("B112849320"));
+              r.assertFailureWithErrorThatThrows(AbstractMethodError.class);
+            });
   }
+
 
   @Test
   public void test_passingInterfaceAsLib() throws Exception {
-    List<String> config = ImmutableList.of(
-        "-printmapping",
-        "-keep class " + MAIN_NAME + " {",
-        "  public static void main(...);",
-        "}"
-    );
-    R8Command.Builder builder = R8Command.builder();
-    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClassForB112849320.class));
-    builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar(), libJar);
-    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
-    builder.addProguardConfiguration(config, Origin.unknown());
-    AndroidApp processedApp = ToolHelper.runR8(builder.build(), options -> {
-      options.enableInlining = false;
-    });
-
-    Path outDex = temp.getRoot().toPath().resolve("dex.zip");
-    processedApp.writeToZip(outDex, OutputMode.DexIndexed);
-    ProcessResult artResult = ToolHelper.runArtRaw(
-        ImmutableList.of(outDex.toString(), libDex.toString()), MAIN_NAME, null);
-    assertEquals(0, artResult.exitCode);
-    assertThat(artResult.stdout, containsString("B112849320"));
-    assertEquals(-1, artResult.stderr.indexOf("AbstractMethodError"));
+    Path lib = writeToJar(ImmutableList.of(ToolHelper.getClassAsBytes(GoingToBeMissed.class)));
+    testForR8(parameters.getBackend())
+        .addProgramClasses(TestClassForB112849320.class)
+        .addLibraryFiles(lib)
+        .addDefaultRuntimeLibrary(parameters)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(TestClassForB112849320.class)
+        .addOptionsModification(options -> options.enableInlining = false)
+        .addRunClasspathFiles(buildOnDexRuntime(parameters, lib))
+        .run(parameters.getRuntime(), TestClassForB112849320.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
+  interface GoingToBeMissed {
+    void onSomeEvent(long soLong);
+  }
+
+  public static class TestClassForB112849320 {
+    GoingToBeMissed instance;
+
+    void foo(GoingToBeMissed instance) {
+      System.out.println("B112849320");
+      this.instance = instance;
+    }
+
+    void bar() {
+      instance.onSomeEvent(8L);
+    }
+
+    public static void main(String[] args) {
+      TestClassForB112849320 self = new TestClassForB112849320();
+      self.foo(
+          l -> {
+            if (l > 0) {
+              System.out.println(l);
+            }
+          });
+      self.bar();
+    }
+  }
 }

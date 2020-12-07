@@ -233,7 +233,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
   }
 
   public boolean verifyAllocatedTypesAreLive(
-      Set<DexType> liveTypes, DexDefinitionSupplier definitions) {
+      Set<DexType> liveTypes, Set<DexType> missingTypes, DexDefinitionSupplier definitions) {
     for (DexProgramClass clazz : classesWithAllocationSiteTracking.keySet()) {
       assert liveTypes.contains(clazz.getType());
     }
@@ -244,7 +244,9 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
       assert liveTypes.contains(iface.getType());
     }
     for (DexType iface : instantiatedLambdas.keySet()) {
-      assert definitions.definitionFor(iface).isNotProgramClass() || liveTypes.contains(iface);
+      assert missingTypes.contains(iface)
+          || definitions.definitionFor(iface).isNotProgramClass()
+          || liveTypes.contains(iface);
     }
     return true;
   }

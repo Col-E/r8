@@ -361,7 +361,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   private void verify() {
     assert keepInfo.verifyPinnedTypesAreLive(liveTypes);
-    assert objectAllocationInfoCollection.verifyAllocatedTypesAreLive(liveTypes, this);
+    assert objectAllocationInfoCollection.verifyAllocatedTypesAreLive(
+        liveTypes, missingTypes, this);
   }
 
   private static KeepInfoCollection extendPinnedItems(
