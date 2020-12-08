@@ -47,7 +47,7 @@ public class InconsistentPrefixTest extends TestBase {
         .addOptionsModification(
             options ->
                 options.desugaredLibraryConfiguration =
-                    DesugaredLibraryConfiguration.withOnlyRewritePrefixForTesting(x))
+                    DesugaredLibraryConfiguration.withOnlyRewritePrefixForTesting(x, options))
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               diagnostics.assertErrorMessageThatMatches(

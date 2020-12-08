@@ -134,7 +134,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   private static <T extends AppInfo> PrefixRewritingMapper defaultPrefixRewritingMapper(T appInfo) {
     InternalOptions options = appInfo.options();
-    return options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
+    return options.desugaredLibraryConfiguration.getPrefixRewritingMapper();
   }
 
   public static <T extends AppInfo> AppView<T> createForD8(T appInfo) {

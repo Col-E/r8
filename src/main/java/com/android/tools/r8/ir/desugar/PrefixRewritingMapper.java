@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.util.Map;
@@ -58,9 +57,10 @@ public abstract class PrefixRewritingMapper {
     private final DexItemFactory factory;
     private final boolean l8Compilation;
 
-    public DesugarPrefixRewritingMapper(Map<String, String> prefixes, InternalOptions options) {
-      this.factory = options.itemFactory;
-      this.l8Compilation = options.isDesugaredLibraryCompilation();
+    public DesugarPrefixRewritingMapper(
+        Map<String, String> prefixes, DexItemFactory itemFactory, boolean libraryCompilation) {
+      this.factory = itemFactory;
+      this.l8Compilation = libraryCompilation;
       ImmutableMap.Builder<DexString, DexString> builder = ImmutableMap.builder();
       for (String key : prefixes.keySet()) {
         builder.put(toDescriptorPrefix(key), toDescriptorPrefix(prefixes.get(key)));

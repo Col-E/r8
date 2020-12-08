@@ -78,7 +78,8 @@ public class B135627418 extends TestBase {
                 options ->
                     options.desugaredLibraryConfiguration =
                         DesugaredLibraryConfiguration.withOnlyRewritePrefixForTesting(
-                            ImmutableMap.of(packageName + ".runtime", packageName + ".library")))
+                            ImmutableMap.of(packageName + ".runtime", packageName + ".library"),
+                            options))
             .compile();
 
     testForR8(parameters.getBackend())

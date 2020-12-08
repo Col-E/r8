@@ -82,7 +82,7 @@ public final class BackportedMethodRewriter {
       AndroidApp androidApp, InternalOptions options, ExecutorService executor) throws IOException {
     List<DexMethod> methods = new ArrayList<>();
     PrefixRewritingMapper rewritePrefix =
-        options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
+        options.desugaredLibraryConfiguration.getPrefixRewritingMapper();
     AppInfo appInfo = null;
     if (androidApp != null) {
       DexApplication app =

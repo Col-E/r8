@@ -50,7 +50,8 @@ public class DesugaredLibraryConfiguration {
           ImmutableMap.of(),
           ImmutableSet.of(),
           ImmutableList.of(),
-          ImmutableList.of());
+          ImmutableList.of(),
+          PrefixRewritingMapper.empty());
   private final AndroidApiLevel requiredCompilationAPILevel;
   private final boolean libraryCompilation;
   private final String synthesizedLibraryClassesPackagePrefix;
@@ -72,13 +73,14 @@ public class DesugaredLibraryConfiguration {
   private final List<Pair<DexType, DexString>> dontRewriteInvocation;
   private final List<String> extraKeepRules;
   private final Set<DexType> wrapperConversions;
+  private final PrefixRewritingMapper prefixRewritingMapper;
 
   public static Builder builder(DexItemFactory dexItemFactory, Reporter reporter, Origin origin) {
     return new Builder(dexItemFactory, reporter, origin);
   }
 
   public static DesugaredLibraryConfiguration withOnlyRewritePrefixForTesting(
-      Map<String, String> prefix) {
+      Map<String, String> prefix, InternalOptions options) {
     return new DesugaredLibraryConfiguration(
         AndroidApiLevel.B,
         true,
@@ -93,7 +95,8 @@ public class DesugaredLibraryConfiguration {
         ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableList.of(),
-        ImmutableList.of());
+        ImmutableList.of(),
+        new DesugarPrefixRewritingMapper(prefix, options.itemFactory, true));
   }
 
   public static DesugaredLibraryConfiguration empty() {
@@ -114,7 +117,8 @@ public class DesugaredLibraryConfiguration {
       Map<DexType, DexType> customConversions,
       Set<DexType> wrapperConversions,
       List<Pair<DexType, DexString>> dontRewriteInvocation,
-      List<String> extraKeepRules) {
+      List<String> extraKeepRules,
+      PrefixRewritingMapper prefixRewritingMapper) {
     this.requiredCompilationAPILevel = requiredCompilationAPILevel;
     this.libraryCompilation = libraryCompilation;
     this.synthesizedLibraryClassesPackagePrefix = packagePrefix;
@@ -129,12 +133,11 @@ public class DesugaredLibraryConfiguration {
     this.wrapperConversions = wrapperConversions;
     this.dontRewriteInvocation = dontRewriteInvocation;
     this.extraKeepRules = extraKeepRules;
+    this.prefixRewritingMapper = prefixRewritingMapper;
   }
 
-  public PrefixRewritingMapper createPrefixRewritingMapper(InternalOptions options) {
-    return rewritePrefix.isEmpty()
-        ? PrefixRewritingMapper.empty()
-        : new DesugarPrefixRewritingMapper(rewritePrefix, options);
+  public PrefixRewritingMapper getPrefixRewritingMapper() {
+    return prefixRewritingMapper;
   }
 
   public AndroidApiLevel getRequiredCompilationApiLevel() {
@@ -385,7 +388,10 @@ public class DesugaredLibraryConfiguration {
           ImmutableMap.copyOf(customConversions),
           ImmutableSet.copyOf(wrapperConversions),
           ImmutableList.copyOf(dontRewriteInvocation),
-          ImmutableList.copyOf(extraKeepRules));
+          ImmutableList.copyOf(extraKeepRules),
+          rewritePrefix.isEmpty()
+              ? PrefixRewritingMapper.empty()
+              : new DesugarPrefixRewritingMapper(rewritePrefix, factory, libraryCompilation));
     }
 
     private void validate() {

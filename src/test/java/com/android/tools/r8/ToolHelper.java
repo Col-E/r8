@@ -34,6 +34,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -1287,7 +1288,8 @@ public class ToolHelper {
     D8Command command = builder.build();
     InternalOptions options = command.getInternalOptions();
     if (optionsConsumer != null) {
-      optionsConsumer.accept(options);
+      ExceptionUtils.withD8CompilationHandler(
+          options.reporter, () -> optionsConsumer.accept(options));
     }
     D8.runForTesting(command.getInputApp(), options);
     return compatSink.build();
