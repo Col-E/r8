@@ -29,7 +29,6 @@ import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -148,10 +147,6 @@ public class DesugaredLibraryTestBase extends TestBase {
                             .getDiagnosticMessage()
                             .startsWith(
                                 "Invalid parameter counts in MethodParameter attributes.")));
-      }
-      if (shrink) {
-        new CodeInspector(desugaredLib)
-            .forAllClasses(clazz -> assertTrue(clazz.getFinalName().startsWith("j$")));
       }
       return desugaredLib;
     } catch (Exception e) {
