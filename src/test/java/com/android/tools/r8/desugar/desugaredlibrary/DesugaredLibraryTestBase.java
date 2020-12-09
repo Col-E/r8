@@ -151,10 +151,7 @@ public class DesugaredLibraryTestBase extends TestBase {
       }
       if (shrink) {
         new CodeInspector(desugaredLib)
-            .forAllClasses(
-                clazz -> {
-                  assertTrue(clazz.getFinalSignatureAttribute().startsWith("j$"));
-                });
+            .forAllClasses(clazz -> assertTrue(clazz.getFinalName().startsWith("j$")));
       }
       return desugaredLib;
     } catch (Exception e) {
