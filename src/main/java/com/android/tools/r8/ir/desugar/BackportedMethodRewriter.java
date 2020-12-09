@@ -193,10 +193,13 @@ public final class BackportedMethodRewriter {
 
   private static final class RewritableMethods {
 
+    private final AppView<?> appView;
+
     // Map backported method to a provider for creating the actual target method (with code).
     private final Map<DexMethod, MethodProvider> rewritable = new IdentityHashMap<>();
 
     RewritableMethods(InternalOptions options, AppView<?> appView) {
+      this.appView = appView;
 
       if (!options.shouldBackportMethods()) {
         return;
@@ -205,7 +208,7 @@ public final class BackportedMethodRewriter {
       DexItemFactory factory = options.itemFactory;
 
       if (options.minApiLevel < AndroidApiLevel.K.getLevel()) {
-        initializeAndroidKMethodProviders(factory);
+        initializeAndroidKMethodProviders(factory, appView);
       }
       if (options.minApiLevel < AndroidApiLevel.N.getLevel()) {
         initializeAndroidNMethodProviders(factory);
@@ -246,7 +249,7 @@ public final class BackportedMethodRewriter {
       rewritable.keySet().forEach(consumer);
     }
 
-    private void initializeAndroidKMethodProviders(DexItemFactory factory) {
+    private void initializeAndroidKMethodProviders(DexItemFactory factory, AppView<?> appView) {
       // Byte
       DexType type = factory.boxedByteType;
       // int Byte.compare(byte a, byte b)
@@ -1305,6 +1308,21 @@ public final class BackportedMethodRewriter {
     }
 
     private void addProvider(MethodProvider generator) {
+      if (appView.options().desugaredLibraryConfiguration.isSupported(generator.method, appView)) {
+        // TODO(b/174453232): Remove this after the configuration file format has bee updated
+        // with the "rewrite_method" section.
+        if (generator.method.getHolderType() == appView.dexItemFactory().objectsType) {
+          // Still backport the new API level 30 methods.
+          String methodName = generator.method.getName().toString();
+          if (!methodName.equals("requireNonNullElse")
+              && !methodName.equals("requireNonNullElseGet")
+              && !methodName.equals("checkIndex")
+              && !methodName.equals("checkFromToIndex")
+              && !methodName.equals("checkFromIndexSize")) {
+            return;
+          }
+        }
+      }
       MethodProvider replaced = rewritable.put(generator.method, generator);
       assert replaced == null;
     }

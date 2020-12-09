@@ -163,6 +163,11 @@ public class DesugaredLibraryConfiguration {
   public Map<DexType, DexType> getEmulateLibraryInterface() {
     return emulateLibraryInterface;
   }
+
+  public boolean isSupported(DexMethod method, AppView<?> appView) {
+    return prefixRewritingMapper.hasRewrittenType(method.getHolderType(), appView);
+  }
+
   // If the method is retargeted, answers the retargeted method, else null.
   public DexMethod retargetMethod(DexEncodedMethod method, AppView<?> appView) {
     Map<DexType, DexType> typeMap = retargetCoreLibMember.get(method.getName());
