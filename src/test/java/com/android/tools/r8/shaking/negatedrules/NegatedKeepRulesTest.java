@@ -5,7 +5,6 @@
 package com.android.tools.r8.shaking.negatedrules;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -19,7 +18,7 @@ import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.Subject;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -61,112 +60,110 @@ public class NegatedKeepRulesTest extends TestBase {
             inspector -> {
               assertThat(inspector.clazz(A.class), isPresent());
               assertThat(inspector.clazz(B.class), not(isPresent()));
+              assertThat(inspector.clazz(C.class), not(isPresent()));
+              assertThat(inspector.clazz(D.class), not(isPresent()));
+              assertThat(inspector.clazz(FooBar.class), not(isPresent()));
+              assertThat(inspector.clazz(BarBar.class), not(isPresent()));
             });
   }
 
   @Test
   public void testNegationR8Compat() throws Exception {
-    // TODO(b/174824047): Should not emit info regarding unused keep rule.
-    // TODO(b/174824047): The class A should be present.
-    testNegation(
-        testForR8Compat(parameters.getBackend()).allowUnusedProguardConfigurationRules(),
-        not(isPresent()));
+    testNegation(testForR8Compat(parameters.getBackend()));
   }
 
   @Test
   public void testNegationPlainR8Full() throws Exception {
-    // TODO(b/174824047): Should not emit info regarding unused keep rule.
-    // TODO(b/174824047): The class A should be present.
-    testNegation(
-        testForR8(parameters.getBackend()).allowUnusedProguardConfigurationRules(),
-        not(isPresent()));
+    testNegation(testForR8(parameters.getBackend()));
   }
 
   @Test
   public void testNegationProguard() throws Exception {
     assumeTrue(parameters.isCfRuntime());
-    testNegation(testForProguard(ProguardVersion.V7_0_0).addKeepRules("-dontwarn"), isPresent());
+    testNegation(testForProguard(ProguardVersion.V7_0_0).addKeepRules("-dontwarn"));
   }
 
-  public void testNegation(
-      TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder, Matcher<? super ClassSubject> matcher)
-      throws Exception {
+  public void testNegation(TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
     run(testBuilder.addKeepRules("-keep class !" + B.class.getTypeName() + " { *; }"))
         .inspect(
             inspector -> {
-              assertThat(inspector.clazz(A.class), matcher);
+              assertThat(inspector.clazz(A.class), isPresent());
               assertThat(inspector.clazz(B.class), not(isPresent()));
+              assertThat(inspector.clazz(C.class), isPresent());
+              assertThat(inspector.clazz(D.class), isPresent());
+              assertThat(inspector.clazz(FooBar.class), isPresent());
+              assertThat(inspector.clazz(BarBar.class), isPresent());
             });
   }
 
   @Test
   public void testExtendsR8Compat() throws Exception {
-    testExtends(testForR8Compat(parameters.getBackend()), isPresent());
+    testExtends(testForR8Compat(parameters.getBackend()));
   }
 
   @Test
   public void testExtendsR8Full() throws Exception {
-    testExtends(testForR8(parameters.getBackend()), not(isPresent()));
+    testExtends(testForR8(parameters.getBackend()));
   }
 
   @Test
   public void testExtendsProguard() throws Exception {
-    testExtends(testForProguard(ProguardVersion.V7_0_0).addKeepRules("-dontwarn"), isPresent());
+    testExtends(testForProguard(ProguardVersion.V7_0_0).addKeepRules("-dontwarn"));
   }
 
-  public void testExtends(
-      TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder, Matcher<? super ClassSubject> matcher)
-      throws Exception {
+  public void testExtends(TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
     run(testBuilder.addKeepRules("-keep class ** extends " + A.class.getTypeName() + " { *; }"))
         .inspect(
             inspector -> {
-              assertThat(inspector.clazz(A.class), matcher);
-              assertThat(inspector.clazz(B.class), isPresentAndNotRenamed());
+              // A is only kept in full-mode because we are keeping two sub-types. For full-mode,
+              // A could be removed. This is shown in the testNegatedExtends test.
+              assertThat(inspector.clazz(A.class), isPresent());
+              assertThat(inspector.clazz(B.class), isPresent());
+              assertThat(inspector.clazz(C.class), not(isPresent()));
+              assertThat(inspector.clazz(D.class), isPresent());
+              assertThat(inspector.clazz(FooBar.class), not(isPresent()));
+              assertThat(inspector.clazz(BarBar.class), not(isPresent()));
             });
   }
 
   @Test
   public void testNegatedExtendsR8Compat() throws Exception {
-    // TODO(b/174824047): Should not emit info regarding unused keep rule.
-    testNegatedExtends(
-        testForR8Compat(parameters.getBackend()).allowUnusedProguardConfigurationRules());
+    testNegatedExtends(testForR8Compat(parameters.getBackend()), isPresent());
   }
 
   @Test
   public void testNegatedExtendsR8Full() throws Exception {
-    // TODO(b/174824047): Should not emit info regarding unused keep rule.
-    testNegatedExtends(testForR8(parameters.getBackend()).allowUnusedProguardConfigurationRules());
+    testNegatedExtends(testForR8(parameters.getBackend()), not(isPresent()));
   }
 
   @Test
   public void testNegatedExtendsProguard() throws Exception {
-    testNegatedExtends(testForProguard(ProguardVersion.V7_0_0).addKeepRules("-dontwarn"));
+    testNegatedExtends(
+        testForProguard(ProguardVersion.V7_0_0).addKeepRules("-dontwarn"), isPresent());
   }
 
-  public void testNegatedExtends(TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
-    run(testBuilder
-            .addKeepRules("-keep class !** extends " + A.class.getTypeName() + " { *; }")
-            .addKeepClassRules(C.class)) // <-- kept to have an output
+  public void testNegatedExtends(
+      TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder, Matcher<Subject> aMatcher) throws Exception {
+    // The negation binds closer than extends (at least for us).
+    run(testBuilder.addKeepRules("-keep class !**B extends " + A.class.getTypeName() + " { *; }"))
         .inspect(
             inspector -> {
-              // TODO(b/174824047): These seems to be incorrect behavior, since one could expect A
-              //  and C to be kept and not B, since (A extends A) = (C extends A) = false and the
-              //  negation would become true.
-              assertThat(inspector.clazz(A.class), not(isPresent()));
+              assertThat(inspector.clazz(A.class), aMatcher);
               assertThat(inspector.clazz(B.class), not(isPresent()));
-              assertThat(inspector.clazz(C.class), isPresent());
+              assertThat(inspector.clazz(C.class), not(isPresent()));
+              assertThat(inspector.clazz(D.class), isPresent());
+              assertThat(inspector.clazz(FooBar.class), not(isPresent()));
+              assertThat(inspector.clazz(BarBar.class), not(isPresent()));
             });
   }
 
   @Test
   public void testNegatedWithStarsR8Compat() throws Exception {
-    // TODO(b/174824047): Should not emit info regarding unused keep rule.
     testNegatedWithStars(testForR8Compat(parameters.getBackend()));
   }
 
   @Test
   public void testNegatedWithStarsR8Full() throws Exception {
-    // TODO(b/174824047): Should not emit info regarding unused keep rule.
     testNegatedWithStars(testForR8(parameters.getBackend()));
   }
 
@@ -182,18 +179,20 @@ public class NegatedKeepRulesTest extends TestBase {
             inspector -> {
               assertThat(inspector.clazz(A.class), isPresent());
               assertThat(inspector.clazz(B.class), not(isPresent()));
+              assertThat(inspector.clazz(C.class), isPresent());
+              assertThat(inspector.clazz(D.class), isPresent());
+              assertThat(inspector.clazz(FooBar.class), isPresent());
+              assertThat(inspector.clazz(BarBar.class), isPresent());
             });
   }
 
   @Test
   public void testMultipleNegatedWithStarsR8Compat() throws Exception {
-    // TODO(b/174824047): Should not emit info regarding unused keep rule.
     testMultipleNegatedWithStars(testForR8Compat(parameters.getBackend()));
   }
 
   @Test
   public void testMultipleNegatedWithStarsR8Full() throws Exception {
-    // TODO(b/174824047): Should not emit info regarding unused keep rule.
     testMultipleNegatedWithStars(testForR8(parameters.getBackend()));
   }
 
@@ -210,13 +209,73 @@ public class NegatedKeepRulesTest extends TestBase {
             inspector -> {
               assertThat(inspector.clazz(A.class), isPresent());
               assertThat(inspector.clazz(B.class), not(isPresent()));
+              assertThat(inspector.clazz(C.class), not(isPresent()));
+              assertThat(inspector.clazz(D.class), isPresent());
+              assertThat(inspector.clazz(FooBar.class), isPresent());
+              assertThat(inspector.clazz(BarBar.class), isPresent());
+            });
+  }
+
+  @Test
+  public void testFooBarR8Compat() throws Exception {
+    testFooBar(testForR8Compat(parameters.getBackend()));
+  }
+
+  @Test
+  public void testFooBarR8Full() throws Exception {
+    testFooBar(testForR8(parameters.getBackend()));
+  }
+
+  @Test
+  public void testFooBarProguard() throws Exception {
+    testFooBar(testForProguard(ProguardVersion.V7_0_0).addKeepRules("-dontwarn"));
+  }
+
+  public void testFooBar(TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
+    run(testBuilder.addKeepRules("-keep class !" + FooBar.class.getTypeName() + ", **Bar { *; }"))
+        .inspect(
+            inspector -> {
+              assertThat(inspector.clazz(BarBar.class), isPresent());
+              assertThat(inspector.clazz(FooBar.class), not(isPresent()));
+              assertThat(inspector.clazz(A.class), not(isPresent()));
+              assertThat(inspector.clazz(B.class), not(isPresent()));
+              assertThat(inspector.clazz(C.class), not(isPresent()));
+              assertThat(inspector.clazz(D.class), not(isPresent()));
+            });
+  }
+
+  @Test
+  public void testMultipleNegatedR8Compat() throws Exception {
+    testMultipleNegated(testForR8Compat(parameters.getBackend()));
+  }
+
+  @Test
+  public void testMultipleNegatedR8Full() throws Exception {
+    testMultipleNegated(testForR8(parameters.getBackend()));
+  }
+
+  @Test
+  public void testMultipleNegatedProguard() throws Exception {
+    testMultipleNegated(testForProguard(ProguardVersion.V7_0_0).addKeepRules("-dontwarn"));
+  }
+
+  public void testMultipleNegated(TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
+    run(testBuilder.addKeepRules("-keep class !" + FooBar.class.getTypeName() + ", !**Bar { *; }"))
+        .inspect(
+            inspector -> {
+              assertThat(inspector.clazz(BarBar.class), not(isPresent()));
+              assertThat(inspector.clazz(FooBar.class), not(isPresent()));
+              assertThat(inspector.clazz(A.class), isPresent());
+              assertThat(inspector.clazz(B.class), isPresent());
+              assertThat(inspector.clazz(C.class), isPresent());
+              assertThat(inspector.clazz(D.class), isPresent());
             });
   }
 
   private TestCompileResult<?, ?> run(TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder)
       throws Exception {
     return testBuilder
-        .addProgramClasses(A.class, B.class, C.class)
+        .addProgramClasses(A.class, B.class, C.class, D.class, FooBar.class, BarBar.class)
         .setMinApi(AndroidApiLevel.B)
         .noMinification()
         .compile();
@@ -224,12 +283,13 @@ public class NegatedKeepRulesTest extends TestBase {
 
   public static class A {}
 
-  public static class B extends A {
-
-    public static String test() {
-      return "Hello World!";
-    }
-  }
+  public static class B extends A {}
 
   public static class C {}
+
+  public static class D extends A {}
+
+  public static class FooBar {}
+
+  public static class BarBar {}
 }

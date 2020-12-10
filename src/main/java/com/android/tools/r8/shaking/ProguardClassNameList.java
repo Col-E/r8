@@ -332,13 +332,15 @@ public abstract class ProguardClassNameList {
 
     @Override
     public boolean matches(DexType type) {
+      boolean lastWasNegated = false;
       for (Entry<ProguardTypeMatcher> className : classNames.object2BooleanEntrySet()) {
         if (className.getKey().matches(type)) {
           // If we match a negation, abort as non-match. If we match a positive, return true.
           return !className.getBooleanValue();
         }
+        lastWasNegated = className.getBooleanValue();
       }
-      return false;
+      return lastWasNegated;
     }
 
     @Override
