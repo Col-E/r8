@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.code.CfOrDexInstruction;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.util.ListIterator;
 
 public abstract class UseRegistry {
@@ -165,6 +166,14 @@ public abstract class UseRegistry {
   public void registerProto(DexProto proto) {
     registerTypeReference(proto.returnType);
     for (DexType type : proto.parameters.values) {
+      registerTypeReference(type);
+    }
+  }
+
+  public void registerDexItemBasedConstString(
+      DexType type, NameComputationInfo<?> nameComputationInfo) {
+    if (nameComputationInfo.needsToRegisterReference()) {
+      assert type != null;
       registerTypeReference(type);
     }
   }
