@@ -61,6 +61,7 @@ import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.FieldAccessorSourceCode;
+import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.kotlin.KotlinMethodLevelInfo;
@@ -1307,15 +1308,52 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return new ProgramMethod(holder, builder.build());
   }
 
+  public DexEncodedMethod toPrivateSyntheticMethod(DexMethod method) {
+    assert !accessFlags.isStatic();
+    assert !accessFlags.isPrivate();
+    assert getHolderType() == method.holder;
+    checkIfObsolete();
+    Builder builder = syntheticBuilder(this);
+    builder.setMethod(method);
+    builder.accessFlags.setSynthetic();
+    builder.accessFlags.unsetProtected();
+    builder.accessFlags.unsetPublic();
+    builder.accessFlags.setPrivate();
+    return builder.build();
+  }
+
+  public DexEncodedMethod toInvokeSpecialForwardingMethod(
+      DexClass holder,
+      DexMethod newMethod,
+      MethodAccessFlags initialAccessFlags,
+      DexItemFactory factory) {
+    // For invoke-special forwarding method, the forwarding method should keep the exact same
+    // flags as the initial method.
+    assert !accessFlags.isStatic();
+    assert holder.type == newMethod.holder;
+    assert getHolderType() == newMethod.holder;
+    Builder builder = builder(this);
+    builder.setMethod(newMethod);
+    CfCode forwardingCode =
+        ForwardMethodBuilder.builder(factory)
+            .setDirectTarget(method, holder.isInterface())
+            .setNonStaticSource(newMethod)
+            .build();
+    builder.setCode(forwardingCode);
+    builder.setAccessFlags(initialAccessFlags);
+    DexEncodedMethod forwardingMethod = builder.build();
+    assert forwardingMethod.accessFlags.equals(initialAccessFlags);
+    return forwardingMethod;
+  }
+
   public DexEncodedMethod toForwardingMethod(DexClass holder, DexDefinitionSupplier definitions) {
+    DexMethod newMethod = method.withHolder(holder.type, definitions.dexItemFactory());
     checkIfObsolete();
     // Clear the final flag, as this method is now overwritten. Do this before creating the builder
     // for the forwarding method, as the forwarding method will copy the access flags from this,
     // and if different forwarding methods are created in different subclasses the first could be
     // final.
     accessFlags.demoteFromFinal();
-    DexMethod newMethod = method.withHolder(holder.type, definitions.dexItemFactory());
-    Invoke.Type type = accessFlags.isStatic() ? Invoke.Type.STATIC : Invoke.Type.SUPER;
     Builder builder = syntheticBuilder(this);
     builder.setMethod(newMethod);
     if (accessFlags.isAbstract()) {
@@ -1328,10 +1366,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
           ForwardMethodSourceCode.builder(newMethod);
       forwardSourceCodeBuilder
-          .setReceiver(accessFlags.isStatic() ? null : holder.type)
+          .setReceiver(accessFlags.isStatic() ? null : newMethod.getHolderType())
           .setTargetReceiver(accessFlags.isStatic() ? null : method.holder)
           .setTarget(method)
-          .setInvokeType(type)
+          .setInvokeType(accessFlags.isStatic() ? Invoke.Type.STATIC : Invoke.Type.SUPER)
           .setIsInterface(target.isInterface());
       builder.setCode(
           new SynthesizedCode(
@@ -1516,7 +1554,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public static class Builder {
 
     private DexMethod method;
-    private final MethodAccessFlags accessFlags;
+    private MethodAccessFlags accessFlags;
     private final MethodTypeSignature genericSignature;
     private final DexAnnotationSet annotations;
     private OptionalBool isLibraryMethodOverride = OptionalBool.UNKNOWN;
@@ -1553,6 +1591,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         parameterAnnotations =
             from.parameterAnnotationsList.withParameterCount(method.proto.parameters.size());
       }
+    }
+
+    public void setAccessFlags(MethodAccessFlags accessFlags) {
+      this.accessFlags = accessFlags.copy();
     }
 
     public void setMethod(DexMethod method) {

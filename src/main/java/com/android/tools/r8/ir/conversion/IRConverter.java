@@ -463,6 +463,13 @@ public class IRConverter {
     }
   }
 
+  private void synthesizeInvokeSpecialBridges(ExecutorService executorService)
+      throws ExecutionException {
+    if (appView.getInvokeSpecialBridgeSynthesizer() != null) {
+      appView.getInvokeSpecialBridgeSynthesizer().insertBridges(this, executorService);
+    }
+  }
+
   private void synthesizeEnumUnboxingUtilityMethods(ExecutorService executorService)
       throws ExecutionException {
     if (enumUnboxer != null) {
@@ -521,7 +528,7 @@ public class IRConverter {
     synthesizeTwrCloseResourceUtilityClass(builder, executor);
     processSynthesizedJava8UtilityClasses(executor);
     synthesizeRetargetClass(builder, executor);
-
+    synthesizeInvokeSpecialBridges(executor);
     processCovariantReturnTypeAnnotations(builder);
     generateDesugaredLibraryAPIWrappers(builder, executor);
 

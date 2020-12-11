@@ -47,20 +47,15 @@ public class InvokeSpecialToVirtualMethodTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED);
   }
 
-
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addProgramClasses(Base.class, Bar.class, TestClass.class)
         .addProgramClassFileData(getFooTransform())
         .setMinApi(parameters.getApiLevel())
-        .compileWithExpectedDiagnostics(
-            diagnostics ->
-                diagnostics
-                    .assertOnlyErrors()
-                    .assertErrorsMatch(
-                        diagnosticMessage(containsString("unsupported use of invokespecial"))));
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test(expected = CompilationFailedException.class)

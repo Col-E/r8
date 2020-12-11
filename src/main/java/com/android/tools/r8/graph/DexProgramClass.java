@@ -588,6 +588,11 @@ public class DexProgramClass extends DexClass
     methodCollection.addDirectMethod(directMethod);
   }
 
+  public void replaceVirtualMethod(
+      DexMethod virtualMethod, Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    methodCollection.replaceVirtualMethod(virtualMethod, replacement);
+  }
+
   public void replaceInterfaces(List<ClassTypeSignature> newInterfaces) {
     if (newInterfaces.isEmpty()) {
       return;

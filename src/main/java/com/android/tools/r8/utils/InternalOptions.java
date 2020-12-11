@@ -508,6 +508,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableLambdaMerging = false;
   // Flag to turn on/off desugaring in D8/R8.
   public DesugarState desugarState = DesugarState.ON;
+  // Flag to turn on/off desugaring of invoke-special to a virtual method on the current class.
+  public boolean enableInvokeSpecialToVirtualMethodDesugaring = true;
   // Flag to turn on/off JDK11+ nest-access control
   public boolean enableNestBasedAccessDesugaring = true;
   // Flag to turn on/off reduction of nest to improve class merging optimizations.

@@ -5,7 +5,6 @@ package com.android.tools.r8.jasmin;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.google.common.collect.ImmutableList;
 import org.junit.Rule;
 import org.junit.Test;
@@ -71,10 +70,6 @@ public class InvokeSpecialTests extends JasminTestBase {
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
 
-    thrown.expect(CompilationFailedException.class);
-
-    // TODO(b/110175213): This will fail with a compilation exception since we cannot translate
-    //  an invoke-special to a member on the same class.
     String artResult = runOnArtD8(builder, clazz.name);
     assertEquals(expected, artResult);
   }

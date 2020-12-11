@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.conversion.MethodProcessingId;
+import com.android.tools.r8.ir.desugar.InvokeSpecialBridgeSynthesizer;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
@@ -67,8 +68,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       new InstanceFieldInitializationInfoFactory();
   private final MethodProcessingId.Factory methodProcessingIdFactory;
 
-  // Desugared library prefix rewriter.
+  // Desugaring.
   public final PrefixRewritingMapper rewritePrefix;
+  private final InvokeSpecialBridgeSynthesizer invokeSpecialBridgeSynthesizer;
 
   // Modeling.
   private final LibraryMethodSideEffectModelCollection libraryMethodSideEffectModelCollection;
@@ -108,6 +110,12 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.methodProcessingIdFactory =
         new MethodProcessingId.Factory(options().testing.methodProcessingIdConsumer);
     this.rewritePrefix = mapper;
+    this.invokeSpecialBridgeSynthesizer =
+        // TODO(b/110175213): Enable in R8.
+        options().enableInvokeSpecialToVirtualMethodDesugaring
+                && wholeProgramOptimizations == WholeProgramOptimizations.OFF
+            ? new InvokeSpecialBridgeSynthesizer(this)
+            : null;
 
     if (enableWholeProgramOptimizations() && options().callSiteOptimizationOptions().isEnabled()) {
       this.callSiteOptimizationInfoPropagator =
@@ -292,6 +300,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public CallSiteOptimizationInfoPropagator callSiteOptimizationInfoPropagator() {
     return callSiteOptimizationInfoPropagator;
+  }
+
+  public InvokeSpecialBridgeSynthesizer getInvokeSpecialBridgeSynthesizer() {
+    return invokeSpecialBridgeSynthesizer;
   }
 
   public LibraryMemberOptimizer libraryMethodOptimizer() {

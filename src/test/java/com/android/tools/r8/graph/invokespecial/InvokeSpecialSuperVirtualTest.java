@@ -16,7 +16,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -40,30 +39,12 @@ public class InvokeSpecialSuperVirtualTest extends TestBase {
   }
 
   @Test
-  public void testJVM() throws Exception {
-    Assume.assumeTrue(parameters.isCfRuntime());
-    testForJvm()
+  public void testRuntime() throws Exception {
+    testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
         .addProgramClasses(A.class, C.class, Main.class)
         .addProgramClassFileData(getClassBWithTransformedInvoked())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
-  }
-
-  @Test(expected = CompilationFailedException.class)
-  public void testD8() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
-    testForD8()
-        .addProgramClasses(A.class, C.class, Main.class)
-        .addProgramClassFileData(getClassBWithTransformedInvoked())
-        .setMinApi(parameters.getApiLevel())
-        // TODO(b/110175213): Should succeed with the expected result.
-        .compileWithExpectedDiagnostics(
-            diagnostics ->
-                diagnostics
-                    .assertOnlyErrors()
-                    .assertErrorsMatch(
-                        diagnosticMessage(
-                            containsString("Failed to compile unsupported use of invokespecial"))));
   }
 
   @Test(expected = CompilationFailedException.class)

@@ -35,19 +35,11 @@ public class InvokeSpecialOnSameClassTest extends TestBase {
 
   @Test
   public void testRuntime() throws Exception {
-    try {
-      testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-          .addProgramClasses(Main.class)
-          .addProgramClassFileData(getClassWithTransformedInvoked())
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutputLines("Hello World!");
-      // TODO(b/110175213): Remove when fixed.
-      assertTrue(parameters.isCfRuntime());
-    } catch (CompilationFailedException compilation) {
-      assertThat(
-          compilation.getCause().getMessage(),
-          containsString("Failed to compile unsupported use of invokespecial"));
-    }
+    testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
+        .addProgramClasses(Main.class)
+        .addProgramClassFileData(getClassWithTransformedInvoked())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("Hello World!");
   }
 
   @Test

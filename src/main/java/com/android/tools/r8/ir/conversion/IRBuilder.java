@@ -490,6 +490,10 @@ public class IRBuilder {
     return method.getDefinition();
   }
 
+  public ProgramMethod getProgramMethod() {
+    return method;
+  }
+
   public RewrittenPrototypeDescription getPrototypeChanges() {
     return prototypeChanges;
   }
