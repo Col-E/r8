@@ -5,7 +5,6 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCompareHelper;
@@ -409,19 +408,17 @@ public class CfInvoke extends CfInstruction {
     if (this.itf && encodedMethod.isDefaultMethod()) {
       return new MethodAndInvokeType(method, desugaringEnabled ? Type.DIRECT : Type.SUPER);
     }
-    if (appView.getInvokeSpecialBridgeSynthesizer() != null) {
-      assert encodedMethod.isNonPrivateVirtualMethod();
-      assert context.getHolderType() == method.holder;
-      // This is an invoke-special to a virtual method on invoke-special method holder.
-      // The invoke should be rewritten with a bridge.
-      DexMethod directMethod =
-          appView.getInvokeSpecialBridgeSynthesizer().registerBridgeForMethod(encodedMethod);
-      return new MethodAndInvokeType(directMethod, Type.DIRECT);
-    }
-    // We cannot emulate the semantics of invoke-special in this case and should throw a compilation
-    // error.
-    throw new CompilationError(
-        "Failed to compile unsupported use of invokespecial", code.getOrigin());
+    assert encodedMethod.isNonPrivateVirtualMethod();
+    assert context.getHolderType() == method.holder;
+    // This is an invoke-special to a virtual method on invoke-special method holder.
+    // The invoke should be rewritten with a bridge.
+    DexMethod directMethod =
+        appView.getInvokeSpecialBridgeSynthesizer().registerBridgeForMethod(encodedMethod);
+    // In R8 the target should have been inserted in the enqueuer,
+    // while in D8, the target is inserted at the end of the compilation.
+    assert appView.enableWholeProgramOptimizations()
+        == (context.getHolder().lookupDirectMethod(directMethod) != null);
+    return new MethodAndInvokeType(directMethod, Type.DIRECT);
   }
 
   private DexEncodedMethod lookupMethodOnHolder(AppView<?> appView, DexMethod method) {

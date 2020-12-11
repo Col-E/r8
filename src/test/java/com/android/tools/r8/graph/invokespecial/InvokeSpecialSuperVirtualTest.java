@@ -4,13 +4,10 @@
 
 package com.android.tools.r8.graph.invokespecial;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromJavaType;
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -47,21 +44,15 @@ public class InvokeSpecialSuperVirtualTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, C.class, Main.class)
         .addProgramClassFileData(getClassBWithTransformedInvoked())
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
-        // TODO(b/110175213): Should succeed with the expected result.
-        .compileWithExpectedDiagnostics(
-            diagnostics ->
-                diagnostics
-                    .assertOnlyErrors()
-                    .assertErrorsMatch(
-                        diagnosticMessage(
-                            containsString("Failed to compile unsupported use of invokespecial"))));
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   private byte[] getClassBWithTransformedInvoked() throws IOException {

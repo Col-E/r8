@@ -3,13 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph.invokespecial;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromJavaType;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -58,19 +56,15 @@ public class InvokeSpecialToVirtualMethodTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED);
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(Base.class, Bar.class, TestClass.class)
         .addProgramClassFileData(getFooTransform())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClass.class)
-        .compileWithExpectedDiagnostics(
-            diagnostics ->
-                diagnostics
-                    .assertOnlyErrors()
-                    .assertErrorsMatch(
-                        diagnosticMessage(containsString("unsupported use of invokespecial"))));
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test

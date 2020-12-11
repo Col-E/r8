@@ -116,6 +116,7 @@ import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramFieldSet;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -2927,6 +2928,8 @@ public class Enqueuer {
       registerAnalysis(new GenericSignatureEnqueuerAnalysis(enqueuerDefinitionSupplier));
     }
     if (mode.isInitialTreeShaking()) {
+      registerInvokeAnalysis(
+          appView.getInvokeSpecialBridgeSynthesizer().getEnqueuerInvokeAnalysis());
       // This is simulating the effect of the "root set" applied rules.
       // This is done only in the initial pass, in subsequent passes the "rules" are reapplied
       // by iterating the instances.
@@ -3144,6 +3147,7 @@ public class Enqueuer {
     // In particular these additions are order independent, i.e., it does not matter which are
     // registered first and no dependencies may exist among them.
     SyntheticAdditions additions = new SyntheticAdditions();
+    synthesizeInvokeSpecialBridges(additions);
     synthesizeInterfaceMethodBridges(additions);
     synthesizeLambdas(additions);
     synthesizeLibraryConversionWrappers(additions);
@@ -3167,6 +3171,12 @@ public class Enqueuer {
     // Finally once all synthesized items "exist" it is now safe to continue tracing. The new work
     // items are enqueued and the fixed point will continue once this subroutine returns.
     additions.enqueueWorkItems(this);
+  }
+
+  private void synthesizeInvokeSpecialBridges(SyntheticAdditions additions) {
+    SortedProgramMethodSet bridges =
+        appView.getInvokeSpecialBridgeSynthesizer().insertBridgesForR8();
+    bridges.forEach(additions::addLiveMethod);
   }
 
   private void synthesizeInterfaceMethodBridges(SyntheticAdditions additions) {

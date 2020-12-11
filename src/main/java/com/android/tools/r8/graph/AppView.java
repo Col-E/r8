@@ -110,12 +110,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.methodProcessingIdFactory =
         new MethodProcessingId.Factory(options().testing.methodProcessingIdConsumer);
     this.rewritePrefix = mapper;
-    this.invokeSpecialBridgeSynthesizer =
-        // TODO(b/110175213): Enable in R8.
-        options().enableInvokeSpecialToVirtualMethodDesugaring
-                && wholeProgramOptimizations == WholeProgramOptimizations.OFF
-            ? new InvokeSpecialBridgeSynthesizer(this)
-            : null;
+    this.invokeSpecialBridgeSynthesizer = new InvokeSpecialBridgeSynthesizer(this);
 
     if (enableWholeProgramOptimizations() && options().callSiteOptimizationOptions().isEnabled()) {
       this.callSiteOptimizationInfoPropagator =

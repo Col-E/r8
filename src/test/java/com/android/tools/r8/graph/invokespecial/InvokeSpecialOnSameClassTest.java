@@ -4,12 +4,8 @@
 
 package com.android.tools.r8.graph.invokespecial;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -44,7 +40,6 @@ public class InvokeSpecialOnSameClassTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    try {
       testForR8(parameters.getBackend())
           .addProgramClasses(Main.class)
           .addProgramClassFileData(getClassWithTransformedInvoked())
@@ -52,13 +47,6 @@ public class InvokeSpecialOnSameClassTest extends TestBase {
           .setMinApi(parameters.getApiLevel())
           .run(parameters.getRuntime(), Main.class)
           .assertSuccessWithOutputLines("Hello World!");
-      // TODO(b/110175213): Remove when fixed.
-      assertTrue(parameters.isCfRuntime());
-    } catch (CompilationFailedException compilation) {
-      assertThat(
-          compilation.getCause().getMessage(),
-          containsString("Failed to compile unsupported use of invokespecial"));
-    }
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {

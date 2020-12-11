@@ -465,9 +465,8 @@ public class IRConverter {
 
   private void synthesizeInvokeSpecialBridges(ExecutorService executorService)
       throws ExecutionException {
-    if (appView.getInvokeSpecialBridgeSynthesizer() != null) {
-      appView.getInvokeSpecialBridgeSynthesizer().insertBridges(this, executorService);
-    }
+    assert !appView.enableWholeProgramOptimizations();
+    appView.getInvokeSpecialBridgeSynthesizer().insertBridgesForD8(this, executorService);
   }
 
   private void synthesizeEnumUnboxingUtilityMethods(ExecutorService executorService)

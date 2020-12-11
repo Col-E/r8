@@ -61,7 +61,6 @@ import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.FieldAccessorSourceCode;
-import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.kotlin.KotlinMethodLevelInfo;
@@ -1320,30 +1319,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     builder.accessFlags.unsetPublic();
     builder.accessFlags.setPrivate();
     return builder.build();
-  }
-
-  public DexEncodedMethod toInvokeSpecialForwardingMethod(
-      DexClass holder,
-      DexMethod newMethod,
-      MethodAccessFlags initialAccessFlags,
-      DexItemFactory factory) {
-    // For invoke-special forwarding method, the forwarding method should keep the exact same
-    // flags as the initial method.
-    assert !accessFlags.isStatic();
-    assert holder.type == newMethod.holder;
-    assert getHolderType() == newMethod.holder;
-    Builder builder = builder(this);
-    builder.setMethod(newMethod);
-    CfCode forwardingCode =
-        ForwardMethodBuilder.builder(factory)
-            .setDirectTarget(method, holder.isInterface())
-            .setNonStaticSource(newMethod)
-            .build();
-    builder.setCode(forwardingCode);
-    builder.setAccessFlags(initialAccessFlags);
-    DexEncodedMethod forwardingMethod = builder.build();
-    assert forwardingMethod.accessFlags.equals(initialAccessFlags);
-    return forwardingMethod;
   }
 
   public DexEncodedMethod toForwardingMethod(DexClass holder, DexDefinitionSupplier definitions) {
