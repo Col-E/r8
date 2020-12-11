@@ -24,7 +24,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.SuccessfulMemberResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.function.Consumer;
@@ -257,13 +256,5 @@ public class RepackagingUseRegistry extends UseRegistry {
     // that we don't split such classes into different packages.
     innerClassAttribute.forEachType(
         type -> registerTypeAccess(type, clazz -> registerClassTypeAccess(clazz, alwaysTrue())));
-  }
-
-  @Override
-  public void registerDexItemBasedConstString(
-      DexType type, NameComputationInfo<?> nameComputationInfo) {
-    if (type != null) {
-      registerTypeReference(type);
-    }
   }
 }

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.repackage;
 
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -50,9 +49,9 @@ public class RepackageWithStringIdentifier extends RepackageTestBase {
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(inspector -> assertThat(A.class, not(isRepackaged(inspector))))
+        .inspect(inspector -> assertThat(A.class, isRepackaged(inspector)))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .assertFailureWithErrorThatThrows(IllegalAccessException.class);
   }
 
   @NeverClassInline

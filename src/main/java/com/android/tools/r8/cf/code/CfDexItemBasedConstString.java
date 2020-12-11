@@ -94,7 +94,10 @@ public class CfDexItemBasedConstString extends CfInstruction {
   @Override
   void internalRegisterUse(
       UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
-    registry.registerDexItemBasedConstString(item.asDexType(), nameComputationInfo);
+    if (nameComputationInfo.needsToRegisterReference()) {
+      assert item.isDexType();
+      registry.registerTypeReference(item.asDexType());
+    }
   }
 
   @Override
