@@ -32,9 +32,7 @@ public class AmbiguousWithMultipleLineMappingsStackTrace implements StackTraceFo
     return Arrays.asList(
         "java.lang.IndexOutOfBoundsException",
         "\tat java.util.ArrayList.get(ArrayList.java:411)",
-        "\tat com.android.tools.r8.Internal.foo(Internal.java)",
-        "\t<OR> at com.android.tools.r8.Internal.foo(Internal.java)",
-        "\t<OR> at com.android.tools.r8.Internal.foo(Internal.java)");
+        "\tat com.android.tools.r8.Internal.foo(Internal.java)");
   }
 
   @Override

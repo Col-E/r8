@@ -34,4 +34,10 @@ public class Box<T> {
   public boolean isSet() {
     return value != null;
   }
+
+  public T getAndSet(T newValue) {
+    T oldValue = value;
+    value = newValue;
+    return oldValue;
+  }
 }

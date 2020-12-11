@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.retrace.internal;
 
+import static com.google.common.base.Predicates.not;
+
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.references.ClassReference;
@@ -24,6 +26,7 @@ import com.google.common.io.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public class RetraceUtils {
 
@@ -146,5 +149,22 @@ public class RetraceUtils {
         signature.isQualified() ? signature.toUnqualifiedName() : signature.name,
         formalTypes,
         returnType);
+  }
+
+  public static int firstNonWhiteSpaceCharacterFromIndex(String line, int index) {
+    return firstFromIndex(line, index, not(Character::isWhitespace));
+  }
+
+  public static int firstCharFromIndex(String line, int index, char ch) {
+    return firstFromIndex(line, index, c -> c == ch);
+  }
+
+  public static int firstFromIndex(String line, int index, Predicate<Character> predicate) {
+    for (int i = index; i < line.length(); i++) {
+      if (predicate.test(line.charAt(i))) {
+        return i;
+      }
+    }
+    return line.length();
   }
 }

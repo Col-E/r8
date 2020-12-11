@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import static com.android.tools.r8.retrace.internal.PlainStackTraceVisitor.firstNonWhiteSpaceCharacterFromIndex;
 import static com.android.tools.r8.retrace.internal.RetraceUtils.methodDescriptionFromRetraceMethod;
 import static com.android.tools.r8.retrace.internal.StackTraceElementStringProxy.StringIndex.noIndex;
 
@@ -136,16 +135,9 @@ public final class StackTraceElementStringProxy extends StackTraceElementProxy<S
   }
 
   public String toRetracedItem(
-      RetraceStackTraceProxy<StackTraceElementStringProxy> retracedProxy,
-      boolean printAmbiguous,
-      boolean verbose) {
+      RetraceStackTraceProxy<StackTraceElementStringProxy> retracedProxy, boolean verbose) {
     StringBuilder sb = new StringBuilder();
     int lastSeenIndex = 0;
-    if (retracedProxy.isAmbiguous() && printAmbiguous) {
-      lastSeenIndex = firstNonWhiteSpaceCharacterFromIndex(line, 0);
-      sb.append(line, 0, lastSeenIndex);
-      sb.append("<OR> ");
-    }
     for (StringIndex index : orderedIndices) {
       sb.append(line, lastSeenIndex, index.startIndex);
       sb.append(index.retracedString.apply(retracedProxy, this, verbose));

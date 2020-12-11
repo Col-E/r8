@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
+import static com.android.tools.r8.retrace.internal.RetraceUtils.firstNonWhiteSpaceCharacterFromIndex;
 import static com.android.tools.r8.utils.ExceptionUtils.STATUS_ERROR;
 import static com.android.tools.r8.utils.ExceptionUtils.failWithFakeEntry;
 
@@ -35,9 +36,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 /**
@@ -207,6 +210,7 @@ public class Retrace {
       boolean isVerbose) {
     List<String> retracedStrings = new ArrayList<>();
     Box<StackTraceElementStringProxy> lastReportedFrame = new Box<>();
+    Set<String> seenSetForLastReportedFrame = new HashSet<>();
     run(
         stackTraceVisitor,
         StackTraceElementProxyRetracer.createDefault(retracer),
@@ -214,10 +218,22 @@ public class Retrace {
           frames.forEach(
               frame -> {
                 StackTraceElementStringProxy originalItem = frame.getOriginalItem();
-                retracedStrings.add(
-                    originalItem.toRetracedItem(
-                        frame, lastReportedFrame.get() == stackTraceElement, isVerbose));
-                lastReportedFrame.set(stackTraceElement);
+                boolean newFrame =
+                    lastReportedFrame.getAndSet(stackTraceElement) != stackTraceElement;
+                if (newFrame) {
+                  seenSetForLastReportedFrame.clear();
+                }
+                String retracedString = originalItem.toRetracedItem(frame, isVerbose);
+                if (seenSetForLastReportedFrame.add(retracedString)) {
+                  if (frame.isAmbiguous() && !newFrame) {
+                    int firstCharIndex = firstNonWhiteSpaceCharacterFromIndex(retracedString, 0);
+                    retracedString =
+                        retracedString.substring(0, firstCharIndex)
+                            + "<OR> "
+                            + retracedString.substring(firstCharIndex);
+                  }
+                  retracedStrings.add(retracedString);
+                }
               });
         });
     return retracedStrings;
