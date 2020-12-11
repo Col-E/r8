@@ -63,15 +63,20 @@ public class ProguardMapReader implements AutoCloseable {
   private final BufferedReader reader;
   private final JsonParser jsonParser = new JsonParser();
   private final DiagnosticsHandler diagnosticsHandler;
+  private final boolean allowEmptyMappedRanges;
 
   @Override
   public void close() throws IOException {
     reader.close();
   }
 
-  ProguardMapReader(BufferedReader reader, DiagnosticsHandler diagnosticsHandler) {
+  ProguardMapReader(
+      BufferedReader reader,
+      DiagnosticsHandler diagnosticsHandler,
+      boolean allowEmptyMappedRanges) {
     this.reader = reader;
     this.diagnosticsHandler = diagnosticsHandler;
+    this.allowEmptyMappedRanges = allowEmptyMappedRanges;
     assert reader != null;
     assert diagnosticsHandler != null;
   }
@@ -293,7 +298,7 @@ public class ProguardMapReader implements AutoCloseable {
           throw new ParseException("No number follows the colon after the method signature.");
         }
       }
-      if (mappedRange == null && originalRange != null) {
+      if (!allowEmptyMappedRanges && mappedRange == null && originalRange != null) {
         throw new ParseException("No mapping for original range " + originalRange + ".");
       }
 

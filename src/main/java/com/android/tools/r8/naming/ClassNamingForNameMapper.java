@@ -458,7 +458,6 @@ public class ClassNamingForNameMapper implements ClassNaming {
     private MappedRange(
         Range minifiedRange, MethodSignature signature, Object originalRange, String renamedName) {
 
-      assert minifiedRange != null || originalRange == null;
       assert originalRange == null
           || originalRange instanceof Integer
           || originalRange instanceof Range;
@@ -510,7 +509,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
         builder.append(minifiedRange).append(':');
       }
       builder.append(signature);
-      if (originalRange != null && !minifiedRange.equals(originalRange)) {
+      if (originalRange != null && !originalRange.equals(minifiedRange)) {
         builder.append(":").append(originalRange);
       }
       builder.append(" -> ").append(renamedName);

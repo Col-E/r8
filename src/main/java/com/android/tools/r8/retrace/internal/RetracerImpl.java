@@ -32,7 +32,7 @@ public class RetracerImpl implements Retracer {
     }
     try {
       ClassNameMapper classNameMapper =
-          ClassNameMapper.mapperFromString(proguardMapProducer.get(), diagnosticsHandler);
+          ClassNameMapper.mapperFromString(proguardMapProducer.get(), diagnosticsHandler, true);
       return new RetracerImpl(classNameMapper);
     } catch (Throwable throwable) {
       throw new InvalidMappingFileException(throwable);

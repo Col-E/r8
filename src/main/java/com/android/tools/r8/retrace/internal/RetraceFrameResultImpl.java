@@ -124,9 +124,12 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
 
   private RetracedMethodImpl getRetracedMethod(
       MethodReference methodReference, MappedRange mappedRange, int obfuscatedPosition) {
-    if (obfuscatedPosition == -1
-        || mappedRange.minifiedRange == null
-        || !mappedRange.minifiedRange.contains(obfuscatedPosition)) {
+    if (mappedRange.minifiedRange == null) {
+      int originalLineNumber = mappedRange.getFirstLineNumberOfOriginalRange();
+      return RetracedMethodImpl.create(
+          methodReference, originalLineNumber > 0 ? originalLineNumber : obfuscatedPosition);
+    }
+    if (obfuscatedPosition == -1 || !mappedRange.minifiedRange.contains(obfuscatedPosition)) {
       return RetracedMethodImpl.create(methodReference);
     }
     return RetracedMethodImpl.create(

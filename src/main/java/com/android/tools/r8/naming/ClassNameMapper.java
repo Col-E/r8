@@ -98,11 +98,26 @@ public class ClassNameMapper implements ProguardMap {
         CharSource.wrap(contents).openBufferedStream(), diagnosticsHandler);
   }
 
+  public static ClassNameMapper mapperFromString(
+      String contents, DiagnosticsHandler diagnosticsHandler, boolean allowEmptyMappedRanges)
+      throws IOException {
+    return mapperFromBufferedReader(
+        CharSource.wrap(contents).openBufferedStream(), diagnosticsHandler, allowEmptyMappedRanges);
+  }
+
   private static ClassNameMapper mapperFromBufferedReader(
       BufferedReader reader, DiagnosticsHandler diagnosticsHandler) throws IOException {
+    return mapperFromBufferedReader(reader, diagnosticsHandler, false);
+  }
+
+  private static ClassNameMapper mapperFromBufferedReader(
+      BufferedReader reader, DiagnosticsHandler diagnosticsHandler, boolean allowEmptyMappedRanges)
+      throws IOException {
     try (ProguardMapReader proguardReader =
         new ProguardMapReader(
-            reader, diagnosticsHandler != null ? diagnosticsHandler : new Reporter())) {
+            reader,
+            diagnosticsHandler != null ? diagnosticsHandler : new Reporter(),
+            allowEmptyMappedRanges)) {
       ClassNameMapper.Builder builder = ClassNameMapper.builder();
       proguardReader.parse(builder);
       return builder.build();

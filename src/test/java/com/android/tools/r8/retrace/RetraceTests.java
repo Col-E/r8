@@ -34,6 +34,7 @@ import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MemberFieldOverlapStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MultipleDotsInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NamedModuleStackTrace;
+import com.android.tools.r8.retrace.stacktraces.NoObfuscationRangeMappingWithStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NullStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ObfucatedExceptionClassStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ObfuscatedRangeToSingleLineStackTrace;
@@ -91,6 +92,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInlineFileNameWithInnerClassesStackTrace() {
     runRetraceTest(new InlineFileNameWithInnerClassesStackTrace());
+  }
+
+  @Test
+  public void testNoObfuscationRangeMappingWithStackTrace() {
+    runRetraceTest(new NoObfuscationRangeMappingWithStackTrace());
   }
 
   @Test
