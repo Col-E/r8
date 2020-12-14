@@ -166,7 +166,8 @@ public class RetraceRegularExpression implements StackTraceVisitor<StackTraceEle
     }
   }
 
-  private static final String anyLetterWithMarkers = "\\p{L}\\p{M}*+";
+  private static final String anyNonDigitLetterCharWithMarkers = "\\p{L}\\p{M}*+";
+  private static final String anyDigit = "\\p{N}";
 
   // TODO(b/145731185): Extend support for identifiers with strings inside back ticks.
   private static final String javaIdentifierSegment =
@@ -275,7 +276,10 @@ public class RetraceRegularExpression implements StackTraceVisitor<StackTraceEle
 
     @Override
     String subExpression() {
-      return "(?:([" + anyLetterWithMarkers + "_: \\.]*[" + anyLetterWithMarkers + "_\\.])?)";
+      String anyNonDigitSourceFileChar = anyNonDigitLetterCharWithMarkers + "_ \\.";
+      String anyChar = anyNonDigitSourceFileChar + anyDigit;
+      String colonWithNonDigitSuffix = ":[" + anyNonDigitSourceFileChar + ":" + "]";
+      return "((?:(?:(?:" + colonWithNonDigitSuffix + "))|(?:[" + anyChar + "]))+)?";
     }
 
     @Override
