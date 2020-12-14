@@ -122,17 +122,17 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
     }
 
     void fixupField(DexField oldFieldSignature, DexField newFieldSignature) {
+      DexField representative = fieldMap.removeRepresentativeFor(oldFieldSignature);
       Set<DexField> originalFieldSignatures = fieldMap.removeValue(oldFieldSignature);
       if (originalFieldSignatures.isEmpty()) {
         fieldMap.put(oldFieldSignature, newFieldSignature);
       } else if (originalFieldSignatures.size() == 1) {
         fieldMap.put(originalFieldSignatures.iterator().next(), newFieldSignature);
       } else {
+        assert representative != null;
         for (DexField originalFieldSignature : originalFieldSignatures) {
           fieldMap.put(originalFieldSignature, newFieldSignature);
         }
-        DexField representative = fieldMap.removeRepresentativeFor(oldFieldSignature);
-        assert representative != null;
         fieldMap.setRepresentative(newFieldSignature, representative);
       }
     }
