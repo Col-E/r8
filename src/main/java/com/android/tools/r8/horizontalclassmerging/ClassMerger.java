@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -27,6 +28,7 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
@@ -277,7 +279,8 @@ public class ClassMerger {
 
     private Builder setup() {
       DexItemFactory dexItemFactory = appView.dexItemFactory();
-      DexProgramClass target = group.iterator().next();
+      DexProgramClass target =
+          IterableUtils.findOrDefault(group, DexClass::isPublic, group.iterator().next());
       // TODO(b/165498187): ensure the name for the field is fresh
       group.setClassIdField(
           dexItemFactory.createField(

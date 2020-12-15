@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.horizontalclassmerging.policies.AllInstantiatedOrUninstantiated;
 import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.DontInlinePolicy;
-import com.android.tools.r8.horizontalclassmerging.policies.DontMergeIntoLessVisible;
 import com.android.tools.r8.horizontalclassmerging.policies.DontMergeSynchronizedClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.IgnoreSynthetics;
 import com.android.tools.r8.horizontalclassmerging.policies.LimitGroups;
@@ -133,12 +132,7 @@ public class HorizontalClassMerger {
         new SameFeatureSplit(appView),
         new RespectPackageBoundaries(appView),
         new DontMergeSynchronizedClasses(appView),
-        new LimitGroups(appView),
-        // TODO(b/166577694): no policies should be run after this policy, as it would
-        // potentially break tests
-        new DontMergeIntoLessVisible()
-        // TODO: add policies
-        );
+        new LimitGroups(appView));
   }
 
   /**
