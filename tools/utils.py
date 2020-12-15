@@ -316,9 +316,9 @@ def file_exists_on_cloud_storage(destination):
   PrintCmd(cmd)
   return subprocess.call(cmd) == 0
 
-def download_file_from_cloud_storage(source, destination):
+def download_file_from_cloud_storage(source, destination, quiet=False):
   cmd = ['gsutil.py', 'cp', source, destination]
-  PrintCmd(cmd)
+  PrintCmd(cmd, quiet=quiet)
   subprocess.check_call(cmd)
 
 def create_archive(name, sources=None):

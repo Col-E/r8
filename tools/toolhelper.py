@@ -14,7 +14,7 @@ import utils
 def run(tool, args, build=None, debug=True,
         profile=False, track_memory_file=None, extra_args=None,
         stderr=None, stdout=None, return_stdout=False, timeout=0, quiet=False,
-        cmd_prefix=None):
+        cmd_prefix=None, jar=None, main=None):
   cmd = []
   if cmd_prefix:
     cmd.extend(cmd_prefix)
@@ -31,7 +31,9 @@ def run(tool, args, build=None, debug=True,
     cmd.append('-ea')
   if profile:
     cmd.append('-agentlib:hprof=cpu=samples,interval=1,depth=8')
-  if tool == 'r8lib-d8':
+  if jar:
+    cmd.extend(['-cp', jar, main])
+  elif tool == 'r8lib-d8':
     cmd.extend(['-cp', utils.R8LIB_JAR, 'com.android.tools.r8.D8'])
   elif tool == 'r8lib-r8':
     cmd.extend(['-cp', utils.R8LIB_JAR, 'com.android.tools.r8.R8'])

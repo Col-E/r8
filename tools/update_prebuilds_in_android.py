@@ -70,20 +70,21 @@ def copy_jar_targets(root, target_root, jar_targets, maps):
 def copy_other_targets(root, target_root):
   copy_targets(root, target_root, OTHER_TARGETS, OTHER_TARGETS)
 
-def download_hash(root, commit_hash, target):
-  download_target(root, target, commit_hash, True)
+def download_hash(root, commit_hash, target, quiet=False):
+  download_target(root, target, commit_hash, True, quiet=quiet)
 
 def download_version(root, version, target):
   download_target(root, target, version, False)
 
-def download_target(root, target, hash_or_version, is_hash):
+def download_target(root, target, hash_or_version, is_hash, quiet=False):
   download_path = os.path.join(root, target)
   url = archive.GetUploadDestination(
     hash_or_version,
     target,
     is_hash)
-  print 'Downloading: ' + url + ' -> ' + download_path
-  utils.download_file_from_cloud_storage(url, download_path)
+  if not quiet:
+    print 'Downloading: ' + url + ' -> ' + download_path
+  utils.download_file_from_cloud_storage(url, download_path, quiet=quiet)
 
 def main_download(hash, maps, targets, target_root, version):
   jar_targets = JAR_TARGETS_MAP[targets]

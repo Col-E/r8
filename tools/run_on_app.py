@@ -11,12 +11,15 @@ import os
 import sys
 import time
 
+import archive
+import as_utils
 import gmail_data
 import gmscore_data
 import golem
 import nest_data
 from sanitize_libraries import SanitizeLibraries, SanitizeLibrariesInPgconf
 import toolhelper
+import update_prebuilds_in_android
 import utils
 import youtube_data
 import chrome_data
@@ -49,6 +52,8 @@ def ParseOptions(argv):
                     help='Compiler build to use',
                     choices=COMPILER_BUILDS,
                     default='lib')
+  result.add_option('--hash',
+                    help='The version of D8/R8 to use')
   result.add_option('--app',
                     help='What app to run on',
                     choices=APPS)
@@ -186,8 +191,12 @@ def ParseOptions(argv):
                     help='Disable compiler logging',
                     default=False,
                     action='store_true')
-
-  return result.parse_args(argv)
+  (options, args) = result.parse_args(argv)
+  assert not options.hash or options.no_build, (
+      'Argument --no-build is required when using --hash')
+  assert not options.hash or options.compiler_build == 'full', (
+      'Compiler build lib not yet supported with --hash')
+  return (options, args)
 
 # Most apps have -printmapping, -printseeds, -printusage and
 # -printconfiguration in the Proguard configuration. However we don't
@@ -556,6 +565,16 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
       and not os.path.exists(outdir):
     os.makedirs(outdir)
 
+  if options.hash:
+    # Download r8-<hash>.jar from
+    # https://storage.googleapis.com/r8-releases/raw/<hash>/.
+    download_path = archive.GetUploadDestination(options.hash, 'r8.jar', True)
+    assert utils.file_exists_on_cloud_storage(download_path), (
+        'Could not find r8.jar file from provided hash: %s' % options.hash)
+    destination = os.path.join(utils.LIBS, 'r8-' + options.hash + '.jar')
+    utils.download_file_from_cloud_storage(
+        download_path, destination, quiet=quiet)
+
   # Additional flags for the compiler from the configuration file.
   if 'flags' in values:
     args.extend(values['flags'].split(' '))
@@ -601,11 +620,16 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
       build = not options.no_build and not options.golem
       stderr_path = os.path.join(temp, 'stderr')
       with open(stderr_path, 'w') as stderr:
+        jar = None
+        main = None
         if options.compiler_build == 'full':
           tool = options.compiler
         else:
           assert(options.compiler_build == 'lib')
           tool = 'r8lib-' + options.compiler
+        if options.hash:
+          jar = os.path.join(utils.LIBS, 'r8-' + options.hash + '.jar')
+          main = 'com.android.tools.r8.' + options.compiler.upper()
         exit_code = toolhelper.run(tool, args,
             build=build,
             debug=not options.no_debug,
@@ -617,7 +641,9 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
             timeout=options.timeout,
             quiet=quiet,
             cmd_prefix=[
-                'taskset', '-c', options.cpu_list] if options.cpu_list else [])
+                'taskset', '-c', options.cpu_list] if options.cpu_list else [],
+            jar=jar,
+            main=main)
       if exit_code != 0:
         with open(stderr_path) as stderr:
           stderr_text = stderr.read()
