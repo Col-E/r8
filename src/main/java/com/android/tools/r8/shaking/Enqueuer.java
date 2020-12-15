@@ -261,13 +261,10 @@ public class Enqueuer {
   private final Set<DexProgramClass> deadProtoTypeCandidates = Sets.newIdentityHashSet();
 
   /** Set of missing types. */
-  private final Set<DexType> missingTypes = Sets.newIdentityHashSet();
+  private final MissingClasses.Builder missingClassesBuilder;
 
   /** Set of proto types that were found to be dead during the first round of tree shaking. */
   private Set<DexType> initialDeadProtoTypes = Sets.newIdentityHashSet();
-
-  /** Set of types that were found to be missing during the first round of tree shaking. */
-  private Set<DexType> initialMissingTypes;
 
   /** Set of types that was pruned during the first round of tree shaking. */
   private Set<DexType> initialPrunedTypes;
@@ -372,6 +369,7 @@ public class Enqueuer {
 
   Enqueuer(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      MissingClasses missingClasses,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer,
       Mode mode) {
@@ -382,6 +380,7 @@ public class Enqueuer {
     this.subtypingInfo = subtypingInfo;
     this.forceProguardCompatibility = options.forceProguardCompatibility;
     this.graphReporter = new GraphReporter(appView, keptGraphConsumer);
+    this.missingClassesBuilder = missingClasses.builder();
     this.mode = mode;
     this.options = options;
     this.useRegistryFactory = createUseRegistryFactory();
@@ -476,11 +475,6 @@ public class Enqueuer {
   public void setInitialDeadProtoTypes(Set<DexType> initialDeadProtoTypes) {
     assert mode.isFinalTreeShaking();
     this.initialDeadProtoTypes = initialDeadProtoTypes;
-  }
-
-  public void setInitialMissingTypes(Set<DexType> initialMissingTypes) {
-    assert mode.isFinalTreeShaking();
-    this.initialMissingTypes = initialMissingTypes;
   }
 
   public void setInitialPrunedTypes(Set<DexType> initialPrunedTypes) {
@@ -2134,14 +2128,13 @@ public class Enqueuer {
 
   private void reportMissingClass(DexType clazz) {
     assert !mode.isFinalTreeShaking()
+            || missingClassesBuilder.wasAlreadyMissing(clazz)
             || appView.dexItemFactory().isPossiblyCompilerSynthesizedType(clazz)
             || initialDeadProtoTypes.contains(clazz)
-            || initialMissingTypes.contains(clazz)
+            // TODO(b/157107464): See if we can clean this up.
+            || (initialPrunedTypes != null && initialPrunedTypes.contains(clazz))
         : "Unexpected missing class `" + clazz.toSourceString() + "`";
-    boolean newReport = missingTypes.add(clazz);
-    if (Log.ENABLED && newReport) {
-      Log.verbose(Enqueuer.class, "Class `%s` is missing.", clazz);
-    }
+    missingClassesBuilder.addNewMissingClass(clazz);
   }
 
   private void reportMissingMethod(DexMethod method) {
@@ -3277,6 +3270,9 @@ public class Enqueuer {
     rootSet.pruneDeadItems(appView, this);
 
     // Ensure references from all hard coded factory items.
+    // TODO(b/72683872): We should distinguish compiler synthesized type references from program
+    //  references such that we can use the computed set of missing classes for reporting missing
+    //  classes to the client.
     appView.dexItemFactory().forEachPossiblyCompilerSynthesizedType(this::recordTypeReference);
 
     // Rebuild a new app only containing referenced types.
@@ -3301,7 +3297,6 @@ public class Enqueuer {
 
     // Verify the references on the pruned application after type synthesis.
     assert verifyReferences(app);
-    assert verifyMissingTypes();
 
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
@@ -3309,9 +3304,9 @@ public class Enqueuer {
             appInfo.getClassToFeatureSplitMap(),
             appInfo.getMainDexClasses(),
             deadProtoTypes,
-            mode.isFinalTreeShaking()
-                ? Sets.union(initialMissingTypes, missingTypes)
-                : missingTypes,
+            // TODO(b/170075585): This should use missingClassesBuilder.reportMissingClasses() once
+            //  we are ready to report missing classes from the Enqueuer.
+            missingClassesBuilder.ignoreMissingClasses(),
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),
             Collections.unmodifiableSet(failedResolutionTargets),
@@ -3387,22 +3382,6 @@ public class Enqueuer {
     }
   }
 
-  private boolean verifyMissingTypes() {
-    if (initialMissingTypes == null) {
-      assert !mode.isFinalTreeShaking();
-      return true;
-    }
-    missingTypes.forEach(
-        missingType -> {
-          assert initialMissingTypes.contains(missingType)
-                  // TODO(b/157107464): See if we can clean this up.
-                  || initialPrunedTypes.contains(missingType)
-                  || missingType.isD8R8SynthesizedClassType()
-              : missingType;
-        });
-    return true;
-  }
-
   private boolean verifyReferences(DexApplication app) {
     WorkList<DexClass> worklist = WorkList.newIdentityWorkList();
     for (DexProgramClass clazz : liveTypes.getItems()) {
@@ -3425,9 +3404,11 @@ public class Enqueuer {
     }
     DexClass clazz = app.definitionFor(type);
     if (clazz == null) {
-      assert missingTypes.contains(type) : "Expected type to be in missing types': " + type;
+      assert missingClassesBuilder.contains(type)
+          : "Expected type to be in missing types': " + type;
     } else {
-      assert !missingTypes.contains(type) : "Type with definition also in missing types: " + type;
+      assert !missingClassesBuilder.contains(type)
+          : "Type with definition also in missing types: " + type;
       // Eager assert while the context is still present.
       assert clazz.isProgramClass() || liveNonProgramTypes.contains(clazz)
           : "Expected type to be in live non-program types: " + clazz;

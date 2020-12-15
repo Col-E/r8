@@ -15,41 +15,49 @@ import java.util.Set;
 public class EnqueuerFactory {
 
   public static Enqueuer createForInitialTreeShaking(
-      AppView<? extends AppInfoWithClassHierarchy> appView, SubtypingInfo subtypingInfo) {
-    return new Enqueuer(appView, subtypingInfo, null, Mode.INITIAL_TREE_SHAKING);
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      MissingClasses missingClasses,
+      SubtypingInfo subtypingInfo) {
+    return new Enqueuer(appView, missingClasses, subtypingInfo, null, Mode.INITIAL_TREE_SHAKING);
   }
 
   public static Enqueuer createForFinalTreeShaking(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      MissingClasses missingClasses,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer,
-      Set<DexType> initialMissingTypes,
       Set<DexType> initialPrunedTypes) {
     Enqueuer enqueuer =
-        new Enqueuer(appView, subtypingInfo, keptGraphConsumer, Mode.FINAL_TREE_SHAKING);
+        new Enqueuer(
+            appView, missingClasses, subtypingInfo, keptGraphConsumer, Mode.FINAL_TREE_SHAKING);
     appView.withProtoShrinker(
         shrinker -> enqueuer.setInitialDeadProtoTypes(shrinker.getDeadProtoTypes()));
-    enqueuer.setInitialMissingTypes(initialMissingTypes);
     enqueuer.setInitialPrunedTypes(initialPrunedTypes);
     return enqueuer;
   }
 
   public static Enqueuer createForMainDexTracing(
-      AppView<? extends AppInfoWithClassHierarchy> appView, SubtypingInfo subtypingInfo) {
-    return createForMainDexTracing(appView, subtypingInfo, null);
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      MissingClasses missingClasses,
+      SubtypingInfo subtypingInfo) {
+    return createForMainDexTracing(appView, missingClasses, subtypingInfo, null);
   }
 
   public static Enqueuer createForMainDexTracing(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      MissingClasses missingClasses,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer) {
-    return new Enqueuer(appView, subtypingInfo, keptGraphConsumer, Mode.MAIN_DEX_TRACING);
+    return new Enqueuer(
+        appView, missingClasses, subtypingInfo, keptGraphConsumer, Mode.MAIN_DEX_TRACING);
   }
 
   public static Enqueuer createForWhyAreYouKeeping(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      MissingClasses missingClasses,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer) {
-    return new Enqueuer(appView, subtypingInfo, keptGraphConsumer, Mode.WHY_ARE_YOU_KEEPING);
+    return new Enqueuer(
+        appView, missingClasses, subtypingInfo, keptGraphConsumer, Mode.WHY_ARE_YOU_KEEPING);
   }
 }

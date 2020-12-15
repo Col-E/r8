@@ -10,6 +10,7 @@ import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.shaking.GraphReporter;
 import com.android.tools.r8.shaking.InstantiationReason;
 import com.android.tools.r8.shaking.KeepReason;
+import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.utils.LensUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.WorkList;
@@ -233,7 +234,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
   }
 
   public boolean verifyAllocatedTypesAreLive(
-      Set<DexType> liveTypes, Set<DexType> missingTypes, DexDefinitionSupplier definitions) {
+      Set<DexType> liveTypes, MissingClasses missingClasses, DexDefinitionSupplier definitions) {
     for (DexProgramClass clazz : classesWithAllocationSiteTracking.keySet()) {
       assert liveTypes.contains(clazz.getType());
     }
@@ -244,7 +245,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
       assert liveTypes.contains(iface.getType());
     }
     for (DexType iface : instantiatedLambdas.keySet()) {
-      assert missingTypes.contains(iface)
+      assert missingClasses.contains(iface)
           || definitions.definitionFor(iface).isNotProgramClass()
           || liveTypes.contains(iface);
     }

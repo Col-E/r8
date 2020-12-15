@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
@@ -15,6 +16,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -101,6 +104,31 @@ public abstract class ProguardClassNameList {
 
   public abstract void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer);
 
+  public final void forEachTypeMatcher(
+      Consumer<ProguardTypeMatcher> consumer, Predicate<ProguardTypeMatcher> predicate) {
+    forEachTypeMatcher(
+        matcher -> {
+          if (predicate.test(matcher)) {
+            consumer.accept(matcher);
+          }
+        });
+  }
+
+  public abstract TraversalContinuation traverseTypeMatchers(
+      Function<ProguardTypeMatcher, TraversalContinuation> fn);
+
+  public final TraversalContinuation traverseTypeMatchers(
+      Function<ProguardTypeMatcher, TraversalContinuation> fn,
+      Predicate<ProguardTypeMatcher> predicate) {
+    return traverseTypeMatchers(
+        matcher -> {
+          if (predicate.test(matcher)) {
+            return fn.apply(matcher);
+          }
+          return TraversalContinuation.CONTINUE;
+        });
+  }
+
   private static class EmptyClassNameList extends ProguardClassNameList {
 
     private EmptyClassNameList() {
@@ -137,6 +165,12 @@ public abstract class ProguardClassNameList {
 
     @Override
     public void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer) {
+    }
+
+    @Override
+    public TraversalContinuation traverseTypeMatchers(
+        Function<ProguardTypeMatcher, TraversalContinuation> fn) {
+      return TraversalContinuation.CONTINUE;
     }
   }
 
@@ -199,6 +233,12 @@ public abstract class ProguardClassNameList {
     @Override
     public void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer) {
       consumer.accept(className);
+    }
+
+    @Override
+    public TraversalContinuation traverseTypeMatchers(
+        Function<ProguardTypeMatcher, TraversalContinuation> fn) {
+      return fn.apply(className);
     }
   }
 
@@ -277,6 +317,17 @@ public abstract class ProguardClassNameList {
     @Override
     public void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer) {
       classNames.forEach(consumer);
+    }
+
+    @Override
+    public TraversalContinuation traverseTypeMatchers(
+        Function<ProguardTypeMatcher, TraversalContinuation> fn) {
+      for (ProguardTypeMatcher matcher : classNames) {
+        if (fn.apply(matcher).shouldBreak()) {
+          return TraversalContinuation.BREAK;
+        }
+      }
+      return TraversalContinuation.CONTINUE;
     }
   }
 
@@ -362,6 +413,17 @@ public abstract class ProguardClassNameList {
     @Override
     public void forEachTypeMatcher(Consumer<ProguardTypeMatcher> consumer) {
       classNames.object2BooleanEntrySet().forEach(entry -> consumer.accept(entry.getKey()));
+    }
+
+    @Override
+    public TraversalContinuation traverseTypeMatchers(
+        Function<ProguardTypeMatcher, TraversalContinuation> fn) {
+      for (ProguardTypeMatcher matcher : classNames.keySet()) {
+        if (fn.apply(matcher).shouldBreak()) {
+          return TraversalContinuation.BREAK;
+        }
+      }
+      return TraversalContinuation.CONTINUE;
     }
   }
 }

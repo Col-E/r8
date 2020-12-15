@@ -36,7 +36,6 @@ public class TreePruner {
   private final AppView<AppInfoWithLiveness> appView;
   private final TreePrunerConfiguration configuration;
   private final UnusedItemsPrinter unusedItemsPrinter;
-  private final Set<DexType> missingTypes;
   private final Set<DexType> prunedTypes = Sets.newIdentityHashSet();
   private final Set<DexMethod> methodsToKeepForConfigurationDebugging = Sets.newIdentityHashSet();
 
@@ -48,7 +47,6 @@ public class TreePruner {
     InternalOptions options = appView.options();
     this.appView = appView;
     this.configuration = configuration;
-    this.missingTypes = appView.appInfo().getMissingTypes();
     this.unusedItemsPrinter =
         options.hasUsageInformationConsumer()
             ? new UnusedItemsPrinter(
@@ -207,7 +205,7 @@ public class TreePruner {
   }
 
   private boolean isTypeMissing(DexType type) {
-    return missingTypes.contains(type);
+    return appView.appInfo().getMissingClasses().contains(type);
   }
 
   private boolean isTypeLive(DexType type) {

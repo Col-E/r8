@@ -60,6 +60,11 @@ public class CommittedItems implements SyntheticDefinitionsProvider {
     return committedTypes;
   }
 
+  @Deprecated
+  public Collection<DexType> getLegacySyntheticTypes() {
+    return legacySyntheticTypes;
+  }
+
   @Override
   public DexClass definitionFor(DexType type, Function<DexType, DexClass> baseDefinitionFor) {
     // All synthetic types are committed to the application so lookup is just the base lookup.

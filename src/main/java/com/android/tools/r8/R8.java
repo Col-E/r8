@@ -13,7 +13,6 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CheckDiscardDiagnostic;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
@@ -96,6 +95,7 @@ import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.MainDexTracingResult;
+import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationUtils;
@@ -122,7 +122,6 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -329,35 +328,15 @@ public class R8 {
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
       timing.begin("Strip unused code");
       Set<DexType> classesToRetainInnerClassAttributeFor = null;
-      Set<DexType> missingClasses = null;
+      MissingClasses missingClasses;
       RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder =
           new RuntimeTypeCheckInfo.Builder(appView.dexItemFactory());
       try {
-        // TODO(b/154849103): Find a better way to determine missing classes.
-        missingClasses = new SubtypingInfo(appView).getMissingClasses();
-        missingClasses = filterMissingClasses(
-            missingClasses, options.getProguardConfiguration().getDontWarnPatterns());
-        if (!missingClasses.isEmpty()) {
-          missingClasses.forEach(
-              clazz -> {
-                options.reporter.warning(
-                    new StringDiagnostic("Missing class: " + clazz.toSourceString()));
-              });
-          if (!options.ignoreMissingClasses) {
-            DexType missingClass = missingClasses.iterator().next();
-            if (missingClasses.size() == 1) {
-              throw new CompilationError(
-                  "Compilation can't be completed because the class `"
-                      + missingClass.toSourceString()
-                      + "` is missing.");
-            } else {
-              throw new CompilationError(
-                  "Compilation can't be completed because `" + missingClass.toSourceString()
-                      + "` and " + (missingClasses.size() - 1) + " other classes are missing.");
-            }
-          }
-        }
-        options.reporter.failIfPendingErrors();
+        // TODO(b/154849103): Remove once reported by the Enqueuer.
+        missingClasses =
+            MissingClasses.builderForInitialMissingClasses()
+                .addNewMissingClasses(new SubtypingInfo(appView).getMissingClasses())
+                .reportMissingClasses(options);
 
         // Add synthesized -assumenosideeffects from min api if relevant.
         if (options.isGeneratingDex()) {
@@ -384,6 +363,7 @@ public class R8 {
                 annotationRemoverBuilder,
                 executorService,
                 appView,
+                missingClasses,
                 subtypingInfo,
                 classMergingEnqueuerExtensionBuilder);
 
@@ -392,8 +372,9 @@ public class R8 {
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptItemsAreKept(appView);
 
-        missingClasses =
-            Sets.union(missingClasses, appViewWithLiveness.appInfo().getMissingTypes());
+        // TODO(b/175541174): Maintain missing classes on AppInfoWithClassHierarchy such that we
+        //  can always access the missing classes from the active AppInfo in R8.
+        missingClasses = appViewWithLiveness.appInfo().getMissingClasses();
 
         appView.rootSet().checkAllRulesAreUsed(options);
 
@@ -462,7 +443,7 @@ public class R8 {
                 .run(executorService);
         // Live types is the tracing result.
         Set<DexProgramClass> mainDexBaseClasses =
-            EnqueuerFactory.createForMainDexTracing(appView, subtypingInfo)
+            EnqueuerFactory.createForMainDexTracing(appView, missingClasses, subtypingInfo)
                 .traceMainDex(mainDexRootSet, executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
         mainDexTracingResult = new MainDexListBuilder(mainDexBaseClasses, appView).run();
@@ -666,7 +647,7 @@ public class R8 {
 
         Enqueuer enqueuer =
             EnqueuerFactory.createForMainDexTracing(
-                appView, new SubtypingInfo(appView), mainDexKeptGraphConsumer);
+                appView, missingClasses, new SubtypingInfo(appView), mainDexKeptGraphConsumer);
         // Find classes which may have code executed before secondary dex files installation.
         // Live types is the tracing result.
         Set<DexProgramClass> mainDexBaseClasses =
@@ -694,6 +675,7 @@ public class R8 {
             appView,
             enqueuer,
             true,
+            missingClasses,
             options,
             timing,
             executorService);
@@ -715,9 +697,9 @@ public class R8 {
           Enqueuer enqueuer =
               EnqueuerFactory.createForFinalTreeShaking(
                   appView,
+                  missingClasses,
                   new SubtypingInfo(appView),
                   keptGraphConsumer,
-                  missingClasses,
                   prunedTypes);
           appView.setAppInfo(
               enqueuer.traceApplication(
@@ -771,6 +753,7 @@ public class R8 {
                 appView,
                 enqueuer,
                 false,
+                missingClasses,
                 options,
                 timing,
                 executorService);
@@ -1021,10 +1004,12 @@ public class R8 {
       AnnotationRemover.Builder annotationRemoverBuilder,
       ExecutorService executorService,
       AppView<AppInfoWithClassHierarchy> appView,
+      MissingClasses missingClasses,
       SubtypingInfo subtypingInfo,
       RuntimeTypeCheckInfo.Builder classMergingEnqueuerExtensionBuilder)
       throws ExecutionException {
-    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo);
+    Enqueuer enqueuer =
+        EnqueuerFactory.createForInitialTreeShaking(appView, missingClasses, subtypingInfo);
     enqueuer.setAnnotationRemoverBuilder(annotationRemoverBuilder);
     if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
       enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
@@ -1069,6 +1054,7 @@ public class R8 {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       Enqueuer enqueuer,
       boolean forMainDex,
+      MissingClasses missingClasses,
       InternalOptions options,
       Timing timing,
       ExecutorService executorService)
@@ -1094,12 +1080,12 @@ public class R8 {
       if (forMainDex) {
         enqueuer =
             EnqueuerFactory.createForMainDexTracing(
-                appView, subtypingInfo, whyAreYouKeepingConsumer);
+                appView, missingClasses, subtypingInfo, whyAreYouKeepingConsumer);
         enqueuer.traceMainDex(rootSet, executorService, timing);
       } else {
         enqueuer =
             EnqueuerFactory.createForWhyAreYouKeeping(
-                appView, subtypingInfo, whyAreYouKeepingConsumer);
+                appView, missingClasses, subtypingInfo, whyAreYouKeepingConsumer);
         enqueuer.traceApplication(
             rootSet,
             options.getProguardConfiguration().getDontWarnPatterns(),
