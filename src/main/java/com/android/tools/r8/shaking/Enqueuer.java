@@ -540,7 +540,7 @@ public class Enqueuer {
     return clazz.lookupMethod(method);
   }
 
-  private DexClass definitionFor(DexType type) {
+  public DexClass definitionFor(DexType type) {
     return internalDefinitionFor(type, false);
   }
 

@@ -21,6 +21,7 @@ public class ProtoReferences {
 
   public final DexType enumLiteType;
   public final DexType enumLiteMapType;
+  public final DexType enumVerifierType;
   public final DexType extendableMessageType;
   public final DexType extensionDescriptorType;
   public final DexType extensionRegistryLiteType;
@@ -42,6 +43,7 @@ public class ProtoReferences {
   public final MethodToInvokeMembers methodToInvokeMembers;
 
   public final DexString defaultInstanceFieldName;
+  public final DexString instanceFieldName;
   public final DexString internalValueMapFieldName;
   public final DexString dynamicMethodName;
   public final DexString findLiteExtensionByNumberName;
@@ -63,6 +65,7 @@ public class ProtoReferences {
     // Types.
     enumLiteType = factory.createType("Lcom/google/protobuf/Internal$EnumLite;");
     enumLiteMapType = factory.createType("Lcom/google/protobuf/Internal$EnumLiteMap;");
+    enumVerifierType = factory.createType("Lcom/google/protobuf/Internal$EnumVerifier;");
     extendableMessageType =
         factory.createType("Lcom/google/protobuf/GeneratedMessageLite$ExtendableMessage;");
     extensionDescriptorType =
@@ -85,6 +88,7 @@ public class ProtoReferences {
 
     // Names.
     defaultInstanceFieldName = factory.createString("DEFAULT_INSTANCE");
+    instanceFieldName = factory.createString("INSTANCE");
     internalValueMapFieldName = factory.createString("internalValueMap");
     dynamicMethodName = factory.createString("dynamicMethod");
     findLiteExtensionByNumberName = factory.createString("findLiteExtensionByNumber");
@@ -127,6 +131,10 @@ public class ProtoReferences {
 
   public DexField getDefaultInstanceField(DexProgramClass holder) {
     return dexItemFactory.createField(holder.type, holder.type, defaultInstanceFieldName);
+  }
+
+  public DexField getEnumVerifierInstanceField(DexProgramClass holder) {
+    return dexItemFactory.createField(holder.type, enumVerifierType, instanceFieldName);
   }
 
   public boolean isAbstractGeneratedMessageLiteBuilder(DexProgramClass clazz) {

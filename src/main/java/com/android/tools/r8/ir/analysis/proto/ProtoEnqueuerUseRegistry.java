@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
@@ -50,17 +53,29 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
 
   /**
    * Unlike {@link DefaultEnqueuerUseRegistry#registerStaticFieldRead(DexField)}, this method does
-   * not trace any static-get instructions in every implementation of dynamicMethod().
+   * not trace any static-get instructions in every implementation of dynamicMethod() that accesses
+   * an 'INSTANCE' or a 'DEFAULT_INSTANCE' field.
    *
    * <p>The static-get instructions that remain after the proto schema has been optimized will be
    * traced manually by {@link ProtoEnqueuerExtension#tracePendingInstructionsInDynamicMethods}.
    */
   @Override
   public void registerStaticFieldRead(DexField field) {
-    if (references.isDynamicMethod(getContextMethod())) {
+    if (references.isDynamicMethod(getContextMethod())
+        && isStaticFieldReadForProtoSchemaDefinition(field)) {
       enqueuer.addDeadProtoTypeCandidate(field.holder);
       return;
     }
     super.registerStaticFieldRead(field);
+  }
+
+  private boolean isStaticFieldReadForProtoSchemaDefinition(DexField field) {
+    if (field == references.getDefaultInstanceField(getContextHolder())) {
+      return true;
+    }
+    DexProgramClass holder = asProgramClassOrNull(enqueuer.definitionFor(field.getHolderType()));
+    return holder != null
+        && holder.getInterfaces().contains(references.enumVerifierType)
+        && field == references.getEnumVerifierInstanceField(holder);
   }
 }
