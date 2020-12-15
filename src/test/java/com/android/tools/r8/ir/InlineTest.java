@@ -21,7 +21,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
-import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardKeepRule;
@@ -76,8 +75,7 @@ public class InlineTest extends IrInjectionTestBase {
                 ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})))
             .run(executorService));
     Timing timing = Timing.empty();
-    Enqueuer enqueuer =
-        EnqueuerFactory.createForInitialTreeShaking(appView, MissingClasses.empty(), subtypingInfo);
+    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo);
     appView.setAppInfo(
         enqueuer.traceApplication(
             appView.rootSet(), ProguardClassFilter.empty(), executorService, timing));

@@ -75,8 +75,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     implements InstantiatedSubTypeInfo {
   /** Set of reachable proto types that will be dead code eliminated. */
   private final Set<DexType> deadProtoTypes;
-  /** Set of types that are mentioned in the program, but for which no definition exists. */
-  private final MissingClasses missingClasses;
   /**
    * Set of types that are mentioned in the program. We at least need an empty abstract classitem
    * for these.
@@ -226,9 +224,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       Set<DexType> lockCandidates,
       Map<DexType, Visibility> initClassReferences) {
-    super(syntheticItems, classToFeatureSplitMap, mainDexClasses);
+    super(syntheticItems, classToFeatureSplitMap, mainDexClasses, missingClasses);
     this.deadProtoTypes = deadProtoTypes;
-    this.missingClasses = missingClasses;
     this.liveTypes = liveTypes;
     this.targetedMethods = targetedMethods;
     this.failedResolutionTargets = failedResolutionTargets;
@@ -273,7 +270,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.getClassToFeatureSplitMap(),
         previous.getMainDexClasses(),
         previous.deadProtoTypes,
-        previous.missingClasses,
+        previous.getMissingClasses(),
         CollectionUtils.mergeSets(previous.liveTypes, committedItems.getCommittedTypes()),
         previous.targetedMethods,
         previous.failedResolutionTargets,
@@ -317,7 +314,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
         previous.getMainDexClasses().withoutPrunedItems(prunedItems),
         previous.deadProtoTypes,
-        previous.missingClasses,
+        previous.getMissingClasses(),
         prunedItems.hasRemovedClasses()
             ? Sets.difference(previous.liveTypes, prunedItems.getRemovedClasses())
             : previous.liveTypes,
@@ -362,7 +359,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private void verify() {
     assert keepInfo.verifyPinnedTypesAreLive(liveTypes);
     assert objectAllocationInfoCollection.verifyAllocatedTypesAreLive(
-        liveTypes, missingClasses, this);
+        liveTypes, getMissingClasses(), this);
   }
 
   private static KeepInfoCollection extendPinnedItems(
@@ -407,9 +404,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     super(
         previous.getSyntheticItems().commit(previous.app()),
         previous.getClassToFeatureSplitMap(),
-        previous.getMainDexClasses());
+        previous.getMainDexClasses(),
+        previous.getMissingClasses());
     this.deadProtoTypes = previous.deadProtoTypes;
-    this.missingClasses = previous.missingClasses;
     this.liveTypes = previous.liveTypes;
     this.targetedMethods = previous.targetedMethods;
     this.failedResolutionTargets = previous.failedResolutionTargets;
@@ -458,7 +455,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     DexClass definition = super.definitionFor(type);
     assert definition != null
             || deadProtoTypes.contains(type)
-            || missingClasses.contains(type)
+            || getMissingClasses().contains(type)
             // TODO(b/150693139): Remove these exceptions once fixed.
             || InterfaceMethodRewriter.isCompanionClassType(type)
             || InterfaceMethodRewriter.hasDispatchClassSuffix(type)
@@ -678,10 +675,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public Set<DexType> getDeadProtoTypes() {
     return deadProtoTypes;
-  }
-
-  public MissingClasses getMissingClasses() {
-    return missingClasses;
   }
 
   public Int2ReferenceMap<DexField> getSwitchMap(DexField field) {
@@ -965,7 +958,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         getClassToFeatureSplitMap().rewrittenWithLens(lens),
         getMainDexClasses().rewrittenWithLens(lens),
         deadProtoTypes,
-        missingClasses.commitSyntheticItems(committedItems),
+        getMissingClasses().commitSyntheticItems(committedItems),
         lens.rewriteTypes(liveTypes),
         lens.rewriteMethods(targetedMethods),
         lens.rewriteMethods(failedResolutionTargets),

@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.ListUtils;
@@ -56,24 +57,34 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return new AppInfoWithClassHierarchy(
         SyntheticItems.createInitialSyntheticItems(application),
         classToFeatureSplitMap,
-        mainDexClasses);
+        mainDexClasses,
+        MissingClasses.empty());
   }
 
   private final ClassToFeatureSplitMap classToFeatureSplitMap;
+
+  /** Set of types that are mentioned in the program, but for which no definition exists. */
+  // TODO(b/175659048): Consider hoisting to AppInfo to allow using MissingClasses in D8 desugar.
+  private final MissingClasses missingClasses;
 
   // For AppInfoWithLiveness subclass.
   protected AppInfoWithClassHierarchy(
       CommittedItems committedItems,
       ClassToFeatureSplitMap classToFeatureSplitMap,
-      MainDexClasses mainDexClasses) {
+      MainDexClasses mainDexClasses,
+      MissingClasses missingClasses) {
     super(committedItems, mainDexClasses);
     this.classToFeatureSplitMap = classToFeatureSplitMap;
+    this.missingClasses = missingClasses;
   }
 
   // For desugaring.
   private AppInfoWithClassHierarchy(CreateDesugaringViewOnAppInfo witness, AppInfo appInfo) {
     super(witness, appInfo);
     this.classToFeatureSplitMap = ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap();
+    // TODO(b/175659048): Migrate the reporting of missing classes in D8 desugar to MissingClasses,
+    //  and use the missing classes from AppInfo instead of MissingClasses.empty().
+    this.missingClasses = MissingClasses.empty();
   }
 
   public static AppInfoWithClassHierarchy createForDesugaring(AppInfo appInfo) {
@@ -82,7 +93,16 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   public final AppInfoWithClassHierarchy rebuildWithClassHierarchy(CommittedItems commit) {
-    return new AppInfoWithClassHierarchy(commit, getClassToFeatureSplitMap(), getMainDexClasses());
+    return new AppInfoWithClassHierarchy(
+        commit, getClassToFeatureSplitMap(), getMainDexClasses(), getMissingClasses());
+  }
+
+  public final AppInfoWithClassHierarchy rebuildWithClassHierarchy(MissingClasses missingClasses) {
+    return new AppInfoWithClassHierarchy(
+        getSyntheticItems().commit(app()),
+        getClassToFeatureSplitMap(),
+        getMainDexClasses(),
+        missingClasses);
   }
 
   public AppInfoWithClassHierarchy rebuildWithClassHierarchy(
@@ -90,7 +110,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return new AppInfoWithClassHierarchy(
         getSyntheticItems().commit(fn.apply(app())),
         getClassToFeatureSplitMap(),
-        getMainDexClasses());
+        getMainDexClasses(),
+        getMissingClasses());
   }
 
   @Override
@@ -104,11 +125,16 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return new AppInfoWithClassHierarchy(
         getSyntheticItems().commitPrunedItems(prunedItems),
         getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
-        getMainDexClasses().withoutPrunedItems(prunedItems));
+        getMainDexClasses().withoutPrunedItems(prunedItems),
+        getMissingClasses());
   }
 
   public ClassToFeatureSplitMap getClassToFeatureSplitMap() {
     return classToFeatureSplitMap;
+  }
+
+  public MissingClasses getMissingClasses() {
+    return missingClasses;
   }
 
   @Override

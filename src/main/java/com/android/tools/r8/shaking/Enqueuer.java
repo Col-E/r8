@@ -369,7 +369,6 @@ public class Enqueuer {
 
   Enqueuer(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      MissingClasses missingClasses,
       SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer,
       Mode mode) {
@@ -380,7 +379,7 @@ public class Enqueuer {
     this.subtypingInfo = subtypingInfo;
     this.forceProguardCompatibility = options.forceProguardCompatibility;
     this.graphReporter = new GraphReporter(appView, keptGraphConsumer);
-    this.missingClassesBuilder = missingClasses.builder();
+    this.missingClassesBuilder = appView.appInfo().getMissingClasses().builder();
     this.mode = mode;
     this.options = options;
     this.useRegistryFactory = createUseRegistryFactory();

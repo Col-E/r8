@@ -18,7 +18,6 @@ import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.MainDexTracingResult;
-import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
@@ -68,8 +67,7 @@ public class GenerateMainDexList {
       }
 
       Enqueuer enqueuer =
-          EnqueuerFactory.createForMainDexTracing(
-              appView, MissingClasses.empty(), subtypingInfo, graphConsumer);
+          EnqueuerFactory.createForMainDexTracing(appView, subtypingInfo, graphConsumer);
       Set<DexProgramClass> liveTypes = enqueuer.traceMainDex(mainDexRootSet, executor, timing);
       // LiveTypes is the result.
       MainDexTracingResult mainDexTracingResult = new MainDexListBuilder(liveTypes, appView).run();
@@ -104,7 +102,6 @@ public class GenerateMainDexList {
           appView,
           enqueuer,
           true,
-          MissingClasses.empty(),
           options,
           timing,
           executor);

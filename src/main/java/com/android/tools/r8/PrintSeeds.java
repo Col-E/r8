@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
-import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -94,9 +93,7 @@ public class PrintSeeds {
       RootSet rootSet =
           new RootSetBuilder(appView, subtypingInfo, options.getProguardConfiguration().getRules())
               .run(executor);
-      Enqueuer enqueuer =
-          EnqueuerFactory.createForInitialTreeShaking(
-              appView, MissingClasses.empty(), subtypingInfo);
+      Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo);
       AppInfoWithLiveness appInfo =
           enqueuer.traceApplication(
               rootSet, options.getProguardConfiguration().getDontWarnPatterns(), executor, timing);
