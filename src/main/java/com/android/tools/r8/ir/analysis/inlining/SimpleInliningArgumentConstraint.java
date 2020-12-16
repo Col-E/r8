@@ -22,4 +22,9 @@ public abstract class SimpleInliningArgumentConstraint extends SimpleInliningCon
   int getArgumentIndex() {
     return argumentIndex;
   }
+
+  @Override
+  public boolean isArgumentConstraint() {
+    return true;
+  }
 }
