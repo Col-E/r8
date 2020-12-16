@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.ir.analysis.inlining.NeverSimpleInliningConstraint;
+import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -62,6 +64,9 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   // Note that this bit set takes into account the receiver for instance methods.
   private BitSet nonNullParamOnNormalExits =
       DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS;
+
+  private SimpleInliningConstraint simpleInliningConstraint =
+      NeverSimpleInliningConstraint.getInstance();
 
   // To reduce the memory footprint of UpdatableMethodOptimizationInfo, all the boolean fields are
   // merged into a flag int field. The various static final FLAG fields indicate which bit is
@@ -137,6 +142,7 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
     returnsObjectWithUpperBoundType = template.returnsObjectWithUpperBoundType;
     returnsObjectWithLowerBoundType = template.returnsObjectWithLowerBoundType;
     inlining = template.inlining;
+    simpleInliningConstraint = template.simpleInliningConstraint;
     bridgeInfo = template.bridgeInfo;
     classInlinerEligibility = template.classInlinerEligibility;
     instanceInitializerInfoCollection = template.instanceInitializerInfoCollection;
@@ -322,6 +328,11 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
+  public SimpleInliningConstraint getSimpleInliningConstraint() {
+    return simpleInliningConstraint;
+  }
+
+  @Override
   public boolean isInitializerEnablingJavaVmAssertions() {
     return isFlagSet(INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG);
   }
@@ -370,6 +381,10 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
 
   public void setReachabilitySensitive(boolean reachabilitySensitive) {
     setFlag(REACHABILITY_SENSITIVE_FLAG, reachabilitySensitive);
+  }
+
+  public void setSimpleInliningConstraint(SimpleInliningConstraint constraint) {
+    this.simpleInliningConstraint = constraint;
   }
 
   void setClassInlinerEligibility(ClassInlinerEligibilityInfo eligibility) {
@@ -486,7 +501,6 @@ public class UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
 
   @Override
   public UpdatableMethodOptimizationInfo mutableCopy() {
-    assert this != DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
     return new UpdatableMethodOptimizationInfo(this);
   }
 

@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -191,6 +193,12 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts) {
     method.getMutableOptimizationInfo().setNonNullParamOnNormalExits(facts);
+  }
+
+  @Override
+  public void setSimpleInliningConstraint(
+      ProgramMethod method, SimpleInliningConstraint constraint) {
+    // Ignored.
   }
 
   @Override

@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -130,8 +132,11 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void setNonNullParamOrThrow(DexEncodedMethod method, BitSet facts) {}
 
   @Override
-  public void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts) {
-  }
+  public void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts) {}
+
+  @Override
+  public void setSimpleInliningConstraint(
+      ProgramMethod method, SimpleInliningConstraint constraint) {}
 
   @Override
   public void classInitializerMayBePostponed(DexEncodedMethod method) {}

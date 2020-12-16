@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -76,6 +77,8 @@ public abstract class MethodOptimizationInfo {
   public abstract boolean isInitializerEnablingJavaVmAssertions();
 
   public abstract AbstractValue getAbstractReturnValue();
+
+  public abstract SimpleInliningConstraint getSimpleInliningConstraint();
 
   public abstract boolean forceInline();
 

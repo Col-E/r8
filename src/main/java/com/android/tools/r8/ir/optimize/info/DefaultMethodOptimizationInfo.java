@@ -5,6 +5,8 @@
 package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.inlining.NeverSimpleInliningConstraint;
+import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -21,11 +23,11 @@ import java.util.Set;
 
 public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
 
-  public static final MethodOptimizationInfo DEFAULT_INSTANCE = new DefaultMethodOptimizationInfo();
+  public static final DefaultMethodOptimizationInfo DEFAULT_INSTANCE =
+      new DefaultMethodOptimizationInfo();
 
   static Set<DexType> UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT = ImmutableSet.of();
   static int UNKNOWN_RETURNED_ARGUMENT = -1;
-  static boolean UNKNOWN_NEVER_RETURNS_NULL = false;
   static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
   static AbstractValue UNKNOWN_ABSTRACT_RETURN_VALUE = UnknownValue.getInstance();
   static TypeElement UNKNOWN_TYPE = null;
@@ -41,6 +43,10 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
 
   private DefaultMethodOptimizationInfo() {}
+
+  public static DefaultMethodOptimizationInfo getInstance() {
+    return DEFAULT_INSTANCE;
+  }
 
   @Override
   public boolean isDefaultMethodOptimizationInfo() {
@@ -147,6 +153,11 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   @Override
   public AbstractValue getAbstractReturnValue() {
     return UNKNOWN_ABSTRACT_RETURN_VALUE;
+  }
+
+  @Override
+  public SimpleInliningConstraint getSimpleInliningConstraint() {
+    return NeverSimpleInliningConstraint.getInstance();
   }
 
   @Override

@@ -7,6 +7,8 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -70,6 +72,8 @@ public interface MethodOptimizationFeedback {
   void setNonNullParamOrThrow(DexEncodedMethod method, BitSet facts);
 
   void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts);
+
+  void setSimpleInliningConstraint(ProgramMethod method, SimpleInliningConstraint constraint);
 
   void classInitializerMayBePostponed(DexEncodedMethod method);
 }
