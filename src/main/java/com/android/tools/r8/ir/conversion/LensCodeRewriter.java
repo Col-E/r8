@@ -55,6 +55,7 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoColl
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.code.Assume;
@@ -64,6 +65,7 @@ import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstMethodHandle;
+import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -92,6 +94,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -105,14 +108,15 @@ import java.util.function.BiFunction;
 public class LensCodeRewriter {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
-
   private final EnumUnboxer enumUnboxer;
   private final LensCodeRewriterUtils helper;
+  private final InternalOptions options;
 
   LensCodeRewriter(AppView<? extends AppInfoWithClassHierarchy> appView, EnumUnboxer enumUnboxer) {
     this.appView = appView;
     this.enumUnboxer = enumUnboxer;
     this.helper = new LensCodeRewriterUtils(appView);
+    this.options = appView.options();
   }
 
   private Value makeOutValue(Instruction insn, IRCode code) {
@@ -120,6 +124,15 @@ public class LensCodeRewriter {
       TypeElement oldType = insn.getOutType();
       TypeElement newType =
           oldType.fixupClassTypeReferences(appView.graphLens()::lookupType, appView);
+      return code.createValue(newType, insn.getLocalInfo());
+    }
+    return null;
+  }
+
+  private Value makeOutValue(FieldInstruction insn, IRCode code, DexField rewrittenField) {
+    if (insn.hasOutValue()) {
+      Nullability nullability = insn.getOutType().nullability();
+      TypeElement newType = TypeElement.fromDexType(rewrittenField.getType(), nullability, appView);
       return code.createValue(newType, insn.getLocalInfo());
     }
     return null;
@@ -137,7 +150,7 @@ public class LensCodeRewriter {
     boolean mayHaveUnreachableBlocks = false;
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
-      if (block.hasCatchHandlers() && appView.options().enableVerticalClassMerging) {
+      if (block.hasCatchHandlers() && options.enableVerticalClassMerging) {
         boolean anyGuardsRenamed = block.renameGuardsInCatchHandlers(graphLens);
         if (anyGuardsRenamed) {
           mayHaveUnreachableBlocks |= unlinkDeadCatchHandlers(block);
@@ -312,9 +325,7 @@ public class LensCodeRewriter {
                                             parameter.getTypeElement(appView, type), null));
                                 assert !instruction.instructionTypeCanThrow();
                                 instruction.setPosition(
-                                    appView.options().debug
-                                        ? invoke.getPosition()
-                                        : Position.none());
+                                    options.debug ? invoke.getPosition() : Position.none());
                                 iterator.add(instruction);
                                 iterator.next();
                                 return instruction.outValue();
@@ -389,11 +400,11 @@ public class LensCodeRewriter {
                   graphLens.lookupGetFieldForMethod(rewrittenField, method.getReference());
               Value newOutValue = null;
               if (replacementMethod != null) {
-                newOutValue = makeOutValue(instanceGet, code);
+                newOutValue = makeOutValue(instanceGet, code, rewrittenField);
                 iterator.replaceCurrentInstruction(
                     new InvokeStatic(replacementMethod, newOutValue, instanceGet.inValues()));
               } else if (rewrittenField != field) {
-                newOutValue = makeOutValue(instanceGet, code);
+                newOutValue = makeOutValue(instanceGet, code, rewrittenField);
                 iterator.replaceCurrentInstruction(
                     new InstanceGet(newOutValue, instanceGet.object(), rewrittenField));
               }
@@ -402,15 +413,17 @@ public class LensCodeRewriter {
                   TypeElement castType =
                       TypeElement.fromDexType(
                           lookup.getCastType(), newOutValue.getType().nullability(), appView);
+                  Value castOutValue = code.createValue(castType);
+                  newOutValue.replaceUsers(castOutValue);
                   CheckCast checkCast =
                       CheckCast.builder()
                           .setCastType(lookup.getCastType())
-                          .setFreshOutValue(code, castType)
                           .setObject(newOutValue)
+                          .setOutValue(castOutValue)
                           .setPosition(instanceGet)
                           .build();
-                  iterator.add(checkCast);
-                  newOutValue.replaceUsers(checkCast.outValue());
+                  iterator.addThrowingInstructionToPossiblyThrowingBlock(
+                      code, blocks, checkCast, options);
                   affectedPhis.addAll(checkCast.outValue().uniquePhiUsers());
                 } else if (newOutValue.getType() != instanceGet.getOutType()) {
                   affectedPhis.addAll(newOutValue.uniquePhiUsers());
@@ -452,11 +465,11 @@ public class LensCodeRewriter {
                   graphLens.lookupGetFieldForMethod(rewrittenField, method.getReference());
               Value newOutValue = null;
               if (replacementMethod != null) {
-                newOutValue = makeOutValue(staticGet, code);
+                newOutValue = makeOutValue(staticGet, code, rewrittenField);
                 iterator.replaceCurrentInstruction(
                     new InvokeStatic(replacementMethod, newOutValue, staticGet.inValues()));
               } else if (rewrittenField != field) {
-                newOutValue = makeOutValue(staticGet, code);
+                newOutValue = makeOutValue(staticGet, code, rewrittenField);
                 iterator.replaceCurrentInstruction(new StaticGet(newOutValue, rewrittenField));
               }
               if (newOutValue != null) {
@@ -464,15 +477,17 @@ public class LensCodeRewriter {
                   TypeElement castType =
                       TypeElement.fromDexType(
                           lookup.getCastType(), newOutValue.getType().nullability(), appView);
+                  Value castOutValue = code.createValue(castType);
+                  newOutValue.replaceUsers(castOutValue);
                   CheckCast checkCast =
                       CheckCast.builder()
                           .setCastType(lookup.getCastType())
-                          .setFreshOutValue(code, castType)
                           .setObject(newOutValue)
+                          .setOutValue(castOutValue)
                           .setPosition(staticGet)
                           .build();
-                  iterator.add(checkCast);
-                  newOutValue.replaceUsers(checkCast.outValue());
+                  iterator.addThrowingInstructionToPossiblyThrowingBlock(
+                      code, blocks, checkCast, options);
                   affectedPhis.addAll(checkCast.outValue().uniquePhiUsers());
                 } else if (newOutValue.getType() != staticGet.getOutType()) {
                   affectedPhis.addAll(newOutValue.uniquePhiUsers());
@@ -554,8 +569,7 @@ public class LensCodeRewriter {
               MoveException moveException = current.asMoveException();
               new InstructionReplacer(code, current, iterator, affectedPhis)
                   .replaceInstructionIfTypeChanged(
-                      moveException.getExceptionType(),
-                      (t, v) -> new MoveException(v, t, appView.options()));
+                      moveException.getExceptionType(), (t, v) -> new MoveException(v, t, options));
             }
             break;
 
@@ -695,7 +709,7 @@ public class LensCodeRewriter {
       iterator.previous();
       Value rewrittenDefaultValue =
           iterator.insertConstNumberInstruction(
-              code, appView.options(), 0, defaultValueLatticeElement(newType));
+              code, options, 0, defaultValueLatticeElement(newType));
       iterator.next();
       return rewrittenDefaultValue;
     }

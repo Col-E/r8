@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
+import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,15 +26,17 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
 
   static class MethodCharacteristics {
 
+    private final OptionalBool isLibraryMethodOverride;
     private final int visibilityOrdinal;
 
     private MethodCharacteristics(DexEncodedMethod method) {
+      this.isLibraryMethodOverride = method.isLibraryMethodOverride();
       this.visibilityOrdinal = method.getAccessFlags().getVisibilityOrdinal();
     }
 
     @Override
     public int hashCode() {
-      return visibilityOrdinal;
+      return (visibilityOrdinal << 2) | isLibraryMethodOverride.ordinal();
     }
 
     @Override
@@ -45,7 +48,8 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
         return false;
       }
       MethodCharacteristics characteristics = (MethodCharacteristics) obj;
-      return visibilityOrdinal == characteristics.visibilityOrdinal;
+      return isLibraryMethodOverride == characteristics.isLibraryMethodOverride
+          && visibilityOrdinal == characteristics.visibilityOrdinal;
     }
   }
 

@@ -72,6 +72,22 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
         .build();
   }
 
+  @Override
+  protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
+    FieldLookupResult lookup = super.internalDescribeLookupField(previous);
+    if (lookup.getReference() == previous.getReference()) {
+      return lookup;
+    }
+    return FieldLookupResult.builder(this)
+        .setReference(lookup.getReference())
+        .setReboundReference(lookup.getReboundReference())
+        .setCastType(
+            lookup.getReference().getType() != previous.getReference().getType()
+                ? lookupType(previous.getReference().getType())
+                : null)
+        .build();
+  }
+
   public static class Builder {
 
     private final MutableBidirectionalManyToOneRepresentativeMap<DexField, DexField> fieldMap =
@@ -127,12 +143,10 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       if (originalFieldSignatures.isEmpty()) {
         fieldMap.put(oldFieldSignature, newFieldSignature);
       } else if (originalFieldSignatures.size() == 1) {
-        fieldMap.put(originalFieldSignatures.iterator().next(), newFieldSignature);
+        fieldMap.put(originalFieldSignatures, newFieldSignature);
       } else {
         assert representative != null;
-        for (DexField originalFieldSignature : originalFieldSignatures) {
-          fieldMap.put(originalFieldSignature, newFieldSignature);
-        }
+        fieldMap.put(originalFieldSignatures, newFieldSignature);
         fieldMap.setRepresentative(newFieldSignature, representative);
       }
     }

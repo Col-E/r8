@@ -20,6 +20,12 @@ import java.util.Set;
 public interface InstructionListIterator
     extends InstructionIterator, ListIterator<Instruction>, PreviousUntilIterator<Instruction> {
 
+  void addThrowingInstructionToPossiblyThrowingBlock(
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Instruction instruction,
+      InternalOptions options);
+
   default void addBefore(Instruction instruction) {
     previous();
     add(instruction);

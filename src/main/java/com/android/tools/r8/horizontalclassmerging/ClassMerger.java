@@ -88,7 +88,7 @@ public class ClassMerger {
     this.dexItemFactory = appView.dexItemFactory();
     this.classInitializerSynthesizedCode = classInitializerSynthesizedCode;
     this.classStaticFieldsMerger = new ClassStaticFieldsMerger(appView, lensBuilder, group);
-    this.classInstanceFieldsMerger = new ClassInstanceFieldsMerger(lensBuilder, group);
+    this.classInstanceFieldsMerger = new ClassInstanceFieldsMerger(appView, lensBuilder, group);
 
     buildClassIdentifierMap();
   }
@@ -201,15 +201,14 @@ public class ClassMerger {
   }
 
   void appendClassIdField() {
-    DexEncodedField encodedField =
+    classInstanceFieldsMerger.setClassIdField(
         new DexEncodedField(
             group.getClassIdField(),
             FieldAccessFlags.fromSharedAccessFlags(
                 Constants.ACC_PUBLIC + Constants.ACC_FINAL + Constants.ACC_SYNTHETIC),
             FieldTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
-            null);
-    group.getTarget().appendInstanceField(encodedField);
+            null));
   }
 
   void mergeStaticFields() {
@@ -240,9 +239,9 @@ public class ClassMerger {
     group.forEachSource(
         clazz -> {
           classInstanceFieldsMerger.addFields(clazz);
-          clazz.setInstanceFields(null);
+          clazz.clearInstanceFields();
         });
-    classInstanceFieldsMerger.merge();
+    group.getTarget().setInstanceFields(classInstanceFieldsMerger.merge());
   }
 
   public void mergeGroup(SyntheticArgumentClass syntheticArgumentClass) {

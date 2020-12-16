@@ -10,6 +10,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
@@ -23,6 +24,7 @@ public class EscapingBuilderTest extends TestBase {
         .addInnerClasses(EscapingBuilderTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .compile()
         .inspect(this::inspect);
   }
@@ -101,6 +103,7 @@ public class EscapingBuilderTest extends TestBase {
   }
 
   // Builder that escapes via field `f` that is assigned in a virtual method.
+  @NoHorizontalClassMerging
   static class Builder2 {
 
     public Builder2 f;
@@ -118,6 +121,7 @@ public class EscapingBuilderTest extends TestBase {
   }
 
   // Builder that escapes via field `f` that is assigned in a virtual method.
+  @NoHorizontalClassMerging
   static class Builder3 {
 
     public Builder3 f;
@@ -135,6 +139,7 @@ public class EscapingBuilderTest extends TestBase {
   }
 
   // Builder that escapes via field `f` that is assigned in a virtual method.
+  @NoHorizontalClassMerging
   static class Builder4 {
 
     public Builder4 f;
@@ -152,6 +157,7 @@ public class EscapingBuilderTest extends TestBase {
   }
 
   // Builder that escapes via field `f` that is assigned in a static method.
+  @NoHorizontalClassMerging
   static class Builder5 {
 
     public Builder5 f;

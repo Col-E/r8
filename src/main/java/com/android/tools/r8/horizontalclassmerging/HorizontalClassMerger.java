@@ -105,7 +105,7 @@ public class HorizontalClassMerger {
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
     return ImmutableList.of(
         new NotMatchedByNoHorizontalClassMerging(appView),
-        new SameFields(),
+        new SameFields(appView),
         new NoInterfaces(),
         new NoAnnotations(),
         new NoEnums(appView),

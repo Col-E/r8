@@ -123,6 +123,23 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     metadata.record(instruction);
   }
 
+  @Override
+  public void addThrowingInstructionToPossiblyThrowingBlock(
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Instruction instruction,
+      InternalOptions options) {
+    if (block.hasCatchHandlers()) {
+      BasicBlock splitBlock = split(code, blockIterator, false);
+      splitBlock.listIterator(code).add(instruction);
+      assert !block.hasCatchHandlers();
+      assert splitBlock.hasCatchHandlers();
+      block.copyCatchHandlers(code, blockIterator, splitBlock, options);
+    } else {
+      add(instruction);
+    }
+  }
+
   /**
    * Replaces the last instruction returned by {@link #next} or {@link #previous} with the specified
    * instruction.

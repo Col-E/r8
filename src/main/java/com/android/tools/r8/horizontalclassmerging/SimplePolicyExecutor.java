@@ -72,6 +72,10 @@ public class SimplePolicyExecutor extends PolicyExecutor {
 
       policy.clear();
 
+      if (linkedGroups.isEmpty()) {
+        break;
+      }
+
       // Any policy should not return any trivial groups.
       assert linkedGroups.stream().allMatch(group -> group.size() >= 2);
     }

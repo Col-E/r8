@@ -158,6 +158,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return field;
   }
 
+  public DexType getType() {
+    return getReference().getType();
+  }
+
   @Override
   public boolean isDexEncodedField() {
     return true;

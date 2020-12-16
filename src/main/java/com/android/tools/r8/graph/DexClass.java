@@ -381,6 +381,10 @@ public abstract class DexClass extends DexDefinition {
     assert verifyNoDuplicateFields();
   }
 
+  public void clearInstanceFields() {
+    instanceFields = DexEncodedField.EMPTY_ARRAY;
+  }
+
   private boolean verifyCorrectnessOfFieldHolder(DexEncodedField field) {
     assert field.getHolderType() == type
         : "Expected field `"

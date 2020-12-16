@@ -60,6 +60,14 @@ public class FieldMultiset {
     }
   }
 
+  public FieldMultiset(Iterable<DexEncodedField> instanceFields) {
+    for (DexEncodedField field : instanceFields) {
+      fields
+          .computeIfAbsent(field.type(), ignore -> new VisibilitySignature())
+          .addAccessModifier(field.getAccessFlags());
+    }
+  }
+
   @Override
   public int hashCode() {
     return fields.hashCode();

@@ -170,6 +170,10 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
     return dexItemFactory.createField(holder, type, name);
   }
 
+  public DexField withType(DexType type, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createField(holder, type, name);
+  }
+
   public FieldReference asFieldReference() {
     return Reference.field(
         Reference.classFromDescriptor(holder.toDescriptorString()),

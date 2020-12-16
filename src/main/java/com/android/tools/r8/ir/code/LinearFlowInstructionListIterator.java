@@ -131,6 +131,16 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public void addThrowingInstructionToPossiblyThrowingBlock(
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Instruction instruction,
+      InternalOptions options) {
+    currentBlockIterator.addThrowingInstructionToPossiblyThrowingBlock(
+        code, blockIterator, instruction, options);
+  }
+
+  @Override
   public void removeOrReplaceByDebugLocalRead() {
     currentBlockIterator.removeOrReplaceByDebugLocalRead();
   }
