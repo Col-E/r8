@@ -7,8 +7,6 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.function.Function;
 
@@ -28,23 +26,19 @@ public class CommittedItems implements SyntheticDefinitionsProvider {
   // Immutable package accessible fields to allow SyntheticItems creation.
   final DexApplication application;
   final int nextSyntheticId;
-  final ImmutableSet<DexType> legacySyntheticTypes;
-  final ImmutableMap<DexType, SyntheticReference> syntheticItems;
+  final CommittedSyntheticsCollection committed;
   final ImmutableList<DexType> committedTypes;
 
   CommittedItems(
       int nextSyntheticId,
       DexApplication application,
-      ImmutableSet<DexType> legacySyntheticTypes,
-      ImmutableMap<DexType, SyntheticReference> syntheticItems,
+      CommittedSyntheticsCollection committed,
       ImmutableList<DexType> committedTypes) {
-    assert verifyTypesAreInApp(application, legacySyntheticTypes);
-    assert verifyTypesAreInApp(application, syntheticItems.keySet());
     this.nextSyntheticId = nextSyntheticId;
     this.application = application;
-    this.legacySyntheticTypes = legacySyntheticTypes;
-    this.syntheticItems = syntheticItems;
+    this.committed = committed;
     this.committedTypes = committedTypes;
+    committed.verifyTypesAreInApp(application);
   }
 
   // Conversion to a mutable synthetic items collection. Should only be used in AppInfo creation.
@@ -69,12 +63,5 @@ public class CommittedItems implements SyntheticDefinitionsProvider {
   public DexClass definitionFor(DexType type, Function<DexType, DexClass> baseDefinitionFor) {
     // All synthetic types are committed to the application so lookup is just the base lookup.
     return baseDefinitionFor.apply(type);
-  }
-
-  private static boolean verifyTypesAreInApp(DexApplication app, Collection<DexType> types) {
-    for (DexType type : types) {
-      assert app.programDefinitionFor(type) != null : "Missing synthetic: " + type;
-    }
-    return true;
   }
 }

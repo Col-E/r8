@@ -18,29 +18,39 @@ import java.util.function.ToLongFunction;
 /** Base class to share most visiting methods */
 public abstract class CompareToVisitorBase extends CompareToVisitor {
 
+  private static boolean DEBUG = false;
+
+  // Helper to debug insert a breakpoint on order values.
+  public static int debug(int order) {
+    if (DEBUG && order != 0) {
+      return order;
+    }
+    return order;
+  }
+
   @Override
   public final int visitBool(boolean value1, boolean value2) {
-    return Boolean.compare(value1, value2);
+    return debug(Boolean.compare(value1, value2));
   }
 
   @Override
   public final int visitInt(int value1, int value2) {
-    return Integer.compare(value1, value2);
+    return debug(Integer.compare(value1, value2));
   }
 
   @Override
   public int visitLong(long value1, long value2) {
-    return Long.compare(value1, value2);
+    return debug(Long.compare(value1, value2));
   }
 
   @Override
   public int visitFloat(float value1, float value2) {
-    return Float.compare(value1, value2);
+    return debug(Float.compare(value1, value2));
   }
 
   @Override
   public int visitDouble(double value1, double value2) {
-    return Double.compare(value1, value2);
+    return debug(Double.compare(value1, value2));
   }
 
   @Override
@@ -53,12 +63,12 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
     if (order == 0) {
       order = visitBool(it1.hasNext(), it2.hasNext());
     }
-    return order;
+    return debug(order);
   }
 
   @Override
   public int visitDexString(DexString string1, DexString string2) {
-    return string1.compareTo(string2);
+    return debug(string1.compareTo(string2));
   }
 
   @Override
@@ -74,19 +84,19 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
         order = visitDexMethod(reference1.asDexMethod(), reference2.asDexMethod());
       }
     }
-    return order;
+    return debug(order);
   }
 
   @Override
   public final <S> int visit(S item1, S item2, Comparator<S> comparator) {
-    return comparator.compare(item1, item2);
+    return debug(comparator.compare(item1, item2));
   }
 
   @Override
   public final <S> int visit(S item1, S item2, StructuralMapping<S> accept) {
     ItemSpecification<S> itemVisitor = new ItemSpecification<>(item1, item2, this);
     accept.apply(itemVisitor);
-    return itemVisitor.order;
+    return debug(itemVisitor.order);
   }
 
   private static class ItemSpecification<T>
@@ -198,7 +208,7 @@ public abstract class CompareToVisitorBase extends CompareToVisitor {
     }
 
     @Override
-    protected <S> ItemSpecification<T> withItemIterator(
+    protected <S> ItemSpecification<T> withCustomItemIterator(
         Function<T, Iterator<S>> getter, CompareToAccept<S> compare, HashingAccept<S> hasher) {
       if (order == 0) {
         order = parent.visitItemIterator(getter.apply(item1), getter.apply(item2), compare);

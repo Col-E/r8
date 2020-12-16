@@ -43,6 +43,8 @@ public interface InstructionSubject {
 
   boolean isInvokeSpecial();
 
+  boolean isInvokeDynamic();
+
   DexMethod getMethod();
 
   boolean isNop();

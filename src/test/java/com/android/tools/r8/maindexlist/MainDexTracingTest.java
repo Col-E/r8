@@ -24,9 +24,9 @@ import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -406,13 +406,13 @@ public class MainDexTracingTest extends TestBase {
     for (int i = 0; i < refList.length; i++) {
       String reference = refList[i].trim();
       // The main dex list generator does not do any lambda desugaring.
-      if (!isLambda(reference)) {
+      if (!isExternalSyntheticLambda(reference)) {
         if (mainDexGeneratorMainDexList.size() <= i - nonLambdaOffset) {
           fail("Main dex list generator is missing '" + reference + "'");
         }
         String fromList = mainDexGeneratorMainDexList.get(i - nonLambdaOffset);
         String fromConsumer = mainDexGeneratorMainDexListFromConsumer.get(i - nonLambdaOffset);
-        if (isLambda(fromList)) {
+        if (isExternalSyntheticLambda(fromList)) {
           assertEquals(Backend.DEX, backend);
           assertEquals(fromList, fromConsumer);
           nonLambdaOffset--;
@@ -454,8 +454,8 @@ public class MainDexTracingTest extends TestBase {
     assertArrayEquals(entriesUnsorted, entriesSorted);
   }
 
-  private boolean isLambda(String mainDexEntry) {
-    return mainDexEntry.contains(LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX);
+  private boolean isExternalSyntheticLambda(String mainDexEntry) {
+    return SyntheticItemsTestUtils.isExternalLambda(Reference.classFromDescriptor(mainDexEntry));
   }
 
   private String mainDexStringToDescriptor(String mainDexString) {
@@ -465,11 +465,8 @@ public class MainDexTracingTest extends TestBase {
   }
 
   private void checkSameMainDexEntry(String reference, String computed) {
-    if (isLambda(reference)) {
-      // For lambda classes we check that there is a lambda class for the right containing
-      // class. However, we do not check the hash for the generated lambda class. The hash
-      // changes for different compiler versions because different compiler versions generate
-      // different lambda implementation method names.
+    if (isExternalSyntheticLambda(reference)) {
+      // For synthetic classes we check that the context classes match.
       reference = reference.substring(0, reference.lastIndexOf('$'));
       computed = computed.substring(0, computed.lastIndexOf('$'));
     }

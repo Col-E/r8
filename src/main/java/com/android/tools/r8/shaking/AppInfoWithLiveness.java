@@ -261,7 +261,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.switchMaps = switchMaps;
     this.lockCandidates = lockCandidates;
     this.initClassReferences = initClassReferences;
-    verify();
+    assert verify();
   }
 
   private AppInfoWithLiveness(AppInfoWithLiveness previous, CommittedItems committedItems) {
@@ -356,10 +356,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.initClassReferences);
   }
 
-  private void verify() {
+  private boolean verify() {
     assert keepInfo.verifyPinnedTypesAreLive(liveTypes);
     assert objectAllocationInfoCollection.verifyAllocatedTypesAreLive(
         liveTypes, getMissingClasses(), this);
+    return true;
   }
 
   private static KeepInfoCollection extendPinnedItems(
@@ -443,7 +444,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.lockCandidates = previous.lockCandidates;
     this.initClassReferences = previous.initClassReferences;
     previous.markObsolete();
-    verify();
+    assert verify();
   }
 
   public static AppInfoWithLivenessModifier modifier() {

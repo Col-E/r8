@@ -29,34 +29,35 @@ public class CompareToVisitorWithNamingLens extends CompareToVisitorBase {
 
   @Override
   public int visitDexType(DexType type1, DexType type2) {
-    return namingLens
-        .lookupDescriptor(type1)
-        .acceptCompareTo(namingLens.lookupDescriptor(type2), this);
+    return debug(
+        namingLens
+            .lookupDescriptor(type1)
+            .acceptCompareTo(namingLens.lookupDescriptor(type2), this));
   }
 
   @Override
   public int visitDexField(DexField field1, DexField field2) {
     int order = field1.holder.acceptCompareTo(field2.holder, this);
     if (order != 0) {
-      return order;
+      return debug(order);
     }
     order = namingLens.lookupName(field1).acceptCompareTo(namingLens.lookupName(field2), this);
     if (order != 0) {
-      return order;
+      return debug(order);
     }
-    return field1.type.acceptCompareTo(field2.type, this);
+    return debug(field1.type.acceptCompareTo(field2.type, this));
   }
 
   @Override
   public int visitDexMethod(DexMethod method1, DexMethod method2) {
     int order = method1.holder.acceptCompareTo(method2.holder, this);
     if (order != 0) {
-      return order;
+      return debug(order);
     }
     order = namingLens.lookupName(method1).acceptCompareTo(namingLens.lookupName(method2), this);
     if (order != 0) {
-      return order;
+      return debug(order);
     }
-    return method1.proto.acceptCompareTo(method2.proto, this);
+    return debug(method1.proto.acceptCompareTo(method2.proto, this));
   }
 }

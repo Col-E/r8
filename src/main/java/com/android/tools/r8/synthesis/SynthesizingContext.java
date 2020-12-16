@@ -7,7 +7,6 @@ import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescri
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassBinaryName;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
@@ -75,14 +74,6 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
     return inputContextOrigin;
   }
 
-  DexType createHygienicType(String syntheticId, DexItemFactory factory) {
-    // If the context is a synthetic input, then use its annotated context as the hygienic context.
-    String contextDesc = synthesizingContextType.toDescriptorString();
-    String prefix = contextDesc.substring(0, contextDesc.length() - 1);
-    String suffix = SyntheticItems.INTERNAL_SYNTHETIC_CLASS_SEPARATOR + syntheticId + ";";
-    return factory.createType(prefix + suffix);
-  }
-
   SynthesizingContext rewrite(NonIdentityGraphLens lens) {
     DexType rewrittenInputeContextType = lens.lookupType(inputContextType);
     DexType rewrittenSynthesizingContextType = lens.lookupType(synthesizingContextType);
@@ -127,15 +118,17 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
   void addIfDerivedFromMainDexClass(
       DexProgramClass externalSyntheticClass,
       MainDexClasses mainDexClasses,
-      Set<DexType> allMainDexTypes,
-      Set<DexType> derivedMainDexTypesToIgnore) {
+      Set<DexType> allMainDexTypes) {
     // The input context type (not the annotated context) determines if the derived class is to be
     // in main dex.
     // TODO(b/168584485): Once resolved allMainDexTypes == mainDexClasses.
     if (allMainDexTypes.contains(inputContextType)) {
       mainDexClasses.add(externalSyntheticClass);
-      // Mark the type as to be ignored when computing main-dex placement for legacy types.
-      derivedMainDexTypesToIgnore.add(inputContextType);
     }
+  }
+
+  @Override
+  public String toString() {
+    return "SynthesizingContext{" + getSynthesizingContextType() + "}";
   }
 }

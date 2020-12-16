@@ -105,7 +105,7 @@ public class HashCodeVisitor<T> extends StructuralSpecification<T, HashCodeVisit
   }
 
   @Override
-  protected <S> HashCodeVisitor<T> withItemIterator(
+  protected <S> HashCodeVisitor<T> withCustomItemIterator(
       Function<T, Iterator<S>> getter, CompareToAccept<S> compare, HashingAccept<S> hasher) {
     Iterator<S> it = getter.apply(item);
     while (it.hasNext()) {

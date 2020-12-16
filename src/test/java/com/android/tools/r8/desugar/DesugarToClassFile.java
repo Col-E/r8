@@ -48,7 +48,7 @@ public class DesugarToClassFile extends TestBase {
   private void checkHasLambdaClass(CodeInspector inspector) {
     assertTrue(
         inspector.allClasses().stream()
-            .anyMatch(subject -> subject.getOriginalName().contains("-$$Lambda$")));
+            .anyMatch(subject -> subject.isSynthesizedJavaLambdaClass()));
   }
 
   @Test

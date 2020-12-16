@@ -47,9 +47,9 @@ public class PackageDependentLambdaNamesTest extends TestBase {
     if (parameters.isDexRuntime()) {
       result.inspect(
           inspector -> {
-            // When in the same package we expect the two System.out::print lambdas to be shared.
+            // With the hygienic synthetics the reference to System.out::print can always be shared.
             assertEquals(
-                samePackage ? 2 : 3,
+                2,
                 inspector.allClasses().stream()
                     .filter(c -> c.isSynthesizedJavaLambdaClass())
                     .count());

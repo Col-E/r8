@@ -4,67 +4,61 @@
 package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * Reference to a synthetic method item.
+ * Reference to a synthetic class item.
  *
  * <p>This class is internal to the synthetic items collection, thus package-protected.
  */
-class SyntheticMethodReference
-    extends SyntheticReference<SyntheticMethodReference, SyntheticMethodDefinition> {
-  final DexMethod method;
+class SyntheticClassReference
+    extends SyntheticReference<SyntheticClassReference, SyntheticClassDefinition> {
+  final DexType type;
 
-  SyntheticMethodReference(SyntheticKind kind, SynthesizingContext context, DexMethod method) {
+  SyntheticClassReference(SyntheticKind kind, SynthesizingContext context, DexType type) {
     super(kind, context);
-    this.method = method;
+    this.type = type;
   }
 
   @Override
   DexType getHolder() {
-    return method.holder;
+    return type;
   }
 
   @Override
-  SyntheticMethodDefinition lookupDefinition(Function<DexType, DexClass> definitions) {
-    DexClass clazz = definitions.apply(method.holder);
+  SyntheticClassDefinition lookupDefinition(Function<DexType, DexClass> definitions) {
+    DexClass clazz = definitions.apply(type);
     if (clazz == null) {
       return null;
     }
     assert clazz.isProgramClass();
-    ProgramMethod definition = clazz.asProgramClass().lookupProgramMethod(method);
-    return definition != null
-        ? new SyntheticMethodDefinition(getKind(), getContext(), definition)
-        : null;
+    return new SyntheticClassDefinition(getKind(), getContext(), clazz.asProgramClass());
   }
 
   @Override
-  SyntheticMethodReference rewrite(NonIdentityGraphLens lens) {
-    DexMethod rewritten = lens.lookupMethod(method);
+  SyntheticClassReference rewrite(NonIdentityGraphLens lens) {
+    DexType rewritten = lens.lookupType(type);
     // If the reference has been non-trivially rewritten the compiler has changed it and it can no
     // longer be considered a synthetic. The context may or may not have changed.
-    if (method != rewritten && !lens.isSimpleRenaming(method.holder, rewritten.holder)) {
+    if (type != rewritten && !lens.isSimpleRenaming(type, rewritten)) {
       // If the referenced item is rewritten, it should be moved to another holder as the
       // synthetic holder is no longer part of the synthetic collection.
-      assert method.holder != rewritten.holder;
-      assert SyntheticNaming.verifyNotInternalSynthetic(rewritten.holder);
+      assert SyntheticNaming.verifyNotInternalSynthetic(rewritten);
       return null;
     }
     SynthesizingContext context = getContext().rewrite(lens);
-    return context == getContext() && rewritten == method
+    return context == getContext() && rewritten == type
         ? this
-        : new SyntheticMethodReference(getKind(), context, rewritten);
+        : new SyntheticClassReference(getKind(), context, rewritten);
   }
 
   @Override
   void apply(
       Consumer<SyntheticMethodReference> onMethod, Consumer<SyntheticClassReference> onClass) {
-    onMethod.accept(this);
+    onClass.accept(this);
   }
 }

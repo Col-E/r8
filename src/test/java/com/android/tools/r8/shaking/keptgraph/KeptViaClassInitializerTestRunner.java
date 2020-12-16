@@ -21,6 +21,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
@@ -28,6 +29,7 @@ import com.android.tools.r8.utils.graphinspector.GraphInspector.QueryNode;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.function.Supplier;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -129,12 +131,13 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
     consumer.printWhyAreYouKeeping(classFromClass(A.class), new PrintStream(baos));
     assertThat(baos.toString(), containsString(KEPT_REASON_SUFFIX));
 
-    // TODO(b/124499108): Currently synthetic lambda classes are referenced,
+    // TODO(b/124499108): Currently (internal) synthetic lambda classes are referenced,
     //  should be their originating context.
+    Matcher<String> hasLambda = SyntheticItemsTestUtils.containsInternalSyntheticReference();
     if (parameters.isDexRuntime()) {
-      assertThat(baos.toString(), containsString("-$$Lambda$"));
+      assertThat(baos.toString(), hasLambda);
     } else {
-      assertThat(baos.toString(), not(containsString("-$$Lambda$")));
+      assertThat(baos.toString(), not(hasLambda));
     }
   }
 }

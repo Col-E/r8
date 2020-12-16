@@ -123,11 +123,6 @@ public class AppInfo implements DexDefinitionSupplier {
     }
   }
 
-  public Collection<DexProgramClass> synthesizedClasses() {
-    assert checkIfObsolete();
-    return syntheticItems.getPendingSyntheticClasses();
-  }
-
   public Collection<DexProgramClass> classes() {
     assert checkIfObsolete();
     return app.classes();

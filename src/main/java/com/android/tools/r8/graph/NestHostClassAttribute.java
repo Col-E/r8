@@ -5,11 +5,18 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.structural.StructuralItem;
+import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.StructuralSpecification;
 import org.objectweb.asm.ClassWriter;
 
-public class NestHostClassAttribute {
+public class NestHostClassAttribute implements StructuralItem<NestHostClassAttribute> {
 
   private final DexType nestHost;
+
+  private static void specify(StructuralSpecification<NestHostClassAttribute, ?> spec) {
+    spec.withItem(a -> a.nestHost);
+  }
 
   public NestHostClassAttribute(DexType nestHost) {
     this.nestHost = nestHost;
@@ -26,5 +33,15 @@ public class NestHostClassAttribute {
   public void write(ClassWriter writer, NamingLens lens) {
     assert nestHost != null;
     writer.visitNestHost(lens.lookupInternalName(nestHost));
+  }
+
+  @Override
+  public NestHostClassAttribute self() {
+    return this;
+  }
+
+  @Override
+  public StructuralMapping<NestHostClassAttribute> getStructuralMapping() {
+    return NestHostClassAttribute::specify;
   }
 }

@@ -1,9 +1,10 @@
 // Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.desugar.backports;
+package com.android.tools.r8.desugar.lambdas;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -11,10 +12,8 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.desugar.backports.AbstractBackportTest.MiniAssert;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -33,12 +32,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class BackportDuplicationTest extends TestBase {
+public class LambdaStaticInstanceFieldDuplicationTest extends TestBase {
 
-  static final String EXPECTED = StringUtils.lines("Hello, world");
+  static final String EXPECTED = StringUtils.lines("User1.1", "User1.2", "User2");
 
   static final List<Class<?>> CLASSES =
-      ImmutableList.of(MiniAssert.class, TestClass.class, User1.class, User2.class);
+      ImmutableList.of(TestClass.class, MyConsumer.class, Accept.class, User1.class, User2.class);
 
   static final List<String> CLASS_TYPE_NAMES =
       CLASSES.stream().map(Class::getTypeName).collect(Collectors.toList());
@@ -54,7 +53,7 @@ public class BackportDuplicationTest extends TestBase {
         .build();
   }
 
-  public BackportDuplicationTest(TestParameters parameters) {
+  public LambdaStaticInstanceFieldDuplicationTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -70,7 +69,8 @@ public class BackportDuplicationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(CLASSES)
         .addKeepMainRule(TestClass.class)
-        .addKeepClassAndMembersRules(MiniAssert.class)
+        // Prevent R8 from eliminating the lambdas by keeping the application of them.
+        .addKeepClassAndMembersRules(Accept.class)
         .setMinApi(parameters.getApiLevel())
         .minification(minify)
         .run(parameters.getRuntime(), TestClass.class)
@@ -87,6 +87,7 @@ public class BackportDuplicationTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::checkNoOriginalsAndNoInternalSynthetics)
         .inspect(this::checkExpectedSynthetics);
+    ;
   }
 
   @Test
@@ -134,7 +135,7 @@ public class BackportDuplicationTest extends TestBase {
     // This will not merge synthetics regardless of the setting of intermediate.
     Path out3 = temp.newFolder().toPath().resolve("out3.zip");
     testForD8(parameters.getBackend())
-        .addProgramClasses(MiniAssert.class, TestClass.class)
+        .addProgramClasses(TestClass.class, MyConsumer.class, Accept.class)
         .addProgramFiles(out1, out2)
         .setMinApi(parameters.getApiLevel())
         .setIntermediate(true)
@@ -197,19 +198,15 @@ public class BackportDuplicationTest extends TestBase {
   private void checkNoOriginalsAndNoInternalSynthetics(CodeInspector inspector) {
     inspector.forAllClasses(
         clazz -> {
-          SyntheticNaming.verifyNotInternalSynthetic(clazz.getFinalReference());
-          if (!clazz.getOriginalName().equals(MiniAssert.class.getTypeName())) {
-            clazz.forAllMethods(
-                method ->
-                    assertTrue(
-                        "Unexpected static invoke to java.lang method:\n"
-                            + method.getMethod().codeToString(),
-                        method
-                            .streamInstructions()
-                            .filter(InstructionSubject::isInvokeStatic)
-                            .noneMatch(
-                                i -> i.getMethod().qualifiedName().startsWith("java.lang"))));
-          }
+          assertFalse(SyntheticItemsTestUtils.isInternalLambda(clazz.getFinalReference()));
+          clazz.forAllMethods(
+              method ->
+                  assertTrue(
+                      "Unexpected invoke dynamic:\n" + method.getMethod().codeToString(),
+                      method.isAbstract()
+                          || method
+                              .streamInstructions()
+                              .noneMatch(InstructionSubject::isInvokeDynamic)));
         });
   }
 
@@ -217,7 +214,10 @@ public class BackportDuplicationTest extends TestBase {
     Set<MethodReference> methods = new HashSet<>();
     inspector.allClasses().stream()
         .filter(c -> !CLASS_TYPE_NAMES.contains(c.getFinalName()))
-        .forEach(c -> c.allMethods().forEach(m -> methods.add(m.asMethodReference())));
+        .forEach(
+            c ->
+                c.allMethods(m -> !m.isInstanceInitializer() && !m.isClassInitializer())
+                    .forEach(m -> methods.add(m.asMethodReference())));
     return methods;
   }
 
@@ -228,58 +228,54 @@ public class BackportDuplicationTest extends TestBase {
     // of intermediates.
     Set<MethodReference> expectedSynthetics =
         ImmutableSet.of(
-            SyntheticItemsTestUtils.syntheticBackportMethod(
-                User1.class, 0, Character.class.getMethod("compare", char.class, char.class)),
-            SyntheticItemsTestUtils.syntheticBackportMethod(
-                User1.class, 1, Boolean.class.getMethod("compare", boolean.class, boolean.class)),
-            SyntheticItemsTestUtils.syntheticBackportMethod(
-                User2.class, 0, Integer.class.getMethod("compare", int.class, int.class)));
+            // User1 has two lambdas.
+            SyntheticItemsTestUtils.syntheticLambdaMethod(
+                User1.class, 0, MyConsumer.class.getMethod("accept", Object.class)),
+            SyntheticItemsTestUtils.syntheticLambdaMethod(
+                User1.class, 1, MyConsumer.class.getMethod("accept", Object.class)),
+            // User2 has one lambda.
+            SyntheticItemsTestUtils.syntheticLambdaMethod(
+                User2.class, 0, MyConsumer.class.getMethod("accept", Object.class)));
     assertEquals(expectedSynthetics, getSyntheticMethods(inspector));
+  }
+
+  interface MyConsumer {
+    void accept(Object o);
+  }
+
+  static class Accept {
+    public static void accept(Object o, MyConsumer consumer) {
+      consumer.accept(o);
+    }
   }
 
   static class User1 {
 
-    private static void testBooleanCompare() {
-      // These 4 calls should share the same synthetic method.
-      MiniAssert.assertTrue(Boolean.compare(true, false) > 0);
-      MiniAssert.assertTrue(Boolean.compare(true, true) == 0);
-      MiniAssert.assertTrue(Boolean.compare(false, false) == 0);
-      MiniAssert.assertTrue(Boolean.compare(false, true) < 0);
+    private static void testSystemPrintln1() {
+      // The lambda will reference a lambda$x method on User1 which is created by javac for each
+      // lambda on the class. Thus there can be no sharing unless R8 inlines the lambda method into
+      // the desugared lambda classes.
+      Accept.accept("1.1", o -> System.out.println("User" + o));
     }
 
-    private static void testCharacterCompare() {
-      // All 6 (User1 and User2) calls should share the same synthetic method.
-      MiniAssert.assertTrue(Character.compare('b', 'a') > 0);
-      MiniAssert.assertTrue(Character.compare('a', 'a') == 0);
-      MiniAssert.assertTrue(Character.compare('a', 'b') < 0);
+    private static void testSystemPrintln2() {
+      Accept.accept("1.2", o -> System.out.println("User" + o));
     }
   }
 
   static class User2 {
 
-    private static void testCharacterCompare() {
-      // All 6 (User1 and User2) calls should share the same synthetic method.
-      MiniAssert.assertTrue(Character.compare('y', 'x') > 0);
-      MiniAssert.assertTrue(Character.compare('x', 'x') == 0);
-      MiniAssert.assertTrue(Character.compare('x', 'y') < 0);
-    }
-
-    private static void testIntegerCompare() {
-      // These 3 calls should share the same synthetic method.
-      MiniAssert.assertTrue(Integer.compare(2, 0) > 0);
-      MiniAssert.assertTrue(Integer.compare(0, 0) == 0);
-      MiniAssert.assertTrue(Integer.compare(0, 2) < 0);
+    private static void testSystemPrintln() {
+      Accept.accept("2", o -> System.out.println("User" + o));
     }
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
-      User1.testBooleanCompare();
-      User1.testCharacterCompare();
-      User2.testCharacterCompare();
-      User2.testIntegerCompare();
-      System.out.println("Hello, world");
+      User1.testSystemPrintln1();
+      User1.testSystemPrintln2();
+      User2.testSystemPrintln();
     }
   }
 }

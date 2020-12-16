@@ -1273,6 +1273,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean enable = true;
     public boolean enableConstructorMerging = true;
+    // TODO(b/174809311): Update or remove the option and its tests after new lambdas synthetics.
     public boolean enableJavaLambdaMerging = false;
     public boolean enableKotlinLambdaMerging = true;
 
