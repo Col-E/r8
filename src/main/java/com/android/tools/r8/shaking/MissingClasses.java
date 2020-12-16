@@ -49,6 +49,10 @@ public class MissingClasses {
     private final Set<DexType> alreadyMissingClasses;
     private final Set<DexType> newMissingClasses = Sets.newIdentityHashSet();
 
+    // Set of missing types that are not to be reported as missing. This does not hide reports
+    // if the same type is in newMissingClasses in which case it is reported regardless.
+    private final Set<DexType> newIgnoredMissingClasses = Sets.newIdentityHashSet();
+
     private Builder() {
       this(Sets.newIdentityHashSet());
     }
@@ -64,6 +68,10 @@ public class MissingClasses {
     public Builder addNewMissingClasses(Collection<DexType> types) {
       newMissingClasses.addAll(types);
       return this;
+    }
+
+    public void ignoreNewMissingClass(DexType type) {
+      newIgnoredMissingClasses.add(type);
     }
 
     public boolean contains(DexType type) {
@@ -111,7 +119,18 @@ public class MissingClasses {
 
     /** Intentionally private, use {@link Builder#reportMissingClasses(InternalOptions)}. */
     private MissingClasses build() {
+      // Extend the newMissingClasses set with all other missing classes.
+      //
+      // We also add newIgnoredMissingClasses to newMissingClasses to be able to assert that we have
+      // a closed world after the first round of tree shaking: we should never lookup a class that
+      // was not live or missing during the first round of tree shaking.
+      // See also AppInfoWithLiveness.definitionFor().
+      //
+      // Note: At this point, all missing classes in newMissingClasses have already been reported.
+      // Thus adding newIgnoredMissingClasses to newMissingClasses will not lead to reports for the
+      // classes in newIgnoredMissingClasses.
       newMissingClasses.addAll(alreadyMissingClasses);
+      newMissingClasses.addAll(newIgnoredMissingClasses);
       return new MissingClasses(newMissingClasses);
     }
 

@@ -102,6 +102,7 @@ import com.android.tools.r8.shaking.RootSetBuilder.MutableItemsWithRules;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -506,6 +507,10 @@ public class Enqueuer {
   }
 
   private void recordTypeReference(DexType type) {
+    recordTypeReference(type, this::reportMissingClass);
+  }
+
+  private void recordTypeReference(DexType type, Consumer<DexType> missingClassConsumer) {
     if (type == null) {
       return;
     }
@@ -516,7 +521,7 @@ public class Enqueuer {
       return;
     }
     // Lookup the definition, ignoring the result. This populates the missing and referenced sets.
-    definitionFor(type);
+    definitionFor(type, missingClassConsumer);
   }
 
   private void recordMethodReference(DexMethod method) {
@@ -541,22 +546,25 @@ public class Enqueuer {
   }
 
   public DexClass definitionFor(DexType type) {
-    return internalDefinitionFor(type, false);
+    return definitionFor(type, this::reportMissingClass);
+  }
+
+  private DexClass definitionFor(DexType type, Consumer<DexType> missingClassConsumer) {
+    return internalDefinitionFor(type, false, missingClassConsumer);
   }
 
   private DexClass definitionForFromReflectiveAccess(DexType type) {
-    return internalDefinitionFor(type, true);
+    return internalDefinitionFor(type, true, ConsumerUtils.emptyConsumer());
   }
 
-  private DexClass internalDefinitionFor(DexType type, boolean fromReflectiveAccess) {
+  private DexClass internalDefinitionFor(
+      DexType type, boolean fromReflectiveAccess, Consumer<DexType> missingClassConsumer) {
     DexClass clazz =
         fromReflectiveAccess
             ? appView.appInfo().definitionForWithoutExistenceAssert(type)
             : appView.appInfo().definitionFor(type);
     if (clazz == null) {
-      if (!fromReflectiveAccess) {
-        reportMissingClass(type);
-      }
+      missingClassConsumer.accept(type);
       return null;
     }
     if (clazz.isNotProgramClass()) {
@@ -1672,8 +1680,8 @@ public class Enqueuer {
 
     // Mark types in inner-class attributes referenced.
     for (InnerClassAttribute innerClassAttribute : holder.getInnerClasses()) {
-      recordTypeReference(innerClassAttribute.getInner());
-      recordTypeReference(innerClassAttribute.getOuter());
+      recordTypeReference(innerClassAttribute.getInner(), this::ignoreMissingClass);
+      recordTypeReference(innerClassAttribute.getOuter(), this::ignoreMissingClass);
     }
     EnclosingMethodAttribute enclosingMethodAttribute = holder.getEnclosingMethodAttribute();
     if (enclosingMethodAttribute != null) {
@@ -2123,6 +2131,10 @@ public class Enqueuer {
           shouldNotBeMinified(method.getReference());
           markMethodAsKept(method, keepReasonWitness);
         });
+  }
+
+  private void ignoreMissingClass(DexType clazz) {
+    missingClassesBuilder.ignoreNewMissingClass(clazz);
   }
 
   private void reportMissingClass(DexType clazz) {
@@ -3269,10 +3281,10 @@ public class Enqueuer {
     rootSet.pruneDeadItems(appView, this);
 
     // Ensure references from all hard coded factory items.
-    // TODO(b/72683872): We should distinguish compiler synthesized type references from program
-    //  references such that we can use the computed set of missing classes for reporting missing
-    //  classes to the client.
-    appView.dexItemFactory().forEachPossiblyCompilerSynthesizedType(this::recordTypeReference);
+    appView
+        .dexItemFactory()
+        .forEachPossiblyCompilerSynthesizedType(
+            type -> recordTypeReference(type, this::ignoreMissingClass));
 
     // Rebuild a new app only containing referenced types.
     Set<DexLibraryClass> libraryClasses = Sets.newIdentityHashSet();

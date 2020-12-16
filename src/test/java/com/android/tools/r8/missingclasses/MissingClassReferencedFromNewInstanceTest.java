@@ -24,7 +24,8 @@ public class MissingClassReferencedFromNewInstanceTest extends MissingClassesTes
 
   @Test
   public void test() throws Exception {
-    AssertUtils.assertFailsCompilation(
+    AssertUtils.assertFailsCompilationIf(
+        !getDontWarnConfiguration().isDontWarnMissingClass(),
         () -> {
           // TODO(b/175542052): Should succeed with -dontwarn, but there are spurious missing class
           //  warnings.
@@ -38,8 +39,10 @@ public class MissingClassReferencedFromNewInstanceTest extends MissingClassesTes
           assertThat(
               exception.getCause().getMessage(),
               allOf(
-                  containsString("Compilation can't be completed because"),
-                  containsString("other classes are missing")));
+                  containsString(
+                      "Compilation can't be completed because the class `"
+                          + MissingClass.class.getTypeName()
+                          + "` is missing.")));
         });
   }
 

@@ -61,4 +61,8 @@ public abstract class MissingClassesTestBase extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile();
   }
+
+  public DontWarnConfiguration getDontWarnConfiguration() {
+    return dontWarnConfiguration;
+  }
 }
