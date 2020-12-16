@@ -6,19 +6,20 @@ package com.android.tools.r8.ir.analysis.inlining;
 
 import com.android.tools.r8.ir.code.InvokeMethod;
 
-/** Constraint that is never satisfied. */
-public class NeverSimpleInliningConstraint extends SimpleInliningConstraint {
+/** Constraint that is always satisfied. */
+public class AlwaysSimpleInliningConstraint extends SimpleInliningConstraint {
 
-  public static final NeverSimpleInliningConstraint INSTANCE = new NeverSimpleInliningConstraint();
+  public static final AlwaysSimpleInliningConstraint INSTANCE =
+      new AlwaysSimpleInliningConstraint();
 
-  private NeverSimpleInliningConstraint() {}
+  private AlwaysSimpleInliningConstraint() {}
 
-  public static NeverSimpleInliningConstraint getInstance() {
+  public static AlwaysSimpleInliningConstraint getInstance() {
     return INSTANCE;
   }
 
   @Override
-  public boolean isNever() {
+  public boolean isAlways() {
     return true;
   }
 

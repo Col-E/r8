@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SetUtils;
@@ -776,6 +777,11 @@ public class Value implements Comparable<Value> {
 
   public boolean isConstNumber() {
     return isConstant() && getConstInstruction().isConstNumber();
+  }
+
+  public boolean isConstBoolean(boolean value) {
+    return isConstNumber()
+        && definition.asConstNumber().getRawValue() == BooleanUtils.longValue(value);
   }
 
   public boolean isConstZero() {

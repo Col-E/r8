@@ -8,7 +8,27 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 
 public abstract class SimpleInliningConstraint {
 
+  public boolean isAlways() {
+    return false;
+  }
+
+  public boolean isBooleanFalse() {
+    return false;
+  }
+
+  public boolean isBooleanTrue() {
+    return false;
+  }
+
   public boolean isNever() {
+    return false;
+  }
+
+  public boolean isNotNull() {
+    return false;
+  }
+
+  public boolean isNull() {
     return false;
   }
 

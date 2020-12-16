@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
 import com.android.tools.r8.graph.classmerging.StaticallyMergedClasses;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
+import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraintFactory;
 import com.android.tools.r8.ir.analysis.proto.EnumLiteProtoShrinker;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
@@ -67,6 +68,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private final InstanceFieldInitializationInfoFactory instanceFieldInitializationInfoFactory =
       new InstanceFieldInitializationInfoFactory();
   private final MethodProcessingId.Factory methodProcessingIdFactory;
+  private final SimpleInliningConstraintFactory simpleInliningConstraintFactory =
+      new SimpleInliningConstraintFactory();
 
   // Desugaring.
   public final PrefixRewritingMapper rewritePrefix;
@@ -185,6 +188,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public MethodProcessingId.Factory methodProcessingIdFactory() {
     return methodProcessingIdFactory;
+  }
+
+  public SimpleInliningConstraintFactory simpleInliningConstraintFactory() {
+    return simpleInliningConstraintFactory;
   }
 
   public T appInfo() {
