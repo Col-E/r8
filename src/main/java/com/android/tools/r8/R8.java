@@ -324,13 +324,15 @@ public class R8 {
           new RuntimeTypeCheckInfo.Builder(appView.dexItemFactory());
       try {
         // TODO(b/154849103): Remove once reported by the Enqueuer.
-        appView.setAppInfo(
-            appView
-                .appInfo()
-                .rebuildWithClassHierarchy(
-                    MissingClasses.builderForInitialMissingClasses()
-                        .addNewMissingClasses(new SubtypingInfo(appView).getMissingClasses())
-                        .reportMissingClasses(options)));
+        if (!appView.testing().enableExperimentalMissingClassesReporting) {
+          appView.setAppInfo(
+              appView
+                  .appInfo()
+                  .rebuildWithClassHierarchy(
+                      MissingClasses.builderForInitialMissingClasses()
+                          .addNewMissingClasses(new SubtypingInfo(appView).getMissingClasses())
+                          .reportMissingClasses(options)));
+        }
 
         // Add synthesized -assumenosideeffects from min api if relevant.
         if (options.isGeneratingDex()) {

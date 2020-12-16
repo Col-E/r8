@@ -13,6 +13,11 @@ import java.util.function.Consumer;
 
 public class AssertUtils {
 
+  public static <E extends Throwable> void assertFailsCompilation(
+      ThrowingAction<E> action, Consumer<Throwable> consumer) throws E {
+    assertFailsCompilationIf(true, action, consumer);
+  }
+
   public static <E extends Throwable> void assertFailsCompilationIf(
       boolean condition, ThrowingAction<E> action) throws E {
     assertFailsCompilationIf(condition, action, null);

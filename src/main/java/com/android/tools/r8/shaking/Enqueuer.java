@@ -3303,9 +3303,9 @@ public class Enqueuer {
             appInfo.getClassToFeatureSplitMap(),
             appInfo.getMainDexClasses(),
             deadProtoTypes,
-            // TODO(b/170075585): This should use missingClassesBuilder.reportMissingClasses() once
-            //  we are ready to report missing classes from the Enqueuer.
-            missingClassesBuilder.ignoreMissingClasses(),
+            appView.testing().enableExperimentalMissingClassesReporting
+                ? missingClassesBuilder.reportMissingClasses(options)
+                : missingClassesBuilder.ignoreMissingClasses(),
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),
             Collections.unmodifiableSet(failedResolutionTargets),
