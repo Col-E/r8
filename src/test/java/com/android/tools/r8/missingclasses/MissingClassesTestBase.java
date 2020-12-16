@@ -7,6 +7,7 @@ package com.android.tools.r8.missingclasses;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompilerBuilder.DiagnosticsConsumer;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import java.util.List;
@@ -46,7 +47,8 @@ public abstract class MissingClassesTestBase extends TestBase {
     this.parameters = parameters;
   }
 
-  public R8TestCompileResult compile(Class<?> mainClass, Class<?> missingClass)
+  public R8TestCompileResult compileWithExpectedDiagnostics(
+      Class<?> mainClass, Class<?> missingClass, DiagnosticsConsumer diagnosticsConsumer)
       throws CompilationFailedException {
     return testForR8(parameters.getBackend())
         .addProgramClasses(mainClass)
@@ -59,7 +61,7 @@ public abstract class MissingClassesTestBase extends TestBase {
             testBuilder -> testBuilder.addDontWarn(missingClass))
         .addOptionsModification(TestingOptions::enableExperimentalMissingClassesReporting)
         .setMinApi(parameters.getApiLevel())
-        .compile();
+        .compileWithExpectedDiagnostics(diagnosticsConsumer);
   }
 
   public DontWarnConfiguration getDontWarnConfiguration() {

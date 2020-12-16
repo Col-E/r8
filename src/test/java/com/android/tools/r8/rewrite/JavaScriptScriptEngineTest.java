@@ -68,7 +68,7 @@ public class JavaScriptScriptEngineTest extends ScriptEngineTestBase {
         .compile()
         .assertAllWarningMessagesMatch(
             anyOf(
-                containsString("Missing class:"),
+                containsString("Missing class "),
                 containsString("required for default or static interface methods desugaring"),
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists.")))
         .run(parameters.getRuntime(), TestClass.class)

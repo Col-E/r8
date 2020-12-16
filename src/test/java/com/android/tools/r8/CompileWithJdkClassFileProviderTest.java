@@ -89,15 +89,11 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
       try {
         // java.util.concurrent.Flow$Subscriber is not present in JDK8 rt.jar.
         testBuilder.compileWithExpectedDiagnostics(
-            diagnotics -> {
-              diagnotics.assertErrorsCount(1);
-              diagnotics.assertWarningsCount(1);
-              diagnotics.assertInfosCount(0);
+            diagnostics -> {
+              diagnostics.assertOnlyErrors();
+              diagnostics.assertErrorsCount(1);
               assertThat(
-                  diagnotics.getErrors().get(0).getDiagnosticMessage(),
-                  StringContains.containsString("java.util.concurrent.Flow$Subscriber"));
-              assertThat(
-                  diagnotics.getWarnings().get(0).getDiagnosticMessage(),
+                  diagnostics.getErrors().get(0).getDiagnosticMessage(),
                   StringContains.containsString("java.util.concurrent.Flow$Subscriber"));
             });
       } catch (CompilationFailedException e) {

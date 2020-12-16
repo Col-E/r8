@@ -93,8 +93,8 @@ public class TreeShakingSpecificTest {
           @Override
           public void error(Diagnostic error) {
             String expectedErrorMessage =
-                "Compilation can't be completed because the class `java.lang.Object` is missing";
-            if (error.getDiagnosticMessage().contains(expectedErrorMessage)) {
+                "Compilation can't be completed because the class java.lang.Object is missing.";
+            if (error.getDiagnosticMessage().equals(expectedErrorMessage)) {
               return;
             }
             throw new RuntimeException("Unexpected compilation error");

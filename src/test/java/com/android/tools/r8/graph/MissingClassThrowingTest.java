@@ -76,6 +76,6 @@ public class MissingClassThrowingTest extends TestBase {
         .addRunClasspathClasses(MissingException.class)
         .run(parameters.getRuntime(), Program.class)
         .assertFailureWithErrorThatMatches(
-            containsString("Missing class: " + MissingException.class.getTypeName()));
+            containsString("Missing class " + MissingException.class.getTypeName()));
   }
 }

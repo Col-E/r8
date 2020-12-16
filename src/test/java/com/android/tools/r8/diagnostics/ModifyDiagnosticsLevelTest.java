@@ -12,7 +12,7 @@ import com.android.tools.r8.DiagnosticsLevel;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.shaking.MissingClassesDiagnostic;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -20,7 +20,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class ModifyDiagnosticsLevelTest extends TestBase {
 
-  private static final String MISSING_CLASS_MESSAGE_PREFIX = "Missing class: ";
+  private static final String MISSING_CLASS_MESSAGE_PREFIX = "Missing class ";
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -40,7 +40,7 @@ public class ModifyDiagnosticsLevelTest extends TestBase {
         .setDiagnosticsLevelModifier(
             (level, diagnostic) -> {
               if (level == DiagnosticsLevel.WARNING
-                  && diagnostic instanceof StringDiagnostic
+                  && diagnostic instanceof MissingClassesDiagnostic
                   && diagnostic.getDiagnosticMessage().startsWith(MISSING_CLASS_MESSAGE_PREFIX)) {
                 return DiagnosticsLevel.INFO;
               }
@@ -57,7 +57,7 @@ public class ModifyDiagnosticsLevelTest extends TestBase {
   }
 
   @Test
-  public void testWarningToError() throws Exception {
+  public void testWarningToError() {
     try {
       testForR8(Backend.DEX)
           .addProgramClasses(TestClass.class)
@@ -66,7 +66,7 @@ public class ModifyDiagnosticsLevelTest extends TestBase {
           .setDiagnosticsLevelModifier(
               (level, diagnostic) -> {
                 if (level == DiagnosticsLevel.WARNING
-                    && diagnostic instanceof StringDiagnostic
+                    && diagnostic instanceof MissingClassesDiagnostic
                     && diagnostic.getDiagnosticMessage().startsWith(MISSING_CLASS_MESSAGE_PREFIX)) {
                   return DiagnosticsLevel.ERROR;
                 }

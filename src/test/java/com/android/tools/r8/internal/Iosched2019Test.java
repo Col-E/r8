@@ -61,7 +61,7 @@ public class Iosched2019Test extends TestBase {
                 containsString("Proguard configuration rule does not match anything: ")))
         .assertAllWarningMessagesMatch(
             anyOf(
-                containsString("Missing class: "),
+                containsString("Missing class "),
                 containsString("required for default or static interface methods desugaring"),
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists.")))
         .assertNoErrorMessages();

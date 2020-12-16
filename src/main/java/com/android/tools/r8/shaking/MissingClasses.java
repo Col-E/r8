@@ -4,11 +4,9 @@
 
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
@@ -94,24 +92,15 @@ public class MissingClasses {
       Set<DexType> newMissingClassesWithoutDontWarn =
           options.getProguardConfiguration().getDontWarnPatterns().getNonMatches(newMissingClasses);
       if (!newMissingClassesWithoutDontWarn.isEmpty()) {
-        for (DexType type : newMissingClassesWithoutDontWarn) {
-          options.reporter.warning(new StringDiagnostic("Missing class: " + type.toSourceString()));
-        }
-        if (!options.ignoreMissingClasses) {
-          DexType missingClass = newMissingClassesWithoutDontWarn.iterator().next();
-          if (newMissingClassesWithoutDontWarn.size() == 1) {
-            throw new CompilationError(
-                "Compilation can't be completed because the class `"
-                    + missingClass.toSourceString()
-                    + "` is missing.");
-          } else {
-            throw new CompilationError(
-                "Compilation can't be completed because `"
-                    + missingClass.toSourceString()
-                    + "` and "
-                    + (newMissingClassesWithoutDontWarn.size() - 1)
-                    + " other classes are missing.");
-          }
+        MissingClassesDiagnostic diagnostic =
+            new MissingClassesDiagnostic.Builder()
+                .addMissingClasses(newMissingClassesWithoutDontWarn)
+                .setFatal(!options.ignoreMissingClasses)
+                .build();
+        if (options.ignoreMissingClasses) {
+          options.reporter.warning(diagnostic);
+        } else {
+          throw options.reporter.fatalError(diagnostic);
         }
       }
       return build();

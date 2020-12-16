@@ -4,14 +4,13 @@
 
 package com.android.tools.r8.missingclasses;
 
-import static org.hamcrest.CoreMatchers.allOf;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.shaking.MissingClassesDiagnostic;
 import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import org.junit.Test;
 
@@ -25,25 +24,31 @@ public class MissingClassReferencedFromNewInstanceTest extends MissingClassesTes
   @Test
   public void test() throws Exception {
     AssertUtils.assertFailsCompilationIf(
+        // TODO(b/175542052): Should not fail compilation with -dontwarn Main.
         !getDontWarnConfiguration().isDontWarnMissingClass(),
-        () -> {
-          // TODO(b/175542052): Should succeed with -dontwarn, but there are spurious missing class
-          //  warnings.
-          compile(Main.class, MissingClass.class);
-        },
-        exception -> {
-          assertTrue(exception instanceof CompilationFailedException);
-          assertTrue(exception.getCause() instanceof CompilationError);
+        () ->
+            compileWithExpectedDiagnostics(
+                Main.class, MissingClass.class, this::inspectDiagnostics));
+  }
 
-          // TODO(b/175542052): Only MissingClass should be reported as missing.
-          assertThat(
-              exception.getCause().getMessage(),
-              allOf(
-                  containsString(
-                      "Compilation can't be completed because the class `"
-                          + MissingClass.class.getTypeName()
-                          + "` is missing.")));
-        });
+  private void inspectDiagnostics(TestDiagnosticMessages diagnostics) {
+    // TODO(b/175542052): Should also not have any diagnostics with -dontwarn Main.
+    if (getDontWarnConfiguration().isDontWarnMissingClass()) {
+      diagnostics.assertNoMessages();
+      return;
+    }
+
+    diagnostics
+        .assertOnlyErrors()
+        .assertErrorsCount(1)
+        .assertAllErrorsMatch(diagnosticType(MissingClassesDiagnostic.class));
+
+    MissingClassesDiagnostic diagnostic = (MissingClassesDiagnostic) diagnostics.getErrors().get(0);
+    assertEquals(
+        !getDontWarnConfiguration().isDontWarnMissingClass(),
+        diagnostic.getMissingClasses().stream()
+            .map(TypeReference::getTypeName)
+            .anyMatch(MissingClass.class.getTypeName()::equals));
   }
 
   static class Main {

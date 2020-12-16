@@ -54,7 +54,7 @@ public class Java11R8CompilationTest extends TestBase {
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
         .allowDiagnosticWarningMessages()
         .compile()
-        .assertAllWarningMessagesMatch(containsString("Missing class:"))
+        .assertAllWarningMessagesMatch(containsString("Missing class "))
         .inspect(this::assertNotEmpty)
         .inspect(Java11R8CompilationTest::assertNoNests);
   }
