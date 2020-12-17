@@ -54,8 +54,8 @@ public class ParameterRewritingTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
             .enableNoStaticClassMergingAnnotations()
-            .addKeepRules("-dontobfuscate")
             .addOptionsModification(options -> options.enableClassInlining = false)
+            .noMinification()
             .run(TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();

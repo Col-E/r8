@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
@@ -91,6 +93,8 @@ public class MissingClasses {
     public MissingClasses reportMissingClasses(InternalOptions options) {
       Set<DexType> newMissingClassesWithoutDontWarn =
           options.getProguardConfiguration().getDontWarnPatterns().getNonMatches(newMissingClasses);
+      newMissingClassesWithoutDontWarn.removeAll(
+          getAllowedMissingClasses(options.dexItemFactory()));
       if (!newMissingClassesWithoutDontWarn.isEmpty()) {
         MissingClassesDiagnostic diagnostic =
             new MissingClassesDiagnostic.Builder()
@@ -104,6 +108,10 @@ public class MissingClasses {
         }
       }
       return build();
+    }
+
+    private static Collection<DexType> getAllowedMissingClasses(DexItemFactory dexItemFactory) {
+      return ImmutableList.of(dexItemFactory.annotationThrows);
     }
 
     /** Intentionally private, use {@link Builder#reportMissingClasses(InternalOptions)}. */

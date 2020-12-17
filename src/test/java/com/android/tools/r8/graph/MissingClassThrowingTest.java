@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.graph;
 
-import static org.hamcrest.core.StringContains.containsString;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoStaticClassMerging;
@@ -12,8 +13,10 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.shaking.MissingClassesDiagnostic;
+import com.android.tools.r8.utils.InternalOptions.TestingOptions;
+import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import java.io.IOException;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -61,21 +64,32 @@ public class MissingClassThrowingTest extends TestBase {
     this.parameters = parameters;
   }
 
-  @Ignore("b/128885552")
   @Test
   public void testSuperTypeOfExceptions() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(Program.class)
-        .noMinification()
-        .noTreeShaking()
-        .enableInliningAnnotations()
-        .enableNoStaticClassMergingAnnotations()
-        .debug()
-        .addKeepRules("-keep class ** { *; }", "-keepattributes *")
-        .compile()
-        .addRunClasspathClasses(MissingException.class)
-        .run(parameters.getRuntime(), Program.class)
-        .assertFailureWithErrorThatMatches(
-            containsString("Missing class " + MissingException.class.getTypeName()));
+    AssertUtils.assertFailsCompilation(
+        () ->
+            testForR8(parameters.getBackend())
+                .addProgramClasses(Program.class)
+                .addKeepAllClassesRule()
+                .addKeepAllAttributes()
+                .addOptionsModification(TestingOptions::enableExperimentalMissingClassesReporting)
+                .noMinification()
+                .noTreeShaking()
+                .enableInliningAnnotations()
+                .enableNoStaticClassMergingAnnotations()
+                .debug()
+                .compileWithExpectedDiagnostics(
+                    diagnostics -> {
+                      diagnostics
+                          .assertOnlyErrors()
+                          .assertErrorsMatch(diagnosticType(MissingClassesDiagnostic.class));
+
+                      MissingClassesDiagnostic diagnostic =
+                          (MissingClassesDiagnostic) diagnostics.getErrors().get(0);
+                      assertEquals(1, diagnostic.getMissingClasses().size());
+                      assertEquals(
+                          MissingException.class.getTypeName(),
+                          diagnostic.getMissingClasses().iterator().next().getTypeName());
+                    }));
   }
 }
