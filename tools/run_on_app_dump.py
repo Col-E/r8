@@ -317,7 +317,7 @@ APPS = [
     'dump_app': 'dump_app.zip',
     'apk_app': 'app-release.apk',
     'url': 'https://github.com/chrisbanes/tivi',
-    'revision': '8e2ddd8fe2d343264a66aa1ef8acbd4cc587e8ce',
+    'revision': '5c6d9ed338885c59b1fc64050d92d056417bb4de',
     'folder': 'tivi',
   }),
   App({
