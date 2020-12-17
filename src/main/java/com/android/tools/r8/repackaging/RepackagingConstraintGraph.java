@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ProgramPackage;
@@ -127,11 +126,10 @@ public class RepackagingConstraintGraph {
             innerClassAttribute ->
                 registry.registerInnerClassAttribute(clazz, innerClassAttribute));
 
-    // Trace the references from the enclosing method attribute.
-    EnclosingMethodAttribute attr = clazz.getEnclosingMethodAttribute();
-    if (attr != null) {
-      registry.registerEnclosingMethodAttribute(attr);
-    }
+    // Trace the references from the enclosing method and nest attributes.
+    registry.registerEnclosingMethodAttribute(clazz.getEnclosingMethodAttribute());
+    registry.registerNestHostAttribute(clazz.getNestHostClassAttribute());
+    registry.registerNestMemberClassAttributes(clazz.getNestMembersClassAttributes());
   }
 
   private void registerReferencesFromField(ProgramField field) {

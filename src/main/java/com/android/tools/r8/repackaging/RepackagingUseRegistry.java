@@ -19,6 +19,8 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MemberResolutionResult;
+import com.android.tools.r8.graph.NestHostClassAttribute;
+import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -26,6 +28,7 @@ import com.android.tools.r8.graph.SuccessfulMemberResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -233,6 +236,9 @@ public class RepackagingUseRegistry extends UseRegistry {
   }
 
   public void registerEnclosingMethodAttribute(EnclosingMethodAttribute enclosingMethodAttribute) {
+    if (enclosingMethodAttribute == null) {
+      return;
+    }
     // For references in enclosing method attributes we add an edge from the context to the
     // referenced item even if the item would be accessible from another package, to make sure that
     // we don't split such classes into different packages.
@@ -256,5 +262,27 @@ public class RepackagingUseRegistry extends UseRegistry {
     // that we don't split such classes into different packages.
     innerClassAttribute.forEachType(
         type -> registerTypeAccess(type, clazz -> registerClassTypeAccess(clazz, alwaysTrue())));
+  }
+
+  public void registerNestHostAttribute(NestHostClassAttribute nestHostClassAttribute) {
+    if (nestHostClassAttribute == null) {
+      return;
+    }
+    // JVM require nest-members to be in the same package.
+    registerTypeAccess(
+        nestHostClassAttribute.getNestHost(),
+        clazz -> registerClassTypeAccess(clazz, alwaysTrue()));
+  }
+
+  public void registerNestMemberClassAttributes(
+      List<NestMemberClassAttribute> memberClassAttributes) {
+    if (memberClassAttributes == null) {
+      return;
+    }
+    // JVM require nest-members to be in the same package.
+    memberClassAttributes.forEach(
+        nestMember ->
+            registerTypeAccess(
+                nestMember.getNestMember(), clazz -> registerClassTypeAccess(clazz, alwaysTrue())));
   }
 }

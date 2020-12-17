@@ -21,6 +21,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class RepackageWithNestAndKeepOnReferenceToPrivateTest extends RepackageTestBase {
 
+  private final String EXPECTED = "Hello World!";
+
   @Parameters(name = "{1}, kind: {0}")
   public static List<Object[]> data() {
     return buildParameters(
@@ -38,7 +40,7 @@ public class RepackageWithNestAndKeepOnReferenceToPrivateTest extends RepackageT
     testForRuntime(parameters)
         .addProgramClassFileData(getProgramClassData())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello World!");
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
@@ -49,13 +51,9 @@ public class RepackageWithNestAndKeepOnReferenceToPrivateTest extends RepackageT
         .enableInliningAnnotations()
         .addKeepMainRule(Main.class)
         .compile()
-        .inspect(
-            inspector -> {
-              assertThat(A.class, isRepackaged(inspector));
-            })
+        .inspect(inspector -> assertThat(A.class, isNotRepackaged(inspector)))
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/175196884): Repackaging is not allowed to move class.
-        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   private List<byte[]> getProgramClassData() throws Exception {
