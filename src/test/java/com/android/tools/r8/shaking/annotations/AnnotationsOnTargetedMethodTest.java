@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking.annotations;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -34,7 +35,7 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public AnnotationsOnTargetedMethodTest(TestParameters parameters) {
@@ -52,9 +53,11 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(AnnotationsOnTargetedMethodTest.class)
         .addKeepMainRule(TestClass.class)
-        .addKeepRules("-keepattributes *Annotation*", "-dontobfuscate")
+        .addKeepRuntimeVisibleAnnotations()
         .enableInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
+        .noMinification()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
@@ -91,6 +94,7 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
     void targetedMethod();
   }
 
+  @NoHorizontalClassMerging
   static class InterfaceImpl implements Interface {
 
     @NeverInline
@@ -100,6 +104,7 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static class OtherInterfaceImpl implements Interface {
 
     @NeverInline

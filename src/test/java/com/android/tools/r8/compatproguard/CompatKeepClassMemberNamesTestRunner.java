@@ -11,7 +11,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.BaseCompilerCommand;
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
@@ -40,8 +39,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
 
   private static Class<?> MAIN_CLASS = CompatKeepClassMemberNamesTest.class;
   private static Class<?> BAR_CLASS = CompatKeepClassMemberNamesTest.Bar.class;
-  private static Collection<Class<?>> CLASSES =
-      ImmutableList.of(MAIN_CLASS, BAR_CLASS, NeverInline.class);
+  private static Collection<Class<?>> CLASSES = ImmutableList.of(MAIN_CLASS, BAR_CLASS);
 
   private static String KEEP_RULE =
       "class "
@@ -112,7 +110,12 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
           T extends TestShrinkerBuilder<C, B, CR, RR, T>>
       void testWithoutRules(TestShrinkerBuilder<C, B, CR, RR, T> builder) throws Exception {
     assertBarIsAbsent(
-        builder.addProgramClasses(CLASSES).addKeepMainRule(MAIN_CLASS).noMinification().compile());
+        builder
+            .addProgramClasses(CLASSES)
+            .addKeepMainRule(MAIN_CLASS)
+            .addInliningAnnotations()
+            .noMinification()
+            .compile());
   }
 
   @Test
@@ -207,6 +210,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
         .addProgramClasses(CLASSES)
         .addKeepMainRule(MAIN_CLASS)
         .addKeepRules("-keepclassmembers " + KEEP_RULE_NON_STATIC)
+        .addInliningAnnotations()
         .noMinification();
   }
 
@@ -238,7 +242,8 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
     return builder
         .addProgramClasses(CLASSES)
         .addKeepMainRule(MAIN_CLASS)
-        .addKeepRules("-keepclassmembers " + KEEP_RULE);
+        .addKeepRules("-keepclassmembers " + KEEP_RULE)
+        .addInliningAnnotations();
   }
 
   private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
@@ -309,6 +314,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
         builder
             .addProgramClasses(CLASSES)
             .addKeepMainRule(MAIN_CLASS)
+            .addInliningAnnotations()
             .noMinification()
             .addKeepRules("-keepclassmembers class " + Bar.class.getTypeName())
             .compile());
@@ -394,7 +400,8 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
     return builder
         .addProgramClasses(CLASSES)
         .addKeepMainRule(MAIN_CLASS)
-        .addKeepRules("-keepclassmembernames " + KEEP_RULE);
+        .addKeepRules("-keepclassmembernames " + KEEP_RULE)
+        .addInliningAnnotations();
   }
 
   private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>

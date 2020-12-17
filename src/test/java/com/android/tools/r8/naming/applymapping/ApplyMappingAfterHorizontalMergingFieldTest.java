@@ -82,7 +82,6 @@ public class ApplyMappingAfterHorizontalMergingFieldTest extends TestBase {
     testForJvm()
         .addProgramClasses(LIBRARY_CLASSES)
         .addProgramClasses(PROGRAM_CLASSES)
-        .addTestingAnnotationsAsProgramClasses()
         .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED_SUCCESS);
   }
@@ -92,7 +91,6 @@ public class ApplyMappingAfterHorizontalMergingFieldTest extends TestBase {
     R8TestCompileResult libraryResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(LIBRARY_CLASSES)
-            .addTestingAnnotationsAsProgramClasses()
             .addKeepMainRule(LibraryMain.class)
             .setMinApi(parameters.getApiLevel())
             .compile();

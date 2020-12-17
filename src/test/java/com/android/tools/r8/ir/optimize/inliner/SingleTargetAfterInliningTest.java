@@ -54,7 +54,6 @@ public class SingleTargetAfterInliningTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableSideEffectAnnotations()
-        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

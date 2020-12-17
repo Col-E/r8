@@ -122,7 +122,7 @@ public class B130791310 extends TestBase {
         .addProgramClasses(CLASSES)
         .addKeepClassAndMembersRules(MAIN)
         .addKeepRules(RULES)
-        .addTestingAnnotationsAsProgramClasses()
+        .addNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .applyIf(
             !enableClassMerging, builder -> builder.addKeepRules("-optimizations !class/merging/*"))

@@ -65,7 +65,6 @@ public class NonNullParamTest extends TestBase {
         .addProgramClasses(classes)
         .addKeepMainRule(mainClass)
         .addKeepRules(ImmutableList.of("-keepattributes InnerClasses,Signature,EnclosingMethod"))
-        .addTestingAnnotationsAsProgramClasses()
         // All tests are checking if invocations to certain null-check utils are gone.
         .noMinification()
         .addOptionsModification(

@@ -13,10 +13,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.classmerging.horizontal.TreeFixerInterfaceCollisionTest.C;
-import com.android.tools.r8.classmerging.horizontal.TreeFixerInterfaceImplementedByParentTest.B;
-import com.android.tools.r8.classmerging.horizontal.TreeFixerInterfaceImplementedByParentTest.E;
-import com.android.tools.r8.classmerging.horizontal.TreeFixerInterfaceImplementedByParentTest.I;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Test;
 

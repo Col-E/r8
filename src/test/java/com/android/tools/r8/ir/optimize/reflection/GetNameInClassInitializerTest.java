@@ -45,7 +45,6 @@ public class GetNameInClassInitializerTest extends GetNameTestBase {
     builder.addAll(ToolHelper.getClassFilesForTestDirectory(
         ToolHelper.getPackageDirectoryForTestPackage(MAIN.getPackage()),
         path -> path.getFileName().toString().startsWith("GetNameClinit")));
-    builder.add(ToolHelper.getClassFileForTestClass(NeverInline.class));
     classPaths = builder.build();
   }
 

@@ -12,11 +12,14 @@ import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 public abstract class TestShrinkerBuilder<
         C extends BaseCompilerCommand,
@@ -29,6 +32,9 @@ public abstract class TestShrinkerBuilder<
   protected boolean enableTreeShaking = true;
   protected boolean enableOptimization = true;
   protected boolean enableMinification = true;
+
+  private final Set<Class<? extends Annotation>> addedTestingAnnotations =
+      Sets.newIdentityHashSet();
 
   TestShrinkerBuilder(TestState state, B builder, Backend backend) {
     super(state, builder, backend);
@@ -300,6 +306,78 @@ public abstract class TestShrinkerBuilder<
   }
 
   public abstract T addApplyMapping(String proguardMap);
+
+  public final T addAlwaysInliningAnnotations() {
+    return addTestingAnnotation(AlwaysInline.class);
+  }
+
+  public final T addAssumeNoSideEffectsAnnotations() {
+    return addTestingAnnotation(AssumeNoSideEffects.class);
+  }
+
+  public final T addConstantArgumentAnnotations() {
+    return addTestingAnnotation(KeepConstantArguments.class);
+  }
+
+  public final T addForceInliningAnnotations() {
+    return addTestingAnnotation(ForceInline.class);
+  }
+
+  public final T addInliningAnnotations() {
+    return addTestingAnnotation(NeverInline.class);
+  }
+
+  public final T addMemberValuePropagationAnnotations() {
+    return addTestingAnnotation(NeverPropagateValue.class);
+  }
+
+  public final T addNeverClassInliningAnnotations() {
+    return addTestingAnnotation(NeverClassInline.class);
+  }
+
+  public final T addNeverReprocessClassInitializerAnnotations() {
+    return addTestingAnnotation(NeverReprocessClassInitializer.class);
+  }
+
+  public final T addNeverReprocessMethodAnnotations() {
+    return addTestingAnnotation(NeverReprocessMethod.class);
+  }
+
+  public final T addNoHorizontalClassMergingAnnotations() {
+    return addTestingAnnotation(NoHorizontalClassMerging.class);
+  }
+
+  public final T addNoStaticClassMergingAnnotations() {
+    return addTestingAnnotation(NoStaticClassMerging.class);
+  }
+
+  public final T addNoUnusedInterfaceRemovalAnnotations() {
+    return addTestingAnnotation(NoUnusedInterfaceRemoval.class);
+  }
+
+  public final T addNoVerticalClassMergingAnnotations() {
+    return addTestingAnnotation(NoVerticalClassMerging.class);
+  }
+
+  public final T addReprocessClassInitializerAnnotations() {
+    return addTestingAnnotation(ReprocessClassInitializer.class);
+  }
+
+  public final T addReprocessMethodAnnotations() {
+    return addTestingAnnotation(ReprocessMethod.class);
+  }
+
+  public final T addSideEffectAnnotations() {
+    return addTestingAnnotation(AssumeMayHaveSideEffects.class);
+  }
+
+  public final T addUnusedArgumentAnnotations() {
+    return addTestingAnnotation(KeepUnusedArguments.class);
+  }
+
+  private T addTestingAnnotation(Class<? extends Annotation> clazz) {
+    return addedTestingAnnotations.add(clazz) ? addProgramClasses(clazz) : self();
+  }
 
   private static String getMethodLine(MethodReference method) {
     // Should we encode modifiers in method references?

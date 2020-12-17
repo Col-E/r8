@@ -57,21 +57,6 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   private AllowedDiagnosticMessages allowedDiagnosticMessages = AllowedDiagnosticMessages.NONE;
   private boolean allowUnusedProguardConfigurationRules = false;
-  private boolean enableAssumeNoSideEffectsAnnotations = false;
-  private boolean enableConstantArgumentAnnotations = false;
-  private boolean enableInliningAnnotations = false;
-  private boolean enableMemberValuePropagationAnnotations = false;
-  private boolean enableNoUnusedInterfaceRemovalAnnotations = false;
-  private boolean enableNoVerticalClassMergingAnnotations = false;
-  private boolean enableNoHorizontalClassMergingAnnotations = false;
-  private boolean enableNoStaticClassMergingAnnotations = false;
-  private boolean enableNeverClassInliningAnnotations = false;
-  private boolean enableNeverReprocessClassInitializerAnnotations = false;
-  private boolean enableNeverReprocessMethodAnnotations = false;
-  private boolean enableReprocessClassInitializerAnnotations = false;
-  private boolean enableReprocessMethodAnnotations = false;
-  private boolean enableSideEffectAnnotations = false;
-  private boolean enableUnusedArgumentAnnotations = false;
   private CollectingGraphConsumer graphConsumer = null;
   private List<String> keepRules = new ArrayList<>();
   private List<Path> mainDexRulesFiles = new ArrayList<>();
@@ -82,22 +67,6 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   R8TestCompileResult internalCompile(
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
-    if (enableConstantArgumentAnnotations
-        || enableInliningAnnotations
-        || enableMemberValuePropagationAnnotations
-        || enableNoUnusedInterfaceRemovalAnnotations
-        || enableNoVerticalClassMergingAnnotations
-        || enableNoHorizontalClassMergingAnnotations
-        || enableNoStaticClassMergingAnnotations
-        || enableNeverClassInliningAnnotations
-        || enableNeverReprocessClassInitializerAnnotations
-        || enableNeverReprocessMethodAnnotations
-        || enableReprocessClassInitializerAnnotations
-        || enableReprocessMethodAnnotations
-        || enableSideEffectAnnotations
-        || enableUnusedArgumentAnnotations) {
-      ToolHelper.allowTestProguardOptions(builder);
-    }
     if (!keepRules.isEmpty()) {
       builder.addProguardConfiguration(keepRules, Origin.unknown());
     }
@@ -357,75 +326,54 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   public T enableAlwaysInliningAnnotations() {
-    return enableAlwaysInliningAnnotations(AlwaysInline.class.getPackage().getName());
+    return addAlwaysInliningAnnotations()
+        .enableAlwaysInliningAnnotations(AlwaysInline.class.getPackage().getName());
   }
 
   public T enableAlwaysInliningAnnotations(String annotationPackageName) {
-    if (!enableInliningAnnotations) {
-      enableInliningAnnotations = true;
-      addInternalKeepRules(
-          "-alwaysinline class * { @" + annotationPackageName + ".AlwaysInline *; }");
-    }
-    return self();
+    return addInternalKeepRules(
+        "-alwaysinline class * { @" + annotationPackageName + ".AlwaysInline *; }");
   }
 
   public T enableAssumeNoSideEffectsAnnotations() {
-    return enableAssumeNoSideEffectsAnnotations(AssumeNoSideEffects.class.getPackage().getName());
+    return addAssumeNoSideEffectsAnnotations()
+        .enableAssumeNoSideEffectsAnnotations(AssumeNoSideEffects.class.getPackage().getName());
   }
 
   public T enableAssumeNoSideEffectsAnnotations(String annotationPackageName) {
-    if (!enableAssumeNoSideEffectsAnnotations) {
-      enableAssumeNoSideEffectsAnnotations = true;
-      addInternalKeepRules(
-          "-assumenosideeffects class * { @"
-              + annotationPackageName
-              + ".AssumeNoSideEffects <methods>; }");
-    }
-    return self();
+    return addInternalKeepRules(
+        "-assumenosideeffects class * { @"
+            + annotationPackageName
+            + ".AssumeNoSideEffects <methods>; }");
   }
 
   public T enableInliningAnnotations() {
-    return enableInliningAnnotations(NeverInline.class.getPackage().getName());
+    return addInliningAnnotations()
+        .enableInliningAnnotations(NeverInline.class.getPackage().getName());
   }
 
   public T enableInliningAnnotations(String annotationPackageName) {
-    if (!enableInliningAnnotations) {
-      enableInliningAnnotations = true;
-      addInternalKeepRules(
-          "-neverinline class * { @" + annotationPackageName + ".NeverInline *; }");
-    }
-    return self();
+    return addInternalKeepRules(
+        "-neverinline class * { @" + annotationPackageName + ".NeverInline *; }");
   }
 
   public T enableForceInliningAnnotations() {
-    return enableForceInliningAnnotations(ForceInline.class.getPackage().getName());
+    return addForceInliningAnnotations()
+        .enableForceInliningAnnotations(ForceInline.class.getPackage().getName());
   }
 
   public T enableForceInliningAnnotations(String annotationPackageName) {
-    if (!enableInliningAnnotations) {
-      enableInliningAnnotations = true;
-      addInternalKeepRules(
-          "-forceinline class * { @" + annotationPackageName + ".ForceInline *; }");
-    }
-    return self();
+    return addInternalKeepRules(
+        "-forceinline class * { @" + annotationPackageName + ".ForceInline *; }");
   }
 
   public T enableNeverClassInliningAnnotations() {
-    if (!enableNeverClassInliningAnnotations) {
-      enableNeverClassInliningAnnotations = true;
-      addInternalKeepRules("-neverclassinline @com.android.tools.r8.NeverClassInline class *");
-    }
-    return self();
+    return addNeverClassInliningAnnotations()
+        .addInternalKeepRules("-neverclassinline @com.android.tools.r8.NeverClassInline class *");
   }
 
-  private void addInternalMatchInterfaceRule(String name, Class matchInterface) {
-    StringBuilder sb = new StringBuilder();
-    sb.append("-");
-    sb.append(name);
-    sb.append(" @");
-    sb.append(matchInterface.getTypeName());
-    sb.append(" class *");
-    addInternalKeepRules(sb.toString());
+  T addInternalMatchInterfaceRule(String name, Class<?> matchInterface) {
+    return addInternalKeepRules("-" + name + " @" + matchInterface.getTypeName() + " class *");
   }
 
   public T noClassInlining() {
@@ -467,42 +415,31 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   public T enableNoUnusedInterfaceRemovalAnnotations() {
-    if (!enableNoUnusedInterfaceRemovalAnnotations) {
-      enableNoUnusedInterfaceRemovalAnnotations = true;
-      addInternalMatchInterfaceRule(
-          NoUnusedInterfaceRemovalRule.RULE_NAME, NoUnusedInterfaceRemoval.class);
-    }
-    return self();
+    return addNoUnusedInterfaceRemovalAnnotations()
+        .addInternalMatchInterfaceRule(
+            NoUnusedInterfaceRemovalRule.RULE_NAME, NoUnusedInterfaceRemoval.class);
   }
 
   public T enableNoVerticalClassMergingAnnotations() {
-    if (!enableNoVerticalClassMergingAnnotations) {
-      enableNoVerticalClassMergingAnnotations = true;
-      addInternalMatchInterfaceRule(
-          NoVerticalClassMergingRule.RULE_NAME, NoVerticalClassMerging.class);
-    }
-    return self();
-  }
-
-  public T addNoHorizontalClassMergingRule(String clazz) {
-    return addKeepRules("-nohorizontalclassmerging class " + clazz);
+    return addNoVerticalClassMergingAnnotations()
+        .addInternalMatchInterfaceRule(
+            NoVerticalClassMergingRule.RULE_NAME, NoVerticalClassMerging.class);
   }
 
   public T enableNoHorizontalClassMergingAnnotations() {
-    if (!enableNoHorizontalClassMergingAnnotations) {
-      enableNoHorizontalClassMergingAnnotations = true;
-      addInternalMatchInterfaceRule(
-          NoHorizontalClassMergingRule.RULE_NAME, NoHorizontalClassMerging.class);
-    }
-    return self();
+    return addProgramClasses(NoHorizontalClassMerging.class)
+        .addInternalMatchInterfaceRule(
+            NoHorizontalClassMergingRule.RULE_NAME, NoHorizontalClassMerging.class);
+  }
+
+  public T addNoHorizontalClassMergingRule(String clazz) {
+    return addInternalKeepRules("-nohorizontalclassmerging class " + clazz);
   }
 
   public T enableNoStaticClassMergingAnnotations() {
-    if (!enableNoStaticClassMergingAnnotations) {
-      enableNoStaticClassMergingAnnotations = true;
-      addInternalMatchInterfaceRule(NoStaticClassMergingRule.RULE_NAME, NoStaticClassMerging.class);
-    }
-    return self();
+    return addNoStaticClassMergingAnnotations()
+        .addInternalMatchInterfaceRule(
+            NoStaticClassMergingRule.RULE_NAME, NoStaticClassMerging.class);
   }
 
   public T enableMemberValuePropagationAnnotations() {
@@ -511,54 +448,40 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T enableMemberValuePropagationAnnotations(boolean enable) {
     if (enable) {
-      if (!enableMemberValuePropagationAnnotations) {
-        enableMemberValuePropagationAnnotations = true;
-        addInternalKeepRules(
-            "-neverpropagatevalue class * { @com.android.tools.r8.NeverPropagateValue *; }");
-      }
-    } else {
-      assert !enableMemberValuePropagationAnnotations;
+      return addMemberValuePropagationAnnotations()
+          .addInternalKeepRules(
+              "-neverpropagatevalue class * { @com.android.tools.r8.NeverPropagateValue *; }");
     }
     return self();
   }
 
   public T enableReprocessClassInitializerAnnotations() {
-    if (!enableReprocessClassInitializerAnnotations) {
-      enableReprocessClassInitializerAnnotations = true;
-      addInternalKeepRules(
-          "-reprocessclassinitializer @com.android.tools.r8.ReprocessClassInitializer class *");
-    }
-    return self();
+    return addReprocessClassInitializerAnnotations()
+        .addInternalKeepRules(
+            "-reprocessclassinitializer @com.android.tools.r8.ReprocessClassInitializer class *");
   }
 
   public T enableNeverReprocessClassInitializerAnnotations() {
-    if (!enableNeverReprocessClassInitializerAnnotations) {
-      enableNeverReprocessClassInitializerAnnotations = true;
-      addInternalKeepRules(
-          "-neverreprocessclassinitializer @com.android.tools.r8.NeverReprocessClassInitializer"
-              + " class *");
-    }
-    return self();
+    return addNeverReprocessClassInitializerAnnotations()
+        .addInternalKeepRules(
+            "-neverreprocessclassinitializer @com.android.tools.r8.NeverReprocessClassInitializer"
+                + " class *");
   }
 
   public T enableReprocessMethodAnnotations() {
-    if (!enableReprocessMethodAnnotations) {
-      enableReprocessMethodAnnotations = true;
-      addInternalKeepRules(
-          "-reprocessmethod class * {", "  @com.android.tools.r8.ReprocessMethod <methods>;", "}");
-    }
-    return self();
+    return addReprocessMethodAnnotations()
+        .addInternalKeepRules(
+            "-reprocessmethod class * {",
+            "  @com.android.tools.r8.ReprocessMethod <methods>;",
+            "}");
   }
 
   public T enableNeverReprocessMethodAnnotations() {
-    if (!enableNeverReprocessMethodAnnotations) {
-      enableNeverReprocessMethodAnnotations = true;
-      addInternalKeepRules(
-          "-neverreprocessmethod class * {",
-          "  @com.android.tools.r8.NeverReprocessMethod <methods>;",
-          "}");
-    }
-    return self();
+    return addNeverReprocessMethodAnnotations()
+        .addInternalKeepRules(
+            "-neverreprocessmethod class * {",
+            "  @com.android.tools.r8.NeverReprocessMethod <methods>;",
+            "}");
   }
 
   public T enableProtoShrinking() {
@@ -574,22 +497,16 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   public T enableSideEffectAnnotations() {
-    if (!enableSideEffectAnnotations) {
-      enableSideEffectAnnotations = true;
-      addInternalKeepRules(
-          "-assumemayhavesideeffects class * {",
-          "  @com.android.tools.r8.AssumeMayHaveSideEffects <methods>;",
-          "}");
-    }
-    return self();
+    return addSideEffectAnnotations()
+        .addInternalKeepRules(
+            "-assumemayhavesideeffects class * {",
+            "  @com.android.tools.r8.AssumeMayHaveSideEffects <methods>;",
+            "}");
   }
 
   public T assumeAllMethodsMayHaveSideEffects() {
-    if (!enableSideEffectAnnotations) {
-      enableSideEffectAnnotations = true;
-      addInternalKeepRules("-assumemayhavesideeffects class * { <methods>; }");
-    }
-    return self();
+    return addSideEffectAnnotations()
+        .addInternalKeepRules("-assumemayhavesideeffects class * { <methods>; }");
   }
 
   public T enableConstantArgumentAnnotations() {
@@ -598,13 +515,9 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T enableConstantArgumentAnnotations(boolean value) {
     if (value) {
-      if (!enableConstantArgumentAnnotations) {
-        enableConstantArgumentAnnotations = true;
-        addInternalKeepRules(
-            "-keepconstantarguments class * { @com.android.tools.r8.KeepConstantArguments *; }");
-      }
-    } else {
-      assert !enableConstantArgumentAnnotations;
+      return addConstantArgumentAnnotations()
+          .addInternalKeepRules(
+              "-keepconstantarguments class * { @com.android.tools.r8.KeepConstantArguments *; }");
     }
     return self();
   }
@@ -615,13 +528,9 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T enableUnusedArgumentAnnotations(boolean value) {
     if (value) {
-      if (!enableUnusedArgumentAnnotations) {
-        enableUnusedArgumentAnnotations = true;
-        addInternalKeepRules(
-            "-keepunusedarguments class * { @com.android.tools.r8.KeepUnusedArguments *; }");
-      }
-    } else {
-      assert !enableUnusedArgumentAnnotations;
+      return addUnusedArgumentAnnotations()
+          .addInternalKeepRules(
+              "-keepunusedarguments class * { @com.android.tools.r8.KeepUnusedArguments *; }");
     }
     return self();
   }
@@ -659,9 +568,10 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
-  private void addInternalKeepRules(String... rules) {
+  T addInternalKeepRules(String... rules) {
     // We don't add these to the keep-rule set for other test provided rules.
     builder.addProguardConfiguration(Arrays.asList(rules), Origin.unknown());
+    return enableProguardTestOptions();
   }
 
   @Override

@@ -63,7 +63,6 @@ public class ApplyMappingAfterHorizontalMergingMethodTest extends TestBase {
   // Test runner code follows.
 
   private static final Class<?>[] LIBRARY_CLASSES = {
-      NeverInline.class,
       LibraryA.class,
       LibraryB.class,
       LibraryMain.class

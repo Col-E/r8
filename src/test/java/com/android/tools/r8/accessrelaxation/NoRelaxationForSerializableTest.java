@@ -125,9 +125,11 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
     assumeTrue(parameters.isCfRuntime());
     testForProguard()
         .addProgramClasses(CLASSES)
-        .addTestingAnnotationsAsProgramClasses()
         .addKeepRuleFiles(configuration)
         .addKeepRules(KEEPMEMBER_RULES)
+        .addInliningAnnotations()
+        .addMemberValuePropagationAnnotations()
+        .addNoVerticalClassMergingAnnotations()
         .compile()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
@@ -158,7 +160,9 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
     assumeTrue(parameters.isCfRuntime());
     testForProguard()
         .addProgramClasses(CLASSES)
-        .addTestingAnnotationsAsProgramClasses()
+        .addInliningAnnotations()
+        .addMemberValuePropagationAnnotations()
+        .addNoVerticalClassMergingAnnotations()
         .addKeepRuleFiles(configuration)
         .compile()
         .run(parameters.getRuntime(), MAIN)

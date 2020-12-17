@@ -6,7 +6,6 @@ package com.android.tools.r8.classmerging.horizontal;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.classmerging.horizontal.NonReboundFieldAccessOnMergedClassTest.C;
 import com.android.tools.r8.classmerging.horizontal.testclasses.NonReboundFieldAccessWithMergedTypeTestClasses;
 import org.junit.Test;
 import org.junit.runner.RunWith;

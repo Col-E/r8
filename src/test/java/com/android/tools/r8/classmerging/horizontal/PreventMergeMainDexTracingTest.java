@@ -13,7 +13,6 @@ import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.classmerging.horizontal.PreventMergeMainDexListTest.Main;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;

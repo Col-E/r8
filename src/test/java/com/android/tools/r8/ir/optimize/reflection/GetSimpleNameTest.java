@@ -125,16 +125,6 @@ public class GetSimpleNameTest extends GetNameTestBase {
       "Inner",
       "Inner"
   );
-  private static final String OUTPUT_WITH_SHRUNK_ATTRIBUTES = StringUtils.lines(
-      "Local_t03",
-      "InnerLocal",
-      "$",
-      "$$",
-      "Local[][][]",
-      "[][][]",
-      "Outer$Inner",
-      "Outer$Inner"
-  );
   // JDK8 computes the simple name differently: some assumptions about non-member classes,
   // e.g., 1 or more digits (followed by the simple name if it's local).
   // Since JDK9, the simple name is computed by stripping off the package name.
@@ -171,8 +161,6 @@ public class GetSimpleNameTest extends GetNameTestBase {
     builder.add(ToolHelper.getClassFileForTestClass(Outer.class));
     builder.add(ToolHelper.getClassFileForTestClass(Outer.Inner.class));
     builder.add(ToolHelper.getClassFileForTestClass(Outer.TestHelper.class));
-    builder.add(ToolHelper.getClassFileForTestClass(ForceInline.class));
-    builder.add(ToolHelper.getClassFileForTestClass(NeverInline.class));
     classPaths = builder.build();
   }
 

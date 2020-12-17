@@ -13,7 +13,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
@@ -88,7 +87,6 @@ public class ClassStaticizerTest extends TestBase {
 
   private static final Class<?> main = TrivialTestClass.class;
   private static final Class<?>[] classes = {
-    NeverInline.class,
     TrivialTestClass.class,
     Simple.class,
     SimpleWithGetter.class,
@@ -238,7 +236,6 @@ public class ClassStaticizerTest extends TestBase {
   public void testMoveToHost_fieldOnly() throws Exception {
     Class<?> main = MoveToHostFieldOnlyTestClass.class;
     Class<?>[] classes = {
-        NeverInline.class,
         MoveToHostFieldOnlyTestClass.class,
         HostOkFieldOnly.class,
         CandidateOkFieldOnly.class
@@ -269,7 +266,6 @@ public class ClassStaticizerTest extends TestBase {
   public void testMoveToHost() throws Exception {
     Class<?> main = MoveToHostTestClass.class;
     Class<?>[] classes = {
-        NeverInline.class,
         MoveToHostTestClass.class,
         HostOk.class,
         CandidateOk.class,

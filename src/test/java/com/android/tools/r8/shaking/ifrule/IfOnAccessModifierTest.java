@@ -54,13 +54,12 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
     switch (shrinker) {
       case PROGUARD6:
         assertTrue(parameters.isCfRuntime());
-        return testForProguard().addTestingAnnotationsAsProgramClasses();
+        return testForProguard().addInliningAnnotations().addNeverClassInliningAnnotations();
       case R8:
         return testForR8(parameters.getBackend())
-            .addTestingAnnotationsAsProgramClasses()
             .allowUnusedProguardConfigurationRules(allowDiagnosticInfoMessages)
-            .enableNeverClassInliningAnnotations()
-            .enableInliningAnnotations();
+            .enableInliningAnnotations()
+            .enableNeverClassInliningAnnotations();
       default:
         throw new Unreachable();
     }

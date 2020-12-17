@@ -12,10 +12,6 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.classmerging.horizontal.TreeFixerCollisionTest.A;
-import com.android.tools.r8.classmerging.horizontal.TreeFixerCollisionTest.B;
-import com.android.tools.r8.classmerging.horizontal.TreeFixerCollisionTest.C;
-import com.android.tools.r8.classmerging.horizontal.TreeFixerCollisionTest.Main;
 import org.junit.Test;
 
 public class TreeFixerConstructorCollisionTest extends HorizontalClassMergingTestBase {
