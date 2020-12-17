@@ -174,10 +174,10 @@ def read_dump(args, temp):
   dump_file = zipfile.ZipFile(os.path.abspath(args.dump), 'r')
   with utils.ChangedWorkingDirectory(temp):
     if args.override or not os.path.isfile(
-        os.path.join(temp, 'proguard.config')):
+        os.path.join(temp, 'r8-version')):
       print("Extracting into: %s" % temp)
       dump_file.extractall()
-      if not os.path.isfile(os.path.join(temp, 'proguard.config')):
+      if not os.path.isfile(os.path.join(temp, 'r8-version')):
         error("Did not extract into %s. Either the zip file is invalid or the "
               "dump is missing files" % temp)
     return Dump(temp)
