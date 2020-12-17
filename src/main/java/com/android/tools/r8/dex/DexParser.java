@@ -53,6 +53,8 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.OffsetToObjectMapping;
@@ -62,7 +64,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
-import com.android.tools.r8.utils.Reporter;
 import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -636,18 +637,19 @@ public class DexParser {
         }
       }
       DexAnnotationSet fieldAnnotations = annotationIterator.getNextFor(field);
-      String fieldSignature = DexAnnotation.getSignature(fieldAnnotations, dexItemFactory);
-      if (fieldSignature != null) {
-        fieldAnnotations = fieldAnnotations.getWithout(dexItemFactory.annotationSignature);
+      FieldTypeSignature fieldTypeSignature = FieldTypeSignature.noSignature();
+      if (!options.passthroughDexCode) {
+        String fieldSignature = DexAnnotation.getSignature(fieldAnnotations, dexItemFactory);
+        if (fieldSignature != null) {
+          fieldAnnotations = fieldAnnotations.getWithout(dexItemFactory.annotationSignature);
+          fieldTypeSignature =
+              GenericSignature.parseFieldTypeSignature(
+                  field.name.toString(), fieldSignature, origin, dexItemFactory, options.reporter);
+        }
       }
       fields[i] =
           new DexEncodedField(
-              field,
-              accessFlags,
-              GenericSignature.parseFieldTypeSignature(
-                  field.name.toString(), fieldSignature, origin, dexItemFactory, options.reporter),
-              fieldAnnotations,
-              staticValue);
+              field, accessFlags, fieldTypeSignature, fieldAnnotations, staticValue);
     }
     return fields;
   }
@@ -676,20 +678,25 @@ public class DexParser {
       DexMethod method = indexedItems.getMethod(methodIndex);
       accessFlags.setConstructor(method, dexItemFactory);
       DexAnnotationSet methodAnnotations = annotationIterator.getNextFor(method);
-      String methodSignature = DexAnnotation.getSignature(methodAnnotations, dexItemFactory);
-      if (methodSignature != null) {
-        methodAnnotations = methodAnnotations.getWithout(dexItemFactory.annotationSignature);
-      }
-      methods[i] =
-          new DexEncodedMethod(
-              method,
-              accessFlags,
+      MethodTypeSignature methodTypeSignature = MethodTypeSignature.noSignature();
+      if (!options.passthroughDexCode) {
+        String methodSignature = DexAnnotation.getSignature(methodAnnotations, dexItemFactory);
+        if (methodSignature != null) {
+          methodAnnotations = methodAnnotations.getWithout(dexItemFactory.annotationSignature);
+          methodTypeSignature =
               GenericSignature.parseMethodSignature(
                   method.name.toString(),
                   methodSignature,
                   origin,
                   dexItemFactory,
-                  options.reporter),
+                  options.reporter);
+        }
+      }
+      methods[i] =
+          new DexEncodedMethod(
+              method,
+              accessFlags,
+              methodTypeSignature,
               methodAnnotations,
               parameterAnnotationsIterator.getNextFor(method),
               code);
@@ -783,8 +790,7 @@ public class DexParser {
       }
 
       AttributesAndAnnotations attrs =
-          new AttributesAndAnnotations(
-              type, origin, annotationsDirectory.clazz, options.itemFactory, options.reporter);
+          new AttributesAndAnnotations(type, origin, annotationsDirectory.clazz, options);
 
       Long finalChecksum = checksum;
       ChecksumSupplier checksumSupplier =
@@ -1380,15 +1386,12 @@ public class DexParser {
     }
 
     public AttributesAndAnnotations(
-        DexType type,
-        Origin origin,
-        DexAnnotationSet annotations,
-        DexItemFactory factory,
-        Reporter reporter) {
+        DexType type, Origin origin, DexAnnotationSet annotations, InternalOptions options) {
       this.originalAnnotations = annotations;
       DexType enclosingClass = null;
       DexMethod enclosingMethod = null;
       List<DexType> memberClasses = null;
+      DexItemFactory factory = options.dexItemFactory();
 
       for (int i = 0; i < annotations.annotations.length; i++) {
         DexAnnotation annotation = annotations.annotations[i];
@@ -1415,12 +1418,13 @@ public class DexParser {
           } else {
             memberClasses.addAll(members);
           }
-        } else if (DexAnnotation.isSignatureAnnotation(annotation, factory)) {
+        } else if (DexAnnotation.isSignatureAnnotation(annotation, factory)
+            && !options.passthroughDexCode) {
           ensureAnnotations(i);
           String signature = DexAnnotation.getSignature(annotation);
           classSignature =
               GenericSignature.parseClassSignature(
-                  type.getName(), signature, origin, factory, reporter);
+                  type.getName(), signature, origin, factory, options.reporter);
         } else {
           copyAnnotation(annotation);
         }
