@@ -237,8 +237,11 @@ final class InlineCandidateProcessor {
       for (Instruction user : currentUsers) {
         if (user.isAssume() || user.isCheckCast()) {
           if (user.isCheckCast()) {
+            CheckCast checkCast = user.asCheckCast();
+            // TODO(b/175863158): Allow unsafe casts by rewriting into throw new ClassCastException.
             boolean isCheckCastUnsafe =
-                !appView.appInfo().isSubtype(eligibleClass.type, user.asCheckCast().getType());
+                !checkCast.getType().isClassType()
+                    || !appView.appInfo().isSubtype(eligibleClass.type, checkCast.getType());
             if (isCheckCastUnsafe) {
               return user; // Not eligible.
             }
