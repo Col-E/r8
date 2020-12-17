@@ -505,8 +505,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   public T assumeAllMethodsMayHaveSideEffects() {
-    return addSideEffectAnnotations()
-        .addInternalKeepRules("-assumemayhavesideeffects class * { <methods>; }");
+    return addInternalKeepRules("-assumemayhavesideeffects class * { <methods>; }");
   }
 
   public T enableConstantArgumentAnnotations() {
