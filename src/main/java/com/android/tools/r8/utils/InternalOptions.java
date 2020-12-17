@@ -1467,6 +1467,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean allowInvalidCfAccessFlags =
         System.getProperty("com.android.tools.r8.allowInvalidCfAccessFlags") != null;
 
+    public boolean allowConflictingSyntheticTypes = false;
+
     // Flag to allow processing of resources in D8. A data resource consumer still needs to be
     // specified.
     public boolean enableD8ResourcesPassThrough = false;

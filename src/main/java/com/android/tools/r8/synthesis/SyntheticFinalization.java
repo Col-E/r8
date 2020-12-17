@@ -689,8 +689,8 @@ public class SyntheticFinalization {
               appView.dexItemFactory());
       DexClass clazz = appView.appInfo().definitionForWithoutExistenceAssert(externalType);
       if (clazz != null && isNotSyntheticType(clazz.type)) {
-        // TODO(b/170698191): Assert false here once L8 desugars everything in first phase.
-        assert true : "Unexpected creation of an existing external synthetic type: " + clazz;
+        assert options.testing.allowConflictingSyntheticTypes
+            : "Unexpected creation of an existing external synthetic type: " + clazz;
         externalType = null;
       }
     } while (externalType == null);
