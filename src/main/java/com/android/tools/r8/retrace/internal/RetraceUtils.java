@@ -30,8 +30,7 @@ import java.util.function.Predicate;
 
 public class RetraceUtils {
 
-  private static final Set<String> UNKNOWN_SOURCEFILE_NAMES =
-      Sets.newHashSet("", "SourceFile", "Unknown", "Unknown Source", "PG");
+  private static final Set<String> KEEP_SOURCEFILE_NAMES = Sets.newHashSet("Native Method");
 
   public static String methodDescriptionFromRetraceMethod(
       RetracedMethod methodReference, boolean appendHolder, boolean verbose) {
@@ -109,24 +108,17 @@ public class RetraceUtils {
       String minifiedClassName,
       String sourceFile,
       boolean hasRetraceResult) {
-    boolean fileNameProbablyChanged =
-        hasRetraceResult && !retracedClassName.startsWith(minifiedClassName);
-    if (!UNKNOWN_SOURCEFILE_NAMES.contains(sourceFile) && !fileNameProbablyChanged) {
-      // We have no new information, only rewrite filename if it is unknown.
-      // PG-retrace will always rewrite the filename, but that seems a bit to harsh to do.
+    if (!hasRetraceResult || KEEP_SOURCEFILE_NAMES.contains(sourceFile)) {
       return sourceFile;
     }
     String extension = Files.getFileExtension(sourceFile);
-    if (extension.isEmpty()) {
+    String newFileName = getOuterClassSimpleName(retracedClassName);
+    if (newFileName.endsWith("Kt") && (extension.isEmpty() || extension.equals("kt"))) {
+      newFileName = newFileName.substring(0, newFileName.length() - 2);
+      extension = "kt";
+    } else if (extension.isEmpty()) {
       extension = "java";
     }
-    if (!hasRetraceResult) {
-      // We have no mapping but but file name is unknown, so the best we can do is take the
-      // name of the obfuscated clazz.
-      assert minifiedClassName.equals(retracedClassName);
-      return getOuterClassSimpleName(minifiedClassName) + "." + extension;
-    }
-    String newFileName = getOuterClassSimpleName(retracedClassName);
     return newFileName + "." + extension;
   }
 

@@ -42,8 +42,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
 
   private final TestParameters parameters;
-  // TODO(b/151132660): Fix filename
-  private static final String FILENAME_INLINE_STATIC = "InlineFunctionKt.kt";
+  private static final String FILENAME_INLINE_STATIC = "InlineFunction.kt";
   private static final String FILENAME_INLINE_INSTANCE = "InlineFunction.kt";
 
   @Parameters(name = "{0}")

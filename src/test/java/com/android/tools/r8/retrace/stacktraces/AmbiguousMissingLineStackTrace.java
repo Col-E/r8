@@ -30,7 +30,7 @@ public class AmbiguousMissingLineStackTrace implements StackTraceForTest {
         "    <OR> at com.android.tools.r8.R8.foo(R8.java:7)",
         "    at com.android.tools.r8.R8.bar(R8.java:8)",
         "    <OR> at com.android.tools.r8.R8.foo(R8.java:8)",
-        "    at com.android.tools.r8.R8.main(R8.java)",
+        "    at com.android.tools.r8.R8.main(Unknown Source)",
         "Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)",
         "    at com.android.tools.r8.R8.bar(R8.java:9)",
         "    <OR> at com.android.tools.r8.R8.foo(R8.java:9)",

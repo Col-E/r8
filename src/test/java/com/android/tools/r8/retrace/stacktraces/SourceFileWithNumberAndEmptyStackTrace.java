@@ -32,7 +32,7 @@ public class SourceFileWithNumberAndEmptyStackTrace implements StackTraceForTest
     return Arrays.asList(
         "  at com.android.tools.r8.utils.ExceptionUtils.withR8CompilationHandler("
             + "ExceptionUtils.java:59)",
-        "  at com.android.tools.r8.R8.runForTesting(R.java:261)",
+        "  at com.android.tools.r8.R8.runForTesting(R8.java:261)",
         "  at com.android.tools.r8.utils.ExceptionUtils.withR8CompilationHandler("
             + "ExceptionUtils.java:59)",
         "  at com.android.tools.r8.R8.runForTesting(R8.java:261)");

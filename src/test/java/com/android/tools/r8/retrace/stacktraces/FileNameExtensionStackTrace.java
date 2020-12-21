@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.retrace.stacktraces;
 
+import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
 import java.util.List;
 
@@ -29,24 +30,24 @@ public class FileNameExtensionStackTrace implements StackTraceForTest {
 
   @Override
   public String mapping() {
-    return "foo.bar.baz -> a.b.c:";
+    return StringUtils.lines("foo.bar.baz -> a.b.c:", "R8 -> R8:");
   }
 
   @Override
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "foo.bar.baz: Problem when compiling program",
-        "    at R8.main(App:800)",
+        "    at R8.main(R8.java:800)",
         "    at R8.main(Native Method)",
-        "    at R8.main(Main.java:)",
-        "    at R8.main(Main.kt:1)",
-        "    at R8.main(Main.foo)",
+        "    at R8.main(R8.java:)",
+        "    at R8.main(R8.kt:1)",
+        "    at R8.main(R8.foo)",
         "    at R8.main(R8.java)",
         "    at R8.main(R8.java)",
         "    at R8.main(R8.java)",
         "    at R8.main(R8.java:1)",
         "Suppressed: foo.bar.baz: You have to write the program first",
-        "    at R8.retrace(App:184)",
+        "    at R8.retrace(R8.java:184)",
         "    ... 7 more");
   }
 

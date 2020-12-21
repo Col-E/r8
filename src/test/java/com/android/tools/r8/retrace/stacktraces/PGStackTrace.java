@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.retrace.stacktraces;
 
+import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,7 +25,10 @@ public class PGStackTrace implements StackTraceForTest {
 
   @Override
   public String mapping() {
-    return "";
+    return StringUtils.lines(
+        "com.google.apps.sectionheader.SectionHeaderListController "
+            + "-> com.google.apps.sectionheader.SectionHeaderListController:",
+        "com.google.apps.Controller " + "-> com.google.apps.Controller:");
   }
 
   @Override

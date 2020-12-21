@@ -37,10 +37,10 @@ public class ActualIdentityStackTrace extends ActualBotStackTraceBase {
             + " privateinterfacemethods.PrivateInterfaceMethods.main(PrivateInterfaceMethods.java:9)",
         "    \tat dalvik.system.NativeStart.main(Native Method)",
         "    Caused by: java.lang.NoSuchMethodError: privateinterfacemethods.I$-CC.$default$iFoo",
-        "    \tat privateinterfacemethods.I$-CC.sFoo(PrivateInterfaceMethods.java:40)",
-        "    \tat privateinterfacemethods.I$-CC.access$000(PrivateInterfaceMethods.java:28)",
-        "    \tat privateinterfacemethods.I$1.<init>(PrivateInterfaceMethods.java:31)",
-        "    \tat privateinterfacemethods.I.<clinit>(PrivateInterfaceMethods.java:30)",
+        "    \tat privateinterfacemethods.I$-CC.sFoo(I.java:40)",
+        "    \tat privateinterfacemethods.I$-CC.access$000(I.java:28)",
+        "    \tat privateinterfacemethods.I$1.<init>(I.java:31)",
+        "    \tat privateinterfacemethods.I.<clinit>(I.java:30)",
         "    \t... 2 more");
   }
 

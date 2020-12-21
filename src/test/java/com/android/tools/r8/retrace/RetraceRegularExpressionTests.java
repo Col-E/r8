@@ -358,7 +358,7 @@ public class RetraceRegularExpressionTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
-            return ImmutableList.of("a.b.d(d.java)");
+            return ImmutableList.of("a.b.d(SourceFile)");
           }
 
           @Override

@@ -37,10 +37,10 @@ public class InlineWithLineNumbersStackTrace implements StackTraceForTest {
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat com.android.tools.r8.naming.retrace.Main.method3(InliningRetraceTest.java:81)",
-        "\tat com.android.tools.r8.naming.retrace.Main.method2(InliningRetraceTest.java:88)",
-        "\tat com.android.tools.r8.naming.retrace.Main.method1(InliningRetraceTest.java:96)",
-        "\tat com.android.tools.r8.naming.retrace.Main.main(InliningRetraceTest.java:102)");
+        "\tat com.android.tools.r8.naming.retrace.Main.method3(Main.java:81)",
+        "\tat com.android.tools.r8.naming.retrace.Main.method2(Main.java:88)",
+        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java:96)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:102)");
   }
 
   @Override
