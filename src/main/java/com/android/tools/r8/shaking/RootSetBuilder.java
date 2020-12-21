@@ -91,6 +91,7 @@ public class RootSetBuilder {
   private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
   private final Set<DexMethod> forceInline = Sets.newIdentityHashSet();
   private final Set<DexMethod> neverInline = Sets.newIdentityHashSet();
+  private final Set<DexMethod> neverInlineDueToSingleCaller = Sets.newIdentityHashSet();
   private final Set<DexMethod> bypassClinitforInlining = Sets.newIdentityHashSet();
   private final Set<DexMethod> whyAreYouNotInlining = Sets.newIdentityHashSet();
   private final Set<DexMethod> keepParametersWithConstantValue = Sets.newIdentityHashSet();
@@ -347,6 +348,7 @@ public class RootSetBuilder {
         alwaysInline,
         forceInline,
         neverInline,
+        neverInlineDueToSingleCaller,
         bypassClinitforInlining,
         whyAreYouNotInlining,
         keepParametersWithConstantValue,
@@ -431,6 +433,7 @@ public class RootSetBuilder {
   ConsequentRootSet buildConsequentRootSet() {
     return new ConsequentRootSet(
         neverInline,
+        neverInlineDueToSingleCaller,
         neverClassInline,
         noShrinking,
         softPinned,
@@ -1198,15 +1201,19 @@ public class RootSetBuilder {
       context.markAsUsed();
     } else if (context instanceof InlineRule) {
       if (item.isDexEncodedMethod()) {
+        DexMethod reference = item.asDexEncodedMethod().getReference();
         switch (((InlineRule) context).getType()) {
           case ALWAYS:
-            alwaysInline.add(item.asDexEncodedMethod().method);
+            alwaysInline.add(reference);
             break;
           case FORCE:
-            forceInline.add(item.asDexEncodedMethod().method);
+            forceInline.add(reference);
             break;
           case NEVER:
-            neverInline.add(item.asDexEncodedMethod().method);
+            neverInline.add(reference);
+            break;
+          case NEVER_SINGLE_CALLER:
+            neverInlineDueToSingleCaller.add(reference);
             break;
           default:
             throw new Unreachable();
@@ -1331,6 +1338,7 @@ public class RootSetBuilder {
   abstract static class RootSetBase {
 
     final Set<DexMethod> neverInline;
+    final Set<DexMethod> neverInlineDueToSingleCaller;
     final Set<DexType> neverClassInline;
     final MutableItemsWithRules noShrinking;
     final MutableItemsWithRules softPinned;
@@ -1342,6 +1350,7 @@ public class RootSetBuilder {
 
     RootSetBase(
         Set<DexMethod> neverInline,
+        Set<DexMethod> neverInlineDueToSingleCaller,
         Set<DexType> neverClassInline,
         MutableItemsWithRules noShrinking,
         MutableItemsWithRules softPinned,
@@ -1351,6 +1360,7 @@ public class RootSetBuilder {
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
         List<DelayedRootSetActionItem> delayedRootSetActionItems) {
       this.neverInline = neverInline;
+      this.neverInlineDueToSingleCaller = neverInlineDueToSingleCaller;
       this.neverClassInline = neverClassInline;
       this.noShrinking = noShrinking;
       this.softPinned = softPinned;
@@ -1777,6 +1787,7 @@ public class RootSetBuilder {
         Set<DexMethod> alwaysInline,
         Set<DexMethod> forceInline,
         Set<DexMethod> neverInline,
+        Set<DexMethod> neverInlineDueToSingleCaller,
         Set<DexMethod> bypassClinitForInlining,
         Set<DexMethod> whyAreYouNotInlining,
         Set<DexMethod> keepConstantArguments,
@@ -1801,6 +1812,7 @@ public class RootSetBuilder {
         List<DelayedRootSetActionItem> delayedRootSetActionItems) {
       super(
           neverInline,
+          neverInlineDueToSingleCaller,
           neverClassInline,
           noShrinking,
           softPinned,
@@ -1850,6 +1862,7 @@ public class RootSetBuilder {
 
     void addConsequentRootSet(ConsequentRootSet consequentRootSet, boolean addNoShrinking) {
       neverInline.addAll(consequentRootSet.neverInline);
+      neverInlineDueToSingleCaller.addAll(consequentRootSet.neverInlineDueToSingleCaller);
       neverClassInline.addAll(consequentRootSet.neverClassInline);
       noObfuscation.addAll(consequentRootSet.noObfuscation);
       if (addNoShrinking) {
@@ -2107,6 +2120,7 @@ public class RootSetBuilder {
 
     ConsequentRootSet(
         Set<DexMethod> neverInline,
+        Set<DexMethod> neverInlineDueToSingleCaller,
         Set<DexType> neverClassInline,
         MutableItemsWithRules noShrinking,
         MutableItemsWithRules softPinned,
@@ -2117,6 +2131,7 @@ public class RootSetBuilder {
         List<DelayedRootSetActionItem> delayedRootSetActionItems) {
       super(
           neverInline,
+          neverInlineDueToSingleCaller,
           neverClassInline,
           noShrinking,
           softPinned,

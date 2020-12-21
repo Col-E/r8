@@ -18,7 +18,10 @@ public class InlineRule extends ProguardConfigurationRule {
   };
 
   public enum Type {
-    ALWAYS, FORCE, NEVER
+    ALWAYS,
+    FORCE,
+    NEVER,
+    NEVER_SINGLE_CALLER
   }
 
   public static class Builder extends ProguardConfigurationRule.Builder<InlineRule, Builder> {
@@ -127,6 +130,8 @@ public class InlineRule extends ProguardConfigurationRule {
         return "forceinline";
       case NEVER:
         return "neverinline";
+      case NEVER_SINGLE_CALLER:
+        return "neversinglecaller";
     }
     throw new Unreachable("Unknown inline type " + type);
   }

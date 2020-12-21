@@ -3329,6 +3329,7 @@ public class Enqueuer {
             rootSet.alwaysInline,
             rootSet.forceInline,
             rootSet.neverInline,
+            rootSet.neverInlineDueToSingleCaller,
             rootSet.whyAreYouNotInlining,
             rootSet.keepConstantArguments,
             rootSet.keepUnusedArguments,

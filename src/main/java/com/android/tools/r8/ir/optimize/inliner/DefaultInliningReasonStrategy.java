@@ -51,16 +51,27 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
       // program.
       return Reason.SIMPLE;
     }
-    if (callSiteInformation.hasSingleCallSite(target)) {
-      if (appView.options().testing.validInliningReasons == null
-          || appView.options().testing.validInliningReasons.contains(Reason.SINGLE_CALLER)) {
-        return Reason.SINGLE_CALLER;
-      }
+    if (isSingleCallerInliningTarget(target)) {
+      return Reason.SINGLE_CALLER;
     }
     if (isDoubleInliningTarget(target)) {
       return Reason.DUAL_CALLER;
     }
     return Reason.SIMPLE;
+  }
+
+  private boolean isSingleCallerInliningTarget(ProgramMethod method) {
+    if (!callSiteInformation.hasSingleCallSite(method)) {
+      return false;
+    }
+    if (appView.appInfo().isNeverInlineDueToSingleCallerMethod(method)) {
+      return false;
+    }
+    if (appView.options().testing.validInliningReasons != null
+        && !appView.options().testing.validInliningReasons.contains(Reason.SINGLE_CALLER)) {
+      return false;
+    }
+    return true;
   }
 
   private boolean isDoubleInliningTarget(ProgramMethod candidate) {

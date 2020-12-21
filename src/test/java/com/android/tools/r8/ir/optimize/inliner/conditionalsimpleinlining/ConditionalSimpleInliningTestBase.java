@@ -36,18 +36,10 @@ public abstract class ConditionalSimpleInliningTestBase extends TestBase {
   public void configure(R8FullTestBuilder testBuilder) {
     testBuilder
         .addOptionsModification(this::enableSimpleInliningConstraints)
-        .addOptionsModification(this::disableSingleCallerInlining)
         .setMinApi(parameters.getApiLevel());
   }
 
   private void enableSimpleInliningConstraints(InternalOptions options) {
     options.enableSimpleInliningConstraints = enableSimpleInliningConstraints;
-  }
-
-  // TODO(b/176066007): Introduce a @NeverSingleCallerInline instead.
-  private void disableSingleCallerInlining(InternalOptions options) {
-    assert options.testing.validInliningReasons == null;
-    options.testing.validInliningReasons = SetUtils.newIdentityHashSet(Inliner.Reason.values());
-    options.testing.validInliningReasons.remove(Inliner.Reason.SINGLE_CALLER);
   }
 }

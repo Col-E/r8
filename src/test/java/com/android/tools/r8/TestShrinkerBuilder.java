@@ -343,6 +343,10 @@ public abstract class TestShrinkerBuilder<
     return addTestingAnnotation(NeverReprocessMethod.class);
   }
 
+  public final T addNeverSingleCallerInlineAnnotations() {
+    return addTestingAnnotation(NeverSingleCallerInline.class);
+  }
+
   public final T addNoHorizontalClassMergingAnnotations() {
     return addTestingAnnotation(NoHorizontalClassMerging.class);
   }

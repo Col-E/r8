@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NeverSingleCallerInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -50,6 +51,7 @@ public class SimpleIfTrueOrFalseInliningTest extends ConditionalSimpleInliningTe
         .addProgramClasses(mainClass, TestMethods.class)
         .addKeepMainRule(mainClass)
         .apply(this::configure)
+        .enableNeverSingleCallerInlineAnnotations()
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), mainClass)
@@ -112,6 +114,7 @@ public class SimpleIfTrueOrFalseInliningTest extends ConditionalSimpleInliningTe
 
   static class TestMethods {
 
+    @NeverSingleCallerInline
     static void simpleIfTrueTest(boolean b) {
       if (b) {
         return;
@@ -130,6 +133,7 @@ public class SimpleIfTrueOrFalseInliningTest extends ConditionalSimpleInliningTe
       System.out.println("!");
     }
 
+    @NeverSingleCallerInline
     static void simpleIfBothTrueTest(boolean b1, boolean b2) {
       if (b1 && b2) {
         return;
@@ -148,6 +152,7 @@ public class SimpleIfTrueOrFalseInliningTest extends ConditionalSimpleInliningTe
       System.out.println("!");
     }
 
+    @NeverSingleCallerInline
     static void simpleIfFalseTest(boolean b) {
       if (!b) {
         return;
@@ -166,6 +171,7 @@ public class SimpleIfTrueOrFalseInliningTest extends ConditionalSimpleInliningTe
       System.out.println("!");
     }
 
+    @NeverSingleCallerInline
     static void simpleIfBothFalseTest(boolean b1, boolean b2) {
       if (!b1 && !b2) {
         return;

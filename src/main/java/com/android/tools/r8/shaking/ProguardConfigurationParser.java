@@ -469,6 +469,11 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
+        if (acceptString("neversinglecallerinline")) {
+          InlineRule rule = parseInlineRule(InlineRule.Type.NEVER_SINGLE_CALLER, optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
         if (acceptString(NoUnusedInterfaceRemovalRule.RULE_NAME)) {
           ProguardConfigurationRule rule = parseNoUnusedInterfaceRemovalRule(optionStart);
           configurationBuilder.addRule(rule);

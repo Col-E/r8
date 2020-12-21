@@ -134,6 +134,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private final Set<DexMethod> forceInline;
   /** All methods that *must* never be inlined due to a configuration directive (testing only). */
   private final Set<DexMethod> neverInline;
+  /**
+   * All methods that *must* never be inlined as a result of having a single caller due to a
+   * configuration directive (testing only).
+   */
+  private final Set<DexMethod> neverInlineDueToSingleCaller;
   /** Items for which to print inlining decisions for (testing only). */
   private final Set<DexMethod> whyAreYouNotInlining;
   /** All methods that may not have any parameters with a constant value removed. */
@@ -207,6 +212,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> alwaysInline,
       Set<DexMethod> forceInline,
       Set<DexMethod> neverInline,
+      Set<DexMethod> neverInlineDueToSingleCaller,
       Set<DexMethod> whyAreYouNotInlining,
       Set<DexMethod> keepConstantArguments,
       Set<DexMethod> keepUnusedArguments,
@@ -244,6 +250,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.alwaysInline = alwaysInline;
     this.forceInline = forceInline;
     this.neverInline = neverInline;
+    this.neverInlineDueToSingleCaller = neverInlineDueToSingleCaller;
     this.whyAreYouNotInlining = whyAreYouNotInlining;
     this.keepConstantArguments = keepConstantArguments;
     this.keepUnusedArguments = keepUnusedArguments;
@@ -289,6 +296,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.alwaysInline,
         previous.forceInline,
         previous.neverInline,
+        previous.neverInlineDueToSingleCaller,
         previous.whyAreYouNotInlining,
         previous.keepConstantArguments,
         previous.keepUnusedArguments,
@@ -335,6 +343,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.alwaysInline,
         previous.forceInline,
         previous.neverInline,
+        previous.neverInlineDueToSingleCaller,
         previous.whyAreYouNotInlining,
         previous.keepConstantArguments,
         previous.keepUnusedArguments,
@@ -426,6 +435,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.alwaysInline = previous.alwaysInline;
     this.forceInline = previous.forceInline;
     this.neverInline = previous.neverInline;
+    this.neverInlineDueToSingleCaller = previous.neverInlineDueToSingleCaller;
     this.whyAreYouNotInlining = previous.whyAreYouNotInlining;
     this.keepConstantArguments = previous.keepConstantArguments;
     this.keepUnusedArguments = previous.keepUnusedArguments;
@@ -561,6 +571,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean isNeverInlineMethod(DexMethod method) {
     return neverInline.contains(method);
+  }
+
+  public boolean isNeverInlineDueToSingleCallerMethod(ProgramMethod method) {
+    return neverInlineDueToSingleCaller.contains(method.getReference());
   }
 
   public boolean isWhyAreYouNotInliningMethod(DexMethod method) {
@@ -978,6 +992,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteMethods(alwaysInline),
         lens.rewriteMethods(forceInline),
         lens.rewriteMethods(neverInline),
+        lens.rewriteMethods(neverInlineDueToSingleCaller),
         lens.rewriteMethods(whyAreYouNotInlining),
         lens.rewriteMethods(keepConstantArguments),
         lens.rewriteMethods(keepUnusedArguments),

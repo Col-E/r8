@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NeverSingleCallerInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -50,6 +51,7 @@ public class SimpleIfNullOrNotNullInliningTest extends ConditionalSimpleInlining
         .addProgramClasses(mainClass, TestMethods.class)
         .addKeepMainRule(mainClass)
         .apply(this::configure)
+        .enableNeverSingleCallerInlineAnnotations()
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), mainClass)
@@ -114,6 +116,7 @@ public class SimpleIfNullOrNotNullInliningTest extends ConditionalSimpleInlining
 
   static class TestMethods {
 
+    @NeverSingleCallerInline
     static void simpleIfNullTest(Object o) {
       if (o == null) {
         return;
@@ -132,6 +135,7 @@ public class SimpleIfNullOrNotNullInliningTest extends ConditionalSimpleInlining
       System.out.println("!");
     }
 
+    @NeverSingleCallerInline
     static void simpleIfBothNullTest(Object o1, Object o2) {
       if (o1 == null && o2 == null) {
         return;
@@ -150,6 +154,7 @@ public class SimpleIfNullOrNotNullInliningTest extends ConditionalSimpleInlining
       System.out.println("!");
     }
 
+    @NeverSingleCallerInline
     static void simpleIfNotNullTest(Object o) {
       if (o != null) {
         return;
@@ -168,6 +173,7 @@ public class SimpleIfNullOrNotNullInliningTest extends ConditionalSimpleInlining
       System.out.println("!");
     }
 
+    @NeverSingleCallerInline
     static void simpleIfBothNotNullTest(Object o1, Object o2) {
       if (o1 != null && o2 != null) {
         return;

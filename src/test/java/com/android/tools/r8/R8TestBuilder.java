@@ -367,6 +367,14 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         "-forceinline class * { @" + annotationPackageName + ".ForceInline *; }");
   }
 
+  public T enableNeverSingleCallerInlineAnnotations() {
+    return addNeverSingleCallerInlineAnnotations()
+        .addInternalKeepRules(
+            "-neversinglecallerinline class * {",
+            "  @com.android.tools.r8.NeverSingleCallerInline <methods>;",
+            "}");
+  }
+
   public T enableNeverClassInliningAnnotations() {
     return addNeverClassInliningAnnotations()
         .addInternalKeepRules("-neverclassinline @com.android.tools.r8.NeverClassInline class *");
