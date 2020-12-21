@@ -45,6 +45,10 @@ public class MergeGroup implements Iterable<DexProgramClass> {
     classes.add(clazz);
   }
 
+  public void add(MergeGroup group) {
+    classes.addAll(group.getClasses());
+  }
+
   public void addAll(Collection<DexProgramClass> classes) {
     this.classes.addAll(classes);
   }

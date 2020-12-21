@@ -9,9 +9,9 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerGraphLens.Builder;
+import com.android.tools.r8.horizontalclassmerging.policies.SameInstanceFields.InstanceFieldInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.IterableUtils;
-import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,7 +19,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public class ClassInstanceFieldsMerger {
 
@@ -54,62 +53,70 @@ public class ClassInstanceFieldsMerger {
    * type.
    */
   public void addFields(DexProgramClass clazz) {
-    Map<DexType, LinkedList<DexEncodedField>> availableFieldsPerFieldType =
-        computeAvailableFieldsPerFieldType();
+    Map<InstanceFieldInfo, LinkedList<DexEncodedField>> availableFieldsByExactInfo =
+        getAvailableFieldsByExactInfo();
     List<DexEncodedField> needsMerge = new ArrayList<>();
 
     // Pass 1: Match fields that have the exact same type.
     for (DexEncodedField oldField : clazz.instanceFields()) {
-      DexEncodedField newField =
-          removeFirstCompatibleField(oldField, availableFieldsPerFieldType.get(oldField.getType()));
-      if (newField != null) {
-        fieldMappings.get(newField).add(oldField);
-      } else {
+      InstanceFieldInfo info = InstanceFieldInfo.createExact(oldField);
+      LinkedList<DexEncodedField> availableFieldsWithExactSameInfo =
+          availableFieldsByExactInfo.get(info);
+      if (availableFieldsWithExactSameInfo == null || availableFieldsWithExactSameInfo.isEmpty()) {
         needsMerge.add(oldField);
+      } else {
+        DexEncodedField newField = availableFieldsWithExactSameInfo.removeFirst();
+        fieldMappings.get(newField).add(oldField);
+        if (availableFieldsWithExactSameInfo.isEmpty()) {
+          availableFieldsByExactInfo.remove(info);
+        }
       }
     }
 
     // Pass 2: Match fields that do not have the same reference type.
+    Map<InstanceFieldInfo, LinkedList<DexEncodedField>> availableFieldsByRelaxedInfo =
+        getAvailableFieldsByRelaxedInfo(availableFieldsByExactInfo);
     for (DexEncodedField oldField : needsMerge) {
       assert oldField.getType().isReferenceType();
-      DexEncodedField newField = null;
-      for (Entry<DexType, LinkedList<DexEncodedField>> availableFieldsForType :
-          availableFieldsPerFieldType.entrySet()) {
-        assert availableFieldsForType.getKey().isReferenceType()
-            || availableFieldsForType.getValue().isEmpty();
-        newField = removeFirstCompatibleField(oldField, availableFieldsForType.getValue());
-        if (newField != null) {
-          break;
-        }
-      }
+      DexEncodedField newField =
+          availableFieldsByRelaxedInfo
+              .get(InstanceFieldInfo.createRelaxed(oldField, appView.dexItemFactory()))
+              .removeFirst();
       assert newField != null;
       assert newField.getType().isReferenceType();
       fieldMappings.get(newField).add(oldField);
     }
   }
 
-  private Map<DexType, LinkedList<DexEncodedField>> computeAvailableFieldsPerFieldType() {
-    Map<DexType, LinkedList<DexEncodedField>> availableFieldsPerFieldType = new LinkedHashMap<>();
+  private Map<InstanceFieldInfo, LinkedList<DexEncodedField>> getAvailableFieldsByExactInfo() {
+    Map<InstanceFieldInfo, LinkedList<DexEncodedField>> availableFieldsByInfo =
+        new LinkedHashMap<>();
     for (DexEncodedField field : fieldMappings.keySet()) {
-      availableFieldsPerFieldType
-          .computeIfAbsent(field.type(), ignore -> new LinkedList<>())
+      availableFieldsByInfo
+          .computeIfAbsent(InstanceFieldInfo.createExact(field), ignore -> new LinkedList<>())
           .add(field);
     }
-    return availableFieldsPerFieldType;
+    return availableFieldsByInfo;
   }
 
-  public DexEncodedField removeFirstCompatibleField(
-      DexEncodedField oldField, LinkedList<DexEncodedField> availableFields) {
-    if (availableFields == null) {
-      return null;
-    }
-    return ListUtils.removeFirstMatch(
-            availableFields,
-            field -> field.getAccessFlags().isSameVisibility(oldField.getAccessFlags()))
-        .orElse(null);
+  private Map<InstanceFieldInfo, LinkedList<DexEncodedField>> getAvailableFieldsByRelaxedInfo(
+      Map<InstanceFieldInfo, LinkedList<DexEncodedField>> availableFieldsByExactInfo) {
+    Map<InstanceFieldInfo, LinkedList<DexEncodedField>> availableFieldsByRelaxedInfo =
+        new LinkedHashMap<>();
+    availableFieldsByExactInfo.forEach(
+        (info, fields) ->
+            availableFieldsByRelaxedInfo
+                .computeIfAbsent(
+                    info.toInfoWithRelaxedType(appView.dexItemFactory()),
+                    ignore -> new LinkedList<>())
+                .addAll(fields));
+    return availableFieldsByRelaxedInfo;
   }
 
   private void fixAccessFlags(DexEncodedField newField, Collection<DexEncodedField> oldFields) {
+    if (newField.isSynthetic() && Iterables.any(oldFields, oldField -> !oldField.isSynthetic())) {
+      newField.getAccessFlags().demoteFromSynthetic();
+    }
     if (newField.isFinal() && Iterables.any(oldFields, oldField -> !oldField.isFinal())) {
       newField.getAccessFlags().demoteFromFinal();
     }

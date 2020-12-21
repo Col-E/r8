@@ -204,8 +204,9 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
     set(Constants.ACC_FINAL);
   }
 
-  public void unsetFinal() {
+  public T unsetFinal() {
     unset(Constants.ACC_FINAL);
+    return self();
   }
 
   public boolean isSynthetic() {
@@ -216,8 +217,9 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
     set(Constants.ACC_SYNTHETIC);
   }
 
-  public void unsetSynthetic() {
+  public T unsetSynthetic() {
     unset(Constants.ACC_SYNTHETIC);
+    return self();
   }
 
   public void demoteFromSynthetic() {

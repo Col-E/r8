@@ -220,6 +220,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return isStatic();
   }
 
+  public boolean isSynthetic() {
+    return accessFlags.isSynthetic();
+  }
+
   public boolean isVolatile() {
     return accessFlags.isVolatile();
   }

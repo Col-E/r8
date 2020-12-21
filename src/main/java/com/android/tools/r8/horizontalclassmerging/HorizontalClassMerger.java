@@ -13,6 +13,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.DontInlinePolicy;
 import com.android.tools.r8.horizontalclassmerging.policies.DontMergeSynchronizedClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.IgnoreSynthetics;
 import com.android.tools.r8.horizontalclassmerging.policies.LimitGroups;
+import com.android.tools.r8.horizontalclassmerging.policies.MinimizeFieldCasts;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotations;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassInitializerWithObservableSideEffects;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassesOrMembersWithAnnotations;
@@ -33,7 +34,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.PreventMergeIntoMain
 import com.android.tools.r8.horizontalclassmerging.policies.PreventMethodImplementation;
 import com.android.tools.r8.horizontalclassmerging.policies.RespectPackageBoundaries;
 import com.android.tools.r8.horizontalclassmerging.policies.SameFeatureSplit;
-import com.android.tools.r8.horizontalclassmerging.policies.SameFields;
+import com.android.tools.r8.horizontalclassmerging.policies.SameInstanceFields;
 import com.android.tools.r8.horizontalclassmerging.policies.SameNestHost;
 import com.android.tools.r8.horizontalclassmerging.policies.SameParentClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -105,7 +106,7 @@ public class HorizontalClassMerger {
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
     return ImmutableList.of(
         new NotMatchedByNoHorizontalClassMerging(appView),
-        new SameFields(appView),
+        new SameInstanceFields(appView),
         new NoInterfaces(),
         new NoAnnotations(),
         new NoEnums(appView),
@@ -132,6 +133,7 @@ public class HorizontalClassMerger {
         new SameFeatureSplit(appView),
         new RespectPackageBoundaries(appView),
         new DontMergeSynchronizedClasses(appView),
+        new MinimizeFieldCasts(),
         new LimitGroups(appView));
   }
 
@@ -175,15 +177,8 @@ public class HorizontalClassMerger {
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       SyntheticArgumentClass syntheticArgumentClass) {
-
-    HorizontalClassMergerGraphLens lens =
-        new TreeFixer(
-                appView,
-                mergedClasses,
-                lensBuilder,
-                fieldAccessChangesBuilder,
-                syntheticArgumentClass)
-            .fixupTypeReferences();
-    return lens;
+    return new TreeFixer(
+            appView, mergedClasses, lensBuilder, fieldAccessChangesBuilder, syntheticArgumentClass)
+        .fixupTypeReferences();
   }
 }
