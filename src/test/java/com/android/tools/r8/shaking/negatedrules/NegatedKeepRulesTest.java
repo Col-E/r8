@@ -272,6 +272,35 @@ public class NegatedKeepRulesTest extends TestBase {
             });
   }
 
+  @Test
+  public void testNegatedWithPositiveR8Compat() throws Exception {
+    testNegatedWithPositive(testForR8Compat(parameters.getBackend()));
+  }
+
+  @Test
+  public void testNegatedWithPositiveR8Full() throws Exception {
+    testNegatedWithPositive(testForR8(parameters.getBackend()));
+  }
+
+  @Test
+  public void testNegatedWithPositiveProguard() throws Exception {
+    testNegatedWithPositive(testForProguard(ProguardVersion.V7_0_0).addKeepRules("-dontwarn"));
+  }
+
+  public void testNegatedWithPositive(TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder)
+      throws Exception {
+    run(testBuilder.addKeepRules("-keep class !**$Foo*,**Bar { *; }"))
+        .inspect(
+            inspector -> {
+              assertThat(inspector.clazz(BarBar.class), isPresent());
+              assertThat(inspector.clazz(FooBar.class), not(isPresent()));
+              assertThat(inspector.clazz(A.class), not(isPresent()));
+              assertThat(inspector.clazz(B.class), not(isPresent()));
+              assertThat(inspector.clazz(C.class), not(isPresent()));
+              assertThat(inspector.clazz(D.class), not(isPresent()));
+            });
+  }
+
   private TestCompileResult<?, ?> run(TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder)
       throws Exception {
     return testBuilder

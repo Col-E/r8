@@ -96,7 +96,7 @@ public class ProguardNameMatchingTest {
     assertFalse(matchClassName("foobar", "!foobar", "*bar"));
 
     assertTrue(matchClassName("foo", "!boo"));
-    assertFalse(matchClassName("foo", "baz,!boo"));
+    assertTrue(matchClassName("foo", "baz", "!boo"));
 
     assertFalse(matchClassName("boo", "!boo", "**"));
     assertFalse(matchClassName("boo", "!b*<1>", "**"));
@@ -105,8 +105,7 @@ public class ProguardNameMatchingTest {
     assertTrue(matchClassName("boo",
         ImmutableList.of(ImmutableList.of("!boo"), ImmutableList.of("**"))));
 
-    // TODO(b/174824047): This parses as !(boo*,*foo,boofoo) and it should be !boo*,*foo,boofoo.
-    assertTrue(matchClassName("boofoo", "!boo*,*foo,boofoo"));
+    assertFalse(matchClassName("boofoo", "!boo*", "*foo", "boofoo"));
     assertTrue(matchClassName("boofoo",
         ImmutableList.of(ImmutableList.of("!boo*,*foo"), ImmutableList.of("boofoo"))));
   }
