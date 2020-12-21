@@ -22,7 +22,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ProgramPackageCollection;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -62,6 +61,7 @@ import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
+import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -394,7 +394,7 @@ public class EnumUnboxer {
                 enumClassesToUnbox, enumsToUnboxWithPackageRequirement, appBuilder)
             .build();
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumDataMap, relocator);
-    NestedGraphLens enumUnboxingLens =
+    EnumUnboxingLens enumUnboxingLens =
         new EnumUnboxingTreeFixer(appView, enumsToUnbox, relocator, enumUnboxerRewriter)
             .fixupTypeReferences();
     enumUnboxerRewriter.setEnumUnboxingLens(enumUnboxingLens);
@@ -430,8 +430,9 @@ public class EnumUnboxer {
           public void fixup(DexEncodedMethod method) {
             MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
             if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
-              optimizationInfo
-                  .asUpdatableMethodOptimizationInfo()
+              UpdatableMethodOptimizationInfo updatableOptimizationInfo =
+                  optimizationInfo.asUpdatableMethodOptimizationInfo();
+              updatableOptimizationInfo
                   .fixupClassTypeReferences(appView.graphLens()::lookupType, appView)
                   .fixupAbstractReturnValue(appView, appView.graphLens())
                   .fixupInstanceInitializerInfo(appView, appView.graphLens());

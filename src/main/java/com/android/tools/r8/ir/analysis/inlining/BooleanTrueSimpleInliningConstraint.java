@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.inlining;
 
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import it.unimi.dsi.fastutil.ints.IntList;
 
 /** Constraint that is satisfied if a specific argument is always true. */
 public class BooleanTrueSimpleInliningConstraint extends SimpleInliningArgumentConstraint {
@@ -30,5 +31,10 @@ public class BooleanTrueSimpleInliningConstraint extends SimpleInliningArgumentC
     Value argument = getArgument(invoke);
     assert argument.getType().isInt();
     return argument.isConstBoolean(true);
+  }
+
+  @Override
+  public SimpleInliningConstraint rewrittenWithUnboxedArguments(IntList unboxedArgumentIndices) {
+    return this;
   }
 }

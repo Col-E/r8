@@ -91,7 +91,7 @@ public class NonNullParamTest extends TestBase {
 
     MethodSubject selfCheck = mainSubject.uniqueMethodWithName("selfCheck");
     assertThat(selfCheck, isPresent());
-    assertEquals(1, countCallToParamNullCheck(selfCheck));
+    assertEquals(0, countCallToParamNullCheck(selfCheck));
     assertEquals(1, countPrintCall(selfCheck));
     assertEquals(0, countThrow(selfCheck));
 

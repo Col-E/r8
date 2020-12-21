@@ -16,9 +16,11 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.collect.Sets;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -47,7 +49,7 @@ class EnumUnboxingTreeFixer {
     this.enumUnboxerRewriter = enumUnboxerRewriter;
   }
 
-  GraphLens.NestedGraphLens fixupTypeReferences() {
+  EnumUnboxingLens fixupTypeReferences() {
     assert enumUnboxerRewriter != null;
     // Fix all methods and fields using enums to unbox.
     for (DexProgramClass clazz : appView.appInfo().classes()) {
@@ -118,11 +120,14 @@ class EnumUnboxingTreeFixer {
   }
 
   private DexEncodedMethod fixupEncodedMethod(DexEncodedMethod method) {
-    DexProto newProto = fixupProto(method.proto());
+    DexProto oldProto = method.proto();
+    DexProto newProto = fixupProto(oldProto);
     if (newProto == method.proto()) {
       return method;
     }
     assert !method.isClassInitializer();
+    assert !method.isLibraryMethodOverride().isTrue()
+        : "Enum unboxing is changing the signature of a library override in a non unboxed class.";
     // We add the $enumunboxing$ suffix to make sure we do not create a library override.
     String newMethodName =
         method.getName().toString() + (method.isNonPrivateVirtualMethod() ? "$enumunboxing$" : "");
@@ -131,17 +136,28 @@ class EnumUnboxingTreeFixer {
     int numberOfExtraNullParameters = newMethod.getArity() - method.method.getArity();
     boolean isStatic = method.isStatic();
     lensBuilder.move(method.method, newMethod, isStatic, isStatic, numberOfExtraNullParameters);
-    DexEncodedMethod newEncodedMethod =
-        method.toTypeSubstitutedMethod(
-            newMethod,
-            builder ->
-                builder
-                    .setCompilationState(method.getCompilationState())
-                    .setIsLibraryMethodOverrideIf(
-                        method.isNonPrivateVirtualMethod(), OptionalBool.FALSE));
-    assert !method.isLibraryMethodOverride().isTrue()
-        : "Enum unboxing is changing the signature of a library override in a non unboxed class.";
-    return newEncodedMethod;
+    return method.toTypeSubstitutedMethod(
+        newMethod,
+        builder ->
+            builder
+                .setCompilationState(method.getCompilationState())
+                .setIsLibraryMethodOverrideIf(
+                    method.isNonPrivateVirtualMethod(), OptionalBool.FALSE)
+                .fixupOptimizationInfo(
+                    optimizationInfo -> {
+                      IntList unboxedArgumentIndices = new IntArrayList();
+                      int offset = BooleanUtils.intValue(method.isInstance());
+                      for (int i = 0; i < method.getReference().getArity(); i++) {
+                        if (oldProto.getParameter(i).isReferenceType()
+                            && newProto.getParameter(i).isPrimitiveType()) {
+                          unboxedArgumentIndices.add(i + offset);
+                        }
+                      }
+                      optimizationInfo.setSimpleInliningConstraint(
+                          optimizationInfo
+                              .getSimpleInliningConstraint()
+                              .rewrittenWithUnboxedArguments(unboxedArgumentIndices));
+                    }));
   }
 
   private DexMethod ensureUniqueMethod(DexEncodedMethod encodedMethod, DexMethod newMethod) {

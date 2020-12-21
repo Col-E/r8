@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import static com.android.tools.r8.TestBase.toDexType;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexItemFactory;
@@ -25,11 +26,25 @@ public class EnumUnboxingInspector {
     return this;
   }
 
+  public EnumUnboxingInspector assertUnboxedIf(boolean condition, Class<? extends Enum<?>> clazz) {
+    if (condition) {
+      assertUnboxed(clazz);
+    } else {
+      assertNotUnboxed(clazz);
+    }
+    return this;
+  }
+
   @SafeVarargs
   public final EnumUnboxingInspector assertUnboxed(Class<? extends Enum<?>>... classes) {
     for (Class<? extends Enum<?>> clazz : classes) {
       assertUnboxed(clazz);
     }
+    return this;
+  }
+
+  public EnumUnboxingInspector assertNotUnboxed(Class<? extends Enum<?>> clazz) {
+    assertFalse(unboxedEnums.isUnboxedEnum(toDexType(clazz, dexItemFactory)));
     return this;
   }
 }

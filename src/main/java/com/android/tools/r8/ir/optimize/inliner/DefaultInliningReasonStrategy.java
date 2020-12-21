@@ -52,7 +52,10 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
       return Reason.SIMPLE;
     }
     if (callSiteInformation.hasSingleCallSite(target)) {
-      return Reason.SINGLE_CALLER;
+      if (appView.options().testing.validInliningReasons == null
+          || appView.options().testing.validInliningReasons.contains(Reason.SINGLE_CALLER)) {
+        return Reason.SINGLE_CALLER;
+      }
     }
     if (isDoubleInliningTarget(target)) {
       return Reason.DUAL_CALLER;

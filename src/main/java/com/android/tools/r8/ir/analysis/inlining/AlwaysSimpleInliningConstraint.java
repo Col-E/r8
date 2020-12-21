@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.inlining;
 
 import com.android.tools.r8.ir.code.InvokeMethod;
+import it.unimi.dsi.fastutil.ints.IntList;
 
 /** Constraint that is always satisfied. */
 public class AlwaysSimpleInliningConstraint extends SimpleInliningConstraint {
@@ -26,5 +27,10 @@ public class AlwaysSimpleInliningConstraint extends SimpleInliningConstraint {
   @Override
   public boolean isSatisfied(InvokeMethod invoke) {
     return false;
+  }
+
+  @Override
+  public SimpleInliningConstraint rewrittenWithUnboxedArguments(IntList unboxedArgumentIndices) {
+    return this;
   }
 }

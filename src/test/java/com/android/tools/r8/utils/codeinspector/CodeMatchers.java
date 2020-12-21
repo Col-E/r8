@@ -153,6 +153,10 @@ public class CodeMatchers {
     return invokesMethod(null, null, name, null);
   }
 
+  public static Predicate<InstructionSubject> isInvokeWithTarget(MethodSubject target) {
+    return isInvokeWithTarget(target.getMethod().getReference());
+  }
+
   public static Predicate<InstructionSubject> isInvokeWithTarget(DexMethod target) {
     return instruction -> instruction.isInvoke() && instruction.getMethod() == target;
   }

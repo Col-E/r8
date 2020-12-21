@@ -5,7 +5,9 @@
 package com.android.tools.r8.ir.analysis.inlining;
 
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.List;
 
 public class SimpleInliningConstraintDisjunction extends SimpleInliningConstraint {
@@ -61,5 +63,18 @@ public class SimpleInliningConstraintDisjunction extends SimpleInliningConstrain
       }
     }
     return false;
+  }
+
+  @Override
+  public SimpleInliningConstraint rewrittenWithUnboxedArguments(IntList unboxedArgumentIndices) {
+    List<SimpleInliningConstraint> rewrittenConstraints =
+        ListUtils.mapOrElse(
+            constraints,
+            constraint -> constraint.rewrittenWithUnboxedArguments(unboxedArgumentIndices),
+            null);
+    if (rewrittenConstraints != null) {
+      return new SimpleInliningConstraintDisjunction(rewrittenConstraints);
+    }
+    return this;
   }
 }

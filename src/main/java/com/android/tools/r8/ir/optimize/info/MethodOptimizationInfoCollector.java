@@ -60,6 +60,7 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.DeterminismAnalysis;
 import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
+import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraintAnalysis;
 import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis;
 import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis.ClassInitializerSideEffect;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -148,6 +149,7 @@ public class MethodOptimizationInfoCollector {
     if (options.enableInlining) {
       identifyInvokeSemanticsForInlining(definition, code, feedback, timing);
     }
+    computeSimpleInliningConstraint(method, code, feedback, timing);
     computeDynamicReturnType(dynamicTypeOptimization, feedback, definition, code, timing);
     computeInitializedClassesOnNormalExit(feedback, definition, code, timing);
     computeInstanceInitializerInfo(
@@ -965,6 +967,21 @@ public class MethodOptimizationInfoCollector {
       return false;
     }
     return true;
+  }
+
+  private void computeSimpleInliningConstraint(
+      ProgramMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+    if (appView.options().enableSimpleInliningConstraints) {
+      timing.begin("Compute simple inlining constraint");
+      computeSimpleInliningConstraint(method, code, feedback);
+      timing.end();
+    }
+  }
+
+  private void computeSimpleInliningConstraint(
+      ProgramMethod method, IRCode code, OptimizationFeedback feedback) {
+    feedback.setSimpleInliningConstraint(
+        method, new SimpleInliningConstraintAnalysis(appView, method).analyzeCode(code));
   }
 
   private void computeDynamicReturnType(

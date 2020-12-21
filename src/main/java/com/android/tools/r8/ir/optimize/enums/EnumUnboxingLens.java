@@ -142,9 +142,7 @@ class EnumUnboxingLens extends GraphLens.NestedGraphLens {
 
     public EnumUnboxingLens build(
         DexItemFactory dexItemFactory, GraphLens previousLens, Set<DexType> unboxedEnums) {
-      if (typeMap.isEmpty() && newFieldSignatures.isEmpty() && originalMethodSignatures.isEmpty()) {
-        return null;
-      }
+      assert !typeMap.isEmpty();
       return new EnumUnboxingLens(
           typeMap,
           originalMethodSignatures.getInverseOneToOneMap().getForwardMap(),

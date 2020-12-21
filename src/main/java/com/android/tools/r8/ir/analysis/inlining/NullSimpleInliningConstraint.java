@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.inlining;
 
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import it.unimi.dsi.fastutil.ints.IntList;
 
 /** Constraint that is satisfied if a specific argument is always null. */
 public class NullSimpleInliningConstraint extends SimpleInliningArgumentConstraint {
@@ -30,5 +31,14 @@ public class NullSimpleInliningConstraint extends SimpleInliningArgumentConstrai
     Value argument = getArgument(invoke);
     assert argument.getType().isReferenceType();
     return argument.getType().isDefinitelyNull();
+  }
+
+  @Override
+  public SimpleInliningConstraint rewrittenWithUnboxedArguments(IntList unboxedArgumentIndices) {
+    if (unboxedArgumentIndices.contains(getArgumentIndex())) {
+      // TODO(b/176067541): Could be refined to an argument-equals-int constraint.
+      return NeverSimpleInliningConstraint.getInstance();
+    }
+    return this;
   }
 }

@@ -56,6 +56,34 @@ public class ListUtils {
     return result;
   }
 
+  /**
+   * Rewrites the input list based on the given function. Returns the mapped list if any elements
+   * were rewritten, otherwise returns the original list.
+   */
+  public static <T> List<T> mapOrElse(List<T> list, Function<T, T> fn, List<T> defaultValue) {
+    ArrayList<T> result = null;
+    for (int i = 0; i < list.size(); i++) {
+      T oldElement = list.get(i);
+      T newElement = fn.apply(oldElement);
+      if (newElement == oldElement) {
+        if (result != null) {
+          result.add(oldElement);
+        }
+      } else {
+        if (result == null) {
+          result = new ArrayList<>(list.size());
+          for (int j = 0; j < i; j++) {
+            result.add(list.get(j));
+          }
+        }
+        if (newElement != null) {
+          result.add(newElement);
+        }
+      }
+    }
+    return result != null ? result : defaultValue;
+  }
+
   public static <T> Optional<T> removeFirstMatch(List<T> list, Predicate<T> element) {
     int index = firstIndexMatching(list, element);
     if (index >= 0) {

@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -1062,6 +1063,11 @@ public class IRCode implements ValueFactory {
 
   public int getNextInstructionNumber() {
     return nextInstructionNumber;
+  }
+
+  public int getNumberOfArguments() {
+    return context().getReference().getArity()
+        + BooleanUtils.intValue(!context().getDefinition().isStatic());
   }
 
   public List<Value> collectArguments() {
