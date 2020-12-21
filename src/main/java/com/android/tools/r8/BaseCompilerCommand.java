@@ -618,8 +618,9 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      *
      * @param inspection Inspection callback receiving inspectors denoting parts of the output.
      */
-    public void addOutputInspection(Consumer<Inspector> inspection) {
+    public B addOutputInspection(Consumer<Inspector> inspection) {
       outputInspections.add(inspection);
+      return self();
     }
 
     List<Consumer<Inspector>> getOutputInspections() {
