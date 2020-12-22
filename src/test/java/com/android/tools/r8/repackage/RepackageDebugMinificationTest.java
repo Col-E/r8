@@ -4,16 +4,13 @@
 
 package com.android.tools.r8.repackage;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -27,6 +24,8 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class RepackageDebugMinificationTest extends RepackageTestBase {
 
+  private static final String EXPECTED = "Hello World!";
+
   public RepackageDebugMinificationTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
     super(flattenPackageHierarchyOrRepackageClasses, parameters);
@@ -37,10 +36,10 @@ public class RepackageDebugMinificationTest extends RepackageTestBase {
     testForRuntime(parameters)
         .addProgramClasses(A.class, Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello World!");
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testR8WithDebugDex() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForR8(parameters.getBackend())
@@ -49,14 +48,8 @@ public class RepackageDebugMinificationTest extends RepackageTestBase {
         .setMinApi(parameters.getApiLevel())
         .apply(this::configureRepackaging)
         .addKeepMainRule(Main.class)
-        .compileWithExpectedDiagnostics(
-            diagnostics -> {
-              diagnostics.assertErrorsMatch(
-                  diagnosticMessage(
-                      containsString(
-                          "Missing dependency:"
-                              + " com.android.tools.r8.repackage.RepackageDebugMinificationTest$A")));
-            });
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
@@ -69,7 +62,7 @@ public class RepackageDebugMinificationTest extends RepackageTestBase {
         .addKeepMainRule(Main.class)
         .apply(this::configureRepackaging)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello World!")
+        .assertSuccessWithOutputLines(EXPECTED)
         .inspect(
             inspector -> {
               ClassSubject mainClass = inspector.clazz(Main.class);
@@ -83,8 +76,7 @@ public class RepackageDebugMinificationTest extends RepackageTestBase {
               assertEquals(2, localVariableTable.size());
               LocalVariableTableEntry localVariableTableEntry = localVariableTable.get(1);
               assertEquals("localValue", localVariableTableEntry.name);
-              // TODO(b/176089426): This should be the same type.
-              assertFalse(localVariableTableEntry.type.is(aClass));
+              assertTrue(localVariableTableEntry.type.is(aClass));
             });
   }
 

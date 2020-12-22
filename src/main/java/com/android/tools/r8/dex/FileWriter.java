@@ -194,7 +194,7 @@ public class FileWriter {
       for (ProgramDexCode code : codes) {
         DexDebugInfoForWriting info = code.getCode().getDebugInfoForWriting();
         if (info != null && seen.add(info)) {
-          writeDebugItem(info);
+          writeDebugItem(info, graphLens);
         }
       }
     }
@@ -487,9 +487,9 @@ public class FileWriter {
     dest.putInt(mixedSectionOffsets.getOffsetFor(staticFieldValues.get(clazz)));
   }
 
-  private void writeDebugItem(DexDebugInfo debugInfo) {
+  private void writeDebugItem(DexDebugInfo debugInfo, GraphLens graphLens) {
     mixedSectionOffsets.setOffsetFor(debugInfo, dest.position());
-    dest.putBytes(new DebugBytecodeWriter(debugInfo, mapping).generate());
+    dest.putBytes(new DebugBytecodeWriter(debugInfo, mapping, graphLens).generate());
   }
 
   private void writeCodeItem(ProgramDexCode code) {

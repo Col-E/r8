@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.utils.LebUtils;
 import java.nio.ByteBuffer;
@@ -15,12 +16,15 @@ import java.util.Arrays;
 public class DebugBytecodeWriter {
 
   private final ObjectToOffsetMapping mapping;
+  private final GraphLens graphLens;
   private final DexDebugInfo info;
   private ByteBuffer buffer;
 
-  public DebugBytecodeWriter(DexDebugInfo info, ObjectToOffsetMapping mapping) {
+  public DebugBytecodeWriter(
+      DexDebugInfo info, ObjectToOffsetMapping mapping, GraphLens graphLens) {
     this.info = info;
     this.mapping = mapping;
+    this.graphLens = graphLens;
     // Never allocate a zero-sized buffer, as we need to write the header, and the growth policy
     // requires it to have a positive capacity.
     this.buffer = ByteBuffer.allocate(info.events.length * 5 + 4);
@@ -35,7 +39,7 @@ public class DebugBytecodeWriter {
     }
     // Body.
     for (DexDebugEvent event : info.events) {
-      event.writeOn(this, mapping);
+      event.writeOn(this, mapping, graphLens);
     }
     // Tail.
     putByte(Constants.DBG_END_SEQUENCE);

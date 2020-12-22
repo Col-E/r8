@@ -347,26 +347,34 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       Map<Integer, DebugLocalInfo> parameterInfo = method.getDefinition().getParameterInfo();
       for (Entry<Integer, DebugLocalInfo> entry : parameterInfo.entrySet()) {
         writeLocalVariableEntry(
-            visitor, namingLens, entry.getValue(), parameterLabel, parameterLabel, entry.getKey());
+            visitor,
+            graphLens,
+            namingLens,
+            entry.getValue(),
+            parameterLabel,
+            parameterLabel,
+            entry.getKey());
       }
     } else {
       for (LocalVariableInfo local : localVariables) {
         writeLocalVariableEntry(
-            visitor, namingLens, local.local, local.start, local.end, local.index);
+            visitor, graphLens, namingLens, local.local, local.start, local.end, local.index);
       }
     }
   }
 
   private void writeLocalVariableEntry(
       MethodVisitor visitor,
+      GraphLens graphLens,
       NamingLens namingLens,
       DebugLocalInfo info,
       CfLabel start,
       CfLabel end,
       int index) {
+    DexType rewrittenType = graphLens.lookupType(info.type);
     visitor.visitLocalVariable(
         info.name.toString(),
-        namingLens.lookupDescriptor(info.type).toString(),
+        namingLens.lookupDescriptor(rewrittenType).toString(),
         info.signature == null ? null : info.signature.toString(),
         start.getLabel(),
         end.getLabel(),

@@ -64,7 +64,9 @@ public class DebugByteCodeWriterTest {
   @Test
   public void testEmptyDebugInfo() {
     DexDebugInfo debugInfo = new DexDebugInfo(1, DexString.EMPTY_ARRAY, new DexDebugEvent[]{});
-    DebugBytecodeWriter writer = new DebugBytecodeWriter(debugInfo, emptyObjectTObjectMapping());
+    DebugBytecodeWriter writer =
+        new DebugBytecodeWriter(
+            debugInfo, emptyObjectTObjectMapping(), GraphLens.getIdentityLens());
     Assert.assertEquals(3, writer.generate().length);
   }
 }

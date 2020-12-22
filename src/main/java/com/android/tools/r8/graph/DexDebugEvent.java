@@ -72,7 +72,8 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     internalAcceptHashing(visitor);
   }
 
-  public abstract void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping);
+  public abstract void writeOn(
+      DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens);
 
   public abstract void accept(DexDebugEventVisitor visitor);
 
@@ -89,7 +90,8 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     public final int delta;
 
     @Override
-    public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
+    public void writeOn(
+        DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens) {
       writer.putByte(Constants.DBG_ADVANCE_PC);
       writer.putUleb128(delta);
     }
@@ -138,7 +140,8 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
 
     @Override
-    public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
+    public void writeOn(
+        DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens) {
       writer.putByte(Constants.DBG_SET_PROLOGUE_END);
     }
 
@@ -182,7 +185,8 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
 
     @Override
-    public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
+    public void writeOn(
+        DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens) {
       writer.putByte(Constants.DBG_SET_EPILOGUE_BEGIN);
     }
 
@@ -227,7 +231,8 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
 
     @Override
-    public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
+    public void writeOn(
+        DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens) {
       writer.putByte(Constants.DBG_ADVANCE_LINE);
       writer.putSleb128(delta);
     }
@@ -294,13 +299,14 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
 
     @Override
-    public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
+    public void writeOn(
+        DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens) {
       writer.putByte(signature == null
           ? Constants.DBG_START_LOCAL
           : Constants.DBG_START_LOCAL_EXTENDED);
       writer.putUleb128(registerNum);
       writer.putString(name);
-      writer.putType(type);
+      writer.putType(graphLens.lookupType(type));
       if (signature != null) {
         writer.putString(signature);
       }
@@ -364,7 +370,8 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
 
     @Override
-    public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
+    public void writeOn(
+        DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens) {
       writer.putByte(Constants.DBG_END_LOCAL);
       writer.putUleb128(registerNum);
     }
@@ -410,7 +417,8 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
 
     @Override
-    public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
+    public void writeOn(
+        DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens) {
       writer.putByte(Constants.DBG_RESTART_LOCAL);
       writer.putUleb128(registerNum);
     }
@@ -456,7 +464,8 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
 
     @Override
-    public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
+    public void writeOn(
+        DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens) {
       writer.putByte(Constants.DBG_SET_FILE);
       writer.putString(fileName);
     }
@@ -514,7 +523,8 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
 
     @Override
-    public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
+    public void writeOn(
+        DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens) {
       // CallerPosition will not be written.
     }
 
@@ -574,7 +584,8 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
 
     @Override
-    public void writeOn(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping) {
+    public void writeOn(
+        DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens) {
       writer.putByte(value);
     }
 
