@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.google.common.collect.ImmutableList;
@@ -37,7 +38,7 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
   }
 
   @Override
-  public void processNewlyLiveMethod(ProgramMethod method) {
+  public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {
     DexEncodedMethod definition = method.getDefinition();
     if (definition.isClassInitializer()) {
       Code code = definition.getCode();

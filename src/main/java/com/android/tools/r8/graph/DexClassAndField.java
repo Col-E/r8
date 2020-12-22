@@ -24,6 +24,10 @@ public class DexClassAndField extends DexClassAndMember<DexEncodedField, DexFiel
     return getDefinition().getAccessFlags();
   }
 
+  public DexType getType() {
+    return getReference().getType();
+  }
+
   public boolean isProgramField() {
     return false;
   }

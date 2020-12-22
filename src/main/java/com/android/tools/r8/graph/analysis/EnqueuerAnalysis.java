@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph.analysis;
 
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.Enqueuer;
@@ -20,10 +21,10 @@ public abstract class EnqueuerAnalysis {
   public void processNewlyLiveClass(DexProgramClass clazz, EnqueuerWorklist worklist) {}
 
   /** Called when a field is found to be live. */
-  public void processNewlyLiveField(ProgramField field) {}
+  public void processNewlyLiveField(ProgramField field, ProgramDefinition context) {}
 
   /** Called when a method is found to be live. */
-  public void processNewlyLiveMethod(ProgramMethod method) {}
+  public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {}
 
   /**
    * Called when the Enqueuer reaches a fixpoint. This may happen multiple times, since each

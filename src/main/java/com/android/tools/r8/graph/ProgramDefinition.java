@@ -36,6 +36,14 @@ public interface ProgramDefinition {
     return null;
   }
 
+  default boolean isProgramMember() {
+    return false;
+  }
+
+  default ProgramMember<?, ?> asProgramMember() {
+    return null;
+  }
+
   default boolean isProgramMethod() {
     return false;
   }

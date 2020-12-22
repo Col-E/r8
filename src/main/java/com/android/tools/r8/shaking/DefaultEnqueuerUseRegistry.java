@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.code.CfOrDexInstruction;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -19,11 +20,16 @@ import java.util.ListIterator;
 
 public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
+  protected final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final ProgramMethod context;
   protected final Enqueuer enqueuer;
 
-  public DefaultEnqueuerUseRegistry(AppView<?> appView, ProgramMethod context, Enqueuer enqueuer) {
+  public DefaultEnqueuerUseRegistry(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ProgramMethod context,
+      Enqueuer enqueuer) {
     super(appView.dexItemFactory());
+    this.appView = appView;
     this.context = context;
     this.enqueuer = enqueuer;
   }

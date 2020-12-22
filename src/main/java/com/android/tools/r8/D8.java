@@ -196,7 +196,7 @@ public final class D8 {
             clazz -> {
               ProgramMethod classInitializer = clazz.getProgramClassInitializer();
               if (classInitializer != null) {
-                analysis.processNewlyLiveMethod(classInitializer);
+                analysis.processNewlyLiveMethod(classInitializer, clazz);
               }
             },
             executor);

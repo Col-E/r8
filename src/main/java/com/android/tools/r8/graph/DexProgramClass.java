@@ -177,16 +177,21 @@ public class DexProgramClass extends DexClass
         .withAssert(c -> c.synthesizedFrom.isEmpty());
   }
 
-  public void forEachProgramField(Consumer<ProgramField> consumer) {
+  public void forEachProgramField(Consumer<? super ProgramField> consumer) {
     forEachField(field -> consumer.accept(new ProgramField(this, field)));
   }
 
-  public void forEachProgramMethod(Consumer<ProgramMethod> consumer) {
+  public void forEachProgramMember(Consumer<? super ProgramMember<?, ?>> consumer) {
+    forEachProgramField(consumer);
+    forEachProgramMethod(consumer);
+  }
+
+  public void forEachProgramMethod(Consumer<? super ProgramMethod> consumer) {
     forEachProgramMethodMatching(alwaysTrue(), consumer);
   }
 
   public void forEachProgramMethodMatching(
-      Predicate<DexEncodedMethod> predicate, Consumer<ProgramMethod> consumer) {
+      Predicate<DexEncodedMethod> predicate, Consumer<? super ProgramMethod> consumer) {
     methodCollection.forEachMethodMatching(
         predicate, method -> consumer.accept(new ProgramMethod(this, method)));
   }

@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -1424,14 +1425,14 @@ public class RootSetBuilder {
     public void forEachDependentMember(
         DexDefinition item,
         AppView<?> appView,
-        Consumer3<DexDefinition, DexEncodedMember<?, ?>, Set<ProguardKeepRuleBase>> fn) {
+        Consumer3<DexDefinition, ProgramMember<?, ?>, Set<ProguardKeepRuleBase>> fn) {
       getDependentItems(item)
           .forEachMember(
               (reference, reasons) -> {
                 DexProgramClass holder =
                     asProgramClassOrNull(appView.definitionForHolder(reference));
                 if (holder != null) {
-                  DexEncodedMember<?, ?> member = holder.lookupMember(reference);
+                  ProgramMember<?, ?> member = holder.lookupProgramMember(reference);
                   if (member != null) {
                     fn.accept(item, member, reasons);
                   }
@@ -1442,12 +1443,12 @@ public class RootSetBuilder {
     public void forEachDependentNonStaticMember(
         DexDefinition item,
         AppView<?> appView,
-        Consumer3<DexDefinition, DexEncodedMember<?, ?>, Set<ProguardKeepRuleBase>> fn) {
+        Consumer3<DexDefinition, ProgramMember<?, ?>, Set<ProguardKeepRuleBase>> fn) {
       forEachDependentMember(
           item,
           appView,
           (precondition, member, reasons) -> {
-            if (!member.isStatic()) {
+            if (!member.getDefinition().isStatic()) {
               fn.accept(precondition, member, reasons);
             }
           });
@@ -1456,12 +1457,12 @@ public class RootSetBuilder {
     public void forEachDependentStaticMember(
         DexDefinition item,
         AppView<?> appView,
-        Consumer3<DexDefinition, DexEncodedMember<?, ?>, Set<ProguardKeepRuleBase>> fn) {
+        Consumer3<DexDefinition, ProgramMember<?, ?>, Set<ProguardKeepRuleBase>> fn) {
       forEachDependentMember(
           item,
           appView,
           (precondition, member, reasons) -> {
-            if (member.isStatic()) {
+            if (member.getDefinition().isStatic()) {
               fn.accept(precondition, member, reasons);
             }
           });

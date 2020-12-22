@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
@@ -128,7 +129,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
    * ProtoMessageInfo} object, and create a mapping from the holder to it.
    */
   @Override
-  public void processNewlyLiveMethod(ProgramMethod method) {
+  public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {
     if (references.isFindLiteExtensionByNumberMethod(method.getReference())) {
       findLiteExtensionByNumberMethods.add(method);
       return;
@@ -381,7 +382,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
           // written such that we cannot optimize any field reads or writes.
           enqueuer.registerReflectiveFieldAccess(valueStorage.getReference(), dynamicMethod);
           worklist.enqueueMarkReachableFieldAction(
-              valueStorage, KeepReason.reflectiveUseIn(dynamicMethod));
+              valueStorage, dynamicMethod, KeepReason.reflectiveUseIn(dynamicMethod));
           valueStorageIsLive = true;
         } else {
           valueStorageIsLive = false;
@@ -446,8 +447,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
           // dynamicMethod().
           if (enqueuer.registerReflectiveFieldWrite(newlyLiveField.getReference(), dynamicMethod)) {
             worklist.enqueueMarkReachableFieldAction(
-                newlyLiveField,
-                KeepReason.reflectiveUseIn(dynamicMethod));
+                newlyLiveField, dynamicMethod, KeepReason.reflectiveUseIn(dynamicMethod));
           }
         }
       }
@@ -567,7 +567,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
 
     if (enqueuer.registerReflectiveFieldWrite(oneOfField.getReference(), dynamicMethod)) {
       worklist.enqueueMarkReachableFieldAction(
-          oneOfField, KeepReason.reflectiveUseIn(dynamicMethod));
+          oneOfField, dynamicMethod, KeepReason.reflectiveUseIn(dynamicMethod));
     }
   }
 

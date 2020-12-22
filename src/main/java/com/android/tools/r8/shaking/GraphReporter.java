@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
@@ -199,6 +200,18 @@ public class GraphReporter {
           EdgeKind.CompatibilityRule);
     }
     return KeepReasonWitness.INSTANCE;
+  }
+
+  public KeepReasonWitness reportClassReferencedFrom(
+      DexProgramClass clazz, ProgramDefinition context) {
+    if (context.isProgramClass()) {
+      return reportClassReferencedFrom(clazz, context.asProgramClass());
+    } else if (context.isProgramField()) {
+      return reportClassReferencedFrom(clazz, context.asProgramField());
+    } else {
+      assert context.isProgramMethod();
+      return reportClassReferencedFrom(clazz, context.asProgramMethod());
+    }
   }
 
   public KeepReasonWitness reportClassReferencedFrom(

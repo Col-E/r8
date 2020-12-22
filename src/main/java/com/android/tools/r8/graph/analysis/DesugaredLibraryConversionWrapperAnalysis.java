@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.Mode;
@@ -29,7 +30,7 @@ public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
   }
 
   @Override
-  public void processNewlyLiveMethod(ProgramMethod method) {
+  public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {
     converter.registerCallbackIfRequired(method);
   }
 

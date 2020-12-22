@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis.proto;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.code.CfOrDexInstruction;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -25,7 +26,9 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
   private final ProtoReferences references;
 
   public ProtoEnqueuerUseRegistry(
-      AppView<?> appView, ProgramMethod currentMethod, Enqueuer enqueuer) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ProgramMethod currentMethod,
+      Enqueuer enqueuer) {
     super(appView, currentMethod, enqueuer);
     this.references = appView.protoShrinker().references;
   }
@@ -73,7 +76,7 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
     if (field == references.getDefaultInstanceField(getContextHolder())) {
       return true;
     }
-    DexProgramClass holder = asProgramClassOrNull(enqueuer.definitionFor(field.getHolderType()));
+    DexProgramClass holder = asProgramClassOrNull(appView.definitionFor(field.getHolderType()));
     return holder != null
         && holder.getInterfaces().contains(references.enumVerifierType)
         && field == references.getEnumVerifierInstanceField(holder);

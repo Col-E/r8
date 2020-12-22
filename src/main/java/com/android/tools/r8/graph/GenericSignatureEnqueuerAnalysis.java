@@ -12,38 +12,45 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
+import com.android.tools.r8.shaking.Enqueuer.EnqueuerDefinitionSupplier;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 import java.util.List;
 
 public class GenericSignatureEnqueuerAnalysis extends EnqueuerAnalysis {
 
-  private final GenericSignatureVisitor visitor;
+  private final EnqueuerDefinitionSupplier enqueuerDefinitionSupplier;
 
-  public GenericSignatureEnqueuerAnalysis(DexDefinitionSupplier definitionSupplier) {
-    visitor = new GenericSignatureTypeVisitor(definitionSupplier);
+  public GenericSignatureEnqueuerAnalysis(EnqueuerDefinitionSupplier enqueuerDefinitionSupplier) {
+    this.enqueuerDefinitionSupplier = enqueuerDefinitionSupplier;
   }
 
   @Override
   public void processNewlyLiveClass(DexProgramClass clazz, EnqueuerWorklist worklist) {
-    visitor.visitClassSignature(clazz.getClassSignature());
+    new GenericSignatureTypeVisitor(clazz, enqueuerDefinitionSupplier)
+        .visitClassSignature(clazz.getClassSignature());
   }
 
   @Override
-  public void processNewlyLiveField(ProgramField field) {
-    visitor.visitFieldTypeSignature(field.getDefinition().getGenericSignature());
+  public void processNewlyLiveField(ProgramField field, ProgramDefinition context) {
+    new GenericSignatureTypeVisitor(context, enqueuerDefinitionSupplier)
+        .visitFieldTypeSignature(field.getDefinition().getGenericSignature());
   }
 
   @Override
-  public void processNewlyLiveMethod(ProgramMethod method) {
-    visitor.visitMethodSignature(method.getDefinition().getGenericSignature());
+  public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {
+    new GenericSignatureTypeVisitor(context, enqueuerDefinitionSupplier)
+        .visitMethodSignature(method.getDefinition().getGenericSignature());
   }
 
   private static class GenericSignatureTypeVisitor implements GenericSignatureVisitor {
 
-    private final DexDefinitionSupplier definitionSupplier;
+    private final ProgramDefinition context;
+    private final EnqueuerDefinitionSupplier enqueuerDefinitionSupplier;
 
-    private GenericSignatureTypeVisitor(DexDefinitionSupplier definitionSupplier) {
-      this.definitionSupplier = definitionSupplier;
+    private GenericSignatureTypeVisitor(
+        ProgramDefinition context, EnqueuerDefinitionSupplier enqueuerDefinitionSupplier) {
+      this.context = context;
+      this.enqueuerDefinitionSupplier = enqueuerDefinitionSupplier;
     }
 
     @Override
@@ -82,7 +89,7 @@ public class GenericSignatureEnqueuerAnalysis extends EnqueuerAnalysis {
     }
 
     private void visitClassTypeSignature(ClassTypeSignature classTypeSignature) {
-      definitionSupplier.definitionFor(classTypeSignature.type);
+      enqueuerDefinitionSupplier.definitionFor(classTypeSignature.type, context);
       classTypeSignature.visit(this);
     }
 

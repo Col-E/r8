@@ -23,6 +23,8 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
+import com.android.tools.r8.utils.TriConsumer;
+import com.android.tools.r8.utils.TriFunction;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
@@ -34,8 +36,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /* Specific subclass of AppInfo designed to support desugaring in D8. Desugaring requires a
@@ -157,7 +157,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * result of the traversal is BREAK iff the function returned BREAK.
    */
   public TraversalContinuation traverseSuperTypes(
-      final DexClass clazz, BiFunction<DexType, Boolean, TraversalContinuation> fn) {
+      final DexClass clazz, TriFunction<DexType, DexClass, Boolean, TraversalContinuation> fn) {
     // We do an initial zero-allocation pass over the class super chain as it does not require a
     // worklist/seen-set. Only if the traversal is not aborted and there actually are interfaces,
     // do we continue traversal over the interface types. This is assuming that the second pass
@@ -170,7 +170,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         if (currentClass.superType == null) {
           break;
         }
-        TraversalContinuation stepResult = fn.apply(currentClass.superType, false);
+        TraversalContinuation stepResult = fn.apply(currentClass.superType, currentClass, false);
         if (stepResult.shouldBreak()) {
           return stepResult;
         }
@@ -189,7 +189,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       while (currentClass != null) {
         for (DexType iface : currentClass.interfaces.values) {
           if (seen.add(iface)) {
-            TraversalContinuation stepResult = fn.apply(iface, true);
+            TraversalContinuation stepResult = fn.apply(iface, currentClass, true);
             if (stepResult.shouldBreak()) {
               return stepResult;
             }
@@ -209,7 +209,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       if (definition != null) {
         for (DexType iface : definition.interfaces.values) {
           if (seen.add(iface)) {
-            TraversalContinuation stepResult = fn.apply(iface, true);
+            TraversalContinuation stepResult = fn.apply(iface, definition, true);
             if (stepResult.shouldBreak()) {
               return stepResult;
             }
@@ -226,11 +226,11 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    *
    * <p>Same as traverseSuperTypes, but unconditionally visits all.
    */
-  public void forEachSuperType(final DexClass clazz, BiConsumer<DexType, Boolean> fn) {
+  public void forEachSuperType(DexClass clazz, TriConsumer<DexType, DexClass, Boolean> fn) {
     traverseSuperTypes(
         clazz,
-        (type, isInterface) -> {
-          fn.accept(type, isInterface);
+        (superType, subclass, isInterface) -> {
+          fn.accept(superType, subclass, isInterface);
           return CONTINUE;
         });
   }
@@ -267,8 +267,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     }
     // TODO(b/123506120): Report missing types when the predicate is inconclusive.
     return traverseSuperTypes(
-            clazz,
-            (type, isInterface) -> type == supertype ? BREAK : CONTINUE)
+            clazz, (superType, subclass, isInterface) -> superType == supertype ? BREAK : CONTINUE)
         .shouldBreak();
   }
 
@@ -305,11 +304,13 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     if (clazz.isInterface()) {
       interfaces.add(type);
     }
-    forEachSuperType(clazz, (dexType, isInterface) -> {
-      if (isInterface) {
-        interfaces.add(dexType);
-      }
-    });
+    forEachSuperType(
+        clazz,
+        (superType, subclass, isInterface) -> {
+          if (isInterface) {
+            interfaces.add(superType);
+          }
+        });
     return interfaces;
   }
 

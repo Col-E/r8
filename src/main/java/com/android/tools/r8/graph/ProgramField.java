@@ -37,6 +37,16 @@ public class ProgramField extends DexClassAndField
   }
 
   @Override
+  public boolean isProgramMember() {
+    return true;
+  }
+
+  @Override
+  public ProgramField asProgramMember() {
+    return this;
+  }
+
+  @Override
   public DexProgramClass getHolder() {
     DexClass holder = super.getHolder();
     assert holder.isProgramClass();

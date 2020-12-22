@@ -4,11 +4,15 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 
 public interface EnqueuerUseRegistryFactory {
 
-  UseRegistry create(AppView<?> appView, ProgramMethod currentMethod, Enqueuer enqueuer);
+  UseRegistry create(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ProgramMethod currentMethod,
+      Enqueuer enqueuer);
 }

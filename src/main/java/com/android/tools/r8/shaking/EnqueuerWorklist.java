@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
@@ -22,23 +22,27 @@ public class EnqueuerWorklist {
   }
 
   static class MarkReachableDirectAction extends EnqueuerAction {
-    final DexMethod target;
-    final KeepReason reason;
+    private final DexMethod target;
+    // TODO(b/175854431): Avoid pushing context on worklist.
+    private final ProgramDefinition context;
+    private final KeepReason reason;
 
-    MarkReachableDirectAction(DexMethod target, KeepReason reason) {
+    MarkReachableDirectAction(DexMethod target, ProgramDefinition context, KeepReason reason) {
       this.target = target;
+      this.context = context;
       this.reason = reason;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.markNonStaticDirectMethodAsReachable(target, reason);
+      enqueuer.markNonStaticDirectMethodAsReachable(target, context, reason);
     }
   }
 
   static class MarkReachableSuperAction extends EnqueuerAction {
-    final DexMethod target;
-    final ProgramMethod context;
+    private final DexMethod target;
+    // TODO(b/175854431): Avoid pushing context on worklist.
+    private final ProgramMethod context;
 
     public MarkReachableSuperAction(DexMethod target, ProgramMethod context) {
       this.target = target;
@@ -52,26 +56,30 @@ public class EnqueuerWorklist {
   }
 
   static class MarkReachableFieldAction extends EnqueuerAction {
-    final ProgramField field;
-    final KeepReason reason;
+    private final ProgramField field;
+    // TODO(b/175854431): Avoid pushing context on worklist.
+    private final ProgramDefinition context;
+    private final KeepReason reason;
 
-    public MarkReachableFieldAction(ProgramField field, KeepReason reason) {
+    public MarkReachableFieldAction(
+        ProgramField field, ProgramDefinition context, KeepReason reason) {
       this.field = field;
+      this.context = context;
       this.reason = reason;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.markInstanceFieldAsReachable(field, reason);
+      enqueuer.markInstanceFieldAsReachable(field, context, reason);
     }
   }
 
   static class MarkInstantiatedAction extends EnqueuerAction {
-
-    final DexProgramClass target;
-    final ProgramMethod context;
-    final InstantiationReason instantiationReason;
-    final KeepReason keepReason;
+    private final DexProgramClass target;
+    // TODO(b/175854431): Avoid pushing context on worklist.
+    private final ProgramMethod context;
+    private final InstantiationReason instantiationReason;
+    private final KeepReason keepReason;
 
     public MarkInstantiatedAction(
         DexProgramClass target,
@@ -91,8 +99,8 @@ public class EnqueuerWorklist {
   }
 
   static class MarkAnnotationInstantiatedAction extends EnqueuerAction {
-    final DexProgramClass target;
-    final KeepReasonWitness reason;
+    private final DexProgramClass target;
+    private final KeepReasonWitness reason;
 
     public MarkAnnotationInstantiatedAction(DexProgramClass target, KeepReasonWitness reason) {
       this.target = target;
@@ -106,8 +114,8 @@ public class EnqueuerWorklist {
   }
 
   static class MarkInterfaceInstantiatedAction extends EnqueuerAction {
-    final DexProgramClass target;
-    final KeepReasonWitness reason;
+    private final DexProgramClass target;
+    private final KeepReasonWitness reason;
 
     public MarkInterfaceInstantiatedAction(DexProgramClass target, KeepReasonWitness reason) {
       this.target = target;
@@ -121,23 +129,24 @@ public class EnqueuerWorklist {
   }
 
   static class MarkMethodLiveAction extends EnqueuerAction {
-    final ProgramMethod method;
-    final KeepReason reason;
+    private final ProgramMethod method;
+    // TODO(b/175854431): Avoid pushing context on worklist.
+    private final ProgramDefinition context;
 
-    public MarkMethodLiveAction(ProgramMethod method, KeepReason reason) {
+    public MarkMethodLiveAction(ProgramMethod method, ProgramDefinition context) {
       this.method = method;
-      this.reason = reason;
+      this.context = context;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.markMethodAsLive(method, reason);
+      enqueuer.markMethodAsLive(method, context);
     }
   }
 
   static class MarkMethodKeptAction extends EnqueuerAction {
-    final ProgramMethod target;
-    final KeepReason reason;
+    private final ProgramMethod target;
+    private final KeepReason reason;
 
     public MarkMethodKeptAction(ProgramMethod target, KeepReason reason) {
       this.target = target;
@@ -151,8 +160,8 @@ public class EnqueuerWorklist {
   }
 
   static class MarkFieldKeptAction extends EnqueuerAction {
-    final ProgramField field;
-    final KeepReasonWitness witness;
+    private final ProgramField field;
+    private final KeepReasonWitness witness;
 
     public MarkFieldKeptAction(ProgramField field, KeepReasonWitness witness) {
       this.field = field;
@@ -166,8 +175,9 @@ public class EnqueuerWorklist {
   }
 
   static class TraceConstClassAction extends EnqueuerAction {
-    final DexType type;
-    final ProgramMethod context;
+    private final DexType type;
+    // TODO(b/175854431): Avoid pushing context on worklist.
+    private final ProgramMethod context;
 
     TraceConstClassAction(DexType type, ProgramMethod context) {
       this.type = type;
@@ -181,8 +191,9 @@ public class EnqueuerWorklist {
   }
 
   static class TraceInvokeDirectAction extends EnqueuerAction {
-    final DexMethod invokedMethod;
-    final ProgramMethod context;
+    private final DexMethod invokedMethod;
+    // TODO(b/175854431): Avoid pushing context on worklist.
+    private final ProgramMethod context;
 
     TraceInvokeDirectAction(DexMethod invokedMethod, ProgramMethod context) {
       this.invokedMethod = invokedMethod;
@@ -196,8 +207,9 @@ public class EnqueuerWorklist {
   }
 
   static class TraceNewInstanceAction extends EnqueuerAction {
-    final DexType type;
-    final ProgramMethod context;
+    private final DexType type;
+    // TODO(b/175854431): Avoid pushing context on worklist.
+    private final ProgramMethod context;
 
     TraceNewInstanceAction(DexType type, ProgramMethod context) {
       this.type = type;
@@ -211,8 +223,9 @@ public class EnqueuerWorklist {
   }
 
   static class TraceStaticFieldReadAction extends EnqueuerAction {
-    final DexField field;
-    final ProgramMethod context;
+    private final DexField field;
+    // TODO(b/175854431): Avoid pushing context on worklist.
+    private final ProgramMethod context;
 
     TraceStaticFieldReadAction(DexField field, ProgramMethod context) {
       this.field = field;
@@ -225,15 +238,12 @@ public class EnqueuerWorklist {
     }
   }
 
-  private final AppView<?> appView;
   private final Queue<EnqueuerAction> queue = new ArrayDeque<>();
 
-  private EnqueuerWorklist(AppView<?> appView) {
-    this.appView = appView;
-  }
+  private EnqueuerWorklist() {}
 
-  public static EnqueuerWorklist createWorklist(AppView<?> appView) {
-    return new EnqueuerWorklist(appView);
+  public static EnqueuerWorklist createWorklist() {
+    return new EnqueuerWorklist();
   }
 
   public boolean isEmpty() {
@@ -244,16 +254,18 @@ public class EnqueuerWorklist {
     return queue.poll();
   }
 
-  void enqueueMarkReachableDirectAction(DexMethod method, KeepReason reason) {
-    queue.add(new MarkReachableDirectAction(method, reason));
+  void enqueueMarkReachableDirectAction(
+      DexMethod method, ProgramDefinition context, KeepReason reason) {
+    queue.add(new MarkReachableDirectAction(method, context, reason));
   }
 
   void enqueueMarkReachableSuperAction(DexMethod method, ProgramMethod from) {
     queue.add(new MarkReachableSuperAction(method, from));
   }
 
-  public void enqueueMarkReachableFieldAction(ProgramField field, KeepReason reason) {
-    queue.add(new MarkReachableFieldAction(field, reason));
+  public void enqueueMarkReachableFieldAction(
+      ProgramField field, ProgramDefinition context, KeepReason reason) {
+    queue.add(new MarkReachableFieldAction(field, context, reason));
   }
 
   // TODO(b/142378367): Context is the containing method that is cause of the instantiation.
@@ -280,8 +292,8 @@ public class EnqueuerWorklist {
     queue.add(new MarkInterfaceInstantiatedAction(clazz, reason));
   }
 
-  void enqueueMarkMethodLiveAction(ProgramMethod method, KeepReason reason) {
-    queue.add(new MarkMethodLiveAction(method, reason));
+  void enqueueMarkMethodLiveAction(ProgramMethod method, ProgramDefinition context) {
+    queue.add(new MarkMethodLiveAction(method, context));
   }
 
   void enqueueMarkMethodKeptAction(ProgramMethod method, KeepReason reason) {

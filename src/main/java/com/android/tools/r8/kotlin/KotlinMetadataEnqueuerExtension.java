@@ -6,7 +6,6 @@ package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.KotlinClassMetadataReader.hasKotlinClassMetadataAnnotation;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
-import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -17,20 +16,30 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.Enqueuer.EnqueuerDefinitionSupplier;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
 public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
 
   private final AppView<?> appView;
-  private final DexDefinitionSupplier definitionSupplier;
+  private final EnqueuerDefinitionSupplier enqueuerDefinitionSupplier;
+  private final Set<DexType> prunedTypes;
 
   public KotlinMetadataEnqueuerExtension(
-      AppView<?> appView, DexDefinitionSupplier definitionSupplier, Set<DexType> prunedTypes) {
+      AppView<?> appView,
+      EnqueuerDefinitionSupplier enqueuerDefinitionSupplier,
+      Set<DexType> prunedTypes) {
     this.appView = appView;
-    this.definitionSupplier = new KotlinMetadataDefinitionSupplier(definitionSupplier, prunedTypes);
+    this.enqueuerDefinitionSupplier = enqueuerDefinitionSupplier;
+    this.prunedTypes = prunedTypes;
+  }
+
+  private KotlinMetadataDefinitionSupplier definitionsForContext(ProgramDefinition context) {
+    return new KotlinMetadataDefinitionSupplier(context, enqueuerDefinitionSupplier, prunedTypes);
   }
 
   @Override
@@ -54,7 +63,7 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
                 KotlinClassMetadataReader.getKotlinInfo(
                     appView.dexItemFactory().kotlin,
                     clazz,
-                    definitionSupplier.dexItemFactory(),
+                    appView.dexItemFactory(),
                     appView.options().reporter,
                     onlyProcessLambdas,
                     method -> keepByteCodeFunctions.add(method.method)));
@@ -72,7 +81,8 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
         EnclosingMethodAttribute enclosingAttribute =
             localOrAnonymousClass.getEnclosingMethodAttribute();
         DexClass holder =
-            definitionSupplier.definitionForHolder(enclosingAttribute.getEnclosingMethod());
+            definitionsForContext(localOrAnonymousClass)
+                .definitionForHolder(enclosingAttribute.getEnclosingMethod());
         if (holder == null) {
           continue;
         }
@@ -91,11 +101,13 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
     // Trace through the modeled kotlin metadata.
     enqueuer.forAllLiveClasses(
         clazz -> {
-          clazz.getKotlinInfo().trace(definitionSupplier);
-          forEachApply(
-              clazz.methods(), method -> method.getKotlinMemberInfo()::trace, definitionSupplier);
-          forEachApply(
-              clazz.fields(), field -> field.getKotlinMemberInfo()::trace, definitionSupplier);
+          clazz.getKotlinInfo().trace(definitionsForContext(clazz));
+          clazz.forEachProgramMember(
+              member ->
+                  member
+                      .getDefinition()
+                      .getKotlinMemberInfo()
+                      .trace(definitionsForContext(member)));
         });
   }
 
@@ -104,7 +116,7 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
     enqueuer.forAllLiveClasses(
         clazz -> {
           // Trace through class and member definitions
-          assert !hasKotlinClassMetadataAnnotation(clazz, definitionSupplier)
+          assert !hasKotlinClassMetadataAnnotation(clazz, definitionsForContext(clazz))
               || !keepMetadata
               || !enqueuer.isPinned(clazz.type)
               || clazz.getKotlinInfo() != NO_KOTLIN_INFO;
@@ -112,14 +124,18 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
     return true;
   }
 
-  public static class KotlinMetadataDefinitionSupplier implements DexDefinitionSupplier {
+  public class KotlinMetadataDefinitionSupplier implements DexDefinitionSupplier {
 
-    private final DexDefinitionSupplier baseSupplier;
+    private final ProgramDefinition context;
+    private final EnqueuerDefinitionSupplier enqueuerDefinitionSupplier;
     private final Set<DexType> prunedTypes;
 
     private KotlinMetadataDefinitionSupplier(
-        DexDefinitionSupplier baseSupplier, Set<DexType> prunedTypes) {
-      this.baseSupplier = baseSupplier;
+        ProgramDefinition context,
+        EnqueuerDefinitionSupplier enqueuerDefinitionSupplier,
+        Set<DexType> prunedTypes) {
+      this.context = context;
+      this.enqueuerDefinitionSupplier = enqueuerDefinitionSupplier;
       this.prunedTypes = prunedTypes;
     }
 
@@ -131,12 +147,12 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
       if (prunedTypes != null && prunedTypes.contains(type)) {
         return null;
       }
-      return baseSupplier.definitionFor(type);
+      return enqueuerDefinitionSupplier.definitionFor(type, context);
     }
 
     @Override
     public DexItemFactory dexItemFactory() {
-      return baseSupplier.dexItemFactory();
+      return appView.dexItemFactory();
     }
   }
 }
