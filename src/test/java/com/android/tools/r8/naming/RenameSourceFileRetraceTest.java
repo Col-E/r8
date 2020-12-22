@@ -101,7 +101,7 @@ public class RenameSourceFileRetraceTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatMatches(containsString("ClassToBeMinified.foo()"))
         .inspectFailure(inspector -> inspectOutput(inspector, expectedName, expectedName))
-        .inspectStackTrace(stackTrace -> inspectStackTrace(stackTrace, expectedName));
+        .inspectStackTrace(stackTrace -> inspectStackTrace(stackTrace, FILENAME_MAIN));
   }
 
   private String getDefaultExpectedName() {
