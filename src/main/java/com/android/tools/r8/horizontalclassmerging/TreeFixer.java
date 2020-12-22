@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.TreeFixerBase;
@@ -28,10 +27,8 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -41,7 +38,6 @@ import java.util.Set;
  * tracked in {@link TreeFixer#lensBuilder}.
  */
 class TreeFixer extends TreeFixerBase {
-  private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
   private final HorizontallyMergedClasses mergedClasses;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
   private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
@@ -130,7 +126,7 @@ class TreeFixer extends TreeFixerBase {
       subtypingForrest.traverseNodeDepthFirst(root, HashBiMap.create(), this::fixupProgramClass);
     }
     HorizontalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
-    fieldAccessChangesBuilder.build(this::fixupMethodReference).modify(appView);
+    fieldAccessChangesBuilder.fixup(this::fixupMethodReference);
     new AnnotationFixer(lens).run(appView.appInfo().classes());
     return lens;
   }

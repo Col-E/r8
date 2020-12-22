@@ -563,17 +563,17 @@ public class R8 {
           HorizontalClassMergerGraphLens lens =
               merger.run(appBuilder, mainDexTracingResult, runtimeTypeCheckInfo);
           if (lens != null) {
-            DirectMappedDexApplication app = appBuilder.build();
+            // Must rewrite AppInfoWithLiveness before pruning the merged classes, to ensure that
+            // allocations sites, fields accesses, etc. are correctly transferred to the target
+            // classes.
+            appView.rewriteWithLensAndApplication(lens, appBuilder.build());
+            merger.recordSyntheticFieldAccesses();
             appView.pruneItems(
                 PrunedItems.builder()
-                    .setPrunedApp(app)
+                    .setPrunedApp(appView.appInfo().app())
                     .addRemovedClasses(appView.horizontallyMergedClasses().getSources())
                     .addNoLongerSyntheticItems(appView.horizontallyMergedClasses().getTargets())
                     .build());
-            appView.rewriteWithLens(lens);
-
-            // Only required for class merging, clear instance to save memory.
-            runtimeTypeCheckInfo = null;
           }
           timing.end();
         } else {

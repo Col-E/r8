@@ -34,7 +34,7 @@ public class FieldAccessInfoCollectionModifier {
       }
     }
 
-    void fixUp(Function<DexMethod, DexMethod> fixUpMethod) {
+    void fixup(Function<DexMethod, DexMethod> fixUpMethod) {
       fixUpMethods(writeContexts, fixUpMethod);
       fixUpMethods(readContexts, fixUpMethod);
     }
@@ -74,10 +74,13 @@ public class FieldAccessInfoCollectionModifier {
 
     public Builder() {}
 
-    public FieldAccessInfoCollectionModifier build(Function<DexMethod, DexMethod> fixupMethod) {
-      for (FieldReferences fieldReference : newFieldAccesses.values()) {
-        fieldReference.fixUp(fixupMethod);
+    public void fixup(Function<DexMethod, DexMethod> fixupMethod) {
+      for (FieldReferences fieldReferences : newFieldAccesses.values()) {
+        fieldReferences.fixup(fixupMethod);
       }
+    }
+
+    public FieldAccessInfoCollectionModifier build() {
       return new FieldAccessInfoCollectionModifier(newFieldAccesses);
     }
 

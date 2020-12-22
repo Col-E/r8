@@ -39,6 +39,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.SameNestHost;
 import com.android.tools.r8.horizontalclassmerging.policies.SameParentClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
+import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.MainDexTracingResult;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 import com.google.common.collect.ImmutableList;
@@ -49,11 +50,17 @@ import java.util.Collections;
 import java.util.List;
 
 public class HorizontalClassMerger {
+
   private final AppView<AppInfoWithLiveness> appView;
+  private FieldAccessInfoCollectionModifier fieldAccessChanges;
 
   public HorizontalClassMerger(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     assert appView.options().enableInlining;
+  }
+
+  public void recordSyntheticFieldAccesses() {
+    fieldAccessChanges.modify(appView);
   }
 
   // TODO(b/165577835): replace Collection<DexProgramClass> with MergeGroup
@@ -94,11 +101,18 @@ public class HorizontalClassMerger {
         new SyntheticArgumentClass.Builder().build(appView, appBuilder, allMergeClasses);
     applyClassMergers(classMergers, syntheticArgumentClass);
 
-    // Generate the class lens.
+    // Generate the graph lens.
     HorizontallyMergedClasses mergedClasses = mergedClassesBuilder.build();
     appView.setHorizontallyMergedClasses(mergedClasses);
-    return createLens(
-        mergedClasses, lensBuilder, fieldAccessChangesBuilder, syntheticArgumentClass);
+    HorizontalClassMergerGraphLens lens =
+        createLens(mergedClasses, lensBuilder, fieldAccessChangesBuilder, syntheticArgumentClass);
+    fieldAccessChanges = fieldAccessChangesBuilder.build();
+
+    // Prune keep info.
+    KeepInfoCollection keepInfo = appView.appInfo().getKeepInfo();
+    keepInfo.mutate(mutator -> mutator.removeKeepInfoForPrunedItems(mergedClasses.getSources()));
+
+    return lens;
   }
 
   private List<Policy> getPolicies(
