@@ -204,13 +204,8 @@ public class VirtualMethodMerger {
       Reference2IntMap<DexType> classIdentifiers) {
     assert !methods.isEmpty();
 
-    // Handle nop merges.
-    if (isNop()) {
-      return;
-    }
-
     // Handle trivial merges.
-    if (isTrivial()) {
+    if (isNop() || isTrivial()) {
       mergeTrivial(classMethodsBuilder, lensBuilder);
       return;
     }
