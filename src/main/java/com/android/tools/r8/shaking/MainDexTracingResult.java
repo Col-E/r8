@@ -6,8 +6,10 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramDefinition;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -23,11 +25,29 @@ public class MainDexTracingResult {
 
   public static class Builder {
     public final AppInfo appInfo;
-    public final Set<DexType> roots = Sets.newIdentityHashSet();
-    public final Set<DexType> dependencies = Sets.newIdentityHashSet();
+    public final Set<DexType> roots;
+    public final Set<DexType> dependencies;
 
     private Builder(AppInfo appInfo) {
+      this(appInfo, Sets.newIdentityHashSet(), Sets.newIdentityHashSet());
+    }
+
+    private Builder(AppInfo appInfo, MainDexTracingResult mainDexTracingResult) {
+      this(
+          appInfo,
+          SetUtils.newIdentityHashSet(mainDexTracingResult.getRoots()),
+          SetUtils.newIdentityHashSet(mainDexTracingResult.getDependencies()));
+    }
+
+    private Builder(AppInfo appInfo, Set<DexType> roots, Set<DexType> dependencies) {
       this.appInfo = appInfo;
+      this.roots = roots;
+      this.dependencies = dependencies;
+    }
+
+    public Builder addRoot(DexProgramClass clazz) {
+      roots.add(clazz.getType());
+      return this;
     }
 
     public Builder addRoot(DexType type) {
@@ -140,5 +160,9 @@ public class MainDexTracingResult {
 
   public static Builder builder(AppInfo appInfo) {
     return new Builder(appInfo);
+  }
+
+  public Builder extensionBuilder(AppInfo appInfo) {
+    return new Builder(appInfo, this);
   }
 }

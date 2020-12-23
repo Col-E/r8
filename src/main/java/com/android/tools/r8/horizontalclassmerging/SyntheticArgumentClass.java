@@ -17,6 +17,8 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.MainDexTracingResult;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -53,13 +55,27 @@ public class SyntheticArgumentClass {
 
   public static class Builder {
 
-    private DexType synthesizeClass(
-        AppView<AppInfoWithLiveness> appView,
+    private final DirectMappedDexApplication.Builder appBuilder;
+    private final AppView<AppInfoWithLiveness> appView;
+    private final MainDexTracingResult mainDexTracingResult;
+    private final MainDexTracingResult.Builder mainDexTracingResultBuilder;
+
+    Builder(
         DirectMappedDexApplication.Builder appBuilder,
+        AppView<AppInfoWithLiveness> appView,
+        MainDexTracingResult mainDexTracingResult,
+        MainDexTracingResult.Builder mainDexTracingResultBuilder) {
+      this.appBuilder = appBuilder;
+      this.appView = appView;
+      this.mainDexTracingResult = mainDexTracingResult;
+      this.mainDexTracingResultBuilder = mainDexTracingResultBuilder;
+    }
+
+    private DexType synthesizeClass(
         DexProgramClass context,
         boolean requiresMainDex,
+        boolean addToMainDexTracingResult,
         int index) {
-
       DexType syntheticClassType =
           appView
               .dexItemFactory()
@@ -92,26 +108,31 @@ public class SyntheticArgumentClass {
 
       appBuilder.addSynthesizedClass(clazz);
       appView.appInfo().addSynthesizedClass(clazz, requiresMainDex);
+      if (addToMainDexTracingResult) {
+        mainDexTracingResultBuilder.addRoot(clazz);
+      }
 
       return clazz.type;
     }
 
-    public SyntheticArgumentClass build(
-        AppView<AppInfoWithLiveness> appView,
-        DirectMappedDexApplication.Builder appBuilder,
-        Iterable<DexProgramClass> mergeClasses) {
-
+    public SyntheticArgumentClass build(Iterable<DexProgramClass> mergeClasses) {
       // Find a fresh name in an existing package.
       DexProgramClass context = mergeClasses.iterator().next();
 
+      // Add to the main dex list if one of the merged classes is in the main dex.
       boolean requiresMainDex = appView.appInfo().getMainDexClasses().containsAnyOf(mergeClasses);
+
+      // Also add as a root to the main dex tracing result if any of the merged classes is a root.
+      // This is needed to satisfy an assertion in the inliner that verifies that we do not inline
+      // methods with references to non-roots into classes that are roots.
+      boolean addToMainDexTracingResult = Iterables.any(mergeClasses, mainDexTracingResult::isRoot);
 
       List<DexType> syntheticArgumentTypes = new ArrayList<>();
       for (int i = 0;
           i < appView.options().horizontalClassMergerOptions().getSyntheticArgumentCount();
           i++) {
         syntheticArgumentTypes.add(
-            synthesizeClass(appView, appBuilder, context, requiresMainDex, i));
+            synthesizeClass(context, requiresMainDex, addToMainDexTracingResult, i));
       }
 
       return new SyntheticArgumentClass(syntheticArgumentTypes);

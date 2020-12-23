@@ -52,19 +52,14 @@ import java.util.List;
 public class HorizontalClassMerger {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private FieldAccessInfoCollectionModifier fieldAccessChanges;
 
   public HorizontalClassMerger(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     assert appView.options().enableInlining;
   }
 
-  public void recordSyntheticFieldAccesses() {
-    fieldAccessChanges.modify(appView);
-  }
-
   // TODO(b/165577835): replace Collection<DexProgramClass> with MergeGroup
-  public HorizontalClassMergerGraphLens run(
+  public HorizontalClassMergerResult run(
       DirectMappedDexApplication.Builder appBuilder,
       MainDexTracingResult mainDexTracingResult,
       RuntimeTypeCheckInfo runtimeTypeCheckInfo) {
@@ -87,6 +82,8 @@ public class HorizontalClassMerger {
         new HorizontalClassMergerGraphLens.Builder();
     FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder =
         new FieldAccessInfoCollectionModifier.Builder();
+    MainDexTracingResult.Builder mainDexTracingResultBuilder =
+        mainDexTracingResult.extensionBuilder(appView.appInfo());
 
     // Set up a class merger for each group.
     List<ClassMerger> classMergers =
@@ -98,7 +95,9 @@ public class HorizontalClassMerger {
 
     // Merge the classes.
     SyntheticArgumentClass syntheticArgumentClass =
-        new SyntheticArgumentClass.Builder().build(appView, appBuilder, allMergeClasses);
+        new SyntheticArgumentClass.Builder(
+                appBuilder, appView, mainDexTracingResult, mainDexTracingResultBuilder)
+            .build(allMergeClasses);
     applyClassMergers(classMergers, syntheticArgumentClass);
 
     // Generate the graph lens.
@@ -106,13 +105,13 @@ public class HorizontalClassMerger {
     appView.setHorizontallyMergedClasses(mergedClasses);
     HorizontalClassMergerGraphLens lens =
         createLens(mergedClasses, lensBuilder, fieldAccessChangesBuilder, syntheticArgumentClass);
-    fieldAccessChanges = fieldAccessChangesBuilder.build();
 
     // Prune keep info.
     KeepInfoCollection keepInfo = appView.appInfo().getKeepInfo();
     keepInfo.mutate(mutator -> mutator.removeKeepInfoForPrunedItems(mergedClasses.getSources()));
 
-    return lens;
+    return new HorizontalClassMergerResult(
+        fieldAccessChangesBuilder.build(), lens, mainDexTracingResultBuilder.build());
   }
 
   private List<Policy> getPolicies(

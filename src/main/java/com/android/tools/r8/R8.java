@@ -42,7 +42,7 @@ import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAn
 import com.android.tools.r8.graph.classmerging.StaticallyMergedClasses;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
-import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerGraphLens;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerResult;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -560,20 +560,26 @@ public class R8 {
           HorizontalClassMerger merger = new HorizontalClassMerger(appViewWithLiveness);
           DirectMappedDexApplication.Builder appBuilder =
               appView.appInfo().app().asDirect().builder();
-          HorizontalClassMergerGraphLens lens =
+          HorizontalClassMergerResult horizontalClassMergerResult =
               merger.run(appBuilder, mainDexTracingResult, runtimeTypeCheckInfo);
-          if (lens != null) {
+          if (horizontalClassMergerResult != null) {
             // Must rewrite AppInfoWithLiveness before pruning the merged classes, to ensure that
             // allocations sites, fields accesses, etc. are correctly transferred to the target
             // classes.
-            appView.rewriteWithLensAndApplication(lens, appBuilder.build());
-            merger.recordSyntheticFieldAccesses();
+            appView.rewriteWithLensAndApplication(
+                horizontalClassMergerResult.getGraphLens(), appBuilder.build());
+            horizontalClassMergerResult
+                .getFieldAccessInfoCollectionModifier()
+                .modify(appViewWithLiveness);
+
             appView.pruneItems(
                 PrunedItems.builder()
                     .setPrunedApp(appView.appInfo().app())
                     .addRemovedClasses(appView.horizontallyMergedClasses().getSources())
                     .addNoLongerSyntheticItems(appView.horizontallyMergedClasses().getTargets())
                     .build());
+
+            mainDexTracingResult = horizontalClassMergerResult.getMainDexTracingResult();
           }
           timing.end();
         } else {

@@ -22,7 +22,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.utils.BooleanBox;
+import com.android.tools.r8.utils.Box;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -68,9 +68,12 @@ public class MainDexDirectReferenceTracer {
 
   public static boolean hasReferencesOutsideFromCode(
       AppInfoWithClassHierarchy appInfo, ProgramMethod method, Set<DexType> classes) {
+    return getFirstReferenceOutsideFromCode(appInfo, method, classes) != null;
+  }
 
-    BooleanBox result = new BooleanBox();
-
+  public static DexProgramClass getFirstReferenceOutsideFromCode(
+      AppInfoWithClassHierarchy appInfo, ProgramMethod method, Set<DexType> classes) {
+    Box<DexProgramClass> result = new Box<>();
     new MainDexDirectReferenceTracer(
             appInfo,
             type -> {
@@ -78,12 +81,11 @@ public class MainDexDirectReferenceTracer {
               if (baseType.isClassType() && !classes.contains(baseType)) {
                 DexClass cls = appInfo.definitionFor(baseType);
                 if (cls != null && cls.isProgramClass()) {
-                  result.set(true);
+                  result.set(cls.asProgramClass());
                 }
               }
             })
         .runOnCode(method);
-
     return result.get();
   }
 

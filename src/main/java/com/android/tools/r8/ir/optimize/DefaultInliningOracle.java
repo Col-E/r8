@@ -204,7 +204,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
     assert reason != Reason.FORCE
-        || !inlineeRefersToClassesNotInMainDex(method.getHolderType(), singleTarget);
+            || !inlineeRefersToClassesNotInMainDex(method.getHolderType(), singleTarget)
+        : MainDexDirectReferenceTracer.getFirstReferenceOutsideFromCode(
+            appView.appInfo(), singleTarget, inliner.mainDexClasses.getRoots());
     return true;
   }
 
