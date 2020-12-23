@@ -135,6 +135,9 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       assert !block.hasCatchHandlers();
       assert splitBlock.hasCatchHandlers();
       block.copyCatchHandlers(code, blockIterator, splitBlock, options);
+      while (IteratorUtils.peekPrevious(blockIterator) != splitBlock) {
+        blockIterator.previous();
+      }
     } else {
       add(instruction);
     }

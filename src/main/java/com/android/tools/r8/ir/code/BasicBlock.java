@@ -1749,7 +1749,7 @@ public class BasicBlock {
     // one new phi to merge the two exception values, and all other phis don't need
     // to be changed.
     for (BasicBlock catchSuccessor : catchSuccessors) {
-      catchSuccessor.splitCriticalExceptionEdges(code, blockIterator::add, options);
+      catchSuccessor.splitCriticalExceptionEdges(code, blockIterator, options);
     }
   }
 
@@ -1767,7 +1767,7 @@ public class BasicBlock {
    * and Goto.
    */
   public void splitCriticalExceptionEdges(
-      IRCode code, Consumer<BasicBlock> onNewBlock, InternalOptions options) {
+      IRCode code, ListIterator<BasicBlock> blockIterator, InternalOptions options) {
     List<BasicBlock> predecessors = getMutablePredecessors();
     boolean hasMoveException = entry().isMoveException();
     TypeElement exceptionTypeLattice = null;
@@ -1783,7 +1783,7 @@ public class BasicBlock {
       getInstructions().remove(0);
     }
     // Create new predecessor blocks.
-    List<BasicBlock> newPredecessors = new ArrayList<>();
+    List<BasicBlock> newPredecessors = new ArrayList<>(predecessors.size());
     List<Value> values = new ArrayList<>(predecessors.size());
     for (BasicBlock predecessor : predecessors) {
       if (!predecessor.hasCatchSuccessor(this)) {
@@ -1808,7 +1808,7 @@ public class BasicBlock {
       newBlock.getMutableSuccessors().add(this);
       newBlock.getMutablePredecessors().add(predecessor);
       predecessor.replaceSuccessor(this, newBlock);
-      onNewBlock.accept(newBlock);
+      blockIterator.add(newBlock);
       assert newBlock.getNumber() >= 0 : "Number must be assigned by `onNewBlock`";
     }
     // Replace the blocks predecessors with the new ones.
