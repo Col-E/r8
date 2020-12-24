@@ -17,16 +17,11 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,29 +53,12 @@ public class DesugaredLibraryDeterminismTest extends DesugaredLibraryTestBase {
   private void assertIdenticalInspectors(Path libDexFile1, Path libDexFile2) throws IOException {
     CodeInspector i1 = new CodeInspector(libDexFile1.resolve("classes.dex"));
     CodeInspector i2 = new CodeInspector(libDexFile2.resolve("classes.dex"));
-    assertIdenticalInspectors(i1, i2);
-  }
-
-  public static void assertIdenticalInspectors(CodeInspector i1, CodeInspector i2) {
     assertEquals(i1.allClasses().size(), i2.allClasses().size());
     Map<DexEncodedMethod, DexEncodedMethod> diffs = new IdentityHashMap<>();
     for (FoundClassSubject clazz1 : i1.allClasses()) {
       ClassSubject clazz = i2.clazz(clazz1.getOriginalName());
       assertTrue(clazz.isPresent());
       FoundClassSubject clazz2 = clazz.asFoundClassSubject();
-      Set<String> methods1 =
-          clazz1.allMethods().stream().map(m -> m.toString()).collect(Collectors.toSet());
-      Set<String> methods2 =
-          clazz2.allMethods().stream().map(m -> m.toString()).collect(Collectors.toSet());
-      SetView<String> union = Sets.union(methods1, methods2);
-      assertEquals(
-          "Inspector 1 contains more methods",
-          Collections.emptySet(),
-          Sets.difference(union, methods1));
-      assertEquals(
-          "Inspector 2 contains more methods",
-          Collections.emptySet(),
-          Sets.difference(union, methods2));
       assertEquals(clazz1.allMethods().size(), clazz2.allMethods().size());
       for (FoundMethodSubject method1 : clazz1.allMethods()) {
         MethodSubject method = clazz2.method(method1.asMethodReference());
@@ -101,7 +79,7 @@ public class DesugaredLibraryDeterminismTest extends DesugaredLibraryTestBase {
     assertTrue(printDiffs(diffs), diffs.isEmpty());
   }
 
-  private static String printDiffs(Map<DexEncodedMethod, DexEncodedMethod> diffs) {
+  private String printDiffs(Map<DexEncodedMethod, DexEncodedMethod> diffs) {
     StringBuilder sb = new StringBuilder();
     sb.append("The following methods had differences from one dex file to the other (")
         .append(diffs.size())

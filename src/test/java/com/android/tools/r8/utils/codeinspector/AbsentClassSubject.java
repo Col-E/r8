@@ -136,11 +136,6 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
-  public ClassReference getOriginalReference() {
-    return null;
-  }
-
-  @Override
   public ClassReference getFinalReference() {
     return null;
   }

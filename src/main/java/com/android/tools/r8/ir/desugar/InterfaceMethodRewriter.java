@@ -48,7 +48,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.MainDexClasses;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
@@ -301,7 +300,6 @@ public final class InterfaceMethodRewriter {
                     appView
                         .getSyntheticItems()
                         .createMethod(
-                            SyntheticNaming.SyntheticKind.STATIC_INTERFACE_CALL,
                             context.getHolder(),
                             factory,
                             syntheticMethodBuilder -> {
@@ -1109,7 +1107,6 @@ public final class InterfaceMethodRewriter {
       Builder<?> builder, Flavor flavour, Consumer<ProgramMethod> newSynthesizedMethodConsumer) {
     ClassProcessor processor = new ClassProcessor(appView, this, newSynthesizedMethodConsumer);
     // First we compute all desugaring *without* introducing forwarding methods.
-    assert appView.getSyntheticItems().verifyNonLegacySyntheticsAreCommitted();
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, false)) {
         if (appView.isAlreadyLibraryDesugared(clazz)) {

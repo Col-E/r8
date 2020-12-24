@@ -14,8 +14,6 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
-import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -59,8 +57,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   }
 
   private boolean isSynthesizedLambdaFrame(StackTraceLine line) {
-    // TODO(141287349): The mapping should not map the external name to the internal name!
-    return SyntheticItemsTestUtils.isInternalLambda(Reference.classFromTypeName(line.className));
+    return line.className.contains("-$$Lambda$");
   }
 
   private void checkLambdaFrame(StackTrace retracedStackTrace) {

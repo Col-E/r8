@@ -34,7 +34,6 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceTypeResult;
 import com.android.tools.r8.retrace.RetracedField;
 import com.android.tools.r8.retrace.Retracer;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
@@ -390,11 +389,6 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
-  public ClassReference getOriginalReference() {
-    return Reference.classFromDescriptor(getOriginalDescriptor());
-  }
-
-  @Override
   public ClassReference getFinalReference() {
     return Reference.classFromDescriptor(getFinalDescriptor());
   }
@@ -436,9 +430,7 @@ public class FoundClassSubject extends ClassSubject {
 
   @Override
   public boolean isSynthesizedJavaLambdaClass() {
-    // TODO(141287349): Make this precise based on the map input.
-    return SyntheticItemsTestUtils.isExternalLambda(getOriginalReference())
-        || SyntheticItemsTestUtils.isExternalLambda(getFinalReference());
+    return dexClass.type.getName().contains("$Lambda$");
   }
 
   @Override

@@ -50,9 +50,4 @@ public class Pair<T, S> {
   public boolean equals(Object obj) {
     throw new Unreachable("Pair does not want to support equality!");
   }
-
-  @Override
-  public String toString() {
-    return "Pair{" + first + ", " + second + '}';
-  }
 }

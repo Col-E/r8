@@ -300,7 +300,6 @@ public class DexItemFactory {
   public final DexString throwableArrayDescriptor = createString("[Ljava/lang/Throwable;");
 
   public final DexString valueString = createString("value");
-  public final DexString kindString = createString("kind");
 
   public final DexType booleanType = createStaticallyKnownType(booleanDescriptor);
   public final DexType byteType = createStaticallyKnownType(byteDescriptor);

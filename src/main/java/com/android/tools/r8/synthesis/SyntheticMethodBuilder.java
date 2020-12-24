@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -21,25 +20,15 @@ public class SyntheticMethodBuilder {
   }
 
   private final SyntheticClassBuilder parent;
-  private DexString name = null;
+  private final String name;
   private DexProto proto = null;
   private CfVersion classFileVersion;
   private SyntheticCodeGenerator codeGenerator = null;
   private MethodAccessFlags accessFlags = null;
 
-  SyntheticMethodBuilder(SyntheticClassBuilder parent) {
+  SyntheticMethodBuilder(SyntheticClassBuilder parent, String name) {
     this.parent = parent;
-  }
-
-  public SyntheticMethodBuilder setName(String name) {
-    return setName(parent.getFactory().createString(name));
-  }
-
-  public SyntheticMethodBuilder setName(DexString name) {
-    assert name != null;
-    assert this.name == null;
     this.name = name;
-    return this;
   }
 
   public SyntheticMethodBuilder setProto(DexProto proto) {
@@ -63,7 +52,6 @@ public class SyntheticMethodBuilder {
   }
 
   DexEncodedMethod build() {
-    assert name != null;
     boolean isCompilerSynthesized = true;
     DexMethod methodSignature = getMethodSignature();
     DexEncodedMethod method =

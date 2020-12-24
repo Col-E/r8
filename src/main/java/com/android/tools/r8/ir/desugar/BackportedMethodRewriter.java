@@ -33,7 +33,6 @@ import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -1402,7 +1401,6 @@ public final class BackportedMethodRewriter {
       return appInfo
           .getSyntheticItems()
           .createMethod(
-              SyntheticNaming.SyntheticKind.BACKPORT,
               context,
               appInfo.dexItemFactory(),
               builder ->

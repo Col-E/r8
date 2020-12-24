@@ -921,7 +921,7 @@ public class Enqueuer {
       assert contextMethod.getCode().isCfCode() : "Unexpected input type with lambdas";
       CfCode code = contextMethod.getCode().asCfCode();
       if (code != null) {
-        LambdaClass lambdaClass = lambdaRewriter.createLambdaClass(descriptor, context);
+        LambdaClass lambdaClass = lambdaRewriter.getOrCreateLambdaClass(descriptor, context);
         lambdaClasses.put(lambdaClass.type, new Pair<>(lambdaClass, context));
         lambdaCallSites
             .computeIfAbsent(context, k -> new IdentityHashMap<>())
@@ -3037,9 +3037,13 @@ public class Enqueuer {
       return empty;
     }
 
-    void addInstantiatedClass(DexProgramClass clazz, ProgramMethod context) {
+    void addInstantiatedClass(
+        DexProgramClass clazz, ProgramMethod context, boolean isMainDexClass) {
       assert !syntheticInstantiations.containsKey(clazz.type);
       syntheticInstantiations.put(clazz.type, new Pair<>(clazz, context));
+      if (isMainDexClass) {
+        mainDexTypes.add(clazz);
+      }
     }
 
     void addClasspathClass(DexClasspathClass clazz) {
@@ -3061,6 +3065,10 @@ public class Enqueuer {
 
     void amendApplication(Builder appBuilder) {
       assert !isEmpty();
+      for (Pair<DexProgramClass, ProgramMethod> clazzAndContext :
+          syntheticInstantiations.values()) {
+        appBuilder.addProgramClass(clazzAndContext.getFirst());
+      }
       appBuilder.addClasspathClasses(syntheticClasspathClasses.values());
     }
 
@@ -3184,8 +3192,8 @@ public class Enqueuer {
       // Add all desugared classes to the application, main-dex list, and mark them instantiated.
       LambdaClass lambdaClass = lambdaClassAndContext.getFirst();
       ProgramMethod context = lambdaClassAndContext.getSecond();
-      DexProgramClass programClass = lambdaClass.getLambdaProgramClass();
-      additions.addInstantiatedClass(programClass, context);
+      DexProgramClass programClass = lambdaClass.getOrCreateLambdaClass();
+      additions.addInstantiatedClass(programClass, context, lambdaClass.addToMainDexList.get());
       // Mark the instance constructor targeted and live.
       DexEncodedMethod constructor = programClass.lookupDirectMethod(lambdaClass.constructor);
       KeepReason reason = KeepReason.instantiatedIn(context);
@@ -3340,9 +3348,10 @@ public class Enqueuer {
     lambdaRewriter
         .getKnownLambdaClasses()
         .forEach(
-            lambda -> {
-              DexProgramClass synthesizedClass = lambda.getLambdaProgramClass();
+            (type, lambda) -> {
+              DexProgramClass synthesizedClass = lambda.getOrCreateLambdaClass();
               assert synthesizedClass != null;
+              assert synthesizedClass == appInfo().definitionForWithoutExistenceAssert(type);
               assert liveTypes.contains(synthesizedClass);
               if (synthesizedClass == null) {
                 return;

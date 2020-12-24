@@ -41,7 +41,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AsmUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -125,7 +125,7 @@ public class CfApplicationWriter {
         marker.isRelocator() ? Optional.empty() : Optional.of(marker.toString());
     LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(appView);
     for (DexProgramClass clazz : application.classes()) {
-      assert SyntheticNaming.verifyNotInternalSynthetic(clazz.getType());
+      assert SyntheticItems.verifyNotInternalSynthetic(clazz.getType());
       if (clazz.getSynthesizedFrom().isEmpty()
           || options.isDesugaredLibraryCompilation()
           || options.cfToCfDesugar) {
@@ -201,7 +201,6 @@ public class CfApplicationWriter {
     for (int i = 0; i < clazz.interfaces.values.length; i++) {
       interfaces[i] = namingLens.lookupInternalName(clazz.interfaces.values[i]);
     }
-    SyntheticNaming.verifyNotInternalSynthetic(name);
     writer.visit(version.raw(), access, name, signature, superName, interfaces);
     writeAnnotations(writer::visitAnnotation, clazz.annotations().annotations);
     ImmutableMap<DexString, DexValue> defaults = getAnnotationDefaults(clazz.annotations());

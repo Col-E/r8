@@ -409,10 +409,11 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeLambdaClasses(ExecutorService executorService) throws ExecutionException {
+  private void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
+      throws ExecutionException {
     if (lambdaRewriter != null) {
       assert !appView.enableWholeProgramOptimizations();
-      lambdaRewriter.finalizeLambdaDesugaringForD8(this, executorService);
+      lambdaRewriter.finalizeLambdaDesugaringForD8(builder, this, executorService);
     }
   }
 
@@ -434,7 +435,6 @@ public class IRConverter {
       Flavor includeAllResources,
       ExecutorService executorService)
       throws ExecutionException {
-    assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
     if (interfaceMethodRewriter != null) {
       interfaceMethodRewriter.desugarInterfaceMethods(
           builder, includeAllResources, executorService);
@@ -522,19 +522,7 @@ public class IRConverter {
     builder.setHighestSortingString(highestSortingString);
 
     desugarNestBasedAccess(builder, executor);
-
-    // Synthesize lambda classes and commit to the app in full.
-    synthesizeLambdaClasses(executor);
-    if (appView.getSyntheticItems().hasPendingSyntheticClasses()) {
-      appView.setAppInfo(
-          new AppInfo(
-              appView.appInfo().getSyntheticItems().commit(builder.build()),
-              appView.appInfo().getMainDexClasses()));
-      application = appView.appInfo().app();
-      builder = application.builder();
-      builder.setHighestSortingString(highestSortingString);
-    }
-
+    synthesizeLambdaClasses(builder, executor);
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
     synthesizeTwrCloseResourceUtilityClass(builder, executor);
     processSynthesizedJava8UtilityClasses(executor);
@@ -545,10 +533,10 @@ public class IRConverter {
 
     timing.end();
 
-    application = builder.build();
+    DexApplication app = builder.build();
     appView.setAppInfo(
         new AppInfo(
-            appView.appInfo().getSyntheticItems().commit(application),
+            appView.appInfo().getSyntheticItems().commit(app),
             appView.appInfo().getMainDexClasses()));
   }
 
@@ -806,14 +794,6 @@ public class IRConverter {
       appView.clearCodeRewritings();
     }
 
-    // Commit synthetics before creating a builder (otherwise the builder will not include the
-    // synthetics.)
-    if (appView.getSyntheticItems().hasPendingSyntheticClasses()) {
-      appView.setAppInfo(
-          appView
-              .appInfo()
-              .rebuildWithLiveness(appView.getSyntheticItems().commit(appView.appInfo().app())));
-    }
     // Build a new application with jumbo string info.
     Builder<?> builder = appView.appInfo().app().builder();
     builder.setHighestSortingString(highestSortingString);

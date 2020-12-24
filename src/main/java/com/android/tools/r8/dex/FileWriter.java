@@ -55,7 +55,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.InternalOptions;
@@ -323,7 +323,7 @@ public class FileWriter {
     for (DexType type : mapping.getTypes()) {
       if (type.isClassType()) {
         assert DexString.isValidSimpleName(apiLevel, type.getName());
-        assert SyntheticNaming.verifyNotInternalSynthetic(type);
+        assert SyntheticItems.verifyNotInternalSynthetic(type);
       }
     }
 

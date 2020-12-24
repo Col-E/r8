@@ -76,12 +76,14 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.CompareToVisitorWithTypeEquivalence;
 import com.android.tools.r8.utils.structural.HashingVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitorWithTypeEquivalence;
 import com.android.tools.r8.utils.structural.Ordered;
-import com.android.tools.r8.utils.structural.StructuralItem;
-import com.android.tools.r8.utils.structural.StructuralMapping;
+import com.android.tools.r8.utils.structural.RepresentativeMap;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.collect.ImmutableList;
+import com.google.common.hash.Hasher;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayList;
@@ -93,8 +95,7 @@ import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 import org.objectweb.asm.Opcodes;
 
-public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMethod>
-    implements StructuralItem<DexEncodedMethod> {
+public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMethod> {
 
   public static final String CONFIGURATION_DEBUGGING_PREFIX = "Shaking error: Missing method in ";
 
@@ -333,16 +334,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return deprecated;
   }
 
-  @Override
-  public DexEncodedMethod self() {
-    return this;
-  }
-
-  @Override
-  public StructuralMapping<DexEncodedMethod> getStructuralMapping() {
-    return DexEncodedMethod::syntheticSpecify;
-  }
-
   // Visitor specifying the structure of the method with respect to its "synthetic" content.
   // TODO(b/171867022): Generalize this so that it determines any method in full.
   private static void syntheticSpecify(StructuralSpecification<DexEncodedMethod, ?> spec) {
@@ -361,12 +352,28 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
             DexEncodedMethod::hashCodeObject);
   }
 
+  public void hashSyntheticContent(Hasher hasher, RepresentativeMap map) {
+    HashingVisitorWithTypeEquivalence.run(this, hasher, map, DexEncodedMethod::syntheticSpecify);
+  }
+
+  public boolean isSyntheticContentEqual(DexEncodedMethod other) {
+    return syntheticCompareTo(other) == 0;
+  }
+
+  public int syntheticCompareTo(DexEncodedMethod other) {
+    // Consider the holder types to be equivalent, using the holder of this method as the
+    // representative.
+    RepresentativeMap map = t -> t == other.getHolderType() ? getHolderType() : t;
+    return CompareToVisitorWithTypeEquivalence.run(
+        this, other, map, DexEncodedMethod::syntheticSpecify);
+  }
+
   private static int compareCodeObject(Code code1, Code code2, CompareToVisitor visitor) {
     if (code1.isCfCode() && code2.isCfCode()) {
       return code1.asCfCode().acceptCompareTo(code2.asCfCode(), visitor);
     }
     if (code1.isDexCode() && code2.isDexCode()) {
-      return code1.asDexCode().acceptCompareTo(code2.asDexCode(), visitor);
+      return visitor.visit(code1.asDexCode(), code2.asDexCode(), DexCode::compareTo);
     }
     throw new Unreachable(
         "Unexpected attempt to compare incompatible synthetic objects: " + code1 + " and " + code2);
@@ -376,7 +383,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     if (code.isCfCode()) {
       code.asCfCode().acceptHashing(visitor);
     } else {
-      code.asDexCode().acceptHashing(visitor);
+      // TODO(b/158159959): Implement a more precise hashing on code objects.
+      assert code.isDexCode();
+      visitor.visitInt(code.hashCode());
     }
   }
 

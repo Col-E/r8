@@ -15,7 +15,7 @@ public abstract class TreeFixerBase {
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
 
-  private final Map<DexType, DexProgramClass> programClassCache = new IdentityHashMap<>();
+  private Map<DexType, DexProgramClass> newProgramClasses = null;
   private final Map<DexType, DexProgramClass> synthesizedFromClasses = new IdentityHashMap<>();
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
@@ -53,13 +53,13 @@ public abstract class TreeFixerBase {
   }
 
   /** Fixup a collection of classes. */
-  public List<DexProgramClass> fixupClasses(Collection<DexProgramClass> classes) {
-    List<DexProgramClass> newProgramClasses = new ArrayList<>();
+  public Collection<DexProgramClass> fixupClasses(Collection<DexProgramClass> classes) {
+    assert newProgramClasses == null;
+    newProgramClasses = new IdentityHashMap<>();
     for (DexProgramClass clazz : classes) {
-      newProgramClasses.add(
-          programClassCache.computeIfAbsent(clazz.getType(), ignore -> fixupClass(clazz)));
+      newProgramClasses.computeIfAbsent(clazz.getType(), ignore -> fixupClass(clazz));
     }
-    return newProgramClasses;
+    return newProgramClasses.values();
   }
 
   // Should remain private as the correctness of the fixup requires the lazy 'newProgramClasses'.
@@ -70,7 +70,7 @@ public abstract class TreeFixerBase {
             clazz.getOriginKind(),
             clazz.getOrigin(),
             clazz.getAccessFlags(),
-            clazz.superType == null ? null : fixupType(clazz.superType),
+            fixupType(clazz.superType),
             fixupTypeList(clazz.interfaces),
             clazz.getSourceFile(),
             fixupNestHost(clazz.getNestHostClassAttribute()),
@@ -250,6 +250,7 @@ public abstract class TreeFixerBase {
   // Should remain private as its correctness relies on the setup of 'newProgramClasses'.
   private Collection<DexProgramClass> fixupSynthesizedFrom(
       Collection<DexProgramClass> synthesizedFrom) {
+    assert newProgramClasses != null;
     if (synthesizedFrom.isEmpty()) {
       return synthesizedFrom;
     }
@@ -260,7 +261,7 @@ public abstract class TreeFixerBase {
       //  is no longer in the application?
       Map<DexType, DexProgramClass> classes =
           appView.appInfo().definitionForWithoutExistenceAssert(clazz.getType()) != null
-              ? programClassCache
+              ? newProgramClasses
               : synthesizedFromClasses;
       DexProgramClass newClass =
           classes.computeIfAbsent(clazz.getType(), ignore -> fixupClass(clazz));

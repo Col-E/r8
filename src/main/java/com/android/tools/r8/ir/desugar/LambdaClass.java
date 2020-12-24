@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -19,8 +20,10 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.FieldAccessFlags;
+import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -34,11 +37,18 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
-import com.android.tools.r8.synthesis.SyntheticClassBuilder;
+import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.OptionalBool;
+import com.google.common.base.Suppliers;
+import com.google.common.primitives.Longs;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+import java.util.zip.CRC32;
 
 /**
  * Represents lambda class generated for a lambda descriptor in context of lambda instantiation
@@ -67,27 +77,31 @@ public final class LambdaClass {
   final DexMethod classConstructor;
   public final DexField lambdaField;
   public final Target target;
-
-  // Considered final but is set after due to circularity in allocation.
-  private DexProgramClass clazz = null;
+  public final AtomicBoolean addToMainDexList = new AtomicBoolean(false);
+  private final Collection<DexProgramClass> synthesizedFrom = new ArrayList<>(1);
+  private final Supplier<DexProgramClass> lazyDexClass =
+      Suppliers.memoize(this::synthesizeLambdaClass); // NOTE: thread-safe.
 
   LambdaClass(
-      SyntheticClassBuilder builder,
       AppView<?> appView,
       LambdaRewriter rewriter,
       ProgramMethod accessedFrom,
+      DexType lambdaClassType,
       LambdaDescriptor descriptor) {
     assert rewriter != null;
+    assert lambdaClassType != null;
     assert descriptor != null;
-    this.type = builder.getType();
+
     this.appView = appView;
     this.rewriter = rewriter;
+    this.type = lambdaClassType;
     this.descriptor = descriptor;
 
-    DexItemFactory factory = builder.getFactory();
+    DexItemFactory factory = appView.dexItemFactory();
     DexProto constructorProto = factory.createProto(
         factory.voidType, descriptor.captures.values);
-    this.constructor = factory.createMethod(type, constructorProto, factory.constructorMethodName);
+    this.constructor =
+        factory.createMethod(lambdaClassType, constructorProto, factory.constructorMethodName);
 
     this.target = createTarget(accessedFrom);
 
@@ -95,32 +109,98 @@ public final class LambdaClass {
     this.classConstructor =
         !stateless
             ? null
-            : factory.createMethod(type, constructorProto, factory.classConstructorMethodName);
+            : factory.createMethod(
+                lambdaClassType, constructorProto, factory.classConstructorMethodName);
     this.lambdaField =
-        !stateless ? null : factory.createField(type, type, rewriter.instanceFieldName);
-
-    // Synthesize the program class one all fields are set.
-    synthesizeLambdaClass(builder);
+        !stateless
+            ? null
+            : factory.createField(lambdaClassType, lambdaClassType, rewriter.instanceFieldName);
   }
 
-  public final DexProgramClass getLambdaProgramClass() {
-    assert clazz != null;
+  // Generate unique lambda class type for lambda descriptor and instantiation point context.
+  public static DexType createLambdaClassType(
+      AppView<?> appView, ProgramMethod accessedFrom, LambdaDescriptor match) {
+    StringBuilder lambdaClassDescriptor = new StringBuilder("L");
+
+    // We always create lambda class in the same package where it is referenced.
+    String packageDescriptor = accessedFrom.getHolderType().getPackageDescriptor();
+    if (!packageDescriptor.isEmpty()) {
+      lambdaClassDescriptor.append(packageDescriptor).append('/');
+    }
+
+    // Lambda class name prefix
+    lambdaClassDescriptor.append(LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX);
+
+    // If the lambda class should match 1:1 the class it is accessed from, we
+    // just add the name of this type to make lambda class name unique.
+    // It also helps link the class lambda originated from in some cases.
+    if (match.delegatesToLambdaImplMethod() || match.needsAccessor(accessedFrom)) {
+      lambdaClassDescriptor.append(accessedFrom.getHolderType().getName()).append('$');
+    }
+
+    // Add unique lambda descriptor id
+    lambdaClassDescriptor.append(match.uniqueId).append(';');
+    return appView.dexItemFactory().createType(lambdaClassDescriptor.toString());
+  }
+
+  public final DexProgramClass getOrCreateLambdaClass() {
+    return lazyDexClass.get();
+  }
+
+  private DexProgramClass synthesizeLambdaClass() {
+    DexMethod mainMethod =
+        appView.dexItemFactory().createMethod(type, descriptor.erasedProto, descriptor.name);
+
+    DexProgramClass clazz =
+        new DexProgramClass(
+            type,
+            null,
+            new SynthesizedOrigin("lambda desugaring", getClass()),
+            // Make the synthesized class public, as it might end up being accessed from a different
+            // classloader (package private access is not allowed across classloaders, b/72538146).
+            ClassAccessFlags.fromDexAccessFlags(
+                Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
+            appView.dexItemFactory().objectType,
+            buildInterfaces(),
+            appView.dexItemFactory().createString("lambda"),
+            null,
+            Collections.emptyList(),
+            null,
+            Collections.emptyList(),
+            ClassSignature.noSignature(),
+            DexAnnotationSet.empty(),
+            synthesizeStaticFields(),
+            synthesizeInstanceFields(),
+            synthesizeDirectMethods(),
+            synthesizeVirtualMethods(mainMethod),
+            appView.dexItemFactory().getSkipNameValidationForTesting(),
+            LambdaClass::computeChecksumForSynthesizedClass);
+    appView.appInfo().addSynthesizedClass(clazz, false);
+
+    // The method addSynthesizedFrom() may be called concurrently. To avoid a Concurrent-
+    // ModificationException we must use synchronization.
+    synchronized (synthesizedFrom) {
+      synthesizedFrom.forEach(clazz::addSynthesizedFrom);
+    }
     return clazz;
   }
 
-  void setClass(DexProgramClass clazz) {
-    assert this.clazz == null;
-    assert clazz != null;
-    assert type == clazz.type;
-    this.clazz = clazz;
-  }
+  private static long computeChecksumForSynthesizedClass(DexProgramClass clazz) {
+    // Checksum of synthesized classes are compute based off the depending input. This might
+    // create false positives (ie: unchanged lambda class detected as changed even thought only
+    // an unrelated part from a synthesizedFrom class is changed).
 
-  private void synthesizeLambdaClass(SyntheticClassBuilder builder) {
-    builder.setInterfaces(descriptor.interfaces);
-    synthesizeStaticFields(builder);
-    synthesizeInstanceFields(builder);
-    synthesizeDirectMethods(builder);
-    synthesizeVirtualMethods(builder);
+    // Ideally, we should use some hashcode of the dex program class that is deterministic across
+    // compiles.
+    Collection<DexProgramClass> synthesizedFrom = clazz.getSynthesizedFrom();
+    ByteBuffer buffer = ByteBuffer.allocate(synthesizedFrom.size() * Longs.BYTES);
+    for (DexProgramClass from : synthesizedFrom) {
+      buffer.putLong(from.getChecksum());
+    }
+    CRC32 crc = new CRC32();
+    byte[] array = buffer.array();
+    crc.update(array, 0, array.length);
+    return crc.getValue();
   }
 
   final DexField getCaptureField(int index) {
@@ -136,15 +216,24 @@ public final class LambdaClass {
     return descriptor.isStateless();
   }
 
-  // Synthesize virtual methods.
-  private void synthesizeVirtualMethods(SyntheticClassBuilder builder) {
-    DexMethod mainMethod =
-        appView.dexItemFactory().createMethod(type, descriptor.erasedProto, descriptor.name);
+  void addSynthesizedFrom(DexProgramClass clazz) {
+    assert clazz != null;
+    synchronized (synthesizedFrom) {
+      if (synthesizedFrom.add(clazz)) {
+        // The lambda class may already have been synthesized, and we therefore need to update the
+        // synthesized lambda class as well.
+        getOrCreateLambdaClass().addSynthesizedFrom(clazz);
+      }
+    }
+  }
 
-    List<DexEncodedMethod> methods = new ArrayList<>(1 + descriptor.bridges.size());
+  // Synthesize virtual methods.
+  private DexEncodedMethod[] synthesizeVirtualMethods(DexMethod mainMethod) {
+    DexEncodedMethod[] methods = new DexEncodedMethod[1 + descriptor.bridges.size()];
+    int index = 0;
 
     // Synthesize main method.
-    methods.add(
+    methods[index++] =
         new DexEncodedMethod(
             mainMethod,
             MethodAccessFlags.fromSharedAccessFlags(
@@ -153,13 +242,13 @@ public final class LambdaClass {
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             LambdaMainMethodSourceCode.build(this, mainMethod),
-            true));
+            true);
 
     // Synthesize bridge methods.
     for (DexProto bridgeProto : descriptor.bridges) {
       DexMethod bridgeMethod =
           appView.dexItemFactory().createMethod(type, bridgeProto, descriptor.name);
-      methods.add(
+      methods[index++] =
           new DexEncodedMethod(
               bridgeMethod,
               MethodAccessFlags.fromSharedAccessFlags(
@@ -172,18 +261,18 @@ public final class LambdaClass {
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               LambdaBridgeMethodSourceCode.build(this, bridgeMethod, mainMethod),
-              true));
+              true);
     }
-    builder.setVirtualMethods(methods);
+    return methods;
   }
 
   // Synthesize direct methods.
-  private void synthesizeDirectMethods(SyntheticClassBuilder builder) {
+  private DexEncodedMethod[] synthesizeDirectMethods() {
     boolean stateless = isStateless();
-    List<DexEncodedMethod> methods = new ArrayList<>(stateless ? 2 : 1);
+    DexEncodedMethod[] methods = new DexEncodedMethod[stateless ? 2 : 1];
 
     // Constructor.
-    methods.add(
+    methods[0] =
         new DexEncodedMethod(
             constructor,
             MethodAccessFlags.fromSharedAccessFlags(
@@ -194,11 +283,11 @@ public final class LambdaClass {
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             LambdaConstructorSourceCode.build(this),
-            true));
+            true);
 
     // Class constructor for stateless lambda classes.
     if (stateless) {
-      methods.add(
+      methods[1] =
           new DexEncodedMethod(
               classConstructor,
               MethodAccessFlags.fromSharedAccessFlags(
@@ -207,50 +296,61 @@ public final class LambdaClass {
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               LambdaClassConstructorSourceCode.build(this),
-              true));
-      feedback.classInitializerMayBePostponed(methods.get(1));
+              true);
+      feedback.classInitializerMayBePostponed(methods[1]);
     }
-    builder.setDirectMethods(methods);
+    return methods;
   }
 
   // Synthesize instance fields to represent captured values.
-  private void synthesizeInstanceFields(SyntheticClassBuilder builder) {
+  private DexEncodedField[] synthesizeInstanceFields() {
     DexType[] fieldTypes = descriptor.captures.values;
     int fieldCount = fieldTypes.length;
-    List<DexEncodedField> fields = new ArrayList<>(fieldCount);
+    DexEncodedField[] fields = new DexEncodedField[fieldCount];
     for (int i = 0; i < fieldCount; i++) {
       FieldAccessFlags accessFlags =
           FieldAccessFlags.fromSharedAccessFlags(
               Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC);
-      fields.add(
+      fields[i] =
           new DexEncodedField(
               getCaptureField(i),
               accessFlags,
               FieldTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
-              null));
+              null);
     }
-    builder.setInstanceFields(fields);
+    return fields;
   }
 
   // Synthesize static fields to represent singleton instance.
-  private void synthesizeStaticFields(SyntheticClassBuilder builder) {
-    if (isStateless()) {
-      // Create instance field for stateless lambda.
-      assert this.lambdaField != null;
-      builder.setStaticFields(
-          Collections.singletonList(
-              new DexEncodedField(
-                  this.lambdaField,
-                  FieldAccessFlags.fromSharedAccessFlags(
-                      Constants.ACC_PUBLIC
-                          | Constants.ACC_FINAL
-                          | Constants.ACC_SYNTHETIC
-                          | Constants.ACC_STATIC),
-                  FieldTypeSignature.noSignature(),
-                  DexAnnotationSet.empty(),
-                  DexValueNull.NULL)));
+  private DexEncodedField[] synthesizeStaticFields() {
+    if (!isStateless()) {
+      return DexEncodedField.EMPTY_ARRAY;
     }
+
+    // Create instance field for stateless lambda.
+    assert this.lambdaField != null;
+    DexEncodedField[] fields = new DexEncodedField[1];
+    fields[0] =
+        new DexEncodedField(
+            this.lambdaField,
+            FieldAccessFlags.fromSharedAccessFlags(
+                Constants.ACC_PUBLIC
+                    | Constants.ACC_FINAL
+                    | Constants.ACC_SYNTHETIC
+                    | Constants.ACC_STATIC),
+            FieldTypeSignature.noSignature(),
+            DexAnnotationSet.empty(),
+            DexValueNull.NULL);
+    return fields;
+  }
+
+  // Build a list of implemented interfaces.
+  private DexTypeList buildInterfaces() {
+    List<DexType> interfaces = descriptor.interfaces;
+    return interfaces.isEmpty()
+        ? DexTypeList.empty()
+        : new DexTypeList(interfaces.toArray(DexType.EMPTY_ARRAY));
   }
 
   // Creates a delegation target for this particular lambda class. Note that we
@@ -543,15 +643,11 @@ public final class LambdaClass {
                         newMethod.getCode(), callTarget.getArity(), appView);
                     return newMethod;
                   });
-      if (replacement != null) {
-        return new ProgramMethod(implMethodHolder, replacement);
-      }
-      // The method might already have been moved by another invoke-dynamic targeting it.
-      // If so, it must be defined on the holder.
-      ProgramMethod modified = implMethodHolder.lookupProgramMethod(callTarget);
-      assert modified != null;
-      assert modified.getDefinition().isNonPrivateVirtualMethod();
-      return modified;
+
+      assert replacement != null
+          : "Unexpected failure to find direct lambda target for: " + implMethod.qualifiedName();
+
+      return new ProgramMethod(implMethodHolder, replacement);
     }
   }
 
@@ -617,15 +713,7 @@ public final class LambdaClass {
                     rewriter.forcefullyMoveMethod(encodedMethod.method, callTarget);
                     return newMethod;
                   });
-      if (replacement != null) {
-        return new ProgramMethod(implMethodHolder, replacement);
-      }
-      // The method might already have been moved by another invoke-dynamic targeting it.
-      // If so, it must be defined on the holder.
-      ProgramMethod modified = implMethodHolder.lookupProgramMethod(callTarget);
-      assert modified != null;
-      assert modified.getDefinition().isNonPrivateVirtualMethod();
-      return modified;
+      return new ProgramMethod(implMethodHolder, replacement);
     }
 
     private ProgramMethod createSyntheticAccessor(
@@ -691,12 +779,11 @@ public final class LambdaClass {
               AccessorMethodSourceCode.build(LambdaClass.this, callTarget),
               true);
 
-      ProgramMethod existing = accessorClass.lookupProgramMethod(callTarget);
-      // Another lambda call sites may already have created an accessor.
-      if (existing != null) {
-        return existing;
+      // We may arrive here concurrently so we need must update the methods of the class atomically.
+      synchronized (accessorClass) {
+        accessorClass.addDirectMethod(accessorEncodedMethod);
       }
-      accessorClass.addDirectMethod(accessorEncodedMethod);
+
       return new ProgramMethod(accessorClass, accessorEncodedMethod);
     }
   }

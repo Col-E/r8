@@ -79,7 +79,8 @@ public class PreserveDesugaredLambdaTest extends TestBase {
                     codeInspector.allClasses().stream()
                         .anyMatch(
                             c -> {
-                              if (c.isSynthesizedJavaLambdaClass()) {
+                              if (c.getOriginalName()
+                                  .contains("-$$Lambda$PreserveDesugaredLambdaTest$Main")) {
                                 assertThat(c.uniqueMethodWithName("computeTheFoo"), isPresent());
                                 return true;
                               }

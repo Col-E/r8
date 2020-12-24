@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.templates.CfUtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.synthesis.SyntheticItems;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.InternalOptions;
 
 public class UtilityMethodsForCodeOptimizations {
@@ -32,7 +31,6 @@ public class UtilityMethodsForCodeOptimizations {
     SyntheticItems syntheticItems = appView.getSyntheticItems();
     ProgramMethod syntheticMethod =
         syntheticItems.createMethod(
-            SyntheticNaming.SyntheticKind.TO_STRING_IF_NOT_NULL,
             context,
             dexItemFactory,
             builder ->
@@ -62,7 +60,6 @@ public class UtilityMethodsForCodeOptimizations {
     SyntheticItems syntheticItems = appView.getSyntheticItems();
     ProgramMethod syntheticMethod =
         syntheticItems.createMethod(
-            SyntheticNaming.SyntheticKind.THROW_CCE_IF_NOT_NULL,
             context,
             dexItemFactory,
             builder ->

@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -17,7 +19,6 @@ import com.android.tools.r8.errors.DesugarDiagnostic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
@@ -78,7 +79,7 @@ public class DesugarMissingTypeLambdaTest extends TestBase {
         assertEquals(
             Reference.classFromClass(MissingInterface.class), desugarWarning.getMissingType());
         // TODO(b/132671303): The context class should not be the synthesized lambda class.
-        assertTrue(SyntheticItemsTestUtils.isInternalLambda(desugarWarning.getContextType()));
+        assertThat(desugarWarning.getContextType().getDescriptor(), containsString("$$Lambda"));
         // TODO(b/132671303): The position info should be the method context.
         assertEquals(Position.UNKNOWN, desugarWarning.getPosition());
       }

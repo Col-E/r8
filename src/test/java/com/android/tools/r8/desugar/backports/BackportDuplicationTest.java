@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.backports;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -13,10 +16,10 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.desugar.backports.AbstractBackportTest.MiniAssert;
 import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
-import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.google.common.collect.ImmutableList;
@@ -197,7 +200,9 @@ public class BackportDuplicationTest extends TestBase {
   private void checkNoOriginalsAndNoInternalSynthetics(CodeInspector inspector) {
     inspector.forAllClasses(
         clazz -> {
-          SyntheticNaming.verifyNotInternalSynthetic(clazz.getFinalReference());
+          assertThat(
+              clazz.getFinalName(),
+              not(containsString(SyntheticItems.INTERNAL_SYNTHETIC_CLASS_SEPARATOR)));
           if (!clazz.getOriginalName().equals(MiniAssert.class.getTypeName())) {
             clazz.forAllMethods(
                 method ->
@@ -228,11 +233,11 @@ public class BackportDuplicationTest extends TestBase {
     // of intermediates.
     Set<MethodReference> expectedSynthetics =
         ImmutableSet.of(
-            SyntheticItemsTestUtils.syntheticBackportMethod(
+            SyntheticItemsTestUtils.syntheticMethod(
                 User1.class, 0, Character.class.getMethod("compare", char.class, char.class)),
-            SyntheticItemsTestUtils.syntheticBackportMethod(
+            SyntheticItemsTestUtils.syntheticMethod(
                 User1.class, 1, Boolean.class.getMethod("compare", boolean.class, boolean.class)),
-            SyntheticItemsTestUtils.syntheticBackportMethod(
+            SyntheticItemsTestUtils.syntheticMethod(
                 User2.class, 0, Integer.class.getMethod("compare", int.class, int.class)));
     assertEquals(expectedSynthetics, getSyntheticMethods(inspector));
   }
