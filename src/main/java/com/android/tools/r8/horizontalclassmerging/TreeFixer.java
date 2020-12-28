@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -40,7 +39,6 @@ import java.util.Set;
 class TreeFixer extends TreeFixerBase {
   private final HorizontallyMergedClasses mergedClasses;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
-  private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory dexItemFactory;
   private final SyntheticArgumentClass syntheticArgumentClass;
@@ -51,13 +49,11 @@ class TreeFixer extends TreeFixerBase {
       AppView<AppInfoWithLiveness> appView,
       HorizontallyMergedClasses mergedClasses,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
-      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       SyntheticArgumentClass syntheticArgumentClass) {
     super(appView);
     this.appView = appView;
     this.mergedClasses = mergedClasses;
     this.lensBuilder = lensBuilder;
-    this.fieldAccessChangesBuilder = fieldAccessChangesBuilder;
     this.syntheticArgumentClass = syntheticArgumentClass;
     this.dexItemFactory = appView.dexItemFactory();
   }
@@ -126,7 +122,6 @@ class TreeFixer extends TreeFixerBase {
       subtypingForrest.traverseNodeDepthFirst(root, HashBiMap.create(), this::fixupProgramClass);
     }
     HorizontalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
-    fieldAccessChangesBuilder.fixup(this::fixupMethodReference);
     new AnnotationFixer(lens).run(appView.appInfo().classes());
     return lens;
   }

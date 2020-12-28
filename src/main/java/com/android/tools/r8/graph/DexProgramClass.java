@@ -185,6 +185,16 @@ public class DexProgramClass extends DexClass
         predicate, method -> consumer.accept(new ProgramMethod(this, method)));
   }
 
+  public void forEachProgramInstanceInitializer(Consumer<ProgramMethod> consumer) {
+    forEachProgramInstanceInitializerMatching(alwaysTrue(), consumer);
+  }
+
+  public void forEachProgramInstanceInitializerMatching(
+      Predicate<DexEncodedMethod> predicate, Consumer<ProgramMethod> consumer) {
+    forEachProgramDirectMethodMatching(
+        method -> method.isInstanceInitializer() && predicate.test(method), consumer);
+  }
+
   public void forEachProgramVirtualMethod(Consumer<ProgramMethod> consumer) {
     forEachProgramVirtualMethodMatching(alwaysTrue(), consumer);
   }

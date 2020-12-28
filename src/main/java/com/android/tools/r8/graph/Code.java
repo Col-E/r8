@@ -57,9 +57,14 @@ public abstract class Code extends CachedHashValueDexItem {
     return false;
   }
 
+  public boolean isHorizontalClassMergingCode() {
+    return false;
+  }
+
   public boolean isOutlineCode() {
     return false;
   }
+
 
   /** Estimate the number of IR instructions emitted by buildIR(). */
   public int estimatedSizeForInlining() {

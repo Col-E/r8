@@ -80,15 +80,12 @@ public class HorizontalClassMerger {
         new HorizontallyMergedClasses.Builder();
     HorizontalClassMergerGraphLens.Builder lensBuilder =
         new HorizontalClassMergerGraphLens.Builder();
-    FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder =
-        new FieldAccessInfoCollectionModifier.Builder();
     MainDexTracingResult.Builder mainDexTracingResultBuilder =
         mainDexTracingResult.extensionBuilder(appView.appInfo());
 
     // Set up a class merger for each group.
     List<ClassMerger> classMergers =
-        initializeClassMergers(
-            mergedClassesBuilder, lensBuilder, fieldAccessChangesBuilder, groups);
+        initializeClassMergers(mergedClassesBuilder, lensBuilder, groups);
     Iterable<DexProgramClass> allMergeClasses =
         Iterables.concat(
             Iterables.transform(classMergers, classMerger -> classMerger.getGroup().getClasses()));
@@ -104,14 +101,30 @@ public class HorizontalClassMerger {
     HorizontallyMergedClasses mergedClasses = mergedClassesBuilder.build();
     appView.setHorizontallyMergedClasses(mergedClasses);
     HorizontalClassMergerGraphLens lens =
-        createLens(mergedClasses, lensBuilder, fieldAccessChangesBuilder, syntheticArgumentClass);
+        createLens(mergedClasses, lensBuilder, syntheticArgumentClass);
 
     // Prune keep info.
     KeepInfoCollection keepInfo = appView.appInfo().getKeepInfo();
     keepInfo.mutate(mutator -> mutator.removeKeepInfoForPrunedItems(mergedClasses.getSources()));
 
     return new HorizontalClassMergerResult(
-        fieldAccessChangesBuilder.build(), lens, mainDexTracingResultBuilder.build());
+        createFieldAccessInfoCollectionModifier(groups), lens, mainDexTracingResultBuilder.build());
+  }
+
+  private FieldAccessInfoCollectionModifier createFieldAccessInfoCollectionModifier(
+      Collection<MergeGroup> groups) {
+    FieldAccessInfoCollectionModifier.Builder builder =
+        new FieldAccessInfoCollectionModifier.Builder();
+    for (MergeGroup group : groups) {
+      DexProgramClass target = group.getTarget();
+      target.forEachProgramInstanceInitializerMatching(
+          definition -> definition.getCode().isHorizontalClassMergingCode(),
+          method -> builder.recordFieldWrittenInContext(group.getClassIdField(), method));
+      target.forEachProgramVirtualMethodMatching(
+          definition -> definition.getCode().isHorizontalClassMergingCode(),
+          method -> builder.recordFieldReadInContext(group.getClassIdField(), method));
+    }
+    return builder.build();
   }
 
   private List<Policy> getPolicies(
@@ -157,7 +170,6 @@ public class HorizontalClassMerger {
   private List<ClassMerger> initializeClassMergers(
       HorizontallyMergedClasses.Builder mergedClassesBuilder,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
-      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       Collection<MergeGroup> groups) {
     List<ClassMerger> classMergers = new ArrayList<>();
 
@@ -165,8 +177,7 @@ public class HorizontalClassMerger {
     for (MergeGroup group : groups) {
       assert !group.isEmpty();
       ClassMerger merger =
-          new ClassMerger.Builder(appView, group)
-              .build(mergedClassesBuilder, lensBuilder, fieldAccessChangesBuilder);
+          new ClassMerger.Builder(appView, group).build(mergedClassesBuilder, lensBuilder);
       classMergers.add(merger);
     }
 
@@ -188,10 +199,8 @@ public class HorizontalClassMerger {
   private HorizontalClassMergerGraphLens createLens(
       HorizontallyMergedClasses mergedClasses,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
-      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       SyntheticArgumentClass syntheticArgumentClass) {
-    return new TreeFixer(
-            appView, mergedClasses, lensBuilder, fieldAccessChangesBuilder, syntheticArgumentClass)
+    return new TreeFixer(appView, mergedClasses, lensBuilder, syntheticArgumentClass)
         .fixupTypeReferences();
   }
 }

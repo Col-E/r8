@@ -45,4 +45,9 @@ public class ConstructorEntryPointSynthesizedCode extends AbstractSynthesizedCod
       registry.registerInvokeDirect(typeConstructor);
     }
   }
+
+  @Override
+  public boolean isHorizontalClassMergingCode() {
+    return true;
+  }
 }

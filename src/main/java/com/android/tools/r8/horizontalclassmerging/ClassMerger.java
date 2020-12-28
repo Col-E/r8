@@ -27,7 +27,6 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
@@ -59,7 +58,6 @@ public class ClassMerger {
   private final ClassInitializerSynthesizedCode classInitializerSynthesizedCode;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
   private final HorizontallyMergedClasses.Builder mergedClassesBuilder;
-  private final FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder;
 
   private final ClassMethodsBuilder classMethodsBuilder = new ClassMethodsBuilder();
   private final Reference2IntMap<DexType> classIdentifiers = new Reference2IntOpenHashMap<>();
@@ -72,7 +70,6 @@ public class ClassMerger {
       AppView<AppInfoWithLiveness> appView,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       HorizontallyMergedClasses.Builder mergedClassesBuilder,
-      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       MergeGroup group,
       Collection<VirtualMethodMerger> virtualMethodMergers,
       Collection<ConstructorMerger> constructorMergers,
@@ -80,7 +77,6 @@ public class ClassMerger {
     this.appView = appView;
     this.lensBuilder = lensBuilder;
     this.mergedClassesBuilder = mergedClassesBuilder;
-    this.fieldAccessChangesBuilder = fieldAccessChangesBuilder;
     this.group = group;
     this.virtualMethodMergers = virtualMethodMergers;
     this.constructorMergers = constructorMergers;
@@ -187,16 +183,13 @@ public class ClassMerger {
             merger.merge(
                 classMethodsBuilder,
                 lensBuilder,
-                fieldAccessChangesBuilder,
                 classIdentifiers,
                 syntheticArgumentClass));
   }
 
   void mergeVirtualMethods() {
     virtualMethodMergers.forEach(
-        merger ->
-            merger.merge(
-                classMethodsBuilder, lensBuilder, fieldAccessChangesBuilder, classIdentifiers));
+        merger -> merger.merge(classMethodsBuilder, lensBuilder, classIdentifiers));
     group.forEachSource(clazz -> clazz.getMethodCollection().clearVirtualMethods());
   }
 
@@ -329,8 +322,7 @@ public class ClassMerger {
 
     public ClassMerger build(
         HorizontallyMergedClasses.Builder mergedClassesBuilder,
-        HorizontalClassMergerGraphLens.Builder lensBuilder,
-        FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder) {
+        HorizontalClassMergerGraphLens.Builder lensBuilder) {
       setup();
       List<VirtualMethodMerger> virtualMethodMergers =
           new ArrayList<>(virtualMethodMergerBuilders.size());
@@ -356,7 +348,6 @@ public class ClassMerger {
           appView,
           lensBuilder,
           mergedClassesBuilder,
-          fieldAccessChangesBuilder,
           group,
           virtualMethodMergers,
           constructorMergers,

@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.structural.Ordered;
@@ -200,7 +199,6 @@ public class VirtualMethodMerger {
   public void merge(
       ClassMethodsBuilder classMethodsBuilder,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
-      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       Reference2IntMap<DexType> classIdentifiers) {
     assert !methods.isEmpty();
 
@@ -275,7 +273,5 @@ public class VirtualMethodMerger {
     lensBuilder.recordNewMethodSignature(bridgeMethodReference, newMethodReference);
 
     classMethodsBuilder.addVirtualMethod(newMethod);
-
-    fieldAccessChangesBuilder.fieldReadByMethod(group.getClassIdField(), newMethodReference);
   }
 }

@@ -38,4 +38,9 @@ public class VirtualMethodEntryPointSynthesizedCode extends SynthesizedCode {
       registry.registerInvokeDirect(mappedMethod);
     }
   }
+
+  @Override
+  public boolean isHorizontalClassMergingCode() {
+    return true;
+  }
 }

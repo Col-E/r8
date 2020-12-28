@@ -21,7 +21,6 @@ import com.android.tools.r8.ir.conversion.ExtraConstantIntParameter;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.structural.Ordered;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -139,7 +138,6 @@ public class ConstructorMerger {
   void merge(
       ClassMethodsBuilder classMethodsBuilder,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
-      FieldAccessInfoCollectionModifier.Builder fieldAccessChangesBuilder,
       Reference2IntMap<DexType> classIdentifiers,
       SyntheticArgumentClass syntheticArgumentClass) {
     // Tree map as must be sorted.
@@ -216,8 +214,5 @@ public class ConstructorMerger {
     lensBuilder.recordNewMethodSignature(bridgeConstructorReference, newConstructorReference);
 
     classMethodsBuilder.addDirectMethod(newConstructor);
-
-    fieldAccessChangesBuilder.fieldWrittenByMethod(
-        group.getClassIdField(), newConstructorReference);
   }
 }
