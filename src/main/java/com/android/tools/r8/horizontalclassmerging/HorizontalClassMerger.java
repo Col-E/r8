@@ -121,7 +121,7 @@ public class HorizontalClassMerger {
           definition -> definition.getCode().isHorizontalClassMergingCode(),
           method -> builder.recordFieldWrittenInContext(group.getClassIdField(), method));
       target.forEachProgramVirtualMethodMatching(
-          definition -> definition.getCode().isHorizontalClassMergingCode(),
+          definition -> definition.hasCode() && definition.getCode().isHorizontalClassMergingCode(),
           method -> builder.recordFieldReadInContext(group.getClassIdField(), method));
     }
     return builder.build();
