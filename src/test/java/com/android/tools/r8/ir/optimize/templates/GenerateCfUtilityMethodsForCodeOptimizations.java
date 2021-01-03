@@ -43,6 +43,11 @@ public class GenerateCfUtilityMethodsForCodeOptimizations extends MethodGenerati
     return ImmutableList.of(CfUtilityMethodsForCodeOptimizationsTemplates.class);
   }
 
+  @Override
+  protected int getYear() {
+    return 2020;
+  }
+
   @Test
   public void test() throws Exception {
     ArrayList<Class<?>> sorted = new ArrayList<>(getMethodTemplateClasses());

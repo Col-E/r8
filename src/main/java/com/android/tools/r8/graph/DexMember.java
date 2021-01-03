@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.google.common.collect.Iterables;
+import java.util.function.Function;
 
 public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
     extends DexReference implements NamingLensComparable<R> {
@@ -17,6 +18,9 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
     assert name != null;
     this.name = name;
   }
+
+  public abstract <T> T apply(
+      Function<DexField, T> fieldConsumer, Function<DexMethod, T> methodConsumer);
 
   public abstract DexEncodedMember<?, ?> lookupOnClass(DexClass clazz);
 

@@ -68,6 +68,11 @@ public class GenerateBackportMethods extends MethodGenerationBase {
     return METHOD_TEMPLATE_CLASSES;
   }
 
+  @Override
+  protected int getYear() {
+    return 2020;
+  }
+
   @Test
   public void testBackportsGenerated() throws Exception {
     ArrayList<Class<?>> sorted = new ArrayList<>(getMethodTemplateClasses());

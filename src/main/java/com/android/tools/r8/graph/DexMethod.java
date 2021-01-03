@@ -67,6 +67,11 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   @Override
+  public <T> T apply(Function<DexField, T> fieldConsumer, Function<DexMethod, T> methodConsumer) {
+    return methodConsumer.apply(this);
+  }
+
+  @Override
   public <T> T apply(
       Function<DexType, T> classConsumer,
       Function<DexField, T> fieldConsumer,

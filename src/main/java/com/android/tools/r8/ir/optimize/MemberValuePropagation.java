@@ -360,7 +360,9 @@ public class MemberValuePropagation {
     }
 
     AbstractValue abstractValue;
-    if (appView.appInfo().isFieldWrittenByFieldPutInstruction(target)) {
+    if (field.getType().isAlwaysNull(appView)) {
+      abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);
+    } else if (appView.appInfo().isFieldWrittenByFieldPutInstruction(target)) {
       abstractValue = target.getOptimizationInfo().getAbstractValue();
       if (abstractValue.isUnknown() && !target.isStatic()) {
         AbstractValue abstractReceiverValue =

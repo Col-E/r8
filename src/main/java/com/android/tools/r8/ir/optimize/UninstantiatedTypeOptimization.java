@@ -14,8 +14,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.FieldAccessInfo;
-import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.GraphLens.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
@@ -97,18 +95,11 @@ public class UninstantiatedTypeOptimization {
 
   public UninstantiatedTypeOptimization strenghtenOptimizationInfo() {
     OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
-    FieldAccessInfoCollection<?> fieldAccessInfoCollection =
-        appView.appInfo().getFieldAccessInfoCollection();
     AbstractValue nullValue = appView.abstractValueFactory().createSingleNumberValue(0);
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       clazz.forEachField(
           field -> {
             if (field.type().isAlwaysNull(appView)) {
-              FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(field.field);
-              if (fieldAccessInfo != null) {
-                // Clear all writes since each write must write `null` to the field.
-                fieldAccessInfo.asMutable().clearWrites();
-              }
               feedback.recordFieldHasAbstractValue(field, appView, nullValue);
             }
           });

@@ -25,7 +25,6 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Calendar;
 import java.util.List;
 import java.util.TreeSet;
 
@@ -46,11 +45,12 @@ public abstract class MethodGenerationBase extends TestBase {
 
   protected abstract List<Class<?>> getMethodTemplateClasses();
 
-  public static String getHeaderString(Class<?> generationClass, String generatedPackage) {
-    int year = Calendar.getInstance().get(Calendar.YEAR);
-    String simpleName = generationClass.getSimpleName();
+  protected abstract int getYear();
+
+  public String getHeaderString() {
+    String simpleName = getClass().getSimpleName();
     return StringUtils.lines(
-        "// Copyright (c) " + year + ", the R8 project authors. Please see the AUTHORS file",
+        "// Copyright (c) " + getYear() + ", the R8 project authors. Please see the AUTHORS file",
         "// for details. All rights reserved. Use of this source code is governed by a",
         "// BSD-style license that can be found in the LICENSE file.",
         "",
@@ -58,7 +58,7 @@ public abstract class MethodGenerationBase extends TestBase {
         "// GENERATED FILE. DO NOT EDIT! See " + simpleName + ".java.",
         "// ***********************************************************************************",
         "",
-        "package " + generatedPackage + ";");
+        "package " + getGeneratedClassPackageName() + ";");
   }
 
   protected Path getGeneratedFile() {
@@ -115,7 +115,7 @@ public abstract class MethodGenerationBase extends TestBase {
 
   private void generateRawOutput(CfCodePrinter codePrinter, Path tempFile) throws IOException {
     try (PrintStream printer = new PrintStream(Files.newOutputStream(tempFile))) {
-      printer.print(getHeaderString(this.getClass(), getGeneratedClassPackageName()));
+      printer.print(getHeaderString());
       printer.println("import com.android.tools.r8.graph.DexItemFactory;");
       codePrinter.getImports().forEach(i -> printer.println("import " + i + ";"));
       printer.println("public final class " + getGeneratedClassName() + " {\n");

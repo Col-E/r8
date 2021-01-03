@@ -839,11 +839,31 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         && !keepInfo.getMethodInfo(method).isPinned();
   }
 
-  public boolean mayPropagateValueFor(DexReference reference) {
+  public boolean mayPropagateValueFor(DexMember<?, ?> reference) {
     assert checkIfObsolete();
-    return options().enableValuePropagation
-        && !isPinned(reference)
-        && !neverPropagateValue.contains(reference);
+    return reference.apply(this::mayPropagateValueFor, this::mayPropagateValueFor);
+  }
+
+  public boolean mayPropagateValueFor(DexField field) {
+    assert checkIfObsolete();
+    if (!options().enableValuePropagation || neverPropagateValue.contains(field)) {
+      return false;
+    }
+    if (isPinned(field) && !field.getType().isAlwaysNull(this)) {
+      return false;
+    }
+    return true;
+  }
+
+  public boolean mayPropagateValueFor(DexMethod method) {
+    assert checkIfObsolete();
+    if (!options().enableValuePropagation || neverPropagateValue.contains(method)) {
+      return false;
+    }
+    if (isPinned(method) && !method.getReturnType().isAlwaysNull(this)) {
+      return false;
+    }
+    return true;
   }
 
   private boolean isLibraryOrClasspathField(DexEncodedField field) {
