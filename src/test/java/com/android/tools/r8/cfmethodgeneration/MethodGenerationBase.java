@@ -11,6 +11,7 @@ import com.android.tools.r8.cf.CfCodePrinter;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.JarClassFileReader;
@@ -95,8 +96,8 @@ public abstract class MethodGenerationBase extends TestBase {
   private void readMethodTemplatesInto(CfCodePrinter codePrinter) throws IOException {
     InternalOptions options = new InternalOptions();
     options.testing.readInputStackMaps = true;
-    JarClassFileReader reader =
-        new JarClassFileReader(
+    JarClassFileReader<DexProgramClass> reader =
+        new JarClassFileReader<>(
             new JarApplicationReader(options),
             clazz -> {
               for (DexEncodedMethod method : clazz.allMethodsSorted()) {
@@ -107,9 +108,10 @@ public abstract class MethodGenerationBase extends TestBase {
                     method.getHolderType().getName() + "_" + method.method.name.toString();
                 codePrinter.visitMethod(methodName, method.getCode().asCfCode());
               }
-            });
+            },
+            ClassKind.PROGRAM);
     for (Class<?> clazz : getMethodTemplateClasses()) {
-      reader.read(Origin.unknown(), ClassKind.PROGRAM, ToolHelper.getClassAsBytes(clazz));
+      reader.read(Origin.unknown(), ToolHelper.getClassAsBytes(clazz));
     }
   }
 
