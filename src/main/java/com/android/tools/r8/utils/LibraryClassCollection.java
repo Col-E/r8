@@ -30,7 +30,7 @@ public class LibraryClassCollection extends ClassMap<DexLibraryClass> {
   }
 
   @Override
-  ClassKind getClassKind() {
+  ClassKind<DexLibraryClass> getClassKind() {
     return ClassKind.LIBRARY;
   }
 

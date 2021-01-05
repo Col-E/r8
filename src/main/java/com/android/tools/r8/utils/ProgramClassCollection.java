@@ -53,7 +53,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
   }
 
   @Override
-  ClassKind getClassKind() {
+  ClassKind<DexProgramClass> getClassKind() {
     return ClassKind.PROGRAM;
   }
 

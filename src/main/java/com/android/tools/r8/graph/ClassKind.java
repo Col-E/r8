@@ -9,97 +9,97 @@ import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.origin.Origin;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /** Kind of the application class. Can be program, classpath or library. */
-public enum ClassKind {
-  PROGRAM(DexProgramClass::new, DexClass::isProgramClass),
-  CLASSPATH(
-      (type,
-          kind,
-          origin,
-          accessFlags,
-          superType,
-          interfaces,
-          sourceFile,
-          nestHost,
-          nestMembers,
-          enclosingMember,
-          innerClasses,
-          classSignature,
-          annotations,
-          staticFields,
-          instanceFields,
-          directMethods,
-          virtualMethods,
-          skipNameValidationForTesting,
-          checksumSupplier) -> {
-        return new DexClasspathClass(
-            type,
-            kind,
-            origin,
-            accessFlags,
-            superType,
-            interfaces,
-            sourceFile,
-            nestHost,
-            nestMembers,
-            enclosingMember,
-            innerClasses,
-            classSignature,
-            annotations,
-            staticFields,
-            instanceFields,
-            directMethods,
-            virtualMethods,
-            skipNameValidationForTesting);
-      },
-      DexClass::isClasspathClass),
-  LIBRARY(
-      (type,
-          kind,
-          origin,
-          accessFlags,
-          superType,
-          interfaces,
-          sourceFile,
-          nestHost,
-          nestMembers,
-          enclosingMember,
-          innerClasses,
-          classSignature,
-          annotations,
-          staticFields,
-          instanceFields,
-          directMethods,
-          virtualMethods,
-          skipNameValidationForTesting,
-          checksumSupplier) -> {
-        return new DexLibraryClass(
-            type,
-            kind,
-            origin,
-            accessFlags,
-            superType,
-            interfaces,
-            sourceFile,
-            nestHost,
-            nestMembers,
-            enclosingMember,
-            innerClasses,
-            classSignature,
-            annotations,
-            staticFields,
-            instanceFields,
-            directMethods,
-            virtualMethods,
-            skipNameValidationForTesting);
-      },
-      DexClass::isLibraryClass);
+public class ClassKind<C extends DexClass> {
+  public static ClassKind<DexProgramClass> PROGRAM =
+      new ClassKind<>(DexProgramClass::new, DexClass::isProgramClass);
+  public static ClassKind<DexClasspathClass> CLASSPATH =
+      new ClassKind<>(
+          (type,
+              kind,
+              origin,
+              accessFlags,
+              superType,
+              interfaces,
+              sourceFile,
+              nestHost,
+              nestMembers,
+              enclosingMember,
+              innerClasses,
+              classSignature,
+              annotations,
+              staticFields,
+              instanceFields,
+              directMethods,
+              virtualMethods,
+              skipNameValidationForTesting,
+              checksumSupplier) ->
+              new DexClasspathClass(
+                  type,
+                  kind,
+                  origin,
+                  accessFlags,
+                  superType,
+                  interfaces,
+                  sourceFile,
+                  nestHost,
+                  nestMembers,
+                  enclosingMember,
+                  innerClasses,
+                  classSignature,
+                  annotations,
+                  staticFields,
+                  instanceFields,
+                  directMethods,
+                  virtualMethods,
+                  skipNameValidationForTesting),
+          DexClass::isClasspathClass);
+  public static final ClassKind<DexLibraryClass> LIBRARY =
+      new ClassKind<>(
+          (type,
+              kind,
+              origin,
+              accessFlags,
+              superType,
+              interfaces,
+              sourceFile,
+              nestHost,
+              nestMembers,
+              enclosingMember,
+              innerClasses,
+              classSignature,
+              annotations,
+              staticFields,
+              instanceFields,
+              directMethods,
+              virtualMethods,
+              skipNameValidationForTesting,
+              checksumSupplier) ->
+              new DexLibraryClass(
+                  type,
+                  kind,
+                  origin,
+                  accessFlags,
+                  superType,
+                  interfaces,
+                  sourceFile,
+                  nestHost,
+                  nestMembers,
+                  enclosingMember,
+                  innerClasses,
+                  classSignature,
+                  annotations,
+                  staticFields,
+                  instanceFields,
+                  directMethods,
+                  virtualMethods,
+                  skipNameValidationForTesting),
+          DexClass::isLibraryClass);
 
-  private interface Factory {
-    DexClass create(
+  private interface Factory<C extends DexClass> {
+    C create(
         DexType type,
         Kind kind,
         Origin origin,
@@ -121,15 +121,15 @@ public enum ClassKind {
         ChecksumSupplier checksumSupplier);
   }
 
-  private final Factory factory;
+  private final Factory<C> factory;
   private final Predicate<DexClass> check;
 
-  ClassKind(Factory factory, Predicate<DexClass> check) {
+  ClassKind(Factory<C> factory, Predicate<DexClass> check) {
     this.factory = factory;
     this.check = check;
   }
 
-  public DexClass create(
+  public C create(
       DexType type,
       Kind kind,
       Origin origin,
@@ -173,13 +173,5 @@ public enum ClassKind {
 
   public boolean isOfKind(DexClass clazz) {
     return check.test(clazz);
-  }
-
-  public <T extends DexClass> Consumer<DexClass> bridgeConsumer(Consumer<T> consumer) {
-    return clazz -> {
-      assert isOfKind(clazz);
-      @SuppressWarnings("unchecked") T specialized = (T) clazz;
-      consumer.accept(specialized);
-    };
   }
 }

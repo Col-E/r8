@@ -82,14 +82,14 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class DexParser {
+public class DexParser<T extends DexClass> {
 
   private final int NO_INDEX = -1;
   private final Origin origin;
   private DexReader dexReader;
   private final DexSection[] dexSections;
   private int[] stringIDs;
-  private final ClassKind classKind;
+  private final ClassKind<T> classKind;
   private final InternalOptions options;
   private Object2LongMap<String> checksums;
 
@@ -102,7 +102,8 @@ public class DexParser {
   }
 
   private static DexSection[] parseMapFrom(DexReader dexReader) {
-    DexParser dexParser = new DexParser(dexReader, ClassKind.PROGRAM, new InternalOptions());
+    DexParser<DexProgramClass> dexParser =
+        new DexParser<>(dexReader, ClassKind.PROGRAM, new InternalOptions());
     return dexParser.dexSections;
   }
 
@@ -127,7 +128,7 @@ public class DexParser {
   // Factory to canonicalize certain dexitems.
   private final DexItemFactory dexItemFactory;
 
-  public DexParser(DexReader dexReader, ClassKind classKind, InternalOptions options) {
+  public DexParser(DexReader dexReader, ClassKind<T> classKind, InternalOptions options) {
     assert dexReader.getOrigin() != null;
     this.origin = dexReader.getOrigin();
     this.dexReader = dexReader;
@@ -419,14 +420,14 @@ public class DexParser {
     return result;
   }
 
-  private <T> Object cacheAt(int offset, Supplier<T> function, Supplier<T> defaultValue) {
+  private <S> Object cacheAt(int offset, Supplier<S> function, Supplier<S> defaultValue) {
     if (offset == 0) {
       return defaultValue.get();
     }
     return cacheAt(offset, function);
   }
 
-  private <T> Object cacheAt(int offset, Supplier<T> function) {
+  private <S> Object cacheAt(int offset, Supplier<S> function) {
     if (offset == 0) {
       return null;  // return null for offset zero.
     }
@@ -704,7 +705,7 @@ public class DexParser {
     return methods;
   }
 
-  void addClassDefsTo(Consumer<DexClass> classCollection) {
+  void addClassDefsTo(Consumer<T> classCollection) {
     final DexSection dexSection = lookupSection(Constants.TYPE_CLASS_DEF_ITEM);
     final int length = dexSection.length;
     indexedItems.initializeClasses(length);
@@ -796,7 +797,7 @@ public class DexParser {
       ChecksumSupplier checksumSupplier =
           finalChecksum == null ? DexProgramClass::invalidChecksumRequest : c -> finalChecksum;
 
-      DexClass clazz =
+      T clazz =
           classKind.create(
               type,
               Kind.DEX,
@@ -925,7 +926,7 @@ public class DexParser {
           int hsize = dexReader.getSleb128();
           int realHsize = Math.abs(hsize);
           // - handlers	encoded_type_addr_pair[abs(size)]
-          TryHandler.TypeAddrPair pairs[] = new TryHandler.TypeAddrPair[realHsize];
+          TryHandler.TypeAddrPair[] pairs = new TryHandler.TypeAddrPair[realHsize];
           for (int j = 0; j < realHsize; j++) {
             int typeIdx = dexReader.getUleb128();
             int addr = dexReader.getUleb128();
@@ -1415,7 +1416,7 @@ public class DexParser {
           List<DexType> members = DexAnnotation.getMemberClassesFromAnnotation(annotation, factory);
           if (memberClasses == null) {
             memberClasses = members;
-          } else {
+          } else if (members != null) {
             memberClasses.addAll(members);
           }
         } else if (DexAnnotation.isSignatureAnnotation(annotation, factory)

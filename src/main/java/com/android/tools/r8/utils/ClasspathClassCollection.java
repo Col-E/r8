@@ -25,7 +25,7 @@ public class ClasspathClassCollection extends ClassMap<DexClasspathClass> {
   }
 
   @Override
-  ClassKind getClassKind() {
+  ClassKind<DexClasspathClass> getClassKind() {
     return ClassKind.CLASSPATH;
   }
 

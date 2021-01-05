@@ -66,10 +66,8 @@ import org.objectweb.asm.RecordComponentVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 
-/**
- * Java/Jar class reader for constructing dex/graph structure.
- */
-public class JarClassFileReader {
+/** Java/Jar class reader for constructing dex/graph structure. */
+public class JarClassFileReader<T extends DexClass> {
 
   private static final byte[] CLASSFILE_HEADER = ByteBuffer.allocate(4).putInt(0xCAFEBABE).array();
 
@@ -77,24 +75,25 @@ public class JarClassFileReader {
   private static final int ACC_SYNTHETIC_ATTRIBUTE = 0x40000;
 
   private final JarApplicationReader application;
-  private final Consumer<DexClass> classConsumer;
+  private final Consumer<T> classConsumer;
+  private final ClassKind<T> classKind;
 
   public JarClassFileReader(
-      JarApplicationReader application, Consumer<DexClass> classConsumer) {
+      JarApplicationReader application, Consumer<T> classConsumer, ClassKind<T> classKind) {
     this.application = application;
     this.classConsumer = classConsumer;
+    this.classKind = classKind;
   }
 
-  public void read(ProgramResource resource, ClassKind classKind) throws ResourceException {
-    read(resource.getOrigin(), classKind, resource.getBytes());
+  public void read(ProgramResource resource) throws ResourceException {
+    read(resource.getOrigin(), resource.getBytes());
   }
 
-  public void read(Origin origin, ClassKind classKind, byte[] bytes) {
-    ExceptionUtils.withOriginAttachmentHandler(
-        origin, () -> internalRead(origin, classKind, bytes));
+  public void read(Origin origin, byte[] bytes) {
+    ExceptionUtils.withOriginAttachmentHandler(origin, () -> internalRead(origin, bytes));
   }
 
-  public void internalRead(Origin origin, ClassKind classKind, byte[] bytes) {
+  public void internalRead(Origin origin, byte[] bytes) {
     if (bytes.length < CLASSFILE_HEADER.length) {
       throw new CompilationError("Invalid empty classfile", origin);
     }
@@ -118,7 +117,7 @@ public class JarClassFileReader {
       }
     }
     reader.accept(
-        new CreateDexClassVisitor(origin, classKind, reader.b, application, classConsumer),
+        new CreateDexClassVisitor<>(origin, classKind, reader.b, application, classConsumer),
         parsingOptions);
 
     // Read marker.
@@ -188,12 +187,12 @@ public class JarClassFileReader {
     return new DexEncodedAnnotation(application.getTypeFromDescriptor(desc), elements);
   }
 
-  private static class CreateDexClassVisitor extends ClassVisitor {
+  private static class CreateDexClassVisitor<T extends DexClass> extends ClassVisitor {
 
     private final Origin origin;
-    private final ClassKind classKind;
+    private final ClassKind<T> classKind;
     private final JarApplicationReader application;
-    private final Consumer<DexClass> classConsumer;
+    private final Consumer<T> classConsumer;
     private final ReparseContext context = new ReparseContext();
 
     // DexClass data.
@@ -221,10 +220,10 @@ public class JarClassFileReader {
 
     public CreateDexClassVisitor(
         Origin origin,
-        ClassKind classKind,
+        ClassKind<T> classKind,
         byte[] classCache,
         JarApplicationReader application,
-        Consumer<DexClass> classConsumer) {
+        Consumer<T> classConsumer) {
       super(ASM_VERSION);
       this.origin = origin;
       this.classKind = classKind;
@@ -350,7 +349,7 @@ public class JarClassFileReader {
                 accessFlags,
                 name,
                 version,
-                "must extend class java.lang.Object. Found: " + Objects.toString(superName)),
+                "must extend class java.lang.Object. Found: " + superName),
             origin);
       }
       checkName(name);
@@ -420,7 +419,7 @@ public class JarClassFileReader {
             type, defaultAnnotations, application.getFactory()));
       }
       checkReachabilitySensitivity();
-      DexClass clazz =
+      T clazz =
           classKind.create(
               type,
               Kind.CF,
@@ -483,7 +482,7 @@ public class JarClassFileReader {
       classConsumer.accept(clazz);
     }
 
-    private ChecksumSupplier getChecksumSupplier(ClassKind classKind) {
+    private ChecksumSupplier getChecksumSupplier(ClassKind<T> classKind) {
       if (application.options.encodeChecksums && classKind == ClassKind.PROGRAM) {
         CRC32 crc = new CRC32();
         crc.update(this.context.classCache, 0, this.context.classCache.length);
@@ -567,7 +566,7 @@ public class JarClassFileReader {
 
   private static class CreateFieldVisitor extends FieldVisitor {
 
-    private final CreateDexClassVisitor parent;
+    private final CreateDexClassVisitor<?> parent;
     private final int access;
     private final String name;
     private final String desc;
@@ -575,8 +574,13 @@ public class JarClassFileReader {
     private FieldTypeSignature fieldSignature;
     private List<DexAnnotation> annotations = null;
 
-    public CreateFieldVisitor(CreateDexClassVisitor parent,
-        int access, String name, String desc, String signature, Object value) {
+    public CreateFieldVisitor(
+        CreateDexClassVisitor<?> parent,
+        int access,
+        String name,
+        String desc,
+        String signature,
+        Object value) {
       super(ASM_VERSION);
       this.parent = parent;
       this.access = access;
@@ -670,9 +674,6 @@ public class JarClassFileReader {
       throw new Unreachable("Unexpected static-value type " + type);
     }
 
-    private void addAnnotation(DexAnnotation annotation) {
-      getAnnotations().add(annotation);
-    }
     private List<DexAnnotation> getAnnotations() {
       if (annotations == null) {
         annotations = new ArrayList<>();
@@ -684,7 +685,7 @@ public class JarClassFileReader {
   private static class CreateMethodVisitor extends MethodVisitor {
 
     private final String name;
-    final CreateDexClassVisitor parent;
+    final CreateDexClassVisitor<?> parent;
     private final int parameterCount;
     private List<DexAnnotation> annotations = null;
     private DexValue defaultAnnotation = null;
@@ -698,8 +699,13 @@ public class JarClassFileReader {
     final boolean deprecated;
     Code code = null;
 
-    public CreateMethodVisitor(int access, String name, String desc, String signature,
-        String[] exceptions, CreateDexClassVisitor parent) {
+    public CreateMethodVisitor(
+        int access,
+        String name,
+        String desc,
+        String signature,
+        String[] exceptions,
+        CreateDexClassVisitor<?> parent) {
       super(ASM_VERSION);
       this.name = name;
       this.parent = parent;

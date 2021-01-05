@@ -151,7 +151,7 @@ public class ApplicationReader {
       // TODO: try and preload less classes.
       readProguardMap(proguardMap, builder, executorService, futures);
       ClassReader classReader = new ClassReader(executorService, futures);
-      JarClassFileReader jcf = classReader.readSources();
+      JarClassFileReader<DexProgramClass> jcf = classReader.readSources();
       ThreadUtils.awaitFutures(futures);
       classReader.initializeLazyClassCollection(builder);
       for (ProgramResourceProvider provider : inputApp.getProgramResourceProviders()) {
@@ -296,46 +296,46 @@ public class ApplicationReader {
       this.futures = futures;
     }
 
-    private <T extends DexClass> void readDexSources(
-        List<ProgramResource> dexSources, ClassKind classKind, Queue<T> classes)
+    private void readDexSources(List<ProgramResource> dexSources, Queue<DexProgramClass> classes)
         throws IOException, ResourceException {
       if (dexSources.size() > 0) {
-        List<DexParser> dexParsers = new ArrayList<>(dexSources.size());
+        List<DexParser<DexProgramClass>> dexParsers = new ArrayList<>(dexSources.size());
         int computedMinApiLevel = options.minApiLevel;
         for (ProgramResource input : dexSources) {
           DexReader dexReader = new DexReader(input);
           if (options.passthroughDexCode) {
             computedMinApiLevel = validateOrComputeMinApiLevel(computedMinApiLevel, dexReader);
           }
-          dexParsers.add(new DexParser(dexReader, classKind, options));
+          dexParsers.add(new DexParser<>(dexReader, PROGRAM, options));
         }
 
         options.minApiLevel = computedMinApiLevel;
-        for (DexParser dexParser : dexParsers) {
+        for (DexParser<DexProgramClass> dexParser : dexParsers) {
           dexParser.populateIndexTables();
         }
         // Read the DexCode items and DexProgramClass items in parallel.
         if (!options.skipReadingDexCode) {
-          for (DexParser dexParser : dexParsers) {
-            futures.add(executorService.submit(() -> {
-              dexParser.addClassDefsTo(
-                  classKind.bridgeConsumer(classes::add)); // Depends on Methods, Code items etc.
-            }));
+          for (DexParser<DexProgramClass> dexParser : dexParsers) {
+            futures.add(
+                executorService.submit(
+                    () -> {
+                      dexParser.addClassDefsTo(classes::add); // Depends on Methods, Code items etc.
+                    }));
           }
         }
       }
     }
 
-    private <T extends DexClass> JarClassFileReader readClassSources(
-        List<ProgramResource> classSources, ClassKind classKind, Queue<T> classes) {
-      JarClassFileReader reader = new JarClassFileReader(
-          application, classKind.bridgeConsumer(classes::add));
+    private JarClassFileReader<DexProgramClass> readClassSources(
+        List<ProgramResource> classSources, Queue<DexProgramClass> classes) {
+      JarClassFileReader<DexProgramClass> reader =
+          new JarClassFileReader<>(application, classes::add, PROGRAM);
       // Read classes in parallel.
       for (ProgramResource input : classSources) {
         futures.add(
             executorService.submit(
                 () -> {
-                  reader.read(input, classKind);
+                  reader.read(input);
                   // No other way to have a void callable, but we want the IOException from read
                   // to be wrapped into an ExecutionException.
                   return null;
@@ -344,7 +344,7 @@ public class ApplicationReader {
       return reader;
     }
 
-    JarClassFileReader readSources() throws IOException, ResourceException {
+    JarClassFileReader<DexProgramClass> readSources() throws IOException, ResourceException {
       Collection<ProgramResource> resources = inputApp.computeAllProgramResources();
       List<ProgramResource> dexResources = new ArrayList<>(resources.size());
       List<ProgramResource> cfResources = new ArrayList<>(resources.size());
@@ -356,12 +356,14 @@ public class ApplicationReader {
           cfResources.add(resource);
         }
       }
-      readDexSources(dexResources, PROGRAM, programClasses);
-      return readClassSources(cfResources, PROGRAM, programClasses);
+      readDexSources(dexResources, programClasses);
+      return readClassSources(cfResources, programClasses);
     }
 
-    private <T extends DexClass> ClassProvider<T> buildClassProvider(ClassKind classKind,
-        Queue<T> preloadedClasses, List<ClassFileResourceProvider> resourceProviders,
+    private <T extends DexClass> ClassProvider<T> buildClassProvider(
+        ClassKind<T> classKind,
+        Queue<T> preloadedClasses,
+        List<ClassFileResourceProvider> resourceProviders,
         JarApplicationReader reader) {
       List<ClassProvider<T>> providers = new ArrayList<>();
 

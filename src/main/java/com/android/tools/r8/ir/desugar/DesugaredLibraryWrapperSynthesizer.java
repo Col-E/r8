@@ -183,7 +183,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private DexClass generateTypeWrapper(
-      ClassKind classKind, DexClass dexClass, DexType typeWrapperType) {
+      ClassKind<?> classKind, DexClass dexClass, DexType typeWrapperType) {
     DexType type = dexClass.type;
     DexEncodedField wrapperField = synthesizeWrappedValueEncodedField(typeWrapperType, type);
     return synthesizeWrapper(
@@ -196,7 +196,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private DexClass generateVivifiedTypeWrapper(
-      ClassKind classKind, DexClass dexClass, DexType vivifiedTypeWrapperType) {
+      ClassKind<?> classKind, DexClass dexClass, DexType vivifiedTypeWrapperType) {
     DexType type = dexClass.type;
     DexEncodedField wrapperField =
         synthesizeWrappedValueEncodedField(vivifiedTypeWrapperType, vivifiedTypeFor(type));
@@ -210,7 +210,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private DexClass synthesizeWrapper(
-      ClassKind classKind,
+      ClassKind<?> classKind,
       DexType wrappingType,
       DexClass clazz,
       DexEncodedMethod[] virtualMethods,
@@ -398,7 +398,7 @@ public class DesugaredLibraryWrapperSynthesizer {
           for (DexEncodedMethod alreadyImplementedMethod : implementedMethods) {
             if (alreadyImplementedMethod.method.match(virtualMethod.method)) {
               alreadyAdded = true;
-              continue;
+              break;
             }
           }
           if (!alreadyAdded) {
@@ -503,7 +503,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private void generateWrappers(
-      ClassKind classKind,
+      ClassKind<?> classKind,
       Set<DexType> synthesized,
       BiConsumer<DexType, DexClass> generatedCallback) {
     while (synthesized.size() != typeWrappers.size() + vivifiedTypeWrappers.size()) {

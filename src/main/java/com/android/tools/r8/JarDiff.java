@@ -5,15 +5,14 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.graph.ClassKind;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StreamUtils;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -21,7 +20,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -136,26 +134,11 @@ public class JarDiff {
         inputJar.getProgramResource(descriptor).getByteStream());
   }
 
-  private DexProgramClass getDexProgramClass(Path path, byte[] bytes) throws IOException {
-
-    class Collector implements Consumer<DexClass> {
-
-      private DexClass dexClass;
-
-      @Override
-      public void accept(DexClass dexClass) {
-        this.dexClass = dexClass;
-      }
-
-      public DexClass get() {
-        assert dexClass != null;
-        return dexClass;
-      }
-    }
-
-    Collector collector = new Collector();
-    JarClassFileReader reader = new JarClassFileReader(applicationReader, collector);
-    reader.read(new PathOrigin(path), ClassKind.PROGRAM, bytes);
+  private DexProgramClass getDexProgramClass(Path path, byte[] bytes) {
+    Box<DexProgramClass> collector = new Box<>();
+    JarClassFileReader<DexProgramClass> reader =
+        new JarClassFileReader<>(applicationReader, collector::set, ClassKind.PROGRAM);
+    reader.read(new PathOrigin(path), bytes);
     return collector.get().asProgramClass();
   }
 

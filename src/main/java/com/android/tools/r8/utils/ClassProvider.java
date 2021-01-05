@@ -23,14 +23,14 @@ import java.util.function.Consumer;
 
 /** Represents a provider for classes loaded from different sources. */
 public abstract class ClassProvider<T extends DexClass> {
-  private final ClassKind classKind;
+  private final ClassKind<T> classKind;
 
-  ClassProvider(ClassKind classKind) {
+  ClassProvider(ClassKind<T> classKind) {
     this.classKind = classKind;
   }
 
   /** The kind of the classes created by the provider. */
-  final ClassKind getClassKind() {
+  final ClassKind<T> getClassKind() {
     return classKind;
   }
 
@@ -56,13 +56,13 @@ public abstract class ClassProvider<T extends DexClass> {
 
   /** Create class provider for java class resource provider. */
   public static <T extends DexClass> ClassProvider<T> forClassFileResources(
-      ClassKind classKind, ClassFileResourceProvider provider, JarApplicationReader reader) {
+      ClassKind<T> classKind, ClassFileResourceProvider provider, JarApplicationReader reader) {
     return new ClassFileResourceReader<>(classKind, provider, reader);
   }
 
   /** Create class provider for preloaded classes, classes may have conflicting names. */
   public static <T extends DexClass> ClassProvider<T> forPreloadedClasses(
-      ClassKind classKind, Collection<T> classes) {
+      ClassKind<T> classKind, Collection<T> classes) {
     ImmutableListMultimap.Builder<DexType, T> builder = ImmutableListMultimap.builder();
     for (T clazz : classes) {
       builder.put(clazz.type, clazz);
@@ -72,17 +72,17 @@ public abstract class ClassProvider<T extends DexClass> {
 
   /** Create class provider for preloaded classes. */
   public static <T extends DexClass> ClassProvider<T> combine(
-      ClassKind classKind, List<ClassProvider<T>> providers) {
+      ClassKind<T> classKind, List<ClassProvider<T>> providers) {
     return new CombinedClassProvider<>(classKind, providers);
   }
 
   private static class ClassFileResourceReader<T extends DexClass> extends ClassProvider<T> {
-    private final ClassKind classKind;
+    private final ClassKind<T> classKind;
     private final ClassFileResourceProvider provider;
     private final JarApplicationReader reader;
 
     private ClassFileResourceReader(
-        ClassKind classKind, ClassFileResourceProvider provider, JarApplicationReader reader) {
+        ClassKind<T> classKind, ClassFileResourceProvider provider, JarApplicationReader reader) {
       super(classKind);
       this.classKind = classKind;
       this.provider = provider;
@@ -95,9 +95,9 @@ public abstract class ClassProvider<T extends DexClass> {
       ProgramResource resource = provider.getProgramResource(descriptor);
       if (resource != null) {
         try {
-          JarClassFileReader classReader =
-              new JarClassFileReader(reader, classKind.bridgeConsumer(classConsumer));
-          classReader.read(resource, classKind);
+          JarClassFileReader<T> classReader =
+              new JarClassFileReader<>(reader, classConsumer, classKind);
+          classReader.read(resource);
         } catch (ResourceException e) {
           throw new CompilationError("Failed to load class: " + descriptor, e);
         }
@@ -122,7 +122,7 @@ public abstract class ClassProvider<T extends DexClass> {
   private static class PreloadedClassProvider<T extends DexClass> extends ClassProvider<T> {
     private final Multimap<DexType, T> classes;
 
-    private PreloadedClassProvider(ClassKind classKind, Multimap<DexType, T> classes) {
+    private PreloadedClassProvider(ClassKind<T> classKind, Multimap<DexType, T> classes) {
       super(classKind);
       this.classes = classes;
     }
@@ -148,7 +148,7 @@ public abstract class ClassProvider<T extends DexClass> {
   private static class CombinedClassProvider<T extends DexClass> extends ClassProvider<T> {
     private final List<ClassProvider<T>> providers;
 
-    private CombinedClassProvider(ClassKind classKind, List<ClassProvider<T>> providers) {
+    private CombinedClassProvider(ClassKind<T> classKind, List<ClassProvider<T>> providers) {
       super(classKind);
       this.providers = providers;
     }

@@ -71,10 +71,8 @@ public abstract class ClassMap<T extends DexClass> {
    */
   abstract Supplier<T> getTransparentSupplier(T clazz);
 
-  /**
-   * Kind of the classes supported by this collection.
-   */
-  abstract ClassKind getClassKind();
+  /** Kind of the classes supported by this collection. */
+  abstract ClassKind<?> getClassKind();
 
   @Override
   public String toString() {
