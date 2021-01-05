@@ -73,6 +73,9 @@ public class ProguardClassFilter {
                   return TraversalContinuation.CONTINUE;
                 },
                 not(ProguardTypeMatcher::hasSpecificType));
+        if (traversalContinuation.shouldBreak()) {
+          break;
+        }
       }
       if (traversalContinuation.shouldContinue()) {
         nonMatches.add(type);
