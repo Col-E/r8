@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.library;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -15,7 +16,10 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.ValueUtils;
 import java.util.Set;
 
 public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection {
@@ -40,20 +44,32 @@ public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues) {
-    if (singleTarget.getReference() == dexItemFactory.stringMembers.equals) {
-      optimizeEquals(code, instructionIterator, invoke);
+    DexMethod singleTargetReference = singleTarget.getReference();
+    if (singleTargetReference == dexItemFactory.stringMembers.equals) {
+      optimizeEquals(code, instructionIterator, invoke.asInvokeVirtual());
+    } else if (singleTargetReference == dexItemFactory.stringMembers.valueOf) {
+      optimizeValueOf(instructionIterator, invoke.asInvokeStatic());
     }
   }
 
   private void optimizeEquals(
-      IRCode code, InstructionListIterator instructionIterator, InvokeMethod invoke) {
+      IRCode code, InstructionListIterator instructionIterator, InvokeVirtual invoke) {
     if (appView.appInfo().hasLiveness()) {
       ProgramMethod context = code.context();
-      Value first = invoke.arguments().get(0).getAliasedValue();
-      Value second = invoke.arguments().get(1).getAliasedValue();
+      Value first = invoke.getReceiver().getAliasedValue();
+      Value second = invoke.getArgument(1).getAliasedValue();
       if (isPrunedClassNameComparison(first, second, context)
           || isPrunedClassNameComparison(second, first, context)) {
         instructionIterator.replaceCurrentInstructionWithConstInt(code, 0);
+      }
+    }
+  }
+
+  private void optimizeValueOf(InstructionListIterator instructionIterator, InvokeStatic invoke) {
+    // Optimize String.valueOf(stringBuilder) if unused.
+    if (ValueUtils.isNonNullStringBuilder(invoke.getFirstArgument(), dexItemFactory)) {
+      if (!invoke.hasOutValue() || !invoke.outValue().hasNonDebugUsers()) {
+        instructionIterator.removeOrReplaceByDebugLocalRead();
       }
     }
   }

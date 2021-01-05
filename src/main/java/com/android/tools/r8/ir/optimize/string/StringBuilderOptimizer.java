@@ -852,7 +852,8 @@ public class StringBuilderOptimizer {
 
     @Override
     public boolean isToStringMethod(DexMethod method) {
-      return method == factory.stringBuilderMethods.toString
+      return method == factory.objectMembers.toString
+          || method == factory.stringBuilderMethods.toString
           || method == factory.stringBufferMethods.toString
           || method == factory.stringMembers.valueOf;
     }

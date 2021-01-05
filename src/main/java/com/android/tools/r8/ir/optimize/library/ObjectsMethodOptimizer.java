@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.ValueUtils;
 import java.util.Set;
 
 public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollection {
@@ -66,11 +67,20 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       Set<Value> affectedValues) {
+    // Optimize Objects.toString(null) into "null".
     Value object = invoke.getFirstArgument();
     if (object.getType().isDefinitelyNull()) {
       instructionIterator.replaceCurrentInstructionWithConstString(appView, code, "null");
       if (invoke.hasOutValue()) {
         affectedValues.addAll(invoke.outValue().affectedValues());
+      }
+      return;
+    }
+
+    // Remove Objects.toString(stringBuilder) if unused.
+    if (ValueUtils.isStringBuilder(invoke.getFirstArgument(), dexItemFactory)) {
+      if (!invoke.hasOutValue() || !invoke.outValue().hasNonDebugUsers()) {
+        instructionIterator.removeOrReplaceByDebugLocalRead();
       }
     }
   }

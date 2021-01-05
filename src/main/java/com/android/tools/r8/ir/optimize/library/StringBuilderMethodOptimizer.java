@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.ir.optimize.library;
 
+import static com.android.tools.r8.ir.code.Opcodes.ASSUME;
+import static com.android.tools.r8.ir.code.Opcodes.IF;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
 import static com.android.tools.r8.ir.code.Opcodes.NEW_INSTANCE;
 
@@ -29,6 +32,7 @@ import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.library.StringBuilderMethodOptimizer.State;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ValueUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Reference2BooleanMap;
@@ -73,6 +77,8 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
       InvokeMethodWithReceiver invokeWithReceiver = invoke.asInvokeMethodWithReceiver();
       if (stringBuilderMethods.isAppendMethod(singleTarget.getReference())) {
         optimizeAppend(code, instructionIterator, invokeWithReceiver, singleTarget, state);
+      } else if (singleTarget.getReference() == dexItemFactory.stringBuilderMethods.toString) {
+        optimizeToString(instructionIterator, invokeWithReceiver);
       }
     }
   }
@@ -126,6 +132,16 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
                   .build();
           instructionIterator.replaceCurrentInstruction(replacement);
         }
+      }
+    }
+  }
+
+  private void optimizeToString(
+      InstructionListIterator instructionIterator, InvokeMethodWithReceiver invoke) {
+    // Optimize StringBuilder.toString() if unused.
+    if (ValueUtils.isNonNullStringBuilder(invoke.getReceiver(), dexItemFactory)) {
+      if (!invoke.hasOutValue() || !invoke.outValue().hasNonDebugUsers()) {
+        instructionIterator.removeOrReplaceByDebugLocalRead();
       }
     }
   }
@@ -185,6 +201,10 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
 
         Instruction definition = alias.definition;
         switch (definition.opcode()) {
+          case ASSUME:
+            worklist.addIfNotSeen(definition.inValues());
+            break;
+
           case NEW_INSTANCE:
             assert definition.asNewInstance().clazz == dexItemFactory.stringBuilderType;
             break;
@@ -208,6 +228,14 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
         // Analyze all users.
         for (Instruction user : alias.uniqueUsers()) {
           switch (user.opcode()) {
+            case ASSUME:
+              worklist.addIfNotSeen(user.outValue());
+              break;
+
+            case IF:
+              // StringBuilder null check.
+              break;
+
             case INVOKE_DIRECT:
               {
                 InvokeDirect invoke = user.asInvokeDirect();
@@ -223,6 +251,25 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
                 }
               }
               break;
+
+            case INVOKE_STATIC:
+              {
+                InvokeStatic invoke = user.asInvokeStatic();
+                DexMethod invokedMethod = invoke.getInvokedMethod();
+
+                // Allow calls to Objects.toString(Object) and String.valueOf(Object).
+                if (invokedMethod == dexItemFactory.objectsMethods.toStringWithObject
+                    || invokedMethod == dexItemFactory.stringMembers.valueOf) {
+                  // Only allow unused StringBuilders.
+                  if (invoke.hasOutValue() && invoke.outValue().hasNonDebugUsers()) {
+                    return false;
+                  }
+                  break;
+                }
+
+                // Invoke to unhandled method, give up.
+                return false;
+              }
 
             case INVOKE_VIRTUAL:
               {
@@ -245,7 +292,8 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
                 }
 
                 // Allow calls to toString().
-                if (invokedMethod == stringBuilderMethods.toString) {
+                if (invokedMethod == dexItemFactory.objectMembers.toString
+                    || invokedMethod == stringBuilderMethods.toString) {
                   // Only allow unused StringBuilders.
                   if (invoke.hasOutValue() && invoke.outValue().hasNonDebugUsers()) {
                     return false;
