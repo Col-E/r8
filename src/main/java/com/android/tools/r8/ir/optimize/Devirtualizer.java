@@ -7,7 +7,6 @@ import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -310,24 +309,19 @@ public class Devirtualizer {
   /** This rebinds invoke-super instructions to their most specific target. */
   private DexClassAndMethod rebindSuperInvokeToMostSpecific(
       DexMethod target, ProgramMethod context) {
-    DexEncodedMethod definition = appView.appInfo().lookupSuperTarget(target, context);
-    if (definition == null) {
+    DexClassAndMethod method = appView.appInfo().lookupSuperTarget(target, context);
+    if (method == null) {
       return null;
     }
 
-    DexClass holder = appView.definitionFor(definition.getHolderType());
-    if (holder == null) {
-      assert false;
-      return null;
-    }
-
-    if (holder.isInterface() && holder.getType() != context.getHolder().superType) {
+    if (method.getHolder().isInterface()
+        && method.getHolderType() != context.getHolder().superType) {
       // Not allowed.
       return null;
     }
 
-    DexClassAndMethod method = DexClassAndMethod.create(holder, definition);
-    if (AccessControl.isMemberAccessible(method, holder, context, appView).isPossiblyFalse()) {
+    if (AccessControl.isMemberAccessible(method, method.getHolder(), context, appView)
+        .isPossiblyFalse()) {
       return null;
     }
 

@@ -377,14 +377,14 @@ public final class InterfaceMethodRewriter {
             if (dexType == null) {
               if (clazz.isInterface()
                   && appView.rewritePrefix.hasRewrittenType(clazz.type, appView)) {
-                DexEncodedMethod target =
+                DexClassAndMethod target =
                     appView.appInfoForDesugaring().lookupSuperTarget(invokedMethod, code.context());
-                if (target != null && target.isDefaultMethod()) {
-                  DexClass holder = appView.definitionFor(target.getHolderType());
+                if (target != null && target.getDefinition().isDefaultMethod()) {
+                  DexClass holder = target.getHolder();
                   if (holder.isLibraryClass() && holder.isInterface()) {
                     instructions.replaceCurrentInstruction(
                         new InvokeStatic(
-                            defaultAsMethodOfCompanionClass(target.method, factory),
+                            defaultAsMethodOfCompanionClass(target.getReference(), factory),
                             invokeSuper.outValue(),
                             invokeSuper.arguments()));
                   }
@@ -395,37 +395,33 @@ public final class InterfaceMethodRewriter {
               // since it's in the emulated interface. We need to force resolution. If it resolves
               // to a library method, then it needs to be rewritten.
               // If it resolves to a program overrides, the invoke-super can remain.
-              DexEncodedMethod dexEncodedMethod =
+              DexClassAndMethod superTarget =
                   appView
                       .appInfoForDesugaring()
                       .lookupSuperTarget(invokeSuper.getInvokedMethod(), code.context());
-              if (dexEncodedMethod != null) {
-                DexClass dexClass = appView.definitionFor(dexEncodedMethod.getHolderType());
-                if (dexClass != null && dexClass.isLibraryClass()) {
-                  // Rewriting is required because the super invoke resolves into a missing
-                  // method (method is on desugared library). Find out if it needs to be
-                  // retarget or if it just calls a companion class method and rewrite.
-                  DexMethod retargetMethod =
-                      options.desugaredLibraryConfiguration.retargetMethod(
-                          dexEncodedMethod, appView);
-                  if (retargetMethod == null) {
-                    DexMethod originalCompanionMethod =
-                        instanceAsMethodOfCompanionClass(
-                            dexEncodedMethod.method, DEFAULT_METHOD_PREFIX, factory);
-                    DexMethod companionMethod =
-                        factory.createMethod(
-                            getCompanionClassType(dexType),
-                            factory.protoWithDifferentFirstParameter(
-                                originalCompanionMethod.proto, dexType),
-                            originalCompanionMethod.name);
-                    instructions.replaceCurrentInstruction(
-                        new InvokeStatic(
-                            companionMethod, invokeSuper.outValue(), invokeSuper.arguments()));
-                  } else {
-                    instructions.replaceCurrentInstruction(
-                        new InvokeStatic(
-                            retargetMethod, invokeSuper.outValue(), invokeSuper.arguments()));
-                  }
+              if (superTarget != null && superTarget.isLibraryMethod()) {
+                // Rewriting is required because the super invoke resolves into a missing
+                // method (method is on desugared library). Find out if it needs to be
+                // retarget or if it just calls a companion class method and rewrite.
+                DexMethod retargetMethod =
+                    options.desugaredLibraryConfiguration.retargetMethod(superTarget, appView);
+                if (retargetMethod == null) {
+                  DexMethod originalCompanionMethod =
+                      instanceAsMethodOfCompanionClass(
+                          superTarget.getReference(), DEFAULT_METHOD_PREFIX, factory);
+                  DexMethod companionMethod =
+                      factory.createMethod(
+                          getCompanionClassType(dexType),
+                          factory.protoWithDifferentFirstParameter(
+                              originalCompanionMethod.proto, dexType),
+                          originalCompanionMethod.name);
+                  instructions.replaceCurrentInstruction(
+                      new InvokeStatic(
+                          companionMethod, invokeSuper.outValue(), invokeSuper.arguments()));
+                } else {
+                  instructions.replaceCurrentInstruction(
+                      new InvokeStatic(
+                          retargetMethod, invokeSuper.outValue(), invokeSuper.arguments()));
                 }
               }
             }

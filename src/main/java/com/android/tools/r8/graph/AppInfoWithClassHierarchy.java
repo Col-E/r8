@@ -492,13 +492,13 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @return The actual target for {@code method} or {@code null} if none found.
    */
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupSuperTarget(DexMethod method, DexProgramClass context) {
+  public DexClassAndMethod lookupSuperTarget(DexMethod method, DexProgramClass context) {
     assert checkIfObsolete();
     return unsafeResolveMethodDueToDexFormat(method).lookupInvokeSuperTarget(context, this);
   }
 
   // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
-  public DexEncodedMethod lookupSuperTarget(DexMethod method, ProgramMethod context) {
+  public DexClassAndMethod lookupSuperTarget(DexMethod method, ProgramMethod context) {
     return lookupSuperTarget(method, context.getHolder());
   }
 

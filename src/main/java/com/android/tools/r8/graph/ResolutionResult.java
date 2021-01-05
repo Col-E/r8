@@ -80,11 +80,11 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
   public abstract boolean isVirtualTarget();
 
   /** Lookup the single target of an invoke-special on this resolution result if possible. */
-  public abstract DexEncodedMethod lookupInvokeSpecialTarget(
+  public abstract DexClassAndMethod lookupInvokeSpecialTarget(
       DexProgramClass context, AppInfoWithClassHierarchy appInfo);
 
   /** Lookup the single target of an invoke-super on this resolution result if possible. */
-  public abstract DexEncodedMethod lookupInvokeSuperTarget(
+  public abstract DexClassAndMethod lookupInvokeSuperTarget(
       DexProgramClass context, AppInfoWithClassHierarchy appInfo);
 
   /** Lookup the single target of an invoke-direct on this resolution result if possible. */
@@ -222,7 +222,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
      * and comments below for deviations due to diverging behavior on actual JVMs.
      */
     @Override
-    public DexEncodedMethod lookupInvokeSpecialTarget(
+    public DexClassAndMethod lookupInvokeSpecialTarget(
         DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
       // If the resolution is non-accessible then no target exists.
       if (isAccessibleFrom(context, appInfo).isPossiblyTrue()) {
@@ -248,7 +248,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
      * @return The actual target for the invoke-super or {@code null} if no valid target is found.
      */
     @Override
-    public DexEncodedMethod lookupInvokeSuperTarget(
+    public DexClassAndMethod lookupInvokeSuperTarget(
         DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
       if (resolvedMethod.isInstanceInitializer()
           || (initialResolutionHolder != context
@@ -305,7 +305,7 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
       return null;
     }
 
-    private DexEncodedMethod internalInvokeSpecialOrSuper(
+    private DexClassAndMethod internalInvokeSpecialOrSuper(
         DexProgramClass context,
         AppInfoWithClassHierarchy appInfo,
         BiPredicate<DexClass, DexClass> isSuperclass) {
@@ -342,10 +342,10 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
       }
       // 1-3. Search the initial class and its supers in order for a matching instance method.
       DexMethod method = getResolvedMethod().method;
-      DexEncodedMethod target = null;
+      DexClassAndMethod target = null;
       DexClass current = initialType;
       while (current != null) {
-        target = current.lookupMethod(method);
+        target = current.lookupClassMethod(method);
         if (target != null) {
           break;
         }
@@ -353,29 +353,26 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
       }
       // 4. Otherwise, it is the single maximally specific method:
       if (target == null) {
-        DexClassAndMethod result = appInfo.lookupMaximallySpecificMethod(initialType, method);
-        if (result != null) {
-          target = result.getDefinition();
-        }
+        target = appInfo.lookupMaximallySpecificMethod(initialType, method);
       }
       if (target == null) {
         return null;
       }
       // Linking exceptions:
       // A non-instance method throws IncompatibleClassChangeError.
-      if (target.isStatic()) {
+      if (target.getAccessFlags().isStatic()) {
         return null;
       }
       // An instance initializer that is not to the symbolic reference throws NoSuchMethodError.
       // It appears as if this check is also in place for non-initializer methods too.
       // See NestInvokeSpecialMethodAccessWithIntermediateTest.
-      if ((target.isInstanceInitializer() || target.isPrivateMethod())
+      if ((target.getDefinition().isInstanceInitializer() || target.getAccessFlags().isPrivate())
           && target.getHolderType() != symbolicReference.type) {
         return null;
       }
       // Runtime exceptions:
       // An abstract method throws AbstractMethodError.
-      if (target.isAbstract()) {
+      if (target.getAccessFlags().isAbstract()) {
         return null;
       }
       return target;
@@ -696,13 +693,13 @@ public abstract class ResolutionResult extends MemberResolutionResult<DexEncoded
   abstract static class EmptyResult extends ResolutionResult {
 
     @Override
-    public final DexEncodedMethod lookupInvokeSpecialTarget(
+    public final DexClassAndMethod lookupInvokeSpecialTarget(
         DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
       return null;
     }
 
     @Override
-    public DexEncodedMethod lookupInvokeSuperTarget(
+    public DexClassAndMethod lookupInvokeSuperTarget(
         DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
       return null;
     }

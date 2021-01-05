@@ -272,13 +272,13 @@ public class TargetLookupTest extends SmaliTestBase {
     DexMethod mOnI3 = factory.createMethod(i3, mProto, m);
     DexMethod mOnI4 = factory.createMethod(i4, mProto, m);
 
-    assertEquals(mOnI0, appInfo.lookupSuperTarget(mOnC0, c1).method);
-    assertEquals(mOnI1, appInfo.lookupSuperTarget(mOnI1, c1).method);
-    assertEquals(mOnI2, appInfo.lookupSuperTarget(mOnI2, c1).method);
+    assertEquals(mOnI0, appInfo.lookupSuperTarget(mOnC0, c1).getReference());
+    assertEquals(mOnI1, appInfo.lookupSuperTarget(mOnI1, c1).getReference());
+    assertEquals(mOnI2, appInfo.lookupSuperTarget(mOnI2, c1).getReference());
 
     assertNull(appInfo.lookupSuperTarget(mOnC1, c2)); // C2 is not a subclass of C1.
-    assertEquals(mOnI1, appInfo.lookupSuperTarget(mOnI3, c2).method);
-    assertEquals(mOnI2, appInfo.lookupSuperTarget(mOnI4, c2).method);
+    assertEquals(mOnI1, appInfo.lookupSuperTarget(mOnI3, c2).getReference());
+    assertEquals(mOnI2, appInfo.lookupSuperTarget(mOnI4, c2).getReference());
 
     // Copy classes to run on the Java VM.
     Path out = temp.newFolder().toPath();

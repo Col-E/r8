@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -48,6 +49,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -179,8 +181,7 @@ public class DesugaredLibraryRetargeter {
               synthesizedMembers
                   .computeIfAbsent(
                       newClass,
-                      ignore ->
-                          new TreeSet<>((x, y) -> x.getReference().compareTo(y.getReference())))
+                      ignore -> new TreeSet<>(Comparator.comparing(DexEncodedMethod::getReference)))
                   .add(
                       new DexEncodedMethod(
                           retargetMethod,
@@ -279,17 +280,14 @@ public class DesugaredLibraryRetargeter {
       // Due to emulated dispatch, we have to rewrite invoke-super differently or we end up in
       // infinite loops. We do direct resolution. This is a very uncommon case.
       if (invoke.isInvokeSuper() && matchesNonFinalHolderRewrite(invoke.getInvokedMethod())) {
-        DexEncodedMethod dexEncodedMethod =
+        DexClassAndMethod superTarget =
             appView
                 .appInfoForDesugaring()
                 .lookupSuperTarget(invoke.getInvokedMethod(), code.context());
         // Final methods can be rewritten as a normal invoke.
-        if (dexEncodedMethod != null && !dexEncodedMethod.isFinal()) {
+        if (superTarget != null && !superTarget.getAccessFlags().isFinal()) {
           DexMethod retargetMethod =
-              appView
-                  .options()
-                  .desugaredLibraryConfiguration
-                  .retargetMethod(dexEncodedMethod, appView);
+              appView.options().desugaredLibraryConfiguration.retargetMethod(superTarget, appView);
           if (retargetMethod != null) {
             iterator.replaceCurrentInstruction(
                 new InvokeStatic(retargetMethod, invoke.outValue(), invoke.arguments()));

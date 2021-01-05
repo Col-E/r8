@@ -470,6 +470,15 @@ public abstract class DexClass extends DexDefinition {
   }
 
   /** Find method in this class matching {@param method}. */
+  public DexClassAndMethod lookupClassMethod(DexMethod method) {
+    return toClassMethodOrNull(methodCollection.getMethod(method));
+  }
+
+  private DexClassAndMethod toClassMethodOrNull(DexEncodedMethod method) {
+    return method != null ? DexClassAndMethod.create(this, method) : null;
+  }
+
+  /** Find method in this class matching {@param method}. */
   public DexEncodedMethod lookupMethod(DexMethod method) {
     return methodCollection.getMethod(method);
   }

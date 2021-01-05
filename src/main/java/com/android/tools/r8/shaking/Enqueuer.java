@@ -2858,28 +2858,29 @@ public class Enqueuer {
           reason);
     }
     // If invoke target is invalid (inaccessible or not an instance-method) record it and stop.
-    DexEncodedMethod target = resolution.lookupInvokeSuperTarget(from.getHolder(), appInfo);
+    DexClassAndMethod target = resolution.lookupInvokeSuperTarget(from.getHolder(), appInfo);
     if (target == null) {
       failedResolutionTargets.add(resolution.getResolvedMethod().method);
       return;
     }
 
-    DexProgramClass clazz = getProgramClassOrNull(target.getHolderType(), from);
+    DexProgramClass clazz = target.getHolder().asProgramClass();
     if (clazz == null) {
       return;
     }
 
-    ProgramMethod method = new ProgramMethod(clazz, target);
+    ProgramMethod method = target.asProgramMethod();
 
     if (Log.ENABLED) {
-      Log.verbose(getClass(), "Adding super constraint from `%s` to `%s`", from, target.method);
+      Log.verbose(
+          getClass(), "Adding super constraint from `%s` to `%s`", from, target.getReference());
     }
     if (superInvokeDependencies
         .computeIfAbsent(from.getDefinition(), ignore -> ProgramMethodSet.create())
         .add(method)) {
       if (liveMethods.contains(from)) {
         markMethodAsTargeted(method, KeepReason.invokedViaSuperFrom(from));
-        if (!target.accessFlags.isAbstract()) {
+        if (!target.getAccessFlags().isAbstract()) {
           markVirtualMethodAsLive(method, KeepReason.invokedViaSuperFrom(from));
         }
       }

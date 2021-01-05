@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexEncodedMethod.asProgramMethodOrNull;
+import static com.android.tools.r8.graph.DexEncodedMethod.toMethodDefinitionOrNull;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult.isOverriding;
 
@@ -1066,7 +1067,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       case STATIC:
         return lookupStaticTarget(target, context);
       case SUPER:
-        return lookupSuperTarget(target, context);
+        return toMethodDefinitionOrNull(lookupSuperTarget(target, context));
       default:
         return null;
     }

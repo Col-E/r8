@@ -5,7 +5,6 @@ package com.android.tools.r8.resolution.access;
 
 import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -14,7 +13,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -140,21 +139,16 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
 
     // Verify that looking up the dispatch target returns a valid target
     // iff in the same nest and declaredHolder == definingHolder.
-    DexEncodedMethod targetSpecial =
+    DexClassAndMethod targetSpecial =
         resolutionResult.lookupInvokeSpecialTarget(callerClassDefinition, appInfo);
-    DexEncodedMethod targetSuper =
+    DexClassAndMethod targetSuper =
         resolutionResult.lookupInvokeSuperTarget(callerClassDefinition, appInfo);
-    if (inSameNest && symbolicReferenceIsDefiningType) {
+    if (inSameNest) {
       assertEquals(definingClassDefinition.type, targetSpecial.getHolderType());
-      assertEquals(targetSpecial, targetSuper);
+      assertEquals(targetSpecial.getReference(), targetSuper.getReference());
     } else {
       assertNull(targetSpecial);
-      if (!inSameNest) {
-        assertNull(targetSuper);
-      } else {
-        // TODO(b/145775365): The current invoke-super will return the resolution target.
-        assertNotNull(targetSuper);
-      }
+      assertNull(targetSuper);
     }
   }
 

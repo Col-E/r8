@@ -18,7 +18,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -62,10 +62,10 @@ public class InvokeSuperCallInStaticTest extends TestBase {
     assertTrue(resolutionResult.isSingleResolution());
     DexProgramClass context =
         appView.definitionForProgramType(buildType(A.class, appInfo.dexItemFactory()));
-    DexEncodedMethod lookedUpMethod =
+    DexClassAndMethod lookedUpMethod =
         resolutionResult.lookupInvokeSuperTarget(context, appView.appInfo());
     assertNotNull(lookedUpMethod);
-    assertEquals(lookedUpMethod.method, method);
+    assertEquals(lookedUpMethod.getReference(), method);
   }
 
   @Test

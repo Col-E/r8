@@ -330,6 +330,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     assert parameterAnnotationsList != null;
   }
 
+  public static DexEncodedMethod toMethodDefinitionOrNull(DexClassAndMethod method) {
+    return method != null ? method.getDefinition() : null;
+  }
+
   public boolean isDeprecated() {
     return deprecated;
   }

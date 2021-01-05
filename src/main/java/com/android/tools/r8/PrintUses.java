@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -137,9 +138,9 @@ public class PrintUses {
 
     @Override
     public void registerInvokeSuper(DexMethod method) {
-      DexEncodedMethod superTarget = appInfo.lookupSuperTarget(method, context);
+      DexClassAndMethod superTarget = appInfo.lookupSuperTarget(method, context);
       if (superTarget != null) {
-        addMethod(superTarget.method);
+        addMethod(superTarget.getReference());
       } else {
         addMethod(method);
       }
@@ -247,12 +248,12 @@ public class PrintUses {
     }
 
     private void registerMethod(ProgramMethod method) {
-      DexEncodedMethod superTarget =
+      DexClassAndMethod superTarget =
           appInfo
               .resolveMethodOn(method.getHolder(), method.getReference())
               .lookupInvokeSpecialTarget(context, appInfo);
       if (superTarget != null) {
-        addMethod(superTarget.method);
+        addMethod(superTarget.getReference());
       }
       for (DexType type : method.getDefinition().parameters().values) {
         registerTypeReference(type);

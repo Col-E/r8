@@ -12,7 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -131,13 +131,13 @@ public class NestInvokeSpecialInterfaceMethodAccessTest extends TestBase {
     assertEquals(
         OptionalBool.of(inSameNest),
         resolutionResult.isAccessibleFrom(callerClassDefinition, appInfo));
-    DexEncodedMethod targetSpecial =
+    DexClassAndMethod targetSpecial =
         resolutionResult.lookupInvokeSpecialTarget(callerClassDefinition, appInfo);
-    DexEncodedMethod targetSuper =
+    DexClassAndMethod targetSuper =
         resolutionResult.lookupInvokeSuperTarget(callerClassDefinition, appInfo);
     if (inSameNest) {
       assertEquals(definingClassDefinition.type, targetSpecial.getHolderType());
-      assertEquals(targetSpecial, targetSuper);
+      assertEquals(targetSpecial.getReference(), targetSuper.getReference());
     } else {
       assertNull(targetSpecial);
       assertNull(targetSuper);

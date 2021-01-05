@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -180,6 +181,10 @@ public class DesugaredLibraryConfiguration {
               method.getName());
     }
     return null;
+  }
+
+  public DexMethod retargetMethod(DexClassAndMethod method, AppView<?> appView) {
+    return retargetMethod(method.getDefinition(), appView);
   }
 
   public Map<DexString, Map<DexType, DexType>> getRetargetCoreLibMember() {
