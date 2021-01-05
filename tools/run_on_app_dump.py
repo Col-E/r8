@@ -221,15 +221,6 @@ APPS = [
     'revision': '94342117097770ea3ca2c6df6ab496a1a55c3ce7',
     'folder': 'rover-android',
   }),
-  App({
-    'id': 'io.rover.app.debug',
-    'name': 'Rover',
-    'dump_app': 'dump_app.zip',
-    'apk_app': 'example-app-release-unsigned.apk',
-    'url': 'https://github.com/RoverPlatform/rover-android',
-    'revision': '94342117097770ea3ca2c6df6ab496a1a55c3ce7',
-    'folder': 'rover-android',
-  }),
   # TODO(b/172808159): Monkey runner does not work
   App({
     'id': 'com.google.android.apps.santatracker',
