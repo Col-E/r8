@@ -297,7 +297,7 @@ public class RetraceRegularExpressionTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
-            return Collections.singletonList("foo.Bar$Baz.baz(Bar.dummy)");
+            return Collections.singletonList("foo.Bar$Baz.baz(Bar.java)");
           }
 
           @Override

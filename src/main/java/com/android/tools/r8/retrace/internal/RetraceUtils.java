@@ -116,7 +116,7 @@ public class RetraceUtils {
     if (newFileName.endsWith("Kt") && (extension.isEmpty() || extension.equals("kt"))) {
       newFileName = newFileName.substring(0, newFileName.length() - 2);
       extension = "kt";
-    } else if (extension.isEmpty()) {
+    } else if (!extension.equals("kt")) {
       extension = "java";
     }
     return newFileName + "." + extension;

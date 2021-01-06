@@ -21,8 +21,8 @@ public class InlineFileNameWithInnerClassesStackTrace implements StackTraceForTe
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat foo.Bar$Baz$Qux.baz(Bar.dummy:0)",
-        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.dummy:7)");
+        "\tat foo.Bar$Baz$Qux.baz(Bar.java:0)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:7)");
   }
 
   @Override

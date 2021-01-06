@@ -41,7 +41,7 @@ public class FileNameExtensionStackTrace implements StackTraceForTest {
         "    at R8.main(Native Method)",
         "    at R8.main(R8.java:)",
         "    at R8.main(R8.kt:1)",
-        "    at R8.main(R8.foo)",
+        "    at R8.main(R8.java)",
         "    at R8.main(R8.java)",
         "    at R8.main(R8.java)",
         "    at R8.main(R8.java)",

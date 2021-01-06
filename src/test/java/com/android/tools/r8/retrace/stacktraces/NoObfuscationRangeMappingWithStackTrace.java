@@ -24,10 +24,10 @@ public class NoObfuscationRangeMappingWithStackTrace implements StackTraceForTes
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat com.android.tools.r8.naming.retrace.Main.foo(Main.dummy:1)",
-        "\tat com.android.tools.r8.naming.retrace.Main.bar(Main.dummy:3)",
-        "\tat com.android.tools.r8.naming.retrace.Main.baz(Main.dummy:8)",
-        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.dummy:7)");
+        "\tat com.android.tools.r8.naming.retrace.Main.foo(Main.java:1)",
+        "\tat com.android.tools.r8.naming.retrace.Main.bar(Main.java:3)",
+        "\tat com.android.tools.r8.naming.retrace.Main.baz(Main.java:8)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:7)");
   }
 
   @Override

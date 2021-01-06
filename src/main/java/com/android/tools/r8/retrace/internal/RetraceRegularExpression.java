@@ -276,10 +276,10 @@ public class RetraceRegularExpression implements StackTraceVisitor<StackTraceEle
 
     @Override
     String subExpression() {
-      String anyNonDigitSourceFileChar = anyNonDigitLetterCharWithMarkers + "_ \\.";
-      String anyChar = anyNonDigitSourceFileChar + anyDigit;
-      String colonWithNonDigitSuffix = ":[" + anyNonDigitSourceFileChar + ":" + "]";
-      return "((?:(?:(?:" + colonWithNonDigitSuffix + "))|(?:[" + anyChar + "]))+)?";
+      String anyNonDigitNonColonChar = "^\\d:";
+      String anyNonColonChar = "^:";
+      String colonWithNonDigitSuffix = ":+[" + anyNonDigitNonColonChar + "]";
+      return "((?:(?:(?:" + colonWithNonDigitSuffix + "))|(?:[" + anyNonColonChar + "]))+)?";
     }
 
     @Override

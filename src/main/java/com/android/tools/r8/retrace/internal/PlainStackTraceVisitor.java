@@ -123,8 +123,8 @@ public final class PlainStackTraceVisitor
       if (parensStart >= line.length()) {
         return null;
       }
-      int parensEnd = firstCharFromIndex(line, parensStart, ')');
-      if (parensEnd >= line.length()) {
+      int parensEnd = line.lastIndexOf(')');
+      if (parensEnd <= parensStart) {
         return null;
       }
       if (firstNonWhiteSpaceCharacterFromIndex(line, parensEnd) == line.length()) {

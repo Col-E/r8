@@ -21,10 +21,10 @@ public class InlineFileNameStackTrace implements StackTraceForTest {
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat foo.Bar$Baz.baz(Bar.dummy:0)",
-        "\tat Foo$Bar.bar(Foo.dummy:2)",
-        "\tat com.android.tools.r8.naming.retrace.Main$Foo.method1(Main.dummy:8)",
-        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.dummy:7)");
+        "\tat foo.Bar$Baz.baz(Bar.java:0)",
+        "\tat Foo$Bar.bar(Foo.java:2)",
+        "\tat com.android.tools.r8.naming.retrace.Main$Foo.method1(Main.java:8)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:7)");
   }
 
   @Override

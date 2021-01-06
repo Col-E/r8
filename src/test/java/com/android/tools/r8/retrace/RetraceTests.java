@@ -22,6 +22,7 @@ import com.android.tools.r8.retrace.stacktraces.AmbiguousMissingLineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousWithMultipleLineMappingsStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureNonVerboseStackTrace;
+import com.android.tools.r8.retrace.stacktraces.AutoStackTrace;
 import com.android.tools.r8.retrace.stacktraces.CircularReferenceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ColonInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
@@ -233,6 +234,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testSourceFileNameSynthesizeStackTrace() {
     runRetraceTest(new SourceFileNameSynthesizeStackTrace());
+  }
+
+  @Test
+  public void testAutoStackTrace() {
+    runRetraceTest(new AutoStackTrace());
   }
 
   private void inspectRetraceTest(
