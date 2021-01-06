@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -91,6 +92,11 @@ public class AbsentMethodSubject extends MethodSubject {
   @Override
   public boolean isVirtual() {
     throw new Unreachable("Cannot determine if an absent method is virtual");
+  }
+
+  @Override
+  public MethodAccessFlags getAccessFlags() {
+    throw new Unreachable("Cannot get the access flags for an absent method");
   }
 
   @Override

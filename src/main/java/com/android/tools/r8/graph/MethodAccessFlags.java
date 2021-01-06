@@ -151,6 +151,10 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
     set(Constants.ACC_VARARGS);
   }
 
+  public void unsetVarargs() {
+    unset(Constants.ACC_VARARGS);
+  }
+
   public boolean isNative() {
     return isSet(Constants.ACC_NATIVE);
   }
@@ -177,6 +181,10 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
 
   public void setStrict() {
     set(Constants.ACC_STRICT);
+  }
+
+  public void unsetStrict() {
+    unset(Constants.ACC_STRICT);
   }
 
   public boolean isConstructor() {
@@ -207,7 +215,7 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
     set(Constants.ACC_DECLARED_SYNCHRONIZED);
   }
 
-  private void unsetDeclaredSynchronized() {
+  public void unsetDeclaredSynchronized() {
     unset(Constants.ACC_DECLARED_SYNCHRONIZED);
   }
 
@@ -219,6 +227,24 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
 
     public Builder setConstructor() {
       flags.setConstructor();
+      return this;
+    }
+
+    public Builder setStrict(boolean value) {
+      if (value) {
+        flags.setStrict();
+      } else {
+        flags.unsetStrict();
+      }
+      return this;
+    }
+
+    public Builder setSynchronized(boolean value) {
+      if (value) {
+        flags.setSynchronized();
+      } else {
+        flags.unsetSynchronized();
+      }
       return this;
     }
 

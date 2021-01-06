@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -36,6 +37,8 @@ public abstract class MethodSubject extends MemberSubject {
   public FoundMethodSubject asFoundMethodSubject() {
     return null;
   }
+
+  public abstract MethodAccessFlags getAccessFlags();
 
   @Override
   public abstract MethodSignature getOriginalSignature();

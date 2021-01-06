@@ -116,16 +116,29 @@ public class VirtualMethodMerger {
   }
 
   private MethodAccessFlags getAccessFlags() {
-    // TODO(b/164998929): ensure this behaviour is correct, should probably calculate upper bound
-    MethodAccessFlags flags = methods.iterator().next().getAccessFlags().copy();
-    if (flags.isAbstract()
-        && Iterables.any(methods, method -> !method.getAccessFlags().isAbstract())) {
-      flags.unsetAbstract();
+    Iterable<MethodAccessFlags> allFlags =
+        Iterables.transform(methods, ProgramMethod::getAccessFlags);
+    MethodAccessFlags result = allFlags.iterator().next().copy();
+    assert Iterables.all(allFlags, flags -> !flags.isNative());
+    assert !result.isStrict() || Iterables.all(allFlags, MethodAccessFlags::isStrict);
+    assert !result.isSynchronized() || Iterables.all(allFlags, MethodAccessFlags::isSynchronized);
+    if (result.isAbstract() && Iterables.any(allFlags, flags -> !flags.isAbstract())) {
+      result.unsetAbstract();
     }
-    if (flags.isFinal() && Iterables.any(methods, method -> !method.getAccessFlags().isFinal())) {
-      flags.unsetFinal();
+    if (result.isBridge() && Iterables.any(allFlags, flags -> !flags.isBridge())) {
+      result.unsetBridge();
     }
-    return flags;
+    if (result.isFinal() && Iterables.any(allFlags, flags -> !flags.isFinal())) {
+      result.unsetFinal();
+    }
+    if (result.isSynthetic() && Iterables.any(allFlags, flags -> !flags.isSynthetic())) {
+      result.unsetSynthetic();
+    }
+    if (result.isVarargs() && Iterables.any(allFlags, flags -> !flags.isVarargs())) {
+      result.unsetVarargs();
+    }
+    result.unsetDeclaredSynchronized();
+    return result;
   }
 
   private DexMethod getNewMethodReference() {
@@ -181,19 +194,24 @@ public class VirtualMethodMerger {
       }
     }
 
+    DexEncodedMethod newMethod;
     if (representative.getHolder() == group.getTarget()) {
-      classMethodsBuilder.addVirtualMethod(representative.getDefinition());
+      newMethod = representative.getDefinition();
     } else {
       // If the method is not in the target type, move it.
       OptionalBool isLibraryMethodOverride =
           representative.getDefinition().isLibraryMethodOverride();
-      classMethodsBuilder.addVirtualMethod(
+      newMethod =
           representative
               .getDefinition()
               .toTypeSubstitutedMethod(
                   newMethodReference,
-                  builder -> builder.setIsLibraryMethodOverrideIfKnown(isLibraryMethodOverride)));
+                  builder -> builder.setIsLibraryMethodOverrideIfKnown(isLibraryMethodOverride));
     }
+
+    newMethod.getAccessFlags().unsetFinal();
+
+    classMethodsBuilder.addVirtualMethod(newMethod);
   }
 
   public void merge(

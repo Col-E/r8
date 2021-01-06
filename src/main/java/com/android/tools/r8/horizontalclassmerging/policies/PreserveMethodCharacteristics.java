@@ -7,6 +7,7 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.utils.OptionalBool;
@@ -26,17 +27,24 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
 
   static class MethodCharacteristics {
 
+    private final MethodAccessFlags accessFlags;
     private final OptionalBool isLibraryMethodOverride;
-    private final int visibilityOrdinal;
 
     private MethodCharacteristics(DexEncodedMethod method) {
+      this.accessFlags =
+          MethodAccessFlags.builder()
+              .setPrivate(method.getAccessFlags().isPrivate())
+              .setProtected(method.getAccessFlags().isProtected())
+              .setPublic(method.getAccessFlags().isPublic())
+              .setStrict(method.getAccessFlags().isStrict())
+              .setSynchronized(method.getAccessFlags().isSynchronized())
+              .build();
       this.isLibraryMethodOverride = method.isLibraryMethodOverride();
-      this.visibilityOrdinal = method.getAccessFlags().getVisibilityOrdinal();
     }
 
     @Override
     public int hashCode() {
-      return (visibilityOrdinal << 2) | isLibraryMethodOverride.ordinal();
+      return (accessFlags.hashCode() << 2) | isLibraryMethodOverride.ordinal();
     }
 
     @Override
@@ -49,7 +57,7 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
       }
       MethodCharacteristics characteristics = (MethodCharacteristics) obj;
       return isLibraryMethodOverride == characteristics.isLibraryMethodOverride
-          && visibilityOrdinal == characteristics.visibilityOrdinal;
+          && accessFlags.equals(characteristics.accessFlags);
     }
   }
 

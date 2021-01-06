@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming;
@@ -139,6 +140,11 @@ public class FoundMethodSubject extends MethodSubject {
   @Override
   public boolean isVirtual() {
     return dexMethod.isNonPrivateVirtualMethod();
+  }
+
+  @Override
+  public MethodAccessFlags getAccessFlags() {
+    return dexMethod.getAccessFlags();
   }
 
   @Override

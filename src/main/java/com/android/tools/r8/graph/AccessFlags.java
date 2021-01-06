@@ -320,6 +320,33 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
       return self();
     }
 
+    public B setPrivate(boolean value) {
+      if (value) {
+        flags.setPrivate();
+      } else {
+        flags.unsetPrivate();
+      }
+      return self();
+    }
+
+    public B setProtected(boolean value) {
+      if (value) {
+        flags.setProtected();
+      } else {
+        flags.unsetProtected();
+      }
+      return self();
+    }
+
+    public B setPublic(boolean value) {
+      if (value) {
+        flags.setPublic();
+      } else {
+        flags.unsetPublic();
+      }
+      return self();
+    }
+
     public B setStatic() {
       flags.setStatic();
       return self();
