@@ -23,7 +23,9 @@ import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.DominatorTree.Assumption;
+import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
@@ -35,6 +37,7 @@ import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
@@ -731,13 +734,34 @@ public class StringBuilderOptimizer {
       if (deadBuilders.isEmpty() && simplifiedBuilders.isEmpty()) {
         return;
       }
-      Set<Value> buildersToRemove = Sets.union(deadBuilders, simplifiedBuilders);
+      Set<Value> affectedValues = Sets.newIdentityHashSet();
+      Set<Value> buildersToRemove = SetUtils.newIdentityHashSet(deadBuilders, simplifiedBuilders);
+      Set<Value> buildersUsedInIf = Sets.newIdentityHashSet();
       // All instructions that refer to dead/simplified builders are dead.
       // Here, we remove toString() calls, append(...) calls, <init>, and new-instance in order.
       InstructionListIterator it = code.instructionListIterator();
+      boolean shouldRemoveUnreachableBlocks = false;
       while (it.hasNext()) {
         Instruction instr = it.next();
-        if (instr.isInvokeMethod()) {
+        if (instr.isIf()) {
+          If theIf = instr.asIf();
+          Value lhs = theIf.lhs().getAliasedValue();
+          if (theIf.isZeroTest()) {
+            if (buildersToRemove.contains(lhs)) {
+              theIf.targetFromNullObject().unlinkSinglePredecessorSiblingsAllowed();
+              it.replaceCurrentInstruction(new Goto());
+              shouldRemoveUnreachableBlocks = true;
+            }
+          } else {
+            Value rhs = theIf.rhs().getAliasedValue();
+            if (buildersToRemove.contains(lhs)) {
+              buildersUsedInIf.add(lhs);
+            }
+            if (buildersToRemove.contains(rhs)) {
+              buildersUsedInIf.add(rhs);
+            }
+          }
+        } else if (instr.isInvokeMethod()) {
           InvokeMethod invoke = instr.asInvokeMethod();
           DexMethod invokedMethod = invoke.getInvokedMethod();
           if (optimizationConfiguration.isToStringMethod(invokedMethod)
@@ -746,6 +770,10 @@ public class StringBuilderOptimizer {
           }
         }
       }
+      if (shouldRemoveUnreachableBlocks) {
+        affectedValues.addAll(code.removeUnreachableBlocks());
+      }
+      buildersToRemove.removeAll(buildersUsedInIf);
       // append(...) and <init> don't have out values, so removing them won't bother each other.
       it = code.instructionListIterator();
       while (it.hasNext()) {
@@ -786,6 +814,9 @@ public class StringBuilderOptimizer {
             && buildersToRemove.contains(instr.outValue())) {
           it.removeOrReplaceByDebugLocalRead();
         }
+      }
+      if (!affectedValues.isEmpty()) {
+        new TypeAnalysis(appView).narrowing(affectedValues);
       }
       assert code.isConsistentSSA();
     }

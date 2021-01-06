@@ -12,7 +12,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class StringBuilderWithIfUserTest extends TestBase {
+public class StringBuilderWithIfNullUserTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -21,14 +21,14 @@ public class StringBuilderWithIfUserTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public StringBuilderWithIfUserTest(TestParameters parameters) {
+  public StringBuilderWithIfNullUserTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(StringBuilderWithIfUserTest.class)
+        .addInnerClasses(StringBuilderWithIfNullUserTest.class)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -40,9 +40,8 @@ public class StringBuilderWithIfUserTest extends TestBase {
 
     public static void main(String[] args) {
       StringBuilder builder = new StringBuilder();
-      StringBuilder other = System.currentTimeMillis() > 0 ? new StringBuilder() : builder;
       builder.append("Hello world!");
-      if (builder != other) {
+      if (builder != null) {
         System.out.println(builder.toString());
       }
     }

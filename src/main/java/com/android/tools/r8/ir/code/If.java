@@ -224,6 +224,12 @@ public class If extends JumpInstruction {
     return targetFromCondition(1);
   }
 
+  public BasicBlock targetFromNullObject() {
+    assert isZeroTest();
+    assert inValues.get(0).outType().isObject();
+    return targetFromCondition(0);
+  }
+
   public BasicBlock targetFromCondition(int cond) {
     assert Integer.signum(cond) == cond;
     switch (type) {
