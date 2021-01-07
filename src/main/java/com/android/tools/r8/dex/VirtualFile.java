@@ -221,6 +221,7 @@ public class VirtualFile {
         graphLens,
         namingLens,
         initClassLens,
+        transaction.rewriter,
         indexedItems.classes,
         indexedItems.protos,
         indexedItems.types,
@@ -747,7 +748,7 @@ public class VirtualFile {
       this.graphLens = graphLens;
       this.initClassLens = initClassLens;
       this.namingLens = namingLens;
-      this.rewriter = new LensCodeRewriterUtils(appView);
+      this.rewriter = new LensCodeRewriterUtils(appView, true);
     }
 
     private <T extends DexItem> boolean maybeInsert(T item, Set<T> set, Set<T> baseSet) {

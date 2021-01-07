@@ -39,16 +39,26 @@ public class LensCodeRewriterUtils {
 
   private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
 
+  // Map from original call sites to rewritten call sites to lookup call-sites when writing.
+  // TODO(b/176885013): This is redundant if we canonicalize call sites.
+  private final Map<DexCallSite, DexCallSite> rewrittenCallSiteCache;
+
   public LensCodeRewriterUtils(AppView<?> appView) {
+    this(appView, false);
+  }
+
+  public LensCodeRewriterUtils(AppView<?> appView, boolean enableCallSiteCaching) {
     this.appView = appView;
     this.definitions = appView;
     this.graphLens = null;
+    this.rewrittenCallSiteCache = enableCallSiteCaching ? new ConcurrentHashMap<>() : null;
   }
 
   public LensCodeRewriterUtils(DexDefinitionSupplier definitions, GraphLens graphLens) {
     this.appView = null;
     this.definitions = definitions;
     this.graphLens = graphLens;
+    this.rewrittenCallSiteCache = null;
   }
 
   private GraphLens graphLens() {
@@ -56,6 +66,14 @@ public class LensCodeRewriterUtils {
   }
 
   public DexCallSite rewriteCallSite(DexCallSite callSite, ProgramMethod context) {
+    if (rewrittenCallSiteCache == null) {
+      return rewriteCallSiteInternal(callSite, context);
+    }
+    return rewrittenCallSiteCache.computeIfAbsent(
+        callSite, ignored -> rewriteCallSiteInternal(callSite, context));
+  }
+
+  private DexCallSite rewriteCallSiteInternal(DexCallSite callSite, ProgramMethod context) {
     DexItemFactory dexItemFactory = definitions.dexItemFactory();
     DexProto newMethodProto = rewriteProto(callSite.methodProto);
     DexMethodHandle newBootstrapMethod =
@@ -96,11 +114,15 @@ public class LensCodeRewriterUtils {
         // MethodHandles that are not arguments to a lambda metafactory will not be desugared
         // away. Therefore they could flow to a MethodHandle.invokeExact call which means that
         // we cannot member rebind. We therefore keep the receiver and also pin the receiver
-        // with a keep rule (see Enqueuer.registerMethodHandle).
+        // with a keep rule (see Enqueuer.traceMethodHandle).
+        // Note that the member can be repackaged or minified.
         actualTarget =
             definitions
                 .dexItemFactory()
-                .createMethod(invokedMethod.holder, rewrittenTarget.proto, rewrittenTarget.name);
+                .createMethod(
+                    graphLens().lookupType(invokedMethod.holder),
+                    rewrittenTarget.proto,
+                    rewrittenTarget.name);
         newType = oldType;
         if (oldType.isInvokeDirect()) {
           // For an invoke direct, the rewritten target must have the same holder as the original.
