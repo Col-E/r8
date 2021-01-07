@@ -107,15 +107,14 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 102, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 101, "lambdadesugaring"))
         .run();
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
-        .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 7, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 6, "lambdadesugaring"))
         .run();
   }
 
@@ -147,15 +146,14 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 102, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 101, "lambdadesugaring"))
         .run();
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(AndroidApiLevel.N)
-        .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 7, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 6, "lambdadesugaring"))
         .run();
   }
 
@@ -175,7 +173,6 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
-        .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
@@ -199,7 +196,6 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
         .withMinApiLevel(AndroidApiLevel.N)
         .withInterfaceMethodDesugaring(OffOrAuto.Auto)
-        .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
