@@ -167,8 +167,14 @@ public class ProguardTestBuilder
 
   @Override
   public ProguardTestBuilder addProgramClassFileData(Collection<byte[]> classes) {
-    throw new Unimplemented(
-        "No support for adding class files directly (we need to compute the descriptor)");
+    try {
+      Path out = getState().getNewTempFolder().resolve("out.jar");
+      TestBase.writeClassFileDataToJar(out, classes);
+      injars.add(out);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    return self();
   }
 
   @Override

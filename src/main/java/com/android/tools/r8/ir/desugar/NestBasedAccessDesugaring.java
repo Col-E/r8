@@ -172,6 +172,8 @@ public abstract class NestBasedAccessDesugaring {
   protected abstract boolean shouldProcessClassInNest(DexClass clazz, List<DexType> nest);
 
   private DexProgramClass createNestAccessConstructor() {
+    // TODO(b/176900254): The class generated should be in a package that has lower change of
+    //   collisions (and perhaps be unique by some hash from the nest).
     return new DexProgramClass(
         appView.dexItemFactory().nestConstructorType,
         null,

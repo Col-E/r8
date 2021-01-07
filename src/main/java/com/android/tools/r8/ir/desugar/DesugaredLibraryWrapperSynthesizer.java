@@ -99,6 +99,7 @@ import java.util.function.Consumer;
 //   }
 public class DesugaredLibraryWrapperSynthesizer {
 
+  public static final String WRAPPER_PACKAGE = "wrappers/";
   public static final String WRAPPER_PREFIX = "$r8$wrapper$";
   public static final String TYPE_WRAPPER_SUFFIX = "$-WRP";
   public static final String VIVIFIED_TYPE_WRAPPER_SUFFIX = "$-V-WRP";
@@ -125,6 +126,7 @@ public class DesugaredLibraryWrapperSynthesizer {
                 .options()
                 .desugaredLibraryConfiguration
                 .getSynthesizedLibraryClassesPackagePrefix()
+            + WRAPPER_PACKAGE
             + WRAPPER_PREFIX;
     dexWrapperPrefixDexString = factory.createString(dexWrapperPrefixString);
     this.converter = converter;

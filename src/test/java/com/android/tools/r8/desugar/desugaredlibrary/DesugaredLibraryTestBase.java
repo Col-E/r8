@@ -24,11 +24,13 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
+import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -148,6 +150,15 @@ public class DesugaredLibraryTestBase extends TestBase {
                             .startsWith(
                                 "Invalid parameter counts in MethodParameter attributes.")));
       }
+      // TODO(b/176900254): The nest check should not be necessary.
+      new CodeInspector(desugaredLib)
+          .forAllClasses(
+              clazz ->
+                  assertTrue(
+                      clazz.getFinalName().startsWith("j$.")
+                          || clazz
+                              .getFinalName()
+                              .startsWith(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME)));
       return desugaredLib;
     } catch (Exception e) {
       // Don't wrap assumption violation so junit can catch it.
