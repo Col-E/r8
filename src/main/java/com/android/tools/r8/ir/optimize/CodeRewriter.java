@@ -2501,10 +2501,10 @@ public class CodeRewriter {
           // Comparing two newly created objects.
           assert theIf.getType() == Type.EQ || theIf.getType() == Type.NE;
           simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromCondition(1));
-        } else if (lhs.isConstNumber() && rhs.isConstNumber()) {
+        } else if (lhsRoot.isConstNumber() && rhsRoot.isConstNumber()) {
           // Zero test with a constant of comparison between between two constants.
-          ConstNumber left = lhs.getConstInstruction().asConstNumber();
-          ConstNumber right = rhs.getConstInstruction().asConstNumber();
+          ConstNumber left = lhsRoot.getConstInstruction().asConstNumber();
+          ConstNumber right = rhsRoot.getConstInstruction().asConstNumber();
           BasicBlock target = theIf.targetFromCondition(left, right);
           simplifyIfWithKnownCondition(code, block, theIf, target);
         } else if (lhs.hasValueRange() && rhs.hasValueRange()) {
@@ -2597,7 +2597,7 @@ public class CodeRewriter {
     Value lhs = theIf.lhs();
     Value lhsRoot = lhs.getAliasedValue();
     if (lhsRoot.isConstNumber()) {
-      ConstNumber cond = lhs.getConstInstruction().asConstNumber();
+      ConstNumber cond = lhsRoot.getConstInstruction().asConstNumber();
       BasicBlock target = theIf.targetFromCondition(cond);
       simplifyIfWithKnownCondition(code, block, theIf, target);
       return;
