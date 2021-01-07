@@ -39,6 +39,10 @@ public class LensCodeRewriterUtils {
 
   private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
 
+  // Map from original call sites to rewritten call sites to lookup call-sites when writing.
+  // TODO(b/176885013): This is redundant if we canonicalize call sites.
+  private final Map<DexCallSite, DexCallSite> rewrittenCallSiteCache = new ConcurrentHashMap<>();
+
   public LensCodeRewriterUtils(AppView<?> appView) {
     this.appView = appView;
     this.definitions = appView;
@@ -56,24 +60,30 @@ public class LensCodeRewriterUtils {
   }
 
   public DexCallSite rewriteCallSite(DexCallSite callSite, ProgramMethod context) {
-    DexItemFactory dexItemFactory = definitions.dexItemFactory();
-    DexProto newMethodProto = rewriteProto(callSite.methodProto);
-    DexMethodHandle newBootstrapMethod =
-        rewriteDexMethodHandle(
-            callSite.bootstrapMethod, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY, context);
-    boolean isLambdaMetaFactory =
-        dexItemFactory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
-    MethodHandleUse methodHandleUse =
-        isLambdaMetaFactory ? ARGUMENT_TO_LAMBDA_METAFACTORY : NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
-    List<DexValue> newArgs =
-        rewriteBootstrapArguments(callSite.bootstrapArgs, methodHandleUse, context);
-    if (!newMethodProto.equals(callSite.methodProto)
-        || newBootstrapMethod != callSite.bootstrapMethod
-        || !newArgs.equals(callSite.bootstrapArgs)) {
-      return dexItemFactory.createCallSite(
-          callSite.methodName, newMethodProto, newBootstrapMethod, newArgs);
-    }
-    return callSite;
+    return rewrittenCallSiteCache.computeIfAbsent(
+        callSite,
+        ignored -> {
+          DexItemFactory dexItemFactory = definitions.dexItemFactory();
+          DexProto newMethodProto = rewriteProto(callSite.methodProto);
+          DexMethodHandle newBootstrapMethod =
+              rewriteDexMethodHandle(
+                  callSite.bootstrapMethod, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY, context);
+          boolean isLambdaMetaFactory =
+              dexItemFactory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
+          MethodHandleUse methodHandleUse =
+              isLambdaMetaFactory
+                  ? ARGUMENT_TO_LAMBDA_METAFACTORY
+                  : NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
+          List<DexValue> newArgs =
+              rewriteBootstrapArguments(callSite.bootstrapArgs, methodHandleUse, context);
+          if (!newMethodProto.equals(callSite.methodProto)
+              || newBootstrapMethod != callSite.bootstrapMethod
+              || !newArgs.equals(callSite.bootstrapArgs)) {
+            return dexItemFactory.createCallSite(
+                callSite.methodName, newMethodProto, newBootstrapMethod, newArgs);
+          }
+          return callSite;
+        });
   }
 
   public DexMethodHandle rewriteDexMethodHandle(
@@ -96,11 +106,15 @@ public class LensCodeRewriterUtils {
         // MethodHandles that are not arguments to a lambda metafactory will not be desugared
         // away. Therefore they could flow to a MethodHandle.invokeExact call which means that
         // we cannot member rebind. We therefore keep the receiver and also pin the receiver
-        // with a keep rule (see Enqueuer.registerMethodHandle).
+        // with a keep rule (see Enqueuer.traceMethodHandle).
+        // Note that the member can be repackaged or minified.
         actualTarget =
             definitions
                 .dexItemFactory()
-                .createMethod(invokedMethod.holder, rewrittenTarget.proto, rewrittenTarget.name);
+                .createMethod(
+                    graphLens().lookupType(invokedMethod.holder),
+                    rewrittenTarget.proto,
+                    rewrittenTarget.name);
         newType = oldType;
         if (oldType.isInvokeDirect()) {
           // For an invoke direct, the rewritten target must have the same holder as the original.
