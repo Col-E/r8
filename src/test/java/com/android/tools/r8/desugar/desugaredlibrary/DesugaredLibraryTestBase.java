@@ -128,9 +128,13 @@ public class DesugaredLibraryTestBase extends TestBase {
                   StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
               .setMinApiLevel(apiLevel.getLevel())
               .setOutput(desugaredLib, OutputMode.DexIndexed);
+      Path mapping = null;
       if (shrink) {
-        l8Builder.addProguardConfiguration(
-            Arrays.asList(keepRules.split(System.lineSeparator())), Origin.unknown());
+        mapping = temp.newFolder().toPath().resolve("mapping.txt");
+        List<String> lines =
+            new ArrayList<>(Arrays.asList(keepRules.split(System.lineSeparator())));
+        lines.add("-printmapping " + mapping);
+        l8Builder.addProguardConfiguration(lines, Origin.unknown());
       }
       ToolHelper.runL8(
           l8Builder.build(),
@@ -151,13 +155,13 @@ public class DesugaredLibraryTestBase extends TestBase {
                                 "Invalid parameter counts in MethodParameter attributes.")));
       }
       // TODO(b/176900254): The nest check should not be necessary.
-      new CodeInspector(desugaredLib)
+      new CodeInspector(desugaredLib, mapping)
           .forAllClasses(
               clazz ->
                   assertTrue(
                       clazz.getFinalName().startsWith("j$.")
                           || clazz
-                              .getFinalName()
+                              .getOriginalName()
                               .startsWith(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME)));
       return desugaredLib;
     } catch (Exception e) {
