@@ -53,7 +53,6 @@ public class ObjectToOffsetMapping {
       GraphLens graphLens,
       NamingLens namingLens,
       InitClassLens initClassLens,
-      LensCodeRewriterUtils lensCodeRewriter,
       Collection<DexProgramClass> classes,
       Collection<DexProto> protos,
       Collection<DexType> types,
@@ -77,7 +76,7 @@ public class ObjectToOffsetMapping {
     this.graphLens = graphLens;
     this.namingLens = namingLens;
     this.initClassLens = initClassLens;
-    this.lensCodeRewriter = lensCodeRewriter;
+    this.lensCodeRewriter = new LensCodeRewriterUtils(appView);
     timing.begin("Sort strings");
     this.strings = createSortedMap(strings, DexString::compareTo, this::setFirstJumboString);
     CompareToVisitor visitor =

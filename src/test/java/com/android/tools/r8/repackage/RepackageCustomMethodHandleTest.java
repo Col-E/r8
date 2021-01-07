@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.repackage;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.containsString;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
@@ -34,8 +36,6 @@ import org.objectweb.asm.Type;
 @RunWith(Parameterized.class)
 public class RepackageCustomMethodHandleTest extends RepackageTestBase {
 
-  private static final String EXPECTED = "InvokeCustom::foo";
-
   @Parameters(name = "{1}, kind: {0}")
   public static List<Object[]> data() {
     return buildParameters(
@@ -59,25 +59,29 @@ public class RepackageCustomMethodHandleTest extends RepackageTestBase {
         .addProgramClassFileData(
             transformer(Main.class).addClassTransformer(generateCallSiteInvoke()).transform())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .assertSuccessWithOutputLines("InvokeCustom::foo");
   }
 
-  @Test()
+  @Test(expected = CompilationFailedException.class)
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(InvokeCustom.class)
         .addProgramClassFileData(
             transformer(Main.class).addClassTransformer(generateCallSiteInvoke()).transform())
         .addKeepMainRule(Main.class)
-        .addKeepClassAndMembersRules(Main.class)
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .compile()
-        .inspect(inspector -> assertThat(InvokeCustom.class, isRepackaged(inspector)))
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .compileWithExpectedDiagnostics(
+            diagnostics -> {
+              // TODO(b/176486859): This should not lookup the original packaged name.
+              diagnostics.assertErrorsMatch(
+                  diagnosticMessage(
+                      containsString(
+                          "Failed lookup of non-missing type: "
+                              + InvokeCustom.class.getTypeName())));
+            });
   }
 
   private ClassTransformer generateCallSiteInvoke() {

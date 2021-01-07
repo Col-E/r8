@@ -221,7 +221,6 @@ public class VirtualFile {
         graphLens,
         namingLens,
         initClassLens,
-        transaction.rewriter,
         indexedItems.classes,
         indexedItems.protos,
         indexedItems.types,

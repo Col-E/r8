@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
-import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
@@ -42,18 +41,15 @@ public class DebugByteCodeWriterTest {
   }
 
   private ObjectToOffsetMapping emptyObjectTObjectMapping() {
-    AppView<AppInfo> appView =
+    return new ObjectToOffsetMapping(
         AppView.createForD8(
             AppInfo.createInitialAppInfo(
                 DexApplication.builder(
                         new InternalOptions(new DexItemFactory(), new Reporter()), null)
-                    .build()));
-    return new ObjectToOffsetMapping(
-        appView,
+                    .build())),
         GraphLens.getIdentityLens(),
         NamingLens.getIdentityLens(),
         InitClassLens.getDefault(),
-        new LensCodeRewriterUtils(appView),
         Collections.emptyList(),
         Collections.emptyList(),
         Collections.emptyList(),
