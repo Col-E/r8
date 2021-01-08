@@ -6,20 +6,13 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.NamingLens.NonIdentityNamingLens;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.IdentityHashMap;
 
 // Naming lens for rewriting type prefixes.
 public class PrefixRewritingNamingLens extends NonIdentityNamingLens {
@@ -41,7 +34,7 @@ public class PrefixRewritingNamingLens extends NonIdentityNamingLens {
   }
 
   public PrefixRewritingNamingLens(NamingLens namingLens, AppView<?> appView) {
-    super(appView.dexItemFactory());
+    super(appView.dexItemFactory(), new IdentityHashMap<>());
     this.appView = appView;
     this.namingLens = namingLens;
     this.options = appView.options();
@@ -103,6 +96,18 @@ public class PrefixRewritingNamingLens extends NonIdentityNamingLens {
   }
 
   @Override
+  public DexString lookupDescriptorForJavaTypeName(String typeName) {
+    if (appView.rewritePrefix.shouldRewriteTypeName(typeName)) {
+      DexType rewrittenType =
+          appView.rewritePrefix.rewrittenType(dexItemFactory().createType(typeName), appView);
+      if (rewrittenType != null) {
+        return rewrittenType.descriptor;
+      }
+    }
+    return namingLens.lookupDescriptorForJavaTypeName(typeName);
+  }
+
+  @Override
   public String lookupPackageName(String packageName) {
     // Used for resource shrinking.
     // Desugared libraries do not have resources.
@@ -119,30 +124,6 @@ public class PrefixRewritingNamingLens extends NonIdentityNamingLens {
           assert !dexType.getPackageDescriptor().equals(packageName);
         });
     return true;
-  }
-
-  @Override
-  public <T extends DexItem> Map<String, T> getRenamedItems(
-      Class<T> clazz, Predicate<T> predicate, Function<T, String> namer) {
-    Map<String, T> renamedItemsPrefixRewritting;
-    if (clazz == DexType.class) {
-      renamedItemsPrefixRewritting = new HashMap<>();
-      appView.rewritePrefix.forAllRewrittenTypes(
-          item -> {
-            T cast = clazz.cast(item);
-            if (predicate.test(cast)) {
-              renamedItemsPrefixRewritting.put(namer.apply(cast), cast);
-            }
-          });
-    } else {
-      renamedItemsPrefixRewritting = Collections.emptyMap();
-    }
-    Map<String, T> renamedItemsMinifier = namingLens.getRenamedItems(clazz, predicate, namer);
-    // The Collector throws an exception for duplicated keys.
-    return Stream.concat(
-            renamedItemsPrefixRewritting.entrySet().stream(),
-            renamedItemsMinifier.entrySet().stream())
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   @Override

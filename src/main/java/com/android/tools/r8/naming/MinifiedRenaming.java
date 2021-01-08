@@ -20,13 +20,10 @@ import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
 import com.android.tools.r8.naming.NamingLens.NonIdentityNamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 class MinifiedRenaming extends NonIdentityNamingLens {
 
@@ -39,7 +36,7 @@ class MinifiedRenaming extends NonIdentityNamingLens {
       ClassRenaming classRenaming,
       MethodRenaming methodRenaming,
       FieldRenaming fieldRenaming) {
-    super(appView.dexItemFactory());
+    super(appView.dexItemFactory(), classRenaming.classRenaming);
     this.appView = appView;
     this.packageRenaming = classRenaming.packageRenaming;
     renaming.putAll(classRenaming.classRenaming);
@@ -121,15 +118,6 @@ class MinifiedRenaming extends NonIdentityNamingLens {
   @Override
   public DexString lookupName(DexField field) {
     return renaming.getOrDefault(field, field.name);
-  }
-
-  @Override
-  public <T extends DexItem> Map<String, T> getRenamedItems(
-      Class<T> clazz, Predicate<T> predicate, Function<T, String> namer) {
-    return renaming.keySet().stream()
-        .filter(item -> (clazz.isInstance(item) && predicate.test(clazz.cast(item))))
-        .map(clazz::cast)
-        .collect(ImmutableMap.toImmutableMap(namer, i -> i));
   }
 
   /**

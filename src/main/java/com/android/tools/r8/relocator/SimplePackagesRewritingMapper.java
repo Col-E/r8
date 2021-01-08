@@ -7,7 +7,6 @@ package com.android.tools.r8.relocator;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -22,8 +21,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 class SimplePackagesRewritingMapper {
 
@@ -105,7 +102,7 @@ class SimplePackagesRewritingMapper {
         Map<DexType, DexString> typeMappings,
         Map<String, String> packageMappings,
         DexItemFactory factory) {
-      super(factory);
+      super(factory, typeMappings);
       this.typeMappings = typeMappings;
       this.packageMappings = packageMappings;
     }
@@ -133,15 +130,6 @@ class SimplePackagesRewritingMapper {
     @Override
     public DexString lookupName(DexField field) {
       return field.name;
-    }
-
-    @Override
-    public <T extends DexItem> Map<String, T> getRenamedItems(
-        Class<T> clazz, Predicate<T> predicate, Function<T, String> namer) {
-      return typeMappings.keySet().stream()
-          .filter(item -> (clazz.isInstance(item) && predicate.test(clazz.cast(item))))
-          .map(clazz::cast)
-          .collect(ImmutableMap.toImmutableMap(namer, i -> i));
     }
 
     @Override

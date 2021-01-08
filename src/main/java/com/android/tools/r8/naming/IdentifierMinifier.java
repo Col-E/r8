@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
 import com.android.tools.r8.graph.DexValue.DexValueString;
@@ -25,7 +24,6 @@ import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -104,21 +102,10 @@ class IdentifierMinifier {
   }
 
   private DexString getRenamedStringLiteral(DexString originalLiteral) {
-    String originalString = originalLiteral.toString();
-    Map<String, DexType> renamedYetMatchedTypes =
-        lens.getRenamedItems(
-            DexType.class,
-            type -> type.toSourceString().equals(originalString),
-            DexType::toSourceString);
-    DexType type = renamedYetMatchedTypes.get(originalString);
-    if (type != null) {
-      DexString renamed = lens.lookupDescriptor(type);
-      // Create a new DexString only when the corresponding string literal will be replaced.
-      if (renamed != originalLiteral) {
-        return appView.dexItemFactory().createString(descriptorToJavaType(renamed.toString()));
-      }
-    }
-    return originalLiteral;
+    DexString rewrittenString = lens.lookupDescriptorForJavaTypeName(originalLiteral.toString());
+    return rewrittenString == null
+        ? originalLiteral
+        : appView.dexItemFactory().createString(descriptorToJavaType(rewrittenString.toString()));
   }
 
   private void replaceDexItemBasedConstString(ExecutorService executorService)
