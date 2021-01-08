@@ -1,4 +1,4 @@
-// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -7,18 +7,20 @@ package com.android.tools.r8.repackage;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.FLATTEN_PACKAGE_HIERARCHY;
 import static com.android.tools.r8.shaking.ProguardConfigurationParser.REPACKAGE_CLASSES;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -29,7 +31,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RepackageWithMainDexListTest extends RepackageTestBase {
+public class RepackageWithMainDexTracingTest extends RepackageTestBase {
 
   @Parameters(name = "{1}, kind: {0}")
   public static List<Object[]> data() {
@@ -41,31 +43,29 @@ public class RepackageWithMainDexListTest extends RepackageTestBase {
             .build());
   }
 
-  public RepackageWithMainDexListTest(
+  public RepackageWithMainDexTracingTest(
       String flattenPackageHierarchyOrRepackageClasses, TestParameters parameters) {
     super(flattenPackageHierarchyOrRepackageClasses, parameters);
   }
 
   @Test
-  public void test() throws Exception {
+  public void testR8() throws Exception {
     Box<String> r8MainDexList = new Box<>();
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
-        // -keep,allowobfuscation does not prohibit repackaging.
-        .addKeepClassRulesWithAllowObfuscation(TestClass.class, OtherTestClass.class)
-        .addKeepRules(
-            "-keepclassmembers class " + TestClass.class.getTypeName() + " { <methods>; }")
-        // Add a class that will be repackaged to the main dex list.
-        .addMainDexListClasses(TestClass.class)
-        .apply(this::configureRepackaging)
-        .setMainDexListConsumer(ToolHelper.consumeString(r8MainDexList::set))
-        // Debug mode to enable minimal main dex.
-        .debug()
+        .addKeepMainRule(Main.class)
+        .addKeepClassRulesWithAllowObfuscation(Other.class)
+        .addMainDexClassRules(Main.class)
+        .addOptionsModification(options -> options.minimalMainDex = true)
+        .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
+        .setMainDexListConsumer(ToolHelper.consumeString(r8MainDexList::set))
+        .apply(this::configureRepackaging)
         .compile()
         .apply(result -> checkCompileResult(result, r8MainDexList.get()))
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello world!");
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("main dex");
   }
 
   private void checkCompileResult(R8TestCompileResult compileResult, String mainDexList)
@@ -79,27 +79,41 @@ public class RepackageWithMainDexListTest extends RepackageTestBase {
   }
 
   private void inspectMainDex(CodeInspector inspector, String mainDexList) {
-    ClassSubject testClass = inspector.clazz(TestClass.class);
-    assertThat(testClass, isPresentAndRenamed());
-    assertThat(TestClass.class, isRepackaged(inspector));
+    assertThat(inspector.clazz(Main.class), isPresentAndNotRenamed());
+    assertThat(Main.class, isNotRepackaged(inspector));
+    assertThat(inspector.clazz(A.class), isPresentAndRenamed());
+    assertThat(A.class, isRepackaged(inspector));
     List<String> mainDexTypeNames = StringUtils.splitLines(mainDexList);
-    assertEquals(1, mainDexTypeNames.size());
-    assertEquals(testClass.getFinalBinaryName(), mainDexTypeNames.get(0).replace(".class", ""));
-    assertThat(inspector.clazz(OtherTestClass.class), not(isPresent()));
+    assertEquals(2, mainDexTypeNames.size());
+    assertEquals(
+        inspector.clazz(Main.class).getFinalBinaryName(),
+        mainDexTypeNames.get(0).replace(".class", ""));
+    assertEquals(
+        inspector.clazz(A.class).getFinalBinaryName(),
+        mainDexTypeNames.get(1).replace(".class", ""));
+    assertThat(inspector.clazz(Other.class), not(isPresent()));
   }
 
   private void inspectSecondaryDex(CodeInspector inspector) {
-    assertThat(inspector.clazz(TestClass.class), not(isPresent()));
-    assertThat(inspector.clazz(OtherTestClass.class), isPresent());
-    assertThat(OtherTestClass.class, isRepackaged(inspector));
+    assertThat(inspector.clazz(Main.class), not(isPresent()));
+    assertThat(inspector.clazz(A.class), not(isPresent()));
+    assertThat(inspector.clazz(Other.class), isPresentAndRenamed());
+    assertThat(Other.class, isRepackaged(inspector));
   }
 
-  public static class TestClass {
+  @NoHorizontalClassMerging
+  public static class Other {}
 
-    public static void main(String[] args) {
-      System.out.println("Hello world!");
+  @NeverClassInline
+  public static class A {
+    public A() {
+      System.out.println("main dex");
     }
   }
 
-  public static class OtherTestClass {}
+  public static class Main {
+    public static void main(String[] args) {
+      A a = new A();
+    }
+  }
 }

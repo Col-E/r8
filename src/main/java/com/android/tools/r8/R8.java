@@ -810,6 +810,11 @@ public class R8 {
           MemberRebindingIdentityLensFactory.create(appView, executorService);
       appView.setGraphLens(memberRebindingLens);
 
+      // Add automatic main dex classes to an eventual manual list of classes.
+      if (!options.mainDexKeepRules.isEmpty()) {
+        appView.appInfo().getMainDexClasses().addAll(mainDexTracingResult);
+      }
+
       // Perform repackaging.
       if (options.isRepackagingEnabled()) {
         DirectMappedDexApplication.Builder appBuilder =
@@ -827,11 +832,6 @@ public class R8 {
         }
       }
       assert Repackaging.verifyIdentityRepackaging(appView);
-
-      // Add automatic main dex classes to an eventual manual list of classes.
-      if (!options.mainDexKeepRules.isEmpty()) {
-        appView.appInfo().getMainDexClasses().addAll(mainDexTracingResult);
-      }
 
       SyntheticFinalization.Result result =
           appView.getSyntheticItems().computeFinalSynthetics(appView);
