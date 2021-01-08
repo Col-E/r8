@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
@@ -107,7 +108,10 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   @Override
   public boolean canInlineInstanceInitializer(
-      IRCode code, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+      IRCode code,
+      IRCode inlinee,
+      InvokeDirect invoke,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return true;
   }
 

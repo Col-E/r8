@@ -439,7 +439,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   @Override
   public boolean canInlineInstanceInitializer(
-      IRCode inlinee, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+      IRCode code,
+      IRCode inlinee,
+      InvokeDirect invoke,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     // In the Java VM Specification section "4.10.2.4. Instance Initialization Methods and
     // Newly Created Objects" it says:
     //
@@ -451,9 +454,12 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // is expected to adhere to the VM specification.
     DexType callerMethodHolder = method.getHolderType();
     DexType calleeMethodHolder = inlinee.method().getHolderType();
-    // Calling a constructor on the same class from a constructor can always be inlined.
+
+    // Forwarding constructor calls that target a constructor in the same class can always be
+    // inlined.
     if (method.getDefinition().isInstanceInitializer()
-        && callerMethodHolder == calleeMethodHolder) {
+        && callerMethodHolder == calleeMethodHolder
+        && invoke.getReceiver() == code.getThis()) {
       return true;
     }
 

@@ -1049,7 +1049,7 @@ public class Inliner implements PostOptimization {
           assert !singleTargetMethod.isClassInitializer();
           if (singleTargetMethod.isInstanceInitializer()
               && !strategy.canInlineInstanceInitializer(
-                  inlinee.code, whyAreYouNotInliningReporter)) {
+                  code, inlinee.code, invoke.asInvokeDirect(), whyAreYouNotInliningReporter)) {
             assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
             continue;
           }
