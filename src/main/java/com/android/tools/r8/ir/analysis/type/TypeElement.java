@@ -274,6 +274,15 @@ public abstract class TypeElement {
     return false;
   }
 
+  public final boolean isClassType(DexType type) {
+    assert type.isClassType();
+    return isClassType() && asClassType().getClassType() == type;
+  }
+
+  public final boolean isStringType(DexItemFactory dexItemFactory) {
+    return isClassType(dexItemFactory.stringType);
+  }
+
   public ClassTypeElement asClassType() {
     return null;
   }

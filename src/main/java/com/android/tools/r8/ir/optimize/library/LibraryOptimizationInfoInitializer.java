@@ -47,6 +47,7 @@ public class LibraryOptimizationInfoInitializer {
     modelStaticFinalLibraryFields(finalLibraryFields);
     modelLibraryMethodsReturningNonNull();
     modelLibraryMethodsReturningReceiver();
+    modelLibraryMethodsWithoutSideEffects();
     modelRequireNonNullMethods();
   }
 
@@ -111,6 +112,18 @@ public class LibraryOptimizationInfoInitializer {
         feedback.methodReturnsArgument(definition, 0);
       }
     }
+  }
+
+  private void modelLibraryMethodsWithoutSideEffects() {
+    appView
+        .getLibraryMethodSideEffectModelCollection()
+        .forEachSideEffectFreeFinalMethod(
+            method -> {
+              DexEncodedMethod definition = lookupMethod(method);
+              if (definition != null) {
+                feedback.methodMayNotHaveSideEffects(definition);
+              }
+            });
   }
 
   private void modelRequireNonNullMethods() {

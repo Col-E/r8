@@ -51,11 +51,7 @@ public class FieldInitializedByDifferentConstantsInMultipleConstructorsTest exte
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
     assertThat(testClassSubject.uniqueMethodWithName("live"), isPresent());
-    if (parameters.isCfRuntime()) {
-      assertThat(testClassSubject.uniqueMethodWithName("dead"), isPresent());
-    } else {
-      assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
-    }
+    assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
   }
 
   static class TestClass {

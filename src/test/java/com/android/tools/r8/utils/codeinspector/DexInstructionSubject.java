@@ -316,6 +316,11 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isIfEq() {
+    return instruction instanceof IfEq;
+  }
+
+  @Override
   public boolean isIfEqz() {
     return instruction instanceof IfEqz;
   }

@@ -135,6 +135,13 @@ public class LibraryMemberOptimizer implements CodeOptimization {
         continue;
       }
 
+      if (invoke.hasUnusedOutValue()
+          && !singleTarget.getDefinition().isInstanceInitializer()
+          && !invoke.instructionMayHaveSideEffects(appView, code.context())) {
+        instructionIterator.removeOrReplaceByDebugLocalRead();
+        continue;
+      }
+
       LibraryMethodModelCollection.State optimizationState =
           optimizationStates.computeIfAbsent(
               optimizer,

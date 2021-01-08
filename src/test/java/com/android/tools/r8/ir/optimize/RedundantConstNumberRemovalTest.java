@@ -19,6 +19,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -39,6 +40,7 @@ public class RedundantConstNumberRemovalTest extends TestBase {
     return getTestParameters()
         .withCfRuntimes()
         .withDexRuntimesStartingFromExcluding(Version.V4_4_4)
+        .withApiLevelsStartingAtIncluding(AndroidApiLevel.L)
         .build();
   }
 
@@ -64,7 +66,7 @@ public class RedundantConstNumberRemovalTest extends TestBase {
             .enableInliningAnnotations()
             .addOptionsModification(
                 internalOptions -> internalOptions.enableRedundantConstNumberOptimization = true)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput);
 
@@ -112,15 +114,10 @@ public class RedundantConstNumberRemovalTest extends TestBase {
       assertEquals(1, code.blocks.size());
       // The block only has three instructions.
       BasicBlock entryBlock = code.entryBlock();
-      assertEquals(3, entryBlock.getInstructions().size());
+      assertEquals(2, entryBlock.getInstructions().size());
       // The first one is the `argument` instruction.
       Instruction argument = entryBlock.getInstructions().getFirst();
       assertTrue(argument.isArgument());
-      // The next one is a `const-number` instruction is not used for anything.
-      // TODO(christofferqa): D8 should be able to get rid of the unused const-number instruction.
-      Instruction unused = entryBlock.getInstructions().get(1);
-      assertTrue(unused.isConstNumber());
-      assertEquals(0, unused.outValue().numberOfAllUsers());
       // The `return` instruction returns the argument.
       Instruction ret = entryBlock.getInstructions().getLast();
       assertTrue(ret.isReturn());

@@ -75,6 +75,8 @@ public interface InstructionSubject {
 
   boolean isIfNez();
 
+  boolean isIfEq();
+
   boolean isIfEqz();
 
   boolean isReturn();

@@ -91,31 +91,37 @@ public class MoveStringConstantsTest extends TestBase {
     assumeTrue(backend == Backend.DEX);
     validateSequence(
         methodThrowToBeInlined.iterateInstructions(),
+
         // 'if' with "foo#1" is flipped.
         InstructionSubject::isIfEqz,
 
         // 'if' with "foo#2" is removed along with the constant.
 
-        // 'if' with "foo#3" is removed so now we have unconditional call.
-        insn -> insn.isConstString("StringConstants::foo#3", JumboStringMode.DISALLOW),
-        InstructionSubject::isInvokeStatic,
-        InstructionSubject::isThrow,
+        // 'if' with "foo#3" is removed so now we have an unconditional call inside the branch.
+        InstructionSubject::isIfEq,
 
-        // 'if's with "foo#4" and "foo#5" are flipped, but their throwing branches
-        // are not moved to the end of the code (area for improvement?).
+        // 'if' with "foo#4" is flipped, but the throwing branch is not moved to the end of the code
+        // (area for improvement?).
         insn -> insn.isConstString("StringConstants::foo#4", JumboStringMode.DISALLOW),
         InstructionSubject::isIfEqz, // Flipped if
         InstructionSubject::isGoto, // Jump around throwing branch.
         InstructionSubject::isInvokeStatic, // Throwing branch.
         InstructionSubject::isThrow,
+
+        // 'if's with "foo#5" are flipped.
         insn -> insn.isConstString("StringConstants::foo#5", JumboStringMode.DISALLOW),
         InstructionSubject::isIfEqz, // Flipped if
         InstructionSubject::isReturnVoid, // Final return statement.
         InstructionSubject::isInvokeStatic, // Throwing branch.
         InstructionSubject::isThrow,
 
-        // After 'if' with "foo#1" flipped, always throwing branch
-        // moved here along with the constant.
+        // 'if' with "foo#3" is removed so now we have an unconditional call.
+        insn -> insn.isConstString("StringConstants::foo#3", JumboStringMode.DISALLOW),
+        InstructionSubject::isInvokeStatic,
+        InstructionSubject::isThrow,
+
+        // After 'if' with "foo#1" flipped, the always throwing branch is moved here along with the
+        // constant.
         insn -> insn.isConstString("StringConstants::foo#1", JumboStringMode.DISALLOW),
         InstructionSubject::isInvokeStatic,
         InstructionSubject::isThrow);

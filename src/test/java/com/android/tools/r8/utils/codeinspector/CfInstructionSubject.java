@@ -196,6 +196,11 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isIfEq() {
+    return instruction instanceof CfIf && ((CfIf) instruction).getOpcode() == Opcodes.IF_ICMPEQ;
+  }
+
+  @Override
   public boolean isIfEqz() {
     return instruction instanceof CfIf && ((CfIf) instruction).getOpcode() == Opcodes.IFEQ;
   }

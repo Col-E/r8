@@ -122,9 +122,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       this.callSiteOptimizationInfoPropagator = null;
     }
 
-    this.libraryMemberOptimizer = new LibraryMemberOptimizer(this);
     this.libraryMethodSideEffectModelCollection =
         new LibraryMethodSideEffectModelCollection(dexItemFactory());
+    this.libraryMemberOptimizer = new LibraryMemberOptimizer(this);
 
     if (enableWholeProgramOptimizations() && options().protoShrinking().isProtoShrinkingEnabled()) {
       this.protoShrinker = new ProtoShrinker(withLiveness());

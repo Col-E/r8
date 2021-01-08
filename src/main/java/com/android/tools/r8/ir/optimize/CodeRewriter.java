@@ -2460,13 +2460,35 @@ public class CodeRewriter {
     assert code.isConsistentSSA();
   }
 
+  static class ControlFlowSimplificationResult {
+    private boolean anyAffectedValues;
+    private boolean anySimplifications;
+
+    private ControlFlowSimplificationResult(boolean anyAffectedValues, boolean anySimplifications) {
+      assert !anyAffectedValues || anySimplifications;
+      this.anyAffectedValues = anyAffectedValues;
+      this.anySimplifications = anySimplifications;
+    }
+
+    public boolean anyAffectedValues() {
+      return anyAffectedValues;
+    }
+
+    public boolean anySimplifications() {
+      return anySimplifications;
+    }
+  }
+
   public boolean simplifyControlFlow(IRCode code) {
     boolean anyAffectedValues = rewriteSwitch(code);
-    anyAffectedValues |= simplifyIf(code);
+    anyAffectedValues |= simplifyIf(code).anyAffectedValues();
     return anyAffectedValues;
   }
 
-  public boolean simplifyIf(IRCode code) {
+  public ControlFlowSimplificationResult simplifyIf(IRCode code) {
+    BasicBlockBehavioralSubsumption behavioralSubsumption =
+        new BasicBlockBehavioralSubsumption(appView, code);
+    boolean simplified = false;
     for (BasicBlock block : code.blocks) {
       // Skip removed (= unreachable) blocks.
       if (block.getNumber() != 0 && block.getPredecessors().isEmpty()) {
@@ -2474,114 +2496,34 @@ public class CodeRewriter {
       }
       if (block.exit().isIf()) {
         flipIfBranchesIfNeeded(code, block);
-        rewriteIfWithConstZero(code, block);
+        if (rewriteIfWithConstZero(code, block)) {
+          simplified = true;
+        }
 
         if (simplifyKnownBooleanCondition(code, block)) {
+          simplified = true;
           continue;
         }
 
         // Simplify if conditions when possible.
         If theIf = block.exit().asIf();
-
         if (theIf.isZeroTest()) {
-          simplifyIfZeroTest(code, block, theIf);
-          continue;
+          if (simplifyIfZeroTest(code, block, theIf)) {
+            simplified = true;
+            continue;
+          }
+        } else {
+          if (simplifyNonIfZeroTest(code, block, theIf)) {
+            simplified = true;
+            continue;
+          }
         }
 
-        Value lhs = theIf.lhs();
-        Value lhsRoot = lhs.getAliasedValue();
-        Value rhs = theIf.rhs();
-        Value rhsRoot = rhs.getAliasedValue();
-
-        if (lhsRoot == rhsRoot) {
-          // Comparing the same value.
-          simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromCondition(0));
-        } else if (lhsRoot.isDefinedByInstructionSatisfying(Instruction::isCreatingInstanceOrArray)
-            && rhsRoot.isDefinedByInstructionSatisfying(Instruction::isCreatingInstanceOrArray)) {
-          // Comparing two newly created objects.
-          assert theIf.getType() == Type.EQ || theIf.getType() == Type.NE;
-          simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromCondition(1));
-        } else if (lhsRoot.isConstNumber() && rhsRoot.isConstNumber()) {
-          // Zero test with a constant of comparison between between two constants.
-          ConstNumber left = lhsRoot.getConstInstruction().asConstNumber();
-          ConstNumber right = rhsRoot.getConstInstruction().asConstNumber();
-          BasicBlock target = theIf.targetFromCondition(left, right);
-          simplifyIfWithKnownCondition(code, block, theIf, target);
-        } else if (lhs.hasValueRange() && rhs.hasValueRange()) {
-          // Zero test with a value range, or comparison between between two values,
-          // each with a value ranges.
-          LongInterval leftRange = lhs.getValueRange();
-          LongInterval rightRange = rhs.getValueRange();
-          // Two overlapping ranges. Check for single point overlap.
-          if (!leftRange.overlapsWith(rightRange)) {
-            // No overlap.
-            int cond = Long.signum(leftRange.getMin() - rightRange.getMin());
-            simplifyIfWithKnownCondition(code, block, theIf, cond);
-          } else {
-            // The two intervals overlap. We can simplify if they overlap at the end points.
-            switch (theIf.getType()) {
-              case LT:
-              case GE:
-                // [a, b] < [c, d] is always false when a == d.
-                // [a, b] >= [c, d] is always true when a == d.
-                // In both cases 0 condition will choose the right branch.
-                if (leftRange.getMin() == rightRange.getMax()) {
-                  simplifyIfWithKnownCondition(code, block, theIf, 0);
-                }
-                break;
-              case GT:
-              case LE:
-                // [a, b] > [c, d] is always false when b == c.
-                // [a, b] <= [c, d] is always true when b == c.
-                // In both cases 0 condition will choose the right branch.
-                if (leftRange.getMax() == rightRange.getMin()) {
-                  simplifyIfWithKnownCondition(code, block, theIf, 0);
-                }
-                break;
-              case EQ:
-              case NE:
-                // Since there is overlap EQ and NE cannot be determined.
-                break;
-            }
-          }
-        } else if (theIf.getType() == Type.EQ || theIf.getType() == Type.NE) {
-          ProgramMethod context = code.context();
-          AbstractValue abstractValue = lhs.getAbstractValue(appView, context);
-          if (abstractValue.isSingleConstClassValue()) {
-            AbstractValue otherAbstractValue = rhs.getAbstractValue(appView, context);
-            if (otherAbstractValue.isSingleConstClassValue()) {
-              SingleConstClassValue singleConstClassValue = abstractValue.asSingleConstClassValue();
-              SingleConstClassValue otherSingleConstClassValue =
-                  otherAbstractValue.asSingleConstClassValue();
-              simplifyIfWithKnownCondition(
-                  code,
-                  block,
-                  theIf,
-                  BooleanUtils.intValue(
-                      singleConstClassValue.getType() != otherSingleConstClassValue.getType()));
-            }
-          } else if (abstractValue.isSingleFieldValue()) {
-            AbstractValue otherAbstractValue = rhs.getAbstractValue(appView, context);
-            if (otherAbstractValue.isSingleFieldValue()) {
-              SingleFieldValue singleFieldValue = abstractValue.asSingleFieldValue();
-              SingleFieldValue otherSingleFieldValue = otherAbstractValue.asSingleFieldValue();
-              if (singleFieldValue.getField() == otherSingleFieldValue.getField()) {
-                simplifyIfWithKnownCondition(code, block, theIf, 0);
-              } else {
-                DexClass holder = appView.definitionForHolder(singleFieldValue.getField());
-                DexEncodedField field = singleFieldValue.getField().lookupOnClass(holder);
-                if (field != null && field.isEnum()) {
-                  DexClass otherHolder =
-                      appView.definitionForHolder(otherSingleFieldValue.getField());
-                  DexEncodedField otherField =
-                      otherSingleFieldValue.getField().lookupOnClass(otherHolder);
-                  if (otherField != null && otherField.isEnum()) {
-                    simplifyIfWithKnownCondition(code, block, theIf, 1);
-                  }
-                }
-              }
-            }
-          }
+        // Unable to determine which branch will be taken. Check if the true target can safely be
+        // rewritten to the false target.
+        if (behavioralSubsumption.isSubsumedBy(theIf.getTrueTarget(), theIf.fallthroughBlock())) {
+          simplifyIfWithKnownCondition(code, block, theIf, theIf.fallthroughBlock());
+          simplified = true;
         }
       }
     }
@@ -2590,17 +2532,17 @@ public class CodeRewriter {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
-    return !affectedValues.isEmpty();
+    return new ControlFlowSimplificationResult(!affectedValues.isEmpty(), simplified);
   }
 
-  private void simplifyIfZeroTest(IRCode code, BasicBlock block, If theIf) {
+  private boolean simplifyIfZeroTest(IRCode code, BasicBlock block, If theIf) {
     Value lhs = theIf.lhs();
     Value lhsRoot = lhs.getAliasedValue();
     if (lhsRoot.isConstNumber()) {
       ConstNumber cond = lhsRoot.getConstInstruction().asConstNumber();
       BasicBlock target = theIf.targetFromCondition(cond);
       simplifyIfWithKnownCondition(code, block, theIf, target);
-      return;
+      return true;
     }
 
     if (theIf.isNullTest()) {
@@ -2608,12 +2550,12 @@ public class CodeRewriter {
 
       if (lhs.isAlwaysNull(appView)) {
         simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromNullObject());
-        return;
+        return true;
       }
 
       if (lhs.isNeverNull()) {
         simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromNonNullObject());
-        return;
+        return true;
       }
     }
 
@@ -2623,7 +2565,7 @@ public class CodeRewriter {
         // Interval doesn't contain zero at all.
         int sign = Long.signum(interval.getMin());
         simplifyIfWithKnownCondition(code, block, theIf, sign);
-        return;
+        return true;
       }
 
       // Interval contains zero.
@@ -2635,7 +2577,7 @@ public class CodeRewriter {
           // In both cases a zero condition takes the right branch.
           if (interval.getMin() == 0) {
             simplifyIfWithKnownCondition(code, block, theIf, 0);
-            return;
+            return true;
           }
           break;
 
@@ -2646,7 +2588,7 @@ public class CodeRewriter {
           // In both cases a zero condition takes the right branch.
           if (interval.getMax() == 0) {
             simplifyIfWithKnownCondition(code, block, theIf, 0);
-            return;
+            return true;
           }
           break;
 
@@ -2658,6 +2600,125 @@ public class CodeRewriter {
           break;
       }
     }
+    return false;
+  }
+
+  private boolean simplifyNonIfZeroTest(IRCode code, BasicBlock block, If theIf) {
+    Value lhs = theIf.lhs();
+    Value lhsRoot = lhs.getAliasedValue();
+    Value rhs = theIf.rhs();
+    Value rhsRoot = rhs.getAliasedValue();
+    if (lhsRoot == rhsRoot) {
+      // Comparing the same value.
+      simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromCondition(0));
+      return true;
+    }
+
+    if (lhsRoot.isDefinedByInstructionSatisfying(Instruction::isCreatingInstanceOrArray)
+        && rhsRoot.isDefinedByInstructionSatisfying(Instruction::isCreatingInstanceOrArray)) {
+      // Comparing two newly created objects.
+      assert theIf.getType() == Type.EQ || theIf.getType() == Type.NE;
+      simplifyIfWithKnownCondition(code, block, theIf, theIf.targetFromCondition(1));
+      return true;
+    }
+
+    if (lhsRoot.isConstNumber() && rhsRoot.isConstNumber()) {
+      // Zero test with a constant of comparison between between two constants.
+      ConstNumber left = lhsRoot.getConstInstruction().asConstNumber();
+      ConstNumber right = rhsRoot.getConstInstruction().asConstNumber();
+      BasicBlock target = theIf.targetFromCondition(left, right);
+      simplifyIfWithKnownCondition(code, block, theIf, target);
+      return true;
+    }
+
+    if (lhs.hasValueRange() && rhs.hasValueRange()) {
+      // Zero test with a value range, or comparison between between two values,
+      // each with a value ranges.
+      LongInterval leftRange = lhs.getValueRange();
+      LongInterval rightRange = rhs.getValueRange();
+      // Two overlapping ranges. Check for single point overlap.
+      if (!leftRange.overlapsWith(rightRange)) {
+        // No overlap.
+        int cond = Long.signum(leftRange.getMin() - rightRange.getMin());
+        simplifyIfWithKnownCondition(code, block, theIf, cond);
+        return true;
+      }
+
+      // The two intervals overlap. We can simplify if they overlap at the end points.
+      switch (theIf.getType()) {
+        case LT:
+        case GE:
+          // [a, b] < [c, d] is always false when a == d.
+          // [a, b] >= [c, d] is always true when a == d.
+          // In both cases 0 condition will choose the right branch.
+          if (leftRange.getMin() == rightRange.getMax()) {
+            simplifyIfWithKnownCondition(code, block, theIf, 0);
+            return true;
+          }
+          break;
+        case GT:
+        case LE:
+          // [a, b] > [c, d] is always false when b == c.
+          // [a, b] <= [c, d] is always true when b == c.
+          // In both cases 0 condition will choose the right branch.
+          if (leftRange.getMax() == rightRange.getMin()) {
+            simplifyIfWithKnownCondition(code, block, theIf, 0);
+            return true;
+          }
+          break;
+        case EQ:
+        case NE:
+          // Since there is overlap EQ and NE cannot be determined.
+          break;
+      }
+    }
+
+    if (theIf.getType() == Type.EQ || theIf.getType() == Type.NE) {
+      ProgramMethod context = code.context();
+      AbstractValue abstractValue = lhs.getAbstractValue(appView, context);
+      if (abstractValue.isSingleConstClassValue()) {
+        AbstractValue otherAbstractValue = rhs.getAbstractValue(appView, context);
+        if (otherAbstractValue.isSingleConstClassValue()) {
+          SingleConstClassValue singleConstClassValue = abstractValue.asSingleConstClassValue();
+          SingleConstClassValue otherSingleConstClassValue =
+              otherAbstractValue.asSingleConstClassValue();
+          simplifyIfWithKnownCondition(
+              code,
+              block,
+              theIf,
+              BooleanUtils.intValue(
+                  singleConstClassValue.getType() != otherSingleConstClassValue.getType()));
+          return true;
+        }
+        return false;
+      }
+
+      if (abstractValue.isSingleFieldValue()) {
+        AbstractValue otherAbstractValue = rhs.getAbstractValue(appView, context);
+        if (otherAbstractValue.isSingleFieldValue()) {
+          SingleFieldValue singleFieldValue = abstractValue.asSingleFieldValue();
+          SingleFieldValue otherSingleFieldValue = otherAbstractValue.asSingleFieldValue();
+          if (singleFieldValue.getField() == otherSingleFieldValue.getField()) {
+            simplifyIfWithKnownCondition(code, block, theIf, 0);
+            return true;
+          }
+
+          DexClass holder = appView.definitionForHolder(singleFieldValue.getField());
+          DexEncodedField field = singleFieldValue.getField().lookupOnClass(holder);
+          if (field != null && field.isEnum()) {
+            DexClass otherHolder = appView.definitionForHolder(otherSingleFieldValue.getField());
+            DexEncodedField otherField =
+                otherSingleFieldValue.getField().lookupOnClass(otherHolder);
+            if (otherField != null && otherField.isEnum()) {
+              simplifyIfWithKnownCondition(code, block, theIf, 1);
+              return true;
+            }
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   private void simplifyIfWithKnownCondition(
@@ -3181,30 +3242,31 @@ public class CodeRewriter {
     assert block.exit().asGoto().getTarget() == target;
   }
 
-  private void rewriteIfWithConstZero(IRCode code, BasicBlock block) {
+  private boolean rewriteIfWithConstZero(IRCode code, BasicBlock block) {
     If theIf = block.exit().asIf();
     if (theIf.isZeroTest()) {
-      return;
+      return false;
     }
 
-    List<Value> inValues = theIf.inValues();
-    Value leftValue = inValues.get(0);
-    Value rightValue = inValues.get(1);
+    Value leftValue = theIf.lhs();
+    Value rightValue = theIf.rhs();
     if (leftValue.isConstNumber() || rightValue.isConstNumber()) {
       if (leftValue.isConstNumber()) {
         if (leftValue.getConstInstruction().asConstNumber().isZero()) {
           If ifz = new If(theIf.getType().forSwappedOperands(), rightValue);
           block.replaceLastInstruction(ifz, code);
           assert block.exit() == ifz;
+          return true;
         }
-      } else {
-        if (rightValue.getConstInstruction().asConstNumber().isZero()) {
-          If ifz = new If(theIf.getType(), leftValue);
-          block.replaceLastInstruction(ifz, code);
-          assert block.exit() == ifz;
-        }
+      } else if (rightValue.getConstInstruction().asConstNumber().isZero()) {
+        If ifz = new If(theIf.getType(), leftValue);
+        block.replaceLastInstruction(ifz, code);
+        assert block.exit() == ifz;
+        return true;
       }
     }
+
+    return false;
   }
 
   private boolean flipIfBranchesIfNeeded(IRCode code, BasicBlock block) {
@@ -3736,7 +3798,7 @@ public class CodeRewriter {
                 && value.definition.asNumberConversion().to == NumericType.DOUBLE) {
               InvokeStatic invokeIsNaN =
                   new InvokeStatic(
-                      dexItemFactory.doubleMethods.isNaN, null, ImmutableList.of(value));
+                      dexItemFactory.doubleMembers.isNaN, null, ImmutableList.of(value));
               invokeIsNaN.setPosition(instruction.getPosition());
 
               // Insert the invoke before the current instruction.

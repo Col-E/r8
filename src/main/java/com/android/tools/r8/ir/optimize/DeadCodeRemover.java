@@ -53,7 +53,8 @@ public class DeadCodeRemover {
         removeDeadInstructions(worklist, code, block);
         removeDeadPhis(worklist, code, block);
       }
-    } while (removeUnneededCatchHandlers(code));
+    } while (codeRewriter.simplifyIf(code).anySimplifications()
+        || removeUnneededCatchHandlers(code));
     assert code.isConsistentSSA();
 
     timing.end();

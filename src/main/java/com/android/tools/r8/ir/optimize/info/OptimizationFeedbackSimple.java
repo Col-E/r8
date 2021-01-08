@@ -122,7 +122,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
 
   @Override
   public void methodMayNotHaveSideEffects(DexEncodedMethod method) {
-    // Ignored.
+    method.getMutableOptimizationInfo().markMayNotHaveSideEffects();
   }
 
   @Override

@@ -23,7 +23,6 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
@@ -453,13 +452,16 @@ public class DexItemFactory {
   public final StringBuildingMethods stringBufferMethods =
       new StringBuildingMethods(stringBufferType);
   public final BooleanMembers booleanMembers = new BooleanMembers();
+  public final ByteMembers byteMembers = new ByteMembers();
+  public final CharMembers charMembers = new CharMembers();
   public final FloatMembers floatMembers = new FloatMembers();
   public final IntegerMembers integerMembers = new IntegerMembers();
+  public final LongMembers longMembers = new LongMembers();
   public final ObjectsMethods objectsMethods = new ObjectsMethods();
   public final ObjectMembers objectMembers = new ObjectMembers();
+  public final ShortMembers shortMembers = new ShortMembers();
   public final StringMembers stringMembers = new StringMembers();
-  public final LongMembers longMembers = new LongMembers();
-  public final DoubleMethods doubleMethods = new DoubleMethods();
+  public final DoubleMembers doubleMembers = new DoubleMembers();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final AssertionErrorMethods assertionErrorMethods = new AssertionErrorMethods();
   public final ClassMethods classMethods = new ClassMethods();
@@ -715,7 +717,22 @@ public class DexItemFactory {
 
   public Set<DexType> libraryClassesWithoutStaticInitialization =
       ImmutableSet.of(
-          boxedBooleanType, enumType, npeType, objectType, stringBufferType, stringBuilderType);
+          boxedBooleanType,
+          boxedByteType,
+          boxedCharType,
+          boxedDoubleType,
+          boxedFloatType,
+          boxedIntType,
+          boxedLongType,
+          boxedNumberType,
+          boxedShortType,
+          boxedVoidType,
+          enumType,
+          npeType,
+          objectType,
+          stringBufferType,
+          stringBuilderType,
+          stringType);
 
   private boolean skipNameValidationForTesting = false;
 
@@ -731,35 +748,12 @@ public class DexItemFactory {
     return dexMethod == metafactoryMethod || dexMethod == metafactoryAltMethod;
   }
 
-  public interface LibraryMembers {
+  public abstract static class LibraryMembers {
 
-    void forEachFinalField(Consumer<DexField> consumer);
+    public void forEachFinalField(Consumer<DexField> consumer) {}
   }
 
-  public class BooleanMembers implements LibraryMembers {
-
-    public final DexField FALSE = createField(boxedBooleanType, boxedBooleanType, "FALSE");
-    public final DexField TRUE = createField(boxedBooleanType, boxedBooleanType, "TRUE");
-    public final DexField TYPE = createField(boxedBooleanType, classType, "TYPE");
-
-    public final DexMethod booleanValue =
-        createMethod(boxedBooleanType, createProto(booleanType), "booleanValue");
-    public final DexMethod parseBoolean =
-        createMethod(boxedBooleanType, createProto(booleanType, stringType), "parseBoolean");
-    public final DexMethod valueOf =
-        createMethod(boxedBooleanType, createProto(boxedBooleanType, booleanType), "valueOf");
-
-    private BooleanMembers() {}
-
-    @Override
-    public void forEachFinalField(Consumer<DexField> consumer) {
-      consumer.accept(FALSE);
-      consumer.accept(TRUE);
-      consumer.accept(TYPE);
-    }
-  }
-
-  public class AndroidOsBuildMembers implements LibraryMembers {
+  public class AndroidOsBuildMembers extends LibraryMembers {
 
     public final DexField BOOTLOADER = createField(androidOsBuildType, stringType, "BOOTLOADER");
     public final DexField BRAND = createField(androidOsBuildType, stringType, "BRAND");
@@ -805,7 +799,7 @@ public class DexItemFactory {
     }
   }
 
-  public class AndroidOsBuildVersionMembers implements LibraryMembers {
+  public class AndroidOsBuildVersionMembers extends LibraryMembers {
 
     public final DexField CODENAME = createField(androidOsBuildVersionType, stringType, "CODENAME");
     public final DexField RELEASE = createField(androidOsBuildVersionType, stringType, "RELEASE");
@@ -824,7 +818,7 @@ public class DexItemFactory {
     }
   }
 
-  public class AndroidOsBundleMembers implements LibraryMembers {
+  public class AndroidOsBundleMembers extends LibraryMembers {
 
     public final DexField CREATOR =
         createField(androidOsBundleType, androidOsParcelableCreatorType, "CREATOR");
@@ -837,7 +831,7 @@ public class DexItemFactory {
     }
   }
 
-  public class AndroidSystemOsConstantsMembers implements LibraryMembers {
+  public class AndroidSystemOsConstantsMembers extends LibraryMembers {
 
     public final DexField S_IRUSR = createField(androidSystemOsConstantsType, intType, "S_IRUSR");
     public final DexField S_IXUSR = createField(androidSystemOsConstantsType, intType, "S_IXUSR");
@@ -849,7 +843,7 @@ public class DexItemFactory {
     }
   }
 
-  public class AndroidViewViewMembers implements LibraryMembers {
+  public class AndroidViewViewMembers extends LibraryMembers {
 
     public final DexField TRANSLATION_Z =
         createField(androidViewViewType, androidUtilPropertyType, "TRANSLATION_Z");
@@ -872,9 +866,53 @@ public class DexItemFactory {
     }
   }
 
-  public class FloatMembers implements LibraryMembers {
+  public class BooleanMembers extends LibraryMembers {
+
+    public final DexField FALSE = createField(boxedBooleanType, boxedBooleanType, "FALSE");
+    public final DexField TRUE = createField(boxedBooleanType, boxedBooleanType, "TRUE");
+    public final DexField TYPE = createField(boxedBooleanType, classType, "TYPE");
+
+    public final DexMethod booleanValue =
+        createMethod(boxedBooleanType, createProto(booleanType), "booleanValue");
+    public final DexMethod parseBoolean =
+        createMethod(boxedBooleanType, createProto(booleanType, stringType), "parseBoolean");
+    public final DexMethod valueOf =
+        createMethod(boxedBooleanType, createProto(boxedBooleanType, booleanType), "valueOf");
+    public final DexMethod toString =
+        createMethod(boxedBooleanType, createProto(stringType), "toString");
+
+    private BooleanMembers() {}
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(FALSE);
+      consumer.accept(TRUE);
+      consumer.accept(TYPE);
+    }
+  }
+
+  public class ByteMembers extends LibraryMembers {
+
+    public final DexMethod toString =
+        createMethod(boxedByteType, createProto(stringType), "toString");
+
+    private ByteMembers() {}
+  }
+
+  public class CharMembers extends LibraryMembers {
+
+    public final DexMethod toString =
+        createMethod(boxedCharType, createProto(stringType), "toString");
+
+    private CharMembers() {}
+  }
+
+  public class FloatMembers extends LibraryMembers {
 
     public final DexField TYPE = createField(boxedFloatType, classType, "TYPE");
+
+    public final DexMethod toString =
+        createMethod(boxedFloatType, createProto(stringType), "toString");
 
     private FloatMembers() {}
 
@@ -884,7 +922,7 @@ public class DexItemFactory {
     }
   }
 
-  public class JavaIoFileMembers implements LibraryMembers {
+  public class JavaIoFileMembers extends LibraryMembers {
 
     public final DexField pathSeparator = createField(javaIoFileType, stringType, "pathSeparator");
     public final DexField separator = createField(javaIoFileType, stringType, "separator");
@@ -896,7 +934,7 @@ public class DexItemFactory {
     }
   }
 
-  public class JavaMathBigIntegerMembers implements LibraryMembers {
+  public class JavaMathBigIntegerMembers extends LibraryMembers {
 
     public final DexField ONE = createField(javaMathBigIntegerType, javaMathBigIntegerType, "ONE");
     public final DexField ZERO =
@@ -909,7 +947,7 @@ public class DexItemFactory {
     }
   }
 
-  public class JavaNioByteOrderMembers implements LibraryMembers {
+  public class JavaNioByteOrderMembers extends LibraryMembers {
 
     public final DexField LITTLE_ENDIAN =
         createField(javaNioByteOrderType, javaNioByteOrderType, "LITTLE_ENDIAN");
@@ -937,7 +975,7 @@ public class DexItemFactory {
     }
   }
 
-  public class JavaUtilComparatorMembers implements LibraryMembers {
+  public class JavaUtilComparatorMembers extends LibraryMembers {
 
     public final DexField EMPTY_LIST =
         createField(javaUtilCollectionsType, javaUtilListType, "EMPTY_LIST");
@@ -951,7 +989,7 @@ public class DexItemFactory {
     }
   }
 
-  public class JavaUtilConcurrentTimeUnitMembers implements LibraryMembers {
+  public class JavaUtilConcurrentTimeUnitMembers extends LibraryMembers {
 
     public final DexField DAYS =
         createField(javaUtilConcurrentTimeUnitType, javaUtilConcurrentTimeUnitType, "DAYS");
@@ -980,7 +1018,7 @@ public class DexItemFactory {
     }
   }
 
-  public class JavaUtilLocaleMembers implements LibraryMembers {
+  public class JavaUtilLocaleMembers extends LibraryMembers {
 
     public final DexField ENGLISH = createField(javaUtilLocaleType, javaUtilLocaleType, "ENGLISH");
     public final DexField ROOT = createField(javaUtilLocaleType, javaUtilLocaleType, "ROOT");
@@ -994,7 +1032,7 @@ public class DexItemFactory {
     }
   }
 
-  public class JavaUtilLoggingLevelMembers implements LibraryMembers {
+  public class JavaUtilLoggingLevelMembers extends LibraryMembers {
 
     public final DexField CONFIG =
         createField(javaUtilLoggingLevelType, javaUtilLoggingLevelType, "CONFIG");
@@ -1020,11 +1058,13 @@ public class DexItemFactory {
     }
   }
 
-  public class LongMembers implements LibraryMembers {
+  public class LongMembers extends LibraryMembers {
 
     public final DexField TYPE = createField(boxedLongType, classType, "TYPE");
 
     public final DexMethod compare;
+    public final DexMethod toString =
+        createMethod(boxedLongType, createProto(stringType), "toString");
 
     private LongMembers() {
       compare = createMethod(boxedLongDescriptor,
@@ -1037,11 +1077,14 @@ public class DexItemFactory {
     }
   }
 
-  public class DoubleMethods {
+  public class DoubleMembers {
 
     public final DexMethod isNaN;
 
-    private DoubleMethods() {
+    public final DexMethod toString =
+        createMethod(boxedDoubleType, createProto(stringType), "toString");
+
+    private DoubleMembers() {
       isNaN =
           createMethod(
               boxedDoubleDescriptor,
@@ -1051,9 +1094,12 @@ public class DexItemFactory {
     }
   }
 
-  public class IntegerMembers implements LibraryMembers {
+  public class IntegerMembers extends LibraryMembers {
 
     public final DexField TYPE = createField(boxedIntType, classType, "TYPE");
+
+    public final DexMethod toString =
+        createMethod(boxedIntType, createProto(stringType), "toString");
 
     @Override
     public void forEachFinalField(Consumer<DexField> consumer) {
@@ -1445,7 +1491,15 @@ public class DexItemFactory {
     }
   }
 
-  public class StringMembers implements LibraryMembers {
+  public class ShortMembers extends LibraryMembers {
+
+    public final DexMethod toString =
+        createMethod(boxedShortType, createProto(stringType), "toString");
+
+    private ShortMembers() {}
+  }
+
+  public class StringMembers extends LibraryMembers {
 
     public final DexField CASE_INSENSITIVE_ORDER =
         createField(stringType, javaUtilComparatorType, "CASE_INSENSITIVE_ORDER");
@@ -1454,6 +1508,8 @@ public class DexItemFactory {
     public final DexMethod length;
 
     public final DexMethod concat;
+    public final DexMethod constructor =
+        createMethod(stringType, createProto(voidType, stringType), constructorMethodName);
     public final DexMethod contains;
     public final DexMethod startsWith;
     public final DexMethod endsWith;
@@ -1625,22 +1681,22 @@ public class DexItemFactory {
       return constructorMethods.contains(method);
     }
 
-    public boolean constructorInvokeIsSideEffectFree(InvokeMethod invoke) {
-      DexMethod invokedMethod = invoke.getInvokedMethod();
-      if (invokedMethod == charSequenceConstructor) {
-        // Performs callbacks on the given CharSequence, which may have side effects.
-        TypeElement charSequenceType = invoke.getArgument(1).getType();
-        return charSequenceType.isClassType()
-            && charSequenceType.asClassType().getClassType() == stringType;
-      }
-
+    public boolean constructorInvokeIsSideEffectFree(
+        DexMethod invokedMethod, List<Value> arguments) {
       if (invokedMethod == defaultConstructor) {
         return true;
       }
 
+      if (invokedMethod == charSequenceConstructor) {
+        // Performs callbacks on the given CharSequence, which may have side effects.
+        TypeElement charSequenceType = arguments.get(1).getType();
+        return charSequenceType.isClassType()
+            && charSequenceType.asClassType().getClassType() == stringType;
+      }
+
       if (invokedMethod == intConstructor) {
         // NegativeArraySizeException - if the capacity argument is less than 0.
-        Value capacityValue = invoke.inValues().get(1);
+        Value capacityValue = arguments.get(1);
         if (capacityValue.hasValueRange()) {
           return capacityValue.getValueRange().getMin() >= 0;
         }
@@ -1649,7 +1705,7 @@ public class DexItemFactory {
 
       if (invokedMethod == stringConstructor) {
         // NullPointerException - if str is null.
-        Value strValue = invoke.inValues().get(1);
+        Value strValue = arguments.get(1);
         return !strValue.getType().isNullable();
       }
 

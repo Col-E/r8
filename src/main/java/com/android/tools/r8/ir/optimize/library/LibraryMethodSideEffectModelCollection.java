@@ -4,41 +4,41 @@
 
 package com.android.tools.r8.ir.optimize.library;
 
-import static com.google.common.base.Predicates.alwaysFalse;
-import static com.google.common.base.Predicates.alwaysTrue;
-
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.BiPredicateUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Predicate;
+import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 
 public class LibraryMethodSideEffectModelCollection {
 
-  private final Map<DexMethod, Predicate<InvokeMethod>> finalMethodsWithoutSideEffects;
+  private final Map<DexMethod, BiPredicate<DexMethod, List<Value>>> finalMethodsWithoutSideEffects;
+  private final Set<DexMethod> unconditionalFinalMethodsWithoutSideEffects;
+
   private final Set<DexMethod> nonFinalMethodsWithoutSideEffects;
 
   public LibraryMethodSideEffectModelCollection(DexItemFactory dexItemFactory) {
     finalMethodsWithoutSideEffects = buildFinalMethodsWithoutSideEffects(dexItemFactory);
+    unconditionalFinalMethodsWithoutSideEffects =
+        buildUnconditionalFinalMethodsWithoutSideEffects(dexItemFactory);
     nonFinalMethodsWithoutSideEffects = buildNonFinalMethodsWithoutSideEffects(dexItemFactory);
   }
 
-  private static Map<DexMethod, Predicate<InvokeMethod>> buildFinalMethodsWithoutSideEffects(
-      DexItemFactory dexItemFactory) {
-    ImmutableMap.Builder<DexMethod, Predicate<InvokeMethod>> builder =
-        ImmutableMap.<DexMethod, Predicate<InvokeMethod>>builder()
-            .put(dexItemFactory.enumMembers.constructor, alwaysTrue())
-            .put(dexItemFactory.npeMethods.init, alwaysTrue())
-            .put(dexItemFactory.npeMethods.initWithMessage, alwaysTrue())
-            .put(dexItemFactory.objectMembers.constructor, alwaysTrue())
-            .put(dexItemFactory.objectMembers.getClass, alwaysTrue())
-            .put(dexItemFactory.stringBuilderMethods.toString, alwaysTrue())
-            .put(dexItemFactory.stringMembers.hashCode, alwaysTrue());
-    putAll(builder, dexItemFactory.classMethods.getNames, alwaysTrue());
+  private static Map<DexMethod, BiPredicate<DexMethod, List<Value>>>
+      buildFinalMethodsWithoutSideEffects(DexItemFactory dexItemFactory) {
+    ImmutableMap.Builder<DexMethod, BiPredicate<DexMethod, List<Value>>> builder =
+        ImmutableMap.<DexMethod, BiPredicate<DexMethod, List<Value>>>builder()
+            .put(
+                dexItemFactory.stringMembers.constructor,
+                (method, arguments) -> arguments.get(0).isNeverNull());
     putAll(
         builder,
         dexItemFactory.stringBufferMethods.constructorMethods,
@@ -47,8 +47,32 @@ public class LibraryMethodSideEffectModelCollection {
         builder,
         dexItemFactory.stringBuilderMethods.constructorMethods,
         dexItemFactory.stringBuilderMethods::constructorInvokeIsSideEffectFree);
-    putAll(builder, dexItemFactory.boxedValueOfMethods(), alwaysTrue());
     return builder.build();
+  }
+
+  private static Set<DexMethod> buildUnconditionalFinalMethodsWithoutSideEffects(
+      DexItemFactory dexItemFactory) {
+    return ImmutableSet.<DexMethod>builder()
+        .add(dexItemFactory.booleanMembers.toString)
+        .add(dexItemFactory.byteMembers.toString)
+        .add(dexItemFactory.charMembers.toString)
+        .add(dexItemFactory.doubleMembers.toString)
+        .add(dexItemFactory.enumMembers.constructor)
+        .add(dexItemFactory.floatMembers.toString)
+        .add(dexItemFactory.integerMembers.toString)
+        .add(dexItemFactory.longMembers.toString)
+        .add(dexItemFactory.npeMethods.init)
+        .add(dexItemFactory.npeMethods.initWithMessage)
+        .add(dexItemFactory.objectMembers.constructor)
+        .add(dexItemFactory.objectMembers.getClass)
+        .add(dexItemFactory.shortMembers.toString)
+        .add(dexItemFactory.stringBufferMethods.toString)
+        .add(dexItemFactory.stringBuilderMethods.toString)
+        .add(dexItemFactory.stringMembers.hashCode)
+        .add(dexItemFactory.stringMembers.toString)
+        .addAll(dexItemFactory.classMethods.getNames)
+        .addAll(dexItemFactory.boxedValueOfMethods())
+        .build();
   }
 
   private static Set<DexMethod> buildNonFinalMethodsWithoutSideEffects(
@@ -59,25 +83,31 @@ public class LibraryMethodSideEffectModelCollection {
         dexItemFactory.objectMembers.toString);
   }
 
-  private static void putAll(
-      ImmutableMap.Builder<DexMethod, Predicate<InvokeMethod>> builder,
-      Iterable<DexMethod> methods,
-      Predicate<InvokeMethod> predicate) {
-    for (DexMethod method : methods) {
-      builder.put(method, predicate);
+  private static <K, V> void putAll(ImmutableMap.Builder<K, V> builder, Iterable<K> keys, V value) {
+    for (K key : keys) {
+      builder.put(key, value);
     }
   }
 
+  public void forEachSideEffectFreeFinalMethod(Consumer<DexMethod> consumer) {
+    unconditionalFinalMethodsWithoutSideEffects.forEach(consumer);
+  }
+
   public boolean isCallToSideEffectFreeFinalMethod(InvokeMethod invoke) {
-    return finalMethodsWithoutSideEffects
-        .getOrDefault(invoke.getInvokedMethod(), alwaysFalse())
-        .test(invoke);
+    return isSideEffectFreeFinalMethod(invoke.getInvokedMethod(), invoke.arguments());
+  }
+
+  public boolean isSideEffectFreeFinalMethod(DexMethod method, List<Value> arguments) {
+    return unconditionalFinalMethodsWithoutSideEffects.contains(method)
+        || finalMethodsWithoutSideEffects
+            .getOrDefault(method, BiPredicateUtils.alwaysFalse())
+            .test(method, arguments);
   }
 
   // This intentionally takes the invoke instruction since the determination of whether a library
   // method has side effects may depend on the arguments.
   public boolean isSideEffectFree(InvokeMethod invoke, LibraryMethod singleTarget) {
-    return isCallToSideEffectFreeFinalMethod(invoke)
+    return isSideEffectFreeFinalMethod(singleTarget.getReference(), invoke.arguments())
         || nonFinalMethodsWithoutSideEffects.contains(singleTarget.getReference());
   }
 }

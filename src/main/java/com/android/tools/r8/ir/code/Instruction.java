@@ -129,6 +129,10 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return outValue != null;
   }
 
+  public boolean hasUnusedOutValue() {
+    return !hasOutValue() || !outValue().hasAnyUsers();
+  }
+
   public Value outValue() {
     return outValue;
   }
