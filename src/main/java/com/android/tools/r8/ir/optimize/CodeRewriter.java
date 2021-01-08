@@ -2502,7 +2502,9 @@ public class CodeRewriter {
 
         if (simplifyKnownBooleanCondition(code, block)) {
           simplified = true;
-          continue;
+          if (!block.exit().isIf()) {
+            continue;
+          }
         }
 
         // Simplify if conditions when possible.
@@ -3157,6 +3159,7 @@ public class CodeRewriter {
             rewriteIfToGoto(code, block, theIf, trueBlock, falseBlock);
             return true;
           }
+          return deadPhis > 0;
         }
       }
     }
