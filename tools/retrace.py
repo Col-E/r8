@@ -107,6 +107,9 @@ def run(map_path, hash_or_version, stacktrace, is_hash, no_r8lib, quiet=False,
     map_path
   ]
 
+  if quiet:
+    retrace_args.append('--quiet')
+
   if stacktrace:
     retrace_args.append(stacktrace)
 
