@@ -80,13 +80,7 @@ public abstract class RepackageTestBase extends TestBase {
         if (!classSubject.isPresent()) {
           return false;
         }
-        String actualPackage = getActualPackage(classSubject);
-        String expectedPackage = getExpectedPackageForEligibleClass();
-        if (!eligibleForRepackaging) {
-          // The package may have been changed by minification.
-          return !actualPackage.startsWith(expectedPackage);
-        }
-        return actualPackage.equals(expectedPackage);
+        return getActualPackage(classSubject).equals(getExpectedPackage(clazz));
       }
 
       @Override
@@ -117,6 +111,12 @@ public abstract class RepackageTestBase extends TestBase {
 
       private String getActualPackage(ClassSubject classSubject) {
         return classSubject.getDexProgramClass().getType().getPackageName();
+      }
+
+      private String getExpectedPackage(Class<?> clazz) {
+        return eligibleForRepackaging
+            ? getExpectedPackageForEligibleClass()
+            : clazz.getPackage().getName();
       }
 
       private String getExpectedPackageForEligibleClass() {
