@@ -293,6 +293,7 @@ def r8DesugaredPath = "$buildDir/libs/r8desugared.jar"
 def r8LibGeneratedKeepRulesPath = "$buildDir/generated/keep.txt"
 def r8LibTestPath = "$buildDir/classes/r8libtest"
 def java11ClassFiles = "$buildDir/classes/java/mainJava11"
+def r8RetracePath = "$buildDir/libs/r8retrace.jar"
 
 def osString = OperatingSystem.current().isLinux() ? "linux" :
         OperatingSystem.current().isMacOsX() ? "mac" : "windows"
@@ -1068,6 +1069,17 @@ task R8Desugared(type: Exec) {
             ["--release"])
     workingDir = projectDir
     outputs.file r8DesugaredPath
+}
+
+task R8Retrace {
+    dependsOn R8Lib
+    dependsOn r8LibCreateTask(
+            "Retrace",
+            ["src/main/keep_retrace.txt"],
+            R8Lib,
+            r8RetracePath,
+    ).dependsOn(R8Lib)
+    outputs.file r8RetracePath
 }
 
 task sourceJar(type: Jar, dependsOn: classes) {

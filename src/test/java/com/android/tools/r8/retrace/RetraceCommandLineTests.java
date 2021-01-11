@@ -9,6 +9,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -17,6 +18,7 @@ import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTraceWithInfo;
 import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.PGStackTrace;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Charsets;
 import java.io.ByteArrayOutputStream;
@@ -36,16 +38,30 @@ import org.hamcrest.Matcher;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class RetraceCommandLineTests {
 
-  private static final boolean testExternal = false;
+  private static String SMILEY_EMOJI = "\uD83D\uDE00";
+
   private static final String WAITING_MESSAGE =
       "Waiting for stack-trace input..." + StringUtils.LINE_SEPARATOR;
 
   @Rule public TemporaryFolder folder = new TemporaryFolder();
 
-  private static String SMILEY_EMOJI = "\uD83D\uDE00";
+  private final boolean testExternal;
+
+  @Parameters(name = "{0}")
+  public static Boolean[] data() {
+    return BooleanUtils.values();
+  }
+
+  public RetraceCommandLineTests(boolean testExternal) {
+    this.testExternal = testExternal;
+  }
 
   @Test
   public void testPrintIdentityStackTraceFile() throws IOException {
@@ -233,11 +249,14 @@ public class RetraceCommandLineTests {
   private ProcessResult runRetraceCommandLine(File stdInput, Collection<String> args)
       throws IOException {
     if (testExternal) {
+      // The external dependency is built on top of R8Lib. If test.py is run with
+      // no r8lib, do not try and run the external R8 Retrace since it has not been built.
+      assumeTrue(Files.exists(ToolHelper.R8LIB_JAR));
       List<String> command = new ArrayList<>();
       command.add(ToolHelper.getSystemJavaExecutable());
       command.add("-ea");
       command.add("-cp");
-      command.add(ToolHelper.R8_JAR.toString());
+      command.add(ToolHelper.R8_RETRACE_JAR.toString());
       command.add("com.android.tools.r8.retrace.Retrace");
       command.addAll(args);
       ProcessBuilder builder = new ProcessBuilder(command);
