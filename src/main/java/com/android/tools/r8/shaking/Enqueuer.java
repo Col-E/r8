@@ -3672,24 +3672,21 @@ public class Enqueuer {
     if (rootSet.noShrinking.containsMethod(singleTarget.getReference())) {
       return;
     }
-    if (methodToKeep != singleTarget) {
+    if (methodToKeep != singleTarget
+        && !syntheticInterfaceMethodBridges.containsKey(methodToKeep.getDefinition().method)) {
       assert null == methodToKeep.getHolder().lookupMethod(methodToKeep.getDefinition().method);
-      ProgramMethod old =
-          syntheticInterfaceMethodBridges.put(methodToKeep.getDefinition().method, methodToKeep);
-      if (old == null) {
-        if (singleTargetMethod.isLibraryMethodOverride().isTrue()) {
-          methodToKeep.getDefinition().setLibraryMethodOverride(OptionalBool.TRUE);
-        }
-        DexProgramClass singleTargetHolder = singleTarget.getHolder();
-        assert singleTargetHolder.isInterface();
-        markVirtualMethodAsReachable(
-            singleTargetMethod.method,
-            singleTargetHolder.isInterface(),
-            singleTarget,
-            graphReporter.fakeReportShouldNotBeUsed());
-        enqueueMarkMethodLiveAction(
-            singleTarget, singleTarget, graphReporter.fakeReportShouldNotBeUsed());
+      if (singleTargetMethod.isLibraryMethodOverride().isTrue()) {
+        methodToKeep.getDefinition().setLibraryMethodOverride(OptionalBool.TRUE);
       }
+      DexProgramClass singleTargetHolder = singleTarget.getHolder();
+      assert singleTargetHolder.isInterface();
+      markVirtualMethodAsReachable(
+          singleTargetMethod.method,
+          singleTargetHolder.isInterface(),
+          singleTarget,
+          graphReporter.fakeReportShouldNotBeUsed());
+      enqueueMarkMethodLiveAction(
+          singleTarget, singleTarget, graphReporter.fakeReportShouldNotBeUsed());
     }
     action.getAction().accept(builder);
   }
