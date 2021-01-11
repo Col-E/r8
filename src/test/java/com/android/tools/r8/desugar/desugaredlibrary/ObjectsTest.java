@@ -115,6 +115,10 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
     return invokesMethod("int", holder, "hashCode", ImmutableList.of("java.lang.Object"));
   }
 
+  private Matcher<MethodSubject> invokesClassGetClass() {
+    return invokesMethod("java.lang.Class", "java.lang.Object", "getClass", ImmutableList.of());
+  }
+
   private Matcher<MethodSubject> invokesObjectsRequireNonNull(String holder) {
     return invokesMethod(
         "java.lang.Object", holder, "requireNonNull", ImmutableList.of("java.lang.Object"));
@@ -218,7 +222,7 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
         onlyIf(invokeJavaUtilObjects, invokesObjectsRequireNonNull("java.util.Objects")));
     assertThat(
         testClass.uniqueMethodWithName("objectsRequireNonNull"),
-        onlyIf(invokeJDollarUtilObjects, invokesObjectsRequireNonNull("j$.util.Objects")));
+        onlyIf(parameters.getApiLevel().isLessThan(AndroidApiLevel.K), invokesClassGetClass()));
 
     assertThat(
         testClass.uniqueMethodWithName("objectsRequireNonNullWithMessage"),
@@ -525,7 +529,7 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
       objectsEquals(args, args);
       objectsHash(1, 2);
       objectsHashCode(4);
-      objectsRequireNonNull(null);
+      objectsRequireNonNull(System.currentTimeMillis() >= 0 ? null : new Object());
       objectsRequireNonNullWithMessage(null, "Was null");
       if (objectsRequireNonNullWithSupplierSupported) {
         objectsRequireNonNullWithSupplier(null, () -> "Supplier said was null");

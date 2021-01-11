@@ -1312,13 +1312,18 @@ public final class BackportedMethodRewriter {
         // TODO(b/174453232): Remove this after the configuration file format has bee updated
         // with the "rewrite_method" section.
         if (generator.method.getHolderType() == appView.dexItemFactory().objectsType) {
-          // Still backport the new API level 30 methods.
+          // Still backport the new API level 30 methods and Objects.requireNonNull taking
+          // one argument.
           String methodName = generator.method.getName().toString();
-          if (!methodName.equals("requireNonNullElse")
+          if (!methodName.equals("requireNonNull")
+              && !methodName.equals("requireNonNullElse")
               && !methodName.equals("requireNonNullElseGet")
               && !methodName.equals("checkIndex")
               && !methodName.equals("checkFromToIndex")
               && !methodName.equals("checkFromIndexSize")) {
+            return;
+          }
+          if (methodName.equals("requireNonNull") && generator.method.getArity() != 1) {
             return;
           }
         }
