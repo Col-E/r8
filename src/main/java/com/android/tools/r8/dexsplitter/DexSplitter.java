@@ -362,8 +362,7 @@ public final class DexSplitter {
             run(args);
           } catch (FeatureMappingException e) {
             // TODO(ricow): Report feature mapping errors via the reporter.
-            System.err.println("Splitting failed: " + e.getMessage());
-            System.exit(1);
+            throw new RuntimeException("Splitting failed: " + e.getMessage());
           }
         });
   }

@@ -25,8 +25,6 @@ import java.util.function.Supplier;
 
 public abstract class ExceptionUtils {
 
-  public static final int STATUS_ERROR = 1;
-
   public static void withConsumeResourceHandler(
       Reporter reporter, StringConsumer consumer, String data) {
     withConsumeResourceHandler(reporter, handler -> consumer.accept(data, handler));
@@ -176,23 +174,19 @@ public abstract class ExceptionUtils {
     try {
       action.run();
     } catch (CompilationFailedException e) {
-      throw exitWithError(e, e.getCause());
+      printExitMessage(e.getCause());
+      throw new RuntimeException(e);
     } catch (RuntimeException e) {
-      throw exitWithError(e, e);
+      printExitMessage(e);
+      throw e;
     }
   }
 
-  private static RuntimeException exitWithError(Throwable e, Throwable cause) {
-    if (isExpectedException(cause)) {
-      // Detail of the errors were already reported
-      System.err.println("Compilation failed");
-      System.exit(STATUS_ERROR);
-      throw null;
-    }
-    System.err.println("Compilation failed with an internal error.");
-    e.printStackTrace();
-    System.exit(STATUS_ERROR);
-    throw null;
+  private static void printExitMessage(Throwable cause) {
+    System.err.println(
+        isExpectedException(cause)
+            ? "Compilation failed"
+            : "Compilation failed with an internal error.");
   }
 
   private static boolean isExpectedException(Throwable e) {

@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Iterators;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,8 +41,9 @@ public class ReadMainDexList {
 
   private void run(String[] args) throws Exception {
     if (args.length < 1 || args.length > 3) {
-      System.out.println("Usage: command [-k] <main_dex_list> [<proguard_map>]");
-      System.exit(0);
+      throw new RuntimeException(
+          StringUtils.joinLines(
+              "Invalid invocation.", "Usage: command [-k] <main_dex_list> [<proguard_map>]"));
     }
 
     Iterator<String> arguments = Iterators.forArray(args);

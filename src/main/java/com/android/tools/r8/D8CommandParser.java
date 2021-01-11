@@ -103,9 +103,9 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
     D8Command command = parse(args, Origin.root()).build();
     if (command.isPrintHelp()) {
       System.out.println(USAGE_MESSAGE);
-      System.exit(1);
+    } else {
+      D8.run(command);
     }
-    D8.run(command);
   }
 
   static final String USAGE_MESSAGE =

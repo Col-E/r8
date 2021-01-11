@@ -61,17 +61,18 @@ import java.util.Set;
 public class PrintUses {
 
   private static final String USAGE =
-      "Arguments: [--keeprules, --keeprules-allowobfuscation] <rt.jar> <r8.jar> <sample.jar>\n"
-          + "\n"
-          + "PrintUses prints the classes, interfaces, methods and fields used by <sample.jar>,\n"
-          + "restricted to classes and interfaces in <r8.jar> that are not in <sample.jar>.\n"
-          + "<rt.jar> and <r8.jar> should point to libraries used by <sample.jar>.\n"
-          + "\n"
-          + "The output is in the same format as what is printed when specifying -printseeds in\n"
-          + "a ProGuard configuration file. Use --keeprules or --keeprules-allowobfuscation for "
-          + "outputting proguard keep rules. See also the "
-          + PrintSeeds.class.getSimpleName()
-          + " program in R8.";
+      StringUtils.joinLines(
+          "Arguments: [--keeprules, --keeprules-allowobfuscation] <rt.jar> <r8.jar> <sample.jar>",
+          "",
+          "PrintUses prints the classes, interfaces, methods and fields used by <sample.jar>,",
+          "restricted to classes and interfaces in <r8.jar> that are not in <sample.jar>.",
+          "<rt.jar> and <r8.jar> should point to libraries used by <sample.jar>.",
+          "",
+          "The output is in the same format as what is printed when specifying -printseeds in",
+          "a ProGuard configuration file. Use --keeprules or --keeprules-allowobfuscation for",
+          "outputting proguard keep rules. See also the "
+              + PrintSeeds.class.getSimpleName()
+              + " program in R8.");
 
   private final Set<String> descriptors;
   private final Printer printer;
@@ -306,8 +307,7 @@ public class PrintUses {
 
   public static void main(String... args) throws Exception {
     if (args.length != 3 && args.length != 4 && args.length != 5) {
-      System.out.println(USAGE.replace("\n", System.lineSeparator()));
-      return;
+      throw new RuntimeException(StringUtils.joinLines("Invalid invocation.", USAGE));
     }
     int argumentIndex = 0;
     boolean printKeep = false;
@@ -319,9 +319,9 @@ public class PrintUses {
       // Make sure there is only one argument that mentions --keeprules
       for (int i = 1; i < args.length; i++) {
         if (args[i].startsWith("-keeprules")) {
-          System.out.println("Use either --keeprules or --keeprules-allowobfuscation, not both.");
-          System.out.println(USAGE.replace("\n", System.lineSeparator()));
-          return;
+          throw new RuntimeException(
+              StringUtils.joinLines(
+                  "Use either --keeprules or --keeprules-allowobfuscation, not both.", USAGE));
         }
       }
     }
@@ -343,8 +343,7 @@ public class PrintUses {
     printUses.analyze();
     printUses.print();
     if (printUses.errors > 0) {
-      System.err.println(printUses.errors + " errors");
-      System.exit(1);
+      throw new RuntimeException(printUses.errors + " errors");
     }
   }
 

@@ -5,7 +5,6 @@
 package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.retrace.internal.RetraceUtils.firstNonWhiteSpaceCharacterFromIndex;
-import static com.android.tools.r8.utils.ExceptionUtils.STATUS_ERROR;
 import static com.android.tools.r8.utils.ExceptionUtils.failWithFakeEntry;
 
 import com.android.tools.r8.Diagnostic;
@@ -358,13 +357,9 @@ public class Retrace {
       action.run();
     } catch (RetraceFailedException | RetraceAbortException e) {
       // Detail of the errors were already reported
-      System.err.println("Retrace failed");
-      System.exit(STATUS_ERROR);
-      throw null;
+      throw new RuntimeException("Retrace failed", e);
     } catch (Throwable t) {
-      System.err.println("Retrace failed with an internal error.");
-      t.printStackTrace();
-      System.exit(STATUS_ERROR);
+      throw new RuntimeException("Retrace failed with an internal error.", t);
     }
   }
 

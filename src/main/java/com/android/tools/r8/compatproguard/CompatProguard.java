@@ -12,7 +12,7 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.CommandLineOrigin;
-import com.android.tools.r8.utils.AbortException;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Paths;
 import java.util.List;
@@ -211,12 +211,6 @@ public class CompatProguard {
   }
 
   public static void main(String[] args) {
-    try {
-      run(args);
-    } catch (CompilationFailedException | AbortException e) {
-      // Detail of the errors were already reported
-      System.err.println("Compilation failed");
-      System.exit(1);
-    }
+    ExceptionUtils.withMainProgramHandler(() -> run(args));
   }
 }

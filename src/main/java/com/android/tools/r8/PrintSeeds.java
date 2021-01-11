@@ -18,6 +18,7 @@ import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
@@ -39,21 +40,19 @@ import java.util.concurrent.ExecutorService;
 public class PrintSeeds {
 
   private static final String USAGE =
-      "Arguments: <rt.jar> <r8.jar> <pg-conf.txt>\n"
-          + "\n"
-          + "PrintSeeds prints the classes, interfaces, methods and fields selected by\n"
-          + "<pg-conf.txt> when compiling <r8.jar> alongside <rt.jar>.\n"
-          + "\n"
-          + "The output format is identical to what is printed when -printseeds is specified in\n"
-          + "<pg-conf.txt>, but running PrintSeeds can be faster than running R8 with \n"
-          + "-printseeds. See also the "
-          + PrintUses.class.getSimpleName()
-          + " program in R8.";
+      StringUtils.joinLines(
+          "Arguments: <rt.jar> <r8.jar> <pg-conf.txt>",
+          "",
+          "PrintSeeds prints the classes, interfaces, methods and fields selected by",
+          "<pg-conf.txt> when compiling <r8.jar> alongside <rt.jar>.",
+          "",
+          "The output format is identical to what is printed when -printseeds is specified in",
+          "<pg-conf.txt>, but running PrintSeeds can be faster than running R8 with",
+          "-printseeds. See also the " + PrintUses.class.getSimpleName() + " program in R8.");
 
   public static void main(String[] args) throws Exception {
     if (args.length != 3) {
-      System.out.println(USAGE.replace("\n", System.lineSeparator()));
-      System.exit(1);
+      throw new RuntimeException(StringUtils.joinLines("Invalid invocation.", USAGE));
     }
     Path rtJar = Paths.get(args[0]);
     Path r8Jar = Paths.get(args[1]);

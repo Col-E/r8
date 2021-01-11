@@ -16,6 +16,7 @@ import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -92,8 +93,8 @@ public class TraceReferences {
    */
   public static void main(String[] args) {
     if (args.length == 0) {
-      System.err.println(TraceReferencesCommandParser.USAGE_MESSAGE);
-      System.exit(ExceptionUtils.STATUS_ERROR);
+      throw new RuntimeException(
+          StringUtils.joinLines("Invalid invocation.", TraceReferencesCommandParser.USAGE_MESSAGE));
     }
     ExceptionUtils.withMainProgramHandler(() -> run(args));
   }

@@ -10,6 +10,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.ExceptionUtils;
+import com.android.tools.r8.utils.StringUtils;
 
 public class RelocatorCommandLine {
 
@@ -21,8 +22,7 @@ public class RelocatorCommandLine {
    */
   public static void main(String[] args) {
     if (args.length == 0) {
-      System.err.println(USAGE_MESSAGE);
-      System.exit(ExceptionUtils.STATUS_ERROR);
+      throw new RuntimeException(StringUtils.joinLines("Invalid invocation.", USAGE_MESSAGE));
     }
     ExceptionUtils.withMainProgramHandler(() -> run(args));
   }

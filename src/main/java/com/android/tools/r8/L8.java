@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SelfRetraceTest;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
@@ -186,8 +187,7 @@ public class L8 {
    */
   public static void main(String[] args) {
     if (args.length == 0) {
-      System.err.println(USAGE_MESSAGE);
-      System.exit(ExceptionUtils.STATUS_ERROR);
+      throw new RuntimeException(StringUtils.joinLines("Invalid invocation.", USAGE_MESSAGE));
     }
     ExceptionUtils.withMainProgramHandler(() -> run(args));
   }

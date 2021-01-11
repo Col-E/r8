@@ -46,6 +46,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.io.File;
@@ -794,9 +795,10 @@ public class GenerateLintFiles {
       new GenerateLintFiles(args[1], args[2], args[3]).generateDesugaredLibraryApisDocumetation();
       return;
     }
-    System.out.println(
-        "Usage: GenerateLineFiles [--generate-api-docs] "
-            + "<desugar configuration> <desugar implementation> <output directory>");
-    System.exit(1);
+    throw new RuntimeException(
+        StringUtils.joinLines(
+            "Invalid invocation.",
+            "Usage: GenerateLineFiles [--generate-api-docs] "
+                + "<desugar configuration> <desugar implementation> <output directory>"));
   }
 }

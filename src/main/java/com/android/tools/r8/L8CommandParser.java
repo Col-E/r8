@@ -25,9 +25,9 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
     L8Command command = parse(args, Origin.root()).build();
     if (command.isPrintHelp()) {
       System.out.println(USAGE_MESSAGE);
-      System.exit(1);
+    } else {
+      L8.run(command);
     }
-    L8.run(command);
   }
 
   static final String USAGE_MESSAGE =

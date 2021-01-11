@@ -40,6 +40,7 @@ import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -142,8 +143,7 @@ public final class D8 {
    */
   public static void main(String[] args) {
     if (args.length == 0) {
-      System.err.println(USAGE_MESSAGE);
-      System.exit(ExceptionUtils.STATUS_ERROR);
+      throw new RuntimeException(StringUtils.joinLines("Invalid invocation.", USAGE_MESSAGE));
     }
     ExceptionUtils.withMainProgramHandler(() -> run(args));
   }

@@ -42,9 +42,9 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
     R8Command command = parse(args, Origin.root()).build();
     if (command.isPrintHelp()) {
       System.out.println(USAGE_MESSAGE);
-      System.exit(1);
+    } else {
+      R8.run(command);
     }
-    R8.run(command);
   }
 
   // Internal state to verify parsing properties not enforced by the builder.
