@@ -222,7 +222,7 @@ def EnsureDepFromGoogleCloudStorage(dep, tgz, sha1, msg):
     # there is an update.
     os.utime(tgz, None)
   else:
-    print 'Ensure cloud dependency:', msg, 'present'
+    print('Ensure cloud dependency:', msg, 'present')
 
 def DownloadFromX20(sha1_file):
   download_script = os.path.join(REPO_ROOT, 'tools', 'download_from_x20.py')
@@ -336,7 +336,7 @@ def extract_dir(filename):
 def unpack_archive(filename):
   dest_dir = extract_dir(filename)
   if os.path.exists(dest_dir):
-    print 'Deleting existing dir %s' % dest_dir
+    print('Deleting existing dir %s' % dest_dir)
     shutil.rmtree(dest_dir)
   dirname = os.path.dirname(os.path.abspath(filename))
   with tarfile.open(filename, 'r:gz') as tar:
@@ -376,12 +376,12 @@ class ChangedWorkingDirectory(object):
  def __enter__(self):
    self._old_cwd = os.getcwd()
    if not self._quiet:
-     print 'Enter directory:', self._working_directory
+     print('Enter directory:', self._working_directory)
    os.chdir(self._working_directory)
 
  def __exit__(self, *_):
    if not self._quiet:
-     print 'Enter directory:', self._old_cwd
+     print('Enter directory:', self._old_cwd)
    os.chdir(self._old_cwd)
 
 # Reading Android CTS test_result.xml

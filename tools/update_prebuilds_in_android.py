@@ -53,14 +53,14 @@ def copy_targets(root, target_root, srcs, dests, maps=False):
     src = os.path.join(root, srcs[i])
     dest = os.path.join(target_root, 'prebuilts', 'r8', dests[i])
     if os.path.exists(dest):
-      print 'Copying: ' + src + ' -> ' + dest
+      print('Copying: ' + src + ' -> ' + dest)
       copyfile(src, dest)
       if maps:
-        print 'Copying: ' + src + '.map -> ' + dest + '.map'
+        print('Copying: ' + src + '.map -> ' + dest + '.map')
         copyfile(src + '.map', dest + '.map')
     else:
-      print ('WARNING: Not copying ' + src + ' -> ' + dest +
-             ', as' + dest + ' does not exist already')
+      print('WARNING: Not copying ' + src + ' -> ' + dest +
+            ', as' + dest + ' does not exist already')
 
 def copy_jar_targets(root, target_root, jar_targets, maps):
   srcs = map((lambda t: t[0] + '.jar'), jar_targets)
@@ -83,7 +83,7 @@ def download_target(root, target, hash_or_version, is_hash, quiet=False):
     target,
     is_hash)
   if not quiet:
-    print 'Downloading: ' + url + ' -> ' + download_path
+    print('Downloading: ' + url + ' -> ' + download_path)
   utils.download_file_from_cloud_storage(url, download_path, quiet=quiet)
 
 def main_download(hash, maps, targets, target_root, version):

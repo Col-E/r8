@@ -40,7 +40,7 @@ def GetJavacExecutable(jdkHome=None):
   return os.path.join(jdkHome, 'bin', executable) if jdkHome else executable
 
 def Main():
-  print GetJdkHome()
+  print(GetJdkHome())
 
 if __name__ == '__main__':
   sys.exit(Main())

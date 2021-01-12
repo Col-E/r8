@@ -158,7 +158,7 @@ def Main():
   is_master = IsMaster(version)
   if is_master:
     # On master we use the git hash to archive with
-    print 'On master, using git hash for archiving'
+    print('On master, using git hash for archiving')
     version = GetGitHash()
 
   destination = GetVersionDestination('gs://', version, is_master)

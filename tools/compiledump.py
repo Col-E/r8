@@ -106,7 +106,7 @@ def make_parser():
   return parser
 
 def error(msg):
-  print msg
+  print(msg)
   sys.exit(1)
 
 class Dump(object):
@@ -145,11 +145,11 @@ class Dump(object):
 
   def proguard_input_map(self):
     if self.if_exists('proguard_input.config'):
-      print "Unimplemented: proguard_input configuration."
+      print("Unimplemented: proguard_input configuration.")
 
   def main_dex_resource(self):
     if self.if_exists('main-dex-list.txt'):
-      print "Unimplemented: main-dex-list."
+      print("Unimplemented: main-dex-list.")
 
   def build_properties_file(self):
     return self.if_exists('build.properties')
@@ -270,7 +270,7 @@ def run1(out, args, otherargs):
     if not dump.program_jar():
       error("Cannot compile dump with no program classes")
     if not dump.library_jar():
-      print "WARNING: Unexpected lack of library classes in dump"
+      print("WARNING: Unexpected lack of library classes in dump")
     build_properties = determine_build_properties(args, dump)
     version = determine_version(args, dump)
     compiler = determine_compiler(args, dump)
@@ -284,7 +284,7 @@ def run1(out, args, otherargs):
     cmd = [jdk.GetJavaExecutable()]
     if args.debug_agent:
       if not args.nolib:
-        print "WARNING: Running debugging agent on r8lib is questionable..."
+        print("WARNING: Running debugging agent on r8lib is questionable...")
       cmd.append(
           '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005')
     if args.xmx:
@@ -329,18 +329,18 @@ def run1(out, args, otherargs):
     cmd.extend(otherargs)
     utils.PrintCmd(cmd)
     try:
-      print subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+      print(subprocess.check_output(cmd, stderr=subprocess.STDOUT))
       return 0
-    except subprocess.CalledProcessError, e:
-      print e.output
+    except subprocess.CalledProcessError as e:
+      print(e.output)
       if not args.nolib and version != 'source':
         stacktrace = os.path.join(temp, 'stacktrace')
         open(stacktrace, 'w+').write(e.output)
         local_map = utils.R8LIB_MAP if version == 'master' else None
         hash_or_version = None if version == 'master' else version
-        print "=" * 80
-        print " RETRACED OUTPUT"
-        print "=" * 80
+        print("=" * 80)
+        print(" RETRACED OUTPUT")
+        print("=" * 80)
         retrace.run(
           local_map, hash_or_version, stacktrace, is_hash(version), no_r8lib=False)
       return 1

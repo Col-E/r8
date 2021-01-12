@@ -47,7 +47,7 @@ def GetJavaEnv(env):
 def PrintCmd(s):
   if type(s) is list:
     s = ' '.join(s)
-  print 'Running: %s' % s
+  print('Running: %s' % s)
   # I know this will hit os on windows eventually if we don't do this.
   sys.stdout.flush()
 
