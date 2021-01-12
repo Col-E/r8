@@ -11,32 +11,24 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
-public class ProgramMethodSet implements Iterable<ProgramMethod> {
+public class ProgramMethodSet extends DexClassAndMethodSetBase<ProgramMethod> {
 
   private static final ProgramMethodSet EMPTY = new ProgramMethodSet(ImmutableMap::of);
 
-  private final Map<DexMethod, ProgramMethod> backing;
-  private final Supplier<? extends Map<DexMethod, ProgramMethod>> backingFactory;
-
   protected ProgramMethodSet(Supplier<? extends Map<DexMethod, ProgramMethod>> backingFactory) {
-    this(backingFactory, backingFactory.get());
+    super(backingFactory);
   }
 
   protected ProgramMethodSet(
       Supplier<? extends Map<DexMethod, ProgramMethod>> backingFactory,
       Map<DexMethod, ProgramMethod> backing) {
-    this.backing = backing;
-    this.backingFactory = backingFactory;
+    super(backingFactory, backing);
   }
 
   public static ProgramMethodSet create() {
@@ -71,52 +63,12 @@ public class ProgramMethodSet implements Iterable<ProgramMethod> {
     return EMPTY;
   }
 
-  public boolean add(ProgramMethod method) {
-    ProgramMethod existing = backing.put(method.getReference(), method);
-    assert existing == null || existing.isStructurallyEqualTo(method);
-    return existing == null;
-  }
-
-  public void addAll(Iterable<ProgramMethod> methods) {
-    methods.forEach(this::add);
-  }
-
   public void addAll(ProgramMethodSet methods) {
     backing.putAll(methods.backing);
   }
 
   public boolean createAndAdd(DexProgramClass clazz, DexEncodedMethod definition) {
     return add(new ProgramMethod(clazz, definition));
-  }
-
-  public boolean contains(DexEncodedMethod method) {
-    return backing.containsKey(method.getReference());
-  }
-
-  public boolean contains(ProgramMethod method) {
-    return backing.containsKey(method.getReference());
-  }
-
-  public void clear() {
-    backing.clear();
-  }
-
-  public boolean isEmpty() {
-    return backing.isEmpty();
-  }
-
-  @Override
-  public Iterator<ProgramMethod> iterator() {
-    return backing.values().iterator();
-  }
-
-  public boolean remove(DexMethod method) {
-    ProgramMethod existing = backing.remove(method);
-    return existing != null;
-  }
-
-  public boolean remove(DexEncodedMethod method) {
-    return remove(method.getReference());
   }
 
   public ProgramMethodSet rewrittenWithLens(DexDefinitionSupplier definitions, GraphLens lens) {
@@ -129,20 +81,5 @@ public class ProgramMethodSet implements Iterable<ProgramMethod> {
           }
         });
     return rewritten;
-  }
-
-  public int size() {
-    return backing.size();
-  }
-
-  public Stream<ProgramMethod> stream() {
-    return backing.values().stream();
-  }
-
-  public Set<DexEncodedMethod> toDefinitionSet() {
-    assert backing instanceof IdentityHashMap;
-    Set<DexEncodedMethod> definitions = Sets.newIdentityHashSet();
-    forEach(method -> definitions.add(method.getDefinition()));
-    return definitions;
   }
 }

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -18,6 +19,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -25,6 +27,7 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.synthetic.ExceptionThrowingSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.position.MethodPosition;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -39,7 +42,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.objectweb.asm.Opcodes;
 
@@ -105,14 +107,14 @@ final class ClassProcessor {
     // List of methods that are known to be forwarded to by a forwarding method at this point in the
     // class hierarchy. This set consists of the default interface methods, i.e., the targets of the
     // forwarding methods, *not* the forwarding methods themselves.
-    final ImmutableList<DexEncodedMethod> forwardedMethodTargets;
+    final ImmutableList<DexClassAndMethod> forwardedMethodTargets;
     // If the forwarding methods for the emulated interface methods have not been added yet,
     // this contains the information to add it in the subclasses.
     final EmulatedInterfaceInfo emulatedInterfaceInfo;
 
     ClassInfo(
         ClassInfo parent,
-        ImmutableList<DexEncodedMethod> forwardedMethodTargets,
+        ImmutableList<DexClassAndMethod> forwardedMethodTargets,
         EmulatedInterfaceInfo emulatedInterfaceInfo) {
       this.parent = parent;
       this.forwardedMethodTargets = forwardedMethodTargets;
@@ -121,7 +123,7 @@ final class ClassProcessor {
 
     static ClassInfo create(
         ClassInfo parent,
-        ImmutableList<DexEncodedMethod> forwardedMethodTargets,
+        ImmutableList<DexClassAndMethod> forwardedMethodTargets,
         EmulatedInterfaceInfo emulatedInterfaceInfo) {
       return forwardedMethodTargets.isEmpty()
           ? parent
@@ -132,8 +134,11 @@ final class ClassProcessor {
       return this == EMPTY;
     }
 
-    boolean isTargetedByForwards(DexEncodedMethod method) {
-      return forwardedMethodTargets.contains(method)
+    boolean isTargetedByForwards(DexClassAndMethod method) {
+      return IterableUtils.any(
+              forwardedMethodTargets,
+              DexClassAndMember::getDefinition,
+              definition -> definition == method.getDefinition())
           || (parent != null && parent.isTargetedByForwards(method));
     }
   }
@@ -394,7 +399,7 @@ final class ClassProcessor {
   // The computation of a class information and the insertions of forwarding methods.
   private ClassInfo computeClassInfo(
       DexClass clazz, ClassInfo superInfo, SignaturesInfo signatureInfo) {
-    Builder<DexEncodedMethod> additionalForwards = ImmutableList.builder();
+    ImmutableList.Builder<DexClassAndMethod> additionalForwards = ImmutableList.builder();
     // First we deal with non-emulated interface desugaring.
     resolveForwardingMethods(clazz, superInfo, signatureInfo.signatures, additionalForwards);
     // Second we deal with emulated interface, if one method has override in the current class,
@@ -507,7 +512,7 @@ final class ClassProcessor {
       DexClass clazz,
       ClassInfo superInfo,
       MethodSignatures signatures,
-      Builder<DexEncodedMethod> additionalForwards) {
+      Builder<DexClassAndMethod> additionalForwards) {
     if (clazz.isProgramClass() && appView.isAlreadyLibraryDesugared(clazz.asProgramClass())) {
       return;
     }
@@ -515,10 +520,10 @@ final class ClassProcessor {
       resolveForwardForSignature(
           clazz,
           wrapper.get(),
-          (targetHolder, target) -> {
+          target -> {
             if (!superInfo.isTargetedByForwards(target)) {
               additionalForwards.add(target);
-              addForwardingMethod(targetHolder, target, clazz);
+              addForwardingMethod(target, clazz);
             }
           });
     }
@@ -527,7 +532,7 @@ final class ClassProcessor {
   // Looks up a method signature from the point of 'clazz', if it can dispatch to a default method
   // the 'addForward' call-back is called with the target of the forward.
   private void resolveForwardForSignature(
-      DexClass clazz, DexMethod method, BiConsumer<DexClass, DexEncodedMethod> addForward) {
+      DexClass clazz, DexMethod method, Consumer<DexClassAndMethod> addForward) {
     // Resolve the default method with base type as the symbolic holder as call sites are not known.
     // The dispatch target is then looked up from the possible "instance" class.
     // Doing so can cause an invalid invoke to become valid (at runtime resolution at a subtype
@@ -550,54 +555,52 @@ final class ClassProcessor {
       return;
     }
 
-    DexEncodedMethod target = virtualDispatchTarget.getDefinition();
-    DexClass targetHolder = virtualDispatchTarget.getHolder();
     // Don't forward if the target is explicitly marked as 'dont-rewrite'
-    if (dontRewrite(targetHolder, target)) {
+    if (dontRewrite(virtualDispatchTarget)) {
       return;
     }
 
     // If resolution targets a default interface method, forward it.
-    if (targetHolder.isInterface() && target.isDefaultMethod()) {
-      addForward.accept(targetHolder, target);
+    if (virtualDispatchTarget.isDefaultMethod()) {
+      addForward.accept(virtualDispatchTarget);
       return;
     }
 
     // Remaining edge cases only pertain to desugaring of library methods.
-    DexLibraryClass libraryHolder = targetHolder.asLibraryClass();
-    if (libraryHolder == null || ignoreLibraryInfo()) {
+    if (!virtualDispatchTarget.isLibraryMethod() || ignoreLibraryInfo()) {
       return;
     }
 
-    if (isRetargetMethod(libraryHolder, target)) {
-      addForward.accept(targetHolder, target);
+    LibraryMethod libraryMethod = virtualDispatchTarget.asLibraryMethod();
+    if (isRetargetMethod(libraryMethod)) {
+      addForward.accept(virtualDispatchTarget);
       return;
     }
 
     // If target is a non-interface library class it may be an emulated interface,
     // except on a rewritten type, where L8 has already dealt with the desugaring.
-    if (!libraryHolder.isInterface()
-        && !appView.rewritePrefix.hasRewrittenType(libraryHolder.type, appView)) {
+    if (!libraryMethod.getHolder().isInterface()
+        && !appView.rewritePrefix.hasRewrittenType(libraryMethod.getHolderType(), appView)) {
       // Here we use step-3 of resolution to find a maximally specific default interface method.
-      DexClassAndMethod result = appInfo.lookupMaximallySpecificMethod(libraryHolder, method);
-      if (result != null && rewriter.isEmulatedInterface(result.getHolder().type)) {
-        addForward.accept(result.getHolder(), result.getDefinition());
+      DexClassAndMethod result =
+          appInfo.lookupMaximallySpecificMethod(libraryMethod.getHolder(), method);
+      if (result != null && rewriter.isEmulatedInterface(result.getHolderType())) {
+        addForward.accept(result);
       }
     }
   }
 
-  private boolean isRetargetMethod(DexLibraryClass holder, DexEncodedMethod method) {
+  private boolean isRetargetMethod(LibraryMethod method) {
     assert needsLibraryInfo();
-    assert holder.type == method.getHolderType();
-    assert method.isNonPrivateVirtualMethod();
-    if (method.isFinal()) {
-      return false;
-    }
-    return appView.options().desugaredLibraryConfiguration.retargetMethod(method, appView) != null;
+    assert method.getDefinition().isNonPrivateVirtualMethod();
+    return !method.getAccessFlags().isFinal()
+        && appView.options().desugaredLibraryConfiguration.retargetMethod(method, appView) != null;
   }
 
-  private boolean dontRewrite(DexClass clazz, DexEncodedMethod method) {
-    return needsLibraryInfo() && clazz.isLibraryClass() && rewriter.dontRewrite(method.method);
+  private boolean dontRewrite(DexClassAndMethod method) {
+    return needsLibraryInfo()
+        && method.getHolder().isLibraryClass()
+        && rewriter.dontRewrite(method);
   }
 
   // Construction of actual forwarding methods.
@@ -630,13 +633,12 @@ final class ClassProcessor {
 
   // Note: The parameter 'target' may be a public method on a class in case of desugared
   // library retargeting (See below target.isInterface check).
-  private void addForwardingMethod(DexClass targetHolder, DexEncodedMethod target, DexClass clazz) {
-    assert targetHolder != null;
+  private void addForwardingMethod(DexClassAndMethod target, DexClass clazz) {
     if (!clazz.isProgramClass()) {
       return;
     }
 
-    DexEncodedMethod methodOnSelf = clazz.lookupMethod(target.method);
+    DexEncodedMethod methodOnSelf = clazz.lookupMethod(target.getReference());
     if (methodOnSelf != null) {
       throw new CompilationError(
           "Attempt to add forwarding method that conflicts with existing method.",
@@ -645,13 +647,12 @@ final class ClassProcessor {
           new MethodPosition(methodOnSelf.method.asMethodReference()));
     }
 
-    DexMethod method = target.method;
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
     // even if this results in invalid code, these classes are never desugared.
     // In desugared library, emulated interface methods can be overridden by retarget lib members.
     DexMethod forwardMethod =
-        targetHolder.isInterface()
-            ? rewriter.defaultAsMethodOfCompanionClass(method)
+        target.getHolder().isInterface()
+            ? rewriter.defaultAsMethodOfCompanionClass(target)
             : appView.options().desugaredLibraryConfiguration.retargetMethod(target, appView);
     DexEncodedMethod desugaringForwardingMethod =
         DexEncodedMethod.createDesugaringForwardingMethod(

@@ -15,6 +15,16 @@ import java.util.function.Predicate;
 
 public class IterableUtils {
 
+  public static <S, T> boolean any(
+      Iterable<S> iterable, Function<S, T> transform, Predicate<T> predicate) {
+    for (S element : iterable) {
+      if (predicate.test(transform.apply(element))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public static <T> Iterable<T> append(Iterable<T> iterable, T element) {
     return Iterables.concat(iterable, singleton(element));
   }

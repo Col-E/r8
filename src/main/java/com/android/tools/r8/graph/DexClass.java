@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import static com.google.common.base.Predicates.alwaysFalse;
+import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
@@ -119,6 +120,16 @@ public abstract class DexClass extends DexDefinition {
               + type.descriptor.toString()
               + "' cannot be represented in dex format.");
     }
+  }
+
+  public void forEachClassMethod(Consumer<? super DexClassAndMethod> consumer) {
+    forEachClassMethodMatching(alwaysTrue(), consumer);
+  }
+
+  public void forEachClassMethodMatching(
+      Predicate<DexEncodedMethod> predicate, Consumer<? super DexClassAndMethod> consumer) {
+    methodCollection.forEachMethodMatching(
+        predicate, method -> consumer.accept(DexClassAndMethod.create(this, method)));
   }
 
   @Override

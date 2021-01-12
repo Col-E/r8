@@ -27,9 +27,21 @@ public class DexClassAndMethod extends DexClassAndMember<DexEncodedMethod, DexMe
     }
   }
 
+  public boolean isDefaultMethod() {
+    return getHolder().isInterface() && getDefinition().isDefaultMethod();
+  }
+
+  public boolean isStructurallyEqualTo(DexClassAndMethod other) {
+    return getDefinition() == other.getDefinition() && getHolder() == other.getHolder();
+  }
+
   @Override
   public MethodAccessFlags getAccessFlags() {
     return getDefinition().getAccessFlags();
+  }
+
+  public DexProto getProto() {
+    return getReference().getProto();
   }
 
   @Override

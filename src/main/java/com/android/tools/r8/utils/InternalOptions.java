@@ -63,12 +63,15 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
+import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -990,7 +993,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       DexType libraryType,
       DexType invalidSuperType,
       String message,
-      Set<DexEncodedMethod> retarget) {
+      DexClassAndMethodSet retarget) {
     if (invalidLibraryClasses.add(invalidSuperType)) {
       reporter.warning(
           new InvalidLibrarySuperclassDiagnostic(
@@ -998,7 +1001,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
               Reference.classFromDescriptor(libraryType.toDescriptorString()),
               Reference.classFromDescriptor(invalidSuperType.toDescriptorString()),
               message,
-              ListUtils.map(retarget, method -> method.getReference().asMethodReference())));
+              Lists.newArrayList(
+                  Iterables.transform(
+                      retarget, method -> method.getReference().asMethodReference()))));
     }
   }
 

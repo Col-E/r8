@@ -52,10 +52,6 @@ public final class ProgramMethod extends DexClassAndMethod
     definition.parameterAnnotationsList.collectIndexedItems(indexedItems);
   }
 
-  public boolean isStructurallyEqualTo(ProgramMethod other) {
-    return getDefinition() == other.getDefinition() && getHolder() == other.getHolder();
-  }
-
   public void registerCodeReferences(UseRegistry registry) {
     Code code = getDefinition().getCode();
     if (code != null) {

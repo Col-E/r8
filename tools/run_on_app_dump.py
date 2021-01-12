@@ -5,6 +5,7 @@
 
 import adb
 import apk_masseur
+import as_utils
 import compiledump
 import gradle
 import optparse
