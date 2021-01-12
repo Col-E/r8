@@ -49,6 +49,7 @@ import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
 import com.android.tools.r8.retrace.stacktraces.SuppressedStackTrace;
 import com.android.tools.r8.retrace.stacktraces.UnicodeInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.UnknownSourceStackTrace;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.charset.StandardCharsets;
@@ -69,17 +70,16 @@ public class RetraceTests extends TestBase {
 
   @Parameters(name = "{0}, use regular expression: {1}, external: {2}")
   public static Collection<Object[]> data() {
-    TestParameters noneRuntime = getTestParameters().withNoneRuntime().build().iterator().next();
-    return ImmutableList.of(
-        new Object[] {noneRuntime, false, false},
-        new Object[] {noneRuntime, true, false},
-        new Object[] {noneRuntime, true, true});
+    return buildParameters(
+        getTestParameters().withCfRuntimes().build(), BooleanUtils.values(), BooleanUtils.values());
   }
 
+  private final TestParameters testParameters;
   private final boolean useRegExpParsing;
   private final boolean external;
 
   public RetraceTests(TestParameters parameters, boolean useRegExpParsing, boolean external) {
+    this.testParameters = parameters;
     this.useRegExpParsing = useRegExpParsing;
     this.external = external;
   }
@@ -263,6 +263,8 @@ public class RetraceTests extends TestBase {
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest)
       throws Exception {
     if (external) {
+      assumeTrue(useRegExpParsing);
+      assumeTrue(testParameters.isCfRuntime());
       // The external dependency is built on top of R8Lib. If test.py is run with
       // no r8lib, do not try and run the external R8 Retrace since it has not been built.
       assumeTrue(Files.exists(ToolHelper.R8LIB_JAR));
@@ -276,7 +278,7 @@ public class RetraceTests extends TestBase {
               .getBytes(StandardCharsets.UTF_8));
 
       List<String> command = new ArrayList<>();
-      command.add(ToolHelper.getSystemJavaExecutable());
+      command.add(testParameters.getRuntime().asCf().getJavaExecutable().toString());
       command.add("-ea");
       command.add("-cp");
       command.add(ToolHelper.R8_RETRACE_JAR.toString());
