@@ -58,6 +58,9 @@ public class D8ApiBinaryCompatibilityTests extends TestBase {
     Path mainDexList = temp.getRoot().toPath().resolve("maindexlist.txt");
     FileUtils.writeTextFile(mainDexList, "desugaringwithmissingclasstest1/Main.class");
 
+    Path mainDexRules = temp.getRoot().toPath().resolve("maindex.rules");
+    FileUtils.writeTextFile(mainDexRules, "# empty file");
+
     // It is important to place the api usage sample jar after the current classpath because we want
     // to find D8/R8 classes before the ones in the jar, otherwise renamed classes and fields cannot
     // be found.
@@ -67,7 +70,8 @@ public class D8ApiBinaryCompatibilityTests extends TestBase {
             .addAll(
                 ImmutableList.of(
                     ToolHelper.getJavaExecutable(),
-                    "-cp", classPath,
+                    "-cp",
+                    classPath,
                     main,
                     // Compiler arguments.
                     "--output",
@@ -76,9 +80,11 @@ public class D8ApiBinaryCompatibilityTests extends TestBase {
                     Integer.toString(minApiLevel),
                     "--main-dex-list",
                     mainDexList.toString(),
+                    "--main-dex-rules",
+                    mainDexRules.toString(),
                     "--lib",
-                    ToolHelper.getAndroidJar(
-                        AndroidApiLevel.getAndroidApiLevel(minApiLevel)).toString(),
+                    ToolHelper.getAndroidJar(AndroidApiLevel.getAndroidApiLevel(minApiLevel))
+                        .toString(),
                     "--classpath",
                     lib1.toString(),
                     "--classpath",
