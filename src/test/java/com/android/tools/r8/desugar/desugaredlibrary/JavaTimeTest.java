@@ -5,12 +5,15 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -26,6 +29,12 @@ import com.android.tools.r8.utils.codeinspector.TryCatchSubject;
 import com.android.tools.r8.utils.codeinspector.TypeSubject;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
+import java.time.DateTimeException;
+import java.time.ZoneId;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalField;
+import java.time.temporal.TemporalQueries;
+import java.time.temporal.TemporalQuery;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -48,7 +57,9 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
           "1970-01-02T10:17:36.789Z",
           "GMT",
           "GMT",
+          "true",
           "Hello, world");
+  boolean canUseDefaultAndStaticInterfaceMethods;
 
   @Parameters(name = "{2}, shrinkDesugaredLibrary: {0}, traceReferencesKeepRules {1}")
   public static List<Object[]> data() {
@@ -67,6 +78,10 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.traceReferencesKeepRules = traceReferencesKeepRules;
     this.parameters = parameters;
+    this.canUseDefaultAndStaticInterfaceMethods =
+        parameters
+            .getApiLevel()
+            .isGreaterThanOrEqualTo(apiLevelWithDefaultInterfaceMethodsSupport());
   }
 
   private void checkRewrittenInvokes(CodeInspector inspector) {
@@ -162,27 +177,37 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     }
 
     // Determine desugared library keep rules.
+    TestRunResult<?> result;
     if (parameters.getRuntime().isDex()) {
       // Convert to DEX without desugaring and run.
-      testForD8()
-          .addProgramFiles(jar)
-          .setMinApi(parameters.getApiLevel())
-          .disableDesugaring()
-          .compile()
-          .addDesugaredCoreLibraryRunClassPath(
-              this::buildDesugaredLibrary,
-              parameters.getApiLevel(),
-              desugaredLibraryKeepRules,
-              shrinkDesugaredLibrary)
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(expectedOutput);
+      result =
+          testForD8()
+              .addProgramFiles(jar)
+              .setMinApi(parameters.getApiLevel())
+              .disableDesugaring()
+              .compile()
+              .addDesugaredCoreLibraryRunClassPath(
+                  this::buildDesugaredLibrary,
+                  parameters.getApiLevel(),
+                  desugaredLibraryKeepRules,
+                  shrinkDesugaredLibrary)
+              .run(parameters.getRuntime(), TestClass.class);
     } else {
       // Run on the JVM with desugared library on classpath.
-      testForJvm()
-          .addProgramFiles(jar)
-          .addRunClasspathFiles(buildDesugaredLibraryClassFile(parameters.getApiLevel()))
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(expectedOutput);
+      result =
+          testForJvm()
+              .addProgramFiles(jar)
+              .addRunClasspathFiles(buildDesugaredLibraryClassFile(parameters.getApiLevel()))
+              .run(parameters.getRuntime(), TestClass.class);
+    }
+    if (canUseDefaultAndStaticInterfaceMethods) {
+      result.assertSuccessWithOutput(expectedOutput);
+    } else {
+      result.assertFailureWithErrorThatMatches(
+          anyOf(
+              containsString(VerifyError.class.getName()),
+              containsString(IncompatibleClassChangeError.class.getName()),
+              containsString(AbstractMethodError.class.getName())));
     }
   }
 
@@ -246,6 +271,31 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
       return System.currentTimeMillis() > 0 ? null : new Object();
     }
 
+    public static void superInvokeOnLibraryDesugaredDefaultMethod() {
+      TemporalAccessor mock =
+          new TemporalAccessor() {
+            @Override
+            public boolean isSupported(TemporalField field) {
+              return false;
+            }
+
+            @Override
+            public long getLong(TemporalField field) {
+              throw new DateTimeException("Mock");
+            }
+
+            @SuppressWarnings("unchecked")
+            @Override
+            public <R> R query(TemporalQuery<R> query) {
+              if (query == TemporalQueries.zoneId()) {
+                return (R) ZoneId.of("GMT");
+              }
+              return TemporalAccessor.super.query(query);
+            }
+          };
+      System.out.println(ZoneId.from(mock).equals(ZoneId.of("GMT")));
+    }
+
     public static void main(String[] args) {
       java.time.Clock.systemDefaultZone();
       try {
@@ -265,6 +315,8 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
       java.util.TimeZone timeZone = java.util.TimeZone.getTimeZone(java.time.ZoneId.of("GMT"));
       System.out.println(timeZone.getID());
       System.out.println(timeZone.toZoneId().getId());
+
+      superInvokeOnLibraryDesugaredDefaultMethod();
 
       System.out.println("Hello, world");
     }
