@@ -44,6 +44,7 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends T
   public static class B extends A implements I {}
 
   public static class C extends B {
+    @Override
     public void f() {
       System.out.println("Called C.f");
     }

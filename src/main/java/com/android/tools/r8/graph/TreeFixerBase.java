@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -12,14 +13,14 @@ import java.util.Map;
 
 public abstract class TreeFixerBase {
 
-  private final AppView<?> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory dexItemFactory;
 
   private final Map<DexType, DexProgramClass> programClassCache = new IdentityHashMap<>();
   private final Map<DexType, DexProgramClass> synthesizedFromClasses = new IdentityHashMap<>();
   private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
-  public TreeFixerBase(AppView<?> appView) {
+  public TreeFixerBase(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
   }
@@ -44,6 +45,32 @@ public abstract class TreeFixerBase {
   private DexEncodedField recordFieldChange(DexEncodedField from, DexEncodedField to) {
     recordFieldChange(from.field, to.field);
     return to;
+  }
+
+  /** Rewrite missing references */
+  public void recordFailedResolutionChanges() {
+    // In order for optimizations to correctly rewrite field and method references that do not
+    // resolve, we create a mapping from each failed resolution target to its reference reference.
+    appView
+        .appInfo()
+        .getFailedFieldResolutionTargets()
+        .forEach(
+            field -> {
+              DexField fixedUpField = fixupFieldReference(field);
+              if (field != fixedUpField) {
+                recordFieldChange(field, fixedUpField);
+              }
+            });
+    appView
+        .appInfo()
+        .getFailedMethodResolutionTargets()
+        .forEach(
+            method -> {
+              DexMethod fixedUpMethod = fixupMethodReference(method);
+              if (method != fixedUpMethod) {
+                recordMethodChange(method, fixedUpMethod);
+              }
+            });
   }
 
   /** Callback to allow custom handling when an encoded method changes. */

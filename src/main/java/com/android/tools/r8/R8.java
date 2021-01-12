@@ -813,7 +813,9 @@ public class R8 {
               lens, appBuilder.build(), memberRebindingLens.getPrevious());
         }
       }
-      assert Repackaging.verifyIdentityRepackaging(appView);
+      if (appView.appInfo().hasLiveness()) {
+        assert Repackaging.verifyIdentityRepackaging(appView.withLiveness());
+      }
 
       // Add automatic main dex classes to an eventual manual list of classes.
       if (!options.mainDexKeepRules.isEmpty()) {

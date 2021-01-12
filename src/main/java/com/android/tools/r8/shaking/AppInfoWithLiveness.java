@@ -89,8 +89,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    */
   private final Set<DexMethod> targetedMethods;
 
-  /** Set of targets that lead to resolution errors, such as non-existing or invalid targets. */
-  private final Set<DexMethod> failedResolutionTargets;
+  /** Method targets that lead to resolution errors such as non-existing or invalid targets. */
+  private final Set<DexMethod> failedMethodResolutionTargets;
+
+  /** Field targets that lead to resolution errors, such as non-existing or invalid targets. */
+  private final Set<DexField> failedFieldResolutionTargets;
 
   /**
    * Set of program methods that are used as the bootstrap method for an invoke-dynamic instruction.
@@ -197,7 +200,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       MissingClasses missingClasses,
       Set<DexType> liveTypes,
       Set<DexMethod> targetedMethods,
-      Set<DexMethod> failedResolutionTargets,
+      Set<DexMethod> failedMethodResolutionTargets,
+      Set<DexField> failedFieldResolutionTargets,
       Set<DexMethod> bootstrapMethods,
       Set<DexMethod> methodsTargetedByInvokeDynamic,
       Set<DexMethod> virtualMethodsTargetedByInvokeDirect,
@@ -235,7 +239,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.deadProtoTypes = deadProtoTypes;
     this.liveTypes = liveTypes;
     this.targetedMethods = targetedMethods;
-    this.failedResolutionTargets = failedResolutionTargets;
+    this.failedMethodResolutionTargets = failedMethodResolutionTargets;
+    this.failedFieldResolutionTargets = failedFieldResolutionTargets;
     this.bootstrapMethods = bootstrapMethods;
     this.methodsTargetedByInvokeDynamic = methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = virtualMethodsTargetedByInvokeDirect;
@@ -281,7 +286,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.getMissingClasses(),
         CollectionUtils.mergeSets(previous.liveTypes, committedItems.getCommittedProgramTypes()),
         previous.targetedMethods,
-        previous.failedResolutionTargets,
+        previous.failedMethodResolutionTargets,
+        previous.failedFieldResolutionTargets,
         previous.bootstrapMethods,
         previous.methodsTargetedByInvokeDynamic,
         previous.virtualMethodsTargetedByInvokeDirect,
@@ -328,7 +334,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             ? Sets.difference(previous.liveTypes, prunedItems.getRemovedClasses())
             : previous.liveTypes,
         previous.targetedMethods,
-        previous.failedResolutionTargets,
+        previous.failedMethodResolutionTargets,
+        previous.failedFieldResolutionTargets,
         previous.bootstrapMethods,
         previous.methodsTargetedByInvokeDynamic,
         previous.virtualMethodsTargetedByInvokeDirect,
@@ -420,7 +427,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.deadProtoTypes = previous.deadProtoTypes;
     this.liveTypes = previous.liveTypes;
     this.targetedMethods = previous.targetedMethods;
-    this.failedResolutionTargets = previous.failedResolutionTargets;
+    this.failedMethodResolutionTargets = previous.failedMethodResolutionTargets;
+    this.failedFieldResolutionTargets = previous.failedFieldResolutionTargets;
     this.bootstrapMethods = previous.bootstrapMethods;
     this.methodsTargetedByInvokeDynamic = previous.methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
@@ -533,11 +541,15 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   }
 
   public boolean isFailedResolutionTarget(DexMethod method) {
-    return failedResolutionTargets.contains(method);
+    return failedMethodResolutionTargets.contains(method);
   }
 
-  public Set<DexMethod> getFailedResolutionTargets() {
-    return failedResolutionTargets;
+  public Set<DexMethod> getFailedMethodResolutionTargets() {
+    return failedMethodResolutionTargets;
+  }
+
+  public Set<DexField> getFailedFieldResolutionTargets() {
+    return failedFieldResolutionTargets;
   }
 
   public boolean isBootstrapMethod(DexMethod method) {
@@ -997,7 +1009,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         getMissingClasses().commitSyntheticItems(committedItems),
         lens.rewriteTypes(liveTypes),
         lens.rewriteMethods(targetedMethods),
-        lens.rewriteMethods(failedResolutionTargets),
+        lens.rewriteMethods(failedMethodResolutionTargets),
+        lens.rewriteFields(failedFieldResolutionTargets),
         lens.rewriteMethods(bootstrapMethods),
         lens.rewriteMethods(methodsTargetedByInvokeDynamic),
         lens.rewriteMethods(virtualMethodsTargetedByInvokeDirect),

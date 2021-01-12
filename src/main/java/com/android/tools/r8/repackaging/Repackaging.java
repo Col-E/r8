@@ -8,7 +8,6 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.utils.DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR;
 import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -73,8 +72,7 @@ public class Repackaging {
     return lens;
   }
 
-  public static boolean verifyIdentityRepackaging(
-      AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public static boolean verifyIdentityRepackaging(AppView<AppInfoWithLiveness> appView) {
     // Running the tree fixer with an identity mapping helps ensure that the fixup of of items is
     // complete as the rewrite replaces all items regardless of repackaging.
     // The identity mapping should result in no move callbacks being called.
@@ -140,10 +138,11 @@ public class Repackaging {
       return null;
     }
     RepackagingLens.Builder lensBuilder = new RepackagingLens.Builder();
+    RepackagingTreeFixer repackagingTreeFixer =
+        new RepackagingTreeFixer(appView, mappings, lensBuilder);
     List<DexProgramClass> newProgramClasses =
         new ArrayList<>(
-            new RepackagingTreeFixer(appView, mappings, lensBuilder)
-                .fixupClasses(appView.appInfo().classesWithDeterministicOrder()));
+            repackagingTreeFixer.fixupClasses(appView.appInfo().classesWithDeterministicOrder()));
     appBuilder.replaceProgramClasses(newProgramClasses);
     RepackagingLens lens = lensBuilder.build(appView);
     new AnnotationFixer(lens).run(appBuilder.getProgramClasses());
@@ -156,10 +155,14 @@ public class Repackaging {
     private final Builder lensBuilder;
 
     public RepackagingTreeFixer(
-        AppView<?> appView, BiMap<DexType, DexType> mappings, Builder lensBuilder) {
+        AppView<AppInfoWithLiveness> appView,
+        BiMap<DexType, DexType> mappings,
+        Builder lensBuilder) {
       super(appView);
+      assert mappings != null;
       this.mappings = mappings;
       this.lensBuilder = lensBuilder;
+      recordFailedResolutionChanges();
     }
 
     @Override

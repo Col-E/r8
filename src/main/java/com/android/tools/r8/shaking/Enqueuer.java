@@ -303,7 +303,10 @@ public class Enqueuer {
   private final SetWithReason<DexEncodedMethod> targetedMethods;
 
   /** Set of methods that have invalid resolutions or lookups. */
-  private final Set<DexMethod> failedResolutionTargets;
+  private final Set<DexMethod> failedMethodResolutionTargets;
+
+  /** Set of methods that have invalid resolutions or lookups. */
+  private final Set<DexField> failedFieldResolutionTargets;
 
   /**
    * Set of program methods that are used as the bootstrap method for an invoke-dynamic instruction.
@@ -427,7 +430,8 @@ public class Enqueuer {
     // This set is only populated in edge cases due to multiple default interface methods.
     // The set is generally expected to be empty and in the unlikely chance it is not, it will
     // likely contain two methods. Thus the default capacity of 2.
-    failedResolutionTargets = SetUtils.newIdentityHashSet(2);
+    failedMethodResolutionTargets = SetUtils.newIdentityHashSet(2);
+    failedFieldResolutionTargets = SetUtils.newIdentityHashSet(0);
     liveMethods = new LiveMethodsSet(graphReporter::registerMethod);
     liveFields = new LiveFieldsSet(graphReporter::registerField);
     lambdaRewriter = options.desugarState == DesugarState.ON ? new LambdaRewriter(appView) : null;
@@ -1943,6 +1947,7 @@ public class Enqueuer {
     FieldResolutionResult resolutionResult = appInfo.resolveField(field);
     if (resolutionResult.isFailedOrUnknownResolution()) {
       reportMissingField(field);
+      failedFieldResolutionTargets.add(field);
     }
     return resolutionResult;
   }
@@ -1954,7 +1959,8 @@ public class Enqueuer {
     ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
     if (resolutionResult.isFailedResolution()) {
       reportMissingMethod(method);
-      markFailedResolutionTargets(method, resolutionResult.asFailedResolution(), context, reason);
+      markFailedMethodResolutionTargets(
+          method, resolutionResult.asFailedResolution(), context, reason);
     }
     return resolutionResult.asSingleResolution();
   }
@@ -1966,7 +1972,8 @@ public class Enqueuer {
     ResolutionResult resolutionResult = appInfo.resolveMethod(method, interfaceInvoke);
     if (resolutionResult.isFailedResolution()) {
       reportMissingMethod(method);
-      markFailedResolutionTargets(method, resolutionResult.asFailedResolution(), context, reason);
+      markFailedMethodResolutionTargets(
+          method, resolutionResult.asFailedResolution(), context, reason);
     }
     return resolutionResult.asSingleResolution();
   }
@@ -2104,6 +2111,7 @@ public class Enqueuer {
     // TODO(zerny): Is it ok that we lookup in both the direct and virtual pool here?
     DexEncodedMethod encodedMethod = clazz.lookupMethod(reference);
     if (encodedMethod == null) {
+      failedMethodResolutionTargets.add(reference);
       reportMissingMethod(reference);
       return;
     }
@@ -2892,17 +2900,17 @@ public class Enqueuer {
     }
   }
 
-  private void markFailedResolutionTargets(
+  private void markFailedMethodResolutionTargets(
       DexMethod symbolicMethod,
       FailedResolutionResult failedResolution,
       ProgramDefinition context,
       KeepReason reason) {
-    failedResolutionTargets.add(symbolicMethod);
+    failedMethodResolutionTargets.add(symbolicMethod);
     failedResolution.forEachFailureDependency(
         method -> {
           DexProgramClass clazz = getProgramClassOrNull(method.getHolderType(), context);
           if (clazz != null) {
-            failedResolutionTargets.add(method.method);
+            failedMethodResolutionTargets.add(method.method);
             markMethodAsTargeted(new ProgramMethod(clazz, method), reason);
           }
         });
@@ -2948,7 +2956,7 @@ public class Enqueuer {
     // If invoke target is invalid (inaccessible or not an instance-method) record it and stop.
     DexClassAndMethod target = resolution.lookupInvokeSuperTarget(from.getHolder(), appInfo);
     if (target == null) {
-      failedResolutionTargets.add(resolution.getResolvedMethod().method);
+      failedMethodResolutionTargets.add(resolution.getResolvedMethod().method);
       return;
     }
 
@@ -3461,7 +3469,8 @@ public class Enqueuer {
                 : missingClassesBuilder.ignoreMissingClasses(),
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),
-            Collections.unmodifiableSet(failedResolutionTargets),
+            Collections.unmodifiableSet(failedMethodResolutionTargets),
+            Collections.unmodifiableSet(failedFieldResolutionTargets),
             Collections.unmodifiableSet(bootstrapMethods),
             Collections.unmodifiableSet(methodsTargetedByInvokeDynamic),
             Collections.unmodifiableSet(virtualMethodsTargetedByInvokeDirect),

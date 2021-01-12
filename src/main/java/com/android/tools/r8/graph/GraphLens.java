@@ -572,6 +572,14 @@ public abstract class GraphLens {
     return builder.build();
   }
 
+  public ImmutableSet<DexField> rewriteFields(Set<DexField> fields) {
+    ImmutableSet.Builder<DexField> builder = ImmutableSet.builder();
+    for (DexField field : fields) {
+      builder.add(getRenamedFieldSignature(field));
+    }
+    return builder.build();
+  }
+
   public <T> ImmutableMap<DexField, T> rewriteFieldKeys(Map<DexField, T> map) {
     ImmutableMap.Builder<DexField, T> builder = ImmutableMap.builder();
     map.forEach((field, value) -> builder.put(getRenamedFieldSignature(field), value));
