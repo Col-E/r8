@@ -3674,6 +3674,7 @@ public class Enqueuer {
     }
     if (methodToKeep != singleTarget
         && !syntheticInterfaceMethodBridges.containsKey(methodToKeep.getDefinition().method)) {
+      syntheticInterfaceMethodBridges.put(methodToKeep.getDefinition().method, methodToKeep);
       assert null == methodToKeep.getHolder().lookupMethod(methodToKeep.getDefinition().method);
       if (singleTargetMethod.isLibraryMethodOverride().isTrue()) {
         methodToKeep.getDefinition().setLibraryMethodOverride(OptionalBool.TRUE);
