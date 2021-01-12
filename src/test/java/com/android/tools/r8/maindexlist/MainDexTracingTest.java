@@ -358,6 +358,26 @@ public class MainDexTracingTest extends TestBase {
             .sorted()
             .collect(Collectors.toList());
 
+    // Build main-dex list using D8 & rules.
+    List<String> mainDexListFromD8;
+    {
+      final Box<String> mainDexListOutputFromD8 = new Box<>();
+      testForD8(Backend.DEX)
+          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
+          .addProgramFiles(inputJar)
+          .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
+          .addMainDexRulesFiles(mainDexRules)
+          .setMainDexListConsumer(ToolHelper.consumeString(mainDexListOutputFromD8::set))
+          .setMinApi(minSdk)
+          .allowStdoutMessages()
+          .compile();
+      mainDexListFromD8 =
+          StringUtils.splitLines(mainDexListOutputFromD8.get()).stream()
+              .map(this::mainDexStringToDescriptor)
+              .sorted()
+              .collect(Collectors.toList());
+    }
+
     // Build main-dex list using R8.
     final Box<String> r8MainDexListOutput = new Box<>();
     testForR8(Backend.DEX)
@@ -402,6 +422,13 @@ public class MainDexTracingTest extends TestBase {
     }
     String[] refList = new String(Files.readAllBytes(
         expectedMainDexList), StandardCharsets.UTF_8).split("\n");
+    for (int i = 0; i < refList.length; i++) {
+      String reference = refList[i].trim();
+      if (mainDexListFromD8.size() <= i) {
+        fail("D8 main-dex list is missing '" + reference + "'");
+      }
+      checkSameMainDexEntry(reference, mainDexListFromD8.get(i));
+    }
     int nonLambdaOffset = 0;
     for (int i = 0; i < refList.length; i++) {
       String reference = refList[i].trim();

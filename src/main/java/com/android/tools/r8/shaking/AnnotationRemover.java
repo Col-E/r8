@@ -86,7 +86,8 @@ public class AnnotationRemover {
         assert !DexAnnotation.isMemberClassesAnnotation(annotation, dexItemFactory);
         assert !DexAnnotation.isEnclosingMethodAnnotation(annotation, dexItemFactory);
         assert !DexAnnotation.isEnclosingClassAnnotation(annotation, dexItemFactory);
-        assert !DexAnnotation.isSignatureAnnotation(annotation, dexItemFactory);
+        assert appView.options().passthroughDexCode
+            || !DexAnnotation.isSignatureAnnotation(annotation, dexItemFactory);
         if (config.exceptions && DexAnnotation.isThrowingAnnotation(annotation, dexItemFactory)) {
           return true;
         }

@@ -104,6 +104,16 @@ public class ProguardConfigurationParser {
   private static final List<String> UNSUPPORTED_FLAG_OPTIONS =
       ImmutableList.of("skipnonpubliclibraryclasses");
 
+  public static ImmutableList<ProguardConfigurationRule> parse(
+      List<ProguardConfigurationSource> sources, DexItemFactory factory, Reporter reporter) {
+    if (sources.isEmpty()) {
+      return ImmutableList.of();
+    }
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(factory, reporter);
+    parser.parse(sources);
+    return ImmutableList.copyOf(parser.getConfig().getRules());
+  }
+
   public ProguardConfigurationParser(
       DexItemFactory dexItemFactory, Reporter reporter) {
     this(dexItemFactory, reporter, false);

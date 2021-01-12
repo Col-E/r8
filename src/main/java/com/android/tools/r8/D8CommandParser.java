@@ -31,6 +31,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
           "--classpath",
           "--pg-map",
           MIN_API_FLAG,
+          "--main-dex-rules",
           "--main-dex-list",
           "--main-dex-list-output",
           "--desugared-lib",
@@ -139,6 +140,8 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
                   "  --no-desugaring         # Force disable desugaring.",
                   "  --desugared-lib <file>  # Specify desugared library configuration.",
                   "                          # <file> is a desugared library configuration (json).",
+                  "  --main-dex-rules <file> # Proguard keep rules for classes to place in the",
+                  "                          # primary dex file.",
                   "  --main-dex-list <file>  # List of classes to place in the primary dex file.",
                   "  --main-dex-list-output <file>",
                   "                          # Output resulting main dex list in <file>."),
@@ -252,6 +255,8 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
         } catch (IOException e) {
           builder.error(new ExceptionDiagnostic(e, new PathOrigin(file)));
         }
+      } else if (arg.equals("--main-dex-rules")) {
+        builder.addMainDexRulesFiles(Paths.get(nextArg));
       } else if (arg.equals("--main-dex-list")) {
         builder.addMainDexListFiles(Paths.get(nextArg));
       } else if (arg.equals("--main-dex-list-output")) {

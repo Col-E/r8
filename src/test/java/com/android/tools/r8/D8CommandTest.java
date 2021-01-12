@@ -255,6 +255,21 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
   }
 
   @Test
+  public void mainDexRules() throws Throwable {
+    Path mainDexRules1 = temp.newFile("main-dex-1.rules").toPath();
+    Path mainDexRules2 = temp.newFile("main-dex-2.rules").toPath();
+    parse("--main-dex-rules", mainDexRules1.toString());
+    parse(
+        "--main-dex-rules", mainDexRules1.toString(), "--main-dex-rules", mainDexRules2.toString());
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void nonExistingMainDexRules() throws Throwable {
+    Path mainDexRules = temp.getRoot().toPath().resolve("main-dex.rules");
+    parse("--main-dex-rules", mainDexRules.toString());
+  }
+
+  @Test
   public void mainDexList() throws Throwable {
     Path mainDexList1 = temp.newFile("main-dex-list-1.txt").toPath();
     Path mainDexList2 = temp.newFile("main-dex-list-2.txt").toPath();

@@ -13,6 +13,11 @@ import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.ProguardConfigurationParser;
+import com.android.tools.r8.shaking.ProguardConfigurationRule;
+import com.android.tools.r8.shaking.ProguardConfigurationSource;
+import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
+import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
@@ -21,7 +26,11 @@ import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.BiPredicate;
@@ -75,6 +84,7 @@ public final class D8Command extends BaseCompilerCommand {
     private boolean enableMainDexListCheck = true;
     private boolean minimalMainDex = false;
     private boolean skipDump = false;
+    private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
 
     private Builder() {
       this(new DefaultD8DiagnosticsHandler());
@@ -203,6 +213,26 @@ public final class D8Command extends BaseCompilerCommand {
       return self();
     }
 
+    /** Add proguard configuration files with rules for automatic main-dex-list calculation. */
+    public Builder addMainDexRulesFiles(Path... paths) {
+      return addMainDexRulesFiles(Arrays.asList(paths));
+    }
+
+    /** Add proguard configuration files with rules for automatic main-dex-list calculation. */
+    public Builder addMainDexRulesFiles(Collection<Path> paths) {
+      guard(() -> paths.forEach(p -> mainDexRules.add(new ProguardConfigurationSourceFile(p))));
+      return self();
+    }
+
+    /** Add proguard rules for automatic main-dex-list calculation. */
+    public Builder addMainDexRules(List<String> lines, Origin origin) {
+      guard(
+          () ->
+              mainDexRules.add(
+                  new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin)));
+      return self();
+    }
+
     @Override
     void validate() {
       if (isPrintHelp()) {
@@ -219,8 +249,20 @@ public final class D8Command extends BaseCompilerCommand {
         if (getProgramConsumer() instanceof DexFilePerClassFileConsumer) {
           reporter.error("Option --main-dex-list cannot be used with --file-per-class");
         }
-      } else if (getMainDexListConsumer() != null) {
-        reporter.error("Option --main-dex-list-output require --main-dex-list");
+      }
+      if (!mainDexRules.isEmpty()) {
+        if (intermediate) {
+          reporter.error("Option --main-dex-rules cannot be used with --intermediate");
+        }
+        if (getProgramConsumer() instanceof DexFilePerClassFileConsumer) {
+          reporter.error("Option --main-dex-rules cannot be used with --file-per-class");
+        }
+      }
+      if (getMainDexListConsumer() != null
+          && mainDexRules.isEmpty()
+          && !getAppBuilder().hasMainDexList()) {
+        reporter.error(
+            "Option --main-dex-list-output requires --main-dex-rules and/or --main-dex-list");
       }
       if (getMinApiLevel() >= AndroidApiLevel.L.getLevel()) {
         if (getMainDexListConsumer() != null || getAppBuilder().hasMainDexList()) {
@@ -248,6 +290,9 @@ public final class D8Command extends BaseCompilerCommand {
       DesugaredLibraryConfiguration libraryConfiguration =
           getDesugaredLibraryConfiguration(factory, false);
 
+      ImmutableList<ProguardConfigurationRule> mainDexKeepRules =
+          ProguardConfigurationParser.parse(mainDexRules, factory, getReporter());
+
       return new D8Command(
           getAppBuilder().build(),
           getMode(),
@@ -269,6 +314,7 @@ public final class D8Command extends BaseCompilerCommand {
           skipDump,
           enableMainDexListCheck,
           minimalMainDex,
+          mainDexKeepRules,
           getThreadCount(),
           factory);
     }
@@ -284,6 +330,7 @@ public final class D8Command extends BaseCompilerCommand {
   private final boolean skipDump;
   private final boolean enableMainDexListCheck;
   private final boolean minimalMainDex;
+  private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
   private final DexItemFactory factory;
 
   public static Builder builder() {
@@ -347,6 +394,7 @@ public final class D8Command extends BaseCompilerCommand {
       boolean skipDump,
       boolean enableMainDexListCheck,
       boolean minimalMainDex,
+      ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
       int threadCount,
       DexItemFactory factory) {
     super(
@@ -371,6 +419,7 @@ public final class D8Command extends BaseCompilerCommand {
     this.skipDump = skipDump;
     this.enableMainDexListCheck = enableMainDexListCheck;
     this.minimalMainDex = minimalMainDex;
+    this.mainDexKeepRules = mainDexKeepRules;
     this.factory = factory;
   }
 
@@ -384,6 +433,7 @@ public final class D8Command extends BaseCompilerCommand {
     skipDump = false;
     enableMainDexListCheck = true;
     minimalMainDex = false;
+    mainDexKeepRules = null;
     factory = null;
   }
 
@@ -403,6 +453,7 @@ public final class D8Command extends BaseCompilerCommand {
     internal.intermediate = intermediate;
     internal.readCompileTimeAnnotations = intermediate;
     internal.desugarGraphConsumer = desugarGraphConsumer;
+    internal.mainDexKeepRules = mainDexKeepRules;
 
     // Assert and fixup defaults.
     assert !internal.isShrinking();

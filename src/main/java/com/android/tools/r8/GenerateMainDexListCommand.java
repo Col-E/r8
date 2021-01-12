@@ -108,15 +108,8 @@ public class GenerateMainDexListCommand extends BaseCommand {
         return new GenerateMainDexListCommand(isPrintHelp(), isPrintVersion());
       }
 
-      List<ProguardConfigurationRule> mainDexKeepRules;
-      if (this.mainDexRules.isEmpty()) {
-        mainDexKeepRules = ImmutableList.of();
-      } else {
-        ProguardConfigurationParser parser =
-            new ProguardConfigurationParser(factory, getReporter());
-        parser.parse(mainDexRules);
-        mainDexKeepRules = parser.getConfig().getRules();
-      }
+      List<ProguardConfigurationRule> mainDexKeepRules =
+          ProguardConfigurationParser.parse(mainDexRules, factory, getReporter());
 
       return new GenerateMainDexListCommand(
           factory,

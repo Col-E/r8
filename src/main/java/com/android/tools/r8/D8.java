@@ -183,6 +183,12 @@ public final class D8 {
       AppView<AppInfo> appView = readApp(inputApp, options, executor, timing);
       SyntheticItems.collectSyntheticInputs(appView);
 
+      if (!options.mainDexKeepRules.isEmpty()) {
+        new GenerateMainDexList(options)
+            .traceMainDex(
+                executor, appView.appInfo().app(), appView.appInfo().getMainDexClasses()::addAll);
+      }
+
       final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
       if (AssertionsRewriter.isEnabled(options)) {

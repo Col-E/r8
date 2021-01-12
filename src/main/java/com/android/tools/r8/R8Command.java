@@ -40,6 +40,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -182,28 +183,21 @@ public final class R8Command extends BaseCompilerCommand {
 
     /** Add proguard configuration files with rules for automatic main-dex-list calculation. */
     public Builder addMainDexRulesFiles(Path... paths) {
-      guard(() -> {
-        for (Path path : paths) {
-          mainDexRules.add(new ProguardConfigurationSourceFile(path));
-        }
-      });
-      return self();
+      return addMainDexRulesFiles(Arrays.asList(paths));
     }
 
     /** Add proguard configuration files with rules for automatic main-dex-list calculation. */
     public Builder addMainDexRulesFiles(Collection<Path> paths) {
-      guard(() -> {
-        for (Path path : paths) {
-          mainDexRules.add(new ProguardConfigurationSourceFile(path));
-        }
-      });
+      guard(() -> paths.forEach(p -> mainDexRules.add(new ProguardConfigurationSourceFile(p))));
       return self();
     }
 
     /** Add proguard rules for automatic main-dex-list calculation. */
     public Builder addMainDexRules(List<String> lines, Origin origin) {
-      guard(() -> mainDexRules.add(
-          new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin)));
+      guard(
+          () ->
+              mainDexRules.add(
+                  new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin)));
       return self();
     }
 
@@ -432,7 +426,7 @@ public final class R8Command extends BaseCompilerCommand {
           && mainDexRules.isEmpty()
           && !getAppBuilder().hasMainDexList()) {
         reporter.error(
-            "Option --main-dex-list-output require --main-dex-rules and/or --main-dex-list");
+            "Option --main-dex-list-output requires --main-dex-rules and/or --main-dex-list");
       }
       if (!(getProgramConsumer() instanceof ClassFileConsumer)
           && getMinApiLevel() >= AndroidApiLevel.L.getLevel()) {
@@ -479,15 +473,8 @@ public final class R8Command extends BaseCompilerCommand {
     private R8Command makeR8Command() {
       Reporter reporter = getReporter();
       DexItemFactory factory = new DexItemFactory();
-      List<ProguardConfigurationRule> mainDexKeepRules;
-      if (this.mainDexRules.isEmpty()) {
-        mainDexKeepRules = ImmutableList.of();
-      } else {
-        ProguardConfigurationParser parser =
-            new ProguardConfigurationParser(factory, reporter);
-        parser.parse(mainDexRules);
-        mainDexKeepRules = parser.getConfig().getRules();
-      }
+      List<ProguardConfigurationRule> mainDexKeepRules =
+          ProguardConfigurationParser.parse(mainDexRules, factory, reporter);
 
       DesugaredLibraryConfiguration libraryConfiguration =
           getDesugaredLibraryConfiguration(factory, false);

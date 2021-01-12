@@ -81,4 +81,9 @@ public class D8TestBuilder
     }
     return self();
   }
+
+  public D8TestBuilder addMainDexRulesFiles(Path... mainDexRuleFiles) {
+    builder.addMainDexRulesFiles(mainDexRuleFiles);
+    return self();
+  }
 }
