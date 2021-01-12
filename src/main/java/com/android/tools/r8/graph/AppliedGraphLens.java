@@ -6,8 +6,8 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.utils.MapUtils;
-import com.android.tools.r8.utils.collections.BidirectionalManyToOneHashMap;
-import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneMap;
+import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeHashMap;
+import com.android.tools.r8.utils.collections.MutableBidirectionalManyToOneRepresentativeMap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
@@ -26,8 +26,8 @@ import java.util.Set;
  */
 public final class AppliedGraphLens extends NonIdentityGraphLens {
 
-  private final MutableBidirectionalManyToOneMap<DexType, DexType> renamedTypeNames =
-      new BidirectionalManyToOneHashMap<>();
+  private final MutableBidirectionalManyToOneRepresentativeMap<DexType, DexType> renamedTypeNames =
+      new BidirectionalManyToOneRepresentativeHashMap<>();
   private final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
   private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
 
@@ -39,6 +39,12 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
   public AppliedGraphLens(AppView<? extends AppInfoWithClassHierarchy> appView) {
     super(appView.dexItemFactory(), GraphLens.getIdentityLens());
     for (DexProgramClass clazz : appView.appInfo().classes()) {
+      // TODO(b/169395592): If merged classes were removed from the application this would not be
+      //  necessary.
+      if (appView.graphLens().lookupType(clazz.getType()) != clazz.getType()) {
+        continue;
+      }
+
       // Record original type names.
       recordOriginalTypeNames(clazz, appView);
 
@@ -83,7 +89,12 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
     List<DexType> originalTypes = Lists.newArrayList(appView.graphLens().getOriginalTypes(type));
     boolean isIdentity = originalTypes.size() == 1 && originalTypes.get(0) == type;
     if (!isIdentity) {
-      originalTypes.forEach(originalType -> renamedTypeNames.put(originalType, type));
+      originalTypes.forEach(
+          originalType -> {
+            assert !renamedTypeNames.containsKey(originalType);
+            renamedTypeNames.put(originalType, type);
+          });
+      renamedTypeNames.setRepresentative(type, appView.graphLens().getOriginalType(type));
     }
   }
 
@@ -94,11 +105,7 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
 
   @Override
   public DexType getOriginalType(DexType type) {
-    Set<DexType> originalTypeNames = renamedTypeNames.getKeys(type);
-    if (!originalTypeNames.isEmpty()) {
-      return originalTypeNames.iterator().next();
-    }
-    return type;
+    return renamedTypeNames.getRepresentativeKeyOrDefault(type, type);
   }
 
   @Override
