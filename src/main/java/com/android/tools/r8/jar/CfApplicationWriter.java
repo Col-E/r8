@@ -12,7 +12,6 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.CodeSizeOverflowDiagnostic;
 import com.android.tools.r8.errors.ConstantPoolOverflowDiagnostic;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -126,35 +125,29 @@ public class CfApplicationWriter {
     LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(appView);
     for (DexProgramClass clazz : application.classes()) {
       assert SyntheticItems.verifyNotInternalSynthetic(clazz.getType());
-      if (clazz.getSynthesizedFrom().isEmpty()
-          || options.isDesugaredLibraryCompilation()
-          || options.cfToCfDesugar) {
-        try {
-          writeClass(clazz, consumer, rewriter, markerString);
-        } catch (ClassTooLargeException e) {
-          throw appView
-              .options()
-              .reporter
-              .fatalError(
-                  new ConstantPoolOverflowDiagnostic(
-                      clazz.getOrigin(),
-                      Reference.classFromBinaryName(e.getClassName()),
-                      e.getConstantPoolCount()));
-        } catch (MethodTooLargeException e) {
-          throw appView
-              .options()
-              .reporter
-              .fatalError(
-                  new CodeSizeOverflowDiagnostic(
-                      clazz.getOrigin(),
-                      Reference.methodFromDescriptor(
-                          Reference.classFromBinaryName(e.getClassName()).getDescriptor(),
-                          e.getMethodName(),
-                          e.getDescriptor()),
-                      e.getCodeSize()));
-        }
-      } else {
-        throw new Unimplemented("No support for synthetics in the Java bytecode backend.");
+      try {
+        writeClass(clazz, consumer, rewriter, markerString);
+      } catch (ClassTooLargeException e) {
+        throw appView
+            .options()
+            .reporter
+            .fatalError(
+                new ConstantPoolOverflowDiagnostic(
+                    clazz.getOrigin(),
+                    Reference.classFromBinaryName(e.getClassName()),
+                    e.getConstantPoolCount()));
+      } catch (MethodTooLargeException e) {
+        throw appView
+            .options()
+            .reporter
+            .fatalError(
+                new CodeSizeOverflowDiagnostic(
+                    clazz.getOrigin(),
+                    Reference.methodFromDescriptor(
+                        Reference.classFromBinaryName(e.getClassName()).getDescriptor(),
+                        e.getMethodName(),
+                        e.getDescriptor()),
+                    e.getCodeSize()));
       }
     }
     ApplicationWriter.supplyAdditionalConsumers(
