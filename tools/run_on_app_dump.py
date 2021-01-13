@@ -516,7 +516,7 @@ def get_results_for_app(app, options, temp_dir):
   result['status'] = 'success'
   result_per_shrinker = build_app_with_shrinkers(
     app, options, temp_dir, app_dir)
-  for shrinker, shrinker_result in result_per_shrinker.iteritems():
+  for shrinker, shrinker_result in result_per_shrinker.items():
     result[shrinker] = shrinker_result
   return result
 
@@ -940,7 +940,8 @@ def parse_options(argv):
       assert any(app.name == app_name for app in options.apps)
   if options.shrinker:
     for shrinker in options.shrinker:
-      assert shrinker in SHRINKERS
+      assert shrinker in SHRINKERS, (
+          'Shrinker must be one of %s' % ', '.join(SHRINKERS))
   else:
     options.shrinker = [shrinker for shrinker in SHRINKERS]
 
