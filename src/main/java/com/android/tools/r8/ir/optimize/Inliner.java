@@ -982,6 +982,16 @@ public class Inliner implements PostOptimization {
             continue;
           }
 
+          if (invoke.isInvokeMethodWithReceiver()) {
+            if (iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, context)) {
+              continue;
+            }
+          } else if (invoke.isInvokeStatic()
+              && iterator.replaceCurrentInstructionByInitClassIfPossible(
+                  appView, code, resolutionResult.getResolvedHolder().getType())) {
+            continue;
+          }
+
           // TODO(b/156853206): Should not duplicate resolution.
           ProgramMethod singleTarget = oracle.lookupSingleTarget(invoke, context);
           if (singleTarget == null) {

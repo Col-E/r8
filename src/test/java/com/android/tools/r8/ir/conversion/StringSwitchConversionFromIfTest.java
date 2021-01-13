@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.conversion;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -87,7 +87,16 @@ public class StringSwitchConversionFromIfTest extends TestBase {
                 // instruction may throw. This holds even if the string-switch instruction is
                 // compiled to a sequence of `if (x.equals("..."))` instructions that do not even
                 // use the hash code.
-                assertNotEquals(0, hashCodeValues.size());
+                assertTrue(
+                    code.collectArguments().get(0).uniqueUsers().stream()
+                        .filter(Instruction::isInvokeMethod)
+                        .map(Instruction::asInvokeMethod)
+                        .map(invoke -> invoke.getInvokedMethod().getName().toSourceString())
+                        .anyMatch(
+                            name ->
+                                name.equals("getClass")
+                                    || name.equals("hashCode")
+                                    || name.equals("requireNonNull")));
               }
             })
         .run(parameters.getRuntime(), TestClass.class)

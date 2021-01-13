@@ -111,7 +111,7 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
   private final TestConfig config;
   private final boolean enableHorizontalClassMerging;
 
-  @Parameterized.Parameters(name = "{0} {1}")
+  @Parameterized.Parameters(name = "{0}, config: {1}, horizontal: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),

@@ -252,7 +252,7 @@ public class OutlineTest extends SmaliTestBase {
             "    move-result-object  v0",
             "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
             "    move-result-object  v0",
-            "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
             "    move-result-object  v0",
             "    const               v0, 0",
             "    const               v1, 1",
@@ -818,7 +818,7 @@ public class OutlineTest extends SmaliTestBase {
         "    move-result-object  v0",
         "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
         "    move-result-object  v0",
-        "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
+        "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
         "    return-void");
 
     String returnType2 = "java.lang.String";
@@ -866,14 +866,14 @@ public class OutlineTest extends SmaliTestBase {
     ClassSubject clazz = inspector.clazz(OutlineOptions.CLASS_NAME);
     assertTrue(clazz.isPresent());
     assertEquals(3, clazz.getDexProgramClass().getMethodCollection().numberOfDirectMethods());
-    // Collect the return types of the putlines for the body of method1 and method2.
+    // Collect the return types of the outlines for the body of method1 and method2.
     List<DexType> r = new ArrayList<>();
     for (DexEncodedMethod directMethod : clazz.getDexProgramClass().directMethods()) {
       if (directMethod.getCode().asDexCode().instructions[0] instanceof InvokeVirtual) {
         r.add(directMethod.method.proto.returnType);
       }
     }
-    assert r.size() == 2;
+    assertEquals(2, r.size());
     DexType r1 = r.get(0);
     DexType r2 = r.get(1);
     DexItemFactory factory = inspector.getFactory();
@@ -882,7 +882,7 @@ public class OutlineTest extends SmaliTestBase {
 
     // Run the code.
     String result = runArt(processedApplication);
-    assertEquals("TestTestTestTest", result);
+    assertEquals("TestTestTestTestTest", result);
   }
 
   @Test

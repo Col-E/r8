@@ -4,12 +4,14 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -28,9 +30,10 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
   static class MethodCharacteristics {
 
     private final MethodAccessFlags accessFlags;
+    private final boolean isAssumeNoSideEffectsMethod;
     private final OptionalBool isLibraryMethodOverride;
 
-    private MethodCharacteristics(DexEncodedMethod method) {
+    private MethodCharacteristics(boolean isAssumeNoSideEffectsMethod, DexEncodedMethod method) {
       this.accessFlags =
           MethodAccessFlags.builder()
               .setPrivate(method.getAccessFlags().isPrivate())
@@ -39,7 +42,14 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
               .setStrict(method.getAccessFlags().isStrict())
               .setSynchronized(method.getAccessFlags().isSynchronized())
               .build();
+      this.isAssumeNoSideEffectsMethod = isAssumeNoSideEffectsMethod;
       this.isLibraryMethodOverride = method.isLibraryMethodOverride();
+    }
+
+    static MethodCharacteristics create(
+        AppView<AppInfoWithLiveness> appView, DexEncodedMethod method) {
+      return new MethodCharacteristics(
+          appView.appInfo().isAssumeNoSideEffectsMethod(method.getReference()), method);
     }
 
     @Override
@@ -56,12 +66,17 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
         return false;
       }
       MethodCharacteristics characteristics = (MethodCharacteristics) obj;
-      return isLibraryMethodOverride == characteristics.isLibraryMethodOverride
-          && accessFlags.equals(characteristics.accessFlags);
+      return accessFlags.equals(characteristics.accessFlags)
+          && isAssumeNoSideEffectsMethod == characteristics.isAssumeNoSideEffectsMethod
+          && isLibraryMethodOverride == characteristics.isLibraryMethodOverride;
     }
   }
 
-  public PreserveMethodCharacteristics() {}
+  private final AppView<AppInfoWithLiveness> appView;
+
+  public PreserveMethodCharacteristics(AppView<AppInfoWithLiveness> appView) {
+    this.appView = appView;
+  }
 
   public static class TargetGroup {
 
@@ -72,12 +87,12 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
       return group;
     }
 
-    public boolean tryAdd(DexProgramClass clazz) {
+    public boolean tryAdd(AppView<AppInfoWithLiveness> appView, DexProgramClass clazz) {
       Map<DexMethodSignature, MethodCharacteristics> newMethods = new HashMap<>();
       for (DexEncodedMethod method : clazz.methods()) {
         DexMethodSignature signature = method.getSignature();
         MethodCharacteristics existingCharacteristics = methodMap.get(signature);
-        MethodCharacteristics methodCharacteristics = new MethodCharacteristics(method);
+        MethodCharacteristics methodCharacteristics = MethodCharacteristics.create(appView, method);
         if (existingCharacteristics == null) {
           newMethods.put(signature, methodCharacteristics);
           continue;
@@ -97,10 +112,10 @@ public class PreserveMethodCharacteristics extends MultiClassPolicy {
     List<TargetGroup> groups = new ArrayList<>();
 
     for (DexProgramClass clazz : group) {
-      boolean added = Iterables.any(groups, targetGroup -> targetGroup.tryAdd(clazz));
+      boolean added = Iterables.any(groups, targetGroup -> targetGroup.tryAdd(appView, clazz));
       if (!added) {
         TargetGroup newGroup = new TargetGroup();
-        added = newGroup.tryAdd(clazz);
+        added = newGroup.tryAdd(appView, clazz);
         assert added;
         groups.add(newGroup);
       }

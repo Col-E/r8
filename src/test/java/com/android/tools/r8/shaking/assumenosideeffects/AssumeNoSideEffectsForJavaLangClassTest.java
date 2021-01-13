@@ -7,6 +7,7 @@ package com.android.tools.r8.shaking.assumenosideeffects;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.AssumeMayHaveSideEffects;
@@ -71,7 +72,11 @@ public class AssumeNoSideEffectsForJavaLangClassTest extends TestBase {
     assertThat(
         methodSubject,
         onlyIf(maybeNullReceiver || maybeSubtype, invokesMethodWithName("hashCode")));
-    assertThat(methodSubject, onlyIf(maybeNullReceiver, invokesMethodWithName("getClass")));
+    assertThat(
+        methodSubject,
+        onlyIf(
+            maybeNullReceiver,
+            anyOf(invokesMethodWithName("getClass"), invokesMethodWithName("requireNonNull"))));
     assertThat(
         methodSubject,
         onlyIf(maybeNullReceiver || maybeSubtype, invokesMethodWithName("toString")));

@@ -680,14 +680,18 @@ public class DexItemFactory {
   // Library methods listed here are based on their original implementations. That is, we assume
   // these cannot be overridden.
   public final Set<DexMethod> libraryMethodsReturningNonNull =
-      ImmutableSet.of(
-          classMethods.getName,
-          classMethods.getSimpleName,
-          classMethods.forName,
-          objectsMethods.requireNonNull,
-          objectsMethods.requireNonNullWithMessage,
-          objectsMethods.requireNonNullWithMessageSupplier,
-          stringMembers.valueOf);
+      ImmutableSet.<DexMethod>builder()
+          .add(
+              classMethods.getName,
+              classMethods.getSimpleName,
+              classMethods.forName,
+              objectsMethods.requireNonNull,
+              objectsMethods.requireNonNullWithMessage,
+              objectsMethods.requireNonNullWithMessageSupplier,
+              stringMembers.valueOf)
+          .addAll(stringBufferMethods.appendMethods)
+          .addAll(stringBuilderMethods.appendMethods)
+          .build();
 
   // TODO(b/119596718): More idempotent methods? Any singleton accessors? E.g.,
   // java.util.Calendar#getInstance(...) // 4 variants

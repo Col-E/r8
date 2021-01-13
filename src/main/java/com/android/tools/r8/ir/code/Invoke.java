@@ -144,6 +144,10 @@ public abstract class Invoke extends Instruction {
 
   abstract public DexType getReturnType();
 
+  public boolean hasArguments() {
+    return !arguments().isEmpty();
+  }
+
   public boolean hasReturnTypeVoid(DexItemFactory factory) {
     return getReturnType() == factory.voidType;
   }

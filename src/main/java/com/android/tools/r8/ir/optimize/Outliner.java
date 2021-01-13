@@ -37,6 +37,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
+import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.Binop;
@@ -782,7 +783,7 @@ public class Outliner {
     // Process instruction. Returns true if an outline candidate was found.
     private void processInstruction(Instruction instruction) {
       // Figure out whether to include the instruction.
-      boolean include = false;
+      boolean include;
       int instructionIncrement = 1;
       if (instruction.isConstInstruction()) {
         if (index == start) {
@@ -811,13 +812,13 @@ public class Outliner {
         includeInstruction(instruction);
         // Check if this instruction ends the outline.
         if (actualInstructions >= appView.options().outline.maxSize) {
-          candidate(start, index + 1, actualInstructions);
+          candidate(start, index + 1);
         } else {
           index++;
         }
       } else if (index > start) {
         // Do not add this instruction, candidate ends with previous instruction.
-        candidate(start, index, actualInstructions);
+        candidate(start, index);
       } else {
         // Restart search from next instruction.
         reset(index + 1);
@@ -830,7 +831,7 @@ public class Outliner {
       int returnValueUsersLeftIfIncluded = returnValueUsersLeft;
       if (returnValue != null) {
         for (Value value : instruction.inValues()) {
-          if (value == returnValue) {
+          if (value.getAliasedValue() == returnValue) {
             returnValueUsersLeftIfIncluded--;
           }
         }
@@ -870,10 +871,9 @@ public class Outliner {
       }
       // Find the number of in-going arguments, if adding this instruction.
       int newArgumentRegisters = argumentRegisters;
-      if (instruction.inValues().size() > 0) {
-        List<Value> inValues = orderedInValues(instruction, returnValue);
-        for (int i = 0; i < inValues.size(); i++) {
-          Value value = inValues.get(i);
+      if (invoke.hasArguments()) {
+        for (int i = 0; i < invoke.arguments().size(); i++) {
+          Value value = invoke.getArgument(i).getAliasedValue();
           if (value == returnValue) {
             continue;
           }
@@ -884,7 +884,8 @@ public class Outliner {
             newArgumentRegisters += value.requiredRegisters();
           } else {
             // For virtual calls only re-use the receiver argument.
-            if (i > 0 || !arguments.contains(value)) {
+            Value receiver = invoke.asInvokeMethodWithReceiver().getReceiver().getAliasedValue();
+            if (value != receiver || !arguments.contains(value)) {
               newArgumentRegisters += value.requiredRegisters();
             }
           }
@@ -907,7 +908,11 @@ public class Outliner {
           offset++;
           previous = instructions.get(index - offset);
         } while (previous.isConstInstruction());
-        if (!previous.isNewInstance() || previous.outValue() != returnValue) {
+        if (!previous.isNewInstance()) {
+          return false;
+        }
+        if (returnValue == null || returnValue != previous.outValue()) {
+          assert false;
           return false;
         }
         // Clear pending new instance flag as the last thing, now the matching constructor is known
@@ -996,6 +1001,10 @@ public class Outliner {
     // Add the current instruction to the outline.
     private void includeInstruction(Instruction instruction) {
       if (instruction.isAssume()) {
+        Assume assume = instruction.asAssume();
+        if (returnValue != null && assume.src().getAliasedValue() == returnValue) {
+          adjustReturnValueUsersLeft(assume.outValue().numberOfAllUsers() - 1);
+        }
         return;
       }
 
@@ -1005,12 +1014,7 @@ public class Outliner {
       if (returnValue != null) {
         for (Value value : inValues) {
           if (value.getAliasedValue() == returnValue) {
-            assert returnValueUsersLeft > 0;
-            returnValueUsersLeft--;
-          }
-          if (returnValueUsersLeft == 0) {
-            returnValue = null;
-            returnType = appView.dexItemFactory().voidType;
+            adjustReturnValueUsersLeft(-1);
           }
         }
       }
@@ -1080,9 +1084,18 @@ public class Outliner {
       }
     }
 
+    private void adjustReturnValueUsersLeft(int change) {
+      returnValueUsersLeft += change;
+      assert returnValueUsersLeft >= 0;
+      if (returnValueUsersLeft == 0) {
+        returnValue = null;
+        returnType = appView.dexItemFactory().voidType;
+      }
+    }
+
     protected abstract void handle(int start, int end, Outline outline);
 
-    private void candidate(int start, int index, int actualInstructions) {
+    private void candidate(int start, int index) {
       List<Instruction> instructions = getInstructionArray();
       assert !instructions.get(start).isConstInstruction();
 

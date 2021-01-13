@@ -584,10 +584,13 @@ final class InlineCandidateProcessor {
       currentUsers = indirectOutValueUsers;
     }
 
-    assert !methodCallsOnInstance.isEmpty();
-
-    inliner.performForcedInlining(
-        method, code, methodCallsOnInstance, inliningIRProvider, Timing.empty());
+    if (!methodCallsOnInstance.isEmpty()) {
+      inliner.performForcedInlining(
+          method, code, methodCallsOnInstance, inliningIRProvider, Timing.empty());
+    } else {
+      assert indirectMethodCallsOnInstance.stream()
+          .noneMatch(method -> method.getDefinition().getOptimizationInfo().mayHaveSideEffects());
+    }
     return true;
   }
 

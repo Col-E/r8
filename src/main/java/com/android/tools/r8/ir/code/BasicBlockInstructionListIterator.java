@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
@@ -12,6 +13,9 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -19,6 +23,7 @@ import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.optimize.NestUtils;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.ImmutableList;
@@ -266,6 +271,76 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
         appView.options().debug ? current.getPosition() : Position.none());
     add(constStringInstruction);
     return constStringInstruction.outValue();
+  }
+
+  @Override
+  public boolean replaceCurrentInstructionByNullCheckIfPossible(
+      AppView<?> appView, ProgramMethod context) {
+    Instruction toBeReplaced = current;
+    assert toBeReplaced != null;
+    assert toBeReplaced.isInstanceFieldInstruction() || toBeReplaced.isInvokeMethodWithReceiver();
+    if (toBeReplaced.hasUsedOutValue()) {
+      return false;
+    }
+    if (toBeReplaced.isInvokeDirect()) {
+      DexItemFactory dexItemFactory = appView.dexItemFactory();
+      DexMethod invokedMethod = toBeReplaced.asInvokeDirect().getInvokedMethod();
+      if (invokedMethod.isInstanceInitializer(dexItemFactory)
+          || invokedMethod.mustBeInlinedIntoInstanceInitializer(dexItemFactory)) {
+        return false;
+      }
+    }
+    if (toBeReplaced.instructionMayHaveSideEffects(
+        appView, context, Instruction.SideEffectAssumption.RECEIVER_NOT_NULL)) {
+      return false;
+    }
+    Value receiver =
+        toBeReplaced.isInstanceFieldInstruction()
+            ? toBeReplaced.asInstanceFieldInstruction().object()
+            : toBeReplaced.asInvokeMethodWithReceiver().getReceiver();
+    if (receiver.isNeverNull()) {
+      removeOrReplaceByDebugLocalRead();
+      return true;
+    }
+    InvokeMethod replacement;
+    if (appView.options().canUseRequireNonNull()) {
+      DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
+      replacement = new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(receiver));
+    } else {
+      DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
+      replacement = new InvokeVirtual(getClassMethod, null, ImmutableList.of(receiver));
+    }
+    replaceCurrentInstruction(replacement);
+    return true;
+  }
+
+  @Override
+  public boolean replaceCurrentInstructionByInitClassIfPossible(
+      AppView<AppInfoWithLiveness> appView, IRCode code, DexType type) {
+    Instruction toBeReplaced = current;
+    assert toBeReplaced != null;
+    assert toBeReplaced.isStaticFieldInstruction() || toBeReplaced.isInvokeStatic();
+    if (toBeReplaced.hasUsedOutValue()) {
+      return false;
+    }
+    ProgramMethod context = code.context();
+    if (toBeReplaced.instructionMayHaveSideEffects(
+        appView, context, Instruction.SideEffectAssumption.CLASS_ALREADY_INITIALIZED)) {
+      return false;
+    }
+    if (!type.classInitializationMayHaveSideEffectsInContext(appView, context)) {
+      removeOrReplaceByDebugLocalRead();
+      return true;
+    }
+    if (!appView.canUseInitClass()) {
+      return false;
+    }
+    DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
+    if (clazz != null) {
+      Value dest = code.createValue(TypeElement.getInt());
+      replaceCurrentInstruction(new InitClass(dest, clazz.type));
+    }
+    return true;
   }
 
   @Override

@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -23,6 +24,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.LinkedList;
 import java.util.List;
@@ -58,6 +60,18 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value) {
+      throw new Unimplemented();
+    }
+
+    @Override
+    public boolean replaceCurrentInstructionByNullCheckIfPossible(
+        AppView<?> appView, ProgramMethod context) {
+      throw new Unimplemented();
+    }
+
+    @Override
+    public boolean replaceCurrentInstructionByInitClassIfPossible(
+        AppView<AppInfoWithLiveness> appView, IRCode code, DexType type) {
       throw new Unimplemented();
     }
 

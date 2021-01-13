@@ -11,7 +11,9 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
@@ -39,6 +41,18 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   @Override
   public Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value) {
     return instructionIterator.insertConstStringInstruction(appView, code, value);
+  }
+
+  @Override
+  public boolean replaceCurrentInstructionByNullCheckIfPossible(
+      AppView<?> appView, ProgramMethod context) {
+    return instructionIterator.replaceCurrentInstructionByNullCheckIfPossible(appView, context);
+  }
+
+  @Override
+  public boolean replaceCurrentInstructionByInitClassIfPossible(
+      AppView<AppInfoWithLiveness> appView, IRCode code, DexType type) {
+    return instructionIterator.replaceCurrentInstructionByInitClassIfPossible(appView, code, type);
   }
 
   @Override

@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -333,7 +335,7 @@ public class R8InliningTest extends TestBase {
     assertCounters(INLINABLE, NEVER_INLINABLE, countInvokes(inspector, m));
 
     m = clazz.method("int", "notInlinableDueToMissingNpe", ImmutableList.of("inlining.A"));
-    assertCounters(INLINABLE, NEVER_INLINABLE, countInvokes(inspector, m));
+    assertCounters(INLINABLE, ALWAYS_INLINABLE, countInvokes(inspector, m));
 
     m = clazz.method("int", "notInlinableDueToSideEffect", ImmutableList.of("inlining.A"));
     assertCounters(INLINABLE, NEVER_INLINABLE, countInvokes(inspector, m));
@@ -354,34 +356,18 @@ public class R8InliningTest extends TestBase {
     CodeInspector inspector =
         new CodeInspector(getGeneratedFiles(), getGeneratedProguardMap(), null);
     ClassSubject clazz = inspector.clazz(nullabilityClass);
-    MethodSubject m = clazz.method("int", "conditionalOperator", ImmutableList.of("inlining.A"));
+    assertThat(clazz.uniqueMethodWithName("conditionalOperator"), isAbsent());
+
+    // The enum parameter may get unboxed.
+    MethodSubject m =
+        clazz.uniqueMethodWithName(
+            parameters.isCfRuntime() ? "moreControlFlows" : "moreControlFlows$enumunboxing$");
     assertTrue(m.isPresent());
 
     // Verify that a.b() is resolved to an inline instance-get.
     Iterator<InstructionSubject> iterator = m.iterateInstructions();
     int instanceGetCount = 0;
     int invokeCount = 0;
-    while (iterator.hasNext()) {
-      InstructionSubject instruction = iterator.next();
-      if (instruction.isInstanceGet()) {
-        ++instanceGetCount;
-      } else if (instruction.isInvoke()) {
-        ++invokeCount;
-      }
-    }
-    assertEquals(1, instanceGetCount);
-    assertEquals(0, invokeCount);
-
-    // The enum parameter may get unboxed.
-    m =
-        clazz.uniqueMethodWithName(
-            parameters.isCfRuntime() ? "moreControlFlows" : "moreControlFlows$enumunboxing$");
-    assertTrue(m.isPresent());
-
-    // Verify that a.b() is resolved to an inline instance-get.
-    iterator = m.iterateInstructions();
-    instanceGetCount = 0;
-    invokeCount = 0;
     while (iterator.hasNext()) {
       InstructionSubject instruction = iterator.next();
       if (instruction.isInstanceGet()) {

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.google.common.base.Predicates.alwaysTrue;
 
@@ -14,7 +13,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -26,13 +24,10 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
-import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
@@ -44,7 +39,6 @@ import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberRuleReturnValue;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
@@ -216,8 +210,8 @@ public class MemberValuePropagation {
       }
       if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
-        replaceInstructionByInitClassIfPossible(
-            staticGet, staticGet.getField().holder, code, iterator, code.context());
+        iterator.replaceCurrentInstructionByInitClassIfPossible(
+            appView, code, staticGet.getField().holder);
       }
       replacement.setPosition(position);
       if (block.hasCatchHandlers()) {
@@ -236,16 +230,12 @@ public class MemberValuePropagation {
       ListIterator<BasicBlock> blocks,
       InstructionListIterator iterator,
       InvokeMethod invoke) {
+    if (invoke.hasUnusedOutValue()) {
+      return;
+    }
+
     DexMethod invokedMethod = invoke.getInvokedMethod();
-    if (invokedMethod.proto.returnType.isVoidType()) {
-      return;
-    }
-
-    if (!invoke.hasOutValue() || !invoke.outValue().hasNonDebugUsers()) {
-      return;
-    }
-
-    DexType invokedHolder = invokedMethod.holder;
+    DexType invokedHolder = invokedMethod.getHolderType();
     if (!invokedHolder.isClassType()) {
       return;
     }
@@ -302,10 +292,10 @@ public class MemberValuePropagation {
         invoke.setOutValue(null);
 
         if (invoke.isInvokeMethodWithReceiver()) {
-          replaceInstructionByNullCheckIfPossible(invoke, iterator, context);
+          iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, context);
         } else if (invoke.isInvokeStatic()) {
-          replaceInstructionByInitClassIfPossible(
-              invoke, singleTarget.getHolderType(), code, iterator, context);
+          iterator.replaceCurrentInstructionByInitClassIfPossible(
+              appView, code, singleTarget.getHolderType());
         }
 
         // Insert the definition of the replacement.
@@ -404,11 +394,11 @@ public class MemberValuePropagation {
         // To preserve side effects, original field-get is replaced by an explicit null-check, if
         // the field-get instruction may only fail with an NPE, or the field-get remains as-is.
         if (current.isInstanceGet()) {
-          replaceInstructionByNullCheckIfPossible(current, iterator, context);
+          iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, context);
         } else {
           assert current.isStaticGet();
-          replaceInstructionByInitClassIfPossible(
-              current, target.getHolderType(), code, iterator, context);
+          iterator.replaceCurrentInstructionByInitClassIfPossible(
+              appView, code, target.getHolderType());
         }
 
         // Insert the definition of the replacement.
@@ -426,58 +416,6 @@ public class MemberValuePropagation {
     }
   }
 
-  private void replaceInstructionByNullCheckIfPossible(
-      Instruction instruction, InstructionListIterator iterator, ProgramMethod context) {
-    assert instruction.isInstanceFieldInstruction() || instruction.isInvokeMethodWithReceiver();
-    assert !instruction.hasOutValue() || !instruction.outValue().hasAnyUsers();
-    if (instruction.instructionMayHaveSideEffects(
-        appView, context, Instruction.SideEffectAssumption.RECEIVER_NOT_NULL)) {
-      return;
-    }
-    Value receiver =
-        instruction.isInstanceFieldInstruction()
-            ? instruction.asInstanceFieldInstruction().object()
-            : instruction.asInvokeMethodWithReceiver().getReceiver();
-    if (receiver.isNeverNull()) {
-      iterator.removeOrReplaceByDebugLocalRead();
-      return;
-    }
-    InvokeMethod replacement;
-    if (appView.options().canUseRequireNonNull()) {
-      DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
-      replacement = new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(receiver));
-    } else {
-      DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
-      replacement = new InvokeVirtual(getClassMethod, null, ImmutableList.of(receiver));
-    }
-    iterator.replaceCurrentInstruction(replacement);
-  }
-
-  private void replaceInstructionByInitClassIfPossible(
-      Instruction instruction,
-      DexType holder,
-      IRCode code,
-      InstructionListIterator iterator,
-      ProgramMethod context) {
-    assert instruction.isStaticFieldInstruction() || instruction.isInvokeStatic();
-    if (instruction.instructionMayHaveSideEffects(
-        appView, context, Instruction.SideEffectAssumption.CLASS_ALREADY_INITIALIZED)) {
-      return;
-    }
-    if (!holder.classInitializationMayHaveSideEffectsInContext(appView, context)) {
-      iterator.removeOrReplaceByDebugLocalRead();
-      return;
-    }
-    if (!appView.canUseInitClass()) {
-      return;
-    }
-    DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(holder));
-    if (clazz != null) {
-      Value dest = code.createValue(TypeElement.getInt());
-      iterator.replaceCurrentInstruction(new InitClass(dest, clazz.type));
-    }
-  }
-
   private void replaceInstancePutByNullCheckIfNeverRead(
       IRCode code, InstructionListIterator iterator, InstancePut current) {
     DexEncodedField field = appView.appInfo().resolveField(current.getField()).getResolvedField();
@@ -492,7 +430,7 @@ public class MemberValuePropagation {
       return;
     }
 
-    replaceInstructionByNullCheckIfPossible(current, iterator, code.context());
+    iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, code.context());
   }
 
   private void replaceStaticPutByInitClassIfNeverRead(
@@ -509,8 +447,7 @@ public class MemberValuePropagation {
       return;
     }
 
-    replaceInstructionByInitClassIfPossible(
-        current, field.getHolderType(), code, iterator, code.context());
+    iterator.replaceCurrentInstructionByInitClassIfPossible(appView, code, field.getHolderType());
   }
 
   /**

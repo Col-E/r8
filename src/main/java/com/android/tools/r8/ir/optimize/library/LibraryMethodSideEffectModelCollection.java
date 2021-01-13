@@ -38,7 +38,10 @@ public class LibraryMethodSideEffectModelCollection {
         ImmutableMap.<DexMethod, BiPredicate<DexMethod, List<Value>>>builder()
             .put(
                 dexItemFactory.stringMembers.constructor,
-                (method, arguments) -> arguments.get(1).isNeverNull());
+                (method, arguments) -> arguments.get(1).isNeverNull())
+            .put(
+                dexItemFactory.stringMembers.valueOf,
+                (method, arguments) -> arguments.get(0).isNeverNull());
     putAll(
         builder,
         dexItemFactory.stringBufferMethods.constructorMethods,

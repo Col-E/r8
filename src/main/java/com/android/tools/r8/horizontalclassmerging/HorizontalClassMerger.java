@@ -155,7 +155,7 @@ public class HorizontalClassMerger {
         new AllInstantiatedOrUninstantiated(appView),
         new SameParentClass(),
         new SameNestHost(),
-        new PreserveMethodCharacteristics(),
+        new PreserveMethodCharacteristics(appView),
         new SameFeatureSplit(appView),
         new RespectPackageBoundaries(appView),
         new DontMergeSynchronizedClasses(appView),
