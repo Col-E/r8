@@ -87,7 +87,7 @@ public class MainDexListOutputTest extends TestBase {
                     .assertErrorsMatch(
                         diagnosticMessage(
                             containsString(
-                                "--main-dex-list-output require --main-dex-rules and/or"
+                                "--main-dex-list-output requires --main-dex-rules and/or"
                                     + " --main-dex-list"))));
   }
 
