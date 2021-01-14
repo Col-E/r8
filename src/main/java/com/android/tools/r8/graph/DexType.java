@@ -312,6 +312,8 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     return false
         // Hygienic suffix.
         || name.contains(COMPANION_CLASS_NAME_SUFFIX)
+        || name.contains(ENUM_UNBOXING_UTILITY_CLASS_SUFFIX)
+        || name.contains(SyntheticArgumentClass.SYNTHETIC_CLASS_SUFFIX)
         // New and hygienic synthesis infrastructure.
         || SyntheticNaming.isSyntheticName(name)
         // Only generated in core lib.
@@ -331,9 +333,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   private static boolean isSynthesizedTypeThatCouldBeDuplicated(String name) {
     // Any entry that is removed from here must be added to OLD_SYNTHESIZED_NAMES to ensure that
     // newer releases can be used to merge previous builds.
-    return name.contains(ENUM_UNBOXING_UTILITY_CLASS_SUFFIX) // Shared among enums.
-        || name.contains(SyntheticArgumentClass.SYNTHETIC_CLASS_SUFFIX)
-        || name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
+    return name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
         || name.contains(DISPATCH_CLASS_NAME_SUFFIX) // Shared on reference.
         || name.contains(OutlineOptions.CLASS_NAME) // Global singleton.
         || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME) // Global singleton.
