@@ -1280,6 +1280,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean enable = true;
     public boolean enableConstructorMerging = true;
+    // TODO(b/174809311): Update or remove the option and its tests after new lambdas synthetics.
     public boolean enableJavaLambdaMerging = false;
     public boolean enableKotlinLambdaMerging = true;
 
@@ -1472,6 +1473,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean disableMappingToOriginalProgramVerification = false;
     public boolean allowInvalidCfAccessFlags =
         System.getProperty("com.android.tools.r8.allowInvalidCfAccessFlags") != null;
+
+    public boolean allowConflictingSyntheticTypes = false;
 
     // Flag to allow processing of resources in D8. A data resource consumer still needs to be
     // specified.

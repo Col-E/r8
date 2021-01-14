@@ -62,12 +62,7 @@ public class LambdaReturnTypeBridgeTest extends TestBase {
             codeInspector -> {
               boolean foundBridge = false;
               for (FoundClassSubject clazz : codeInspector.allClasses()) {
-                if (clazz
-                    .getOriginalName()
-                    .contains(
-                        "-$$Lambda$"
-                            + LambdaWithMultipleImplementingInterfaces.class.getSimpleName()
-                            + "$")) {
+                if (clazz.isSynthesizedJavaLambdaClass()) {
                   // Find bridge method and check whether or not it has a cast.
                   for (FoundMethodSubject bridge : clazz.allMethods(FoundMethodSubject::isBridge)) {
                     foundBridge = true;

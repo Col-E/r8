@@ -13,9 +13,10 @@ import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
-import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
-import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -93,12 +94,13 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
         for (String descriptor : descriptors) {
           // classes are either lambda classes used by the main class, companion classes of the main
           // interface, the main class/interface, or for JDK9, desugaring of try-with-resources.
+          ClassReference reference = Reference.classFromDescriptor(descriptor);
           Assert.assertTrue(
-              descriptor.contains(LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX)
-                  || descriptor.endsWith(InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX + ";")
+              descriptor.endsWith(InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX + ";")
                   || descriptor.endsWith(InterfaceMethodRewriter.DISPATCH_CLASS_NAME_SUFFIX + ";")
                   || descriptor.equals(TwrCloseResourceRewriter.UTILITY_CLASS_DESCRIPTOR)
-                  || descriptor.contains(SyntheticItems.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR)
+                  || SyntheticItemsTestUtils.isExternalLambda(reference)
+                  || SyntheticItemsTestUtils.isExternalStaticInterfaceCall(reference)
                   || descriptor.equals(mainClassDescriptor));
         }
         String classDescriptor =

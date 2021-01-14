@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
-import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -322,8 +321,8 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
     Set<String> expectedTypes = Sets.newHashSet("java.lang.StringBuilder");
     expectedTypes.addAll(
         inspector.allClasses().stream()
+            .filter(FoundClassSubject::isSynthesizedJavaLambdaClass)
             .map(FoundClassSubject::getFinalName)
-            .filter(name -> name.contains(LAMBDA_CLASS_NAME_PREFIX))
             .collect(Collectors.toList()));
     assertEquals(expectedTypes, collectTypes(clazz.uniqueMethodWithName("testStatefulLambda")));
     assertTrue(

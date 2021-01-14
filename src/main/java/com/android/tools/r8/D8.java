@@ -271,6 +271,9 @@ public final class D8 {
         if (result != null) {
           appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexClasses()));
           appView.pruneItems(result.prunedItems);
+          if (result.lens != null) {
+            appView.setGraphLens(result.lens);
+          }
         }
         new CfApplicationWriter(
                 appView,
@@ -315,6 +318,9 @@ public final class D8 {
         if (result != null) {
           appView.setAppInfo(new AppInfo(result.commit, appView.appInfo().getMainDexClasses()));
           appView.pruneItems(result.prunedItems);
+          if (result.lens != null) {
+            appView.setGraphLens(result.lens);
+          }
         }
 
         new ApplicationWriter(

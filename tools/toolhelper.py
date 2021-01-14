@@ -27,6 +27,10 @@ def run(tool, args, build=None, debug=True,
   cmd.append(jdk.GetJavaExecutable())
   if extra_args:
     cmd.extend(extra_args)
+  agent, args = extract_debug_agent_from_args(args)
+  if agent:
+    cmd.append(
+        '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005')
   if debug:
     cmd.append('-ea')
   if profile:
@@ -103,3 +107,13 @@ def extract_lib_from_args(input_args):
     else:
       args.append(arg)
   return lib, args
+
+def extract_debug_agent_from_args(input_args):
+  agent = False
+  args = []
+  for arg in input_args:
+    if arg in ('--debug-agent', '--debug_agent'):
+      agent = True
+    else:
+      args.append(arg)
+  return agent, args

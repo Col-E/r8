@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.backports;
 
-import static com.android.tools.r8.synthesis.SyntheticItems.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -25,11 +24,11 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -56,11 +55,6 @@ public class BackportMainDexTest extends TestBase {
 
   static final List<Class<?>> MAIN_DEX_LIST_CLASSES =
       ImmutableList.of(MiniAssert.class, TestClass.class, User2.class);
-
-  static final String SyntheticUnderUser1 =
-      User1.class.getTypeName() + EXTERNAL_SYNTHETIC_CLASS_SEPARATOR;
-  static final String SyntheticUnderUser2 =
-      User2.class.getTypeName() + EXTERNAL_SYNTHETIC_CLASS_SEPARATOR;
 
   private final TestParameters parameters;
 
@@ -341,16 +335,16 @@ public class BackportMainDexTest extends TestBase {
   private ImmutableSet<MethodReference> getNonMainDexExpectedSynthetics()
       throws NoSuchMethodException {
     return ImmutableSet.of(
-        SyntheticItemsTestUtils.syntheticMethod(
+        SyntheticItemsTestUtils.syntheticBackportMethod(
             User1.class, 1, Boolean.class.getMethod("compare", boolean.class, boolean.class)));
   }
 
   private ImmutableSet<MethodReference> getMainDexExpectedSynthetics()
       throws NoSuchMethodException {
     return ImmutableSet.of(
-        SyntheticItemsTestUtils.syntheticMethod(
+        SyntheticItemsTestUtils.syntheticBackportMethod(
             User1.class, 0, Character.class.getMethod("compare", char.class, char.class)),
-        SyntheticItemsTestUtils.syntheticMethod(
+        SyntheticItemsTestUtils.syntheticBackportMethod(
             User2.class, 0, Integer.class.getMethod("compare", int.class, int.class)));
   }
 

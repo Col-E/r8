@@ -9,7 +9,6 @@ import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.DISPATCH_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
-import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX;
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
 import static com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator.ENUM_UNBOXING_UTILITY_CLASS_SUFFIX;
 
@@ -21,7 +20,7 @@ import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
@@ -42,7 +41,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   // Bundletool is merging classes that may originate from a build with an old version of R8.
   // Allow merging of classes that use names from older versions of R8.
   private static List<String> OLD_SYNTHESIZED_NAMES =
-      ImmutableList.of("$r8$backportedMethods$utility", "$r8$java8methods$utility");
+      ImmutableList.of("$r8$backportedMethods$utility", "$r8$java8methods$utility", "-$$Lambda$");
 
   public final DexString descriptor;
   private String toStringCache = null;
@@ -303,22 +302,15 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   }
 
   // TODO(b/158159959): Remove usage of name-based identification.
-  public boolean isD8R8SynthesizedLambdaClassType() {
-    String name = toSourceString();
-    return name.contains(LAMBDA_CLASS_NAME_PREFIX);
-  }
-
-  // TODO(b/158159959): Remove usage of name-based identification.
   public boolean isD8R8SynthesizedClassType() {
     String name = toSourceString();
     // The synthesized classes listed here must always be unique to a program context and thus
     // never duplicated for distinct inputs.
-    return
-    // Hygienic suffix.
-    name.contains(COMPANION_CLASS_NAME_SUFFIX)
+    return false
+        // Hygienic suffix.
+        || name.contains(COMPANION_CLASS_NAME_SUFFIX)
         // New and hygienic synthesis infrastructure.
-        || name.contains(SyntheticItems.INTERNAL_SYNTHETIC_CLASS_SEPARATOR)
-        || name.contains(SyntheticItems.EXTERNAL_SYNTHETIC_CLASS_SEPARATOR)
+        || SyntheticNaming.isSyntheticName(name)
         // Only generated in core lib.
         || name.contains(EMULATE_LIBRARY_CLASS_NAME_SUFFIX)
         || name.contains(TYPE_WRAPPER_SUFFIX)
@@ -338,7 +330,6 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     // newer releases can be used to merge previous builds.
     return name.contains(ENUM_UNBOXING_UTILITY_CLASS_SUFFIX) // Shared among enums.
         || name.contains(SyntheticArgumentClass.SYNTHETIC_CLASS_SUFFIX)
-        || name.contains(LAMBDA_CLASS_NAME_PREFIX) // Could collide.
         || name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
         || name.contains(DISPATCH_CLASS_NAME_SUFFIX) // Shared on reference.
         || name.contains(OutlineOptions.CLASS_NAME) // Global singleton.

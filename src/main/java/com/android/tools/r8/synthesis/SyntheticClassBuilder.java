@@ -33,8 +33,10 @@ public class SyntheticClassBuilder {
 
   private DexType superType;
   private DexTypeList interfaces = DexTypeList.empty();
-
-  private int nextMethodId = 0;
+  private List<DexEncodedField> staticFields = new ArrayList<>();
+  private List<DexEncodedField> instanceFields = new ArrayList<>();
+  private List<DexEncodedMethod> directMethods = new ArrayList<>();
+  private List<DexEncodedMethod> virtualMethods = new ArrayList<>();
   private List<SyntheticMethodBuilder> methods = new ArrayList<>();
 
   SyntheticClassBuilder(DexType type, SynthesizingContext context, DexItemFactory factory) {
@@ -52,12 +54,40 @@ public class SyntheticClassBuilder {
     return type;
   }
 
-  private String getNextMethodName() {
-    return SyntheticItems.INTERNAL_SYNTHETIC_METHOD_PREFIX + nextMethodId++;
+  public SyntheticClassBuilder setInterfaces(List<DexType> interfaces) {
+    this.interfaces =
+        interfaces.isEmpty()
+            ? DexTypeList.empty()
+            : new DexTypeList(interfaces.toArray(DexType.EMPTY_ARRAY));
+    return this;
+  }
+
+  public SyntheticClassBuilder setStaticFields(List<DexEncodedField> fields) {
+    staticFields.clear();
+    staticFields.addAll(fields);
+    return this;
+  }
+
+  public SyntheticClassBuilder setInstanceFields(List<DexEncodedField> fields) {
+    instanceFields.clear();
+    instanceFields.addAll(fields);
+    return this;
+  }
+
+  public SyntheticClassBuilder setDirectMethods(Iterable<DexEncodedMethod> methods) {
+    directMethods.clear();
+    methods.forEach(directMethods::add);
+    return this;
+  }
+
+  public SyntheticClassBuilder setVirtualMethods(Iterable<DexEncodedMethod> methods) {
+    virtualMethods.clear();
+    methods.forEach(virtualMethods::add);
+    return this;
   }
 
   public SyntheticClassBuilder addMethod(Consumer<SyntheticMethodBuilder> fn) {
-    SyntheticMethodBuilder method = new SyntheticMethodBuilder(this, getNextMethodName());
+    SyntheticMethodBuilder method = new SyntheticMethodBuilder(this);
     fn.accept(method);
     methods.add(method);
     return this;
@@ -65,35 +95,27 @@ public class SyntheticClassBuilder {
 
   DexProgramClass build() {
     ClassAccessFlags accessFlags =
-        ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
+        ClassAccessFlags.fromSharedAccessFlags(
+            Constants.ACC_FINAL | Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
     Kind originKind = null;
     DexString sourceFile = null;
     NestHostClassAttribute nestHost = null;
     List<NestMemberClassAttribute> nestMembers = Collections.emptyList();
     EnclosingMethodAttribute enclosingMembers = null;
     List<InnerClassAttribute> innerClasses = Collections.emptyList();
-    DexEncodedField[] staticFields = DexEncodedField.EMPTY_ARRAY;
-    DexEncodedField[] instanceFields = DexEncodedField.EMPTY_ARRAY;
-    DexEncodedMethod[] directMethods = DexEncodedMethod.EMPTY_ARRAY;
-    DexEncodedMethod[] virtualMethods = DexEncodedMethod.EMPTY_ARRAY;
-    assert !methods.isEmpty();
-    List<DexEncodedMethod> directs = new ArrayList<>(methods.size());
-    List<DexEncodedMethod> virtuals = new ArrayList<>(methods.size());
     for (SyntheticMethodBuilder builder : methods) {
       DexEncodedMethod method = builder.build();
       if (method.isNonPrivateVirtualMethod()) {
-        virtuals.add(method);
+        virtualMethods.add(method);
       } else {
-        directs.add(method);
+        directMethods.add(method);
       }
     }
-    if (!directs.isEmpty()) {
-      directMethods = directs.toArray(new DexEncodedMethod[directs.size()]);
-    }
-    if (!virtuals.isEmpty()) {
-      virtualMethods = virtuals.toArray(new DexEncodedMethod[virtuals.size()]);
-    }
-    long checksum = 7 * (long) directs.hashCode() + 11 * (long) virtuals.hashCode();
+    long checksum =
+        7 * (long) directMethods.hashCode()
+            + 11 * (long) virtualMethods.hashCode()
+            + 13 * (long) staticFields.hashCode()
+            + 17 * (long) instanceFields.hashCode();
     return new DexProgramClass(
         type,
         originKind,
@@ -108,10 +130,10 @@ public class SyntheticClassBuilder {
         innerClasses,
         ClassSignature.noSignature(),
         DexAnnotationSet.empty(),
-        staticFields,
-        instanceFields,
-        directMethods,
-        virtualMethods,
+        staticFields.toArray(new DexEncodedField[staticFields.size()]),
+        instanceFields.toArray(new DexEncodedField[instanceFields.size()]),
+        directMethods.toArray(new DexEncodedMethod[directMethods.size()]),
+        virtualMethods.toArray(new DexEncodedMethod[virtualMethods.size()]),
         factory.getSkipNameValidationForTesting(),
         c -> checksum);
   }

@@ -285,6 +285,7 @@ public class CfInstructionSubject implements InstructionSubject {
         && ((CfInvoke) instruction).getOpcode() == Opcodes.INVOKESPECIAL;
   }
 
+  @Override
   public boolean isInvokeDynamic() {
     return instruction instanceof CfInvokeDynamic;
   }
