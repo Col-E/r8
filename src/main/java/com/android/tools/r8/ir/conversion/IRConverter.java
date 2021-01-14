@@ -240,7 +240,9 @@ public class IRConverter {
           new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS);
       this.backportedMethodRewriter = new BackportedMethodRewriter(appView);
       this.twrCloseResourceRewriter =
-          enableTwrCloseResourceDesugaring() ? new TwrCloseResourceRewriter(appView, this) : null;
+          TwrCloseResourceRewriter.enableTwrCloseResourceDesugaring(appView.options())
+              ? new TwrCloseResourceRewriter(appView)
+              : null;
       this.d8NestBasedAccessDesugaring =
           options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
       this.lambdaMerger = null;
@@ -274,8 +276,9 @@ public class IRConverter {
             ? new InterfaceMethodRewriter(appView, this)
             : null;
     this.twrCloseResourceRewriter =
-        (options.desugarState == DesugarState.ON && enableTwrCloseResourceDesugaring())
-            ? new TwrCloseResourceRewriter(appView, this)
+        (TwrCloseResourceRewriter.enableTwrCloseResourceDesugaring(options)
+                && !appView.enableWholeProgramOptimizations())
+            ? new TwrCloseResourceRewriter(appView)
             : null;
     this.backportedMethodRewriter =
         (options.desugarState == DesugarState.ON && !appView.enableWholeProgramOptimizations())
@@ -382,20 +385,6 @@ public class IRConverter {
     this(AppView.createForD8(appInfo), timing, printer, MainDexTracingResult.NONE);
   }
 
-  private boolean enableTwrCloseResourceDesugaring() {
-    return enableTryWithResourcesDesugaring() && !options.canUseTwrCloseResourceMethod();
-  }
-
-  private boolean enableTryWithResourcesDesugaring() {
-    switch (options.tryWithResourcesDesugaring) {
-      case Off:
-        return false;
-      case Auto:
-        return !options.canUseSuppressedExceptions();
-    }
-    throw new Unreachable();
-  }
-
   private void removeLambdaDeserializationMethods() {
     if (lambdaRewriter != null) {
       lambdaRewriter.removeLambdaDeserializationMethods(appView.appInfo().classes());
@@ -441,11 +430,9 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeTwrCloseResourceUtilityClass(
-      Builder<?> builder, ExecutorService executorService)
-      throws ExecutionException {
+  private void processTwrCloseResourceUtilityMethods() {
     if (twrCloseResourceRewriter != null) {
-      twrCloseResourceRewriter.synthesizeUtilityClass(builder, executorService, options);
+      twrCloseResourceRewriter.processSynthesizedMethods(this);
     }
   }
 
@@ -525,6 +512,7 @@ public class IRConverter {
 
     // Synthesize lambda classes and commit to the app in full.
     synthesizeLambdaClasses(executor);
+    processTwrCloseResourceUtilityMethods();
     if (appView.getSyntheticItems().hasPendingSyntheticClasses()) {
       appView.setAppInfo(
           new AppInfo(
@@ -536,7 +524,6 @@ public class IRConverter {
     }
 
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
-    synthesizeTwrCloseResourceUtilityClass(builder, executor);
     processSynthesizedJava8UtilityClasses(executor);
     synthesizeRetargetClass(builder, executor);
     synthesizeInvokeSpecialBridges(executor);
@@ -823,7 +810,6 @@ public class IRConverter {
     feedback.updateVisibleOptimizationInfo();
 
     printPhase("Utility classes synthesis");
-    synthesizeTwrCloseResourceUtilityClass(builder, executorService);
     processSynthesizedJava8UtilityClasses(executorService);
     synthesizeRetargetClass(builder, executorService);
     synthesizeEnumUnboxingUtilityMethods(executorService);
@@ -1495,7 +1481,7 @@ public class IRConverter {
     deadCodeRemover.run(code, timing);
     assert code.isConsistentSSA();
 
-    if (options.desugarState == DesugarState.ON && enableTryWithResourcesDesugaring()) {
+    if (options.desugarState == DesugarState.ON && options.enableTryWithResourcesDesugaring()) {
       timing.begin("Rewrite Throwable suppresed methods");
       codeRewriter.rewriteThrowableAddAndGetSuppressed(code);
       timing.end();
@@ -1582,7 +1568,7 @@ public class IRConverter {
 
     if (twrCloseResourceRewriter != null) {
       timing.begin("Rewrite TWR close");
-      twrCloseResourceRewriter.rewriteMethodCode(code);
+      twrCloseResourceRewriter.rewriteIR(code);
       timing.end();
     }
 

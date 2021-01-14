@@ -63,6 +63,10 @@ public class SyntheticItemsTestUtils {
         reference, Phase.EXTERNAL, SyntheticKind.STATIC_INTERFACE_CALL);
   }
 
+  public static boolean isExternalTwrCloseMethod(ClassReference reference) {
+    return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, SyntheticKind.TWR_CLOSE_RESOURCE);
+  }
+
   public static Matcher<String> containsInternalSyntheticReference() {
     return containsString(SyntheticNaming.getPhaseSeparator(Phase.INTERNAL));
   }

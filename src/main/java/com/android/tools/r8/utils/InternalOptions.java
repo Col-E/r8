@@ -1606,6 +1606,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return !isDesugaring() || hasMinApi(AndroidApiLevel.K);
   }
 
+  public boolean enableTryWithResourcesDesugaring() {
+    switch (tryWithResourcesDesugaring) {
+      case Off:
+        return false;
+      case Auto:
+        return !canUseSuppressedExceptions();
+    }
+    throw new Unreachable();
+  }
+
   public boolean canUsePrivateInterfaceMethods() {
     return !isDesugaring() || hasMinApi(AndroidApiLevel.N);
   }

@@ -27,7 +27,8 @@ public class SyntheticNaming {
     BACKPORT("Backport", true),
     STATIC_INTERFACE_CALL("StaticInterfaceCall", true),
     TO_STRING_IF_NOT_NULL("ToStringIfNotNull", true),
-    THROW_CCE_IF_NOT_NULL("ThrowCCEIfNotNull", true);
+    THROW_CCE_IF_NOT_NULL("ThrowCCEIfNotNull", true),
+    TWR_CLOSE_RESOURCE("TwrCloseResource", true);
 
     public final String descriptor;
     public final boolean isSingleSyntheticMethod;

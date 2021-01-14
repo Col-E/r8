@@ -67,6 +67,13 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
     registerDesugaredLibraryAPIConverter(method);
   }
 
+  private void registerTwrCloseResourceRewriting(DexMethod method) {
+    if (!needsDesugarging) {
+      needsDesugarging =
+          TwrCloseResourceRewriter.isTwrCloseResourceMethod(method, appView.dexItemFactory());
+    }
+  }
+
   private void registerBackportedMethodRewriting(DexMethod method) {
     if (!needsDesugarging) {
       needsDesugarging = backportedMethodRewriter.needsDesugaring(method);
@@ -98,9 +105,7 @@ class NeedsIRDesugarUseRegistry extends UseRegistry {
 
   @Override
   public void registerInvokeStatic(DexMethod method) {
-    if (!needsDesugarging) {
-      needsDesugarging = TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method, appView);
-    }
+    registerTwrCloseResourceRewriting(method);
     registerBackportedMethodRewriting(method);
     registerLibraryRetargeting(method, false);
     registerInterfaceMethodRewriting(method);

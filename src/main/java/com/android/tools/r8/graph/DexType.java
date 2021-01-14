@@ -17,7 +17,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.horizontalclassmerging.SyntheticArgumentClass;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
-import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticNaming;
@@ -41,7 +40,11 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   // Bundletool is merging classes that may originate from a build with an old version of R8.
   // Allow merging of classes that use names from older versions of R8.
   private static List<String> OLD_SYNTHESIZED_NAMES =
-      ImmutableList.of("$r8$backportedMethods$utility", "$r8$java8methods$utility", "-$$Lambda$");
+      ImmutableList.of(
+          "$r8$backportedMethods$utility",
+          "$r8$java8methods$utility",
+          "$r8$twr$utility",
+          "-$$Lambda$");
 
   public final DexString descriptor;
   private String toStringCache = null;
@@ -333,7 +336,6 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
         || name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
         || name.contains(DISPATCH_CLASS_NAME_SUFFIX) // Shared on reference.
         || name.contains(OutlineOptions.CLASS_NAME) // Global singleton.
-        || name.contains(TwrCloseResourceRewriter.UTILITY_CLASS_NAME) // Global singleton.
         || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME) // Global singleton.
         || name.contains(ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME); // Global singleton.
   }
