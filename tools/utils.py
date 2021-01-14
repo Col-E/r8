@@ -104,6 +104,9 @@ def getAndroidBuildTools():
   version = os.environ.get(ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME, '28.0.3')
   return os.path.join(getAndroidHome(), 'build-tools', version)
 
+def is_python3():
+  return sys.version_info.major == 3
+
 def Print(s, quiet=False):
   if quiet:
     return

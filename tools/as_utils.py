@@ -3,10 +3,17 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+import utils
+
 from distutils.version import LooseVersion
-from HTMLParser import HTMLParser
 import os
 import shutil
+
+if utils.is_python3():
+  from html.parser import HTMLParser
+else:
+  from HTMLParser import HTMLParser
+
 
 def add_r8_dependency(checkout_dir, temp_dir, minified):
   build_file = os.path.join(checkout_dir, 'build.gradle')
