@@ -216,7 +216,16 @@ public final class InterfaceMethodRewriter {
     return emulatedInterfaces.containsKey(itf);
   }
 
-  public boolean needsRewriting(DexMethod method) {
+  public boolean needsRewriting(DexMethod method, boolean isInvokeSuper, AppView<?> appView) {
+    if (isInvokeSuper) {
+      DexClass clazz = appView.appInfo().definitionFor(method.getHolderType());
+      if (clazz != null
+          && clazz.isLibraryClass()
+          && clazz.isInterface()
+          && appView.rewritePrefix.hasRewrittenType(clazz.type, appView)) {
+        return true;
+      }
+    }
     return emulatedMethods.contains(method.getName());
   }
 
