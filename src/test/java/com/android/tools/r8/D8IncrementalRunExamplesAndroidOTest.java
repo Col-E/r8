@@ -96,7 +96,6 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
           ClassReference reference = Reference.classFromDescriptor(descriptor);
           Assert.assertTrue(
               descriptor.endsWith(InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX + ";")
-                  || descriptor.endsWith(InterfaceMethodRewriter.DISPATCH_CLASS_NAME_SUFFIX + ";")
                   || SyntheticItemsTestUtils.isExternalTwrCloseMethod(reference)
                   || SyntheticItemsTestUtils.isExternalLambda(reference)
                   || SyntheticItemsTestUtils.isExternalStaticInterfaceCall(reference)

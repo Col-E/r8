@@ -14,7 +14,6 @@ import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeSuper;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
@@ -27,7 +26,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
@@ -45,7 +43,6 @@ import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
-import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
@@ -360,85 +357,6 @@ public final class InterfaceProcessor {
     }
     long checksum = iface.getChecksum();
     return c -> 7 * checksum;
-  }
-
-  DexProgramClass process(DexLibraryClass iface, Set<DexProgramClass> callers) {
-    assert iface.isInterface();
-
-    // The list of methods to be created in dispatch class.
-    // NOTE: we do NOT check static methods being actually called on the interface against
-    //       static methods actually existing in that interface. It is essential for supporting
-    //       D8 desugaring when each class may be dexed separately since it allows us to assume
-    //       that all synthesized dispatch classes have the same set of methods so we don't
-    //       need to merge them.
-    List<DexEncodedMethod> dispatchMethods = new ArrayList<>();
-
-    // Process public static methods, for each of them create a method dispatching the call to it.
-    for (DexEncodedMethod direct : iface.directMethods()) {
-      MethodAccessFlags originalAccessFlags = direct.accessFlags;
-      if (!originalAccessFlags.isStatic() || !originalAccessFlags.isPublic()) {
-        // We assume only public static methods of library interfaces can be called
-        // from program classes, since there should not be protected or package private
-        // static methods on interfaces.
-        assert !originalAccessFlags.isStatic() || originalAccessFlags.isPrivate();
-        continue;
-      }
-
-      assert !rewriter.factory.isClassConstructor(direct.method);
-
-      DexMethod origMethod = direct.method;
-      DexMethod newMethod = rewriter.staticAsMethodOfDispatchClass(origMethod);
-      // Create a forwarding method to the library static interface method. The method is added
-      // to the dispatch class, however, the targeted method is still on the interface, so the
-      // interface bit should be set to true.
-      ForwardMethodBuilder forwardMethodBuilder =
-          ForwardMethodBuilder.builder(appView.dexItemFactory())
-              .setStaticSource(newMethod)
-              .setStaticTarget(origMethod, true);
-      DexEncodedMethod newEncodedMethod =
-          new DexEncodedMethod(
-              newMethod,
-              MethodAccessFlags.fromSharedAccessFlags(
-                  Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false),
-              MethodTypeSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              ParameterAnnotationsList.empty(),
-              forwardMethodBuilder.build(),
-              true);
-      newEncodedMethod.getMutableOptimizationInfo().markNeverInline();
-      dispatchMethods.add(newEncodedMethod);
-    }
-
-    ClassAccessFlags dispatchClassFlags =
-        ClassAccessFlags.fromSharedAccessFlags(
-            Constants.ACC_PUBLIC | Constants.ACC_FINAL | Constants.ACC_SYNTHETIC);
-
-    // Create dispatch class.
-    DexType dispatchClassType = rewriter.getDispatchClassType(iface.type);
-    DexProgramClass dispatchClass =
-        new DexProgramClass(
-            dispatchClassType,
-            null,
-            new SynthesizedOrigin("interface dispatch", getClass()),
-            dispatchClassFlags,
-            rewriter.factory.objectType,
-            DexTypeList.empty(),
-            iface.sourceFile,
-            null,
-            Collections.emptyList(),
-            null,
-            Collections.emptyList(),
-            ClassSignature.noSignature(),
-            DexAnnotationSet.empty(),
-            DexEncodedField.EMPTY_ARRAY,
-            DexEncodedField.EMPTY_ARRAY,
-            dispatchMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
-            DexEncodedMethod.EMPTY_ARRAY,
-            rewriter.factory.getSkipNameValidationForTesting(),
-            DexProgramClass::checksumFromType,
-            callers);
-    syntheticClasses.put(iface, dispatchClass);
-    return dispatchClass;
   }
 
   private boolean canMoveToCompanionClass(DexEncodedMethod method) {

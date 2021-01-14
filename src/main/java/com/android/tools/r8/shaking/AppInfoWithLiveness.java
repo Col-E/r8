@@ -469,7 +469,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             || getMissingClasses().contains(type)
             // TODO(b/150693139): Remove these exceptions once fixed.
             || InterfaceMethodRewriter.isCompanionClassType(type)
-            || InterfaceMethodRewriter.hasDispatchClassSuffix(type)
             || InterfaceMethodRewriter.isEmulatedLibraryClassType(type)
             || type.toDescriptorString().startsWith("Lj$/$r8$retargetLibraryMember$")
             // TODO(b/150736225): Not sure how to remove these.

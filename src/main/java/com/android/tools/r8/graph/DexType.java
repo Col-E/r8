@@ -7,7 +7,6 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX;
 import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.VIVIFIED_TYPE_WRAPPER_SUFFIX;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
-import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.DISPATCH_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
 import static com.android.tools.r8.ir.optimize.enums.UnboxedEnumMemberRelocator.ENUM_UNBOXING_UTILITY_CLASS_SUFFIX;
@@ -44,6 +43,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
           "$r8$backportedMethods$utility",
           "$r8$java8methods$utility",
           "$r8$twr$utility",
+          "$-DC",
           "-$$Lambda$");
 
   public final DexString descriptor;
@@ -334,7 +334,6 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     // Any entry that is removed from here must be added to OLD_SYNTHESIZED_NAMES to ensure that
     // newer releases can be used to merge previous builds.
     return name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
-        || name.contains(DISPATCH_CLASS_NAME_SUFFIX) // Shared on reference.
         || name.contains(OutlineOptions.CLASS_NAME) // Global singleton.
         || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME) // Global singleton.
         || name.contains(ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME); // Global singleton.

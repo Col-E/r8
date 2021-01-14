@@ -112,7 +112,6 @@ public final class InterfaceMethodRewriter {
 
   // Public for testing.
   public static final String EMULATE_LIBRARY_CLASS_NAME_SUFFIX = "$-EL";
-  public static final String DISPATCH_CLASS_NAME_SUFFIX = "$-DC";
   public static final String COMPANION_CLASS_NAME_SUFFIX = "$-CC";
   public static final String DEFAULT_METHOD_PREFIX = "$default$";
   public static final String PRIVATE_METHOD_PREFIX = "$private$";
@@ -861,15 +860,6 @@ public final class InterfaceMethodRewriter {
     return getCompanionClassType(type, factory);
   }
 
-  // Gets the forwarding class for the interface `type`.
-  final DexType getDispatchClassType(DexType type) {
-    assert type.isClassType();
-    String descriptor = type.descriptor.toString();
-    String dcTypeDescriptor = descriptor.substring(0, descriptor.length() - 1)
-        + DISPATCH_CLASS_NAME_SUFFIX + ";";
-    return factory.createType(dcTypeDescriptor);
-  }
-
   // Checks if `type` is a companion class.
   public static boolean isCompanionClassType(DexType type) {
     return type.descriptor.toString().endsWith(COMPANION_CLASS_NAME_SUFFIX + ";");
@@ -901,16 +891,6 @@ public final class InterfaceMethodRewriter {
   final DexMethod staticAsMethodOfCompanionClass(DexMethod method) {
     // No changes for static methods.
     return factory.createMethod(getCompanionClassType(method.holder), method.proto, method.name);
-  }
-
-  // Represent a static interface method as a method of dispatch class.
-  final DexMethod staticAsMethodOfDispatchClass(DexMethod method) {
-    return factory.createMethod(getDispatchClassType(method.holder), method.proto, method.name);
-  }
-
-  // Checks if the type ends with dispatch class suffix.
-  public static boolean hasDispatchClassSuffix(DexType clazz) {
-    return clazz.getName().endsWith(DISPATCH_CLASS_NAME_SUFFIX);
   }
 
   private static DexMethod instanceAsMethodOfCompanionClass(
