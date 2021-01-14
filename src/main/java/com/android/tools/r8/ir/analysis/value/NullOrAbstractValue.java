@@ -17,15 +17,7 @@ public class NullOrAbstractValue extends AbstractValue {
   }
 
   public static AbstractValue create(AbstractValue value) {
-    if (value.isBottom()
-        || value.isUnknown()
-        || value.isNull()
-        || value.isNullOrAbstractValue()
-        || value.isSingleNumberValue()) {
-      return value;
-    }
-    if (value.isSingleFieldValue()
-        && value.asSingleFieldValue().getField().type.isPrimitiveType()) {
+    if (value.isBottom() || value.isUnknown() || value.isNull() || value.isNullOrAbstractValue()) {
       return value;
     }
     return new NullOrAbstractValue(value);
