@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -1413,10 +1412,7 @@ public final class BackportedMethodRewriter {
               builder ->
                   builder
                       .setProto(getProto(appInfo.dexItemFactory()))
-                      .setAccessFlags(
-                          MethodAccessFlags.fromSharedAccessFlags(
-                              Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC,
-                              false))
+                      .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                       .setCode(
                           methodSig -> generateTemplateMethod(appInfo.app().options, methodSig)));
     }

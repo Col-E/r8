@@ -13,7 +13,6 @@ import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
 
 import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
@@ -404,12 +403,7 @@ public final class InterfaceMethodRewriter {
                     syntheticMethodBuilder ->
                         syntheticMethodBuilder
                             .setProto(invokedMethod.proto)
-                            .setAccessFlags(
-                                MethodAccessFlags.fromSharedAccessFlags(
-                                    Constants.ACC_PUBLIC
-                                        | Constants.ACC_STATIC
-                                        | Constants.ACC_SYNTHETIC,
-                                    false))
+                            .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                             .setCode(
                                 m ->
                                     ForwardMethodBuilder.builder(factory)

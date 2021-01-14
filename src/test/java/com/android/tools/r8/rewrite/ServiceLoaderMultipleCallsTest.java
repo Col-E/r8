@@ -4,11 +4,10 @@
 
 package com.android.tools.r8.rewrite;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataEntryResource;
@@ -20,6 +19,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -109,11 +109,18 @@ public class ServiceLoaderMultipleCallsTest extends TestBase {
             inspector -> {
               // Check that we have actually rewritten the calls to ServiceLoader.load.
               assertEquals(0, getServiceLoaderLoads(inspector, MainRunner.class));
-              // Check that the synthesize service loader class holds two methods, one for each
-              // context.
-              ClassSubject serviceLoaderMethods = inspector.clazz("$$ServiceLoaderMethods");
-              assertThat(serviceLoaderMethods, isPresent());
-              assertEquals(2, serviceLoaderMethods.allMethods().size());
+              // Check the synthesize service loader method is a single shared method.
+              // Due to minification we just check there is only a single synthetic class with a
+              // single static method.
+              boolean found = false;
+              for (FoundClassSubject clazz : inspector.allClasses()) {
+                if (clazz.isSynthetic()) {
+                  assertFalse(found);
+                  found = true;
+                  assertEquals(1, clazz.allMethods().size());
+                  clazz.forAllMethods(m -> assertTrue(m.isStatic()));
+                }
+              }
             });
 
     // Check that we have removed the service configuration from META-INF/services.

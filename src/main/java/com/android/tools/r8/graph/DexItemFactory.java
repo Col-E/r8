@@ -4,7 +4,6 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.ir.analysis.type.ClassTypeElement.computeLeastUpperBoundOfInterfaces;
-import static com.android.tools.r8.ir.optimize.ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
@@ -370,8 +369,6 @@ public class DexItemFactory {
       createStaticallyKnownType(invocationHandlerDescriptor);
   public final DexType proxyType = createStaticallyKnownType(proxyDescriptor);
   public final DexType serviceLoaderType = createStaticallyKnownType(serviceLoaderDescriptor);
-  public final DexType serviceLoaderRewrittenClassType =
-      createStaticallyKnownType("L" + SERVICE_LOADER_CLASS_NAME + ";");
   public final DexType serviceLoaderConfigurationErrorType =
       createStaticallyKnownType(serviceLoaderConfigurationErrorDescriptor);
   public final DexType listType = createStaticallyKnownType(listDescriptor);

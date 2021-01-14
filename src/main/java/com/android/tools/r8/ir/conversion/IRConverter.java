@@ -821,11 +821,9 @@ public class IRConverter {
     printPhase("Desugared library API Conversion finalization");
     generateDesugaredLibraryAPIWrappers(builder, executorService);
 
-    if (serviceLoaderRewriter != null && serviceLoaderRewriter.getSynthesizedClass() != null) {
-      appView.appInfo().addSynthesizedClass(serviceLoaderRewriter.getSynthesizedClass(), true);
+    if (serviceLoaderRewriter != null) {
       processSynthesizedServiceLoaderMethods(
-          serviceLoaderRewriter.getSynthesizedClass(), executorService);
-      builder.addSynthesizedClass(serviceLoaderRewriter.getSynthesizedClass());
+          serviceLoaderRewriter.getServiceLoadMethods(), executorService);
     }
 
     // Update optimization info for all synthesized methods at once.
@@ -966,11 +964,10 @@ public class IRConverter {
   }
 
   private void processSynthesizedServiceLoaderMethods(
-      DexProgramClass synthesizedClass, ExecutorService executorService) throws ExecutionException {
+      List<ProgramMethod> serviceLoadMethods, ExecutorService executorService)
+      throws ExecutionException {
     ThreadUtils.processItems(
-        synthesizedClass::forEachProgramMethod,
-        this::forEachSynthesizedServiceLoaderMethod,
-        executorService);
+        serviceLoadMethods, this::forEachSynthesizedServiceLoaderMethod, executorService);
   }
 
   private void forEachSynthesizedServiceLoaderMethod(ProgramMethod method) {

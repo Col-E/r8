@@ -16,7 +16,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.horizontalclassmerging.SyntheticArgumentClass;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
-import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -44,6 +43,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
           "$r8$java8methods$utility",
           "$r8$twr$utility",
           "$-DC",
+          "$$ServiceLoaderMethods",
           "-$$Lambda$");
 
   public final DexString descriptor;
@@ -335,8 +335,7 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     // newer releases can be used to merge previous builds.
     return name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX) // Could collide.
         || name.contains(OutlineOptions.CLASS_NAME) // Global singleton.
-        || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME) // Global singleton.
-        || name.contains(ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME); // Global singleton.
+        || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME); // Global singleton.
   }
 
   private boolean oldSynthesizedName(String name) {

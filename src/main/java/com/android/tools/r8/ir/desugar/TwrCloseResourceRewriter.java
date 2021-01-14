@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -127,10 +126,7 @@ public final class TwrCloseResourceRewriter {
             appView.dexItemFactory(),
             methodBuilder ->
                 methodBuilder
-                    .setAccessFlags(
-                        MethodAccessFlags.fromSharedAccessFlags(
-                            Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC,
-                            false))
+                    .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setProto(twrCloseResourceProto)
                     .setCode(
                         m ->
