@@ -41,6 +41,8 @@ D8 = 'd8'
 R8 = 'r8'
 R8LIB = 'r8lib'
 R8LIB_NO_DEPS = 'r8LibNoDeps'
+R8RETRACE = 'R8Retrace'
+R8RETRACE_NO_DEPS = 'R8RetraceNoDeps'
 R8_SRC = 'sourceJar'
 LIBRARY_DESUGAR_CONVERSIONS = 'buildLibraryDesugarConversions'
 
@@ -52,6 +54,8 @@ R8LIB_MAP = os.path.join(LIBS, 'r8lib.jar.map')
 R8_SRC_JAR = os.path.join(LIBS, 'r8-src.jar')
 R8LIB_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8lib-exclude-deps.jar')
 R8_FULL_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8-full-exclude-deps.jar')
+R8RETRACE_JAR = os.path.join(LIBS, 'r8retrace.jar')
+R8RETRACE_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8retrace-exclude-deps.jar')
 MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 MAVEN_ZIP_LIB = os.path.join(LIBS, 'r8lib.zip')
 LIBRARY_DESUGAR_CONVERSIONS_ZIP = os.path.join(LIBS, 'library_desugar_conversions.zip')
