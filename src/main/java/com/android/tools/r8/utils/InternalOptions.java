@@ -307,6 +307,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // the actual catch handler allowed when inlining. Threshold found empirically by testing on
   // GMS Core.
   public int inliningControlFlowResolutionBlocksThreshold = 15;
+  public boolean enableSwitchRewriting = true;
   public boolean enableStringSwitchConversion = true;
   public int minimumStringSwitchSize = 3;
   public boolean enableEnumValueOptimization = true;
@@ -1620,6 +1621,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return desugarState == DesugarState.ON
         && interfaceMethodDesugaring == OffOrAuto.Auto
         && !canUseDefaultAndStaticInterfaceMethods();
+  }
+
+  public boolean isSwitchRewritingEnabled() {
+    return enableSwitchRewriting && !debug;
   }
 
   public boolean isStringSwitchConversionEnabled() {

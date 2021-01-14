@@ -445,6 +445,11 @@ public final class D8Command extends BaseCompilerCommand {
     internal.programConsumer = getProgramConsumer();
     if (internal.isGeneratingClassFiles()) {
       internal.cfToCfDesugar = true;
+      // Turn off switch optimizations when desugaring to class file format.
+      assert internal.enableSwitchRewriting;
+      internal.enableSwitchRewriting = false;
+      assert internal.enableStringSwitchConversion;
+      internal.enableStringSwitchConversion = false;
     }
     internal.mainDexListConsumer = getMainDexListConsumer();
     internal.minimalMainDex = internal.debug || minimalMainDex;
