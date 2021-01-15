@@ -45,6 +45,7 @@ import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
@@ -470,8 +471,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             // TODO(b/150693139): Remove these exceptions once fixed.
             || InterfaceMethodRewriter.isCompanionClassType(type)
             || InterfaceMethodRewriter.isEmulatedLibraryClassType(type)
-            || type.toDescriptorString().startsWith("Lj$/$r8$retargetLibraryMember$")
             || TwrCloseResourceRewriter.isUtilityClassDescriptor(type)
+            || DesugaredLibraryRetargeter.isRetargetType(type, options())
             // TODO(b/150736225): Not sure how to remove these.
             || DesugaredLibraryAPIConverter.isVivifiedType(type)
         : "Failed lookup of non-missing type: " + type;
